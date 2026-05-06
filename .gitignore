@@ -8,5 +8,9 @@
 /tmp/
 /vendor/bundle/
 
+# Library projects should not commit Gemfile.lock — it pins default-gem
+# versions to the developer's local Ruby patch level and breaks CI.
+Gemfile.lock
+
 # rspec failure tracking
 .rspec_status

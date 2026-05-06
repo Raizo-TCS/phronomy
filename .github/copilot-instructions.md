@@ -45,7 +45,11 @@
 - Report the cause of test failures before applying corrections
 
 ## Commit Rules (MANDATORY)
-- Always run the full test suite before committing and resolve any failures:
+- **Never run `git commit` or `git push` without explicit user approval.**
+  - Even after tests pass and changes look complete, stop and present the diff/summary to the user, then wait for an instruction such as "commit", "push", "OK", or equivalent before proceeding.
+  - This applies to every commit/push, including follow-up "fix CI" commits.
+  - The user's silence is NOT consent.
+- Always run the full test suite before proposing a commit and resolve any failures:
   ```bash
   bundle exec rspec
   ```
@@ -54,6 +58,13 @@
 - For release/version update commits, always use the `bump ...` style message format (e.g., `bump version to X.Y.Z`).
 - After every commit/push you perform, actively monitor the corresponding GitHub Actions runs and address any resulting errors before moving on to other work.
 - Before pushing new changes, always cancel any currently running workflows for the same branch to save resources and avoid confusion.
+
+## Diagnosis Discipline (MANDATORY)
+- When CI or tests fail, **identify the true root cause before applying fixes.**
+  - Do not narrow supported versions, skip tests, or relax constraints as a shortcut to make CI green.
+  - Examples of unacceptable shortcuts: dropping Ruby versions from a matrix to avoid a lockfile resolution issue, adding broad `rubocop:disable` comments instead of fixing the real style problem, deleting failing tests instead of debugging them.
+  - If the root cause is unclear, report findings and ask the user before changing project-wide constraints (gemspec, CI matrix, public API, etc.).
+- For Ruby gems specifically: `Gemfile.lock` should typically NOT be committed for library projects (it pins default-gem versions to the developer's local Ruby patch level and breaks CI on other patch levels).
 
 ## External Reference Verification
 - When referencing external URLs or web documentation, always use the browser MCP tools to verify content
