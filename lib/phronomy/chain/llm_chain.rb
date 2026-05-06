@@ -10,10 +10,15 @@ module Phronomy
       # @param model [String, nil] model name (nil delegates to RubyLLM default)
       # @param tools [Array] tools available to the chat
       # @param temperature [Float, nil] sampling temperature
-      def initialize(model: nil, tools: [], temperature: nil)
+      # @param provider [Symbol, nil] explicit RubyLLM provider (e.g. :openai).
+      #   When set, assume_model_exists is enabled so custom OpenAI-compatible
+      #   endpoints (LM Studio, Ollama, vLLM, etc.) can be used without the
+      #   provider's model registry rejecting unknown model names.
+      def initialize(model: nil, tools: [], temperature: nil, provider: nil)
         @model = model
         @tools = tools
         @temperature = temperature
+        @provider = provider
       end
 
       # @param input [String, Hash] String or { system:, user: } Hash
@@ -54,6 +59,10 @@ module Phronomy
         opts = {}
         opts[:model] = @model || config[:model] if @model || config[:model]
         opts[:temperature] = @temperature if @temperature
+        if @provider
+          opts[:provider] = @provider
+          opts[:assume_model_exists] = true
+        end
         chat = RubyLLM.chat(**opts)
         @tools.each { |t| chat.with_tool(t) }
         chat

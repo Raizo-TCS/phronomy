@@ -97,6 +97,29 @@ RSpec.describe Phronomy::Chain::LLMChain do
         expect(fake_chat).to have_received(:with_tool).with(tool_b)
       end
     end
+
+    context "with provider option" do
+      it "passes provider to RubyLLM.chat when specified" do
+        chain = described_class.new(model: "openai/gpt-oss-20b", provider: :openai)
+        chain.invoke("hello")
+        expect(RubyLLM).to have_received(:chat).with(hash_including(provider: :openai))
+      end
+
+      it "auto-enables assume_model_exists when provider is given" do
+        chain = described_class.new(model: "openai/gpt-oss-20b", provider: :openai)
+        chain.invoke("hello")
+        expect(RubyLLM).to have_received(:chat).with(hash_including(assume_model_exists: true))
+      end
+
+      it "does not set provider or assume_model_exists when provider is nil" do
+        chain = described_class.new(model: "gpt-4o")
+        chain.invoke("hello")
+        expect(RubyLLM).to have_received(:chat) do |opts|
+          expect(opts).not_to have_key(:provider)
+          expect(opts).not_to have_key(:assume_model_exists)
+        end
+      end
+    end
   end
 
   describe "#stream" do
