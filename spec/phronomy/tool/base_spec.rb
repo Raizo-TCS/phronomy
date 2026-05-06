@@ -116,6 +116,66 @@ RSpec.describe Phronomy::Tool::Base do
     end
   end
 
+  describe ".param with enum:" do
+    let(:enum_tool_class) do
+      Class.new(described_class) do
+        description "Search tool with enum param"
+        param :query, type: :string, desc: "Search query"
+        param :lang,  type: :string, desc: "Language code", required: false,
+                      enum: %w[en ja fr]
+
+        def execute(query:, lang: "en")
+          "#{query} (#{lang})"
+        end
+      end
+    end
+
+    it "stores enum values on the class" do
+      expect(enum_tool_class.param_enums[:lang]).to eq(%w[en ja fr])
+    end
+
+    it "does not store enum for params without enum:" do
+      expect(enum_tool_class.param_enums[:query]).to be_nil
+    end
+
+    describe "#params_schema" do
+      subject(:schema) { enum_tool_class.new.params_schema }
+
+      it "includes enum in the schema for the constrained param" do
+        properties = schema["properties"]
+        expect(properties["lang"]["enum"]).to eq(%w[en ja fr])
+      end
+
+      it "does not add enum to params without enum:" do
+        properties = schema["properties"]
+        expect(properties["query"]).not_to have_key("enum")
+      end
+    end
+
+    it "accepts valid enum values at call time" do
+      result = enum_tool_class.new.call({ "query" => "hello", "lang" => "ja" })
+      expect(result).to eq("hello (ja)")
+    end
+  end
+
+  describe ".param_enums with no enum declarations" do
+    it "returns an empty hash" do
+      klass = Class.new(described_class) do
+        param :input, type: :string, desc: "input"
+      end
+      expect(klass.param_enums).to eq({})
+    end
+
+    it "does not modify params_schema" do
+      klass = Class.new(described_class) do
+        param :input, type: :string, desc: "input"
+        def execute(input:) = input
+      end
+      schema = klass.new.params_schema
+      expect(schema["properties"]["input"]).not_to have_key("enum")
+    end
+  end
+
   describe "RubyLLM::Tool compatibility" do
     it "is a subclass of RubyLLM::Tool" do
       expect(described_class.ancestors).to include(RubyLLM::Tool)
