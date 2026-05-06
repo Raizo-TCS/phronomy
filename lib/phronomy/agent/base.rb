@@ -30,6 +30,14 @@ module Phronomy
           end
         end
 
+        def provider(name = nil)
+          if name
+            @provider = name
+          else
+            @provider
+          end
+        end
+
         def temperature(val = nil)
           if val
             @temperature = val
@@ -101,6 +109,8 @@ module Phronomy
         opts = {}
         m = self.class.model
         opts[:model] = m if m
+        p = self.class.provider
+        opts[:provider] = p if p
         t = self.class.temperature
         opts[:temperature] = t if t
         chat = RubyLLM.chat(**opts)
