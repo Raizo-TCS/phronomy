@@ -12,10 +12,10 @@ RSpec.describe Phronomy::Memory::ActiveRecordMemory do
 
   def make_msg(role, content, tool_calls: nil, model_id: nil)
     double("Message",
-      role:       role,
-      content:    content,
+      role: role,
+      content: content,
       tool_calls: tool_calls,
-      model_id:   model_id)
+      model_id: model_id)
   end
 
   # ---- #save_messages / #load_messages ----------------------------------------

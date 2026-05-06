@@ -29,7 +29,7 @@ module Phronomy
       # @param ttl     [Integer, nil] optional key expiry in seconds
       def initialize(client:, ttl: nil)
         @client = client
-        @ttl    = ttl
+        @ttl = ttl
       end
 
       # Serializes and stores the checkpoint under the thread's key.
@@ -67,7 +67,7 @@ module Phronomy
 
         raw_data = JSON.parse(raw)
         Phronomy::Checkpointer::Checkpoint.new(
-          state:          state,
+          state: state,
           interrupted_at: raw_data["interrupted_at"]&.to_sym,
           completed_node: raw_data["completed_node"]&.to_sym
         )

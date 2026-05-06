@@ -9,8 +9,8 @@ require "phronomy"
 #   - openai/gpt-oss-20b  (chat)
 
 LM_STUDIO_API_BASE = "http://192.168.122.1:1234/v1"
-LM_STUDIO_API_KEY  = "lm-studio"
-LM_STUDIO_MODEL    = "openai/gpt-oss-20b"
+LM_STUDIO_API_KEY = "lm-studio"
+LM_STUDIO_MODEL = "openai/gpt-oss-20b"
 
 RSpec.configure do |config|
   config.disable_monkey_patching!
@@ -22,7 +22,7 @@ RSpec.configure do |config|
   config.before(:suite) do
     RubyLLM.configure do |c|
       c.openai_api_base = LM_STUDIO_API_BASE
-      c.openai_api_key  = LM_STUDIO_API_KEY
+      c.openai_api_key = LM_STUDIO_API_KEY
     end
     # default_model is intentionally left nil so that RubyLLM.chat() is called
     # without a model argument. LM Studio ignores the model name and serves

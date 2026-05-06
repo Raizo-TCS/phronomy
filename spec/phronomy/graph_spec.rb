@@ -6,10 +6,10 @@ require "spec_helper"
 class TestState
   include Phronomy::Graph::State
 
-  field :value,    type: :replace, default: 0
-  field :messages, type: :append,  default: -> { [] }
-  field :metadata, type: :merge,   default: -> { {} }
-  field :step,     type: :replace, default: nil
+  field :value, type: :replace, default: 0
+  field :messages, type: :append, default: -> { [] }
+  field :metadata, type: :merge, default: -> { {} }
+  field :step, type: :replace, default: nil
 end
 
 RSpec.describe Phronomy::Graph::State do
@@ -176,7 +176,7 @@ RSpec.describe Phronomy::Graph::CompiledGraph do
   describe "#invoke" do
     it "executes nodes in order and returns the final state" do
       compiled = build_graph do |g|
-        g.add_node(:double)    { |s| {value: s.value * 2} }
+        g.add_node(:double) { |s| {value: s.value * 2} }
         g.add_node(:increment) { |s| {value: s.value + 1} }
         g.add_edge(:double, :increment)
         g.set_entry_point(:double)
@@ -210,9 +210,9 @@ RSpec.describe Phronomy::Graph::CompiledGraph do
     context "with conditional edges" do
       it "selects the next node based on the condition return value" do
         compiled = build_graph do |g|
-          g.add_node(:check) { |s| {step: s.value > 5 ? :high : :low} }
-          g.add_node(:high)  { |s| {value: 100} }
-          g.add_node(:low)   { |s| {value: 0} }
+          g.add_node(:check) { |s| {step: (s.value > 5) ? :high : :low} }
+          g.add_node(:high) { |s| {value: 100} }
+          g.add_node(:low) { |s| {value: 0} }
           g.add_conditional_edges(:check, ->(s) { s.step })
           g.set_entry_point(:check)
         end

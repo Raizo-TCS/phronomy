@@ -3,8 +3,6 @@
 **Phronomy** is a Ruby AI agent framework inspired by open-source AI agent frameworks.  
 It provides composable building blocks — Chains, Graphs, Agents, Memory, and Multi-agent Crews — all powered by [RubyLLM](https://github.com/crmne/ruby_llm) for LLM abstraction.
 
-> *Phronesis* (φρόνησις) — Aristotle's concept of practical wisdom and sound judgment.
-
 ## Features
 
 - **Chain** — Compose prompt templates, LLM calls, and output parsers into pipelines with `>>`

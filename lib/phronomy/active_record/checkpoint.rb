@@ -10,7 +10,7 @@ module Phronomy
     #   end
     module Checkpoint
       def self.included(base)
-        base.validates :thread_id,  presence: true
+        base.validates :thread_id, presence: true
         base.validates :state_json, presence: true
       end
     end

@@ -53,7 +53,7 @@ RSpec.describe Phronomy::OutputParser::JsonParser do
       end
 
       it "parses array JSON" do
-        result = parser.parse('[1,2,3]')
+        result = parser.parse("[1,2,3]")
         expect(result).to eq([1, 2, 3])
       end
 

@@ -18,10 +18,10 @@ module Phronomy
     # @param context_from [Array<Symbol>] other task roles whose output should be
     #   prepended as context (used by Crew for sequential chaining)
     def initialize(description:, agent_role:, expected_output: nil, context_from: [])
-      @description     = description
-      @agent_role      = agent_role
+      @description = description
+      @agent_role = agent_role
       @expected_output = expected_output
-      @context_from    = Array(context_from)
+      @context_from = Array(context_from)
     end
 
     # Returns the description optionally enriched with context from a previous result.

@@ -52,8 +52,8 @@ module Phronomy
         new_attrs = {}
         self.class.fields.each_key do |name|
           field_config = self.class.fields[name]
-          if updates.key?(name)
-            new_attrs[name] = case field_config[:type]
+          new_attrs[name] = if updates.key?(name)
+            case field_config[:type]
             when :append
               Array(send(name)) + Array(updates[name])
             when :merge
@@ -62,7 +62,7 @@ module Phronomy
               updates[name]
             end
           else
-            new_attrs[name] = send(name)
+            send(name)
           end
         end
         self.class.new(**new_attrs)

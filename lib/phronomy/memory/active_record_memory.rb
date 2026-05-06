@@ -56,11 +56,11 @@ module Phronomy
           model_id = msg.model_id if msg.respond_to?(:model_id)
 
           @model_class.create!(
-            thread_id:       thread_id,
-            role:            msg.role.to_s,
-            content:         msg.content.to_s,
+            thread_id: thread_id,
+            role: msg.role.to_s,
+            content: msg.content.to_s,
             tool_calls_json: tool_calls_json,
-            model_id:        model_id
+            model_id: model_id
           )
         end
       end
@@ -85,18 +85,18 @@ module Phronomy
           end
         end
         OpenStruct.new(
-          role:       record.role.to_sym,
-          content:    record.content,
+          role: record.role.to_sym,
+          content: record.content,
           tool_calls: tool_calls,
-          model_id:   record.respond_to?(:model_id) ? record.model_id : nil
+          model_id: record.respond_to?(:model_id) ? record.model_id : nil
         )
       end
 
       def restore_tool_call(tc)
         return tc unless tc.is_a?(Hash) && tc["id"] && tc["name"]
         RubyLLM::ToolCall.new(
-          id:        tc["id"],
-          name:      tc["name"],
+          id: tc["id"],
+          name: tc["name"],
           arguments: tc["arguments"] || {}
         )
       end

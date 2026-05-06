@@ -59,7 +59,7 @@ module Phronomy
         # Run input guardrails before touching the LLM.
         run_input_guardrails!(input)
 
-        memory    = config[:memory]
+        memory = config[:memory]
         thread_id = config[:thread_id]
 
         chat = build_chat

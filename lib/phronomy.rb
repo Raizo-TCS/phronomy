@@ -19,6 +19,7 @@ module Phronomy
   class Error < StandardError; end
   class ParseError < Error; end
   class RecursionLimitError < Error; end
+
   class Interrupt < Error
     attr_reader :node, :state
 
@@ -28,8 +29,10 @@ module Phronomy
       @state = state
     end
   end
+
   class CheckpointError < Error; end
   class ToolError < Error; end
+
   class GuardrailError < Error
     attr_reader :guardrail
 

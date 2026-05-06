@@ -26,16 +26,16 @@ module Phronomy
       def serialize_state(state)
         JSON.generate(
           state_class: state.class.name,
-          state_data:  json_safe(state.to_h)
+          state_data: json_safe(state.to_h)
         )
       end
 
       # Deserializes state_data JSON back into state field values.
       # Symbolizes keys so Phronomy::Graph::State field names resolve correctly.
       def deserialize_state_data(json_str)
-        data        = JSON.parse(json_str, symbolize_names: true)
+        data = JSON.parse(json_str, symbolize_names: true)
         state_class = Object.const_get(data[:state_class])
-        state_data  = symbolize_keys(data[:state_data])
+        state_data = symbolize_keys(data[:state_data])
         [state_class, state_data]
       end
 
@@ -58,7 +58,7 @@ module Phronomy
       # Recursively symbolize hash keys for State struct reconstruction.
       def symbolize_keys(obj)
         case obj
-        when Hash  then obj.transform_keys(&:to_sym).transform_values { |v| symbolize_keys(v) }
+        when Hash then obj.transform_keys(&:to_sym).transform_values { |v| symbolize_keys(v) }
         when Array then obj.map { |v| symbolize_keys(v) }
         else obj
         end

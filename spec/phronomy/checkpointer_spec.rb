@@ -5,6 +5,7 @@ require "spec_helper"
 # State class for testing
 class CheckpointState
   include Phronomy::Graph::State
+
   field :value, type: :replace, default: 0
 end
 

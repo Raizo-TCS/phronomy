@@ -33,9 +33,9 @@ module Phronomy
       def save(thread_id, state, interrupted_at: nil, completed_node: nil)
         json = serialize_state(state)
         record = @model_class.find_or_initialize_by(thread_id: thread_id)
-        record.state_json      = json
-        record.interrupted_at  = interrupted_at&.to_s
-        record.completed_node  = completed_node&.to_s
+        record.state_json = json
+        record.interrupted_at = interrupted_at&.to_s
+        record.completed_node = completed_node&.to_s
         record.save!
         self
       end
@@ -64,7 +64,7 @@ module Phronomy
         state = state_class.new(**state_data)
 
         Phronomy::Checkpointer::Checkpoint.new(
-          state:          state,
+          state: state,
           interrupted_at: record.interrupted_at&.to_sym,
           completed_node: record.completed_node&.to_sym
         )

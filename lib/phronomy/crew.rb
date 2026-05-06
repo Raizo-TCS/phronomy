@@ -27,8 +27,8 @@ module Phronomy
     # @param tasks [Array<Phronomy::Task>]
     # @param process [Symbol] :sequential (default) or :hierarchical
     def initialize(agents:, tasks:, process: :sequential)
-      @agents  = agents
-      @tasks   = tasks
+      @agents = agents
+      @tasks = tasks
       @process = process
     end
 
@@ -38,8 +38,8 @@ module Phronomy
     # @return [Array<Hash>] array of { output:, messages: } results, one per task
     def kickoff(inputs = {})
       case @process
-      when :sequential    then run_sequential(inputs)
-      when :hierarchical  then run_hierarchical(inputs)
+      when :sequential then run_sequential(inputs)
+      when :hierarchical then run_hierarchical(inputs)
       else
         raise ArgumentError, "Unknown process type: #{@process.inspect}. Use :sequential or :hierarchical."
       end
@@ -56,7 +56,7 @@ module Phronomy
         raise ArgumentError, "No agent found for role :#{task.agent_role}" unless agent
 
         message = task.description_with_context(context)
-        result  = agent.invoke(message)
+        result = agent.invoke(message)
         context = context.merge(previous_output: result[:output])
         results << result
       end

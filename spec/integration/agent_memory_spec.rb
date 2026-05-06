@@ -18,12 +18,12 @@ RSpec.describe "Agent memory integration", :integration do
 
       agent.invoke(
         "My name is Alice. Just say 'Got it.'",
-        config: { thread_id: "mem-t1", memory: memory }
+        config: {thread_id: "mem-t1", memory: memory}
       )
 
       result = agent.invoke(
         "What is my name? Reply with only the name.",
-        config: { thread_id: "mem-t1", memory: memory }
+        config: {thread_id: "mem-t1", memory: memory}
       )
 
       expect(result[:output].downcase).to include("alice")
@@ -48,20 +48,20 @@ RSpec.describe "Agent memory integration", :integration do
 
       agent.invoke(
         "My favourite colour is red. Just say 'Got it.'",
-        config: { thread_id: "mem-colour-a", memory: memory }
+        config: {thread_id: "mem-colour-a", memory: memory}
       )
       agent.invoke(
         "My favourite colour is blue. Just say 'Got it.'",
-        config: { thread_id: "mem-colour-b", memory: memory }
+        config: {thread_id: "mem-colour-b", memory: memory}
       )
 
       result_a = agent.invoke(
         "What is my favourite colour? Reply with only the colour name.",
-        config: { thread_id: "mem-colour-a", memory: memory }
+        config: {thread_id: "mem-colour-a", memory: memory}
       )
       result_b = agent.invoke(
         "What is my favourite colour? Reply with only the colour name.",
-        config: { thread_id: "mem-colour-b", memory: memory }
+        config: {thread_id: "mem-colour-b", memory: memory}
       )
 
       expect(result_a[:output].downcase).to include("red")
@@ -99,12 +99,12 @@ RSpec.describe "Agent memory integration", :integration do
 
       agent.invoke(
         "What is 10 plus 5? Use the calculator tool.",
-        config: { thread_id: "react-mem-t1", memory: memory }
+        config: {thread_id: "react-mem-t1", memory: memory}
       )
 
       result = agent.invoke(
         "What was the result of the calculation you just did? Reply with only the number.",
-        config: { thread_id: "react-mem-t1", memory: memory }
+        config: {thread_id: "react-mem-t1", memory: memory}
       )
 
       expect(result[:output]).to include("15")

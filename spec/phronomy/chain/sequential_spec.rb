@@ -7,13 +7,14 @@ RSpec.describe Phronomy::Chain::Sequential do
   def make_step(transform)
     Class.new do
       include Phronomy::Runnable
+
       define_method(:invoke) { |input, config: {}| transform.call(input) }
     end.new
   end
 
-  let(:double_step)    { make_step(->(x) { x * 2 }) }
+  let(:double_step) { make_step(->(x) { x * 2 }) }
   let(:increment_step) { make_step(->(x) { x + 1 }) }
-  let(:to_s_step)      { make_step(->(x) { x.to_s }) }
+  let(:to_s_step) { make_step(->(x) { x.to_s }) }
 
   subject(:seq) { described_class.new([double_step, increment_step]) }
 
@@ -29,6 +30,7 @@ RSpec.describe Phronomy::Chain::Sequential do
       cfg = {foo: :bar}
       step = Class.new do
         include Phronomy::Runnable
+
         attr_reader :last_config
         def invoke(input, config: {})
           @last_config = config
@@ -56,7 +58,9 @@ RSpec.describe Phronomy::Chain::Sequential do
     it "streams only the last step and yields each chunk" do
       streaming_step = Class.new do
         include Phronomy::Runnable
+
         def invoke(input, config: {}) = input.upcase
+
         def stream(input, config: {}, &block)
           input.chars.each { |c| block.call(c) }
           input.upcase
@@ -77,13 +81,25 @@ RSpec.describe Phronomy::Chain::Sequential do
 
       step_a = Class.new do
         include Phronomy::Runnable
-        define_method(:invoke) { |input, config: {}| call_order << :a; input + 10 }
+
+        define_method(:invoke) { |input, config: {}|
+          call_order << :a
+          input + 10
+        }
       end.new
 
       step_b = Class.new do
         include Phronomy::Runnable
-        define_method(:invoke) { |input, config: {}| call_order << :b; input.to_s }
-        define_method(:stream) { |input, config: {}, &block| call_order << :b_stream; block&.call(input.to_s); input.to_s }
+
+        define_method(:invoke) { |input, config: {}|
+          call_order << :b
+          input.to_s
+        }
+        define_method(:stream) { |input, config: {}, &block|
+          call_order << :b_stream
+          block&.call(input.to_s)
+          input.to_s
+        }
       end.new
 
       described_class.new([step_a, step_b]).stream(5) { |_| }

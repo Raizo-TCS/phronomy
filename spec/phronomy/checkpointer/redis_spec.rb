@@ -34,14 +34,15 @@ end
 # State class used throughout these specs.
 class RedisCheckpointState
   include Phronomy::Graph::State
-  field :count,    type: :replace, default: 0
-  field :label,    type: :replace, default: nil
-  field :messages, type: :append,  default: -> { [] }
+
+  field :count, type: :replace, default: 0
+  field :label, type: :replace, default: nil
+  field :messages, type: :append, default: -> { [] }
 end
 
 RSpec.describe Phronomy::Checkpointer::Redis do
   let(:redis_client) { FakeRedisClient.new }
-  subject(:cp)       { described_class.new(client: redis_client) }
+  subject(:cp) { described_class.new(client: redis_client) }
 
   let(:state) { RedisCheckpointState.new(count: 5, label: "active") }
 

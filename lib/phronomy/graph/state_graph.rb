@@ -5,7 +5,7 @@ module Phronomy
     # Declarative agent workflow definition class.
     # Assembles nodes and edges, then returns an executable CompiledGraph via compile.
     class StateGraph
-      START  = :__start__
+      START = :__start__
       FINISH = :__end__
 
       attr_reader :nodes, :edges, :entry_point
@@ -74,9 +74,7 @@ module Phronomy
         )
       end
 
-      def conditional_edges
-        @conditional_edges
-      end
+      attr_reader :conditional_edges
     end
   end
 end

@@ -6,9 +6,9 @@ module Phronomy
     # Repeats the LLM <-> Tool loop until no more tool calls are made.
     class ReactAgent < Base
       def invoke(input, config: {})
-        memory    = config[:memory]
+        memory = config[:memory]
         thread_id = config[:thread_id]
-        max_iter  = self.class.max_iterations
+        max_iter = self.class.max_iterations
 
         # Seed with persisted messages when memory is provided.
         initial_messages = if memory && thread_id
@@ -17,13 +17,13 @@ module Phronomy
           []
         end
 
-        messages   = initial_messages.dup
+        messages = initial_messages.dup
         user_asked = false
 
         max_iter.times do
-          response   = step(messages, input, user_asked: user_asked)
+          response = step(messages, input, user_asked: user_asked)
           user_asked = true
-          messages   = response[:messages]
+          messages = response[:messages]
           break if response[:done]
         end
 

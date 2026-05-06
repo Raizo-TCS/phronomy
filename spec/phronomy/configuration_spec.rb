@@ -51,7 +51,7 @@ RSpec.describe Phronomy::Configuration do
     end
 
     it "sets a Proc as interrupt_handler" do
-      handler = ->(node, state) { nil }
+      handler = ->(node, state) {}
       config.interrupt_handler = handler
       expect(config.interrupt_handler).to eq(handler)
     end

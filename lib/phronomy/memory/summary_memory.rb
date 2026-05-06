@@ -49,9 +49,9 @@ module Phronomy
         recent_messages = messages[-keep..]
 
         opts = {}
-        opts[:model]                = @summarizer_model    if @summarizer_model
-        opts[:provider]             = @summarizer_provider if @summarizer_provider
-        opts[:assume_model_exists]  = true                 if @summarizer_provider
+        opts[:model] = @summarizer_model if @summarizer_model
+        opts[:provider] = @summarizer_provider if @summarizer_provider
+        opts[:assume_model_exists] = true if @summarizer_provider
         chat = RubyLLM.chat(**opts)
         summary_text = chat.ask(
           "Please summarize the following conversation concisely:\n" +

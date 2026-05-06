@@ -131,17 +131,17 @@ RSpec.describe Phronomy::Agent::Base do
       end
 
       it "loads previous messages from memory before asking" do
-        agent.invoke("Hello", config: { thread_id: "t1", memory: memory })
+        agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
         expect(memory).to have_received(:load_messages).with(thread_id: "t1")
       end
 
       it "injects the loaded message into the chat" do
-        agent.invoke("Hello", config: { thread_id: "t1", memory: memory })
+        agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
         expect(fake_chat.messages).to include(prev_msg)
       end
 
       it "saves updated messages back to memory after invoke" do
-        agent.invoke("Hello", config: { thread_id: "t1", memory: memory })
+        agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
         expect(memory).to have_received(:save_messages).with(
           thread_id: "t1",
           messages: fake_chat.messages
@@ -149,13 +149,13 @@ RSpec.describe Phronomy::Agent::Base do
       end
 
       it "skips memory when config has no thread_id" do
-        agent.invoke("Hello", config: { memory: memory })
+        agent.invoke("Hello", config: {memory: memory})
         expect(memory).not_to have_received(:load_messages)
         expect(memory).not_to have_received(:save_messages)
       end
 
       it "skips memory when config has no memory" do
-        agent.invoke("Hello", config: { thread_id: "t1" })
+        agent.invoke("Hello", config: {thread_id: "t1"})
         # no error is raised — memory is simply not used
       end
     end
@@ -280,8 +280,8 @@ RSpec.describe Phronomy::Agent::ReactAgent do
       model "test-model"
     end
 
-    let(:prev_msg)   { double("PrevMessage", role: :user,      content: "prev",  tool_calls: nil) }
-    let(:reply_msg)  { double("ReplyMessage", role: :assistant, content: "reply", tool_calls: nil) }
+    let(:prev_msg) { double("PrevMessage", role: :user, content: "prev", tool_calls: nil) }
+    let(:reply_msg) { double("ReplyMessage", role: :assistant, content: "reply", tool_calls: nil) }
 
     # A self-contained chat double that already supports all ReactAgent step interactions.
     let(:mem_chat) do
@@ -316,18 +316,18 @@ RSpec.describe Phronomy::Agent::ReactAgent do
     subject(:agent) { MemoryReactAgent.new }
 
     it "loads previous messages from memory before invoking" do
-      agent.invoke("Hello", config: { thread_id: "t1", memory: memory })
+      agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
       expect(memory).to have_received(:load_messages).with(thread_id: "t1")
     end
 
     it "injects the loaded message into the chat before asking" do
-      agent.invoke("Hello", config: { thread_id: "t1", memory: memory })
+      agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
       # prev_msg was seeded → step called continue (messages.any?) → reply_msg added
       expect(mem_chat.messages).to include(prev_msg)
     end
 
     it "saves final messages back to memory after completing" do
-      result = agent.invoke("Hello", config: { thread_id: "t1", memory: memory })
+      result = agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
       expect(memory).to have_received(:save_messages).with(
         thread_id: "t1",
         messages: result[:messages]
@@ -335,7 +335,7 @@ RSpec.describe Phronomy::Agent::ReactAgent do
     end
 
     it "skips memory when no thread_id is provided" do
-      agent.invoke("Hello", config: { memory: memory })
+      agent.invoke("Hello", config: {memory: memory})
       expect(memory).not_to have_received(:load_messages)
       expect(memory).not_to have_received(:save_messages)
     end

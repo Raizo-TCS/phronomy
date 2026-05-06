@@ -114,7 +114,8 @@ RSpec.describe "Agent::Base guardrail integration" do
   describe "multiple guardrails" do
     it "runs all input guardrails in order and raises on the first failure" do
       g1 = Class.new(Phronomy::Guardrail::InputGuardrail) do
-        def check(v); end
+        def check(v)
+        end
       end.new
       g2 = Class.new(Phronomy::Guardrail::InputGuardrail) do
         def check(v)

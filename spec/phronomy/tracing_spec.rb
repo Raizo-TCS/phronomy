@@ -34,7 +34,7 @@ RSpec.describe Phronomy::Tracing::Base do
 
     it "calls finish_span with the error when the block raises" do
       expect {
-        tracer.trace("failing") { raise RuntimeError, "boom" }
+        tracer.trace("failing") { raise "boom" }
       }.to raise_error(RuntimeError, "boom")
 
       expect(tracer.finished[:error]).to be_a(RuntimeError)
@@ -107,6 +107,7 @@ RSpec.describe "Runnable#trace helper" do
   let(:runnable) do
     Class.new do
       include Phronomy::Runnable
+
       def invoke(input, config: {}) = input.upcase
     end.new
   end
@@ -116,7 +117,10 @@ RSpec.describe "Runnable#trace helper" do
   it "delegates to the configured tracer" do
     spans = []
     spy_tracer = Class.new(Phronomy::Tracing::Base) do
-      define_method(:start_span) { |name, **| spans << name; Object.new }
+      define_method(:start_span) { |name, **|
+        spans << name
+        Object.new
+      }
       define_method(:finish_span) { |*| nil }
     end.new
 

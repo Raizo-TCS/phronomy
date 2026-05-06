@@ -13,7 +13,7 @@ RSpec.describe "Chain pipeline integration", :integration do
     end
 
     it "expands the template and returns a response from LM Studio" do
-      result = chain.invoke({ country: "France" })
+      result = chain.invoke({country: "France"})
       expect(result).to be_a(String)
       expect(result).not_to be_empty
       expect(result.downcase).to include("paris")
@@ -25,7 +25,7 @@ RSpec.describe "Chain pipeline integration", :integration do
       prompt = Phronomy::Chain::PromptTemplate.new(
         template: 'Return ONLY valid JSON with two keys: "number" (integer 42) and "word" (string "hello"). No explanation.'
       )
-      llm    = Phronomy::Chain::LLMChain.new
+      llm = Phronomy::Chain::LLMChain.new
       parser = Phronomy::OutputParser::JsonParser.new
       prompt >> llm >> parser
     end

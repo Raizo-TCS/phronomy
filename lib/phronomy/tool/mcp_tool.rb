@@ -32,7 +32,7 @@ module Phronomy
         # @return [McpTool] a configured subclass instance ready for use with an Agent
         def from_server(server_uri, tool_name:)
           transport = build_transport(server_uri)
-          tool_def  = transport.fetch_tool(tool_name)
+          tool_def = transport.fetch_tool(tool_name)
           build_tool_class(tool_name, tool_def, transport).new
         end
 
@@ -86,12 +86,12 @@ module Phronomy
         def fetch_tool(tool_name)
           response = rpc_call("tools/list", {})
           tools = response.dig("result", "tools") || []
-          defn  = tools.find { |t| t["name"] == tool_name }
+          defn = tools.find { |t| t["name"] == tool_name }
           raise ArgumentError, "Tool #{tool_name.inspect} not found on MCP server #{@command.inspect}" unless defn
 
           {
             description: defn["description"],
-            parameters:  parse_schema_params(defn.dig("inputSchema", "properties") || {})
+            parameters: parse_schema_params(defn.dig("inputSchema", "properties") || {})
           }
         end
 
@@ -101,12 +101,12 @@ module Phronomy
         # @return [Object] the tool result
         def call_tool(tool_name, args)
           response = rpc_call("tools/call", {name: tool_name, arguments: args})
-          content  = response.dig("result", "content")
+          content = response.dig("result", "content")
 
           # MCP content is an array of content blocks; extract text blocks.
           if content.is_a?(Array)
             texts = content.select { |c| c["type"] == "text" }.map { |c| c["text"] }
-            texts.length == 1 ? texts.first : texts
+            (texts.length == 1) ? texts.first : texts
           else
             content
           end
@@ -125,8 +125,8 @@ module Phronomy
         def parse_schema_params(properties)
           properties.map do |name, schema|
             {
-              name:        name.to_s,
-              type:        schema["type"] || "string",
+              name: name.to_s,
+              type: schema["type"] || "string",
               description: schema["description"].to_s
             }
           end

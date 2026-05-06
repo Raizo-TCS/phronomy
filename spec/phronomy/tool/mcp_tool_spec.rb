@@ -19,7 +19,7 @@ RSpec.describe Phronomy::Tool::McpTool do
         instance_double(Phronomy::Tool::McpTool::StdioTransport).tap do |t|
           allow(t).to receive(:fetch_tool).with("search_web").and_return(
             description: "Search the web",
-            parameters:  [
+            parameters: [
               {name: "query", type: "string", description: "Search query"},
               {name: "limit", type: "integer", description: "Max results"}
             ]
@@ -70,9 +70,9 @@ RSpec.describe Phronomy::Tool::McpTool do
       it "parses parameters from the server response" do
         schema = {
           "jsonrpc" => "2.0", "id" => 1,
-          "result"  => {
+          "result" => {
             "tools" => [{
-              "name"        => "search",
+              "name" => "search",
               "description" => "Search tool",
               "inputSchema" => {
                 "properties" => {
@@ -95,7 +95,7 @@ RSpec.describe Phronomy::Tool::McpTool do
       it "extracts text from MCP content blocks" do
         response = {
           "jsonrpc" => "2.0", "id" => 1,
-          "result"  => {
+          "result" => {
             "content" => [{"type" => "text", "text" => "hello"}]
           }
         }

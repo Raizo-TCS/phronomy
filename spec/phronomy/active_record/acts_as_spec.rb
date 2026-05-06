@@ -12,9 +12,11 @@ RSpec.describe Phronomy::ActiveRecord::ActsAs do
     let(:model_class) do
       Class.new do
         # Minimal stand-in for ActiveRecord validations.
-        def self.validates(attr, **opts); end
+        def self.validates(attr, **opts)
+        end
 
         include Phronomy::ActiveRecord::ActsAs
+
         acts_as_phronomy_checkpoint
       end
     end
@@ -44,9 +46,11 @@ RSpec.describe Phronomy::ActiveRecord::ActsAs do
   describe "acts_as_phronomy_message" do
     let(:model_class) do
       Class.new do
-        def self.validates(attr, **opts); end
+        def self.validates(attr, **opts)
+        end
 
         include Phronomy::ActiveRecord::ActsAs
+
         acts_as_phronomy_message
       end
     end

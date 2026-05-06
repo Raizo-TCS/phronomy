@@ -12,15 +12,15 @@ RSpec.describe "SummaryMemory integration", :integration do
 
     let(:messages) do
       [
-        msg(:user,      "Tell me about the history of ancient Rome."),
+        msg(:user, "Tell me about the history of ancient Rome."),
         msg(:assistant, "Ancient Rome was a civilization that grew out of the city-state of Rome."),
-        msg(:user,      "Who was Julius Caesar?"),
+        msg(:user, "Who was Julius Caesar?"),
         msg(:assistant, "Julius Caesar was a Roman general and statesman."),
-        msg(:user,      "What happened at the Ides of March?"),
+        msg(:user, "What happened at the Ides of March?"),
         msg(:assistant, "On March 15, 44 BC, Julius Caesar was assassinated by senators."),
-        msg(:user,      "Who succeeded Caesar?"),
+        msg(:user, "Who succeeded Caesar?"),
         msg(:assistant, "Augustus became the first Roman emperor after the civil wars."),
-        msg(:user,      "What is the last topic we discussed?"),
+        msg(:user, "What is the last topic we discussed?")
       ]
     end
 

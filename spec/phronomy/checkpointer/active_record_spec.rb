@@ -6,9 +6,10 @@ require_relative "../../support/active_record_setup"
 # State class used throughout these specs.
 class ArCheckpointState
   include Phronomy::Graph::State
-  field :score,    type: :replace, default: 0
-  field :label,    type: :replace, default: nil
-  field :messages, type: :append,  default: -> { [] }
+
+  field :score, type: :replace, default: 0
+  field :label, type: :replace, default: nil
+  field :messages, type: :append, default: -> { [] }
 end
 
 RSpec.describe Phronomy::Checkpointer::ActiveRecord do

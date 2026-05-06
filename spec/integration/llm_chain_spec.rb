@@ -15,7 +15,7 @@ RSpec.describe "LLMChain integration", :integration do
 
   describe "#invoke with a Hash input (user key)" do
     it "sends the user message and returns a String response" do
-      result = chain.invoke({ user: "Reply with only the word: PONG" })
+      result = chain.invoke({user: "Reply with only the word: PONG"})
       expect(result).to be_a(String)
       expect(result).not_to be_empty
     end

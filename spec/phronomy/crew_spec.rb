@@ -5,10 +5,10 @@ require "spec_helper"
 RSpec.describe Phronomy::Task do
   subject(:task) do
     described_class.new(
-      description:     "Do the research",
-      agent_role:      :researcher,
+      description: "Do the research",
+      agent_role: :researcher,
       expected_output: "A list",
-      context_from:    [:planner]
+      context_from: [:planner]
     )
   end
 
@@ -45,20 +45,20 @@ RSpec.describe Phronomy::Crew do
   end
 
   let(:researcher) { make_agent("research result") }
-  let(:writer)     { make_agent("written article") }
+  let(:writer) { make_agent("written article") }
 
   let(:tasks) do
     [
       Phronomy::Task.new(description: "Research topic", agent_role: :researcher),
-      Phronomy::Task.new(description: "Write article",  agent_role: :writer)
+      Phronomy::Task.new(description: "Write article", agent_role: :writer)
     ]
   end
 
   describe "#kickoff with :sequential process" do
     subject(:crew) do
       described_class.new(
-        agents:  {researcher: researcher, writer: writer},
-        tasks:   tasks,
+        agents: {researcher: researcher, writer: writer},
+        tasks: tasks,
         process: :sequential
       )
     end
@@ -87,7 +87,7 @@ RSpec.describe Phronomy::Crew do
     it "raises ArgumentError when an agent role is missing" do
       crew_missing = described_class.new(
         agents: {researcher: researcher}, # no :writer
-        tasks:  tasks
+        tasks: tasks
       )
       expect { crew_missing.kickoff }.to raise_error(ArgumentError, /writer/)
     end
@@ -98,8 +98,8 @@ RSpec.describe Phronomy::Crew do
 
     subject(:crew) do
       described_class.new(
-        agents:  {manager: manager, researcher: researcher},
-        tasks:   tasks,
+        agents: {manager: manager, researcher: researcher},
+        tasks: tasks,
         process: :hierarchical
       )
     end
@@ -112,8 +112,8 @@ RSpec.describe Phronomy::Crew do
 
     it "raises ArgumentError when no :manager agent is present" do
       crew_no_manager = described_class.new(
-        agents:  {researcher: researcher},
-        tasks:   tasks,
+        agents: {researcher: researcher},
+        tasks: tasks,
         process: :hierarchical
       )
       expect { crew_no_manager.kickoff }.to raise_error(ArgumentError, /manager/)
