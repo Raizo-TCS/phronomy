@@ -120,9 +120,9 @@ RSpec.describe Phronomy::Tool::Base do
     let(:multi_param_tool_class) do
       Class.new(described_class) do
         description "Multi-param tool"
-        param :city,    type: :string,  desc: "City name"
-        param :country, type: :string,  desc: "Country code"
-        param :limit,   type: :integer, desc: "Result limit", required: false
+        param :city, type: :string, desc: "City name"
+        param :country, type: :string, desc: "Country code"
+        param :limit, type: :integer, desc: "Result limit", required: false
 
         def execute(city:, country:, limit: 10)
           "#{city}, #{country} (limit: #{limit})"
@@ -140,12 +140,12 @@ RSpec.describe Phronomy::Tool::Base do
     end
 
     it "passes all required arguments to execute" do
-      result = multi_param_tool_class.new.call({ "city" => "Tokyo", "country" => "JP" })
+      result = multi_param_tool_class.new.call({"city" => "Tokyo", "country" => "JP"})
       expect(result).to eq("Tokyo, JP (limit: 10)")
     end
 
     it "passes all arguments including optional ones to execute" do
-      result = multi_param_tool_class.new.call({ "city" => "Paris", "country" => "FR", "limit" => "5" })
+      result = multi_param_tool_class.new.call({"city" => "Paris", "country" => "FR", "limit" => "5"})
       expect(result).to eq("Paris, FR (limit: 5)")
     end
   end
@@ -155,8 +155,8 @@ RSpec.describe Phronomy::Tool::Base do
       Class.new(described_class) do
         description "Search tool with enum param"
         param :query, type: :string, desc: "Search query"
-        param :lang,  type: :string, desc: "Language code", required: false,
-                      enum: %w[en ja fr]
+        param :lang, type: :string, desc: "Language code", required: false,
+          enum: %w[en ja fr]
 
         def execute(query:, lang: "en")
           "#{query} (#{lang})"
@@ -187,7 +187,7 @@ RSpec.describe Phronomy::Tool::Base do
     end
 
     it "accepts valid enum values at call time" do
-      result = enum_tool_class.new.call({ "query" => "hello", "lang" => "ja" })
+      result = enum_tool_class.new.call({"query" => "hello", "lang" => "ja"})
       expect(result).to eq("hello (ja)")
     end
   end

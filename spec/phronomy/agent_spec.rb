@@ -219,7 +219,7 @@ RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
     it "stores the aliases" do
       agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
       agent_class.tools(tool_a => "alpha", tool_b => nil)
-      expect(agent_class.tool_aliases).to eq({ tool_a => "alpha" })
+      expect(agent_class.tool_aliases).to eq({tool_a => "alpha"})
     end
 
     it "registers tools with aliased anonymous subclasses when an alias is given" do
