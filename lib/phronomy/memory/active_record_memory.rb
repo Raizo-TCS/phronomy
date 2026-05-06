@@ -43,7 +43,10 @@ module Phronomy
         @model_class.where(thread_id: thread_id).delete_all
         messages.each do |msg|
           tool_calls_json = if msg.respond_to?(:tool_calls) && msg.tool_calls
-            JSON.generate(msg.tool_calls)
+            serializable = msg.tool_calls.transform_values do |tc|
+              tc.respond_to?(:to_h) ? tc.to_h : tc
+            end
+            JSON.generate(serializable)
           end
           model_id = msg.model_id if msg.respond_to?(:model_id)
 
@@ -65,7 +68,17 @@ module Phronomy
       private
 
       def to_message_struct(record)
-        tool_calls = record.tool_calls_json ? JSON.parse(record.tool_calls_json) : nil
+        tool_calls = if record.tool_calls_json
+          parsed = JSON.parse(record.tool_calls_json)
+          parsed.transform_values do |tc|
+            next tc unless tc.is_a?(Hash)
+            RubyLLM::ToolCall.new(
+              id:        tc["id"],
+              name:      tc["name"],
+              arguments: tc["arguments"] || {}
+            )
+          end
+        end
         OpenStruct.new(
           role:       record.role.to_sym,
           content:    record.content,
