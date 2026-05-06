@@ -14,7 +14,7 @@ Gem::Specification.new do |spec|
                      "Powered by ruby_llm for LLM abstraction."
   spec.homepage = "https://github.com/Raizo-TCS/phronomy"
   spec.license = "MIT"
-  spec.required_ruby_version = ">= 3.2.0"
+  spec.required_ruby_version = ">= 3.3.0"
   spec.metadata["allowed_push_host"] = "https://rubygems.org"
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/Raizo-TCS/phronomy"
