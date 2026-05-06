@@ -75,6 +75,15 @@ RSpec.describe Phronomy::Chain::PromptTemplate do
         results = pt.batch([{name: "Alice"}, {name: "Bob"}])
         expect(results.map { |r| r[:user] }).to eq(["Hello, Alice!", "Hello, Bob!"])
       end
+
+      it "wraps invoke with a tracing span named 'prompt_template'" do
+        tracer = Phronomy.configuration.tracer
+        allow(tracer).to receive(:trace).and_call_original
+
+        pt.invoke({name: "World"})
+
+        expect(tracer).to have_received(:trace).with("prompt_template", input: {name: "World"})
+      end
     end
   end
 

@@ -19,11 +19,13 @@ module Phronomy
       # @param input [Hash] template variables
       # @return [Hash] { system: String, user: String } (nil fields omitted)
       def invoke(input, config: {})
-        vars = input.is_a?(Hash) ? input : {}
-        result = {}
-        result[:system] = render(@system_template, vars) if @system_template
-        result[:user] = render(@template, vars) if @template
-        result
+        trace("prompt_template", input: input) do
+          vars = input.is_a?(Hash) ? input : {}
+          result = {}
+          result[:system] = render(@system_template, vars) if @system_template
+          result[:user] = render(@template, vars) if @template
+          result
+        end
       end
 
       # Builds an instance by loading templates from files.

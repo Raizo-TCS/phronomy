@@ -24,33 +24,37 @@ module Phronomy
       # @param input [String, Hash] String or { system:, user: } Hash
       # @return [String] LLM response text
       def invoke(input, config: {})
-        chat = build_chat(config)
+        trace("llm_chain", input: input) do
+          chat = build_chat(config)
 
-        response = case input
-        when String
-          chat.ask(input)
-        when Hash
-          chat.with_instructions(input[:system]) if input[:system]
-          chat.ask(input[:user] || input[:message])
+          response = case input
+          when String
+            chat.ask(input)
+          when Hash
+            chat.with_instructions(input[:system]) if input[:system]
+            chat.ask(input[:user] || input[:message])
+          end
+
+          response.content
         end
-
-        response.content
       end
 
       # @param input [String, Hash] same format as invoke
       # @yield [String] streaming chunk
       def stream(input, config: {}, &block)
-        chat = build_chat(config)
+        trace("llm_chain", input: input) do
+          chat = build_chat(config)
 
-        response = case input
-        when String
-          chat.ask(input, &block)
-        when Hash
-          chat.with_instructions(input[:system]) if input[:system]
-          chat.ask(input[:user] || input[:message], &block)
+          response = case input
+          when String
+            chat.ask(input, &block)
+          when Hash
+            chat.with_instructions(input[:system]) if input[:system]
+            chat.ask(input[:user] || input[:message], &block)
+          end
+
+          response.content
         end
-
-        response.content
       end
 
       private

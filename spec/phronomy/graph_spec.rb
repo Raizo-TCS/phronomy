@@ -207,6 +207,33 @@ RSpec.describe Phronomy::Graph::CompiledGraph do
       expect(compiled.invoke({})).to be_a(TestState)
     end
 
+    it "accepts a State instance returned from a node" do
+      compiled = build_graph do |g|
+        g.add_node(:double) { |s| s.merge(value: s.value * 2) }
+        g.set_entry_point(:double)
+      end
+
+      expect(compiled.invoke({value: 4}).value).to eq(8)
+    end
+
+    it "treats a nil return as no-op" do
+      compiled = build_graph do |g|
+        g.add_node(:noop) { |_s| nil }
+        g.set_entry_point(:noop)
+      end
+
+      expect(compiled.invoke({value: 7}).value).to eq(7)
+    end
+
+    it "raises ArgumentError when a node returns an unsupported type" do
+      compiled = build_graph do |g|
+        g.add_node(:bad) { |_s| "oops" }
+        g.set_entry_point(:bad)
+      end
+
+      expect { compiled.invoke({}) }.to raise_error(ArgumentError, /returned String/)
+    end
+
     context "with conditional edges" do
       it "selects the next node based on the condition return value" do
         compiled = build_graph do |g|

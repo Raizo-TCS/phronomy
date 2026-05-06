@@ -93,8 +93,15 @@ module Phronomy
           node_fn = @nodes[current_node]
           raise ArgumentError, "Node #{current_node} is not defined" unless node_fn
 
-          updates = node_fn.call(state)
-          state = state.merge(updates) if updates.is_a?(Hash)
+          result = node_fn.call(state)
+          state = case result
+          when Hash then state.merge(result)
+          when @state_class then result
+          when nil then state
+          else
+            raise ArgumentError,
+              "Node #{current_node} returned #{result.class}; expected Hash, #{@state_class}, or nil"
+          end
 
           @checkpointer&.save(thread_id, state, completed_node: current_node)
 

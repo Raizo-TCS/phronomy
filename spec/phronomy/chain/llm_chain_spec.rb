@@ -162,5 +162,14 @@ RSpec.describe Phronomy::Chain::LLMChain do
       pipeline = chain >> other
       expect(pipeline).to be_a(Phronomy::Chain::Sequential)
     end
+
+    it "wraps invoke with a tracing span named 'llm_chain'" do
+      tracer = Phronomy.configuration.tracer
+      allow(tracer).to receive(:trace).and_call_original
+
+      chain.invoke("Hi")
+
+      expect(tracer).to have_received(:trace).with("llm_chain", input: "Hi")
+    end
   end
 end
