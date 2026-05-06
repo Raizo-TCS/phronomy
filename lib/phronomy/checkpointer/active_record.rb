@@ -59,33 +59,15 @@ module Phronomy
 
       private
 
-      def serialize_state(state)
-        JSON.generate(
-          state_class: state.class.name,
-          state_data:  state.to_h
-        )
-      end
-
       def deserialize_checkpoint(record)
-        data        = JSON.parse(record.state_json, symbolize_names: true)
-        state_class = Object.const_get(data[:state_class])
-        # Symbolize nested keys so field names resolve correctly.
-        state_data  = symbolize_keys(data[:state_data])
-        state       = state_class.new(**state_data)
+        state_class, state_data = deserialize_state_data(record.state_json)
+        state = state_class.new(**state_data)
 
         Phronomy::Checkpointer::Checkpoint.new(
           state:          state,
           interrupted_at: record.interrupted_at&.to_sym,
           completed_node: record.completed_node&.to_sym
         )
-      end
-
-      def symbolize_keys(obj)
-        case obj
-        when Hash  then obj.transform_keys(&:to_sym).transform_values { |v| symbolize_keys(v) }
-        when Array then obj.map { |v| symbolize_keys(v) }
-        else obj
-        end
       end
     end
   end

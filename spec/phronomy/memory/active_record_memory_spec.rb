@@ -60,6 +60,39 @@ RSpec.describe Phronomy::Memory::ActiveRecordMemory do
       expect(loaded.tool_calls).to eq(tc)
     end
 
+    it "serializes RubyLLM::ToolCall objects without raising" do
+      tc_obj = RubyLLM::ToolCall.new(id: "call_abc", name: "current_time", arguments: {})
+      msg = make_msg(:assistant, "", tool_calls: {"call_abc" => tc_obj})
+      expect { mem.save_messages(thread_id: "t1", messages: [msg]) }.not_to raise_error
+    end
+
+    it "restores RubyLLM::ToolCall objects so id is accessible on reload" do
+      tc_obj = RubyLLM::ToolCall.new(id: "call_abc", name: "current_time", arguments: {})
+      msg = make_msg(:assistant, "", tool_calls: {"call_abc" => tc_obj})
+      mem.save_messages(thread_id: "t1", messages: [msg])
+
+      loaded_tc = mem.load_messages(thread_id: "t1").first.tool_calls["call_abc"]
+      expect(loaded_tc).to be_a(RubyLLM::ToolCall)
+      expect(loaded_tc.id).to eq("call_abc")
+      expect(loaded_tc.name).to eq("current_time")
+    end
+
+    it "multi-turn with tool_calls does not raise on second load" do
+      tc_obj = RubyLLM::ToolCall.new(id: "call_1", name: "get_time", arguments: {})
+      msgs = [
+        make_msg(:user, "今何時？"),
+        make_msg(:assistant, "", tool_calls: {"call_1" => tc_obj}),
+        make_msg(:tool, "2026年05月07日 00:00:00 (JST)"),
+        make_msg(:assistant, "現在は00:00です。")
+      ]
+      mem.save_messages(thread_id: "t1", messages: msgs)
+
+      # Simulate second turn: reload and access tool_calls
+      loaded = mem.load_messages(thread_id: "t1")
+      expect { loaded[1].tool_calls["call_1"].id }.not_to raise_error
+      expect(loaded[1].tool_calls["call_1"].id).to eq("call_1")
+    end
+
     it "stores nil tool_calls as nil" do
       mem.save_messages(thread_id: "t1", messages: [make_msg(:user, "Hi")])
       expect(mem.load_messages(thread_id: "t1").first.tool_calls).to be_nil

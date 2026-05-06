@@ -7,9 +7,10 @@ module Phronomy
     # Memory that compresses context by summarizing old messages with an LLM.
     # When max_tokens is exceeded, all messages except the most recent 5 are summarized.
     class SummaryMemory < Base
-      def initialize(max_tokens: 4000, summarizer_model: nil)
+      def initialize(max_tokens: 4000, summarizer_model: nil, summarizer_provider: nil)
         @max_tokens = max_tokens
         @summarizer_model = summarizer_model
+        @summarizer_provider = summarizer_provider
         @store = {}
         @summaries = {}
       end
@@ -47,8 +48,11 @@ module Phronomy
         old_messages = messages[0..-(keep + 1)]
         recent_messages = messages[-keep..]
 
-        chat = RubyLLM.chat
-        chat = chat.with_model(@summarizer_model) if @summarizer_model
+        opts = {}
+        opts[:model]                = @summarizer_model    if @summarizer_model
+        opts[:provider]             = @summarizer_provider if @summarizer_provider
+        opts[:assume_model_exists]  = true                 if @summarizer_provider
+        chat = RubyLLM.chat(**opts)
         summary_text = chat.ask(
           "Please summarize the following conversation concisely:\n" +
             old_messages.map { |m| "#{m.role}: #{m.content}" }.join("\n")

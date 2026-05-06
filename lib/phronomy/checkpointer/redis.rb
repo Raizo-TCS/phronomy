@@ -39,17 +39,17 @@ module Phronomy
       # @param completed_node [Symbol, nil]
       # @return [self]
       def save(thread_id, state, interrupted_at: nil, completed_node: nil)
-        payload = {
-          state_class:    state.class.name,
-          state_data:     state.to_h,
-          interrupted_at: interrupted_at&.to_s,
-          completed_node: completed_node&.to_s
-        }
+        json = serialize_state(state)
+        # Embed interrupted_at / completed_node alongside state JSON.
+        full = JSON.parse(json)
+        full["interrupted_at"] = interrupted_at&.to_s
+        full["completed_node"] = completed_node&.to_s
+        serialized = JSON.generate(full)
 
         if @ttl
-          @client.set(key(thread_id), JSON.generate(payload), ex: @ttl)
+          @client.set(key(thread_id), serialized, ex: @ttl)
         else
-          @client.set(key(thread_id), JSON.generate(payload))
+          @client.set(key(thread_id), serialized)
         end
 
         self
@@ -62,15 +62,14 @@ module Phronomy
         raw = @client.get(key(thread_id))
         return nil unless raw
 
-        data        = JSON.parse(raw, symbolize_names: true)
-        state_class = Object.const_get(data[:state_class])
-        state_data  = symbolize_keys(data[:state_data])
-        state       = state_class.new(**state_data)
+        state_class, state_data = deserialize_state_data(raw)
+        state = state_class.new(**state_data)
 
+        raw_data = JSON.parse(raw)
         Phronomy::Checkpointer::Checkpoint.new(
           state:          state,
-          interrupted_at: data[:interrupted_at]&.to_sym,
-          completed_node: data[:completed_node]&.to_sym
+          interrupted_at: raw_data["interrupted_at"]&.to_sym,
+          completed_node: raw_data["completed_node"]&.to_sym
         )
       end
 
@@ -85,18 +84,6 @@ module Phronomy
 
       def key(thread_id)
         "#{KEY_PREFIX}#{thread_id}"
-      end
-
-      # Recursively symbolize hash keys (needed to reconstruct State structs).
-      def symbolize_keys(obj)
-        case obj
-        when Hash
-          obj.transform_keys(&:to_sym).transform_values { |v| symbolize_keys(v) }
-        when Array
-          obj.map { |v| symbolize_keys(v) }
-        else
-          obj
-        end
       end
     end
   end

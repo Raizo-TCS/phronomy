@@ -34,8 +34,9 @@ end
 # State class used throughout these specs.
 class RedisCheckpointState
   include Phronomy::Graph::State
-  field :count, type: :replace, default: 0
-  field :label, type: :replace, default: nil
+  field :count,    type: :replace, default: 0
+  field :label,    type: :replace, default: nil
+  field :messages, type: :append,  default: -> { [] }
 end
 
 RSpec.describe Phronomy::Checkpointer::Redis do
@@ -97,6 +98,24 @@ RSpec.describe Phronomy::Checkpointer::Redis do
     it "reconstructs the correct state class" do
       cp.save("t1", state)
       expect(cp.load("t1").state).to be_a(RedisCheckpointState)
+    end
+
+    it "serializes state containing RubyLLM::ToolCall objects without raising" do
+      tc = RubyLLM::ToolCall.new(id: "call_1", name: "get_time", arguments: {})
+      msg = OpenStruct.new(role: :assistant, content: "", tool_calls: {"call_1" => tc})
+      state_with_msgs = RedisCheckpointState.new(count: 1, messages: [msg])
+      expect { cp.save("t1", state_with_msgs) }.not_to raise_error
+    end
+
+    it "round-trips state with RubyLLM::ToolCall — messages field is an Array" do
+      tc = RubyLLM::ToolCall.new(id: "call_1", name: "get_time", arguments: {})
+      msg = OpenStruct.new(role: :assistant, content: "", tool_calls: {"call_1" => tc})
+      state_with_msgs = RedisCheckpointState.new(count: 7, messages: [msg])
+      cp.save("t1", state_with_msgs)
+
+      loaded = cp.load("t1")
+      expect(loaded.state.count).to eq(7)
+      expect(loaded.state.messages).to be_an(Array)
     end
 
     it "uses the key prefix 'phronomy:checkpoint:'" do

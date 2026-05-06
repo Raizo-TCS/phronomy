@@ -43,8 +43,13 @@ module Phronomy
         @model_class.where(thread_id: thread_id).delete_all
         messages.each do |msg|
           tool_calls_json = if msg.respond_to?(:tool_calls) && msg.tool_calls
-            serializable = msg.tool_calls.transform_values do |tc|
-              tc.respond_to?(:to_h) ? tc.to_h : tc
+            serializable = case msg.tool_calls
+            when Hash
+              msg.tool_calls.transform_values { |tc| tc.respond_to?(:to_h) ? tc.to_h : tc }
+            when Array
+              msg.tool_calls.map { |tc| tc.respond_to?(:to_h) ? tc.to_h : tc }
+            else
+              msg.tool_calls
             end
             JSON.generate(serializable)
           end
@@ -70,13 +75,13 @@ module Phronomy
       def to_message_struct(record)
         tool_calls = if record.tool_calls_json
           parsed = JSON.parse(record.tool_calls_json)
-          parsed.transform_values do |tc|
-            next tc unless tc.is_a?(Hash)
-            RubyLLM::ToolCall.new(
-              id:        tc["id"],
-              name:      tc["name"],
-              arguments: tc["arguments"] || {}
-            )
+          case parsed
+          when Hash
+            parsed.transform_values { |tc| restore_tool_call(tc) }
+          when Array
+            parsed.map { |tc| restore_tool_call(tc) }
+          else
+            parsed
           end
         end
         OpenStruct.new(
@@ -84,6 +89,15 @@ module Phronomy
           content:    record.content,
           tool_calls: tool_calls,
           model_id:   record.respond_to?(:model_id) ? record.model_id : nil
+        )
+      end
+
+      def restore_tool_call(tc)
+        return tc unless tc.is_a?(Hash) && tc["id"] && tc["name"]
+        RubyLLM::ToolCall.new(
+          id:        tc["id"],
+          name:      tc["name"],
+          arguments: tc["arguments"] || {}
         )
       end
     end

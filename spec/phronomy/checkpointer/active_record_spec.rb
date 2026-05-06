@@ -6,8 +6,9 @@ require_relative "../../support/active_record_setup"
 # State class used throughout these specs.
 class ArCheckpointState
   include Phronomy::Graph::State
-  field :score,  type: :replace, default: 0
-  field :label,  type: :replace, default: nil
+  field :score,    type: :replace, default: 0
+  field :label,    type: :replace, default: nil
+  field :messages, type: :append,  default: -> { [] }
 end
 
 RSpec.describe Phronomy::Checkpointer::ActiveRecord do
@@ -63,6 +64,25 @@ RSpec.describe Phronomy::Checkpointer::ActiveRecord do
     it "reconstructs the correct state class" do
       cp.save("t1", state)
       expect(cp.load("t1").state).to be_a(ArCheckpointState)
+    end
+
+    it "serializes state containing RubyLLM::ToolCall objects without raising" do
+      tc = RubyLLM::ToolCall.new(id: "call_1", name: "get_time", arguments: {})
+      msg = OpenStruct.new(role: :assistant, content: "", tool_calls: {"call_1" => tc})
+      state_with_msgs = ArCheckpointState.new(score: 1, messages: [msg])
+      expect { cp.save("t1", state_with_msgs) }.not_to raise_error
+    end
+
+    it "round-trips state with RubyLLM::ToolCall — messages field is an Array" do
+      tc = RubyLLM::ToolCall.new(id: "call_1", name: "get_time", arguments: {})
+      msg = OpenStruct.new(role: :assistant, content: "", tool_calls: {"call_1" => tc})
+      state_with_msgs = ArCheckpointState.new(score: 42, messages: [msg])
+      cp.save("t1", state_with_msgs)
+
+      loaded = cp.load("t1")
+      expect(loaded.state.score).to eq(42)
+      expect(loaded.state.messages).to be_an(Array)
+      expect(loaded.state.messages.first).to be_a(Hash)
     end
   end
 
