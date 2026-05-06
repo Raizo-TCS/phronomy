@@ -110,7 +110,10 @@ module Phronomy
         m = self.class.model
         opts[:model] = m if m
         p = self.class.provider
-        opts[:provider] = p if p
+        if p
+          opts[:provider] = p
+          opts[:assume_model_exists] = true
+        end
         t = self.class.temperature
         opts[:temperature] = t if t
         chat = RubyLLM.chat(**opts)
