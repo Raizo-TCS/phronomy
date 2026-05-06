@@ -1,0 +1,16 @@
+class CreatePhronomyCheckpoints < ActiveRecord::Migration[<%= ActiveRecord::Migration.current_version %>]
+  def change
+    create_table :phronomy_checkpoints do |t|
+      t.string  :thread_id,      null: false
+      t.string  :graph_id
+      t.string  :completed_node
+      t.string  :interrupted_at
+      t.text    :state_json,     null: false
+      t.integer :step,           default: 0, null: false
+      t.timestamps
+    end
+
+    add_index :phronomy_checkpoints, :thread_id, unique: true
+    add_index :phronomy_checkpoints, [:thread_id, :created_at]
+  end
+end
