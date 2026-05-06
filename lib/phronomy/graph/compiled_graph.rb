@@ -127,7 +127,8 @@ module Phronomy
         edges = @edges[current]
         return nil unless edges&.any?
 
-        edges.first
+        matched = edges.find { |edge| edge[:condition].nil? || edge[:condition].call(state) }
+        matched&.fetch(:to)
       end
     end
   end

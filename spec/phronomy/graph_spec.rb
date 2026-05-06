@@ -116,12 +116,23 @@ RSpec.describe Phronomy::Graph::StateGraph do
     it "adds the edge and returns self for chaining" do
       result = graph.add_edge(:a, :b)
       expect(result).to be(graph)
-      expect(graph.edges[:a]).to include(:b)
+      expect(graph.edges[:a].map { |e| e[:to] }).to include(:b)
     end
 
     it "adds multiple edges from the same node" do
       graph.add_edge(:a, :b).add_edge(:a, :c)
-      expect(graph.edges[:a]).to contain_exactly(:b, :c)
+      expect(graph.edges[:a].map { |e| e[:to] }).to contain_exactly(:b, :c)
+    end
+
+    it "stores nil condition for unconditional edges" do
+      graph.add_edge(:a, :b)
+      expect(graph.edges[:a].first[:condition]).to be_nil
+    end
+
+    it "accepts an optional guard condition" do
+      cond = ->(s) { s.value > 5 }
+      graph.add_edge(:a, :b, cond)
+      expect(graph.edges[:a].first[:condition]).to be(cond)
     end
   end
 
@@ -270,6 +281,48 @@ RSpec.describe Phronomy::Graph::CompiledGraph do
             :check,
             ->(_s) { Phronomy::Graph::StateGraph::FINISH }
           )
+          g.set_entry_point(:check)
+        end
+
+        expect(compiled.invoke({}).value).to eq(42)
+      end
+    end
+
+    context "with guard-condition edges" do
+      it "takes the first edge whose condition is truthy" do
+        compiled = build_graph do |g|
+          g.add_node(:check) { |s| s }
+          g.add_node(:high) { |s| {value: 100} }
+          g.add_node(:low) { |s| {value: 0} }
+          g.add_edge(:check, :high, ->(s) { s.value > 5 })
+          g.add_edge(:check, :low)
+          g.set_entry_point(:check)
+        end
+
+        expect(compiled.invoke({value: 10}).value).to eq(100)
+        expect(compiled.invoke({value: 3}).value).to eq(0)
+      end
+
+      it "skips edges whose condition is falsy" do
+        compiled = build_graph do |g|
+          g.add_node(:check) { |s| s }
+          g.add_node(:a) { |s| {value: 1} }
+          g.add_node(:b) { |s| {value: 2} }
+          g.add_node(:c) { |s| {value: 3} }
+          g.add_edge(:check, :a, ->(s) { s.value == 10 })
+          g.add_edge(:check, :b, ->(s) { s.value == 5 })
+          g.add_edge(:check, :c)
+          g.set_entry_point(:check)
+        end
+
+        expect(compiled.invoke({value: 5}).value).to eq(2)  # second edge matches
+        expect(compiled.invoke({value: 0}).value).to eq(3)  # unconditional fallback
+      end
+
+      it "terminates via a guard-condition edge to FINISH" do
+        compiled = build_graph do |g|
+          g.add_node(:check) { |s| {value: 42} }
+          g.add_edge(:check, Phronomy::Graph::StateGraph::FINISH)
           g.set_entry_point(:check)
         end
 

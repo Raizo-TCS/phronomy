@@ -31,10 +31,13 @@ module Phronomy
       # Adds a directed edge.
       # @param from [Symbol]
       # @param to [Symbol]
+      # @param condition [Proc, nil] guard condition — receives state and returns truthy/falsy.
+      #   When nil, the edge is unconditional. When multiple edges exist from the same node,
+      #   they are evaluated in registration order and the first matching edge is taken.
       # @return [self]
-      def add_edge(from, to)
+      def add_edge(from, to, condition = nil)
         @edges[from] ||= []
-        @edges[from] << to
+        @edges[from] << {to: to, condition: condition}
         self
       end
 
