@@ -66,6 +66,13 @@
   - If the root cause is unclear, report findings and ask the user before changing project-wide constraints (gemspec, CI matrix, public API, etc.).
 - For Ruby gems specifically: `Gemfile.lock` should typically NOT be committed for library projects (it pins default-gem versions to the developer's local Ruby patch level and breaks CI on other patch levels).
 
+## Verification Discipline (MANDATORY)
+- Before answering any question about the **state of the working directory** (file existence, file contents, implementation status, what code exists) or the **state of GitHub** (remote repos, branches, commits, CI runs, issues, PRs), verify with tools first. Do not answer from memory or from a conversation summary.
+  - File / directory questions → use `list_dir`, `file_search`, `read_file`, or `grep_search`.
+  - GitHub questions → use `gh` (or equivalent MCP github tools).
+- If verification cannot be completed, say so explicitly instead of guessing.
+- Past assistant statements (including conversation summaries) are NOT authoritative — they may be stale or incorrect. Re-verify on each new question.
+
 ## External Reference Verification
 - When referencing external URLs or web documentation, always use the browser MCP tools to verify content
 - Do not rely solely on `fetch_webpage` for important technical documentation
