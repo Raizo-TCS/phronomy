@@ -5,6 +5,7 @@ module Phronomy
     # Base class extending RubyLLM::Tool with Phronomy-specific DSL.
     #
     # Additional DSL over RubyLLM::Tool:
+    #   - tool_name    : explicit function name exposed to the LLM (overrides auto-conversion)
     #   - scope        : access-scope metadata (:read_only, :write, etc.)
     #   - on_error     : error-handling policy (:raise or :return_empty)
     #   - requires_approval : require human approval before execution
@@ -12,6 +13,7 @@ module Phronomy
     #
     # @example
     #   class SearchKnowledgeBase < Phronomy::Tool::Base
+    #     tool_name "search_kb"               # explicit name shown to the LLM
     #     description "Search the internal knowledge base"
     #     param :query,  type: :string, desc: "Search query"
     #     param :lang,   type: :string, desc: "Language", required: false, enum: %w[en ja fr]
@@ -24,6 +26,17 @@ module Phronomy
     #   end
     class Base < RubyLLM::Tool
       class << self
+        # Sets an explicit function name to expose to the LLM, bypassing RubyLLM's
+        # automatic CamelCase-to-snake_case conversion.
+        # When omitted, RubyLLM's default conversion applies (e.g. WeatherTool → "weather").
+        #
+        # @param value [String, nil] the exact function name the LLM will see
+        def tool_name(value = nil)
+          return @tool_name if value.nil?
+
+          @tool_name = value.to_s
+        end
+
         # Extends RubyLLM::Tool.param with an optional +enum:+ keyword.
         # The enum values are stored separately and injected into the JSON Schema
         # produced by #params_schema.
@@ -66,6 +79,13 @@ module Phronomy
 
           @requires_approval = value
         end
+      end
+
+      # Returns the function name exposed to the LLM.
+      # Uses the class-level tool_name if set; otherwise falls back to RubyLLM's
+      # automatic conversion (CamelCase → snake_case, strips trailing "_tool").
+      def name
+        self.class.tool_name || super
       end
 
       # Returns the JSON Schema for this tool's parameters.

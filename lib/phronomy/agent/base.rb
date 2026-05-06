@@ -22,12 +22,41 @@ module Phronomy
           end
         end
 
-        def tools(*tool_classes)
-          if tool_classes.any?
-            @tools = tool_classes
-          else
-            @tools || []
+        # Registers tool classes for this agent.
+        #
+        # Accepts either a splat of classes (backward-compatible) or a Hash mapping
+        # each class to an explicit alias name (String) or nil (use tool's own name).
+        # The alias form is useful when two tools share the same auto-generated name
+        # (e.g. two SearchTool classes from different modules).
+        #
+        # @example Splat form (no alias)
+        #   tools WeatherTool, TimeTool
+        #
+        # @example Hash form (with optional per-tool alias)
+        #   tools(
+        #     Weather::SearchTool => "weather_search",
+        #     Places::SearchTool  => "places_search",
+        #     CurrentTimeTool     => nil
+        #   )
+        def tools(*args)
+          if args.empty?
+            return @tools || []
           end
+
+          if args.length == 1 && args.first.is_a?(Hash)
+            hash = args.first
+            @tools = hash.keys
+            @tool_aliases = hash.transform_values { |v| v&.to_s }.reject { |_, v| v.nil? }
+          else
+            @tools = args
+            @tool_aliases = {}
+          end
+        end
+
+        # Returns the alias map registered via the hash form of .tools.
+        # @return [Hash{Class => String}]
+        def tool_aliases
+          @tool_aliases ||= {}
         end
 
         def provider(name = nil)
@@ -117,7 +146,16 @@ module Phronomy
         t = self.class.temperature
         opts[:temperature] = t if t
         chat = RubyLLM.chat(**opts)
-        self.class.tools.each { |tool| chat.with_tool(tool) }
+        self.class.tools.each do |tool_class|
+          alias_name = self.class.tool_aliases[tool_class]
+          if alias_name
+            # Build an anonymous subclass that overrides tool_name with the alias.
+            aliased = Class.new(tool_class) { tool_name alias_name }
+            chat.with_tool(aliased)
+          else
+            chat.with_tool(tool_class)
+          end
+        end
         chat
       end
 

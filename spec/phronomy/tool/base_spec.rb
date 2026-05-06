@@ -116,6 +116,40 @@ RSpec.describe Phronomy::Tool::Base do
     end
   end
 
+  describe "multiple parameters" do
+    let(:multi_param_tool_class) do
+      Class.new(described_class) do
+        description "Multi-param tool"
+        param :city,    type: :string,  desc: "City name"
+        param :country, type: :string,  desc: "Country code"
+        param :limit,   type: :integer, desc: "Result limit", required: false
+
+        def execute(city:, country:, limit: 10)
+          "#{city}, #{country} (limit: #{limit})"
+        end
+      end
+    end
+
+    it "registers all parameters" do
+      expect(multi_param_tool_class.parameters.keys).to contain_exactly(:city, :country, :limit)
+    end
+
+    it "includes all parameters in params_schema" do
+      properties = multi_param_tool_class.new.params_schema["properties"]
+      expect(properties.keys).to contain_exactly("city", "country", "limit")
+    end
+
+    it "passes all required arguments to execute" do
+      result = multi_param_tool_class.new.call({ "city" => "Tokyo", "country" => "JP" })
+      expect(result).to eq("Tokyo, JP (limit: 10)")
+    end
+
+    it "passes all arguments including optional ones to execute" do
+      result = multi_param_tool_class.new.call({ "city" => "Paris", "country" => "FR", "limit" => "5" })
+      expect(result).to eq("Paris, FR (limit: 5)")
+    end
+  end
+
   describe ".param with enum:" do
     let(:enum_tool_class) do
       Class.new(described_class) do
@@ -173,6 +207,62 @@ RSpec.describe Phronomy::Tool::Base do
       end
       schema = klass.new.params_schema
       expect(schema["properties"]["input"]).not_to have_key("enum")
+    end
+  end
+
+  describe ".tool_name DSL" do
+    context "when tool_name is set" do
+      let(:named_tool_class) do
+        Class.new(described_class) do
+          tool_name "weather_search"
+          description "Search weather"
+          param :city, type: :string, desc: "City"
+
+          def execute(city:) = "weather for #{city}"
+        end
+      end
+
+      it "stores the explicit name on the class" do
+        expect(named_tool_class.tool_name).to eq("weather_search")
+      end
+
+      it "#name returns the explicit tool_name" do
+        expect(named_tool_class.new.name).to eq("weather_search")
+      end
+
+      it "accepts a Symbol and coerces to String" do
+        klass = Class.new(described_class) { tool_name :my_tool }
+        expect(klass.tool_name).to eq("my_tool")
+      end
+    end
+
+    context "when tool_name is not set" do
+      it "returns nil from the class method" do
+        klass = Class.new(described_class)
+        expect(klass.tool_name).to be_nil
+      end
+
+      it "#name falls back to RubyLLM automatic conversion" do
+        klass = Class.new(described_class)
+        stub_const("WeatherSearchTool", klass)
+        expect(klass.new.name).to eq("weather_search")
+      end
+    end
+
+    context "when two classes share an auto-generated name" do
+      it "can be disambiguated with tool_name" do
+        weather_klass = Class.new(described_class) do
+          tool_name "weather_search"
+          def execute = "weather"
+        end
+        places_klass = Class.new(described_class) do
+          tool_name "places_search"
+          def execute = "places"
+        end
+        expect(weather_klass.new.name).to eq("weather_search")
+        expect(places_klass.new.name).to eq("places_search")
+        expect(weather_klass.new.name).not_to eq(places_klass.new.name)
+      end
     end
   end
 

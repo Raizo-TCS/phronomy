@@ -162,6 +162,91 @@ RSpec.describe Phronomy::Agent::Base do
   end
 end
 
+RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
+  let(:fake_chat) do
+    dbl = double("Chat")
+    allow(dbl).to receive(:with_instructions).and_return(dbl)
+    allow(dbl).to receive(:with_tool).and_return(dbl)
+    allow(dbl).to receive(:ask).and_return(double("Msg", content: "ok", tool_calls: nil))
+    allow(dbl).to receive(:messages).and_return([])
+    dbl
+  end
+
+  before { allow(RubyLLM).to receive(:chat).and_return(fake_chat) }
+
+  let(:tool_a) do
+    Class.new(Phronomy::Tool::Base) do
+      description "Tool A"
+      def execute = "a"
+    end
+  end
+
+  let(:tool_b) do
+    Class.new(Phronomy::Tool::Base) do
+      description "Tool B"
+      def execute = "b"
+    end
+  end
+
+  describe ".tools (splat form — backward compatible)" do
+    it "stores the tool classes" do
+      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class.tools(tool_a, tool_b)
+      expect(agent_class.tools).to eq([tool_a, tool_b])
+    end
+
+    it "sets tool_aliases to an empty hash" do
+      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class.tools(tool_a)
+      expect(agent_class.tool_aliases).to eq({})
+    end
+
+    it "registers each tool with chat.with_tool" do
+      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class.tools(tool_a, tool_b)
+      agent_class.new.invoke("hello")
+      expect(fake_chat).to have_received(:with_tool).twice
+    end
+  end
+
+  describe ".tools (hash form with aliases)" do
+    it "stores the tool classes" do
+      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class.tools(tool_a => "alpha", tool_b => "beta")
+      expect(agent_class.tools).to eq([tool_a, tool_b])
+    end
+
+    it "stores the aliases" do
+      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class.tools(tool_a => "alpha", tool_b => nil)
+      expect(agent_class.tool_aliases).to eq({ tool_a => "alpha" })
+    end
+
+    it "registers tools with aliased anonymous subclasses when an alias is given" do
+      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class.tools(tool_a => "alpha", tool_b => nil)
+      agent_class.new.invoke("hello")
+      # Verify with_tool was called twice (once aliased, once plain)
+      expect(fake_chat).to have_received(:with_tool).twice
+      # Verify the aliased tool class exposes the correct name
+      aliased = Class.new(tool_a) { tool_name "alpha" }
+      expect(aliased.new.name).to eq("alpha")
+    end
+
+    it "nil alias leaves the original tool_name intact" do
+      klass = Class.new(Phronomy::Tool::Base) do
+        tool_name "original_name"
+        def execute = ""
+      end
+      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class.tools(klass => nil)
+      # No alias stored — tool_aliases is empty for this key
+      expect(agent_class.tool_aliases[klass]).to be_nil
+      expect(klass.new.name).to eq("original_name")
+    end
+  end
+end
+
 RSpec.describe Phronomy::Agent::ReactAgent do
   # Chat mock that completes immediately without tool calls
   let(:final_message) { double("Message", content: "Final answer", tool_calls: nil) }
