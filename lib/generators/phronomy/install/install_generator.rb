@@ -6,9 +6,8 @@ require "rails/generators/active_record"
 module Phronomy
   module Generators
     # Rails generator that installs Phronomy into a Rails app.
-    # Creates an initializer and two database migrations:
-    #   - phronomy_checkpoints (graph state persistence)
-    #   - phronomy_messages    (conversation history persistence)
+    # Creates an initializer and database migrations:
+    #   - phronomy_messages (conversation history persistence)
     #
     # Usage:
     #   rails generate phronomy:install
@@ -27,22 +26,11 @@ module Phronomy
         template "initializer.rb.tt", "config/initializers/phronomy.rb"
       end
 
-      def create_checkpoint_migration
-        migration_template(
-          "create_phronomy_checkpoints.rb.tt",
-          "db/migrate/create_phronomy_checkpoints.rb"
-        )
-      end
-
       def create_messages_migration
         migration_template(
           "create_phronomy_messages.rb.tt",
           "db/migrate/create_phronomy_messages.rb"
         )
-      end
-
-      def create_checkpoint_model
-        template "checkpoint_model.rb.tt", "app/models/phronomy_checkpoint.rb"
       end
 
       def create_message_model

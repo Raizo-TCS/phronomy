@@ -12,16 +12,8 @@ ActiveRecord::Base.establish_connection(
 # Suppress SQL noise in test output. Set to Logger.new($stdout) to debug.
 ActiveRecord::Base.logger = Logger.new(IO::NULL)
 
-# Create the phronomy tables used by Checkpointer::ActiveRecord and Memory::ActiveRecordMemory.
+# Create the phronomy tables used by Memory::ActiveRecordMemory.
 ActiveRecord::Schema.define(version: 1) do
-  create_table :phronomy_checkpoints, force: true do |t|
-    t.string :thread_id, null: false
-    t.text :state_json, null: false
-    t.string :interrupted_at
-    t.string :completed_node
-    t.timestamps
-  end
-
   create_table :phronomy_messages, force: true do |t|
     t.string :thread_id, null: false
     t.string :role, null: false
@@ -32,12 +24,7 @@ ActiveRecord::Schema.define(version: 1) do
   end
 end
 
-# Minimal ActiveRecord models mirroring the generator templates.
-class PhronomyCheckpointRecord < ActiveRecord::Base
-  self.table_name = "phronomy_checkpoints"
-  include Phronomy::ActiveRecord::Checkpoint
-end
-
+# Minimal ActiveRecord model mirroring the generator template.
 class PhronomyMessageRecord < ActiveRecord::Base
   self.table_name = "phronomy_messages"
   include Phronomy::ActiveRecord::Message

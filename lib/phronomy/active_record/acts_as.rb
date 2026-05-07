@@ -6,10 +6,6 @@ module Phronomy
     # to declaratively associate them with Phronomy persistence roles.
     #
     # @example
-    #   class PhronomyCheckpoint < ApplicationRecord
-    #     acts_as_phronomy_checkpoint
-    #   end
-    #
     #   class PhronomyMessage < ApplicationRecord
     #     acts_as_phronomy_message
     #   end
@@ -19,19 +15,6 @@ module Phronomy
       end
 
       module ClassMethods
-        # Configures this model as a Phronomy checkpoint store.
-        # Applies validations and exposes a convenience factory method.
-        #
-        # @return [Phronomy::Checkpointer::ActiveRecord] a ready-to-use checkpointer
-        def acts_as_phronomy_checkpoint
-          include ::Phronomy::ActiveRecord::Checkpoint
-
-          # Provide a factory method directly on the model class.
-          define_singleton_method(:phronomy_checkpointer) do
-            ::Phronomy::Checkpointer::ActiveRecord.new(model_class: self)
-          end
-        end
-
         # Configures this model as a Phronomy message store.
         # Applies validations and exposes a convenience factory method.
         #
