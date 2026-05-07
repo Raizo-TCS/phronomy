@@ -105,6 +105,36 @@ module Phronomy
             @cache_instructions = enabled
           end
         end
+
+        # Tokens to reserve for the model's output.
+        # When nil, the model's max_output_tokens from the registry is used.
+        #
+        # @example
+        #   class MyAgent < Phronomy::Agent::Base
+        #     max_output_tokens 4096
+        #   end
+        def max_output_tokens(val = nil)
+          if val.nil?
+            @max_output_tokens
+          else
+            @max_output_tokens = val.to_i
+          end
+        end
+
+        # Tokens reserved for the system prompt + tool definitions overhead.
+        # Subtract this from the context window before computing the memory budget.
+        #
+        # @example
+        #   class MyAgent < Phronomy::Agent::Base
+        #     context_overhead 500
+        #   end
+        def context_overhead(val = nil)
+          if val.nil?
+            @context_overhead || 0
+          else
+            @context_overhead = val.to_i
+          end
+        end
       end
 
       def invoke(input, config: {})
@@ -120,7 +150,8 @@ module Phronomy
 
         # Inject previous messages from memory before asking.
         if memory && thread_id
-          memory.load_messages(thread_id: thread_id).each do |msg|
+          token_budget = build_token_budget
+          memory.load_messages(thread_id: thread_id, token_budget: token_budget).each do |msg|
             chat.messages << msg
           end
         end
@@ -158,6 +189,21 @@ module Phronomy
 
       private
 
+      # Builds a TokenBudget for this agent's model if possible.
+      # Returns nil when the model is not registered in RubyLLM (e.g. local/unknown models).
+      def build_token_budget
+        model_name = self.class.model
+        return nil unless model_name
+
+        Phronomy::Context::TokenBudget.new(
+          model: model_name,
+          max_output_tokens: self.class.max_output_tokens,
+          overhead: self.class.context_overhead
+        )
+      rescue Phronomy::Context::UnknownModelError, RubyLLM::ModelNotFoundError
+        nil
+      end
+
       def build_chat
         opts = {}
         m = self.class.model
@@ -168,13 +214,19 @@ module Phronomy
           opts[:assume_model_exists] = true
         end
         t = self.class.temperature
-        opts[:temperature] = t if t
         chat = RubyLLM.chat(**opts)
+        chat.with_temperature(t) if t
         self.class.tools.each do |tool_class|
           alias_name = self.class.tool_aliases[tool_class]
           if alias_name
             # Build an anonymous subclass that overrides tool_name with the alias.
-            aliased = Class.new(tool_class) { tool_name alias_name }
+            # Class-level instance variables (@description, @params, etc.) are NOT
+            # automatically inherited in Ruby, so copy them explicitly.
+            parent_description = tool_class.description
+            aliased = Class.new(tool_class) do
+              tool_name alias_name
+              description parent_description if parent_description
+            end
             chat.with_tool(aliased)
           else
             chat.with_tool(tool_class)

@@ -263,6 +263,7 @@ end
 | Phase 2 | >= 85% | Graph execution, interrupt/resume |
 | Phase 3 | >= 85% | Persistence across restart |
 | Phase 4 | >= 80% | Multi-agent coordination |
+| Phase 5 | >= 85% | Context management (TokenBudget, Memory extensions, SemanticMemory) |
 
 ---
 
@@ -274,6 +275,7 @@ end
 | 0.2.0 | Phase 2 complete (Graph, Agent, InMemory Checkpoint) |
 | 0.3.0 | Phase 3 complete (Memory, ActiveRecord Checkpoint, Rails generators) |
 | 1.0.0 | Phase 4 complete (Multi-Agent/Agent-as-Tool, MCP, Tracer, Guardrail) + API stability guarantee |
+| 1.1.0 | Phase 5 complete (Context Management: TokenBudget, Pruner, SemanticMemory, CompositeMemory, Context::Builder) |
 
 ---
 

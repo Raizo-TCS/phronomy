@@ -5,7 +5,11 @@ require "ostruct"
 module Phronomy
   module Memory
     # Memory that compresses context by summarizing old messages with an LLM.
-    # When max_tokens is exceeded, all messages except the most recent 5 are summarized.
+    # When the token threshold is exceeded, all messages except the most recent 5
+    # are summarized and replaced with a single system message.
+    #
+    # When a token_budget is passed to load_messages, budget.effective_input_limit
+    # is used as the threshold. Otherwise the constructor's max_tokens is used.
     class SummaryMemory < Base
       def initialize(max_tokens: 4000, summarizer_model: nil, summarizer_provider: nil)
         @max_tokens = max_tokens
@@ -15,7 +19,10 @@ module Phronomy
         @summaries = {}
       end
 
-      def load_messages(thread_id:, **)
+      # @param thread_id    [String]
+      # @param token_budget [Phronomy::Context::TokenBudget, nil]
+      # @return [Array]
+      def load_messages(thread_id:, token_budget: nil, query: nil, **)
         summary = @summaries[thread_id]
         recent = @store[thread_id] || []
 
@@ -26,10 +33,11 @@ module Phronomy
         end
       end
 
-      def save_messages(thread_id:, messages:)
-        estimated_tokens = messages.sum { |m| m.content.to_s.length / 4 }
+      def save_messages(thread_id:, messages:, token_budget: nil)
+        threshold = token_budget ? token_budget.effective_input_limit : @max_tokens
+        estimated_tokens = messages.sum { |m| Phronomy::Context::TokenEstimator.estimate(m.content.to_s) }
 
-        if estimated_tokens > @max_tokens
+        if estimated_tokens > threshold
           compress(thread_id, messages)
         else
           @store[thread_id] = messages

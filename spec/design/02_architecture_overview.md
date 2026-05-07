@@ -58,8 +58,21 @@ Phronomy follows the "three-layer model" from the AI Agent Design Guide.
 | `Guardrail` | Input/output validation and constraints | `phronomy-guardrails` |
 | `Tracer` | Execution trace collection and output | `phronomy-tracing` |
 | `OutputParser` | Conversion to various output formats | Included in core |
-| `EmbeddingStore` | Vector search / RAG | `phronomy-rag` |
+| `VectorStore` | In-process vector store for SemanticMemory | Included in core |
 | `StateStore` | Persistence and resumption of graph execution state | LangGraph Checkpoint |
+
+### 2.4 Context Management Components (Core)
+
+| Component | Role |
+|---|---|
+| `Context::TokenEstimator` | Central token estimation (char/4 heuristic, pluggable) |
+| `Context::TokenBudget` | Derives effective input token limit from model metadata |
+| `Context::Builder` | Assembles context sections within a token budget |
+| `Memory::Pruner::Base` | Pluggable hook for selective message pruning |
+| `Memory::Pruner::ToolOutputPruner` | Truncates oversized tool-call result messages |
+| `Memory::SemanticMemory` | Embedding-based retrieval of relevant messages |
+| `Memory::CompositeMemory` | Merges multiple memory sources within a shared budget |
+| `VectorStore::InMemory` | Pure-Ruby cosine-similarity vector store |
 
 ---
 
@@ -172,19 +185,30 @@ Phronomy's approach to the 11 design topics from the AI Agent Design Guide.
 
 ### 4.4 Knowledge and Memory Strategy (knowledge-memory)
 
-**Corresponding components**: `Memory`, `EmbeddingStore`
+**Corresponding components**: `Memory`, `VectorStore`
 
-- Short-term: `Memory::WindowMemory` (retain last N turns)
-- Long-term: `Memory::ActiveRecordMemory` (DB persistence)
-- Semantic: `EmbeddingStore` for RAG (optional)
+- Short-term: `Memory::WindowMemory` — retain last N turns (count-based or token-budget-based)
+- Long-term: `Memory::ActiveRecordMemory` — DB persistence with optional `Pruner`
+- Semantic: `Memory::SemanticMemory` + `VectorStore::InMemory` — embedding-based retrieval
+- Composite: `Memory::CompositeMemory` — merge semantic and recent sources within a shared budget
 
 ### 4.5 Context Management Implementation (context-management)
 
-**Corresponding components**: `Memory`
+**Corresponding components**: `Context`, `Memory`
 
-- Token limit management: `Memory::SummaryMemory` summarizes old history with LLM
-- Priority-based deletion: Remove oldest tool_results first when token limit is exceeded
-- Cache efficiency: Fix unchanging instructions at the top (prompt caching support; takes effect when the provider offers this feature)
+- **Token budget**: `Context::TokenBudget` derives effective input limit from
+  `model.context_window - model.max_output_tokens - overhead`.
+  `Agent::Base` builds a budget automatically and passes it to `memory.load_messages`.
+- **Token estimation**: `Context::TokenEstimator` centralises the char/4 heuristic;
+  future model-specific tokenizers swap this one location.
+- **Selective pruning**: `Memory::Pruner::ToolOutputPruner` truncates oversized
+  tool-result messages before they consume the window.
+- **Summary compression**: `Memory::SummaryMemory` summarizes old history with LLM
+  when the budget threshold is reached.
+- **Context assembly**: `Context::Builder` places instructions, knowledge, and
+  conversation into the window in priority order (low priority).
+- **Cache efficiency**: unchanging instructions are placed at the head of the
+  message list (prompt caching; takes effect when the provider offers this feature).
 
 ### 4.6 Processing Cycle and Persistence (cycle-persistence)
 

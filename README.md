@@ -7,7 +7,8 @@ It provides composable building blocks — Graphs, Agents, and Memory — all po
 
 - **Graph** — Build stateful, branching agent workflows with interrupt/resume support
 - **Agent** — ReAct-style tool-calling agents with memory and guardrails
-- **Memory** — Window, summary, and ActiveRecord-backed conversation memory
+- **Memory** — Window, summary, ActiveRecord-backed, semantic, and composite conversation memory
+- **Context Management** — Token budget calculation, estimation, and pruning for any model
 - **Multi-agent** — LLM-driven coordination via the Agent-as-Tool pattern (sub-agents wrapped as `Tool::Base`)
 - **Guardrails** — Validate inputs and outputs before/after LLM calls
 - **Tracing** — Pluggable span-based observability (ships with a no-op NullTracer)
@@ -191,6 +192,92 @@ Phronomy.configure do |c|
   c.default_state_store = Phronomy::StateStore::InMemory.new  # optional
 end
 ```
+
+## Context Management
+
+Phronomy includes a context window management layer so agents automatically
+stay within the token limits of the underlying model.
+
+### TokenBudget
+
+Derives the effective token budget from RubyLLM's model registry:
+
+```ruby
+budget = Phronomy::Context::TokenBudget.new(
+  model:    "claude-3-5-sonnet-20241022",  # looks up context_window + max_output_tokens
+  overhead: 500                            # extra reservation for tool definitions
+)
+budget.context_window       # => 200_000
+budget.max_output_tokens    # => 8_192
+budget.effective_input_limit # => 191_308
+```
+
+Or supply explicit values (useful for local / unregistered models):
+
+```ruby
+budget = Phronomy::Context::TokenBudget.new(
+  context_window:    32_768,
+  max_output_tokens: 4_096
+)
+```
+
+### Budget-aware Memory
+
+Pass a budget to `load_messages` and only the newest messages that fit are returned:
+
+```ruby
+memory = Phronomy::Memory::WindowMemory.new
+messages = memory.load_messages(thread_id: "t1", token_budget: budget)
+```
+
+`ActiveRecordMemory` also accepts `pruner:` to truncate oversized tool results:
+
+```ruby
+memory = Phronomy::Memory::ActiveRecordMemory.new(
+  model_class: PhronomyMessage,
+  pruner: Phronomy::Memory::Pruner::ToolOutputPruner.new(max_chars: 4000)
+)
+```
+
+### Agent DSL extensions
+
+```ruby
+class MyAgent < Phronomy::Agent::Base
+  model "gpt-4o"
+  max_output_tokens 4096   # override max_output_tokens from registry
+  context_overhead  600    # extra reservation for system prompt + tools
+end
+```
+
+`Agent::Base#invoke` builds a `TokenBudget` automatically and passes it to
+`memory.load_messages`.  When the model is not in the registry the budget is
+silently skipped.
+
+### SemanticMemory
+
+Embedding-based retrieval of relevant past messages:
+
+```ruby
+semantic = Phronomy::Memory::SemanticMemory.new(
+  embedding_model: "text-embedding-3-small",
+  k: 10
+)
+messages = semantic.load_messages(thread_id: "t1", query: "user's current question")
+```
+
+### CompositeMemory
+
+Merge multiple memory sources within a shared budget:
+
+```ruby
+composite = Phronomy::Memory::CompositeMemory.new(
+  sources: [
+    { memory: window_memory,   weight: 0.6 },
+    { memory: semantic_memory, weight: 0.4 }
+  ]
+)
+```
+
 
 ## Development
 
