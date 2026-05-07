@@ -92,6 +92,40 @@ RSpec.describe Phronomy::Graph::State do
       expect(h[:value]).to eq(5)
       expect(h[:messages]).to eq(["x"])
     end
+
+    it "does not include internal graph metadata" do
+      s = TestState.new(value: 1)
+      s.set_graph_metadata(thread_id: "t1", current_nodes: [:foo], halted_before: true)
+      expect(s.to_h.keys).not_to include(:thread_id, :current_nodes, :halted_before)
+    end
+  end
+
+  describe "#set_graph_metadata" do
+    it "stores thread_id, current_nodes, and halted_before" do
+      s = TestState.new
+      s.set_graph_metadata(thread_id: "abc", current_nodes: [:foo, :bar], halted_before: true)
+      expect(s.thread_id).to eq("abc")
+      expect(s.current_nodes).to eq([:foo, :bar])
+      expect(s.halted_before).to be(true)
+    end
+
+    it "defaults current_nodes to [] and halted_before to false" do
+      s = TestState.new
+      s.set_graph_metadata(thread_id: "t")
+      expect(s.current_nodes).to eq([])
+      expect(s.halted_before).to be(false)
+    end
+  end
+
+  describe "#merge preserves internal graph metadata" do
+    it "carries thread_id and current_nodes through merge" do
+      s = TestState.new(value: 1)
+      s.set_graph_metadata(thread_id: "t1", current_nodes: [:send], halted_before: true)
+      s2 = s.merge(value: 99)
+      expect(s2.thread_id).to eq("t1")
+      expect(s2.current_nodes).to eq([:send])
+      expect(s2.halted_before).to be(true)
+    end
   end
 end
 
@@ -330,6 +364,36 @@ RSpec.describe Phronomy::Graph::CompiledGraph do
       end
     end
 
+    context "thread_id" do
+      it "auto-assigns a thread_id when not supplied" do
+        compiled = build_graph do |g|
+          g.add_node(:noop) { |s| {} }
+          g.set_entry_point(:noop)
+        end
+        result = compiled.invoke({})
+        expect(result.thread_id).to be_a(String)
+        expect(result.thread_id).not_to be_empty
+      end
+
+      it "uses the thread_id supplied in config" do
+        compiled = build_graph do |g|
+          g.add_node(:noop) { |s| {} }
+          g.set_entry_point(:noop)
+        end
+        result = compiled.invoke({}, config: {thread_id: "custom-id"})
+        expect(result.thread_id).to eq("custom-id")
+      end
+
+      it "current_nodes is empty after normal completion" do
+        compiled = build_graph do |g|
+          g.add_node(:noop) { |s| {} }
+          g.set_entry_point(:noop)
+        end
+        result = compiled.invoke({})
+        expect(result.current_nodes).to eq([])
+      end
+    end
+
     context "recursion limit" do
       it "raises RecursionLimitError when recursion_limit is exceeded" do
         compiled = build_graph do |g|
@@ -344,36 +408,47 @@ RSpec.describe Phronomy::Graph::CompiledGraph do
       end
     end
 
-    context "interrupt_before" do
-      it "raises Interrupt before executing the specified node" do
-        compiled = Phronomy::Graph::StateGraph.new(TestState).tap { |g|
+    context "interrupt_before callback" do
+      it "halts before the node when callback returns :halt" do
+        compiled = build_graph do |g|
           g.add_node(:dangerous) { |s| {value: 99} }
           g.set_entry_point(:dangerous)
-        }.compile(interrupt_before: [:dangerous])
+        end
+        compiled.interrupt_before(:dangerous) { |_s| :halt }
 
-        expect {
-          compiled.invoke({value: 0})
-        }.to raise_error(Phronomy::Interrupt) { |e|
-          expect(e.node).to eq(:dangerous)
-        }
+        result = compiled.invoke({value: 0})
+        expect(result.value).to eq(0)             # node did not execute
+        expect(result.current_nodes).to eq([:dangerous])
+        expect(result.halted_before).to be(true)
+      end
+
+      it "continues when callback does not return :halt" do
+        compiled = build_graph do |g|
+          g.add_node(:safe) { |s| {value: 99} }
+          g.set_entry_point(:safe)
+        end
+        compiled.interrupt_before(:safe) { |_s| nil }
+
+        result = compiled.invoke({value: 0})
+        expect(result.value).to eq(99)
+        expect(result.current_nodes).to eq([])
       end
     end
 
-    context "interrupt_after" do
-      it "raises Interrupt after executing the specified node" do
-        compiled = Phronomy::Graph::StateGraph.new(TestState).tap { |g|
+    context "interrupt_after callback" do
+      it "halts after the node when callback returns :halt" do
+        compiled = build_graph do |g|
           g.add_node(:step1) { |s| {value: 10} }
           g.add_node(:step2) { |s| {value: 20} }
           g.add_edge(:step1, :step2)
           g.set_entry_point(:step1)
-        }.compile(interrupt_after: [:step1])
+        end
+        compiled.interrupt_after(:step1) { |_s| :halt }
 
-        expect {
-          compiled.invoke({value: 0})
-        }.to raise_error(Phronomy::Interrupt) { |e|
-          expect(e.node).to eq(:step1)
-          expect(e.state.value).to eq(10)
-        }
+        result = compiled.invoke({value: 0})
+        expect(result.value).to eq(10)            # step1 ran, step2 did not
+        expect(result.current_nodes).to eq([:step2])
+        expect(result.halted_before).to be(false)
       end
     end
 
@@ -387,6 +462,67 @@ RSpec.describe Phronomy::Graph::CompiledGraph do
 
         expect { compiled.invoke({}) }.to raise_error(ArgumentError, /Node nonexistent/)
       end
+    end
+  end
+
+  describe "#resume" do
+    it "resumes from a halted interrupt_before state" do
+      compiled = build_graph do |g|
+        g.add_node(:step1) { |s| {value: 10} }
+        g.add_node(:step2) { |s| {value: s.value + 5} }
+        g.add_edge(:step1, :step2)
+        g.set_entry_point(:step1)
+      end
+      compiled.interrupt_before(:step2) { |_s| :halt }
+
+      halted = compiled.invoke({value: 0})
+      expect(halted.value).to eq(10)
+      expect(halted.current_nodes).to eq([:step2])
+
+      final = compiled.resume(state: halted)
+      expect(final.value).to eq(15)
+      expect(final.current_nodes).to eq([])
+    end
+
+    it "resumes from a halted interrupt_after state" do
+      compiled = build_graph do |g|
+        g.add_node(:step1) { |s| {value: 10} }
+        g.add_node(:step2) { |s| {value: 20} }
+        g.add_edge(:step1, :step2)
+        g.set_entry_point(:step1)
+      end
+      compiled.interrupt_after(:step1) { |_s| :halt }
+
+      halted = compiled.invoke({value: 0})
+      expect(halted.value).to eq(10)
+      expect(halted.current_nodes).to eq([:step2])
+
+      final = compiled.resume(state: halted)
+      expect(final.value).to eq(20)
+      expect(final.current_nodes).to eq([])
+    end
+
+    it "merges additional input before resuming" do
+      compiled = build_graph do |g|
+        g.add_node(:draft) { |s| {step: :draft_done} }
+        g.add_node(:send) { |s| {value: s.value} }
+        g.add_edge(:draft, :send)
+        g.set_entry_point(:draft)
+      end
+      compiled.interrupt_before(:send) { |_s| :halt }
+
+      halted = compiled.invoke({value: 0})
+      final = compiled.resume(state: halted, input: {value: 42})
+      expect(final.value).to eq(42)
+    end
+
+    it "raises ArgumentError when state has no current_nodes" do
+      compiled = build_graph do |g|
+        g.add_node(:noop) { |s| {} }
+        g.set_entry_point(:noop)
+      end
+      finished = compiled.invoke({})
+      expect { compiled.resume(state: finished) }.to raise_error(ArgumentError, /pending nodes/)
     end
   end
 

@@ -60,20 +60,14 @@ module Phronomy
       end
 
       # Compiles the graph and returns a CompiledGraph.
-      # @param checkpointer [Object, nil]
-      # @param interrupt_before [Array<Symbol>] nodes to interrupt before execution
-      # @param interrupt_after [Array<Symbol>]  nodes to interrupt after execution
       # @return [CompiledGraph]
-      def compile(checkpointer: nil, interrupt_before: [], interrupt_after: [])
+      def compile
         CompiledGraph.new(
           state_class: @state_class,
           nodes: @nodes,
           edges: @edges,
           conditional_edges: @conditional_edges,
-          entry_point: @entry_point || @nodes.keys.first,
-          checkpointer: checkpointer,
-          interrupt_before: interrupt_before,
-          interrupt_after: interrupt_after
+          entry_point: @entry_point || @nodes.keys.first
         )
       end
 

@@ -20,8 +20,8 @@ RSpec.describe Phronomy::Configuration do
       expect(config.default_embedding_model).to be_nil
     end
 
-    it "defaults default_checkpointer to nil" do
-      expect(config.default_checkpointer).to be_nil
+    it "defaults default_state_store to nil" do
+      expect(config.default_state_store).to be_nil
     end
 
     it "defaults default_memory to nil" do
@@ -30,10 +30,6 @@ RSpec.describe Phronomy::Configuration do
 
     it "defaults tracer to a NullTracer" do
       expect(config.tracer).to be_a(Phronomy::Tracing::NullTracer)
-    end
-
-    it "defaults interrupt_handler to nil" do
-      expect(config.interrupt_handler).to be_nil
     end
   end
 
@@ -50,10 +46,10 @@ RSpec.describe Phronomy::Configuration do
       expect(config.recursion_limit).to eq(50)
     end
 
-    it "sets a Proc as interrupt_handler" do
-      handler = ->(node, state) {}
-      config.interrupt_handler = handler
-      expect(config.interrupt_handler).to eq(handler)
+    it "sets a StateStore" do
+      store = Phronomy::StateStore::InMemory.new
+      config.default_state_store = store
+      expect(config.default_state_store).to be(store)
     end
   end
 end

@@ -17,18 +17,6 @@ module Phronomy
   class Error < StandardError; end
   class ParseError < Error; end
   class RecursionLimitError < Error; end
-
-  class Interrupt < Error
-    attr_reader :node, :state
-
-    def initialize(node: nil, state: nil, msg: "Graph execution interrupted")
-      super(msg)
-      @node = node
-      @state = state
-    end
-  end
-
-  class CheckpointError < Error; end
   class ToolError < Error; end
 
   class GuardrailError < Error

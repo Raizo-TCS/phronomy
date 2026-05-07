@@ -38,14 +38,33 @@ module Phronomy
         end
       end
 
+      # Internal graph metadata accessors (not user-defined fields).
+      # These are preserved through merge but excluded from to_h.
+      attr_reader :thread_id, :current_nodes, :halted_before
+
+      # Sets internal graph metadata. Returns self.
+      # @param thread_id [String, nil]
+      # @param current_nodes [Array<Symbol>]
+      # @param halted_before [Boolean]
+      def set_graph_metadata(thread_id: nil, current_nodes: [], halted_before: false)
+        @thread_id = thread_id
+        @current_nodes = current_nodes || []
+        @halted_before = halted_before
+        self
+      end
+
       def initialize(**attrs)
         self.class.fields.each do |name, config|
           default = config[:default].is_a?(Proc) ? config[:default].call : config[:default]
           send(:"#{name}=", attrs.fetch(name, default))
         end
+        @thread_id = nil
+        @current_nodes = []
+        @halted_before = false
       end
 
       # Immutably updates state fields. Returns a new instance with the applied changes.
+      # Internal graph metadata (thread_id, current_nodes, halted_before) is preserved.
       # @param updates [Hash] { field_name => new_value }
       # @return [self.class] new state instance
       def merge(updates)
@@ -65,10 +84,16 @@ module Phronomy
             send(name)
           end
         end
-        self.class.new(**new_attrs)
+        new_state = self.class.new(**new_attrs)
+        new_state.set_graph_metadata(
+          thread_id: @thread_id,
+          current_nodes: @current_nodes,
+          halted_before: @halted_before
+        )
+        new_state
       end
 
-      # Converts all fields to a Hash.
+      # Converts user-defined fields to a Hash (excludes internal graph metadata).
       # @return [Hash]
       def to_h
         self.class.fields.keys.each_with_object({}) do |name, h|

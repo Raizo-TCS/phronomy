@@ -16,8 +16,8 @@ module Phronomy
     # Default embedding model name
     attr_accessor :default_embedding_model
 
-    # Default Checkpointer instance
-    attr_accessor :default_checkpointer
+    # Default StateStore instance (nil = no persistence)
+    attr_accessor :default_state_store
 
     # Default Memory instance
     attr_accessor :default_memory
@@ -27,9 +27,6 @@ module Phronomy
 
     # Recursion limit for graph execution (default: 25)
     attr_accessor :recursion_limit
-
-    # Interrupt handler for Human-in-the-Loop (Proc or nil)
-    attr_accessor :interrupt_handler
 
     def initialize
       @recursion_limit = 25
