@@ -82,7 +82,7 @@ The core depends only on RubyLLM and the Ruby standard library. Optional feature
 |---|---|---|
 | LangChain Core | Runnable / LCEL chain composition | Chain component |
 | LangGraph | StateGraph, Pregel execution, Checkpoint | Graph / Checkpointer components |
-| CrewAI | Agent/Task/Crew role-separation model | Agent/Task/Crew components (Level 4) |
+| CrewAI | Agent role-separation model (Crew/Task dropped; Agent-as-Tool adopted instead) | Agent component |
 | OpenAI Agents SDK | Handoff, Guardrail, Tracing | Handoff / Guardrail / Tracer |
 | RubyLLM | LLM abstraction, Tool, Rails integration | Used as the LLM abstraction layer |
 | mem0 | Multi-level memory design | Reference for Memory component design |

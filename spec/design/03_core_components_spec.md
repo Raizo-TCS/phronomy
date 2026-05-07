@@ -959,105 +959,45 @@ end
 
 ---
 
-## 7. Crew Component (Multi-agent Coordination)
+## 7. Multi-Agent (Agent-as-Tool Pattern)
 
-### 7.1 Crew
+Sub-agents are wrapped as `Tool::Base` subclasses so the orchestrator LLM
+can invoke them on demand rather than following a hardcoded execution order.
 
 ```ruby
-module Phronomy
-  class Crew
-    # @param agents [Hash<Symbol, Agent::Base>] role => agent
-    # @param tasks [Array<Task>]
-    # @param process [Symbol] :sequential, :hierarchical
-    def initialize(agents:, tasks:, process: :sequential)
-      @agents = agents
-      @tasks = tasks
-      @process = process
-    end
-    
-    def kickoff(inputs = {})
-      case @process
-      when :sequential
-        run_sequential(inputs)
-      when :hierarchical
-        run_hierarchical(inputs)
-      end
-    end
-    
-    private
-    
-    def run_sequential(inputs)
-      context = inputs
-      results = []
-      
-      @tasks.each do |task|
-        agent = @agents[task.agent_role]
-        raise "Agent #{task.agent_role} not found" unless agent
-        
-        result = agent.invoke(task.description_with_context(context))
-        context = context.merge(previous_output: result[:output])
-        results << result
-      end
-      
-      results
-    end
-    
-    def run_hierarchical(inputs)
-      # Manager agent delegates to other agents
-      manager = @agents[:manager]
-      raise "hierarchical process requires a :manager agent" unless manager
-      
-      manager.invoke(inputs.merge(available_agents: @agents.except(:manager)))
-    end
-  end
-  
-  class Task
-    attr_reader :description, :agent_role, :expected_output, :context_from
-    
-    def initialize(description:, agent_role:, expected_output: nil, context_from: [])
-      @description = description
-      @agent_role = agent_role
-      @expected_output = expected_output
-      @context_from = context_from
-    end
-    
-    def description_with_context(context)
-      base = description
-      base += "\n\nResult from previous step:\n#{context[:previous_output]}" if context[:previous_output]
-      base
-    end
+class ResearchTool < Phronomy::Tool::Base
+  description "Research a topic and return key findings as bullet points."
+  param :topic, type: :string, desc: "The topic to research"
+
+  def execute(topic:)
+    ResearcherAgent.new.invoke(topic)[:output]
   end
 end
+
+class WriteTool < Phronomy::Tool::Base
+  description "Write a technical blog post given research notes and a writing brief."
+  param :instructions, type: :string, desc: "Writing brief including research notes"
+
+  def execute(instructions:)
+    WriterAgent.new.invoke(instructions)[:output]
+  end
+end
+
+class OrchestratorAgent < Phronomy::Agent::Base
+  tools ResearchTool, WriteTool
+  instructions "Use the research tool first, then the write tool to produce a blog post."
+end
+
+result = OrchestratorAgent.new.invoke("Write a blog post about Ruby 3.4 new features")
 ```
 
-### 7.2 Handoff (Agent-to-Agent Delegation)
-
-A pattern realized through Graph conditional edges.
+For fixed-order multi-agent pipelines, use Graph nodes directly:
 
 ```ruby
-# Handoff pattern: supervisor agent handles routing
-supervisor_graph = Phronomy::Graph::StateGraph.new(SupervisorState)
-
-supervisor_graph.add_node(:supervisor) do |state|
-  # LLM decides which agent to delegate to
-  response = RubyLLM.chat.ask(
-    "Which agent should handle this task? [researcher/writer/coder]\n#{state.task}"
-  )
-  { next_agent: response.content.strip.to_sym }
-end
-
-supervisor_graph.add_node(:researcher) { |state| ResearchAgent.new.invoke(state) }
-supervisor_graph.add_node(:writer)     { |state| WriterAgent.new.invoke(state) }
-supervisor_graph.add_node(:coder)      { |state| CoderAgent.new.invoke(state) }
-
-supervisor_graph.add_conditional_edges(
-  :supervisor,
-  ->(state) { state.next_agent || Phronomy::Graph::StateGraph::END }
-)
-
-[:researcher, :writer, :coder].each do |role|
-  supervisor_graph.add_edge(role, Phronomy::Graph::StateGraph::END)
-end
+graph.add_node(:research) { |s| s.merge(research: ResearcherAgent.new.invoke(s.topic)[:output]) }
+graph.add_node(:write)    { |s| s.merge(article: WriterAgent.new.invoke(s.research)[:output]) }
+graph.add_edge(:research, :write)
+graph.add_edge(:write, Phronomy::Graph::StateGraph::FINISH)
 ```
 
 ---

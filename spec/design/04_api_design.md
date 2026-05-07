@@ -351,44 +351,37 @@ checkpointer.delete("thread_1")
 
 ---
 
-## 9. Crew API (Multi-agent)
+## 9. Multi-Agent (Agent-as-Tool Pattern)
 
 ```ruby
-# === Agent definitions ===
-class ResearcherAgent < Phronomy::Agent::Base
+# Sub-agents wrapped as tools so the orchestrator LLM can call them on demand.
+
+class ResearchTool < Phronomy::Tool::Base
+  description "Research a topic and return key findings as bullet points."
+  param :topic, type: :string, desc: "The topic to research"
+
+  def execute(topic:)
+    ResearcherAgent.new.invoke(topic)[:output]
+  end
+end
+
+class WriteTool < Phronomy::Tool::Base
+  description "Write a technical blog post given research notes and a writing brief."
+  param :instructions, type: :string, desc: "Writing brief including research notes"
+
+  def execute(instructions:)
+    WriterAgent.new.invoke(instructions)[:output]
+  end
+end
+
+class OrchestratorAgent < Phronomy::Agent::Base
   model "claude-3-5-sonnet-20241022"
-  instructions "Research thoroughly and collect reliable information."
-  tools WebSearch, AcademicSearch
+  tools ResearchTool, WriteTool
+  instructions "Produce a high-quality blog post. Use research tool first, then write tool."
 end
 
-class WriterAgent < Phronomy::Agent::Base
-  model "gpt-4o"
-  instructions "Compile research results into clear, readable prose."
-  tools ReadFile, WriteFile
-end
-
-# === Assemble a Crew ===
-crew = Phronomy::Crew.new(
-  agents: {
-    researcher: ResearcherAgent.new,
-    writer:     WriterAgent.new
-  },
-  tasks: [
-    Phronomy::Task.new(
-      description: "Research the new features in Ruby 3.4",
-      agent_role:  :researcher,
-      expected_output: "List of new features"
-    ),
-    Phronomy::Task.new(
-      description: "Compile the research into a blog post",
-      agent_role:  :writer,
-      expected_output: "A blog post of approximately 800 words"
-    )
-  ],
-  process: :sequential
-)
-
-results = crew.kickoff(topic: "Ruby 3.4 New Features")
+result = OrchestratorAgent.new.invoke("Write a blog post about Ruby 3.4 new features")
+puts result[:output]
 ```
 
 ---

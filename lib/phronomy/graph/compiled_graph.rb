@@ -9,14 +9,15 @@ module Phronomy
     class CompiledGraph
       include Phronomy::Runnable
 
-      def initialize(state_class:, nodes:, edges:, conditional_edges:, entry_point:)
+      def initialize(state_class:, nodes:, edges:, conditional_edges:, entry_point:,
+        before_callbacks: {}, after_callbacks: {})
         @state_class = state_class
         @nodes = nodes
         @edges = edges
         @conditional_edges = conditional_edges
         @entry_point = entry_point
-        @before_callbacks = {}
-        @after_callbacks = {}
+        @before_callbacks = before_callbacks
+        @after_callbacks = after_callbacks
       end
 
       # Registers a callback to run before the given node executes.

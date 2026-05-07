@@ -17,6 +17,8 @@ module Phronomy
         @edges = {}
         @conditional_edges = {}
         @entry_point = nil
+        @before_callbacks = {}
+        @after_callbacks = {}
       end
 
       # Adds a node.
@@ -59,7 +61,31 @@ module Phronomy
         self
       end
 
+      # Registers a callback to run before the given node executes.
+      # Return :halt from the block to pause execution; any other value continues.
+      # Callbacks registered here become defaults for every CompiledGraph produced by compile.
+      # @param node [Symbol]
+      # @yield [state] the current state
+      # @return [self]
+      def interrupt_before(node, &block)
+        @before_callbacks[node] = block
+        self
+      end
+
+      # Registers a callback to run after the given node completes.
+      # Return :halt from the block to pause execution; any other value continues.
+      # Callbacks registered here become defaults for every CompiledGraph produced by compile.
+      # @param node [Symbol]
+      # @yield [state] the state after the node ran
+      # @return [self]
+      def interrupt_after(node, &block)
+        @after_callbacks[node] = block
+        self
+      end
+
       # Compiles the graph and returns a CompiledGraph.
+      # Callbacks registered on StateGraph are inherited; additional callbacks can be
+      # registered on the returned CompiledGraph to override or extend them.
       # @return [CompiledGraph]
       def compile
         CompiledGraph.new(
@@ -67,7 +93,9 @@ module Phronomy
           nodes: @nodes,
           edges: @edges,
           conditional_edges: @conditional_edges,
-          entry_point: @entry_point || @nodes.keys.first
+          entry_point: @entry_point || @nodes.keys.first,
+          before_callbacks: @before_callbacks.dup,
+          after_callbacks: @after_callbacks.dup
         )
       end
 

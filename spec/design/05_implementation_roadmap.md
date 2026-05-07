@@ -155,32 +155,32 @@ end
 
 ### Target Components
 
-- `Phronomy::Crew`
-- `Phronomy::Task`
 - `Phronomy::Tool::McpTool` (MCP protocol support)
 - `Phronomy::Tracing::Base`
 - `Phronomy::Tracing::NullTracer`
 - `Phronomy::Guardrail::Base`
 - `Phronomy::Guardrail::InputGuardrail`
 - `Phronomy::Guardrail::OutputGuardrail`
-- `Phronomy::Runtime::Pregel` (parallel node execution)
 - `phronomy-tracing` optional gem (OpenTelemetry / Langfuse)
 
 ### Milestone
 
 ```ruby
-# Phase 4 complete: multi-agent and observability work
+# Phase 3 complete: multi-agent (Agent-as-Tool), observability
 
-# === Crew ===
-crew = Phronomy::Crew.new(
-  agents: { researcher: ResearcherAgent.new, writer: WriterAgent.new },
-  tasks: [
-    Phronomy::Task.new(description: "Research", agent_role: :researcher),
-    Phronomy::Task.new(description: "Write", agent_role: :writer)
-  ],
-  process: :sequential
-)
-crew.kickoff(topic: "AI Agents")
+# === Multi-Agent (Agent-as-Tool) ===
+class ResearchTool < Phronomy::Tool::Base
+  description "Research a topic"
+  param :topic, type: :string, desc: "Topic to research"
+  def execute(topic:) = ResearcherAgent.new.invoke(topic)[:output]
+end
+
+class OrchestratorAgent < Phronomy::Agent::Base
+  tools ResearchTool, WriteTool
+  instructions "Coordinate research and writing."
+end
+
+OrchestratorAgent.new.invoke("Write a blog post about Ruby 3.4")
 
 # === MCP ===
 mcp_tool = Phronomy::Tool::McpTool.from_server("stdio://./mcp-server", tool_name: "web_search")
@@ -273,7 +273,7 @@ end
 | 0.1.0 | Phase 1 complete (Chain, Tool, basic Config) |
 | 0.2.0 | Phase 2 complete (Graph, Agent, InMemory Checkpoint) |
 | 0.3.0 | Phase 3 complete (Memory, ActiveRecord Checkpoint, Rails generators) |
-| 1.0.0 | Phase 4 complete (Crew, MCP, Tracer, Guardrail) + API stability guarantee |
+| 1.0.0 | Phase 4 complete (Multi-Agent/Agent-as-Tool, MCP, Tracer, Guardrail) + API stability guarantee |
 
 ---
 

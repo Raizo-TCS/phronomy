@@ -39,7 +39,6 @@ Phronomy follows the "three-layer model" from the AI Agent Design Guide.
 |---|---|---|
 | `Graph` | Define and execute agent workflows as a directed graph | LangGraph StateGraph |
 | `Agent` | Execution node with tools, instructions, and LLM config | LangGraph ToolNode + Agent |
-| `Task` | Task definition for an agent (description, expected output) | CrewAI Task |
 | `Tool` | Function definition callable from LLM | LangChain Tool |
 | `Memory` | Conversation history and context management | LangChain Memory + mem0 |
 
@@ -60,7 +59,7 @@ Phronomy follows the "three-layer model" from the AI Agent Design Guide.
 | `Tracer` | Execution trace collection and output | `phronomy-tracing` |
 | `OutputParser` | Conversion to various output formats | Included in core |
 | `EmbeddingStore` | Vector search / RAG | `phronomy-rag` |
-| `Crew` | Multi-agent coordination | Included in core (Level 4) |
+| `StateStore` | Persistence and resumption of graph execution state | LangGraph Checkpoint |
 
 ---
 
@@ -90,9 +89,6 @@ phronomy/
 │       │   ├── base.rb                  # Agent base class
 │       │   ├── react_agent.rb           # ReAct pattern
 │       │   └── tool_calling_agent.rb    # Tool Calling pattern
-│       │
-│       ├── task/                        # Task component
-│       │   └── base.rb
 │       │
 │       ├── tool/                        # Tool component
 │       │   ├── base.rb                  # RubyLLM::Tool extension
@@ -125,9 +121,11 @@ phronomy/
 │       │   ├── base.rb
 │       │   └── null_tracer.rb
 │       │
-│       ├── crew/                        # multi-agent coordination
-│       │   ├── crew.rb
-│       │   └── handoff.rb
+│       ├── state_store/                 # graph state persistence
+│       │   ├── base.rb
+│       │   ├── in_memory.rb
+│       │   ├── active_record.rb
+│       │   └── redis.rb
 │       │
 │       ├── active_record/               # Rails / ActiveRecord integration
 │       │   ├── acts_as.rb
@@ -198,11 +196,11 @@ Phronomy's approach to the 11 design topics from the AI Agent Design Guide.
 
 ### 4.7 Agent Composition Selection (agent-composition)
 
-**Corresponding components**: `Graph`, `Crew`
+**Corresponding components**: `Graph`, `Agent`
 
 - Single agent: Run `Agent` standalone
 - Graph composition: Conditional branching and loops between nodes via `Graph`
-- Multi-agent: Agent coordination via `Crew` (Handoff pattern)
+- Multi-agent: Agent-as-Tool pattern — wrap sub-agents as `Tool::Base` subclasses and register them on an orchestrator `Agent`
 
 ### 4.8 Response and Streaming UX (streaming-ux)
 
