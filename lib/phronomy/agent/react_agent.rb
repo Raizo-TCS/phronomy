@@ -19,17 +19,19 @@ module Phronomy
 
         messages = initial_messages.dup
         user_asked = false
+        total_usage = Phronomy::TokenUsage.zero
 
         max_iter.times do
           response = step(messages, input, user_asked: user_asked)
           user_asked = true
           messages = response[:messages]
+          total_usage += response[:usage]
           break if response[:done]
         end
 
         memory.save_messages(thread_id: thread_id, messages: messages) if memory && thread_id
 
-        {output: messages.last&.content, messages: messages}
+        {output: messages.last&.content, messages: messages, usage: total_usage}
       end
 
       private
@@ -40,7 +42,7 @@ module Phronomy
         # Inject any existing history (from previous loop iterations or loaded memory).
         messages.each { |m| chat.add_message(m) }
 
-        if user_asked
+        response = if user_asked
           # Subsequent loop iteration — history already contains the user message;
           # just ask the LLM to continue (e.g. after a tool result).
           chat.complete
@@ -49,9 +51,10 @@ module Phronomy
           chat.ask(extract_message(initial_input))
         end
 
+        usage = Phronomy::TokenUsage.from_tokens(response&.tokens)
         tool_calls = chat.messages.last&.tool_calls
         done = tool_calls.nil? || tool_calls.empty?
-        {messages: chat.messages, done: done}
+        {messages: chat.messages, done: done, usage: usage}
       end
     end
   end

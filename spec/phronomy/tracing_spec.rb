@@ -12,23 +12,29 @@ RSpec.describe Phronomy::Tracing::Base do
         @started
       end
 
-      def finish_span(span, output: nil, error: nil)
-        @finished = {span: span, output: output, error: error}
+      def finish_span(span, output: nil, usage: nil, error: nil)
+        @finished = {span: span, output: output, usage: usage, error: error}
       end
     end.new
   end
 
   describe "#trace" do
     it "calls start_span and finish_span around the block" do
-      result = tracer.trace("my_op", input: "hello") { "world" }
+      result = tracer.trace("my_op", input: "hello") { ["world", nil] }
       expect(result).to eq("world")
       expect(tracer.started[:name]).to eq("my_op")
       expect(tracer.finished[:output]).to eq("world")
       expect(tracer.finished[:error]).to be_nil
     end
 
+    it "passes usage to finish_span" do
+      usage = Phronomy::TokenUsage.new(input: 10, output: 5, cached: 2, cache_creation: 0)
+      tracer.trace("op", input: "x") { ["result", usage] }
+      expect(tracer.finished[:usage]).to eq(usage)
+    end
+
     it "passes extra metadata to start_span" do
-      tracer.trace("op", input: "x", model: "gpt-4") { nil }
+      tracer.trace("op", input: "x", model: "gpt-4") { [nil, nil] }
       expect(tracer.started[:attrs]).to include(input: "x", model: "gpt-4")
     end
 
@@ -83,7 +89,7 @@ RSpec.describe Phronomy::Tracing::NullTracer do
 
   describe "#trace" do
     it "yields and returns the block result without error" do
-      result = tracer.trace("op", input: "in") { "out" }
+      result = tracer.trace("op", input: "in") { ["out", nil] }
       expect(result).to eq("out")
     end
   end
@@ -125,7 +131,7 @@ RSpec.describe "Runnable#trace helper" do
     end.new
 
     Phronomy.configure { |c| c.tracer = spy_tracer }
-    runnable.trace("hello_op") { "done" }
+    runnable.trace("hello_op") { ["done", nil] }
     expect(spans).to include("hello_op")
   end
 end

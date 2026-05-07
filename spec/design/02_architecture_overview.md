@@ -13,9 +13,9 @@ Phronomy follows the "three-layer model" from the AI Agent Design Guide.
 ┌─────────────────────────────▼───────────────────────────────────┐
 │                   Framework Layer (Phronomy)                     │
 │                                                                  │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌──────────┐ ┌─────────┐  │
-│  │  Chain  │ │  Graph  │ │  Agent  │ │  Memory  │ │  Tool   │  │
-│  └─────────┘ └─────────┘ └─────────┘ └──────────┘ └─────────┘  │
+│  ┌─────────┐ ┌─────────┐ ┌──────────┐ ┌─────────┐             │
+│  │  Graph  │ │  Agent  │ │  Memory  │ │  Tool   │             │
+│  └─────────┘ └─────────┘ └──────────┘ └─────────┘             │
 │  ┌──────────────┐ ┌──────────┐ ┌────────────┐ ┌─────────────┐  │
 │  │ Checkpointer │ │Guardrail │ │   Tracer   │ │ OutputParser│  │
 │  └──────────────┘ └──────────┘ └────────────┘ └─────────────┘  │
@@ -37,7 +37,6 @@ Phronomy follows the "three-layer model" from the AI Agent Design Guide.
 
 | Component | Role | LangGraph/LangChain Equivalent |
 |---|---|---|
-| `Chain` | Pipeline composition of prompt → LLM → parser | LCEL Runnable |
 | `Graph` | Define and execute agent workflows as a directed graph | LangGraph StateGraph |
 | `Agent` | Execution node with tools, instructions, and LLM config | LangGraph ToolNode + Agent |
 | `Task` | Task definition for an agent (description, expected output) | CrewAI Task |
@@ -48,7 +47,7 @@ Phronomy follows the "three-layer model" from the AI Agent Design Guide.
 
 | Component | Role | Equivalent |
 |---|---|---|
-| `Runtime` | Execution engine for Graph/Chain | LangGraph Pregel |
+| `Runtime` | Execution engine for Graph | LangGraph Pregel |
 | `State` | State definition and updates for graph execution | LangGraph State |
 | `Channel` | Value propagation definition between nodes | LangGraph Channel |
 | `Checkpointer` | Persistence, suspension, and resumption of execution state | LangGraph Checkpoint |
@@ -74,12 +73,6 @@ phronomy/
 │   └── phronomy/
 │       ├── version.rb
 │       ├── configuration.rb             # global configuration
-│       │
-│       ├── chain/                       # Chain component
-│       │   ├── base.rb                  # Runnable base
-│       │   ├── prompt_template.rb       # prompt template
-│       │   ├── llm_chain.rb             # LLM call chain
-│       │   └── sequential_chain.rb      # sequential chain
 │       │
 │       ├── graph/                       # Graph component
 │       │   ├── state_graph.rb           # graph definition API
@@ -157,18 +150,18 @@ Phronomy's approach to the 11 design topics from the AI Agent Design Guide.
 
 ### 4.1 Information Structure Design (info-structure)
 
-**Corresponding components**: `Chain::PromptTemplate`, `Memory`
+**Corresponding components**: `Memory`
 
-- Instructions area: managed by `PromptTemplate`'s `system_template`
+- Instructions area: managed by the system prompt inside Graph nodes
 - Capability area: managed by `Agent`'s `tools` list
-- Knowledge area: injected into `Chain` from `Memory` retrieval results
+- Knowledge area: injected into nodes from `Memory` retrieval results
 - Conversation area: managed by `Memory::WindowMemory` / `SummaryMemory`
 
 ### 4.2 Instruction Composition Design (prompt-design)
 
-**Corresponding component**: `Chain::PromptTemplate`
+**Corresponding component**: `Agent`, `Graph`
 
-- Define 5 sections (role instruction, task instruction, environment info, behavior policy, output policy) as `PromptTemplate` sections
+- Define 5 sections (role instruction, task instruction, environment info, behavior policy, output policy) in Agent's `instructions` or as a node's system prompt
 - Support both static templates (YAML/ERB file-based) and dynamic composition (block-based)
 - Provider differences are delegated to RubyLLM's Provider layer
 
@@ -189,11 +182,11 @@ Phronomy's approach to the 11 design topics from the AI Agent Design Guide.
 
 ### 4.5 Context Management Implementation (context-management)
 
-**Corresponding components**: `Memory`, `Chain`
+**Corresponding components**: `Memory`
 
 - Token limit management: `Memory::SummaryMemory` summarizes old history with LLM
 - Priority-based deletion: Remove oldest tool_results first when token limit is exceeded
-- Cache efficiency: Fix unchanging instructions at the top (Anthropic prompt caching support)
+- Cache efficiency: Fix unchanging instructions at the top (prompt caching support; takes effect when the provider offers this feature)
 
 ### 4.6 Processing Cycle and Persistence (cycle-persistence)
 
@@ -213,9 +206,9 @@ Phronomy's approach to the 11 design topics from the AI Agent Design Guide.
 
 ### 4.8 Response and Streaming UX (streaming-ux)
 
-**Corresponding components**: `Chain`, `Graph`
+**Corresponding components**: `Graph`
 
-- Propagate RubyLLM streaming at the Chain/Graph level
+- Propagate RubyLLM streaming at the Graph level
 - Integration with Rails ActionController::Live / ActionCable
 
 ### 4.9 Human Intervention Design (human-in-loop)
@@ -247,17 +240,11 @@ Phronomy's approach to the 11 design topics from the AI Agent Design Guide.
 ## 5. Dependency Diagram
 
 ```
-Phronomy::Chain
-  └─ Phronomy::PromptTemplate
-  └─ RubyLLM::Chat  (LLM call)
-  └─ Phronomy::OutputParser
-
 Phronomy::Graph
   └─ Phronomy::Runtime::Pregel  (execution engine)
       └─ Phronomy::Graph::Node
           └─ Phronomy::Agent::Base
               └─ RubyLLM::Agent  (or RubyLLM::Chat + Tool)
-          └─ Phronomy::Chain
       └─ Phronomy::Checkpoint::Base
       └─ Phronomy::Memory::Base
 

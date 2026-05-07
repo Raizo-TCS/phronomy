@@ -2,63 +2,17 @@
 
 ## 1. Phase Overview
 
-Implementation is divided into 4 phases. Each phase provides standalone value in a "stacked value" structure.
+Implementation is divided into 3 phases. Each phase provides standalone value in a "stacked value" structure.
 
 | Phase | Name | Estimated Duration | Value Provided |
 |---|---|---|---|
-| Phase 1 | Core Chain | 2–3 weeks | Prompt → LLM → parser pipeline |
-| Phase 2 | Graph Runtime | 3–4 weeks | State graph-based agent workflow |
-| Phase 3 | Memory & Persistence | 2–3 weeks | State persistence, memory management, complete Rails integration |
-| Phase 4 | Multi-Agent & Observability | 3–4 weeks | Multi-agent, observability, MCP support |
+| Phase 1 | Graph Runtime | 3–4 weeks | State graph-based agent workflow |
+| Phase 2 | Memory & Persistence | 2–3 weeks | State persistence, memory management, complete Rails integration |
+| Phase 3 | Multi-Agent & Observability | 3–4 weeks | Multi-agent, observability, MCP support |
 
 ---
 
-## 2. Phase 1: Core Chain
-
-### Target Components
-
-- `Phronomy::Runnable` module
-- `Phronomy::Chain::PromptTemplate`
-- `Phronomy::Chain::LLMChain`
-- `Phronomy::Chain::Sequential`
-- `Phronomy::OutputParser::Base`, `JsonParser`, `StructuredParser`
-- `Phronomy::Tool::Base` (thin wrapper around RubyLLM::Tool)
-- `Phronomy::Configuration`
-- `Phronomy::Railtie` (basic configuration only)
-
-### Milestone
-
-```ruby
-# Code that works when Phase 1 is complete
-prompt = Phronomy::Chain::PromptTemplate.new(
-  system_template: "You are a helpful assistant.",
-  template: "Answer: <%= question %>"
-)
-llm    = Phronomy::Chain::LLMChain.new(model: "gpt-4o")
-parser = Phronomy::OutputParser::JsonParser.new
-
-chain = prompt >> llm >> parser
-result = chain.invoke(question: "What is Ruby?")
-
-# Streaming
-chain.stream(question: "Explain Ruby") { |c| print c }
-
-# Batch
-results = chain.batch([{ question: "Ruby?" }, { question: "Rails?" }])
-```
-
-### Test Requirements
-
-- RSpec unit tests: independent tests for each component
-- VCR (vcr gem) for recording and replaying LLM API calls
-- Provider mocks for unit testing
-- PromptTemplate: ERB rendering, variable injection
-- LLMChain: streaming, chain with tools
-- OutputParser: JSON parsing, error handling
-
----
-
-## 3. Phase 2: Graph Runtime
+## 2. Phase 1: Graph Runtime
 
 ### Target Components
 
@@ -112,7 +66,7 @@ end
 
 ---
 
-## 4. Phase 3: Memory & Persistence
+## 3. Phase 2: Memory & Persistence
 
 ### Target Components
 
@@ -197,7 +151,7 @@ end
 
 ---
 
-## 5. Phase 4: Multi-Agent & Observability
+## 4. Phase 3: Multi-Agent & Observability
 
 ### Target Components
 
@@ -255,7 +209,7 @@ end
 
 ---
 
-## 6. Testing Strategy
+## 5. Testing Strategy
 
 ### 6.1 Unit Tests
 
@@ -312,7 +266,7 @@ end
 
 ---
 
-## 7. Release Plan
+## 6. Release Plan
 
 | Version | Content |
 |---|---|

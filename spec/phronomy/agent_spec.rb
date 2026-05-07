@@ -18,7 +18,8 @@ class NoModelAgent < Phronomy::Agent::Base
 end
 
 RSpec.describe Phronomy::Agent::Base do
-  let(:fake_message) { double("Message", content: "LLM response", tool_calls: nil) }
+  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0) }
+  let(:fake_message) { double("Message", content: "LLM response", tool_calls: nil, tokens: fake_tokens) }
   let(:fake_messages) { [fake_message] }
   let(:fake_chat) do
     dbl = double("Chat")
@@ -97,8 +98,15 @@ RSpec.describe Phronomy::Agent::Base do
 
     it "returns { output:, messages: }" do
       result = agent.invoke("Hello")
-      expect(result).to include(:output, :messages)
+      expect(result).to include(:output, :messages, :usage)
       expect(result[:output]).to eq("LLM response")
+    end
+
+    it "returns a TokenUsage as :usage" do
+      result = agent.invoke("Hello")
+      expect(result[:usage]).to be_a(Phronomy::TokenUsage)
+      expect(result[:usage].input).to eq(10)
+      expect(result[:usage].output).to eq(5)
     end
 
     it "passes model to RubyLLM.chat" do
@@ -163,11 +171,12 @@ RSpec.describe Phronomy::Agent::Base do
 end
 
 RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
+  let(:alias_tokens) { double("Tokens", input: 5, output: 2, cached: 0, cache_creation: 0) }
   let(:fake_chat) do
     dbl = double("Chat")
     allow(dbl).to receive(:with_instructions).and_return(dbl)
     allow(dbl).to receive(:with_tool).and_return(dbl)
-    allow(dbl).to receive(:ask).and_return(double("Msg", content: "ok", tool_calls: nil))
+    allow(dbl).to receive(:ask).and_return(double("Msg", content: "ok", tool_calls: nil, tokens: alias_tokens))
     allow(dbl).to receive(:messages).and_return([])
     dbl
   end
@@ -249,7 +258,8 @@ end
 
 RSpec.describe Phronomy::Agent::ReactAgent do
   # Chat mock that completes immediately without tool calls
-  let(:final_message) { double("Message", content: "Final answer", tool_calls: nil) }
+  let(:final_tokens) { double("Tokens", input: 20, output: 10, cached: 0, cache_creation: 0) }
+  let(:final_message) { double("Message", content: "Final answer", tool_calls: nil, tokens: final_tokens) }
   let(:messages_list) { [final_message] }
   let(:done_chat) do
     dbl = double("Chat")
@@ -293,7 +303,13 @@ RSpec.describe Phronomy::Agent::ReactAgent do
 
     it "returns a Hash with :output and :messages" do
       result = agent.invoke("Hello")
-      expect(result).to include(:output, :messages)
+      expect(result).to include(:output, :messages, :usage)
+    end
+
+    it "returns a TokenUsage as :usage" do
+      result = agent.invoke("Hello")
+      expect(result[:usage]).to be_a(Phronomy::TokenUsage)
+      expect(result[:usage].input).to eq(20)
     end
 
     it "inherits from Base" do
@@ -310,8 +326,10 @@ RSpec.describe Phronomy::Agent::ReactAgent do
       model "test-model"
     end
 
-    let(:tool_call_msg) { double("ToolCallMessage", content: nil, tool_calls: [double("ToolCall", name: "add")]) }
-    let(:final_answer_msg) { double("FinalMessage", content: "The answer is 7", tool_calls: nil) }
+    let(:tool_tokens) { double("Tokens", input: 15, output: 3, cached: 0, cache_creation: 0) }
+    let(:final_tokens2) { double("Tokens", input: 12, output: 8, cached: 0, cache_creation: 0) }
+    let(:tool_call_msg) { double("ToolCallMessage", content: nil, tool_calls: [double("ToolCall", name: "add")], tokens: tool_tokens) }
+    let(:final_answer_msg) { double("FinalMessage", content: "The answer is 7", tool_calls: nil, tokens: final_tokens2) }
 
     let(:step1_chat) do
       dbl = double("Step1Chat")
@@ -366,7 +384,8 @@ RSpec.describe Phronomy::Agent::ReactAgent do
     end
 
     let(:prev_msg) { double("PrevMessage", role: :user, content: "prev", tool_calls: nil) }
-    let(:reply_msg) { double("ReplyMessage", role: :assistant, content: "reply", tool_calls: nil) }
+    let(:reply_tokens) { double("Tokens", input: 8, output: 4, cached: 0, cache_creation: 0) }
+    let(:reply_msg) { double("ReplyMessage", role: :assistant, content: "reply", tool_calls: nil, tokens: reply_tokens) }
 
     # A self-contained chat double that already supports all ReactAgent step interactions.
     let(:mem_chat) do

@@ -82,6 +82,29 @@ module Phronomy
             @max_iterations || 10
           end
         end
+
+        # When enabled, attaches Anthropic prompt-cache markers to the system
+        # message so that the fixed instructions are served from cache on
+        # subsequent turns, reducing input-token costs.
+        #
+        # Only has an effect when the agent also declares `provider :anthropic`.
+        # The cache_control field is provider-specific (the format differs
+        # between Anthropic direct, Bedrock, etc.), so the agent must explicitly
+        # declare its provider via the DSL rather than having it inferred from
+        # the model name.
+        #
+        # @example
+        #   class MyAgent < Phronomy::Agent::Base
+        #     provider :anthropic
+        #     cache_instructions true
+        #   end
+        def cache_instructions(enabled = nil)
+          if enabled.nil?
+            @cache_instructions
+          else
+            @cache_instructions = enabled
+          end
+        end
       end
 
       def invoke(input, config: {})
@@ -93,7 +116,7 @@ module Phronomy
 
         chat = build_chat
         system_msg = build_instructions(input)
-        chat.with_instructions(system_msg) if system_msg
+        apply_instructions(chat, system_msg) if system_msg
 
         # Inject previous messages from memory before asking.
         if memory && thread_id
@@ -109,11 +132,12 @@ module Phronomy
         memory.save_messages(thread_id: thread_id, messages: chat.messages) if memory && thread_id
 
         output = response.content
+        usage = Phronomy::TokenUsage.from_tokens(response.tokens)
 
         # Run output guardrails before returning to the caller.
         run_output_guardrails!(output)
 
-        {output: output, messages: chat.messages}
+        {output: output, messages: chat.messages, usage: usage}
       end
 
       # Attach a guardrail that validates input before every #invoke call.
@@ -166,6 +190,27 @@ module Phronomy
         when Proc then instr.call(input)
         when nil then nil
         end
+      end
+
+      # Applies system instructions to a chat object.
+      # When cache_instructions is enabled and the provider is Anthropic,
+      # attaches a cache_control marker so that the fixed system prompt is
+      # eligible for prompt caching.
+      def apply_instructions(chat, text)
+        if self.class.cache_instructions && anthropic_provider?
+          content = RubyLLM::Providers::Anthropic::Content.new(text, cache: true)
+          chat.with_instructions(content)
+        else
+          chat.with_instructions(text)
+        end
+      end
+
+      # Returns true when this agent explicitly declares `provider :anthropic`.
+      # Provider is intentionally checked via the DSL value rather than inferred
+      # from the model name, because cache_control format is API-endpoint-specific
+      # (Anthropic direct vs. Bedrock vs. OpenRouter all differ).
+      def anthropic_provider?
+        self.class.provider == :anthropic
       end
 
       def extract_message(input)

@@ -83,7 +83,7 @@ RSpec.describe "Agent::Base guardrail integration" do
     it "does not raise when input passes the check" do
       agent.add_input_guardrail(no_bad_input)
       chat_double = instance_double(RubyLLM::Chat)
-      response = double("response", content: "ok")
+      response = double("response", content: "ok", tokens: double(input: 5, output: 2, cached: 0, cache_creation: 0))
       allow(RubyLLM).to receive(:chat).and_return(chat_double)
       allow(chat_double).to receive(:with_tool)
       allow(chat_double).to receive(:with_instructions)
@@ -101,7 +101,7 @@ RSpec.describe "Agent::Base guardrail integration" do
     it "raises GuardrailError when output fails the check" do
       agent.add_output_guardrail(no_secret_output)
       chat_double = instance_double(RubyLLM::Chat)
-      response = double("response", content: "here is your SECRET key")
+      response = double("response", content: "here is your SECRET key", tokens: double(input: 5, output: 10, cached: 0, cache_creation: 0))
       allow(RubyLLM).to receive(:chat).and_return(chat_double)
       allow(chat_double).to receive(:with_tool)
       allow(chat_double).to receive(:with_instructions)

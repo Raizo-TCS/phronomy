@@ -33,12 +33,6 @@ RSpec.describe Phronomy::OutputParser::Base do
       results = parser.batch(["a", "b", "c"])
       expect(results).to eq(["A", "B", "C"])
     end
-
-    it "can be chained with >> into a Sequential" do
-      other = parser_class.new
-      pipeline = parser >> other
-      expect(pipeline).to be_a(Phronomy::Chain::Sequential)
-    end
   end
 end
 

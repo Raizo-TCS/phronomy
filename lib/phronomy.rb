@@ -4,13 +4,11 @@ require "zeitwerk"
 require "ruby_llm"
 
 loader = Zeitwerk::Loader.for_gem
-loader.inflector.inflect(
-  "llm_chain" => "LLMChain"
-)
 loader.ignore(File.expand_path("generators", __dir__))
 loader.setup
 
 require_relative "phronomy/version"
+require_relative "phronomy/token_usage"
 
 require "phronomy/railtie" if defined?(Rails::Railtie)
 

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module Phronomy
-  # Base interface included by all Chain components.
-  # Provides invoke / stream / batch and the pipeline composition operators >> / |.
+  # Base interface for executable graph components.
+  # Provides invoke / stream / batch.
   module Runnable
     # Synchronous execution. Must be overridden in subclasses.
     def invoke(input, config: {})
@@ -21,19 +21,12 @@ module Phronomy
       inputs.map { |input| invoke(input, config: config) }
     end
 
-    # Pipeline composition: self >> other
-    def >>(other)
-      Phronomy::Chain::Sequential.new([self, other])
-    end
-
-    # Pipeline composition: self | other (LCEL-style alias)
-    alias_method :|, :>>
-
     # Convenience wrapper that delegates to the global tracer.
-    # Yields a span; returns the block's return value.
+    # Yields a span; the block must return [result, usage] where usage is a
+    # Phronomy::TokenUsage or nil. Returns only the result value.
     #
     # @example
-    #   trace("my_chain", input: input) { invoke(input) }
+    #   trace("my_chain", input: input) { [invoke(input), nil] }
     def trace(name, input: nil, **meta, &block)
       Phronomy.configuration.tracer.trace(name, input: input, **meta, &block)
     end
