@@ -25,6 +25,7 @@ RSpec.describe Phronomy::Agent::Base do
     dbl = double("Chat")
     allow(dbl).to receive(:with_instructions).and_return(dbl)
     allow(dbl).to receive(:with_tool).and_return(dbl)
+    allow(dbl).to receive(:with_temperature).and_return(dbl)
     allow(dbl).to receive(:ask).and_return(fake_message)
     allow(dbl).to receive(:messages).and_return(fake_messages)
     allow(dbl).to receive(:last_message).and_return(fake_message)
@@ -114,9 +115,9 @@ RSpec.describe Phronomy::Agent::Base do
       expect(RubyLLM).to have_received(:chat).with(hash_including(model: "test-model"))
     end
 
-    it "passes temperature to RubyLLM.chat" do
+    it "passes temperature to chat via with_temperature" do
       agent.invoke("Hello")
-      expect(RubyLLM).to have_received(:chat).with(hash_including(temperature: 0.5))
+      expect(fake_chat).to have_received(:with_temperature).with(0.5)
     end
 
     it "calls chat with no args when model is unset and default_model is nil" do
@@ -140,7 +141,7 @@ RSpec.describe Phronomy::Agent::Base do
 
       it "loads previous messages from memory before asking" do
         agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
-        expect(memory).to have_received(:load_messages).with(thread_id: "t1")
+        expect(memory).to have_received(:load_messages).with(thread_id: "t1", token_budget: nil)
       end
 
       it "injects the loaded message into the chat" do
@@ -165,6 +166,72 @@ RSpec.describe Phronomy::Agent::Base do
       it "skips memory when config has no memory" do
         agent.invoke("Hello", config: {thread_id: "t1"})
         # no error is raised — memory is simply not used
+      end
+    end
+
+    context "with max_output_tokens and context_overhead DSL" do
+      # An agent whose model IS in the RubyLLM registry (mocked).
+      let(:mock_model) do
+        double("RubyLLMModel", context_window: 32_768, max_output_tokens: 8_192)
+      end
+
+      before do
+        allow(RubyLLM.models).to receive(:find).with("test-model").and_return(mock_model)
+      end
+
+      let(:budget_agent_class) do
+        Class.new(Phronomy::Agent::Base) do
+          model "test-model"
+          max_output_tokens 2048
+          context_overhead  300
+        end
+      end
+
+      it "max_output_tokens DSL value overrides max_output_tokens from the registry" do
+        budget = budget_agent_class.new.send(:build_token_budget)
+        expect(budget).not_to be_nil
+        expect(budget.max_output_tokens).to eq(2048)
+      end
+
+      it "context_overhead DSL value is reflected in the budget overhead" do
+        budget = budget_agent_class.new.send(:build_token_budget)
+        expect(budget.overhead).to eq(300)
+      end
+
+      it "effective_input_limit equals context_window minus max_output_tokens minus overhead" do
+        budget = budget_agent_class.new.send(:build_token_budget)
+        expect(budget.effective_input_limit).to eq(32_768 - 2048 - 300)
+      end
+    end
+
+    context "when model is resolvable and a real token_budget is built" do
+      let(:mock_model) do
+        double("RubyLLMModel", context_window: 16_000, max_output_tokens: 2_000)
+      end
+
+      before do
+        allow(RubyLLM.models).to receive(:find).with("test-model").and_return(mock_model)
+      end
+
+      let(:prev_msg) { double("PrevMessage", role: :user, content: "previous") }
+      let(:memory) do
+        mem = instance_double(Phronomy::Memory::WindowMemory)
+        allow(mem).to receive(:load_messages).and_return([prev_msg])
+        allow(mem).to receive(:save_messages)
+        mem
+      end
+
+      it "passes a non-nil TokenBudget to load_messages" do
+        agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
+        expect(memory).to have_received(:load_messages) do |**kwargs|
+          expect(kwargs[:token_budget]).to be_a(Phronomy::Context::TokenBudget)
+          expect(kwargs[:token_budget].effective_input_limit).to eq(16_000 - 2_000)
+        end
+      end
+
+      it "injects budget-filtered history messages into the chat" do
+        agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
+        expect(fake_chat.messages).to include(prev_msg)
       end
     end
   end

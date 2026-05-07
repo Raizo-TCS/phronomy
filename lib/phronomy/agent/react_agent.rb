@@ -6,6 +6,9 @@ module Phronomy
     # Repeats the LLM <-> Tool loop until no more tool calls are made.
     class ReactAgent < Base
       def invoke(input, config: {})
+        # Run input guardrails before any LLM interaction.
+        run_input_guardrails!(input)
+
         memory = config[:memory]
         thread_id = config[:thread_id]
         max_iter = self.class.max_iterations
@@ -31,7 +34,12 @@ module Phronomy
 
         memory.save_messages(thread_id: thread_id, messages: messages) if memory && thread_id
 
-        {output: messages.last&.content, messages: messages, usage: total_usage}
+        output = messages.last&.content
+
+        # Run output guardrails before returning to the caller.
+        run_output_guardrails!(output)
+
+        {output: output, messages: messages, usage: total_usage}
       end
 
       private
