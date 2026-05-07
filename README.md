@@ -1,7 +1,7 @@
 # Phronomy
 
 **Phronomy** is a Ruby AI agent framework inspired by open-source AI agent frameworks.  
-It provides composable building blocks — Chains, Graphs, Agents, Memory, and Multi-agent Crews — all powered by [RubyLLM](https://github.com/crmne/ruby_llm) for LLM abstraction.
+It provides composable building blocks — Chains, Graphs, Agents, and Memory — all powered by [RubyLLM](https://github.com/crmne/ruby_llm) for LLM abstraction.
 
 ## Features
 
@@ -9,7 +9,7 @@ It provides composable building blocks — Chains, Graphs, Agents, Memory, and M
 - **Graph** — Build stateful, branching agent workflows with interrupt/resume support
 - **Agent** — ReAct-style tool-calling agents with memory and guardrails
 - **Memory** — Window, summary, and ActiveRecord-backed conversation memory
-- **Crew** — Orchestrate multiple agents with sequential or hierarchical task delegation
+- **Multi-agent** — LLM-driven coordination via the Agent-as-Tool pattern (sub-agents wrapped as `Tool::Base`)
 - **Guardrails** — Validate inputs and outputs before/after LLM calls
 - **Tracing** — Pluggable span-based observability (ships with a no-op NullTracer)
 - **Checkpointer** — Persist graph state to memory, ActiveRecord, or Redis
@@ -87,44 +87,54 @@ class ReviewState
   field :approved, type: :replace, default: false
 end
 
-graph = Phronomy.graph(ReviewState) do |g|
-  g.add_node(:write)    { |s| { draft: Writer.call(s) } }
-  g.add_node(:review)   { |s| { feedback: Reviewer.call(s.draft) } }
-  g.add_node(:finalize) { |s| { approved: true } }
-  g.add_edge(:write, :review)
-  g.add_edge(:review, :finalize)
-  g.set_entry_point(:write)
+graph = Phronomy::Graph::StateGraph.new(ReviewState)
+graph.add_node(:write)    { |s| { draft: Writer.call(s) } }
+graph.add_node(:review)   { |s| { feedback: Reviewer.call(s.draft) } }
+graph.add_node(:finalize) { |s| { approved: true } }
+graph.add_edge(:write, :review)
+graph.add_edge(:review, :finalize)
+graph.set_entry_point(:write)
+
+# Register an interrupt callback before the :finalize node
+graph.interrupt_before(:finalize) do |state|
+  puts "Draft ready for human review: #{state.draft}"
 end
 
-compiled = graph.compile(
-  checkpointer:     Phronomy::Checkpointer::InMemory.new,
-  interrupt_before: [:finalize]
-)
-
-begin
-  compiled.invoke({ draft: "" }, config: { thread_id: "doc-1" })
-rescue Phronomy::Interrupt
-  # Human review happens here...
-  compiled.resume(thread_id: "doc-1")
-end
+compiled = graph.compile
+compiled.invoke({ draft: "" }, config: { thread_id: "doc-1" })
 ```
 
-### Crew — Multi-agent collaboration
+### Multi-Agent — Agent-as-Tool pattern
+
+Wrap sub-agents as `Tool::Base` subclasses so the orchestrator LLM can call them on demand.
 
 ```ruby
-crew = Phronomy::Crew.new(
-  agents: {
-    researcher: ResearchAgent.new,
-    writer:     WriterAgent.new
-  },
-  tasks: [
-    Phronomy::Task.new(description: "Research the topic",    agent_role: :researcher),
-    Phronomy::Task.new(description: "Write a blog post",     agent_role: :writer)
-  ],
-  process: :sequential
-)
+class ResearchTool < Phronomy::Tool::Base
+  description "Research a topic and return key findings as bullet points."
+  param :topic, type: :string, desc: "The topic to research"
 
-results = crew.kickoff(topic: "Ruby 3.4 features")
+  def execute(topic:)
+    ResearchAgent.new.invoke(topic)[:output]
+  end
+end
+
+class WriteTool < Phronomy::Tool::Base
+  description "Write a technical blog post given research notes and a writing brief."
+  param :instructions, type: :string, desc: "Writing brief including research notes"
+
+  def execute(instructions:)
+    WriterAgent.new.invoke(instructions)[:output]
+  end
+end
+
+class OrchestratorAgent < Phronomy::Agent::Base
+  model "gpt-4o"
+  instructions "Use the research tool first, then the write tool to produce a blog post."
+  tools ResearchTool, WriteTool
+end
+
+result = OrchestratorAgent.new.invoke("Write a blog post about Ruby 3.4 features")
+puts result[:output]
 ```
 
 ### Guardrails — Input/output validation
