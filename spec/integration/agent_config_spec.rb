@@ -13,7 +13,7 @@ require_relative "spec_helper"
 # agent_max_iterations=one causes the agent to abort after 1 LLM turn.
 
 RSpec.describe "Group 6: Agent Configuration Parameters", :integration do
-  LM_MODEL    = "openai/gpt-oss-20b"
+  LM_MODEL = "openai/gpt-oss-20b"
   LM_PROVIDER = :openai
 
   # Build a Base agent class with the given configuration options.
@@ -24,20 +24,20 @@ RSpec.describe "Group 6: Agent Configuration Parameters", :integration do
   # @param cache_instr  [Boolean, nil]
   # @param provider     [Symbol, nil]
   def build_agent(model: LM_MODEL, instructions: "You are a helpful assistant.",
-                  temperature: nil, max_iter: nil,
-                  cache_instr: nil, provider: LM_PROVIDER)
-    m            = model
-    instr        = instructions
-    temp         = temperature
-    iter         = max_iter
-    cache        = cache_instr
-    prov         = provider
+    temperature: nil, max_iter: nil,
+    cache_instr: nil, provider: LM_PROVIDER)
+    m = model
+    instr = instructions
+    temp = temperature
+    iter = max_iter
+    cache = cache_instr
+    prov = provider
 
     Class.new(Phronomy::Agent::Base) do
       self.model(m) if m
       provider prov if prov
       self.instructions(instr) if instr.is_a?(String)
-      self.instructions(&instr)  if instr.is_a?(Proc)
+      self.instructions(&instr) if instr.is_a?(Proc)
       temperature temp if temp
       max_iterations iter if iter
       cache_instructions cache unless cache.nil?
@@ -47,9 +47,9 @@ RSpec.describe "Group 6: Agent Configuration Parameters", :integration do
   # Normalise the input value to a string for agent.invoke
   def normalise_input(value, type)
     case type
-    when :string       then value.to_s
-    when :hash_message then { message: value.to_s }
-    when :hash_query   then { query: value.to_s }
+    when :string then value.to_s
+    when :hash_message then {message: value.to_s}
+    when :hash_query then {query: value.to_s}
     else value
     end
   end
@@ -85,7 +85,7 @@ RSpec.describe "Group 6: Agent Configuration Parameters", :integration do
         cache_instr: true,
         provider: LM_PROVIDER
       )
-      result = klass.new.invoke({ message: "a quick question" })
+      result = klass.new.invoke({message: "a quick question"})
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end
@@ -107,7 +107,7 @@ RSpec.describe "Group 6: Agent Configuration Parameters", :integration do
         cache_instr: true,
         provider: LM_PROVIDER
       )
-      result = klass.new.invoke({ query: "What colour is the sky?" })
+      result = klass.new.invoke({query: "What colour is the sky?"})
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end
@@ -125,7 +125,7 @@ RSpec.describe "Group 6: Agent Configuration Parameters", :integration do
         max_iter: 1,
         provider: LM_PROVIDER
       )
-      result = klass.new.invoke({ message: "What is 2+2?" })
+      result = klass.new.invoke({message: "What is 2+2?"})
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end
@@ -163,7 +163,7 @@ RSpec.describe "Group 6: Agent Configuration Parameters", :integration do
         temperature: 0.5,
         provider: LM_PROVIDER
       )
-      result = klass.new.invoke({ message: "Name a planet." })
+      result = klass.new.invoke({message: "Name a planet."})
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end
@@ -181,7 +181,7 @@ RSpec.describe "Group 6: Agent Configuration Parameters", :integration do
         temperature: 0.0,
         provider: LM_PROVIDER
       )
-      result = klass.new.invoke({ query: "What is the capital of France?" })
+      result = klass.new.invoke({query: "What is the capital of France?"})
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end
@@ -240,7 +240,7 @@ RSpec.describe "Group 6: Agent Configuration Parameters", :integration do
         instructions: "You are a knowledgeable assistant.",
         provider: LM_PROVIDER
       )
-      result = klass.new.invoke({ message: "Briefly describe photosynthesis." })
+      result = klass.new.invoke({message: "Briefly describe photosynthesis."})
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end
@@ -258,7 +258,7 @@ RSpec.describe "Group 6: Agent Configuration Parameters", :integration do
         max_iter: 1,
         provider: LM_PROVIDER
       )
-      result = klass.new.invoke({ query: "Name any country." })
+      result = klass.new.invoke({query: "Name any country."})
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end

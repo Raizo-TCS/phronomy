@@ -28,9 +28,9 @@ RSpec.describe Phronomy::Memory::SemanticMemory do
   describe "#save_messages and #load_messages without query" do
     let(:msgs) do
       [
-        make_msg(:user,      "hello world"),
+        make_msg(:user, "hello world"),
         make_msg(:assistant, "hi there"),
-        make_msg(:user,      "how are you")
+        make_msg(:user, "how are you")
       ]
     end
 

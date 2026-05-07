@@ -50,11 +50,11 @@ module Phronomy
 
         if context_window
           # Explicit values — no registry lookup needed.
-          @context_window    = context_window.to_i
+          @context_window = context_window.to_i
           @max_output_tokens = (max_output_tokens || 0).to_i
         elsif model
           ruby_llm_model = lookup_model!(model)
-          @context_window    = ruby_llm_model.context_window.to_i
+          @context_window = ruby_llm_model.context_window.to_i
           @max_output_tokens = (max_output_tokens || ruby_llm_model.max_output_tokens).to_i
         else
           raise ArgumentError, "Provide either model: or context_window:"

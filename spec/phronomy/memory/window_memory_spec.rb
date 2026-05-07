@@ -11,11 +11,11 @@ RSpec.describe Phronomy::Memory::WindowMemory do
 
   let(:msgs) do
     [
-      make_msg(:user,      "first"),
+      make_msg(:user, "first"),
       make_msg(:assistant, "reply1"),
-      make_msg(:user,      "second"),
+      make_msg(:user, "second"),
       make_msg(:assistant, "reply2"),
-      make_msg(:user,      "third"),
+      make_msg(:user, "third"),
       make_msg(:assistant, "reply3")
     ]
   end

@@ -33,7 +33,7 @@ RSpec.describe Phronomy::Memory::SummaryMemory do
 
     context "when total tokens exceed max_tokens" do
       let(:mock_response) { double("response", content: "Summary text") }
-      let(:mock_chat)     { double("chat", ask: mock_response) }
+      let(:mock_chat) { double("chat", ask: mock_response) }
 
       before do
         allow(RubyLLM).to receive(:chat).and_return(mock_chat)
@@ -52,7 +52,7 @@ RSpec.describe Phronomy::Memory::SummaryMemory do
 
     context "with token_budget override" do
       let(:mock_response) { double("response", content: "Budget summary") }
-      let(:mock_chat)     { double("chat", ask: mock_response) }
+      let(:mock_chat) { double("chat", ask: mock_response) }
 
       before do
         allow(RubyLLM).to receive(:chat).and_return(mock_chat)

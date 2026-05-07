@@ -56,7 +56,10 @@ RSpec.describe Phronomy::Context::TokenEstimator do
 
     it "custom tokenizer receives the raw string" do
       received = nil
-      described_class.tokenizer = ->(text) { received = text; 1 }
+      described_class.tokenizer = ->(text) {
+        received = text
+        1
+      }
       described_class.estimate("test input")
       expect(received).to eq("test input")
     end

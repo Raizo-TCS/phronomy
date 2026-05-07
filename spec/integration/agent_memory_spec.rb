@@ -39,17 +39,17 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
   # --------------------------------------------------------------------------
   describe "TC-002: Agent::Base, WindowMemory, single tool, thread_id=present, generous budget" do
     let(:memory) { IntegrationFactors.memory("window") }
-    let(:budget)  { IntegrationFactors.token_budget("generous") }
-    let(:agent)   { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("splat_single")).new }
-    let(:thread)  { "tc-002-#{SecureRandom.hex(4)}" }
+    let(:budget) { IntegrationFactors.token_budget("generous") }
+    let(:agent) { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("splat_single")).new }
+    let(:thread) { "tc-002-#{SecureRandom.hex(4)}" }
 
     it "persists conversation across two invocations" do
       agent.invoke("My favourite number is 42. Just say 'Got it.'",
-        config: { thread_id: thread, memory: memory, token_budget: budget })
+        config: {thread_id: thread, memory: memory, token_budget: budget})
 
       result = agent.invoke(
         "What is my favourite number? Reply with only the number.",
-        config: { thread_id: thread, memory: memory, token_budget: budget }
+        config: {thread_id: thread, memory: memory, token_budget: budget}
       )
 
       expect(result[:output]).to include("42")
@@ -63,7 +63,7 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
   # --------------------------------------------------------------------------
   describe "TC-003: Agent::Base, SummaryMemory (tiny), multi-tools, different_threads, tight budget" do
     let(:memory) { IntegrationFactors.memory("summary", max_tokens: 10) }
-    let(:budget)  { IntegrationFactors.token_budget("tight") }
+    let(:budget) { IntegrationFactors.token_budget("tight") }
     # Isolation sub-test uses a separate memory instance with large max_tokens so
     # messages are stored verbatim (no compression).
     # SummaryMemory.compress with < 6 messages produces old_messages=[] and asks
@@ -72,16 +72,16 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
     # (keyed by thread_id), not a compression concern, so it is verified separately
     # from the compression sub-test.
     let(:isolation_memory) { IntegrationFactors.memory("summary", max_tokens: 100_000) }
-    let(:agent)   { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("splat_multi")).new }
-    let(:tid_a)   { "tc-003-a-#{SecureRandom.hex(4)}" }
-    let(:tid_b)   { "tc-003-b-#{SecureRandom.hex(4)}" }
+    let(:agent) { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("splat_multi")).new }
+    let(:tid_a) { "tc-003-a-#{SecureRandom.hex(4)}" }
+    let(:tid_b) { "tc-003-b-#{SecureRandom.hex(4)}" }
 
     it "keeps thread-A and thread-B histories isolated" do
-      cfg_a = { thread_id: tid_a, memory: isolation_memory }
-      cfg_b = { thread_id: tid_b, memory: isolation_memory }
+      cfg_a = {thread_id: tid_a, memory: isolation_memory}
+      cfg_b = {thread_id: tid_b, memory: isolation_memory}
 
-      agent.invoke("My favourite colour is red. Just say 'Got it.'",   config: cfg_a)
-      agent.invoke("My favourite colour is blue. Just say 'Got it.'",  config: cfg_b)
+      agent.invoke("My favourite colour is red. Just say 'Got it.'", config: cfg_a)
+      agent.invoke("My favourite colour is blue. Just say 'Got it.'", config: cfg_b)
 
       result_a = agent.invoke(
         "What is my favourite colour? Reply with only the colour name.", config: cfg_a
@@ -95,7 +95,7 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
     end
 
     it "does not raise even when SummaryMemory compresses history via LLM" do
-      cfg_a = { thread_id: tid_a, memory: memory, token_budget: budget }
+      cfg_a = {thread_id: tid_a, memory: memory, token_budget: budget}
 
       # Seed enough messages to trigger compression (max_tokens=10 is tiny)
       3.times { |i| agent.invoke("Message #{i}. Just say OK.", config: cfg_a) }
@@ -125,7 +125,7 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
       threads = IntegrationFactors.thread_id("different_threads") # ["thread-001","thread-002"]
       results = threads.map do |tid|
         agent_klass.new.invoke("What is 3 plus 3? Use the calculator tool.",
-          config: { thread_id: tid })
+          config: {thread_id: tid})
       end
 
       results.each { |r| expect(r[:output]).to include("6") }
@@ -138,11 +138,11 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
   # --------------------------------------------------------------------------
   describe "TC-009: ReactAgent, SummaryMemory, hash_alias tool, thread_id=present" do
     let(:memory) { IntegrationFactors.memory("summary") }
-    let(:agent)   { IntegrationFactors.agent_class("react", tools: IntegrationFactors.tools("hash_alias")).new }
-    let(:thread)  { "tc-009-#{SecureRandom.hex(4)}" }
+    let(:agent) { IntegrationFactors.agent_class("react", tools: IntegrationFactors.tools("hash_alias")).new }
+    let(:thread) { "tc-009-#{SecureRandom.hex(4)}" }
 
     it "calls the aliased tool and retains history across invocations" do
-      cfg = { thread_id: thread, memory: memory }
+      cfg = {thread_id: thread, memory: memory}
 
       agent.invoke("What is 5 plus 6? Use the calc tool.", config: cfg)
       result = agent.invoke(
@@ -162,21 +162,21 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
   describe "TC-011: ReactAgent, CompositeMemory, no tools, different_threads, generous budget" do
     let(:memory) do
       IntegrationFactors.memory("composite", sources: [
-        { memory: Phronomy::Memory::WindowMemory.new(k: 5),    weight: 0.6 },
-        { memory: Phronomy::Memory::SummaryMemory.new,         weight: 0.4 }
+        {memory: Phronomy::Memory::WindowMemory.new(k: 5), weight: 0.6},
+        {memory: Phronomy::Memory::SummaryMemory.new, weight: 0.4}
       ])
     end
     let(:budget) { IntegrationFactors.token_budget("generous") }
-    let(:agent)  { IntegrationFactors.agent_class("react", tools: IntegrationFactors.tools("none")).new }
-    let(:tid_a)  { "tc-011-a-#{SecureRandom.hex(4)}" }
-    let(:tid_b)  { "tc-011-b-#{SecureRandom.hex(4)}" }
+    let(:agent) { IntegrationFactors.agent_class("react", tools: IntegrationFactors.tools("none")).new }
+    let(:tid_a) { "tc-011-a-#{SecureRandom.hex(4)}" }
+    let(:tid_b) { "tc-011-b-#{SecureRandom.hex(4)}" }
 
     it "keeps thread histories isolated with CompositeMemory" do
-      cfg_a = { thread_id: tid_a, memory: memory, token_budget: budget }
-      cfg_b = { thread_id: tid_b, memory: memory, token_budget: budget }
+      cfg_a = {thread_id: tid_a, memory: memory, token_budget: budget}
+      cfg_b = {thread_id: tid_b, memory: memory, token_budget: budget}
 
-      agent.invoke("My pet is a dog. Just say 'Got it.'",  config: cfg_a)
-      agent.invoke("My pet is a cat. Just say 'Got it.'",  config: cfg_b)
+      agent.invoke("My pet is a dog. Just say 'Got it.'", config: cfg_a)
+      agent.invoke("My pet is a cat. Just say 'Got it.'", config: cfg_b)
 
       result_a = agent.invoke("What is my pet? Reply with only the animal name.", config: cfg_a)
       result_b = agent.invoke("What is my pet? Reply with only the animal name.", config: cfg_b)
@@ -196,7 +196,7 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
 
     it "calls the aliased calc tool and returns the answer" do
       result = agent.invoke("What is 9 plus 4? Use the calc tool.",
-        config: { thread_id: IntegrationFactors.thread_id("present") })
+        config: {thread_id: IntegrationFactors.thread_id("present")})
 
       expect(result[:output]).to include("13")
     end
@@ -236,16 +236,16 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
   # --------------------------------------------------------------------------
   describe "TC-016: Agent::Base, WindowMemory, multi-tools, different_threads" do
     let(:memory) { IntegrationFactors.memory("window") }
-    let(:agent)  { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("splat_multi")).new }
-    let(:tid_a)  { "tc-016-a-#{SecureRandom.hex(4)}" }
-    let(:tid_b)  { "tc-016-b-#{SecureRandom.hex(4)}" }
+    let(:agent) { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("splat_multi")).new }
+    let(:tid_a) { "tc-016-a-#{SecureRandom.hex(4)}" }
+    let(:tid_b) { "tc-016-b-#{SecureRandom.hex(4)}" }
 
     it "keeps thread-A and thread-B context separate" do
-      cfg_a = { thread_id: tid_a, memory: memory }
-      cfg_b = { thread_id: tid_b, memory: memory }
+      cfg_a = {thread_id: tid_a, memory: memory}
+      cfg_b = {thread_id: tid_b, memory: memory}
 
-      agent.invoke("My city is Tokyo. Just say 'Got it.'",  config: cfg_a)
-      agent.invoke("My city is Paris. Just say 'Got it.'",  config: cfg_b)
+      agent.invoke("My city is Tokyo. Just say 'Got it.'", config: cfg_a)
+      agent.invoke("My city is Paris. Just say 'Got it.'", config: cfg_b)
 
       result_a = agent.invoke("What is my city? Reply with only the city name.", config: cfg_a)
       result_b = agent.invoke("What is my city? Reply with only the city name.", config: cfg_b)
@@ -261,17 +261,17 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
   # --------------------------------------------------------------------------
   describe "TC-017: Agent::Base, WindowMemory, hash_alias tool, different_threads, tight budget" do
     let(:memory) { IntegrationFactors.memory("window") }
-    let(:budget)  { IntegrationFactors.token_budget("tight") }
-    let(:agent)   { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("hash_alias")).new }
-    let(:tid_a)   { "tc-017-a-#{SecureRandom.hex(4)}" }
-    let(:tid_b)   { "tc-017-b-#{SecureRandom.hex(4)}" }
+    let(:budget) { IntegrationFactors.token_budget("tight") }
+    let(:agent) { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("hash_alias")).new }
+    let(:tid_a) { "tc-017-a-#{SecureRandom.hex(4)}" }
+    let(:tid_b) { "tc-017-b-#{SecureRandom.hex(4)}" }
 
     it "does not raise when budget is tight and handles both threads" do
-      cfg_a = { thread_id: tid_a, memory: memory, token_budget: budget }
-      cfg_b = { thread_id: tid_b, memory: memory, token_budget: budget }
+      cfg_a = {thread_id: tid_a, memory: memory, token_budget: budget}
+      cfg_b = {thread_id: tid_b, memory: memory, token_budget: budget}
 
       expect {
-        agent.invoke("My team colour is green. Just say 'Got it.'",  config: cfg_a)
+        agent.invoke("My team colour is green. Just say 'Got it.'", config: cfg_a)
         agent.invoke("My team colour is yellow. Just say 'Got it.'", config: cfg_b)
         agent.invoke("What is 4 plus 5? Use the calc tool.", config: cfg_a)
         agent.invoke("What is 2 plus 2? Use the calc tool.", config: cfg_b)
@@ -286,14 +286,14 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
   describe "TC-025: Agent::Base, CompositeMemory, single tool, thread_id=present" do
     let(:memory) do
       IntegrationFactors.memory("composite", sources: [
-        { memory: Phronomy::Memory::WindowMemory.new(k: 5), weight: 1.0 }
+        {memory: Phronomy::Memory::WindowMemory.new(k: 5), weight: 1.0}
       ])
     end
-    let(:agent)  { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("splat_single")).new }
+    let(:agent) { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("splat_single")).new }
     let(:thread) { "tc-025-#{SecureRandom.hex(4)}" }
 
     it "aggregates messages from CompositeMemory sub-sources" do
-      cfg = { thread_id: thread, memory: memory }
+      cfg = {thread_id: thread, memory: memory}
 
       agent.invoke("My lucky number is 77. Just say 'Got it.'", config: cfg)
       result = agent.invoke(

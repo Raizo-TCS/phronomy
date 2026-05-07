@@ -21,7 +21,7 @@ module Phronomy
     class CompositeMemory < Base
       # @param sources [Array<Hash>] each entry: { memory:, weight: } (weight default 1.0)
       def initialize(sources:)
-        @sources = sources.map { |s| { memory: s[:memory], weight: (s[:weight] || 1.0).to_f } }
+        @sources = sources.map { |s| {memory: s[:memory], weight: (s[:weight] || 1.0).to_f} }
       end
 
       # Loads messages from all sources, allocating tokens proportionally.
@@ -61,7 +61,7 @@ module Phronomy
 
         # Final sort — system messages first, others preserve insertion order.
         systems = all_messages.select { |m| m.role.to_sym == :system }
-        others  = all_messages.reject { |m| m.role.to_sym == :system }
+        others = all_messages.reject { |m| m.role.to_sym == :system }
         systems + others
       end
 

@@ -51,40 +51,46 @@ RSpec.describe "Group 7: Graph", :integration do
   # Replace-type state (default)
   class ReplaceState
     include Phronomy::Graph::State
+
     field :value, type: :replace
-    field :step,  type: :replace, default: 0
+    field :step, type: :replace, default: 0
   end
 
   # Replace-type state with proc default
   class ProcDefaultState
     include Phronomy::Graph::State
-    field :value,   type: :replace
+
+    field :value, type: :replace
     field :counter, type: :replace, default: -> { 0 }
   end
 
   # Append-type state
   class AppendState
     include Phronomy::Graph::State
+
     field :log, type: :append, default: -> { [] }
   end
 
   # Append-type state with scalar default
   class AppendScalarState
     include Phronomy::Graph::State
-    field :log,   type: :append, default: -> { [] }
+
+    field :log, type: :append, default: -> { [] }
     field :count, type: :replace, default: 0
   end
 
   # Merge-type state
   class MergeState
     include Phronomy::Graph::State
+
     field :data, type: :merge, default: -> { {} }
   end
 
   # Merge-type state with scalar default on a replace field
   class MergeScalarState
     include Phronomy::Graph::State
-    field :data,  type: :merge, default: -> { {} }
+
+    field :data, type: :merge, default: -> { {} }
     field :label, type: :replace, default: "initial"
   end
 
@@ -120,7 +126,7 @@ RSpec.describe "Group 7: Graph", :integration do
     it "interrupts before the second node, then resumes and completes successfully" do
       with_in_memory_store do |store|
         graph = Phronomy::Graph::StateGraph.new(AppendState)
-        graph.add_node(:first)  { |state| state.merge(log: ["first"]) }
+        graph.add_node(:first) { |state| state.merge(log: ["first"]) }
         graph.add_node(:second) { |state| state.merge(log: ["second"]) }
         graph.add_edge(:first, :second)
         graph.add_edge(:second, Phronomy::Graph::StateGraph::FINISH)
@@ -130,7 +136,7 @@ RSpec.describe "Group 7: Graph", :integration do
         app.interrupt_before(:second) { |_state| :halt }
 
         events = []
-        state = app.stream({}, config: { thread_id: "tc-002" }) { |e| events << e }
+        state = app.stream({}, config: {thread_id: "tc-002"}) { |e| events << e }
 
         # Should halt before :second — only :first ran
         expect(state.halted_before).to eq(true)
@@ -164,16 +170,16 @@ RSpec.describe "Group 7: Graph", :integration do
       with_in_memory_store do |store|
         graph = Phronomy::Graph::StateGraph.new(ReplaceState)
         graph.add_node(:start_node) { |state| state.merge(value: "started", step: 1) }
-        graph.add_node(:end_node)   { |state| state.merge(value: "done",    step: 2) }
+        graph.add_node(:end_node) { |state| state.merge(value: "done", step: 2) }
         graph.set_entry_point(:start_node)
         graph.add_edge(:start_node, :end_node)
         graph.add_edge(:end_node, Phronomy::Graph::StateGraph::FINISH)
 
         app = graph.compile
         # Conditionally halt after start_node when step == 1
-        app.interrupt_after(:start_node) { |state| state.step == 1 ? :halt : nil }
+        app.interrupt_after(:start_node) { |state| (state.step == 1) ? :halt : nil }
 
-        state = app.invoke({}, config: { thread_id: "tc-004", recursion_limit: 50 })
+        state = app.invoke({}, config: {thread_id: "tc-004", recursion_limit: 50})
 
         expect(state.halted_before).to eq(false)
         expect(state.current_nodes).to eq([:end_node])
@@ -210,18 +216,18 @@ RSpec.describe "Group 7: Graph", :integration do
     it "routes to the correct branch via conditional edge and halts after the branch node" do
       with_in_memory_store do |store|
         graph = Phronomy::Graph::StateGraph.new(MergeState)
-        graph.add_node(:router) { |state| state.merge(data: { routed: true, path: "high" }) }
-        graph.add_node(:high)   { |state| state.merge(data: { result: "high_result" }) }
-        graph.add_node(:low)    { |state| state.merge(data: { result: "low_result"  }) }
+        graph.add_node(:router) { |state| state.merge(data: {routed: true, path: "high"}) }
+        graph.add_node(:high) { |state| state.merge(data: {result: "high_result"}) }
+        graph.add_node(:low) { |state| state.merge(data: {result: "low_result"}) }
         graph.add_edge(:high, Phronomy::Graph::StateGraph::FINISH)
-        graph.add_edge(:low,  Phronomy::Graph::StateGraph::FINISH)
-        graph.add_conditional_edges(:router, ->(s) { s.data[:path] == "high" ? :high : :low })
+        graph.add_edge(:low, Phronomy::Graph::StateGraph::FINISH)
+        graph.add_conditional_edges(:router, ->(s) { (s.data[:path] == "high") ? :high : :low })
         # implicit entry: :router (first added node)
 
         app = graph.compile
         app.interrupt_after(:high) { |_state| :halt }
 
-        state = app.invoke({}, config: { thread_id: "tc-007" })
+        state = app.invoke({}, config: {thread_id: "tc-007"})
 
         expect(state.halted_before).to eq(false)
         expect(state.data[:routed]).to eq(true)
@@ -241,7 +247,7 @@ RSpec.describe "Group 7: Graph", :integration do
       Phronomy.configure { |c| c.default_state_store = nil }
 
       graph = Phronomy::Graph::StateGraph.new(AppendState)
-      graph.add_node(:entry)  { |state| state.merge(log: ["entry"]) }
+      graph.add_node(:entry) { |state| state.merge(log: ["entry"]) }
       graph.add_node(:branch_a) { |state| state.merge(log: ["branch_a"]) }
       graph.add_node(:branch_b) { |state| state.merge(log: ["branch_b"]) }
       graph.set_entry_point(:entry)
@@ -256,7 +262,7 @@ RSpec.describe "Group 7: Graph", :integration do
       app.interrupt_before(:branch_a) { |_state| :halt }
 
       events = []
-      state = app.stream({}, config: { recursion_limit: 50 }) { |e| events << e }
+      state = app.stream({}, config: {recursion_limit: 50}) { |e| events << e }
 
       Phronomy.configure { |c| c.default_state_store = old }
 
@@ -295,7 +301,7 @@ RSpec.describe "Group 7: Graph", :integration do
       app = graph.compile
 
       expect {
-        app.invoke({}, config: { recursion_limit: 1 })
+        app.invoke({}, config: {recursion_limit: 1})
       }.to raise_error(Phronomy::RecursionLimitError, /Recursion limit/)
 
       Phronomy.configure { |c| c.default_state_store = old }
@@ -322,7 +328,7 @@ RSpec.describe "Group 7: Graph", :integration do
         app.interrupt_before(:n3) { |_state| :halt }
 
         events = []
-        state = app.stream({}, config: { thread_id: "tc-011" }) { |e| events << e }
+        state = app.stream({}, config: {thread_id: "tc-011"}) { |e| events << e }
 
         expect(state.halted_before).to eq(true)
         expect(state.current_nodes).to eq([:n3])
@@ -330,7 +336,7 @@ RSpec.describe "Group 7: Graph", :integration do
         expect(events.map { |e| e[:node] }).to eq([:n1, :n2])
 
         # Resume with new input overriding the value field
-        final = app.resume(state: state, input: { value: "injected" })
+        final = app.resume(state: state, input: {value: "injected"})
         expect(final.value).to eq("n3-injected")
         expect(final.current_nodes).to be_empty
       end
@@ -402,7 +408,7 @@ RSpec.describe "Group 7: Graph", :integration do
       graph.add_edge(:c, Phronomy::Graph::StateGraph::FINISH)
 
       app = graph.compile
-      state = app.invoke({}, config: { recursion_limit: 100 })
+      state = app.invoke({}, config: {recursion_limit: 100})
 
       Phronomy.configure { |c| c.default_state_store = old }
 
@@ -429,14 +435,14 @@ RSpec.describe "Group 7: Graph", :integration do
         thread_id = "tc-016"
 
         graph = Phronomy::Graph::StateGraph.new(ReplaceState)
-        graph.add_node(:first)  { |state| state.merge(value: "first",  step: 1) }
+        graph.add_node(:first) { |state| state.merge(value: "first", step: 1) }
         graph.add_node(:second) { |state| state.merge(value: "second", step: 2) }
         graph.set_entry_point(:first)
         graph.add_edge(:first, :second)
         graph.add_edge(:second, Phronomy::Graph::StateGraph::FINISH)
 
         app = graph.compile
-        state = app.invoke({}, config: { thread_id: thread_id })
+        state = app.invoke({}, config: {thread_id: thread_id})
 
         expect(state.value).to eq("second")
         expect(state.step).to eq(2)
@@ -459,8 +465,8 @@ RSpec.describe "Group 7: Graph", :integration do
       Phronomy.configure { |c| c.default_state_store = nil }
 
       graph = Phronomy::Graph::StateGraph.new(MergeScalarState)
-      graph.add_node(:alpha) { |state| state.merge(data: { alpha: true }, label: "alpha") }
-      graph.add_node(:beta)  { |state| state.merge(data: { beta: true  }, label: "beta")  }
+      graph.add_node(:alpha) { |state| state.merge(data: {alpha: true}, label: "alpha") }
+      graph.add_node(:beta) { |state| state.merge(data: {beta: true}, label: "beta") }
       graph.set_entry_point(:alpha)
       graph.add_edge(:alpha, :beta)
       graph.add_edge(:beta, Phronomy::Graph::StateGraph::FINISH)
@@ -468,7 +474,7 @@ RSpec.describe "Group 7: Graph", :integration do
       app = graph.compile
       app.interrupt_before(:beta) { |_state| :halt }
 
-      state = app.invoke({}, config: { recursion_limit: 50 })
+      state = app.invoke({}, config: {recursion_limit: 50})
 
       Phronomy.configure { |c| c.default_state_store = old }
 
@@ -510,7 +516,7 @@ RSpec.describe "Group 7: Graph", :integration do
       # Resume with input — :y executes and the graph completes
       # (resume uses default recursion_limit of 25; 1 node does not exceed it)
       Phronomy.configure { |c| c.default_state_store = nil }
-      final = app.resume(state: state, input: { log: ["resumed"] })
+      final = app.resume(state: state, input: {log: ["resumed"]})
       Phronomy.configure { |c| c.default_state_store = old }
 
       expect(final.log).to include("y")
@@ -536,7 +542,7 @@ RSpec.describe "Group 7: Graph", :integration do
       graph.add_edge(:finish, Phronomy::Graph::StateGraph::FINISH)
 
       app = graph.compile
-      app.interrupt_after(:start) { |state| state.counter == 1 ? :halt : nil }
+      app.interrupt_after(:start) { |state| (state.counter == 1) ? :halt : nil }
 
       state = app.invoke({})
 

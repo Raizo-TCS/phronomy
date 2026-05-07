@@ -42,9 +42,9 @@ module Phronomy
         end
 
         def clone_message(original, new_content)
-          attrs = { role: original.role, content: new_content }
+          attrs = {role: original.role, content: new_content}
           attrs[:tool_calls] = original.tool_calls if original.respond_to?(:tool_calls)
-          attrs[:model_id]   = original.model_id   if original.respond_to?(:model_id)
+          attrs[:model_id] = original.model_id if original.respond_to?(:model_id)
           OpenStruct.new(attrs)
         end
       end

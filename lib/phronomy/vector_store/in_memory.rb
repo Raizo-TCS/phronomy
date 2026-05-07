@@ -20,7 +20,7 @@ module Phronomy
       # @param embedding [Array<Float>]
       # @param metadata  [Hash]
       def add(id:, embedding:, metadata: {})
-        @documents[id] = { embedding: embedding, metadata: metadata }
+        @documents[id] = {embedding: embedding, metadata: metadata}
         self
       end
 
@@ -30,7 +30,7 @@ module Phronomy
       def search(query_embedding:, k: 5)
         results = @documents.map do |id, doc|
           score = cosine_similarity(query_embedding, doc[:embedding])
-          { id: id, score: score, metadata: doc[:metadata] }
+          {id: id, score: score, metadata: doc[:metadata]}
         end
         results.sort_by { |r| -r[:score] }.first(k)
       end
@@ -50,7 +50,7 @@ module Phronomy
       def cosine_similarity(a, b)
         return 0.0 if a.empty? || b.empty?
 
-        dot    = a.zip(b).sum { |x, y| x * y }
+        dot = a.zip(b).sum { |x, y| x * y }
         norm_a = Math.sqrt(a.sum { |x| x**2 })
         norm_b = Math.sqrt(b.sum { |x| x**2 })
 

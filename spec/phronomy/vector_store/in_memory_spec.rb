@@ -11,8 +11,8 @@ RSpec.describe Phronomy::VectorStore::InMemory do
     end
 
     it "adds documents and increments size" do
-      store.add(id: "1", embedding: [1.0, 0.0], metadata: { text: "a" })
-      store.add(id: "2", embedding: [0.0, 1.0], metadata: { text: "b" })
+      store.add(id: "1", embedding: [1.0, 0.0], metadata: {text: "a"})
+      store.add(id: "2", embedding: [0.0, 1.0], metadata: {text: "b"})
       expect(store.size).to eq(2)
     end
 
@@ -23,9 +23,9 @@ RSpec.describe Phronomy::VectorStore::InMemory do
 
   describe "#search" do
     before do
-      store.add(id: "a", embedding: [1.0, 0.0], metadata: { label: "A" })
-      store.add(id: "b", embedding: [0.0, 1.0], metadata: { label: "B" })
-      store.add(id: "c", embedding: [0.7, 0.7], metadata: { label: "C" })
+      store.add(id: "a", embedding: [1.0, 0.0], metadata: {label: "A"})
+      store.add(id: "b", embedding: [0.0, 1.0], metadata: {label: "B"})
+      store.add(id: "c", embedding: [0.7, 0.7], metadata: {label: "C"})
     end
 
     it "returns results sorted by descending cosine similarity" do

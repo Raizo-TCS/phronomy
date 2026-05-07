@@ -23,12 +23,12 @@ RSpec.describe "Group 4: OutputParser / Tracing", :integration do
       attr_reader :started, :finished
 
       def start_span(name, **attrs)
-        @started = { name: name, attrs: attrs }
-        { name: name }
+        @started = {name: name, attrs: attrs}
+        {name: name}
       end
 
       def finish_span(span, output: nil, usage: nil, error: nil)
-        @finished = { output: output, usage: usage, error: error }
+        @finished = {output: output, usage: usage, error: error}
       end
     end.new
   end
@@ -45,10 +45,10 @@ RSpec.describe "Group 4: OutputParser / Tracing", :integration do
   # ---------------------------------------------------------------------------
   # Fixed input strings for each output_parser_input_format label.
   # ---------------------------------------------------------------------------
-  PLAIN_JSON_STR       = '{"name":"Alice","age":30}'.freeze
-  FENCED_JSON_STR      = "```json\n{\"name\":\"Bob\",\"age\":25}\n```".freeze
-  INVALID_JSON_STR     = "not-valid-json!!".freeze
-  SCHEMA_MISMATCH_STR  = '{"city":"Tokyo","population":14000000}'.freeze  # missing :name/:age
+  PLAIN_JSON_STR = '{"name":"Alice","age":30}'
+  FENCED_JSON_STR = "```json\n{\"name\":\"Bob\",\"age\":25}\n```"
+  INVALID_JSON_STR = "not-valid-json!!"
+  SCHEMA_MISMATCH_STR = '{"city":"Tokyo","population":14000000}'  # missing :name/:age
 
   # ---------------------------------------------------------------------------
   # TC-001: none parser, plain_json, nil tracer (NullTracer), success
@@ -82,7 +82,7 @@ RSpec.describe "Group 4: OutputParser / Tracing", :integration do
     it "tracer re-raises the exception from the block and records the error in finish_span" do
       with_tracer(custom_tracer) do
         expect {
-          custom_tracer.trace("tc002") { raise RuntimeError, "simulated error" }
+          custom_tracer.trace("tc002") { raise "simulated error" }
         }.to raise_error(RuntimeError, "simulated error")
 
         expect(custom_tracer.finished[:error]).to be_a(RuntimeError)
@@ -135,7 +135,7 @@ RSpec.describe "Group 4: OutputParser / Tracing", :integration do
 
     it "parses plain JSON and returns a symbolized-key hash" do
       result = parser.parse(PLAIN_JSON_STR)
-      expect(result).to eq({ name: "Alice", age: 30 })
+      expect(result).to eq({name: "Alice", age: 30})
     end
 
     it "custom tracer records a successful span" do
@@ -157,7 +157,7 @@ RSpec.describe "Group 4: OutputParser / Tracing", :integration do
 
     it "strips the code fence and parses the inner JSON" do
       result = parser.parse(FENCED_JSON_STR)
-      expect(result).to eq({ name: "Bob", age: 25 })
+      expect(result).to eq({name: "Bob", age: 25})
     end
   end
 
@@ -197,7 +197,7 @@ RSpec.describe "Group 4: OutputParser / Tracing", :integration do
     it "custom tracer re-raises and records a block-level exception" do
       with_tracer(custom_tracer) do
         expect {
-          custom_tracer.trace("tc008") { raise RuntimeError, "block error" }
+          custom_tracer.trace("tc008") { raise "block error" }
         }.to raise_error(RuntimeError, "block error")
 
         expect(custom_tracer.finished[:error]).to be_a(RuntimeError)

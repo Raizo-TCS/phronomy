@@ -26,11 +26,11 @@ module Phronomy
       # @param embedding_model [String, nil] model to use for RubyLLM.embed
       # @param k               [Integer]     number of results to return
       def initialize(store: nil, embedding_model: nil, k: 10)
-        @store           = store || Phronomy::VectorStore::InMemory.new
+        @store = store || Phronomy::VectorStore::InMemory.new
         @embedding_model = embedding_model
-        @k               = k
-        @messages        = {}  # id => message
-        @counter         = 0
+        @k = k
+        @messages = {}  # id => message
+        @counter = 0
       end
 
       # Retrieve relevant messages.
@@ -56,7 +56,7 @@ module Phronomy
           id = "#{thread_id}:#{@counter}"
           @counter += 1
           embedding = embed(msg.content.to_s)
-          @store.add(id: id, embedding: embedding, metadata: { thread_id: thread_id, message: msg })
+          @store.add(id: id, embedding: embedding, metadata: {thread_id: thread_id, message: msg})
           @messages[id] = msg
         end
       end
@@ -69,14 +69,14 @@ module Phronomy
         # Re-index remaining messages from other threads.
         @messages.each do |id, msg|
           embedding = embed(msg.content.to_s)
-          @store.add(id: id, embedding: embedding, metadata: { thread_id: id.split(":").first, message: msg })
+          @store.add(id: id, embedding: embedding, metadata: {thread_id: id.split(":").first, message: msg})
         end
       end
 
       private
 
       def embed(text)
-        opts = @embedding_model ? { model: @embedding_model } : {}
+        opts = @embedding_model ? {model: @embedding_model} : {}
         RubyLLM.embed(text, **opts).vectors
       end
 

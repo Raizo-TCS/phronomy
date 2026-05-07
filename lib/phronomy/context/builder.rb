@@ -17,8 +17,8 @@ module Phronomy
     class Builder
       # @param budget [Phronomy::Context::TokenBudget]
       def initialize(budget:)
-        @budget   = budget
-        @system   = nil
+        @budget = budget
+        @system = nil
         @knowledge = []
         @messages = []
       end
@@ -63,7 +63,7 @@ module Phronomy
         kept = fit_messages_to_budget(@messages, remaining)
 
         {
-          system:   system_text.empty? ? nil : system_text,
+          system: system_text.empty? ? nil : system_text,
           messages: kept
         }
       end
@@ -75,7 +75,7 @@ module Phronomy
         return messages if token_limit <= 0 && messages.empty?
 
         accumulated = 0
-        result      = []
+        result = []
 
         messages.reverse_each do |msg|
           tokens = TokenEstimator.estimate(msg.content.to_s)

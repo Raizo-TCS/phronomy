@@ -36,13 +36,13 @@ RSpec.describe "Group 5: Memory Detail Parameters", :integration do
   #                       "default_max_chars" | "tight_max_chars"
   def tool_pruner(label)
     case label
-    when "nil"               then nil
-    when "zero"              then Phronomy::Memory::Pruner::ToolOutputPruner.new(max_chars: 0)
-    when "tight"             then Phronomy::Memory::Pruner::ToolOutputPruner.new(max_chars: 50)
-    when "default"           then Phronomy::Memory::Pruner::ToolOutputPruner.new(max_chars: 4000)
-    when "large"             then Phronomy::Memory::Pruner::ToolOutputPruner.new(max_chars: 1_000_000)
+    when "nil" then nil
+    when "zero" then Phronomy::Memory::Pruner::ToolOutputPruner.new(max_chars: 0)
+    when "tight" then Phronomy::Memory::Pruner::ToolOutputPruner.new(max_chars: 50)
+    when "default" then Phronomy::Memory::Pruner::ToolOutputPruner.new(max_chars: 4000)
+    when "large" then Phronomy::Memory::Pruner::ToolOutputPruner.new(max_chars: 1_000_000)
     when "default_max_chars" then Phronomy::Memory::Pruner::ToolOutputPruner.new(max_chars: 4000)
-    when "tight_max_chars"   then Phronomy::Memory::Pruner::ToolOutputPruner.new(max_chars: 10)
+    when "tight_max_chars" then Phronomy::Memory::Pruner::ToolOutputPruner.new(max_chars: 10)
     else raise ArgumentError, "Unknown pruner label: #{label}"
     end
   end
@@ -72,7 +72,7 @@ RSpec.describe "Group 5: Memory Detail Parameters", :integration do
   describe "TC-002: none memory; tight tool_output_pruner (max_chars=50)" do
     it "truncates tool messages longer than 50 chars and leaves shorter ones intact" do
       pruner = tool_pruner("tight")
-      long_msg  = tool_msg("x" * 100)
+      long_msg = tool_msg("x" * 100)
       short_msg = tool_msg("short")
       result = apply_pruner([long_msg, short_msg], pruner)
       expect(result[0].content.length).to be <= 50 + Phronomy::Memory::Pruner::ToolOutputPruner::TRUNCATION_NOTE.length
@@ -289,12 +289,12 @@ RSpec.describe "Group 5: Memory Detail Parameters", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-018: CompositeMemory; k=1 window + tiny summary; zero tool pruner" do
     it "CompositeMemory loads messages from window sub-memory" do
-      window  = Phronomy::Memory::WindowMemory.new(k: 1)
+      window = Phronomy::Memory::WindowMemory.new(k: 1)
       summary = Phronomy::Memory::SummaryMemory.new(max_tokens: 1_000_000)
       composite = Phronomy::Memory::CompositeMemory.new(
         sources: [
-          { memory: window,  weight: 1.0 },
-          { memory: summary, weight: 1.0 }
+          {memory: window, weight: 1.0},
+          {memory: summary, weight: 1.0}
         ]
       )
       messages = [user_msg("hello"), assistant_msg("world")]
@@ -320,12 +320,12 @@ RSpec.describe "Group 5: Memory Detail Parameters", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-019: CompositeMemory; default k=10 window + typical summary; tight pruner" do
     it "CompositeMemory save_messages delegates to all sources" do
-      window  = Phronomy::Memory::WindowMemory.new(k: 10)
+      window = Phronomy::Memory::WindowMemory.new(k: 10)
       summary = Phronomy::Memory::SummaryMemory.new(max_tokens: 4000)
       composite = Phronomy::Memory::CompositeMemory.new(
         sources: [
-          { memory: window,  weight: 1.0 },
-          { memory: summary, weight: 1.0 }
+          {memory: window, weight: 1.0},
+          {memory: summary, weight: 1.0}
         ]
       )
       messages = [user_msg("ping"), assistant_msg("pong")]
@@ -347,12 +347,12 @@ RSpec.describe "Group 5: Memory Detail Parameters", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-020: CompositeMemory; large window k=100 + huge summary; zero tool pruner" do
     it "CompositeMemory deduplicates messages from sources with identical content" do
-      window  = Phronomy::Memory::WindowMemory.new(k: 100)
+      window = Phronomy::Memory::WindowMemory.new(k: 100)
       summary = Phronomy::Memory::SummaryMemory.new(max_tokens: 1_000_000)
       composite = Phronomy::Memory::CompositeMemory.new(
         sources: [
-          { memory: window,  weight: 1.0 },
-          { memory: summary, weight: 1.0 }
+          {memory: window, weight: 1.0},
+          {memory: summary, weight: 1.0}
         ]
       )
       messages = 5.times.map { |i| user_msg("msg #{i}") }
@@ -378,12 +378,12 @@ RSpec.describe "Group 5: Memory Detail Parameters", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-021: CompositeMemory; k=1 window + tiny summary; default pruner" do
     it "CompositeMemory clear removes all messages from sub-memories" do
-      window    = Phronomy::Memory::WindowMemory.new(k: 1)
-      summary   = Phronomy::Memory::SummaryMemory.new(max_tokens: 1)
+      window = Phronomy::Memory::WindowMemory.new(k: 1)
+      summary = Phronomy::Memory::SummaryMemory.new(max_tokens: 1)
       composite = Phronomy::Memory::CompositeMemory.new(
         sources: [
-          { memory: window,  weight: 1.0 },
-          { memory: summary, weight: 1.0 }
+          {memory: window, weight: 1.0},
+          {memory: summary, weight: 1.0}
         ]
       )
       composite.save_messages(thread_id: "t1", messages: [user_msg("hello")])
@@ -405,12 +405,12 @@ RSpec.describe "Group 5: Memory Detail Parameters", :integration do
     end
 
     it "CompositeMemory with k=1 window only returns last 2 messages" do
-      window  = Phronomy::Memory::WindowMemory.new(k: 1)
+      window = Phronomy::Memory::WindowMemory.new(k: 1)
       summary = Phronomy::Memory::SummaryMemory.new(max_tokens: 1_000_000)
       composite = Phronomy::Memory::CompositeMemory.new(
         sources: [
-          { memory: window, weight: 1.0 },
-          { memory: summary, weight: 1.0 }
+          {memory: window, weight: 1.0},
+          {memory: summary, weight: 1.0}
         ]
       )
       messages = [

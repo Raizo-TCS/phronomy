@@ -183,7 +183,7 @@ RSpec.describe Phronomy::Agent::Base do
         Class.new(Phronomy::Agent::Base) do
           model "test-model"
           max_output_tokens 2048
-          context_overhead  300
+          context_overhead 300
         end
       end
 

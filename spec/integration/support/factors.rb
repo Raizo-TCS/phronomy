@@ -67,14 +67,14 @@ module IntegrationFactors
   class EnumCitySelectorTool < Phronomy::Tool::Base
     description "Returns a short fact about a supported city: Tokyo, London, or Paris"
     param :city, type: :string,
-          desc: "City to look up; must be one of: Tokyo, London, Paris",
-          enum: %w[Tokyo London Paris]
+      desc: "City to look up; must be one of: Tokyo, London, Paris",
+      enum: %w[Tokyo London Paris]
 
     def execute(city:)
       case city
-      when "Tokyo"  then "Tokyo is the capital and most populous city of Japan."
+      when "Tokyo" then "Tokyo is the capital and most populous city of Japan."
       when "London" then "London is the capital city of England and the United Kingdom."
-      when "Paris"  then "Paris is the capital and most populous city of France."
+      when "Paris" then "Paris is the capital and most populous city of France."
       else raise "Unknown city '#{city}'; must be Tokyo, London, or Paris"
       end
     end
@@ -85,7 +85,9 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
 
   class PassingInputGuardrail < Phronomy::Guardrail::InputGuardrail
-    def check(_input); end # no-op: always passes
+    # no-op: always passes
+    def check(_input)
+    end
   end
 
   class BlockingInputGuardrail < Phronomy::Guardrail::InputGuardrail
@@ -95,7 +97,9 @@ module IntegrationFactors
   end
 
   class PassingOutputGuardrail < Phronomy::Guardrail::OutputGuardrail
-    def check(_output); end # no-op: always passes
+    # no-op: always passes
+    def check(_output)
+    end
   end
 
   class BlockingOutputGuardrail < Phronomy::Guardrail::OutputGuardrail
@@ -114,17 +118,17 @@ module IntegrationFactors
   # @return [Class]
   # ---------------------------------------------------------------------------
   def self.agent_class(label, tools: [])
-    base_klass = label == "react" ? Phronomy::Agent::ReactAgent : Phronomy::Agent::Base
-    model_name  = LM_STUDIO_MODEL
-    tool_arg    = tools
+    base_klass = (label == "react") ? Phronomy::Agent::ReactAgent : Phronomy::Agent::Base
+    model_name = LM_STUDIO_MODEL
+    tool_arg = tools
 
     Class.new(base_klass) do
-      model       model_name
-      provider    :openai  # directs to openai_api_base (LM Studio); sets assume_model_exists: true
+      model model_name
+      provider :openai  # directs to openai_api_base (LM Studio); sets assume_model_exists: true
       instructions "You are a helpful assistant. Use tools when they are useful."
 
       case tool_arg
-      when Hash  then self.tools(tool_arg)
+      when Hash then self.tools(tool_arg)
       when Array then self.tools(*tool_arg) unless tool_arg.empty?
       end
     end
@@ -149,12 +153,12 @@ module IntegrationFactors
       Phronomy::Memory::WindowMemory.new(k: opts.fetch(:k, 10))
     when "summary"
       Phronomy::Memory::SummaryMemory.new(
-        max_tokens:        opts.fetch(:max_tokens, 4000),
-        summarizer_model:  opts[:summarizer_model]
+        max_tokens: opts.fetch(:max_tokens, 4000),
+        summarizer_model: opts[:summarizer_model]
       )
     when "composite"
       sources = opts[:sources] || [
-        { memory: Phronomy::Memory::WindowMemory.new(k: 5), weight: 1.0 }
+        {memory: Phronomy::Memory::WindowMemory.new(k: 5), weight: 1.0}
       ]
       Phronomy::Memory::CompositeMemory.new(sources: sources)
     else
@@ -171,11 +175,11 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   def self.tools(label)
     case label
-    when "none"          then []
-    when "splat_single"  then [CalculatorTool]
-    when "splat_multi"   then [CalculatorTool, WeatherTool]
-    when "hash_alias"    then { CalculatorTool => "calc" }
-    when "hash_no_alias" then { CalculatorTool => nil }
+    when "none" then []
+    when "splat_single" then [CalculatorTool]
+    when "splat_multi" then [CalculatorTool, WeatherTool]
+    when "hash_alias" then {CalculatorTool => "calc"}
+    when "hash_no_alias" then {CalculatorTool => nil}
     else raise ArgumentError, "Unknown agent_tools label: #{label}"
     end
   end
@@ -188,8 +192,8 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   def self.thread_id(label)
     case label
-    when "nil"               then nil
-    when "present"           then "thread-001"
+    when "nil" then nil
+    when "present" then "thread-001"
     when "different_threads" then ["thread-001", "thread-002"]
     else raise ArgumentError, "Unknown thread_id label: #{label}"
     end
@@ -225,11 +229,11 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   def self.guardrails(label)
     case label
-    when "none"            then []
-    when "input_only"      then [PassingInputGuardrail.new]
-    when "output_only"     then [PassingOutputGuardrail.new]
-    when "both"            then [PassingInputGuardrail.new, PassingOutputGuardrail.new]
-    when "blocking_input"  then [BlockingInputGuardrail.new]
+    when "none" then []
+    when "input_only" then [PassingInputGuardrail.new]
+    when "output_only" then [PassingOutputGuardrail.new]
+    when "both" then [PassingInputGuardrail.new, PassingOutputGuardrail.new]
+    when "blocking_input" then [BlockingInputGuardrail.new]
     when "blocking_output" then [BlockingOutputGuardrail.new]
     else raise ArgumentError, "Unknown agent_guardrails label: #{label}"
     end
@@ -244,7 +248,7 @@ module IntegrationFactors
   def self.apply_guardrails(agent, list)
     list.each do |g|
       case g
-      when Phronomy::Guardrail::InputGuardrail  then agent.add_input_guardrail(g)
+      when Phronomy::Guardrail::InputGuardrail then agent.add_input_guardrail(g)
       when Phronomy::Guardrail::OutputGuardrail then agent.add_output_guardrail(g)
       end
     end

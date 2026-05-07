@@ -26,10 +26,10 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   end
 
   # Shared fixture references
-  let(:enum_tool_class)    { IntegrationFactors::EnumCitySelectorTool }
-  let(:calc_tool_class)    { IntegrationFactors::CalculatorTool }
+  let(:enum_tool_class) { IntegrationFactors::EnumCitySelectorTool }
+  let(:calc_tool_class) { IntegrationFactors::CalculatorTool }
   let(:weather_tool_class) { IntegrationFactors::WeatherTool }
-  let(:return_empty_tool)  { IntegrationFactors::ReturnEmptyOnErrorTool }
+  let(:return_empty_tool) { IntegrationFactors::ReturnEmptyOnErrorTool }
 
   # -------------------------------------------------------------------------
   # TC-001: base, no tools, raise, false, none, nil, none — minimal smoke test
@@ -54,7 +54,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
         tool_name "city_info"
         description "Returns a short fact about a supported city"
         param :city, type: :string, desc: "One of: Tokyo, London, Paris",
-              enum: %w[Tokyo London Paris]
+          enum: %w[Tokyo London Paris]
         on_error :return_empty
         requires_approval true
 
@@ -65,7 +65,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
     end
     let(:agent) do
       build_agent("base", tools: [tool_class],
-                  guardrails: IntegrationFactors.guardrails("input_only"))
+        guardrails: IntegrationFactors.guardrails("input_only"))
     end
 
     it "requires_approval? returns true on the tool" do
@@ -85,12 +85,12 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-003: base; multi tools; invalid enum triggers ToolError (direct); output guardrail" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("splat_multi"),
-                  guardrails: IntegrationFactors.guardrails("output_only"))
+        guardrails: IntegrationFactors.guardrails("output_only"))
     end
 
     it "EnumCitySelectorTool raises ToolError when called with an invalid city (direct call)" do
       expect {
-        enum_tool_class.new.call({ "city" => "InvalidCity" })
+        enum_tool_class.new.call({"city" => "InvalidCity"})
       }.to raise_error(Phronomy::ToolError)
     end
 
@@ -106,7 +106,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-004: base; hash-aliased tool; valid enum; both (passing) guardrails" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("hash_alias"),
-                  guardrails: IntegrationFactors.guardrails("both"))
+        guardrails: IntegrationFactors.guardrails("both"))
     end
 
     it "agent with both passing guardrails and aliased calculator returns output" do
@@ -122,7 +122,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-005: base; hash_no_alias tool; blocking_input guardrail fires before LLM" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("hash_no_alias"),
-                  guardrails: IntegrationFactors.guardrails("blocking_input"))
+        guardrails: IntegrationFactors.guardrails("blocking_input"))
     end
 
     it "raises GuardrailError before the LLM is called" do
@@ -137,7 +137,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-007: react; no tools; blocking_output guardrail fires after LLM" do
     let(:agent) do
       build_agent("react", tools: [],
-                  guardrails: IntegrationFactors.guardrails("blocking_output"))
+        guardrails: IntegrationFactors.guardrails("blocking_output"))
     end
 
     it "raises GuardrailError after the LLM call (output guardrail)" do
@@ -151,12 +151,12 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-008: react; single enum tool; invalid_enum raises ToolError (direct); input guardrail" do
     let(:agent) do
       build_agent("react", tools: [enum_tool_class],
-                  guardrails: IntegrationFactors.guardrails("input_only"))
+        guardrails: IntegrationFactors.guardrails("input_only"))
     end
 
     it "EnumCitySelectorTool raises ToolError for an invalid city (direct call)" do
       expect {
-        enum_tool_class.new.call({ "city" => "Berlin" })
+        enum_tool_class.new.call({"city" => "Berlin"})
       }.to raise_error(Phronomy::ToolError)
     end
 
@@ -199,7 +199,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
       end
     end
     let(:agent) do
-      klass = IntegrationFactors.agent_class("react", tools: { tool_class => "calc_alias" })
+      klass = IntegrationFactors.agent_class("react", tools: {tool_class => "calc_alias"})
       a = klass.new
       IntegrationFactors.apply_guardrails(a, IntegrationFactors.guardrails("blocking_input"))
       a
@@ -227,7 +227,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
         on_error :return_empty
       end
     end
-    let(:agent) { IntegrationFactors.agent_class("react", tools: { tool_class => nil }).new }
+    let(:agent) { IntegrationFactors.agent_class("react", tools: {tool_class => nil}).new }
 
     it "requires_approval? returns true" do
       expect(tool_class.new.requires_approval?).to be true
@@ -285,7 +285,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-017: base; single tool; output_only (passing) guardrail" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("splat_single"),
-                  guardrails: IntegrationFactors.guardrails("output_only"))
+        guardrails: IntegrationFactors.guardrails("output_only"))
     end
 
     it "output guardrail passes and agent returns output" do
@@ -300,12 +300,12 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-018: base; single enum tool; invalid_enum raises ToolError (direct); both passing guardrails" do
     let(:agent) do
       build_agent("base", tools: [enum_tool_class],
-                  guardrails: IntegrationFactors.guardrails("both"))
+        guardrails: IntegrationFactors.guardrails("both"))
     end
 
     it "EnumCitySelectorTool.call with invalid city raises ToolError" do
       expect {
-        enum_tool_class.new.call({ "city" => "Sydney" })
+        enum_tool_class.new.call({"city" => "Sydney"})
       }.to raise_error(Phronomy::ToolError)
     end
 
@@ -321,7 +321,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-019: base; single tool; blocking_input guardrail fires before LLM" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("splat_single"),
-                  guardrails: IntegrationFactors.guardrails("blocking_input"))
+        guardrails: IntegrationFactors.guardrails("blocking_input"))
     end
 
     it "raises GuardrailError before LLM" do
@@ -335,7 +335,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-020: base; single enum tool; valid_enum; blocking_output guardrail" do
     let(:agent) do
       build_agent("base", tools: [enum_tool_class],
-                  guardrails: IntegrationFactors.guardrails("blocking_output"))
+        guardrails: IntegrationFactors.guardrails("blocking_output"))
     end
 
     it "raises GuardrailError after LLM (blocking_output)" do
@@ -361,7 +361,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-022: base; multi tools; input_only (passing) guardrail" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("splat_multi"),
-                  guardrails: IntegrationFactors.guardrails("input_only"))
+        guardrails: IntegrationFactors.guardrails("input_only"))
     end
 
     it "input guardrail passes and agent returns output" do
@@ -376,7 +376,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-023: base; multi tools; both (passing) guardrails" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("splat_multi"),
-                  guardrails: IntegrationFactors.guardrails("both"))
+        guardrails: IntegrationFactors.guardrails("both"))
     end
 
     it "both passing guardrails allow invocation to succeed" do
@@ -391,7 +391,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-024: base; multi tools; blocking_input guardrail fires before LLM" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("splat_multi"),
-                  guardrails: IntegrationFactors.guardrails("blocking_input"))
+        guardrails: IntegrationFactors.guardrails("blocking_input"))
     end
 
     it "raises GuardrailError before LLM" do
@@ -405,7 +405,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-025: base; multi tools; blocking_output guardrail fires after LLM" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("splat_multi"),
-                  guardrails: IntegrationFactors.guardrails("blocking_output"))
+        guardrails: IntegrationFactors.guardrails("blocking_output"))
     end
 
     it "raises GuardrailError after LLM (blocking_output)" do
@@ -417,11 +417,11 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # TC-026: base, hash_alias, raise, false, invalid_enum, nil, none
   # -------------------------------------------------------------------------
   describe "TC-026: base; hash-aliased enum tool; invalid_enum raises ToolError (direct); no guardrails" do
-    let(:agent) { build_agent("base", tools: { enum_tool_class => "city_lookup" }) }
+    let(:agent) { build_agent("base", tools: {enum_tool_class => "city_lookup"}) }
 
     it "EnumCitySelectorTool.call with invalid city raises ToolError" do
       expect {
-        enum_tool_class.new.call({ "city" => "Moscow" })
+        enum_tool_class.new.call({"city" => "Moscow"})
       }.to raise_error(Phronomy::ToolError)
     end
 
@@ -437,7 +437,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-027: base; hash-aliased calc tool; input_only (passing) guardrail" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("hash_alias"),
-                  guardrails: IntegrationFactors.guardrails("input_only"))
+        guardrails: IntegrationFactors.guardrails("input_only"))
     end
 
     it "input guardrail passes and aliased-tool agent returns output" do
@@ -452,7 +452,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-028: base; hash-aliased calc tool; output_only (passing) guardrail" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("hash_alias"),
-                  guardrails: IntegrationFactors.guardrails("output_only"))
+        guardrails: IntegrationFactors.guardrails("output_only"))
     end
 
     it "output guardrail passes and aliased-tool agent returns output" do
@@ -467,7 +467,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-029: base; hash-aliased calc tool; blocking_output guardrail" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("hash_alias"),
-                  guardrails: IntegrationFactors.guardrails("blocking_output"))
+        guardrails: IntegrationFactors.guardrails("blocking_output"))
     end
 
     it "raises GuardrailError after LLM (blocking_output)" do
@@ -481,7 +481,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-030: base; hash_no_alias tool; input_only (passing) guardrail" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("hash_no_alias"),
-                  guardrails: IntegrationFactors.guardrails("input_only"))
+        guardrails: IntegrationFactors.guardrails("input_only"))
     end
 
     it "input guardrail passes and nil-alias tool agent returns output" do
@@ -496,7 +496,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-031: base; hash_no_alias tool; output_only (passing) guardrail" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("hash_no_alias"),
-                  guardrails: IntegrationFactors.guardrails("output_only"))
+        guardrails: IntegrationFactors.guardrails("output_only"))
     end
 
     it "output guardrail passes and nil-alias tool agent returns output" do
@@ -511,7 +511,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-032: base; hash_no_alias tool; both (passing) guardrails" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("hash_no_alias"),
-                  guardrails: IntegrationFactors.guardrails("both"))
+        guardrails: IntegrationFactors.guardrails("both"))
     end
 
     it "both passing guardrails allow invocation to succeed" do
@@ -526,7 +526,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   describe "TC-033: base; hash_no_alias tool; blocking_output guardrail" do
     let(:agent) do
       build_agent("base", tools: IntegrationFactors.tools("hash_no_alias"),
-                  guardrails: IntegrationFactors.guardrails("blocking_output"))
+        guardrails: IntegrationFactors.guardrails("blocking_output"))
     end
 
     it "raises GuardrailError after LLM (blocking_output)" do
