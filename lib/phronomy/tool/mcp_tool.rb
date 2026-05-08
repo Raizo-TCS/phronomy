@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
 require "json"
+require "net/http"
 require "open3"
+require "uri"
 
 module Phronomy
   module Tool
@@ -43,8 +45,10 @@ module Phronomy
           case scheme
           when "stdio"
             StdioTransport.new(path)
+          when "http", "https"
+            HttpTransport.new(uri)
           else
-            raise ArgumentError, "Unsupported MCP transport scheme: #{scheme.inspect}. Only 'stdio://' is currently supported."
+            raise ArgumentError, "Unsupported MCP transport scheme: #{scheme.inspect}. Supported: 'stdio://', 'http://', 'https://'."
           end
         end
 
@@ -120,6 +124,118 @@ module Phronomy
           raise Phronomy::ToolError, "MCP server exited with status #{status.exitstatus}" unless status.success?
 
           JSON.parse(stdout.lines.first.to_s)
+        end
+
+        def parse_schema_params(properties)
+          properties.map do |name, schema|
+            {
+              name: name.to_s,
+              type: schema["type"] || "string",
+              description: schema["description"].to_s
+            }
+          end
+        end
+      end
+
+      # HTTP/HTTPS transport implementing JSON-RPC over HTTP with SSE support.
+      #
+      # Sends JSON-RPC POST requests to the MCP server endpoint.
+      # Accepts both plain JSON responses (Content-Type: application/json) and
+      # Server-Sent Events streams (Content-Type: text/event-stream), covering
+      # both the 2024-11-05 and 2025-03-26 MCP HTTP transport specifications.
+      #
+      # @example
+      #   tool = Phronomy::Tool::McpTool.from_server(
+      #     "http://localhost:8080/mcp",
+      #     tool_name: "weather_lookup"
+      #   )
+      class HttpTransport
+        # @param base_url [String] full URL of the MCP endpoint, e.g. "http://localhost:8080/mcp"
+        def initialize(base_url)
+          @uri = URI.parse(base_url)
+        end
+
+        # Retrieve the tool definition from the server using MCP `tools/list`.
+        # @param tool_name [String]
+        # @return [Hash] { description:, parameters: }
+        def fetch_tool(tool_name)
+          response = rpc_call("tools/list", {})
+          tools = response.dig("result", "tools") || []
+          defn = tools.find { |t| t["name"] == tool_name }
+          raise ArgumentError, "Tool #{tool_name.inspect} not found on MCP server #{@uri}" unless defn
+
+          {
+            description: defn["description"],
+            parameters: parse_schema_params(defn.dig("inputSchema", "properties") || {})
+          }
+        end
+
+        # Call a tool on the MCP server using MCP `tools/call`.
+        # @param tool_name [String]
+        # @param args [Hash]
+        # @return [Object] the tool result
+        def call_tool(tool_name, args)
+          response = rpc_call("tools/call", {name: tool_name, arguments: args})
+          content = response.dig("result", "content")
+
+          if content.is_a?(Array)
+            texts = content.select { |c| c["type"] == "text" }.map { |c| c["text"] }
+            (texts.length == 1) ? texts.first : texts
+          else
+            content
+          end
+        end
+
+        private
+
+        def rpc_call(method, params)
+          payload = JSON.generate(jsonrpc: "2.0", id: 1, method: method, params: params)
+
+          http = Net::HTTP.new(@uri.host, @uri.port)
+          http.use_ssl = (@uri.scheme == "https")
+
+          path = @uri.path.empty? ? "/" : @uri.path
+          path = "#{path}?#{@uri.query}" if @uri.query
+
+          request = Net::HTTP::Post.new(path)
+          request["Content-Type"] = "application/json"
+          request["Accept"] = "application/json, text/event-stream"
+          request.body = payload
+
+          http_response = http.request(request)
+
+          unless http_response.is_a?(Net::HTTPSuccess)
+            raise Phronomy::ToolError,
+              "MCP HTTP server returned #{http_response.code}: #{http_response.body}"
+          end
+
+          content_type = http_response["Content-Type"] || ""
+          if content_type.include?("text/event-stream")
+            parse_sse_response(http_response.body)
+          else
+            JSON.parse(http_response.body)
+          end
+        end
+
+        # Parse an SSE response body and extract the last JSON-RPC message.
+        # SSE lines are in the format "data: <json>".
+        def parse_sse_response(body)
+          result = nil
+          body.each_line do |line|
+            line = line.strip
+            next unless line.start_with?("data: ")
+
+            data = line.delete_prefix("data: ")
+            next if data == "[DONE]"
+
+            begin
+              parsed = JSON.parse(data)
+              result = parsed if parsed.is_a?(Hash) && parsed["jsonrpc"]
+            rescue JSON::ParserError
+              next
+            end
+          end
+          result || raise(Phronomy::ToolError, "No valid JSON-RPC response found in SSE stream")
         end
 
         def parse_schema_params(properties)
