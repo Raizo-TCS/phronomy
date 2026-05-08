@@ -83,6 +83,39 @@ module Phronomy
         self
       end
 
+      # Adds a parallel node that executes multiple branches concurrently.
+      # Each branch callable receives the current state and must return a Hash or nil.
+      # Results are merged in registration order (see ParallelNode for merge policy).
+      #
+      # @param name [Symbol]
+      # @param branches [Array<#call>] at least one callable required
+      # @return [self]
+      def add_parallel_node(name, *branches)
+        raise ArgumentError, "add_parallel_node requires at least one branch" if branches.empty?
+
+        @nodes[name] = ParallelNode.new(branches)
+        self
+      end
+
+      # Embeds a compiled subgraph as a single node in this graph.
+      # The subgraph is invoked with a Hash derived from the parent state;
+      # its final state Hash is returned and merged into the parent state.
+      #
+      # @param name [Symbol]
+      # @param subgraph [CompiledGraph] the compiled subgraph to embed
+      # @param input_mapper  [Proc, nil] maps parent state → input Hash for the subgraph;
+      #   defaults to state.to_h (passes all parent fields)
+      # @param output_mapper [Proc, nil] maps subgraph final state → Hash to merge back;
+      #   defaults to sub_state.to_h (passes all subgraph fields)
+      # @return [self]
+      def add_subgraph(name, subgraph, input_mapper: nil, output_mapper: nil)
+        add_node(name) do |state|
+          input = input_mapper ? input_mapper.call(state) : state.to_h
+          sub_state = subgraph.invoke(input, config: {thread_id: state.thread_id})
+          output_mapper ? output_mapper.call(sub_state) : sub_state.to_h
+        end
+      end
+
       # Compiles the graph and returns a CompiledGraph.
       # Callbacks registered on StateGraph are inherited; additional callbacks can be
       # registered on the returned CompiledGraph to override or extend them.
