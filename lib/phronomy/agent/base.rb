@@ -171,6 +171,63 @@ module Phronomy
         {output: output, messages: chat.messages, usage: usage}
       end
 
+      # Streaming version of #invoke. Yields {Phronomy::Agent::StreamEvent} objects
+      # as they are produced by the underlying LLM.
+      #
+      # Events emitted (in order):
+      #   :token       — each content delta from the LLM
+      #   :tool_call   — when the LLM requests a tool (ReactAgent subclasses only)
+      #   :tool_result — after a tool completes (ReactAgent subclasses only)
+      #   :done        — final event carrying output, messages, and usage
+      #   :error       — if an unrecoverable error occurs
+      #
+      # @param input  [String, Hash] same as #invoke
+      # @param config [Hash]        same as #invoke
+      # @yield [Phronomy::Agent::StreamEvent]
+      # @return [Hash] { output:, messages:, usage: } — same as #invoke
+      def stream(input, config: {}, &block)
+        return invoke(input, config: config) unless block
+
+        run_input_guardrails!(input)
+
+        memory = config[:memory]
+        thread_id = config[:thread_id]
+
+        chat = build_chat
+        system_msg = build_instructions(input)
+        apply_instructions(chat, system_msg) if system_msg
+
+        if memory && thread_id
+          token_budget = build_token_budget
+          memory.load_messages(thread_id: thread_id, token_budget: token_budget).each do |msg|
+            chat.messages << msg
+          end
+        end
+
+        # Wire per-event callbacks to yield StreamEvents.
+        chat.on_tool_call { |tool_call| block.call(StreamEvent.new(type: :tool_call, payload: {tool_call: tool_call})) }
+        chat.on_tool_result { |tool_result| block.call(StreamEvent.new(type: :tool_result, payload: {tool_result: tool_result})) }
+
+        user_message = extract_message(input)
+        response = chat.ask(user_message) do |chunk|
+          block.call(StreamEvent.new(type: :token, payload: {content: chunk.content}))
+        end
+
+        memory.save_messages(thread_id: thread_id, messages: chat.messages) if memory && thread_id
+
+        output = response.content
+        usage = Phronomy::TokenUsage.from_tokens(response.tokens)
+
+        run_output_guardrails!(output)
+
+        result = {output: output, messages: chat.messages, usage: usage}
+        block.call(StreamEvent.new(type: :done, payload: result))
+        result
+      rescue => e
+        block.call(StreamEvent.new(type: :error, payload: {error: e}))
+        raise
+      end
+
       # Attach a guardrail that validates input before every #invoke call.
       # @param guardrail [Phronomy::Guardrail::InputGuardrail]
       def add_input_guardrail(guardrail)
@@ -238,6 +295,9 @@ module Phronomy
       def build_instructions(input)
         instr = self.class.instructions
         case instr
+        when Phronomy::Chain::PromptTemplate
+          vars = input.is_a?(Hash) ? input : {input: input}
+          instr.format_system(**vars) || instr.format(**vars)
         when String then instr
         when Proc then instr.call(input)
         when nil then nil
