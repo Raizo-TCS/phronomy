@@ -433,4 +433,43 @@ module IntegrationFactors
       raise ArgumentError, "Unknown tracer_type label: #{label}"
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Factor: eval_scorer_type
+  #
+  # @param label [String] "exact_match" | "includes_scorer" | "llm_judge"
+  # @param model [String] RubyLLM model identifier (only used for llm_judge)
+  # @return [Phronomy::Eval::Scorer::Base]
+  # ---------------------------------------------------------------------------
+  def self.eval_scorer(label, model: LM_STUDIO_MODEL)
+    case label
+    when "exact_match" then Phronomy::Eval::Scorer::ExactMatch.new
+    when "includes_scorer" then Phronomy::Eval::Scorer::IncludesScorer.new
+    when "llm_judge" then Phronomy::Eval::Scorer::LlmJudge.new(model: model)
+    else raise ArgumentError, "Unknown eval_scorer_type label: #{label}"
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Factor: eval_dataset_size
+  #
+  # Returns a Dataset with the requested number of pre-defined EvalCase entries.
+  # Each case tests simple arithmetic so responses are deterministic.
+  #
+  # @param label [String] "single" | "multi"
+  # @return [Phronomy::Eval::Dataset]
+  # ---------------------------------------------------------------------------
+  def self.eval_dataset(label)
+    all_pairs = [
+      {input: "What is 2 + 2?", expected: "4"},
+      {input: "What is 3 + 3?", expected: "6"},
+      {input: "What is 5 + 5?", expected: "10"}
+    ]
+    count = case label
+    when "single" then 1
+    when "multi" then 3
+    else raise ArgumentError, "Unknown eval_dataset_size label: #{label}"
+    end
+    Phronomy::Eval::Dataset.from_array(all_pairs.first(count))
+  end
 end
