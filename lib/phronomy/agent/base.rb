@@ -205,8 +205,8 @@ module Phronomy
         end
 
         # Wire per-event callbacks to yield StreamEvents.
-        chat.on_tool_call { |tool_call| block.call(StreamEvent.new(type: :tool_call, payload: {tool_call: tool_call})) }
-        chat.on_tool_result { |tool_result| block.call(StreamEvent.new(type: :tool_result, payload: {tool_result: tool_result})) }
+        chat.before_tool_call { |tool_call| block.call(StreamEvent.new(type: :tool_call, payload: {tool_call: tool_call})) }
+        chat.after_tool_result { |tool_result| block.call(StreamEvent.new(type: :tool_result, payload: {tool_result: tool_result})) }
 
         user_message = extract_message(input)
         response = chat.ask(user_message) do |chunk|

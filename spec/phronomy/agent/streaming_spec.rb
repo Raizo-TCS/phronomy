@@ -27,9 +27,8 @@ RSpec.describe "Agent streaming" do
     allow(dbl).to receive(:with_tool).and_return(dbl)
     allow(dbl).to receive(:with_temperature).and_return(dbl)
     allow(dbl).to receive(:messages).and_return([response])
-    allow(dbl).to receive(:on_tool_call)
-    allow(dbl).to receive(:on_tool_result)
-    # Simulate streaming: yield a single chunk then return the response
+    allow(dbl).to receive(:before_tool_call)
+    allow(dbl).to receive(:after_tool_result)
     allow(dbl).to receive(:ask) do |_msg, &blk|
       blk&.call(double("Chunk", content: "Hello, world!"))
       response
@@ -100,8 +99,8 @@ RSpec.describe "Agent streaming" do
         allow(bad_chat).to receive(:with_instructions).and_return(bad_chat)
         allow(bad_chat).to receive(:with_tool).and_return(bad_chat)
         allow(bad_chat).to receive(:with_temperature).and_return(bad_chat)
-        allow(bad_chat).to receive(:on_tool_call)
-        allow(bad_chat).to receive(:on_tool_result)
+        allow(bad_chat).to receive(:before_tool_call)
+        allow(bad_chat).to receive(:after_tool_result)
         allow(bad_chat).to receive(:ask).and_raise(RuntimeError, "LLM exploded")
         allow(RubyLLM).to receive(:chat).and_return(bad_chat)
       end
