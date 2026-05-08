@@ -5,6 +5,9 @@ require "ruby_llm"
 
 loader = Zeitwerk::Loader.for_gem
 loader.ignore(File.expand_path("generators", __dir__))
+# Teach Zeitwerk that "llm" maps to "LLM" so that file names such as
+# ruby_llm_embeddings.rb resolve to RubyLLMEmbeddings (not RubyLlmEmbeddings).
+loader.inflector.inflect("ruby_llm_embeddings" => "RubyLLMEmbeddings")
 loader.setup
 
 require_relative "phronomy/version"

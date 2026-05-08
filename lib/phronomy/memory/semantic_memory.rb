@@ -23,11 +23,12 @@ module Phronomy
     #   )
     class SemanticMemory < Base
       # @param store           [Phronomy::VectorStore::Base] vector store; default InMemory
-      # @param embedding_model [String, nil] model to use for RubyLLM.embed
-      # @param k               [Integer]     number of results to return
-      def initialize(store: nil, embedding_model: nil, k: 10)
+      # @param embeddings       [Phronomy::Embeddings::Base, nil] embeddings adapter; default RubyLLMEmbeddings
+      # @param embedding_model  [String, nil] shorthand for RubyLLMEmbeddings model; ignored when embeddings: is given
+      # @param k                [Integer]     number of results to return
+      def initialize(store: nil, embeddings: nil, embedding_model: nil, k: 10)
         @store = store || Phronomy::VectorStore::InMemory.new
-        @embedding_model = embedding_model
+        @embeddings = embeddings || Phronomy::Embeddings::RubyLLMEmbeddings.new(model: embedding_model)
         @k = k
         @messages = {}  # id => message
         @counter = 0
@@ -76,8 +77,7 @@ module Phronomy
       private
 
       def embed(text)
-        opts = @embedding_model ? {model: @embedding_model} : {}
-        RubyLLM.embed(text, **opts).vectors
+        @embeddings.embed(text)
       end
 
       def semantic_search(thread_id, query, token_budget)

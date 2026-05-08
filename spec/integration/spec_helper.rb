@@ -11,6 +11,7 @@ require "phronomy"
 LM_STUDIO_API_BASE = "http://192.168.122.1:1234/v1"
 LM_STUDIO_API_KEY = "lm-studio"
 LM_STUDIO_MODEL = "openai/gpt-oss-20b"
+LM_STUDIO_EMBEDDING_MODEL = "text-embedding-nomic-embed-text-v1.5"
 
 RSpec.configure do |config|
   config.disable_monkey_patching!

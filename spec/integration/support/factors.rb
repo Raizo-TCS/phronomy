@@ -308,4 +308,63 @@ module IntegrationFactors
       end
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Fixture: StubEmbeddings
+  #
+  # Deterministic embeddings adapter for use in tests that must not call an LLM.
+  # Returns a 3-D vector derived from the text's character-sum so that
+  # different texts produce different (but stable) vectors.
+  # ---------------------------------------------------------------------------
+  class StubEmbeddings < Phronomy::Embeddings::Base
+    def embed(text)
+      h = text.chars.sum(&:ord).to_f
+      norm = Math.sqrt(3) * (h + 1)
+      [h / norm, 1.0 / norm, 1.0 / norm]
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Factor: embeddings_adapter_type
+  #
+  # @param label [String] "ruby_llm_default" | "ruby_llm_explicit_model" | "stub"
+  # @return [Phronomy::Embeddings::Base]
+  # ---------------------------------------------------------------------------
+  LM_STUDIO_EMBEDDING_MODEL = "text-embedding-nomic-embed-text-v1.5"
+
+  def self.embeddings_adapter(label)
+    case label
+    when "ruby_llm_default"
+      Phronomy::Embeddings::RubyLLMEmbeddings.new
+    when "ruby_llm_explicit_model"
+      Phronomy::Embeddings::RubyLLMEmbeddings.new(
+        model: LM_STUDIO_EMBEDDING_MODEL,
+        provider: :openai,
+        assume_model_exists: true
+      )
+    when "stub"
+      StubEmbeddings.new
+    else
+      raise ArgumentError, "Unknown embeddings_adapter_type label: #{label}"
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Factor: vector_store_backend
+  #
+  # @param label [String] "in_memory" | "pgvector" | "redis_search"
+  # @return [Phronomy::VectorStore::Base]
+  # ---------------------------------------------------------------------------
+  def self.vector_store(label)
+    case label
+    when "in_memory"
+      Phronomy::VectorStore::InMemory.new
+    when "pgvector"
+      raise "Pgvector backend requires a running PostgreSQL + pgvector server"
+    when "redis_search"
+      raise "RedisSearch backend requires a running Redis with RediSearch module"
+    else
+      raise ArgumentError, "Unknown vector_store_backend label: #{label}"
+    end
+  end
 end
