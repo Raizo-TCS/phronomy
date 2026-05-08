@@ -198,6 +198,26 @@ module Phronomy
         self.class.requires_approval
       end
 
+      # Override this method to implement the tool's logic.
+      #
+      # The method receives the declared {.param} fields as keyword arguments.
+      # The return value is passed back to the LLM as the tool result.
+      #
+      # @abstract Subclasses must implement this method.
+      # @return [String] result string returned to the LLM
+      # @example
+      #   class WeatherTool < Phronomy::Tool::Base
+      #     description "Get current weather"
+      #     param :location, type: :string, desc: "City name"
+      #
+      #     def execute(location:)
+      #       WeatherService.fetch(location).to_s
+      #     end
+      #   end
+      def execute(**_args)
+        raise NotImplementedError, "#{self.class}#execute is not implemented"
+      end
+
       private
 
       # Executes the given block inside a retry loop driven by the class-level

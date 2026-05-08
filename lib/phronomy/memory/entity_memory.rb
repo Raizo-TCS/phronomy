@@ -34,6 +34,9 @@ module Phronomy
         [:preference, /\bI (?:like|love|enjoy)\s+([A-Za-z][A-Za-z0-9 \-']*)/i]
       ].freeze
 
+      # @param k     [Integer]        number of recent turns to retain alongside entity context
+      # @param async [Boolean]        see {Phronomy::Memory::Base#initialize}
+      # @param queue [Symbol, String] see {Phronomy::Memory::Base#initialize}
       def initialize(k: 20, async: false, queue: :default)
         super(async: async, queue: queue)
         @k = k
@@ -54,11 +57,16 @@ module Phronomy
         entity_msg ? [entity_msg] + recent : recent
       end
 
+      # Persists messages and extracts entity facts from user turns.
+      #
+      # @param thread_id [String]
+      # @param messages  [Array]
       def save_messages(thread_id:, messages:, **)
         @store[thread_id] = messages
         extract_and_store_entities(thread_id, messages)
       end
 
+      # @param thread_id [String]
       def clear(thread_id:)
         @store.delete(thread_id)
         @entities.delete(thread_id)

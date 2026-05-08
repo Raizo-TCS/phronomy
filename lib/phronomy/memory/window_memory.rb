@@ -8,6 +8,9 @@ module Phronomy
     # message count: messages are accumulated from newest to oldest until the budget's
     # effective_input_limit would be exceeded.
     class WindowMemory < Base
+      # @param k     [Integer]        number of turns to retain (each turn = user + assistant message)
+      # @param async [Boolean]        see {Phronomy::Memory::Base#initialize}
+      # @param queue [Symbol, String] see {Phronomy::Memory::Base#initialize}
       def initialize(k: 10, async: false, queue: :default)
         super(async: async, queue: queue)
         @k = k
@@ -27,10 +30,13 @@ module Phronomy
         end
       end
 
+      # @param thread_id [String]
+      # @param messages  [Array]
       def save_messages(thread_id:, messages:)
         @store[thread_id] = messages
       end
 
+      # @param thread_id [String]
       def clear(thread_id:)
         @store.delete(thread_id)
       end

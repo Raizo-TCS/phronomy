@@ -11,6 +11,11 @@ module Phronomy
     # When a token_budget is passed to load_messages, budget.effective_input_limit
     # is used as the threshold. Otherwise the constructor's max_tokens is used.
     class SummaryMemory < Base
+      # @param max_tokens          [Integer]        token threshold above which old messages are summarized
+      # @param summarizer_model    [String, nil]    LLM model used for summarization; nil uses the global default
+      # @param summarizer_provider [Symbol, nil]    LLM provider for the summarizer; required for unregistered models
+      # @param async               [Boolean]        see {Phronomy::Memory::Base#initialize}
+      # @param queue               [Symbol, String] see {Phronomy::Memory::Base#initialize}
       def initialize(max_tokens: 4000, summarizer_model: nil, summarizer_provider: nil, async: false, queue: :default)
         super(async: async, queue: queue)
         @max_tokens = max_tokens
@@ -34,6 +39,12 @@ module Phronomy
         end
       end
 
+      # Saves messages, compressing via LLM summarization when the estimated token
+      # count exceeds the threshold.
+      #
+      # @param thread_id    [String]
+      # @param messages     [Array]
+      # @param token_budget [Phronomy::Context::TokenBudget, nil] overrides +max_tokens+ when provided
       def save_messages(thread_id:, messages:, token_budget: nil)
         threshold = token_budget ? token_budget.effective_input_limit : @max_tokens
         estimated_tokens = messages.sum { |m| Phronomy::Context::TokenEstimator.estimate(m.content.to_s) }
@@ -45,6 +56,7 @@ module Phronomy
         end
       end
 
+      # @param thread_id [String]
       def clear(thread_id:)
         @store.delete(thread_id)
         @summaries.delete(thread_id)

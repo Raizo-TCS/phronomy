@@ -26,3 +26,6 @@ gem "sqlite3", "~> 2.0"
 
 # ActiveJob for async memory write tests
 gem "activejob", "~> 7.1"
+
+# YARD for API documentation generation
+gem "yard", require: false

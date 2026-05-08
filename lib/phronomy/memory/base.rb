@@ -33,10 +33,17 @@ module Phronomy
         raise NotImplementedError, "#{self.class}#load_messages is not implemented"
       end
 
+      # Persist conversation messages for the given thread.
+      #
+      # @param thread_id [String] identifies the conversation
+      # @param messages  [Array]  message-like objects to persist
       def save_messages(thread_id:, messages:)
         raise NotImplementedError, "#{self.class}#save_messages is not implemented"
       end
 
+      # Remove all persisted messages for the given thread.
+      #
+      # @param thread_id [String]
       def clear(thread_id:)
         raise NotImplementedError, "#{self.class}#clear is not implemented"
       end

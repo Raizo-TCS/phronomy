@@ -2,10 +2,41 @@
 
 module Phronomy
   module Agent
+    # Base class for all Phronomy agents.
+    #
+    # Subclass this to create a conversational agent powered by an LLM.
+    # DSL class methods configure the model, instructions, tools, memory,
+    # and retry behaviour. Instance methods handle invocation.
+    #
+    # @example Minimal agent
+    #   class GreetingAgent < Phronomy::Agent::Base
+    #     model "gpt-4o-mini"
+    #     instructions "You are a friendly greeter."
+    #   end
+    #   result = GreetingAgent.new.invoke("Hello!")
+    #   puts result[:output]
+    #
+    # @example Agent with tools
+    #   class ResearchAgent < Phronomy::Agent::Base
+    #     model "gpt-4o"
+    #     instructions "You are a research assistant."
+    #     tools WebSearchTool, CalculatorTool
+    #     max_iterations 15
+    #   end
     class Base
       include Phronomy::Runnable
 
       class << self
+        # Sets or reads the LLM model identifier for this agent.
+        # When called without an argument, returns the stored model or the
+        # global default from {Phronomy.configuration}.
+        #
+        # @param name [String, nil] model identifier (e.g. "gpt-4o", "claude-3-5-sonnet")
+        # @return [String, nil] the model name when used as a reader
+        # @example
+        #   class MyAgent < Phronomy::Agent::Base
+        #     model "gpt-4o"
+        #   end
         def model(name = nil)
           if name
             @model = name
@@ -14,6 +45,21 @@ module Phronomy
           end
         end
 
+        # Sets or reads the system instructions for this agent.
+        # Accepts a String, a {Phronomy::PromptTemplate}, or a block (Proc).
+        # When used as a reader (no argument, no block), returns the stored value.
+        #
+        # @param text [String, Phronomy::PromptTemplate, nil]
+        # @yield optionally provide instructions as a block
+        # @return [String, Phronomy::PromptTemplate, Proc, nil]
+        # @example String instructions
+        #   class MyAgent < Phronomy::Agent::Base
+        #     instructions "You are a helpful assistant."
+        #   end
+        # @example Block instructions
+        #   class MyAgent < Phronomy::Agent::Base
+        #     instructions { |input| "Answer in #{input[:lang]}." }
+        #   end
         def instructions(text = nil, &block)
           if text || block_given?
             @instructions = text || block
@@ -59,6 +105,17 @@ module Phronomy
           @tool_aliases ||= {}
         end
 
+        # Sets or reads the LLM provider for this agent.
+        # Required when using a model not registered in RubyLLM's model registry
+        # (e.g. locally-hosted models via LM Studio or Ollama).
+        #
+        # @param name [Symbol, nil] e.g. +:openai+, +:anthropic+, +:ollama+
+        # @return [Symbol, nil]
+        # @example
+        #   class MyAgent < Phronomy::Agent::Base
+        #     model "openai/gpt-oss-20b"
+        #     provider :openai
+        #   end
         def provider(name = nil)
           if name
             @provider = name
@@ -67,6 +124,15 @@ module Phronomy
           end
         end
 
+        # Sets or reads the sampling temperature sent to the LLM.
+        # When nil, the provider's default is used.
+        #
+        # @param val [Float, nil] temperature (0.0 to 2.0 depending on provider)
+        # @return [Float, nil]
+        # @example
+        #   class MyAgent < Phronomy::Agent::Base
+        #     temperature 0.2
+        #   end
         def temperature(val = nil)
           if val
             @temperature = val
@@ -75,6 +141,15 @@ module Phronomy
           end
         end
 
+        # Sets or reads the maximum number of LLM call cycles for ReAct agents.
+        # Each tool call and follow-up counts as one iteration. Defaults to 10.
+        #
+        # @param val [Integer, nil]
+        # @return [Integer]
+        # @example
+        #   class MyAgent < Phronomy::Agent::Base
+        #     max_iterations 5
+        #   end
         def max_iterations(val = nil)
           if val
             @max_iterations = val
@@ -166,6 +241,21 @@ module Phronomy
         end
       end
 
+      # Invokes the agent with the given input and returns a result Hash.
+      # Applies the retry policy configured via {.retry_policy} when transient
+      # errors occur. {Phronomy::GuardrailError} is never retried.
+      #
+      # @param input  [String, Hash] the user message; a Hash may supply
+      #   +:message+, +:query+, or +:user+ as the text key, plus any template
+      #   variables consumed by the configured instructions template.
+      # @param config [Hash] runtime options:
+      #   +:memory+    ({Phronomy::Memory::Base}) — memory backend
+      #   +:thread_id+ (+String+)                 — conversation thread identifier
+      # @return [Hash] +{ output: String, messages: Array, usage: Phronomy::TokenUsage }+
+      # @raise [Phronomy::GuardrailError] when an input or output guardrail rejects the value
+      # @example
+      #   result = MyAgent.new.invoke("What is Ruby?")
+      #   puts result[:output]
       def invoke(input, config: {})
         policy = self.class._retry_policy
         attempt = 0
