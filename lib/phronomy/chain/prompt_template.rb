@@ -72,15 +72,6 @@ module Phronomy
         names.map(&:to_sym).uniq
       end
 
-      # Compose this template with a downstream Runnable using >>.
-      # Returns a SequentialChain: template → runnable.
-      #
-      # @param other [#invoke]
-      # @return [SequentialChain]
-      def >>(other)
-        SequentialChain.new(self, other)
-      end
-
       private
 
       def substitute(text, variables)

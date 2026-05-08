@@ -280,15 +280,6 @@ module IntegrationFactors
   end
 
   # ---------------------------------------------------------------------------
-  # Factor: llm_chain
-  #
-  # @return [Phronomy::Chain::LLMChain]
-  # ---------------------------------------------------------------------------
-  def self.llm_chain
-    Phronomy::Chain::LLMChain.new(model: LM_STUDIO_MODEL, provider: :openai)
-  end
-
-  # ---------------------------------------------------------------------------
   # Factor: streaming_agent_class
   #
   # Builds an agent class pre-configured for streaming tests.

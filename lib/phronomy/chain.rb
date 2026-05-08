@@ -7,5 +7,3 @@ module Phronomy
 end
 
 require_relative "chain/prompt_template"
-require_relative "chain/sequential_chain"
-require_relative "chain/llm_chain"
