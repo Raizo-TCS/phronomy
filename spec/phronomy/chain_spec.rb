@@ -69,7 +69,6 @@ RSpec.describe Phronomy::Chain::PromptTemplate do
       expect { template.invoke(42) }.to raise_error(ArgumentError, /expects a Hash/)
     end
   end
-
 end
 
 # ---------------------------------------------------------------------------
