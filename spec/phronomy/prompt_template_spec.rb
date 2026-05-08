@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Chain::PromptTemplate do
+RSpec.describe Phronomy::PromptTemplate do
   subject(:template) do
     described_class.new(
       template: "Translate to {{lang}}: {{text}}",
@@ -88,7 +88,7 @@ RSpec.describe "Agent::Base instructions with PromptTemplate" do
   before { allow(RubyLLM).to receive(:chat).and_return(fake_chat) }
 
   it "uses the system_template as the system prompt when input is a Hash" do
-    tmpl = Phronomy::Chain::PromptTemplate.new(
+    tmpl = Phronomy::PromptTemplate.new(
       template: "{{question}}",
       system_template: "You are a {{style}} assistant."
     )
@@ -103,7 +103,7 @@ RSpec.describe "Agent::Base instructions with PromptTemplate" do
   end
 
   it "falls back to the human template when system_template is nil" do
-    tmpl = Phronomy::Chain::PromptTemplate.new(template: "Act as a {{role}}.")
+    tmpl = Phronomy::PromptTemplate.new(template: "Act as a {{role}}.")
 
     agent_class = Class.new(Phronomy::Agent::Base) do
       model "test-model"

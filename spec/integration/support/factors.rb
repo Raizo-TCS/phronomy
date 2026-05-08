@@ -261,19 +261,19 @@ module IntegrationFactors
   # Factor: prompt_template_type
   #
   # @param label [String] "human_only" | "with_system" | "multi_variable"
-  # @return [Phronomy::Chain::PromptTemplate]
+  # @return [Phronomy::PromptTemplate]
   # ---------------------------------------------------------------------------
   def self.prompt_template(label)
     case label
     when "human_only"
-      Phronomy::Chain::PromptTemplate.new(template: "Answer this question: {{question}}")
+      Phronomy::PromptTemplate.new(template: "Answer this question: {{question}}")
     when "with_system"
-      Phronomy::Chain::PromptTemplate.new(
+      Phronomy::PromptTemplate.new(
         template: "Answer this question: {{question}}",
         system_template: "You are a {{role}} expert. Keep answers very short."
       )
     when "multi_variable"
-      Phronomy::Chain::PromptTemplate.new(
+      Phronomy::PromptTemplate.new(
         template: "Translate {{text}} from {{source_lang}} to {{target_lang}}.",
         system_template: "You are a professional translator."
       )
@@ -289,7 +289,7 @@ module IntegrationFactors
   #
   # @param label [String] "base" | "react"
   # @param tools [Array, Hash] tool list (default [])
-  # @param instructions [String, Phronomy::Chain::PromptTemplate] instructions
+  # @param instructions [String, Phronomy::PromptTemplate] instructions
   # @return [Class]
   # ---------------------------------------------------------------------------
   def self.streaming_agent_class(label, tools: [], instructions: "You are a helpful assistant.")

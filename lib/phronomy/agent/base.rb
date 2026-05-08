@@ -300,7 +300,7 @@ module Phronomy
       def build_instructions(input)
         instr = self.class.instructions
         case instr
-        when Phronomy::Chain::PromptTemplate
+        when Phronomy::PromptTemplate
           vars = input.is_a?(Hash) ? input : {input: input}
           instr.format_system(**vars) || instr.format(**vars)
         when String then instr
