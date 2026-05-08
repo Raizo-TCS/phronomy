@@ -11,3 +11,5 @@ module Phronomy
   module Context
   end
 end
+
+require_relative "context/assembler"

@@ -22,7 +22,7 @@ RSpec.describe Phronomy::Memory::WindowMemory do
 
   before { memory.save_messages(thread_id: "t1", messages: msgs) }
 
-  describe "#load_messages without token_budget" do
+  describe "#load_messages" do
     it "returns the last k*2 messages" do
       result = memory.load_messages(thread_id: "t1")
       expect(result.length).to eq(4)
@@ -31,24 +31,6 @@ RSpec.describe Phronomy::Memory::WindowMemory do
 
     it "returns empty array for unknown thread" do
       expect(memory.load_messages(thread_id: "unknown")).to eq([])
-    end
-  end
-
-  describe "#load_messages with token_budget" do
-    it "returns messages that fit within the budget" do
-      # Each message is short (~1 token); budget of 2 tokens fits 8 chars max
-      # "third" (5 chars = 2 tokens) + "reply2" (6 chars = 2 tokens) = 4 tokens
-      budget = Phronomy::Context::TokenBudget.new(context_window: 4, max_output_tokens: 0)
-      result = memory.load_messages(thread_id: "t1", token_budget: budget)
-      expect(result.length).to be >= 1
-      expect(result.last).to eq(msgs.last)
-    end
-
-    it "stops accumulating when budget is exceeded" do
-      # budget of 0 effective tokens — nothing fits
-      budget = Phronomy::Context::TokenBudget.new(context_window: 0, max_output_tokens: 0)
-      result = memory.load_messages(thread_id: "t1", token_budget: budget)
-      expect(result).to eq([])
     end
   end
 

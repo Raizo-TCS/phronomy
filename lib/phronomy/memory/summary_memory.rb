@@ -28,7 +28,7 @@ module Phronomy
       # @param thread_id    [String]
       # @param token_budget [Phronomy::Context::TokenBudget, nil]
       # @return [Array]
-      def load_messages(thread_id:, token_budget: nil, query: nil, **)
+      def load_messages(thread_id:, query: nil, **)
         summary = @summaries[thread_id]
         recent = @store[thread_id] || []
 
@@ -40,16 +40,14 @@ module Phronomy
       end
 
       # Saves messages, compressing via LLM summarization when the estimated token
-      # count exceeds the threshold.
+      # count exceeds max_tokens.
       #
-      # @param thread_id    [String]
-      # @param messages     [Array]
-      # @param token_budget [Phronomy::Context::TokenBudget, nil] overrides +max_tokens+ when provided
-      def save_messages(thread_id:, messages:, token_budget: nil)
-        threshold = token_budget ? token_budget.effective_input_limit : @max_tokens
+      # @param thread_id [String]
+      # @param messages  [Array]
+      def save_messages(thread_id:, messages:, **)
         estimated_tokens = messages.sum { |m| Phronomy::Context::TokenEstimator.estimate(m.content.to_s) }
 
-        if estimated_tokens > threshold
+        if estimated_tokens > @max_tokens
           compress(thread_id, messages)
         else
           @store[thread_id] = messages

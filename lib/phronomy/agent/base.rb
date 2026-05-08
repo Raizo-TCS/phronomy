@@ -297,26 +297,37 @@ module Phronomy
         thread_id = config[:thread_id]
 
         chat = build_chat
-        system_msg = build_instructions(input)
-        apply_instructions(chat, system_msg) if system_msg
+        user_message = extract_message(input)
 
-        if memory && thread_id
-          token_budget = build_token_budget
-          memory.load_messages(thread_id: thread_id, token_budget: token_budget).each do |msg|
-            chat.messages << msg
+        # Assemble context via Assembler (same as invoke_once).
+        assembler = Context::Assembler.new(budget: build_token_budget)
+        system_msg = build_instructions(input)
+        assembler.add_instruction(system_msg) if system_msg
+
+        Array(config[:knowledge_sources]).each do |ks|
+          ks.fetch(query: user_message).each do |chunk|
+            assembler.add_knowledge(chunk[:content], type: chunk[:type])
           end
         end
+
+        if memory && thread_id
+          msgs = load_from_memory(memory, thread_id: thread_id, query: user_message)
+          assembler.add_messages(msgs)
+        end
+
+        context = assembler.build
+        apply_instructions(chat, context[:system]) if context[:system]
+        context[:messages].each { |msg| chat.messages << msg }
 
         # Wire per-event callbacks to yield StreamEvents.
         chat.on_tool_call { |tool_call| block.call(StreamEvent.new(type: :tool_call, payload: {tool_call: tool_call})) }
         chat.on_tool_result { |tool_result| block.call(StreamEvent.new(type: :tool_result, payload: {tool_result: tool_result})) }
 
-        user_message = extract_message(input)
         response = chat.ask(user_message) do |chunk|
           block.call(StreamEvent.new(type: :token, payload: {content: chunk.content}))
         end
 
-        memory.save_messages(thread_id: thread_id, messages: chat.messages) if memory && thread_id
+        save_to_memory(memory, thread_id: thread_id, messages: chat.messages) if memory && thread_id
 
         output = response.content
         usage = Phronomy::TokenUsage.from_tokens(response.tokens)
@@ -327,7 +338,7 @@ module Phronomy
         block.call(StreamEvent.new(type: :done, payload: result))
         result
       rescue => e
-        block.call(StreamEvent.new(type: :error, payload: {error: e}))
+        block&.call(StreamEvent.new(type: :error, payload: {error: e}))
         raise
       end
 
@@ -375,24 +386,34 @@ module Phronomy
 
         memory = config[:memory]
         thread_id = config[:thread_id]
+        user_message = extract_message(input)
 
         chat = build_chat
-        system_msg = build_instructions(input)
-        apply_instructions(chat, system_msg) if system_msg
 
-        # Inject previous messages from memory before asking.
-        if memory && thread_id
-          token_budget = build_token_budget
-          memory.load_messages(thread_id: thread_id, token_budget: token_budget).each do |msg|
-            chat.messages << msg
+        # Assemble context regions 1 (Instruction) + 3 (Knowledge) + 4 (Conversation).
+        assembler = Context::Assembler.new(budget: build_token_budget)
+        system_msg = build_instructions(input)
+        assembler.add_instruction(system_msg) if system_msg
+
+        Array(config[:knowledge_sources]).each do |ks|
+          ks.fetch(query: user_message).each do |chunk|
+            assembler.add_knowledge(chunk[:content], type: chunk[:type])
           end
         end
 
-        user_message = extract_message(input)
+        if memory && thread_id
+          msgs = load_from_memory(memory, thread_id: thread_id, query: user_message)
+          assembler.add_messages(msgs)
+        end
+
+        context = assembler.build
+        apply_instructions(chat, context[:system]) if context[:system]
+        context[:messages].each { |msg| chat.messages << msg }
+
         response = chat.ask(user_message)
 
         # Persist the updated conversation to memory.
-        memory.save_messages(thread_id: thread_id, messages: chat.messages) if memory && thread_id
+        save_to_memory(memory, thread_id: thread_id, messages: chat.messages) if memory && thread_id
 
         output = response.content
         usage = Phronomy::TokenUsage.from_tokens(response.tokens)
@@ -434,6 +455,35 @@ module Phronomy
         )
       rescue Phronomy::Context::UnknownModelError, RubyLLM::ModelNotFoundError
         nil
+      end
+
+      # Load messages from a memory object regardless of whether it implements
+      # the ConversationManager API (load/save) or the legacy Memory::Base API
+      # (load_messages/save_messages).
+      #
+      # @param memory    [Object]
+      # @param thread_id [String]
+      # @param query     [String, nil]
+      # @return [Array]
+      def load_from_memory(memory, thread_id:, query: nil)
+        if memory.respond_to?(:load)
+          memory.load(thread_id: thread_id, query: query)
+        else
+          memory.load_messages(thread_id: thread_id, query: query)
+        end
+      end
+
+      # Persist messages to a memory object regardless of which API it implements.
+      #
+      # @param memory    [Object]
+      # @param thread_id [String]
+      # @param messages  [Array]
+      def save_to_memory(memory, thread_id:, messages:)
+        if memory.respond_to?(:save)
+          memory.save(thread_id: thread_id, messages: messages)
+        else
+          memory.save_messages(thread_id: thread_id, messages: messages)
+        end
       end
 
       def build_chat

@@ -49,23 +49,6 @@ RSpec.describe Phronomy::Memory::SummaryMemory do
         expect(result.first.content).to include("Summary text")
       end
     end
-
-    context "with token_budget override" do
-      let(:mock_response) { double("response", content: "Budget summary") }
-      let(:mock_chat) { double("chat", ask: mock_response) }
-
-      before do
-        allow(RubyLLM).to receive(:chat).and_return(mock_chat)
-      end
-
-      it "uses the budget's effective_input_limit as threshold" do
-        budget = Phronomy::Context::TokenBudget.new(context_window: 10, max_output_tokens: 0)
-        msgs = Array.new(6) { |i| make_msg(:user, "x" * 20) } # ~5 tokens each = 30 > 10
-        memory.save_messages(thread_id: "t1", messages: msgs, token_budget: budget)
-        result = memory.load_messages(thread_id: "t1")
-        expect(result.first.content).to include("Budget summary")
-      end
-    end
   end
 
   describe "#clear" do

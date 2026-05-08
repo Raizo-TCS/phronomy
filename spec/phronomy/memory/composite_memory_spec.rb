@@ -54,26 +54,6 @@ RSpec.describe Phronomy::Memory::CompositeMemory do
       result = composite.load_messages(thread_id: "t1")
       expect(result.first.role).to eq(:system)
     end
-
-    context "with token_budget" do
-      let(:budget) do
-        Phronomy::Context::TokenBudget.new(context_window: 1000, max_output_tokens: 0)
-      end
-
-      it "passes a proportional sub-budget to each source" do
-        composite.load_messages(thread_id: "t1", token_budget: budget)
-
-        # window_memory gets 60% of 1000 = 600 tokens
-        expect(window_memory).to have_received(:load_messages) do |**kwargs|
-          expect(kwargs[:token_budget].effective_input_limit).to be_within(1).of(600)
-        end
-
-        # semantic_memory gets 40% = 400 tokens
-        expect(semantic_memory).to have_received(:load_messages) do |**kwargs|
-          expect(kwargs[:token_budget].effective_input_limit).to be_within(1).of(400)
-        end
-      end
-    end
   end
 
   describe "#save_messages" do

@@ -17,17 +17,11 @@ module Phronomy
         @store = {}
       end
 
-      # @param thread_id    [String]
-      # @param token_budget [Phronomy::Context::TokenBudget, nil]
+      # @param thread_id [String]
       # @return [Array]
-      def load_messages(thread_id:, token_budget: nil, query: nil, **)
+      def load_messages(thread_id:, query: nil, **)
         messages = @store[thread_id] || []
-
-        if token_budget
-          fit_to_budget(messages, token_budget.effective_input_limit)
-        else
-          messages.last(@k * 2)
-        end
+        messages.last(@k * 2)
       end
 
       # @param thread_id [String]
@@ -39,21 +33,6 @@ module Phronomy
       # @param thread_id [String]
       def clear(thread_id:)
         @store.delete(thread_id)
-      end
-
-      private
-
-      def fit_to_budget(messages, token_limit)
-        accumulated = 0
-        result = []
-        messages.reverse_each do |msg|
-          tokens = Phronomy::Context::TokenEstimator.estimate(msg.content.to_s)
-          break if accumulated + tokens > token_limit
-
-          accumulated += tokens
-          result.unshift(msg)
-        end
-        result
       end
     end
   end

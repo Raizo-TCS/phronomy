@@ -59,21 +59,6 @@ RSpec.describe Phronomy::Memory::SemanticMemory do
     end
   end
 
-  describe "#load_messages with token_budget" do
-    let(:msgs) do
-      Array.new(5) { |i| make_msg(:user, "x" * 100 + i.to_s) }
-    end
-
-    before { memory.save_messages(thread_id: "t1", messages: msgs) }
-
-    it "trims results to fit the budget" do
-      # 100 chars each ~ 25 tokens; budget of 30 tokens can fit only 1 message
-      budget = Phronomy::Context::TokenBudget.new(context_window: 30, max_output_tokens: 0)
-      result = memory.load_messages(thread_id: "t1", token_budget: budget)
-      expect(result.length).to be <= 2
-    end
-  end
-
   describe "#clear" do
     before { memory.save_messages(thread_id: "t1", messages: [make_msg(:user, "hi")]) }
 

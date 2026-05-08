@@ -46,12 +46,11 @@ module Phronomy
 
       # Returns recent messages plus an entity-context system message (when entities exist).
       #
-      # @param thread_id    [String]
-      # @param token_budget [Phronomy::Context::TokenBudget, nil]
+      # @param thread_id [String]
       # @return [Array]
-      def load_messages(thread_id:, token_budget: nil, query: nil, **)
+      def load_messages(thread_id:, query: nil, **)
         messages = @store[thread_id] || []
-        recent = token_budget ? fit_to_budget(messages, token_budget.effective_input_limit) : messages.last(@k * 2)
+        recent = messages.last(@k * 2)
 
         entity_msg = entity_context_message(thread_id)
         entity_msg ? [entity_msg] + recent : recent
@@ -122,19 +121,6 @@ module Phronomy
           </context>
         CONTEXT
         OpenStruct.new(role: :system, content: content)
-      end
-
-      def fit_to_budget(messages, token_limit)
-        accumulated = 0
-        result = []
-        messages.reverse_each do |msg|
-          tokens = Phronomy::Context::TokenEstimator.estimate(msg.content.to_s)
-          break if accumulated + tokens > token_limit
-
-          accumulated += tokens
-          result.unshift(msg)
-        end
-        result
       end
     end
   end

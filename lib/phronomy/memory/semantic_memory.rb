@@ -38,18 +38,16 @@ module Phronomy
       # Retrieve relevant messages.
       #
       # When query is provided the k semantically closest messages are returned.
-      # When token_budget is provided the result is additionally trimmed to fit.
       # When no query is provided, falls back to the k most recent messages.
       #
-      # @param thread_id    [String]
-      # @param query        [String, nil]
-      # @param token_budget [Phronomy::Context::TokenBudget, nil]
+      # @param thread_id [String]
+      # @param query     [String, nil]
       # @return [Array]
-      def load_messages(thread_id:, query: nil, token_budget: nil, **)
+      def load_messages(thread_id:, query: nil, **)
         if query
-          semantic_search(thread_id, query, token_budget)
+          semantic_search(thread_id, query)
         else
-          recent_messages(thread_id, token_budget)
+          recent_messages(thread_id)
         end
       end
 
@@ -81,37 +79,21 @@ module Phronomy
         @embeddings.embed(text)
       end
 
-      def semantic_search(thread_id, query, token_budget)
+      def semantic_search(thread_id, query)
         query_embedding = embed(query)
         results = @store.search(query_embedding: query_embedding, k: @k * 3)
-        messages = results
+        results
           .select { |r| r[:metadata][:thread_id] == thread_id }
           .first(@k)
           .map { |r| r[:metadata][:message] }
-
-        token_budget ? fit_to_budget(messages, token_budget.effective_input_limit) : messages
       end
 
-      def recent_messages(thread_id, token_budget)
-        msgs = @messages
+      def recent_messages(thread_id)
+        @messages
           .select { |id, _| id.start_with?("#{thread_id}:") }
           .sort_by { |id, _| id }
           .map { |_, msg| msg }
           .last(@k)
-        token_budget ? fit_to_budget(msgs, token_budget.effective_input_limit) : msgs
-      end
-
-      def fit_to_budget(messages, token_limit)
-        accumulated = 0
-        result = []
-        messages.reverse_each do |msg|
-          tokens = Phronomy::Context::TokenEstimator.estimate(msg.content.to_s)
-          break if accumulated + tokens > token_limit
-
-          accumulated += tokens
-          result.unshift(msg)
-        end
-        result
       end
     end
   end

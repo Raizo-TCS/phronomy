@@ -36,22 +36,15 @@ module Phronomy
 
       # Loads stored messages for a thread, ordered by creation time.
       #
-      # When token_budget is provided messages are accumulated newest-to-oldest until
-      # budget.effective_input_limit would be exceeded.  A pruner (if set) is applied
-      # to each message before token counting and before returning.
-      #
-      # @param thread_id    [String]
-      # @param limit        [Integer, nil] hard cap on message count (applied before budget)
-      # @param token_budget [Phronomy::Context::TokenBudget, nil]
+      # @param thread_id [String]
+      # @param limit     [Integer, nil] hard cap on message count
       # @return [Array<OpenStruct>]
-      def load_messages(thread_id:, limit: nil, token_budget: nil, query: nil, **)
+      def load_messages(thread_id:, limit: nil, query: nil, **)
         scope = @model_class.where(thread_id: thread_id).order(:created_at)
         records = scope.to_a
         records = records.last(limit) if limit
         messages = records.map { |r| to_message_struct(r) }
-        messages = @pruner.prune(messages) if @pruner
-        messages = fit_to_budget(messages, token_budget.effective_input_limit) if token_budget
-        messages
+        @pruner ? @pruner.prune(messages) : messages
       end
 
       # Replaces all stored messages for a thread with the provided list.
@@ -89,19 +82,6 @@ module Phronomy
       end
 
       private
-
-      def fit_to_budget(messages, token_limit)
-        accumulated = 0
-        result = []
-        messages.reverse_each do |msg|
-          tokens = Phronomy::Context::TokenEstimator.estimate(msg.content.to_s)
-          break if accumulated + tokens > token_limit
-
-          accumulated += tokens
-          result.unshift(msg)
-        end
-        result
-      end
 
       def to_message_struct(record)
         tool_calls = if record.tool_calls_json

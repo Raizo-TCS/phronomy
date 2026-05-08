@@ -15,7 +15,7 @@ module Phronomy
 
         # Seed with persisted messages when memory is provided.
         initial_messages = if memory && thread_id
-          memory.load_messages(thread_id: thread_id)
+          load_from_memory(memory, thread_id: thread_id, query: extract_message(input))
         else
           []
         end
@@ -32,7 +32,7 @@ module Phronomy
           break if response[:done]
         end
 
-        memory.save_messages(thread_id: thread_id, messages: messages) if memory && thread_id
+        save_to_memory(memory, thread_id: thread_id, messages: messages) if memory && thread_id
 
         output = messages.last&.content
 
@@ -59,7 +59,7 @@ module Phronomy
         max_iter = self.class.max_iterations
 
         initial_messages = if memory && thread_id
-          memory.load_messages(thread_id: thread_id)
+          load_from_memory(memory, thread_id: thread_id, query: extract_message(input))
         else
           []
         end
@@ -76,7 +76,7 @@ module Phronomy
           break if response[:done]
         end
 
-        memory.save_messages(thread_id: thread_id, messages: messages) if memory && thread_id
+        save_to_memory(memory, thread_id: thread_id, messages: messages) if memory && thread_id
 
         output = messages.last&.content
         run_output_guardrails!(output)
@@ -85,7 +85,7 @@ module Phronomy
         block.call(StreamEvent.new(type: :done, payload: result))
         result
       rescue => e
-        block.call(StreamEvent.new(type: :error, payload: {error: e}))
+        block&.call(StreamEvent.new(type: :error, payload: {error: e}))
         raise
       end
 

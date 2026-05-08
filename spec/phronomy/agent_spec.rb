@@ -141,7 +141,7 @@ RSpec.describe Phronomy::Agent::Base do
 
       it "loads previous messages from memory before asking" do
         agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
-        expect(memory).to have_received(:load_messages).with(thread_id: "t1", token_budget: nil)
+        expect(memory).to have_received(:load_messages).with(thread_id: "t1", query: "Hello")
       end
 
       it "injects the loaded message into the chat" do
@@ -204,7 +204,7 @@ RSpec.describe Phronomy::Agent::Base do
       end
     end
 
-    context "when model is resolvable and a real token_budget is built" do
+    context "when model is resolvable and a token budget is available" do
       let(:mock_model) do
         double("RubyLLMModel", context_window: 16_000, max_output_tokens: 2_000)
       end
@@ -221,15 +221,7 @@ RSpec.describe Phronomy::Agent::Base do
         mem
       end
 
-      it "passes a non-nil TokenBudget to load_messages" do
-        agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
-        expect(memory).to have_received(:load_messages) do |**kwargs|
-          expect(kwargs[:token_budget]).to be_a(Phronomy::Context::TokenBudget)
-          expect(kwargs[:token_budget].effective_input_limit).to eq(16_000 - 2_000)
-        end
-      end
-
-      it "injects budget-filtered history messages into the chat" do
+      it "injects history messages into the chat via the Assembler" do
         agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
         expect(fake_chat.messages).to include(prev_msg)
       end
@@ -488,7 +480,7 @@ RSpec.describe Phronomy::Agent::ReactAgent do
 
     it "loads previous messages from memory before invoking" do
       agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
-      expect(memory).to have_received(:load_messages).with(thread_id: "t1")
+      expect(memory).to have_received(:load_messages).with(thread_id: "t1", query: "Hello")
     end
 
     it "injects the loaded message into the chat before asking" do

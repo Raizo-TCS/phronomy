@@ -24,31 +24,17 @@ module Phronomy
         @sources = sources.map { |s| {memory: s[:memory], weight: (s[:weight] || 1.0).to_f} }
       end
 
-      # Loads messages from all sources, allocating tokens proportionally.
-      # Deduplication is performed by object identity (later sources lose if same object appears).
+      # Loads messages from all sources, merging and deduplicating results.
       #
-      # @param thread_id    [String]
-      # @param token_budget [Phronomy::Context::TokenBudget, nil]
-      # @param query        [String, nil]
+      # @param thread_id [String]
+      # @param query     [String, nil]
       # @return [Array]
-      def load_messages(thread_id:, token_budget: nil, query: nil, **)
-        total_weight = @sources.sum { |s| s[:weight] }
-
+      def load_messages(thread_id:, query: nil, **)
         all_messages = []
         seen_contents = {}
 
         @sources.each do |source|
-          sub_budget = if token_budget
-            fraction = source[:weight] / total_weight
-            allocated = (token_budget.effective_input_limit * fraction).to_i
-            build_sub_budget(token_budget, allocated)
-          end
-
-          msgs = source[:memory].load_messages(
-            thread_id: thread_id,
-            token_budget: sub_budget,
-            query: query
-          )
+          msgs = source[:memory].load_messages(thread_id: thread_id, query: query)
 
           msgs.each do |msg|
             key = "#{msg.role}:#{msg.content}"
@@ -72,16 +58,6 @@ module Phronomy
 
       def clear(thread_id:)
         @sources.each { |s| s[:memory].clear(thread_id: thread_id) }
-      end
-
-      private
-
-      def build_sub_budget(parent_budget, allocated_tokens)
-        Phronomy::Context::TokenBudget.new(
-          context_window: parent_budget.context_window,
-          max_output_tokens: parent_budget.max_output_tokens,
-          overhead: parent_budget.context_window - parent_budget.max_output_tokens - allocated_tokens
-        )
       end
     end
   end
