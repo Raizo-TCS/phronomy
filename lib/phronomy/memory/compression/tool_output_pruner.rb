@@ -31,18 +31,21 @@ module Phronomy
         end
 
         # Truncate oversized :tool messages in-place (non-destructive — returns new array).
+        # Content pruning does not produce a compaction record; :compaction is always nil.
         #
-        # @param thread_id [String] unused (stateless compressor)
-        # @param messages  [Array]
-        # @return [Array]
-        def compress(thread_id:, messages:)
-          messages.map do |msg|
+        # @param thread_id  [String]  unused (stateless pruner)
+        # @param messages   [Array]
+        # @param seq_offset [Integer] unused
+        # @return [Hash] { messages: Array, compaction: nil }
+        def compress(thread_id:, messages:, seq_offset: 0)
+          pruned = messages.map do |msg|
             next msg unless msg.role.to_sym == :tool
             next msg if msg.content.to_s.length <= @max_chars
 
             truncated = msg.content.to_s[0, @max_chars] + TRUNCATION_NOTE
             clone_message(msg, truncated)
           end
+          {messages: pruned, compaction: nil}
         end
 
         private

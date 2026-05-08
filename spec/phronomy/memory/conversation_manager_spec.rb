@@ -85,4 +85,79 @@ RSpec.describe Phronomy::Memory::ConversationManager do
       semantic_manager.clear(thread_id: "t1")
     end
   end
+
+  describe "raw message preservation" do
+    it "appends all saved messages to the raw store" do
+      msgs = [make_msg(:user, "a"), make_msg(:assistant, "b"), make_msg(:user, "c")]
+      manager.save(thread_id: "t1", messages: msgs)
+      raw = storage.load_raw(thread_id: "t1")
+      expect(raw.length).to eq(3)
+      expect(raw.map { |r| r[:seq] }).to eq([0, 1, 2])
+      expect(raw.map { |r| r[:message].content }).to eq(%w[a b c])
+    end
+
+    it "only appends truly new messages on subsequent saves" do
+      msgs1 = [make_msg(:user, "a"), make_msg(:assistant, "b")]
+      msgs2 = msgs1 + [make_msg(:user, "c")]
+      manager.save(thread_id: "t1", messages: msgs1)
+      manager.save(thread_id: "t1", messages: msgs2)
+      raw = storage.load_raw(thread_id: "t1")
+      # Should have 3 entries with seq 0..2, not 5 (no duplicate appends).
+      expect(raw.length).to eq(3)
+      expect(raw.map { |r| r[:seq] }).to eq([0, 1, 2])
+    end
+
+    it "does not append anything on a redundant save of the same messages" do
+      msgs = [make_msg(:user, "a")]
+      manager.save(thread_id: "t1", messages: msgs)
+      manager.save(thread_id: "t1", messages: msgs)
+      expect(storage.load_raw(thread_id: "t1").length).to eq(1)
+    end
+
+    it "isolates raw stores by thread" do
+      manager.save(thread_id: "t1", messages: [make_msg(:user, "x")])
+      manager.save(thread_id: "t2", messages: [make_msg(:user, "y"), make_msg(:assistant, "z")])
+      expect(storage.load_raw(thread_id: "t1").length).to eq(1)
+      expect(storage.load_raw(thread_id: "t2").length).to eq(2)
+    end
+
+    it "raw store is cleared on #clear" do
+      manager.save(thread_id: "t1", messages: [make_msg(:user, "a")])
+      manager.clear(thread_id: "t1")
+      expect(storage.load_raw(thread_id: "t1")).to eq([])
+    end
+  end
+
+  describe "compaction record saving" do
+    # Stub a compressor that always fires compaction.
+    let(:mock_compressor) do
+      dbl = double("compressor")
+      allow(dbl).to receive(:compress) do |thread_id:, messages:, seq_offset: 0|
+        {
+          messages: [OpenStruct.new(role: :system, content: "summary")],
+          compaction: {start_seq: seq_offset, end_seq: seq_offset + messages.length - 2, summary_text: "summary text"}
+        }
+      end
+      dbl
+    end
+
+    subject(:compacting_manager) do
+      described_class.new(storage: storage, retrieval: retrieval, compression: mock_compressor)
+    end
+
+    it "saves a compaction record when compress returns one" do
+      msgs = [make_msg(:user, "a"), make_msg(:assistant, "b"), make_msg(:user, "c")]
+      compacting_manager.save(thread_id: "t1", messages: msgs)
+      records = storage.load_compactions(thread_id: "t1")
+      expect(records.length).to eq(1)
+      expect(records.first[:summary_text]).to eq("summary text")
+    end
+
+    it "does not save a compaction record when compress returns nil compaction" do
+      msgs = [make_msg(:user, "a")]
+      allow(mock_compressor).to receive(:compress).and_return({messages: msgs, compaction: nil})
+      compacting_manager.save(thread_id: "t1", messages: msgs)
+      expect(storage.load_compactions(thread_id: "t1")).to eq([])
+    end
+  end
 end

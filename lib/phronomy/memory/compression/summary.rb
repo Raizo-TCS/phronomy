@@ -5,12 +5,23 @@ require "ostruct"
 module Phronomy
   module Memory
     module Compression
-      # Compression strategy that summarizes old messages with an LLM.
+      # Compaction strategy that summarizes old messages with an LLM.
       #
-      # When the total estimated token count of the message history exceeds
-      # +max_tokens+, all messages except the most recent +keep+ are summarized
-      # into a single system message. The summary is injected as a context-tagged
-      # message on the next retrieval.
+      # When the total estimated token count of the uncompacted message history
+      # exceeds +max_tokens+, all messages except the most recent +keep+ are
+      # summarized by an LLM. The original messages are preserved in Storage
+      # (via ConversationManager); this class only decides whether compaction is
+      # needed and produces the summary text.
+      #
+      # The #compress method now returns a Hash instead of a plain Array:
+      #   {
+      #     messages:   Array,            # context-ready message list
+      #     compaction: Hash | nil        # { start_seq:, end_seq:, summary_text: }
+      #                                   # nil when no compaction was performed
+      #   }
+      #
+      # ConversationManager uses the :compaction entry to persist the compaction
+      # record in Storage, ensuring originals are never discarded.
       #
       # @example
       #   compressor = Phronomy::Memory::Compression::Summary.new(
@@ -23,7 +34,7 @@ module Phronomy
       #     compression: compressor
       #   )
       class Summary < Base
-        # @param max_tokens          [Integer]     token threshold above which old messages are summarized
+        # @param max_tokens          [Integer]     token threshold above which old messages are compacted
         # @param keep                [Integer]     number of recent messages to preserve verbatim
         # @param summarizer_model    [String, nil] LLM model for summarization; nil uses global default
         # @param summarizer_provider [Symbol, nil] LLM provider; required for unregistered models
@@ -32,39 +43,35 @@ module Phronomy
           @keep = keep
           @summarizer_model = summarizer_model
           @summarizer_provider = summarizer_provider
-          @summaries = {}
         end
 
-        # Compress messages if the estimated token count exceeds the threshold.
-        # Returns a message array that may include a summary system message prepended.
+        # Evaluate whether compaction is needed and produce a summary if so.
         #
-        # @param thread_id [String]
-        # @param messages  [Array]
-        # @return [Array]
-        def compress(thread_id:, messages:)
+        # +seq_offset+ is the seq number of messages[0] in the raw history.
+        # ConversationManager passes this so the compaction record can reference
+        # the correct seq range in Storage.
+        #
+        # @param thread_id  [String]
+        # @param messages   [Array]   uncompacted messages to consider
+        # @param seq_offset [Integer] seq number assigned to messages[0]
+        # @return [Hash] { messages: Array, compaction: Hash|nil }
+        #   compaction is { start_seq:, end_seq:, summary_text: } or nil
+        def compress(thread_id:, messages:, seq_offset: 0)
           estimated = messages.sum { |m| Phronomy::Context::TokenEstimator.estimate(m.content.to_s) }
 
-          if estimated > @max_tokens
-            summarize_and_keep(thread_id, messages)
+          if estimated > @max_tokens && messages.length > @keep
+            compact(messages, seq_offset: seq_offset)
           else
-            @summaries.delete(thread_id)
-            messages
+            {messages: messages, compaction: nil}
           end
-        end
-
-        # Returns a summary message for a thread if one exists (primarily for testing).
-        #
-        # @param thread_id [String]
-        # @return [String, nil]
-        def summary_for(thread_id)
-          @summaries[thread_id]
         end
 
         private
 
-        def summarize_and_keep(thread_id, messages)
-          old_messages = messages[0..(-(@keep + 1))]
-          recent_messages = messages[-@keep..]
+        def compact(messages, seq_offset:)
+          old_count = messages.length - @keep
+          old_messages = messages[0, old_count]
+          recent_messages = messages[old_count..]
 
           opts = {}
           opts[:model] = @summarizer_model if @summarizer_model
@@ -76,8 +83,13 @@ module Phronomy
               old_messages.map { |m| "#{m.role}: #{m.content}" }.join("\n")
           ).content
 
-          @summaries[thread_id] = summary_text
-          [summary_message(summary_text)] + recent_messages
+          compaction_record = {
+            start_seq: seq_offset,
+            end_seq: seq_offset + old_count - 1,
+            summary_text: summary_text
+          }
+
+          {messages: [summary_message(summary_text)] + recent_messages, compaction: compaction_record}
         end
 
         def summary_message(text)

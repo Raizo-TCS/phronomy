@@ -7,23 +7,50 @@ module Phronomy
   module Memory
     module Storage
       # ActiveRecord-backed storage for conversation messages.
-      # Persists messages to a relational database via a user-supplied AR model class.
+      # Persists messages to a relational database via user-supplied AR model classes.
       #
-      # The model_class must respond to:
+      # The message model_class must respond to:
       #   .where(thread_id:).order(:created_at) — returns a collection of records
       #   .where(thread_id:).delete_all
       #   .create!(thread_id:, role:, content:, tool_calls_json:, model_id:)
-      #
       # Each record must expose: #role, #content, #tool_calls_json, #model_id
       #
+      # The raw_model_class (optional) must respond to:
+      #   .where(thread_id:).order(:seq) — returns records in seq order
+      #   .where(thread_id:).delete_all
+      #   .create!(thread_id:, seq:, role:, content:, tool_calls_json:, model_id:)
+      # Each record must expose: #seq, #role, #content, #tool_calls_json, #model_id
+      #
+      # The compaction_model_class (optional) must respond to:
+      #   .where(thread_id:).order(:start_seq)
+      #   .where(thread_id:).delete_all
+      #   .create!(thread_id:, start_seq:, end_seq:, summary_text:)
+      # Each record must expose: #start_seq, #end_seq, #summary_text
+      #
+      # When raw_model_class or compaction_model_class are nil, the corresponding
+      # operations raise NotImplementedError — use InMemory storage if you do not
+      # need full raw/compaction persistence.
+      #
       # @example
-      #   storage = Phronomy::Memory::Storage::ActiveRecord.new(model_class: PhronomyMessage)
+      #   storage = Phronomy::Memory::Storage::ActiveRecord.new(
+      #     model_class:            PhronomyMessage,
+      #     raw_model_class:        PhronomyRawMessage,
+      #     compaction_model_class: PhronomyCompaction
+      #   )
       #   manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)
       class ActiveRecord < Base
-        # @param model_class [Class] ActiveRecord model with the phronomy_messages schema
-        def initialize(model_class:)
+        # @param model_class            [Class]      AR model for the legacy load/save interface
+        # @param raw_model_class        [Class, nil] AR model for raw message storage
+        # @param compaction_model_class [Class, nil] AR model for compaction records
+        def initialize(model_class:, raw_model_class: nil, compaction_model_class: nil)
           @model_class = model_class
+          @raw_model_class = raw_model_class
+          @compaction_model_class = compaction_model_class
         end
+
+        # -----------------------------------------------------------------------
+        # Legacy interface
+        # -----------------------------------------------------------------------
 
         # Load all messages for a thread, ordered by creation time.
         #
@@ -41,25 +68,12 @@ module Phronomy
         def save(thread_id:, messages:)
           @model_class.where(thread_id: thread_id).delete_all
           messages.each do |msg|
-            tool_calls_json = if msg.respond_to?(:tool_calls) && msg.tool_calls
-              serializable = case msg.tool_calls
-              when Hash
-                msg.tool_calls.transform_values { |tc| tc.respond_to?(:to_h) ? tc.to_h : tc }
-              when Array
-                msg.tool_calls.map { |tc| tc.respond_to?(:to_h) ? tc.to_h : tc }
-              else
-                msg.tool_calls
-              end
-              JSON.generate(serializable)
-            end
-            model_id = msg.model_id if msg.respond_to?(:model_id)
-
             @model_class.create!(
               thread_id: thread_id,
               role: msg.role.to_s,
               content: msg.content.to_s,
-              tool_calls_json: tool_calls_json,
-              model_id: model_id
+              tool_calls_json: serialize_tool_calls(msg),
+              model_id: (msg.model_id if msg.respond_to?(:model_id))
             )
           end
         end
@@ -67,9 +81,98 @@ module Phronomy
         # @param thread_id [String]
         def clear(thread_id:)
           @model_class.where(thread_id: thread_id).delete_all
+          clear_raw(thread_id: thread_id)
+          clear_compactions(thread_id: thread_id)
+        end
+
+        # -----------------------------------------------------------------------
+        # Raw message interface
+        # -----------------------------------------------------------------------
+
+        # @param thread_id    [String]
+        # @param messages     [Array]
+        # @param starting_seq [Integer]
+        def append_raw(thread_id:, messages:, starting_seq:)
+          ensure_raw_model!
+          messages.each_with_index do |msg, i|
+            @raw_model_class.create!(
+              thread_id: thread_id,
+              seq: starting_seq + i,
+              role: msg.role.to_s,
+              content: msg.content.to_s,
+              tool_calls_json: serialize_tool_calls(msg),
+              model_id: (msg.model_id if msg.respond_to?(:model_id))
+            )
+          end
+        end
+
+        # @param thread_id [String]
+        # @return [Array<Hash>]
+        def load_raw(thread_id:)
+          ensure_raw_model!
+          records = @raw_model_class.where(thread_id: thread_id).order(:seq).to_a
+          records.map { |r| {seq: r.seq, message: to_message_struct(r)} }
+        end
+
+        # @param thread_id [String]
+        def clear_raw(thread_id:)
+          @raw_model_class&.where(thread_id: thread_id)&.delete_all
+        end
+
+        # -----------------------------------------------------------------------
+        # Compaction record interface
+        # -----------------------------------------------------------------------
+
+        # @param thread_id    [String]
+        # @param start_seq    [Integer]
+        # @param end_seq      [Integer]
+        # @param summary_text [String]
+        def save_compaction(thread_id:, start_seq:, end_seq:, summary_text:)
+          ensure_compaction_model!
+          @compaction_model_class.create!(
+            thread_id: thread_id,
+            start_seq: start_seq,
+            end_seq: end_seq,
+            summary_text: summary_text
+          )
+        end
+
+        # @param thread_id [String]
+        # @return [Array<Hash>]
+        def load_compactions(thread_id:)
+          ensure_compaction_model!
+          records = @compaction_model_class.where(thread_id: thread_id).order(:start_seq).to_a
+          records.map { |r| {start_seq: r.start_seq, end_seq: r.end_seq, summary_text: r.summary_text} }
+        end
+
+        # @param thread_id [String]
+        def clear_compactions(thread_id:)
+          @compaction_model_class&.where(thread_id: thread_id)&.delete_all
         end
 
         private
+
+        def ensure_raw_model!
+          raise NotImplementedError, "raw_model_class is required for raw message storage" unless @raw_model_class
+        end
+
+        def ensure_compaction_model!
+          raise NotImplementedError, "compaction_model_class is required for compaction record storage" unless @compaction_model_class
+        end
+
+        def serialize_tool_calls(msg)
+          return unless msg.respond_to?(:tool_calls) && msg.tool_calls
+
+          serializable = case msg.tool_calls
+          when Hash
+            msg.tool_calls.transform_values { |tc| tc.respond_to?(:to_h) ? tc.to_h : tc }
+          when Array
+            msg.tool_calls.map { |tc| tc.respond_to?(:to_h) ? tc.to_h : tc }
+          else
+            msg.tool_calls
+          end
+          JSON.generate(serializable)
+        end
 
         def to_message_struct(record)
           tool_calls = if record.tool_calls_json
