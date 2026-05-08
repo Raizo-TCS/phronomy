@@ -210,7 +210,7 @@ RSpec.describe "Group 5: Memory Detail Parameters", :integration do
       # Compressed: system summary + up to 5 recent messages
       system_msgs = loaded.select { |m| m.role.to_sym == :system }
       expect(system_msgs).not_to be_empty
-      expect(system_msgs.first.content).to start_with("[Summary]")
+      expect(system_msgs.first.content).to include('<context type="summary"')
     end
 
     it "tight pruner truncates tool messages to 50 chars" do

@@ -102,7 +102,16 @@ module Phronomy
         return nil if entities.nil? || entities.empty?
 
         lines = entities.map { |key, value| "- #{key}: #{value}" }.join("\n")
-        content = "Known facts about the user:\n#{lines}"
+        # Wrap in a structural marker so the model can distinguish external data
+        # from authoritative instructions. The trusted="false" attribute signals
+        # that content inside this block should be treated as user-supplied data,
+        # not as system directives.
+        content = <<~CONTEXT.chomp
+          <context type="entity_facts" source="memory" trusted="false">
+          Known facts about the user:
+          #{lines}
+          </context>
+        CONTEXT
         OpenStruct.new(role: :system, content: content)
       end
 

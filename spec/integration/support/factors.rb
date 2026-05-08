@@ -66,6 +66,7 @@ module IntegrationFactors
   # invalid_value = any other string — execute raises, triggering ToolError
   class EnumCitySelectorTool < Phronomy::Tool::Base
     description "Returns a short fact about a supported city: Tokyo, London, or Paris"
+    on_schema_error :raise
     param :city, type: :string,
       desc: "City to look up; must be one of: Tokyo, London, Paris",
       enum: %w[Tokyo London Paris]
@@ -471,5 +472,112 @@ module IntegrationFactors
     else raise ArgumentError, "Unknown eval_dataset_size label: #{label}"
     end
     Phronomy::Eval::Dataset.from_array(all_pairs.first(count))
+  end
+
+  # ---------------------------------------------------------------------------
+  # Fixtures for Group 18: approval_spec
+  # ---------------------------------------------------------------------------
+
+  # A simple tool that does NOT require approval.
+  class NoApprovalTool < Phronomy::Tool::Base
+    tool_name "no_approval_tool"
+    description "A test tool that does not require approval"
+    param :value, type: :string, desc: "Input value"
+
+    def execute(value:)
+      "executed: #{value}"
+    end
+  end
+
+  # A simple tool that DOES require approval.
+  class RequiresApprovalTool < Phronomy::Tool::Base
+    tool_name "requires_approval_tool"
+    description "A test tool that requires approval"
+    requires_approval true
+    param :value, type: :string, desc: "Input value"
+
+    def execute(value:)
+      "executed: #{value}"
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Factor: approval_tool_type
+  #
+  # @param label [String] "no_approval" | "requires_approval"
+  # @return [Class] a Phronomy::Tool::Base subclass
+  # ---------------------------------------------------------------------------
+  def self.approval_tool_class(label)
+    case label
+    when "no_approval" then NoApprovalTool
+    when "requires_approval" then RequiresApprovalTool
+    else raise ArgumentError, "Unknown approval_tool_type label: #{label}"
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Factor: approval_handler_type
+  #
+  # Returns a lambda (or nil) to be passed to agent#on_approval_required.
+  #
+  # @param label [String] "none" | "approves" | "denies"
+  # @return [Proc, nil]
+  # ---------------------------------------------------------------------------
+  def self.approval_handler(label)
+    case label
+    when "none" then nil
+    when "approves" then ->(_tool_name, _args) { true }
+    when "denies" then ->(_tool_name, _args) { false }
+    else raise ArgumentError, "Unknown approval_handler_type label: #{label}"
+    end
+  end
+
+  # Builds an agent instance (Base or ReactAgent) configured with the given
+  # tool class and approval handler.
+  #
+  # @param agent_label  [String]  "base" | "react"
+  # @param tool_class   [Class]   a Phronomy::Tool::Base subclass
+  # @param handler      [Proc, nil] returned by .approval_handler
+  # @return [Phronomy::Agent::Base]
+  def self.approval_agent(agent_label, tool_class:, handler:)
+    base_class = case agent_label
+    when "base" then Phronomy::Agent::Base
+    when "react" then Phronomy::Agent::ReactAgent
+    else raise ArgumentError, "Unknown agent_class label: #{agent_label}"
+    end
+
+    agent_class = Class.new(base_class) do
+      model "test-model"
+      tools(tool_class)
+    end
+
+    agent = agent_class.new
+    agent.on_approval_required(&handler) if handler
+    agent
+  end
+
+  # ── on_schema_error helpers ──────────────────────────────────────────────
+
+  # Builds an anonymous tool class that records its execute calls and supports
+  # the given on_schema_error policy.
+  #
+  # @param policy_label   [String]  "return_error" | "raise" | "coerce"
+  # @param execute_result [String]  value returned when execute runs normally
+  # @return [Class]  a Phronomy::Tool::Base subclass
+  def self.schema_error_tool(policy_label, execute_result: "ok")
+    policy = policy_label.to_sym
+    result = execute_result
+
+    Class.new(Phronomy::Tool::Base) do
+      tool_name "schema_test_tool"
+      description "Integration test tool for schema error policies"
+      on_schema_error policy
+      param :count, type: :integer, desc: "An integer count"
+      param :mode, type: :string, desc: "Mode", enum: %w[fast slow]
+
+      define_method(:execute) do |count:, mode:|
+        "#{result}: count=#{count} mode=#{mode}"
+      end
+    end
   end
 end

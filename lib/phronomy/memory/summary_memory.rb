@@ -71,7 +71,14 @@ module Phronomy
       end
 
       def summary_message(text)
-        OpenStruct.new(role: :system, content: "[Summary]\n#{text}")
+        # Wrap in a structural marker to distinguish the summarized conversation
+        # history (external data) from authoritative system instructions.
+        content = <<~CONTEXT.chomp
+          <context type="summary" source="memory" trusted="false">
+          #{text}
+          </context>
+        CONTEXT
+        OpenStruct.new(role: :system, content: content)
       end
     end
   end

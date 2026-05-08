@@ -228,6 +228,24 @@ module Phronomy
         raise
       end
 
+      # Registers a callback that is invoked before executing any tool that has
+      # +requires_approval true+ set. The block receives the tool name (String)
+      # and the arguments Hash, and must return a truthy value to allow execution.
+      # Returning a falsy value causes the tool to return a denial message instead
+      # of executing.
+      #
+      # When no handler is registered, tools with +requires_approval+ execute
+      # without interruption (backward-compatible behaviour).
+      #
+      # @example
+      #   agent = MyAgent.new
+      #   agent.on_approval_required { |tool_name, args| prompt_user(tool_name, args) }
+      # @return [self]
+      def on_approval_required(&block)
+        @approval_handler = block
+        self
+      end
+
       # Attach a guardrail that validates input before every #invoke call.
       # @param guardrail [Phronomy::Guardrail::InputGuardrail]
       def add_input_guardrail(guardrail)
@@ -274,20 +292,7 @@ module Phronomy
         chat = RubyLLM.chat(**opts)
         chat.with_temperature(t) if t
         self.class.tools.each do |tool_class|
-          alias_name = self.class.tool_aliases[tool_class]
-          if alias_name
-            # Build an anonymous subclass that overrides tool_name with the alias.
-            # Class-level instance variables (@description, @params, etc.) are NOT
-            # automatically inherited in Ruby, so copy them explicitly.
-            parent_description = tool_class.description
-            aliased = Class.new(tool_class) do
-              tool_name alias_name
-              description parent_description if parent_description
-            end
-            chat.with_tool(aliased)
-          else
-            chat.with_tool(tool_class)
-          end
+          chat.with_tool(prepare_tool_class(tool_class))
         end
         chat
       end
@@ -339,6 +344,48 @@ module Phronomy
 
       def run_output_guardrails!(output)
         (@output_guardrails || []).each { |g| g.run!(output) }
+      end
+
+      # Builds the final tool class to register with the chat.
+      #
+      # Two transformations are applied in order:
+      #   1. Alias override — when the Hash form of .tools maps this class to an
+      #      explicit name, an anonymous subclass with that tool_name is returned.
+      #   2. Approval gate  — when the tool class has +requires_approval+ set AND
+      #      an approval handler has been registered via #on_approval_required,
+      #      the tool's #call method is wrapped: the handler is invoked with
+      #      (tool_name, args) and, if it returns falsy, the tool returns a denial
+      #      message instead of executing.
+      def prepare_tool_class(tool_class)
+        # Step 1: apply alias if needed.
+        resolved = if (alias_name = self.class.tool_aliases[tool_class])
+          parent_description = tool_class.description
+          Class.new(tool_class) do
+            tool_name alias_name
+            description parent_description if parent_description
+          end
+        else
+          tool_class
+        end
+
+        # Step 2: wrap with approval gate when handler is registered.
+        return resolved unless resolved.requires_approval && @approval_handler
+
+        handler = @approval_handler
+        # Capture the effective tool name before building the anonymous subclass.
+        # Class-level instance variables (@tool_name) are not inherited through
+        # subclassing, so the wrapper must set it explicitly.
+        effective_name = resolved.new.name
+        Class.new(resolved) do
+          tool_name effective_name
+          define_method(:call) do |args|
+            if handler.call(name, args)
+              super(args)
+            else
+              "Tool execution denied."
+            end
+          end
+        end
       end
     end
   end

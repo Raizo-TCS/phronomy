@@ -109,7 +109,7 @@ RSpec.describe Phronomy::Memory::SummaryMemory do
       mem.save_messages(thread_id: "t1", messages: long_msgs)
       result = mem.load_messages(thread_id: "t1")
       expect(result.first.role).to eq(:system)
-      expect(result.first.content).to include("[Summary]")
+      expect(result.first.content).to include("Summary text")
     end
 
     it "keeps the most recent 5 messages without summarizing them" do
