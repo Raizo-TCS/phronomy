@@ -272,7 +272,7 @@ Repeats the LLM &lt;-&gt; Tool loop until no more tool calls are made.</p>
 
   <span class='comment'># Seed with persisted messages when memory is provided.
 </span>  <span class='id identifier rubyid_initial_messages'>initial_messages</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_memory'>memory</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
-    <span class='id identifier rubyid_memory'>memory</span><span class='period'>.</span><span class='id identifier rubyid_load_messages'>load_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_load_from_memory'>load_from_memory</span><span class='lparen'>(</span><span class='id identifier rubyid_memory'>memory</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='id identifier rubyid_extract_message'>extract_message</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='kw'>else</span>
     <span class='lbracket'>[</span><span class='rbracket'>]</span>
   <span class='kw'>end</span>
@@ -289,7 +289,7 @@ Repeats the LLM &lt;-&gt; Tool loop until no more tool calls are made.</p>
     <span class='kw'>break</span> <span class='kw'>if</span> <span class='id identifier rubyid_response'>response</span><span class='lbracket'>[</span><span class='symbol'>:done</span><span class='rbracket'>]</span>
   <span class='kw'>end</span>
 
-  <span class='id identifier rubyid_memory'>memory</span><span class='period'>.</span><span class='id identifier rubyid_save_messages'>save_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_memory'>memory</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
+  <span class='id identifier rubyid_save_to_memory'>save_to_memory</span><span class='lparen'>(</span><span class='id identifier rubyid_memory'>memory</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_memory'>memory</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
 
   <span class='id identifier rubyid_output'>output</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_last'>last</span><span class='op'>&amp;.</span><span class='id identifier rubyid_content'>content</span>
 
@@ -438,7 +438,7 @@ Yields <span class='object_link'><a href="StreamEvent.html" title="Phronomy::Age
   <span class='id identifier rubyid_max_iter'>max_iter</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_max_iterations'>max_iterations</span>
 
   <span class='id identifier rubyid_initial_messages'>initial_messages</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_memory'>memory</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
-    <span class='id identifier rubyid_memory'>memory</span><span class='period'>.</span><span class='id identifier rubyid_load_messages'>load_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_load_from_memory'>load_from_memory</span><span class='lparen'>(</span><span class='id identifier rubyid_memory'>memory</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='id identifier rubyid_extract_message'>extract_message</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='kw'>else</span>
     <span class='lbracket'>[</span><span class='rbracket'>]</span>
   <span class='kw'>end</span>
@@ -455,7 +455,7 @@ Yields <span class='object_link'><a href="StreamEvent.html" title="Phronomy::Age
     <span class='kw'>break</span> <span class='kw'>if</span> <span class='id identifier rubyid_response'>response</span><span class='lbracket'>[</span><span class='symbol'>:done</span><span class='rbracket'>]</span>
   <span class='kw'>end</span>
 
-  <span class='id identifier rubyid_memory'>memory</span><span class='period'>.</span><span class='id identifier rubyid_save_messages'>save_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_memory'>memory</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
+  <span class='id identifier rubyid_save_to_memory'>save_to_memory</span><span class='lparen'>(</span><span class='id identifier rubyid_memory'>memory</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_memory'>memory</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
 
   <span class='id identifier rubyid_output'>output</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_last'>last</span><span class='op'>&amp;.</span><span class='id identifier rubyid_content'>content</span>
   <span class='id identifier rubyid_run_output_guardrails!'>run_output_guardrails!</span><span class='lparen'>(</span><span class='id identifier rubyid_output'>output</span><span class='rparen'>)</span>
@@ -464,7 +464,7 @@ Yields <span class='object_link'><a href="StreamEvent.html" title="Phronomy::Age
   <span class='id identifier rubyid_block'>block</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="StreamEvent.html" title="Phronomy::Agent::StreamEvent (class)">StreamEvent</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>type:</span> <span class='symbol'>:done</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_result'>result</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
-  <span class='id identifier rubyid_block'>block</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="StreamEvent.html" title="Phronomy::Agent::StreamEvent (class)">StreamEvent</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>type:</span> <span class='symbol'>:error</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='lbrace'>{</span><span class='label'>error:</span> <span class='id identifier rubyid_e'>e</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_block'>block</span><span class='op'>&amp;.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="StreamEvent.html" title="Phronomy::Agent::StreamEvent (class)">StreamEvent</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>type:</span> <span class='symbol'>:error</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='lbrace'>{</span><span class='label'>error:</span> <span class='id identifier rubyid_e'>e</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -477,7 +477,7 @@ Yields <span class='object_link'><a href="StreamEvent.html" title="Phronomy::Age
 </div>
 
       <div id="footer">
-  Generated on Fri May  8 11:48:02 2026 by
+  Generated on Fri May  8 18:22:15 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

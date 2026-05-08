@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>
+  Class: Phronomy::Memory::Compression::ToolOutputPruner
+  
+    &mdash; Documentation by YARD 0.9.43
+  
+</title>
+
+  <link rel="stylesheet" href="../../../css/style.css" type="text/css">
+
+  <link rel="stylesheet" href="../../../css/common.css" type="text/css">
+
+<script type="text/javascript">
+  pathId = "Phronomy::Memory::Compression::ToolOutputPruner";
+  relpath = '../../../';
+</script>
+
+
+  <script type="text/javascript" charset="utf-8" src="../../../js/jquery.js"></script>
+
+  <script type="text/javascript" charset="utf-8" src="../../../js/app.js"></script>
+
+
+  </head>
+  <body>
+    <div id="main_progress" aria-hidden="true"></div>
+
+    <div class="nav_wrap">
+      <iframe id="nav" src="../../../class_list.html?1"></iframe>
+      <div id="resizer"></div>
+    </div>
+
+    <div id="main" tabindex="-1">
+      <div id="header">
+        <div id="menu">
+  
+    <a href="../../../_index.html">Index (T)</a> &raquo;
+    <span class='title'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Compression.html" title="Phronomy::Memory::Compression (module)">Compression</a></span></span>
+     &raquo; 
+    <span class="title">ToolOutputPruner</span>
+  
+</div>
+
+        <div id="search">
+  
+    <a class="full_list_link" id="class_list_link"
+        href="../../../class_list.html">
+
+        <svg width="24" height="24">
+          <rect x="0" y="4" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="12" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="20" width="24" height="4" rx="1" ry="1"></rect>
+        </svg>
+    </a>
+  
+</div>
+        <div class="clear"></div>
+      </div>
+
+      <div id="content"><h1>Class: Phronomy::Memory::Compression::ToolOutputPruner
+  
+  
+  
+</h1>
+<div class="box_info">
+  
+  <dl>
+    <dt>Inherits:</dt>
+    <dd>
+      <span class="inheritName"><span class='object_link'><a href="Base.html" title="Phronomy::Memory::Compression::Base (class)">Base</a></span></span>
+      
+        <ul class="fullTree">
+          <li>Object</li>
+          
+            <li class="next"><span class='object_link'><a href="Base.html" title="Phronomy::Memory::Compression::Base (class)">Base</a></span></li>
+          
+            <li class="next">Phronomy::Memory::Compression::ToolOutputPruner</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+    </dd>
+  </dl>
+  
+
+  
+  
+  
+  
+  
+
+  
+
+  
+  <dl>
+    <dt>Defined in:</dt>
+    <dd>lib/phronomy/memory/compression/tool_output_pruner.rb
+</dd>
+  </dl>
+  
+</div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>Compression strategy that truncates oversized tool-call result messages.</p>
+<p>Large tool outputs — such as a full web-page dump or a massive JSON
+response — can consume a significant fraction of the context window.
+This compressor truncates the content of any :tool message whose character
+count exceeds max_chars, appending a note that the output was truncated.</p>
+<p>Unlike Summary, this is a stateless compressor: it does not accumulate
+state across calls and requires no thread_id bookkeeping.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="examples">
+    <h4 class="tag_title">Examples:</h4>
+    
+      
+      <pre class="example code"><code><span class='id identifier rubyid_compressor'>compressor</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Compression.html" title="Phronomy::Memory::Compression (module)">Compression</a></span></span><span class='op'>::</span><span class='const'>ToolOutputPruner</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Memory::Compression::ToolOutputPruner#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>max_chars:</span> <span class='int'>4000</span><span class='rparen'>)</span>
+<span class='id identifier rubyid_manager'>manager</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ConversationManager.html" title="Phronomy::Memory::ConversationManager (class)">ConversationManager</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../ConversationManager.html#initialize-instance_method" title="Phronomy::Memory::ConversationManager#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+  <span class='label'>storage:</span> <span class='id identifier rubyid_storage'>storage</span><span class='comma'>,</span>
+  <span class='label'>retrieval:</span> <span class='id identifier rubyid_retrieval'>retrieval</span><span class='comma'>,</span>
+  <span class='label'>compression:</span> <span class='id identifier rubyid_compressor'>compressor</span>
+<span class='rparen'>)</span></code></pre>
+    
+  </div>
+
+
+</div>
+  
+    <h2>
+      Constant Summary
+      <small><a href="#" class="constants_summary_toggle">collapse</a></small>
+    </h2>
+
+    <dl class="constants">
+      
+        <dt id="TRUNCATION_NOTE-constant" class="">TRUNCATION_NOTE =
+          
+        </dt>
+        <dd><pre class="code"><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>\n[... output truncated ...]</span><span class='tstring_end'>&quot;</span></span></pre></dd>
+      
+    </dl>
+  
+
+
+
+
+
+
+
+  
+    <h2>
+      Instance Method Summary
+      <small><a href="#" class="summary_toggle">collapse</a></small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#compress-instance_method" title="#compress (instance method)">#<strong>compress</strong>(thread_id:, messages:)  &#x21d2; Array </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Truncate oversized :tool messages in-place (non-destructive — returns new array).</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(max_chars: 4000)  &#x21d2; ToolOutputPruner </a>
+    
+
+    
+  </span>
+  
+  
+    <span class="note title constructor">constructor</span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>A new instance of ToolOutputPruner.</p></div></span>
+  
+</li>
+
+      
+    </ul>
+    
+  
+
+
+  
+  
+  
+  
+  
+  
+  <div id="constructor_details" class="method_details_list">
+  <h2>Constructor Details</h2>
+  
+    <div class="method_details first">
+  <h3 class="signature first" id="initialize-instance_method">
+  
+    #<strong>initialize</strong>(max_chars: 4000)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Memory::Compression::ToolOutputPruner (class)">ToolOutputPruner</a></span></tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns a new instance of ToolOutputPruner.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>max_chars</span>
+      
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>4000</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>maximum character length for tool-result content</p></div>
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+29
+30
+31</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/compression/tool_output_pruner.rb', line 29</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>max_chars:</span> <span class='int'>4000</span><span class='rparen'>)</span>
+  <span class='ivar'>@max_chars</span> <span class='op'>=</span> <span class='id identifier rubyid_max_chars'>max_chars</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+  
+</div>
+
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="compress-instance_method">
+  
+    #<strong>compress</strong>(thread_id:, messages:)  &#x21d2; <tt>Array</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Truncate oversized :tool messages in-place (non-destructive — returns new array).</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>thread_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>unused (stateless compressor)</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>messages</span>
+      
+      
+        <span class='type'>(<tt>Array</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Array</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+38
+39
+40
+41
+42
+43
+44
+45
+46</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/compression/tool_output_pruner.rb', line 38</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_compress'>compress</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_msg'>msg</span><span class='op'>|</span>
+    <span class='kw'>next</span> <span class='id identifier rubyid_msg'>msg</span> <span class='kw'>unless</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_role'>role</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span> <span class='op'>==</span> <span class='symbol'>:tool</span>
+    <span class='kw'>next</span> <span class='id identifier rubyid_msg'>msg</span> <span class='kw'>if</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span> <span class='op'>&lt;=</span> <span class='ivar'>@max_chars</span>
+
+    <span class='id identifier rubyid_truncated'>truncated</span> <span class='op'>=</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='lbracket'>[</span><span class='int'>0</span><span class='comma'>,</span> <span class='ivar'>@max_chars</span><span class='rbracket'>]</span> <span class='op'>+</span> <span class='const'><span class='object_link'><a href="#TRUNCATION_NOTE-constant" title="Phronomy::Memory::Compression::ToolOutputPruner::TRUNCATION_NOTE (constant)">TRUNCATION_NOTE</a></span></span>
+    <span class='id identifier rubyid_clone_message'>clone_message</span><span class='lparen'>(</span><span class='id identifier rubyid_msg'>msg</span><span class='comma'>,</span> <span class='id identifier rubyid_truncated'>truncated</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+
+      <div id="footer">
+  Generated on Fri May  8 18:22:16 2026 by
+  <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.9.43 (ruby-3.3.11).
+</div>
+
+    </div>
+  </body>
+</html>

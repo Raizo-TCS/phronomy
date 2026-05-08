@@ -181,7 +181,7 @@ is used as the threshold. Otherwise the constructor's max_tokens is used.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#load_messages-instance_method" title="#load_messages (instance method)">#<strong>load_messages</strong>(thread_id:, token_budget: nil, query: nil)  &#x21d2; Array </a>
+      <a href="#load_messages-instance_method" title="#load_messages (instance method)">#<strong>load_messages</strong>(thread_id:, query: nil)  &#x21d2; Array </a>
     
 
     
@@ -203,7 +203,7 @@ is used as the threshold. Otherwise the constructor's max_tokens is used.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#save_messages-instance_method" title="#save_messages (instance method)">#<strong>save_messages</strong>(thread_id:, messages:, token_budget: nil)  &#x21d2; Object </a>
+      <a href="#save_messages-instance_method" title="#save_messages (instance method)">#<strong>save_messages</strong>(thread_id:, messages:)  &#x21d2; Object </a>
     
 
     
@@ -217,7 +217,7 @@ is used as the threshold. Otherwise the constructor's max_tokens is used.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Saves messages, compressing via LLM summarization when the estimated token count exceeds the threshold.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Saves messages, compressing via LLM summarization when the estimated token count exceeds max_tokens.</p></div></span>
   
 </li>
 
@@ -420,13 +420,13 @@ is used as the threshold. Otherwise the constructor's max_tokens is used.</p>
       <pre class="lines">
 
 
+58
+59
 60
-61
-62
-63</pre>
+61</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/summary_memory.rb', line 60</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/summary_memory.rb', line 58</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='ivar'>@store</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
@@ -440,7 +440,7 @@ is used as the threshold. Otherwise the constructor's max_tokens is used.</p>
       <div class="method_details ">
   <h3 class="signature " id="load_messages-instance_method">
   
-    #<strong>load_messages</strong>(thread_id:, token_budget: nil, query: nil)  &#x21d2; <tt>Array</tt> 
+    #<strong>load_messages</strong>(thread_id:, query: nil)  &#x21d2; <tt>Array</tt> 
   
 
   
@@ -474,8 +474,6 @@ is used as the threshold. Otherwise the constructor's max_tokens is used.</p>
       
         <span class='type'>(<tt><span class='object_link'><a href="../Context/TokenBudget.html" title="Phronomy::Context::TokenBudget (class)">Phronomy::Context::TokenBudget</a></span></tt>, <tt>nil</tt>)</span>
       
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
       
       
     </li>
@@ -516,7 +514,7 @@ is used as the threshold. Otherwise the constructor's max_tokens is used.</p>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/memory/summary_memory.rb', line 31</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_load_messages'>load_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>token_budget:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_load_messages'>load_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_summary'>summary</span> <span class='op'>=</span> <span class='ivar'>@summaries</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span>
   <span class='id identifier rubyid_recent'>recent</span> <span class='op'>=</span> <span class='ivar'>@store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
 
@@ -534,7 +532,7 @@ is used as the threshold. Otherwise the constructor's max_tokens is used.</p>
       <div class="method_details ">
   <h3 class="signature " id="save_messages-instance_method">
   
-    #<strong>save_messages</strong>(thread_id:, messages:, token_budget: nil)  &#x21d2; <tt>Object</tt> 
+    #<strong>save_messages</strong>(thread_id:, messages:)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -543,7 +541,7 @@ is used as the threshold. Otherwise the constructor's max_tokens is used.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Saves messages, compressing via LLM summarization when the estimated token
-count exceeds the threshold.</p>
+count exceeds max_tokens.</p>
 
   </div>
 </div>
@@ -573,22 +571,6 @@ count exceeds the threshold.</p>
       
     </li>
   
-    <li>
-      
-        <span class='name'>token_budget</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../Context/TokenBudget.html" title="Phronomy::Context::TokenBudget (class)">Phronomy::Context::TokenBudget</a></span></tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>overrides <code>max_tokens</code> when provided</p></div>
-      
-    </li>
-  
 </ul>
 
 
@@ -598,6 +580,7 @@ count exceeds the threshold.</p>
       <pre class="lines">
 
 
+47
 48
 49
 50
@@ -605,18 +588,15 @@ count exceeds the threshold.</p>
 52
 53
 54
-55
-56
-57</pre>
+55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/summary_memory.rb', line 48</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/summary_memory.rb', line 47</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_save_messages'>save_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='comma'>,</span> <span class='label'>token_budget:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_threshold'>threshold</span> <span class='op'>=</span> <span class='id identifier rubyid_token_budget'>token_budget</span> <span class='op'>?</span> <span class='id identifier rubyid_token_budget'>token_budget</span><span class='period'>.</span><span class='id identifier rubyid_effective_input_limit'>effective_input_limit</span> <span class='op'>:</span> <span class='ivar'>@max_tokens</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_save_messages'>save_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='comma'>,</span> <span class='op'>**</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_estimated_tokens'>estimated_tokens</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_sum'>sum</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_m'>m</span><span class='op'>|</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Context.html" title="Phronomy::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Context/TokenEstimator.html" title="Phronomy::Context::TokenEstimator (module)">TokenEstimator</a></span></span><span class='period'>.</span><span class='id identifier rubyid_estimate'><span class='object_link'><a href="../Context/TokenEstimator.html#estimate-class_method" title="Phronomy::Context::TokenEstimator.estimate (method)">estimate</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_m'>m</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
 
-  <span class='kw'>if</span> <span class='id identifier rubyid_estimated_tokens'>estimated_tokens</span> <span class='op'>&gt;</span> <span class='id identifier rubyid_threshold'>threshold</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_estimated_tokens'>estimated_tokens</span> <span class='op'>&gt;</span> <span class='ivar'>@max_tokens</span>
     <span class='id identifier rubyid_compress'>compress</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span>
   <span class='kw'>else</span>
     <span class='ivar'>@store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span>
@@ -632,7 +612,7 @@ count exceeds the threshold.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri May  8 11:48:03 2026 by
+  Generated on Fri May  8 18:22:15 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

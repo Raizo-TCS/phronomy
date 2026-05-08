@@ -81,7 +81,7 @@
   <dl>
     <dt>Defined in:</dt>
     <dd>lib/phronomy/memory.rb<span class="defines">,<br>
-  lib/phronomy/memory/base.rb,<br> lib/phronomy/memory/pruner/base.rb,<br> lib/phronomy/memory/async_capable.rb,<br> lib/phronomy/memory/entity_memory.rb,<br> lib/phronomy/memory/window_memory.rb,<br> lib/phronomy/memory/async_save_job.rb,<br> lib/phronomy/memory/summary_memory.rb,<br> lib/phronomy/memory/semantic_memory.rb,<br> lib/phronomy/memory/composite_memory.rb,<br> lib/phronomy/memory/active_record_memory.rb,<br> lib/phronomy/memory/pruner/tool_output_pruner.rb</span>
+  lib/phronomy/memory/base.rb,<br> lib/phronomy/memory/storage.rb,<br> lib/phronomy/memory/retrieval.rb,<br> lib/phronomy/memory/compression.rb,<br> lib/phronomy/memory/pruner/base.rb,<br> lib/phronomy/memory/storage/base.rb,<br> lib/phronomy/memory/async_capable.rb,<br> lib/phronomy/memory/entity_memory.rb,<br> lib/phronomy/memory/window_memory.rb,<br> lib/phronomy/memory/async_save_job.rb,<br> lib/phronomy/memory/retrieval/base.rb,<br> lib/phronomy/memory/summary_memory.rb,<br> lib/phronomy/memory/semantic_memory.rb,<br> lib/phronomy/memory/composite_memory.rb,<br> lib/phronomy/memory/compression/base.rb,<br> lib/phronomy/memory/retrieval/recent.rb,<br> lib/phronomy/memory/storage/in_memory.rb,<br> lib/phronomy/memory/retrieval/semantic.rb,<br> lib/phronomy/memory/compression/summary.rb,<br> lib/phronomy/memory/active_record_memory.rb,<br> lib/phronomy/memory/conversation_manager.rb,<br> lib/phronomy/memory/storage/active_record.rb,<br> lib/phronomy/memory/pruner/tool_output_pruner.rb,<br> lib/phronomy/memory/compression/tool_output_pruner.rb</span>
 
 </dd>
   </dl>
@@ -92,11 +92,11 @@
 <p class="children">
   
     
-      <strong class="modules">Modules:</strong> <span class='object_link'><a href="Memory/AsyncCapable.html" title="Phronomy::Memory::AsyncCapable (module)">AsyncCapable</a></span>, <span class='object_link'><a href="Memory/Pruner.html" title="Phronomy::Memory::Pruner (module)">Pruner</a></span>
+      <strong class="modules">Modules:</strong> <span class='object_link'><a href="Memory/AsyncCapable.html" title="Phronomy::Memory::AsyncCapable (module)">AsyncCapable</a></span>, <span class='object_link'><a href="Memory/Compression.html" title="Phronomy::Memory::Compression (module)">Compression</a></span>, <span class='object_link'><a href="Memory/Pruner.html" title="Phronomy::Memory::Pruner (module)">Pruner</a></span>, <span class='object_link'><a href="Memory/Retrieval.html" title="Phronomy::Memory::Retrieval (module)">Retrieval</a></span>, <span class='object_link'><a href="Memory/Storage.html" title="Phronomy::Memory::Storage (module)">Storage</a></span>
     
   
     
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Memory/ActiveRecordMemory.html" title="Phronomy::Memory::ActiveRecordMemory (class)">ActiveRecordMemory</a></span>, <span class='object_link'><a href="Memory/AsyncSaveJob.html" title="Phronomy::Memory::AsyncSaveJob (class)">AsyncSaveJob</a></span>, <span class='object_link'><a href="Memory/Base.html" title="Phronomy::Memory::Base (class)">Base</a></span>, <span class='object_link'><a href="Memory/CompositeMemory.html" title="Phronomy::Memory::CompositeMemory (class)">CompositeMemory</a></span>, <span class='object_link'><a href="Memory/EntityMemory.html" title="Phronomy::Memory::EntityMemory (class)">EntityMemory</a></span>, <span class='object_link'><a href="Memory/SemanticMemory.html" title="Phronomy::Memory::SemanticMemory (class)">SemanticMemory</a></span>, <span class='object_link'><a href="Memory/SummaryMemory.html" title="Phronomy::Memory::SummaryMemory (class)">SummaryMemory</a></span>, <span class='object_link'><a href="Memory/WindowMemory.html" title="Phronomy::Memory::WindowMemory (class)">WindowMemory</a></span>
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Memory/ActiveRecordMemory.html" title="Phronomy::Memory::ActiveRecordMemory (class)">ActiveRecordMemory</a></span>, <span class='object_link'><a href="Memory/AsyncSaveJob.html" title="Phronomy::Memory::AsyncSaveJob (class)">AsyncSaveJob</a></span>, <span class='object_link'><a href="Memory/Base.html" title="Phronomy::Memory::Base (class)">Base</a></span>, <span class='object_link'><a href="Memory/CompositeMemory.html" title="Phronomy::Memory::CompositeMemory (class)">CompositeMemory</a></span>, <span class='object_link'><a href="Memory/ConversationManager.html" title="Phronomy::Memory::ConversationManager (class)">ConversationManager</a></span>, <span class='object_link'><a href="Memory/EntityMemory.html" title="Phronomy::Memory::EntityMemory (class)">EntityMemory</a></span>, <span class='object_link'><a href="Memory/SemanticMemory.html" title="Phronomy::Memory::SemanticMemory (class)">SemanticMemory</a></span>, <span class='object_link'><a href="Memory/SummaryMemory.html" title="Phronomy::Memory::SummaryMemory (class)">SummaryMemory</a></span>, <span class='object_link'><a href="Memory/WindowMemory.html" title="Phronomy::Memory::WindowMemory (class)">WindowMemory</a></span>
     
   
 </p>
@@ -112,7 +112,7 @@
 </div>
 
       <div id="footer">
-  Generated on Fri May  8 11:48:01 2026 by
+  Generated on Fri May  8 18:22:14 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

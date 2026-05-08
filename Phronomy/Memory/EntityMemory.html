@@ -244,7 +244,7 @@ load_messages is called, so the agent always &quot;remembers&quot; stated facts.
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#load_messages-instance_method" title="#load_messages (instance method)">#<strong>load_messages</strong>(thread_id:, token_budget: nil, query: nil)  &#x21d2; Array </a>
+      <a href="#load_messages-instance_method" title="#load_messages (instance method)">#<strong>load_messages</strong>(thread_id:, query: nil)  &#x21d2; Array </a>
     
 
     
@@ -447,13 +447,13 @@ load_messages is called, so the agent always &quot;remembers&quot; stated facts.
       <pre class="lines">
 
 
+69
 70
 71
-72
-73</pre>
+72</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/entity_memory.rb', line 70</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/entity_memory.rb', line 69</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='ivar'>@store</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
@@ -516,12 +516,12 @@ load_messages is called, so the agent always &quot;remembers&quot; stated facts.
       <pre class="lines">
 
 
+78
 79
-80
-81</pre>
+80</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/entity_memory.rb', line 79</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/entity_memory.rb', line 78</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_entities_for'>entities_for</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
   <span class='lparen'>(</span><span class='ivar'>@entities</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
@@ -534,7 +534,7 @@ load_messages is called, so the agent always &quot;remembers&quot; stated facts.
       <div class="method_details ">
   <h3 class="signature " id="load_messages-instance_method">
   
-    #<strong>load_messages</strong>(thread_id:, token_budget: nil, query: nil)  &#x21d2; <tt>Array</tt> 
+    #<strong>load_messages</strong>(thread_id:, query: nil)  &#x21d2; <tt>Array</tt> 
   
 
   
@@ -561,19 +561,6 @@ load_messages is called, so the agent always &quot;remembers&quot; stated facts.
       
     </li>
   
-    <li>
-      
-        <span class='name'>token_budget</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../Context/TokenBudget.html" title="Phronomy::Context::TokenBudget (class)">Phronomy::Context::TokenBudget</a></span></tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
 </ul>
 
 <p class="tag_title">Returns:</p>
@@ -596,20 +583,20 @@ load_messages is called, so the agent always &quot;remembers&quot; stated facts.
       <pre class="lines">
 
 
+51
 52
 53
 54
 55
 56
-57
-58</pre>
+57</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/entity_memory.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/entity_memory.rb', line 51</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_load_messages'>load_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>token_budget:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_load_messages'>load_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_messages'>messages</span> <span class='op'>=</span> <span class='ivar'>@store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
-  <span class='id identifier rubyid_recent'>recent</span> <span class='op'>=</span> <span class='id identifier rubyid_token_budget'>token_budget</span> <span class='op'>?</span> <span class='id identifier rubyid_fit_to_budget'>fit_to_budget</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='id identifier rubyid_token_budget'>token_budget</span><span class='period'>.</span><span class='id identifier rubyid_effective_input_limit'>effective_input_limit</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_last'>last</span><span class='lparen'>(</span><span class='ivar'>@k</span> <span class='op'>*</span> <span class='int'>2</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_recent'>recent</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_last'>last</span><span class='lparen'>(</span><span class='ivar'>@k</span> <span class='op'>*</span> <span class='int'>2</span><span class='rparen'>)</span>
 
   <span class='id identifier rubyid_entity_msg'>entity_msg</span> <span class='op'>=</span> <span class='id identifier rubyid_entity_context_message'>entity_context_message</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_entity_msg'>entity_msg</span> <span class='op'>?</span> <span class='lbracket'>[</span><span class='id identifier rubyid_entity_msg'>entity_msg</span><span class='rbracket'>]</span> <span class='op'>+</span> <span class='id identifier rubyid_recent'>recent</span> <span class='op'>:</span> <span class='id identifier rubyid_recent'>recent</span>
@@ -669,13 +656,13 @@ load_messages is called, so the agent always &quot;remembers&quot; stated facts.
       <pre class="lines">
 
 
+63
 64
 65
-66
-67</pre>
+66</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/entity_memory.rb', line 64</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/entity_memory.rb', line 63</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save_messages'>save_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='comma'>,</span> <span class='op'>**</span><span class='rparen'>)</span>
   <span class='ivar'>@store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span>
@@ -691,7 +678,7 @@ load_messages is called, so the agent always &quot;remembers&quot; stated facts.
 </div>
 
       <div id="footer">
-  Generated on Fri May  8 11:48:03 2026 by
+  Generated on Fri May  8 18:22:15 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

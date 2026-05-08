@@ -180,7 +180,7 @@ effective_input_limit would be exceeded.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#load_messages-instance_method" title="#load_messages (instance method)">#<strong>load_messages</strong>(thread_id:, token_budget: nil, query: nil)  &#x21d2; Array </a>
+      <a href="#load_messages-instance_method" title="#load_messages (instance method)">#<strong>load_messages</strong>(thread_id:, query: nil)  &#x21d2; Array </a>
     
 
     
@@ -381,12 +381,12 @@ effective_input_limit would be exceeded.</p>
       <pre class="lines">
 
 
-40
-41
-42</pre>
+34
+35
+36</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/window_memory.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/window_memory.rb', line 34</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='ivar'>@store</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
@@ -399,7 +399,7 @@ effective_input_limit would be exceeded.</p>
       <div class="method_details ">
   <h3 class="signature " id="load_messages-instance_method">
   
-    #<strong>load_messages</strong>(thread_id:, token_budget: nil, query: nil)  &#x21d2; <tt>Array</tt> 
+    #<strong>load_messages</strong>(thread_id:, query: nil)  &#x21d2; <tt>Array</tt> 
   
 
   
@@ -426,19 +426,6 @@ effective_input_limit would be exceeded.</p>
       
     </li>
   
-    <li>
-      
-        <span class='name'>token_budget</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../Context/TokenBudget.html" title="Phronomy::Context::TokenBudget (class)">Phronomy::Context::TokenBudget</a></span></tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
 </ul>
 
 <p class="tag_title">Returns:</p>
@@ -461,27 +448,17 @@ effective_input_limit would be exceeded.</p>
       <pre class="lines">
 
 
+22
 23
 24
-25
-26
-27
-28
-29
-30
-31</pre>
+25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/window_memory.rb', line 23</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/window_memory.rb', line 22</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_load_messages'>load_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>token_budget:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_load_messages'>load_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_messages'>messages</span> <span class='op'>=</span> <span class='ivar'>@store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
-
-  <span class='kw'>if</span> <span class='id identifier rubyid_token_budget'>token_budget</span>
-    <span class='id identifier rubyid_fit_to_budget'>fit_to_budget</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='id identifier rubyid_token_budget'>token_budget</span><span class='period'>.</span><span class='id identifier rubyid_effective_input_limit'>effective_input_limit</span><span class='rparen'>)</span>
-  <span class='kw'>else</span>
-    <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_last'>last</span><span class='lparen'>(</span><span class='ivar'>@k</span> <span class='op'>*</span> <span class='int'>2</span><span class='rparen'>)</span>
-  <span class='kw'>end</span>
+  <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_last'>last</span><span class='lparen'>(</span><span class='ivar'>@k</span> <span class='op'>*</span> <span class='int'>2</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -538,12 +515,12 @@ effective_input_limit would be exceeded.</p>
       <pre class="lines">
 
 
-35
-36
-37</pre>
+29
+30
+31</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/window_memory.rb', line 35</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/window_memory.rb', line 29</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save_messages'>save_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='rparen'>)</span>
   <span class='ivar'>@store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span>
@@ -558,7 +535,7 @@ effective_input_limit would be exceeded.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri May  8 11:48:03 2026 by
+  Generated on Fri May  8 18:22:15 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

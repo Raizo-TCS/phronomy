@@ -202,7 +202,7 @@ only the most recent ones.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#load_messages-instance_method" title="#load_messages (instance method)">#<strong>load_messages</strong>(thread_id:, query: nil, token_budget: nil)  &#x21d2; Array </a>
+      <a href="#load_messages-instance_method" title="#load_messages (instance method)">#<strong>load_messages</strong>(thread_id:, query: nil)  &#x21d2; Array </a>
     
 
     
@@ -401,6 +401,8 @@ only the most recent ones.</p>
       <pre class="lines">
 
 
+64
+65
 66
 67
 68
@@ -409,12 +411,10 @@ only the most recent ones.</p>
 71
 72
 73
-74
-75
-76</pre>
+74</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/semantic_memory.rb', line 66</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/semantic_memory.rb', line 64</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='comment'># Remove messages belonging to this thread.
@@ -435,7 +435,7 @@ only the most recent ones.</p>
       <div class="method_details ">
   <h3 class="signature " id="load_messages-instance_method">
   
-    #<strong>load_messages</strong>(thread_id:, query: nil, token_budget: nil)  &#x21d2; <tt>Array</tt> 
+    #<strong>load_messages</strong>(thread_id:, query: nil)  &#x21d2; <tt>Array</tt> 
   
 
   
@@ -445,7 +445,6 @@ only the most recent ones.</p>
   <div class="discussion">
     <p>Retrieve relevant messages.</p>
 <p>When query is provided the k semantically closest messages are returned.
-When token_budget is provided the result is additionally trimmed to fit.
 When no query is provided, falls back to the k most recent messages.</p>
 
   </div>
@@ -478,19 +477,6 @@ When no query is provided, falls back to the k most recent messages.</p>
       
     </li>
   
-    <li>
-      
-        <span class='name'>token_budget</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../Context/TokenBudget.html" title="Phronomy::Context::TokenBudget (class)">Phronomy::Context::TokenBudget</a></span></tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
 </ul>
 
 <p class="tag_title">Returns:</p>
@@ -513,22 +499,22 @@ When no query is provided, falls back to the k most recent messages.</p>
       <pre class="lines">
 
 
+46
+47
 48
 49
 50
 51
-52
-53
-54</pre>
+52</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/semantic_memory.rb', line 48</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/semantic_memory.rb', line 46</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_load_messages'>load_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>token_budget:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_load_messages'>load_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_query'>query</span>
-    <span class='id identifier rubyid_semantic_search'>semantic_search</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_query'>query</span><span class='comma'>,</span> <span class='id identifier rubyid_token_budget'>token_budget</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_semantic_search'>semantic_search</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_query'>query</span><span class='rparen'>)</span>
   <span class='kw'>else</span>
-    <span class='id identifier rubyid_recent_messages'>recent_messages</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_token_budget'>token_budget</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_recent_messages'>recent_messages</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -551,18 +537,18 @@ When no query is provided, falls back to the k most recent messages.</p>
       <pre class="lines">
 
 
+54
+55
 56
 57
 58
 59
 60
 61
-62
-63
-64</pre>
+62</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/semantic_memory.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/semantic_memory.rb', line 54</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save_messages'>save_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_msg'>msg</span><span class='op'>|</span>
@@ -583,7 +569,7 @@ When no query is provided, falls back to the k most recent messages.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri May  8 11:48:03 2026 by
+  Generated on Fri May  8 18:22:15 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

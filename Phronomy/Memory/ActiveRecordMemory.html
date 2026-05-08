@@ -202,7 +202,7 @@ Persists conversation messages to a relational database.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#load_messages-instance_method" title="#load_messages (instance method)">#<strong>load_messages</strong>(thread_id:, limit: nil, token_budget: nil, query: nil)  &#x21d2; Array&lt;OpenStruct&gt; </a>
+      <a href="#load_messages-instance_method" title="#load_messages (instance method)">#<strong>load_messages</strong>(thread_id:, limit: nil, query: nil)  &#x21d2; Array&lt;OpenStruct&gt; </a>
     
 
     
@@ -370,12 +370,12 @@ Persists conversation messages to a relational database.</p>
       <pre class="lines">
 
 
-87
-88
-89</pre>
+80
+81
+82</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/active_record_memory.rb', line 87</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/active_record_memory.rb', line 80</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
@@ -388,7 +388,7 @@ Persists conversation messages to a relational database.</p>
       <div class="method_details ">
   <h3 class="signature " id="load_messages-instance_method">
   
-    #<strong>load_messages</strong>(thread_id:, limit: nil, token_budget: nil, query: nil)  &#x21d2; <tt>Array&lt;OpenStruct&gt;</tt> 
+    #<strong>load_messages</strong>(thread_id:, limit: nil, query: nil)  &#x21d2; <tt>Array&lt;OpenStruct&gt;</tt> 
   
 
   
@@ -397,9 +397,6 @@ Persists conversation messages to a relational database.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Loads stored messages for a thread, ordered by creation time.</p>
-<p>When token_budget is provided messages are accumulated newest-to-oldest until
-budget.effective_input_limit would be exceeded.  A pruner (if set) is applied
-to each message before token counting and before returning.</p>
 
   </div>
 </div>
@@ -430,20 +427,7 @@ to each message before token counting and before returning.</p>
       
       
         &mdash;
-        <div class='inline'><p>hard cap on message count (applied before budget)</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>token_budget</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../Context/TokenBudget.html" title="Phronomy::Context::TokenBudget (class)">Phronomy::Context::TokenBudget</a></span></tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
+        <div class='inline'><p>hard cap on message count</p></div>
       
     </li>
   
@@ -469,27 +453,23 @@ to each message before token counting and before returning.</p>
       <pre class="lines">
 
 
+42
+43
+44
+45
+46
 47
-48
-49
-50
-51
-52
-53
-54
-55</pre>
+48</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/active_record_memory.rb', line 47</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/active_record_memory.rb', line 42</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_load_messages'>load_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>limit:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>token_budget:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_load_messages'>load_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>limit:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_scope'>scope</span> <span class='op'>=</span> <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_order'>order</span><span class='lparen'>(</span><span class='symbol'>:created_at</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_records'>records</span> <span class='op'>=</span> <span class='id identifier rubyid_scope'>scope</span><span class='period'>.</span><span class='id identifier rubyid_to_a'>to_a</span>
   <span class='id identifier rubyid_records'>records</span> <span class='op'>=</span> <span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_last'>last</span><span class='lparen'>(</span><span class='id identifier rubyid_limit'>limit</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_limit'>limit</span>
   <span class='id identifier rubyid_messages'>messages</span> <span class='op'>=</span> <span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_r'>r</span><span class='op'>|</span> <span class='id identifier rubyid_to_message_struct'>to_message_struct</span><span class='lparen'>(</span><span class='id identifier rubyid_r'>r</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
-  <span class='id identifier rubyid_messages'>messages</span> <span class='op'>=</span> <span class='ivar'>@pruner</span><span class='period'>.</span><span class='id identifier rubyid_prune'>prune</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='ivar'>@pruner</span>
-  <span class='id identifier rubyid_messages'>messages</span> <span class='op'>=</span> <span class='id identifier rubyid_fit_to_budget'>fit_to_budget</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='id identifier rubyid_token_budget'>token_budget</span><span class='period'>.</span><span class='id identifier rubyid_effective_input_limit'>effective_input_limit</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_token_budget'>token_budget</span>
-  <span class='id identifier rubyid_messages'>messages</span>
+  <span class='ivar'>@pruner</span> <span class='op'>?</span> <span class='ivar'>@pruner</span><span class='period'>.</span><span class='id identifier rubyid_prune'>prune</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id identifier rubyid_messages'>messages</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -549,6 +529,13 @@ to each message before token counting and before returning.</p>
       <pre class="lines">
 
 
+53
+54
+55
+56
+57
+58
+59
 60
 61
 62
@@ -566,17 +553,10 @@ to each message before token counting and before returning.</p>
 74
 75
 76
-77
-78
-79
-80
-81
-82
-83
-84</pre>
+77</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/active_record_memory.rb', line 60</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/active_record_memory.rb', line 53</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save_messages'>save_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='rparen'>)</span>
   <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
@@ -613,7 +593,7 @@ to each message before token counting and before returning.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri May  8 11:48:03 2026 by
+  Generated on Fri May  8 18:22:16 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
