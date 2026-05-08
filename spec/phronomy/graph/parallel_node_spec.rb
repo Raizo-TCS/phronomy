@@ -11,6 +11,7 @@ RSpec.describe Phronomy::Graph::ParallelNode do
     field :b, type: :replace
     field :log, type: :append, default: -> { [] }
     field :meta, type: :merge, default: -> { {} }
+    field :parallel_errors, type: :append, default: -> { [] }
   end
 
   let(:state) { ParallelTestState.new }
@@ -23,6 +24,12 @@ RSpec.describe Phronomy::Graph::ParallelNode do
     it "accepts a non-empty array of callables" do
       node = described_class.new([->(s) {}])
       expect(node).to be_a(described_class)
+    end
+
+    it "raises ArgumentError for an unknown on_error value" do
+      expect {
+        described_class.new([->(s) {}], on_error: :unknown)
+      }.to raise_error(ArgumentError, /on_error must be/)
     end
   end
 
@@ -103,6 +110,133 @@ RSpec.describe Phronomy::Graph::ParallelNode do
       expect(results).to contain_exactly(:a, :b, :c)
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # timeout:
+  # ---------------------------------------------------------------------------
+  describe "timeout:" do
+    it "does not raise when branches finish well within the timeout" do
+      node = described_class.new(
+        [->(s) { {a: "done"} }, ->(s) { {b: "done"} }],
+        timeout: 10
+      )
+      result = node.call(state)
+      expect(result[:a]).to eq("done")
+      expect(result[:b]).to eq("done")
+    end
+
+    it "raises TimeoutError when a branch hangs beyond the timeout" do
+      barrier = Queue.new
+      node = described_class.new(
+        [->(s) {
+          barrier.pop
+          nil
+        }],
+        timeout: 0.05
+      )
+      expect { node.call(state) }.to raise_error(Phronomy::Graph::TimeoutError, /timed out/)
+      barrier.push(:release) # unblock the killed thread just in case
+    end
+
+    it "kills all threads after timeout (on_error: :raise)" do
+      completed = []
+      m = Mutex.new
+      node = described_class.new(
+        [
+          ->(s) {
+            sleep 10
+            m.synchronize { completed << :a }
+            nil
+          },
+          ->(s) {
+            sleep 10
+            m.synchronize { completed << :b }
+            nil
+          }
+        ],
+        timeout: 0.05
+      )
+      expect { node.call(state) }.to raise_error(Phronomy::Graph::TimeoutError)
+      sleep 0.05 # brief pause to let any runaway threads finish
+      expect(completed).to be_empty
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # on_error: :best_effort
+  # ---------------------------------------------------------------------------
+  describe "on_error: :best_effort" do
+    it "returns successful results and stores errors in :parallel_errors" do
+      node = described_class.new(
+        [
+          ->(s) { {a: "ok"} },
+          ->(s) { raise "branch failed" }
+        ],
+        on_error: :best_effort
+      )
+      result = node.call(state)
+      expect(result[:a]).to eq("ok")
+      expect(result[:parallel_errors].size).to eq(1)
+      expect(result[:parallel_errors].first.message).to eq("branch failed")
+    end
+
+    it "returns only :parallel_errors when all branches fail" do
+      node = described_class.new(
+        [
+          ->(s) { raise "err1" },
+          ->(s) { raise "err2" }
+        ],
+        on_error: :best_effort
+      )
+      result = node.call(state)
+      expect(result[:a]).to be_nil
+      expect(result[:parallel_errors].map(&:message)).to contain_exactly("err1", "err2")
+    end
+
+    it "returns nil when all branches return nil and none fail" do
+      node = described_class.new(
+        [->(s) {}, ->(s) {}],
+        on_error: :best_effort
+      )
+      expect(node.call(state)).to be_nil
+    end
+
+    it "stores TimeoutError in :parallel_errors when a branch hangs" do
+      barrier = Queue.new
+      node = described_class.new(
+        [
+          ->(s) { {a: "fast"} },
+          ->(s) {
+            barrier.pop
+            nil
+          }
+        ],
+        timeout: 0.05,
+        on_error: :best_effort
+      )
+      result = node.call(state)
+      expect(result[:a]).to eq("fast")
+      expect(result[:parallel_errors].first).to be_a(Phronomy::Graph::TimeoutError)
+      barrier.push(:release)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # timeout: + on_error: :raise combined
+  # ---------------------------------------------------------------------------
+  describe "timeout: with on_error: :raise (default)" do
+    it "raises TimeoutError (not branch error) when timeout fires first" do
+      node = described_class.new(
+        [->(s) {
+          sleep 10
+          raise "should not reach"
+        }],
+        timeout: 0.05,
+        on_error: :raise
+      )
+      expect { node.call(state) }.to raise_error(Phronomy::Graph::TimeoutError)
+    end
+  end
 end
 
 RSpec.describe "Phronomy::Graph::StateGraph#add_parallel_node" do
@@ -111,6 +245,7 @@ RSpec.describe "Phronomy::Graph::StateGraph#add_parallel_node" do
 
     field :sum, type: :replace, default: 0
     field :parts, type: :append, default: -> { [] }
+    field :parallel_errors, type: :append, default: -> { [] }
   end
 
   it "registers a ParallelNode and executes branches within a compiled graph" do
@@ -129,6 +264,39 @@ RSpec.describe "Phronomy::Graph::StateGraph#add_parallel_node" do
   it "raises ArgumentError when no branches are given" do
     graph = Phronomy::Graph::StateGraph.new(ParallelGraphState)
     expect { graph.add_parallel_node(:bad) }.to raise_error(ArgumentError, /at least one branch/)
+  end
+
+  it "forwards timeout: and raises TimeoutError when a branch hangs" do
+    barrier = Queue.new
+    graph = Phronomy::Graph::StateGraph.new(ParallelGraphState)
+    graph.add_parallel_node(:parallel,
+      ->(s) {
+        barrier.pop
+        nil
+      },
+      timeout: 0.05)
+    graph.set_entry_point(:parallel)
+    graph.add_edge(:parallel, Phronomy::Graph::StateGraph::FINISH)
+    app = graph.compile
+
+    expect { app.invoke({}) }.to raise_error(Phronomy::Graph::TimeoutError)
+    barrier.push(:release)
+  end
+
+  it "forwards on_error: :best_effort and collects errors in state" do
+    graph = Phronomy::Graph::StateGraph.new(ParallelGraphState)
+    graph.add_parallel_node(:parallel,
+      ->(s) { {parts: ["ok"]} },
+      ->(s) { raise "branch failed" },
+      on_error: :best_effort)
+    graph.set_entry_point(:parallel)
+    graph.add_edge(:parallel, Phronomy::Graph::StateGraph::FINISH)
+    app = graph.compile
+
+    final = app.invoke({})
+    expect(final.parts).to eq(["ok"])
+    expect(final.parallel_errors.size).to eq(1)
+    expect(final.parallel_errors.first.message).to eq("branch failed")
   end
 end
 

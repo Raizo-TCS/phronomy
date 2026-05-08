@@ -7,5 +7,7 @@ require_relative "graph/compiled_graph"
 
 module Phronomy
   module Graph
+    # Raised when a parallel branch exceeds the wall-clock limit set via +timeout:+.
+    class TimeoutError < Phronomy::Error; end
   end
 end
