@@ -106,11 +106,21 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Compression strategy that summarizes old messages with an LLM.</p>
-<p>When the total estimated token count of the message history exceeds
-<code>max_tokens</code>, all messages except the most recent <code>keep</code> are summarized
-into a single system message. The summary is injected as a context-tagged
-message on the next retrieval.</p>
+    <p>Compaction strategy that summarizes old messages with an LLM.</p>
+<p>When the total estimated token count of the uncompacted message history
+exceeds <code>max_tokens</code>, all messages except the most recent <code>keep</code> are
+summarized by an LLM. The original messages are preserved in Storage
+(via ConversationManager); this class only decides whether compaction is
+needed and produces the summary text.</p>
+<p>The #compress method now returns a Hash instead of a plain Array:</p>
+<pre class="code ruby"><code class="ruby"><span class='lbrace'>{</span>
+<span class='label'>messages:</span>   <span class='const'>Array</span><span class='comma'>,</span>            <span class='comment'># context-ready message list
+</span><span class='label'>compaction:</span> <span class='const'>Hash</span> <span class='op'>|</span> <span class='kw'>nil</span>        <span class='comment'># { start_seq:, end_seq:, summary_text: }
+</span>                              <span class='comment'># nil when no compaction was performed
+</span><span class='rbrace'>}</span>
+</code></pre>
+<p>ConversationManager uses the :compaction entry to persist the compaction
+record in Storage, ensuring originals are never discarded.</p>
 
   </div>
 </div>
@@ -151,7 +161,7 @@ message on the next retrieval.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#compress-instance_method" title="#compress (instance method)">#<strong>compress</strong>(thread_id:, messages:)  &#x21d2; Array </a>
+      <a href="#compress-instance_method" title="#compress (instance method)">#<strong>compress</strong>(thread_id:, messages:, seq_offset: 0)  &#x21d2; Hash </a>
     
 
     
@@ -165,7 +175,7 @@ message on the next retrieval.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Compress messages if the estimated token count exceeds the threshold.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Evaluate whether compaction is needed and produce a summary if so.</p></div></span>
   
 </li>
 
@@ -190,28 +200,6 @@ message on the next retrieval.</p>
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of Summary.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#summary_for-instance_method" title="#summary_for (instance method)">#<strong>summary_for</strong>(thread_id)  &#x21d2; String<sup>?</sup> </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns a summary message for a thread if one exists (primarily for testing).</p></div></span>
   
 </li>
 
@@ -261,7 +249,7 @@ message on the next retrieval.</p>
       
       
         &mdash;
-        <div class='inline'><p>token threshold above which old messages are summarized</p></div>
+        <div class='inline'><p>token threshold above which old messages are compacted</p></div>
       
     </li>
   
@@ -322,23 +310,21 @@ message on the next retrieval.</p>
       <pre class="lines">
 
 
-30
-31
-32
-33
-34
-35
-36</pre>
+41
+42
+43
+44
+45
+46</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/compression/summary.rb', line 30</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/compression/summary.rb', line 41</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>max_tokens:</span> <span class='int'>4000</span><span class='comma'>,</span> <span class='label'>keep:</span> <span class='int'>5</span><span class='comma'>,</span> <span class='label'>summarizer_model:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>summarizer_provider:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@max_tokens</span> <span class='op'>=</span> <span class='id identifier rubyid_max_tokens'>max_tokens</span>
   <span class='ivar'>@keep</span> <span class='op'>=</span> <span class='id identifier rubyid_keep'>keep</span>
   <span class='ivar'>@summarizer_model</span> <span class='op'>=</span> <span class='id identifier rubyid_summarizer_model'>summarizer_model</span>
   <span class='ivar'>@summarizer_provider</span> <span class='op'>=</span> <span class='id identifier rubyid_summarizer_provider'>summarizer_provider</span>
-  <span class='ivar'>@summaries</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -355,7 +341,7 @@ message on the next retrieval.</p>
       <div class="method_details first">
   <h3 class="signature first" id="compress-instance_method">
   
-    #<strong>compress</strong>(thread_id:, messages:)  &#x21d2; <tt>Array</tt> 
+    #<strong>compress</strong>(thread_id:, messages:, seq_offset: 0)  &#x21d2; <tt>Hash</tt> 
   
 
   
@@ -363,8 +349,10 @@ message on the next retrieval.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Compress messages if the estimated token count exceeds the threshold.
-Returns a message array that may include a summary system message prepended.</p>
+    <p>Evaluate whether compaction is needed and produce a summary if so.</p>
+<p><code>seq_offset</code> is the seq number of <a href="0">messages</a> in the raw history.
+ConversationManager passes this so the compaction record can reference
+the correct seq range in Storage.</p>
 
   </div>
 </div>
@@ -392,86 +380,24 @@ Returns a message array that may include a summary system message prepended.</p>
       
       
       
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Array</tt>)</span>
-      
-      
+        &mdash;
+        <div class='inline'><p>uncompacted messages to consider</p></div>
       
     </li>
   
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-44
-45
-46
-47
-48
-49
-50
-51
-52
-53</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/compression/summary.rb', line 44</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_compress'>compress</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_estimated'>estimated</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_sum'>sum</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_m'>m</span><span class='op'>|</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Context.html" title="Phronomy::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Context/TokenEstimator.html" title="Phronomy::Context::TokenEstimator (module)">TokenEstimator</a></span></span><span class='period'>.</span><span class='id identifier rubyid_estimate'><span class='object_link'><a href="../../Context/TokenEstimator.html#estimate-class_method" title="Phronomy::Context::TokenEstimator.estimate (method)">estimate</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_m'>m</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
-
-  <span class='kw'>if</span> <span class='id identifier rubyid_estimated'>estimated</span> <span class='op'>&gt;</span> <span class='ivar'>@max_tokens</span>
-    <span class='id identifier rubyid_summarize_and_keep'>summarize_and_keep</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span>
-  <span class='kw'>else</span>
-    <span class='ivar'>@summaries</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_messages'>messages</span>
-  <span class='kw'>end</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="summary_for-instance_method">
-  
-    #<strong>summary_for</strong>(thread_id)  &#x21d2; <tt>String</tt><sup>?</sup> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns a summary message for a thread if one exists (primarily for testing).</p>
-
-  </div>
-</div>
-<div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
-  
     <li>
       
-        <span class='name'>thread_id</span>
+        <span class='name'>seq_offset</span>
       
       
-        <span class='type'>(<tt>String</tt>)</span>
+        <span class='type'>(<tt>Integer</tt>)</span>
       
       
+        <em class="default">(defaults to: <tt>0</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>seq number assigned to <a href="0">messages</a></p></div>
       
     </li>
   
@@ -483,9 +409,13 @@ Returns a message array that may include a summary system message prepended.</p>
     <li>
       
       
-        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
+        <span class='type'>(<tt>Hash</tt>)</span>
       
       
+      
+        &mdash;
+        <div class='inline'><p>{ messages: Array, compaction: Hash|nil }
+compaction is { start_seq:, end_seq:, summary_text: } or nil</p></div>
       
     </li>
   
@@ -499,13 +429,25 @@ Returns a message array that may include a summary system message prepended.</p>
 
 59
 60
-61</pre>
+61
+62
+63
+64
+65
+66
+67</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/memory/compression/summary.rb', line 59</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_summary_for'>summary_for</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-  <span class='ivar'>@summaries</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_compress'>compress</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='comma'>,</span> <span class='label'>seq_offset:</span> <span class='int'>0</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_estimated'>estimated</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_sum'>sum</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_m'>m</span><span class='op'>|</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Context.html" title="Phronomy::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Context/TokenEstimator.html" title="Phronomy::Context::TokenEstimator (module)">TokenEstimator</a></span></span><span class='period'>.</span><span class='id identifier rubyid_estimate'><span class='object_link'><a href="../../Context/TokenEstimator.html#estimate-class_method" title="Phronomy::Context::TokenEstimator.estimate (method)">estimate</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_m'>m</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+
+  <span class='kw'>if</span> <span class='id identifier rubyid_estimated'>estimated</span> <span class='op'>&gt;</span> <span class='ivar'>@max_tokens</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span> <span class='op'>&gt;</span> <span class='ivar'>@keep</span>
+    <span class='id identifier rubyid_compact'>compact</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>seq_offset:</span> <span class='id identifier rubyid_seq_offset'>seq_offset</span><span class='rparen'>)</span>
+  <span class='kw'>else</span>
+    <span class='lbrace'>{</span><span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>compaction:</span> <span class='kw'>nil</span><span class='rbrace'>}</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -517,7 +459,7 @@ Returns a message array that may include a summary system message prepended.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri May  8 18:22:16 2026 by
+  Generated on Fri May  8 21:39:46 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

@@ -107,13 +107,28 @@
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
     <p>ActiveRecord-backed storage for conversation messages.
-Persists messages to a relational database via a user-supplied AR model class.</p>
-<p>The model_class must respond to:</p>
+Persists messages to a relational database via user-supplied AR model classes.</p>
+<p>The message model_class must respond to:</p>
 <pre class="code ruby"><code class="ruby">.where(thread_id:).order(:created_at) — returns a collection of records
 .where(thread_id:).delete_all
 .create!(thread_id:, role:, content:, tool_calls_json:, model_id:)
 </code></pre>
 <p>Each record must expose: #role, #content, #tool_calls_json, #model_id</p>
+<p>The raw_model_class (optional) must respond to:</p>
+<pre class="code ruby"><code class="ruby">.where(thread_id:).order(:seq) — returns records in seq order
+.where(thread_id:).delete_all
+.create!(thread_id:, seq:, role:, content:, tool_calls_json:, model_id:)
+</code></pre>
+<p>Each record must expose: #seq, #role, #content, #tool_calls_json, #model_id</p>
+<p>The compaction_model_class (optional) must respond to:</p>
+<pre class="code ruby"><code class="ruby">.where(thread_id:).order(:start_seq)
+.where(thread_id:).delete_all
+.create!(thread_id:, start_seq:, end_seq:, summary_text:)
+</code></pre>
+<p>Each record must expose: #start_seq, #end_seq, #summary_text</p>
+<p>When raw_model_class or compaction_model_class are nil, the corresponding
+operations raise NotImplementedError — use InMemory storage if you do not
+need full raw/compaction persistence.</p>
 
   </div>
 </div>
@@ -123,7 +138,11 @@ Persists messages to a relational database via a user-supplied AR model class.</
     <h4 class="tag_title">Examples:</h4>
     
       
-      <pre class="example code"><code>storage = Phronomy::Memory::Storage::ActiveRecord.new(model_class: PhronomyMessage)
+      <pre class="example code"><code>storage = Phronomy::Memory::Storage::ActiveRecord.new(
+  model_class:            PhronomyMessage,
+  raw_model_class:        PhronomyRawMessage,
+  compaction_model_class: PhronomyCompaction
+)
 manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code></pre>
     
   </div>
@@ -143,6 +162,28 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
     </h2>
 
     <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#append_raw-instance_method" title="#append_raw (instance method)">#<strong>append_raw</strong>(thread_id:, messages:, starting_seq:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
       
         <li class="public ">
   <span class="summary_signature">
@@ -169,7 +210,51 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(model_class:)  &#x21d2; ActiveRecord </a>
+      <a href="#clear_compactions-instance_method" title="#clear_compactions (instance method)">#<strong>clear_compactions</strong>(thread_id:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#clear_raw-instance_method" title="#clear_raw (instance method)">#<strong>clear_raw</strong>(thread_id:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(model_class:, raw_model_class: nil, compaction_model_class: nil)  &#x21d2; ActiveRecord </a>
     
 
     
@@ -215,6 +300,50 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#load_compactions-instance_method" title="#load_compactions (instance method)">#<strong>load_compactions</strong>(thread_id:)  &#x21d2; Array&lt;Hash&gt; </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#load_raw-instance_method" title="#load_raw (instance method)">#<strong>load_raw</strong>(thread_id:)  &#x21d2; Array&lt;Hash&gt; </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#save-instance_method" title="#save (instance method)">#<strong>save</strong>(thread_id:, messages:)  &#x21d2; Object </a>
     
 
@@ -230,6 +359,28 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
 
   
     <span class="summary_desc"><div class='inline'><p>Replace all stored messages for a thread.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#save_compaction-instance_method" title="#save_compaction (instance method)">#<strong>save_compaction</strong>(thread_id:, start_seq:, end_seq:, summary_text:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -251,7 +402,7 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(model_class:)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Memory::Storage::ActiveRecord (class)">ActiveRecord</a></span></tt> 
+    #<strong>initialize</strong>(model_class:, raw_model_class: nil, compaction_model_class: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Memory::Storage::ActiveRecord (class)">ActiveRecord</a></span></tt> 
   
 
   
@@ -277,7 +428,39 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       
       
         &mdash;
-        <div class='inline'><p>ActiveRecord model with the phronomy_messages schema</p></div>
+        <div class='inline'><p>AR model for the legacy load/save interface</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>raw_model_class</span>
+      
+      
+        <span class='type'>(<tt>Class</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>AR model for raw message storage</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>compaction_model_class</span>
+      
+      
+        <span class='type'>(<tt>Class</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>AR model for compaction records</p></div>
       
     </li>
   
@@ -290,15 +473,19 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-24
-25
-26</pre>
+45
+46
+47
+48
+49</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 24</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 45</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>model_class:</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>model_class:</span><span class='comma'>,</span> <span class='label'>raw_model_class:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>compaction_model_class:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@model_class</span> <span class='op'>=</span> <span class='id identifier rubyid_model_class'>model_class</span>
+  <span class='ivar'>@raw_model_class</span> <span class='op'>=</span> <span class='id identifier rubyid_raw_model_class'>raw_model_class</span>
+  <span class='ivar'>@compaction_model_class</span> <span class='op'>=</span> <span class='id identifier rubyid_compaction_model_class'>compaction_model_class</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -313,7 +500,103 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="clear-instance_method">
+  <h3 class="signature first" id="append_raw-instance_method">
+  
+    #<strong>append_raw</strong>(thread_id:, messages:, starting_seq:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>thread_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>messages</span>
+      
+      
+        <span class='type'>(<tt>Array</tt>)</span>
+      
+      
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>starting_seq</span>
+      
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 95</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_append_raw'>append_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='comma'>,</span> <span class='label'>starting_seq:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_ensure_raw_model!'>ensure_raw_model!</span>
+  <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_each_with_index'>each_with_index</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_msg'>msg</span><span class='comma'>,</span> <span class='id identifier rubyid_i'>i</span><span class='op'>|</span>
+    <span class='ivar'>@raw_model_class</span><span class='period'>.</span><span class='id identifier rubyid_create!'>create!</span><span class='lparen'>(</span>
+      <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
+      <span class='label'>seq:</span> <span class='id identifier rubyid_starting_seq'>starting_seq</span> <span class='op'>+</span> <span class='id identifier rubyid_i'>i</span><span class='comma'>,</span>
+      <span class='label'>role:</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_role'>role</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span>
+      <span class='label'>content:</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span>
+      <span class='label'>tool_calls_json:</span> <span class='id identifier rubyid_serialize_tool_calls'>serialize_tool_calls</span><span class='lparen'>(</span><span class='id identifier rubyid_msg'>msg</span><span class='rparen'>)</span><span class='comma'>,</span>
+      <span class='label'>model_id:</span> <span class='lparen'>(</span><span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_model_id'>model_id</span> <span class='kw'>if</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:model_id</span><span class='rparen'>)</span><span class='rparen'>)</span>
+    <span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="clear-instance_method">
   
     #<strong>clear</strong>(thread_id:)  &#x21d2; <tt>Object</tt> 
   
@@ -351,15 +634,127 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-68
-69
-70</pre>
+82
+83
+84
+85
+86</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 68</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 82</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
+  <span class='id identifier rubyid_clear_raw'>clear_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_clear_compactions'>clear_compactions</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="clear_compactions-instance_method">
+  
+    #<strong>clear_compactions</strong>(thread_id:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>thread_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+149
+150
+151</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 149</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_clear_compactions'>clear_compactions</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
+  <span class='ivar'>@compaction_model_class</span><span class='op'>&amp;.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='op'>&amp;.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="clear_raw-instance_method">
+  
+    #<strong>clear_raw</strong>(thread_id:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>thread_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+118
+119
+120</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 118</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_clear_raw'>clear_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
+  <span class='ivar'>@raw_model_class</span><span class='op'>&amp;.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='op'>&amp;.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -418,17 +813,159 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-32
-33
-34
-35</pre>
+59
+60
+61
+62</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 32</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 59</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_records'>records</span> <span class='op'>=</span> <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_order'>order</span><span class='lparen'>(</span><span class='symbol'>:created_at</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_to_a'>to_a</span>
   <span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_r'>r</span><span class='op'>|</span> <span class='id identifier rubyid_to_message_struct'>to_message_struct</span><span class='lparen'>(</span><span class='id identifier rubyid_r'>r</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="load_compactions-instance_method">
+  
+    #<strong>load_compactions</strong>(thread_id:)  &#x21d2; <tt>Array&lt;Hash&gt;</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>thread_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Array&lt;Hash&gt;</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+142
+143
+144
+145
+146</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 142</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_load_compactions'>load_compactions</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_ensure_compaction_model!'>ensure_compaction_model!</span>
+  <span class='id identifier rubyid_records'>records</span> <span class='op'>=</span> <span class='ivar'>@compaction_model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_order'>order</span><span class='lparen'>(</span><span class='symbol'>:start_seq</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_to_a'>to_a</span>
+  <span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_r'>r</span><span class='op'>|</span> <span class='lbrace'>{</span><span class='label'>start_seq:</span> <span class='id identifier rubyid_r'>r</span><span class='period'>.</span><span class='id identifier rubyid_start_seq'>start_seq</span><span class='comma'>,</span> <span class='label'>end_seq:</span> <span class='id identifier rubyid_r'>r</span><span class='period'>.</span><span class='id identifier rubyid_end_seq'>end_seq</span><span class='comma'>,</span> <span class='label'>summary_text:</span> <span class='id identifier rubyid_r'>r</span><span class='period'>.</span><span class='id identifier rubyid_summary_text'>summary_text</span><span class='rbrace'>}</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="load_raw-instance_method">
+  
+    #<strong>load_raw</strong>(thread_id:)  &#x21d2; <tt>Array&lt;Hash&gt;</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>thread_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Array&lt;Hash&gt;</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+111
+112
+113
+114
+115</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 111</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_load_raw'>load_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_ensure_raw_model!'>ensure_raw_model!</span>
+  <span class='id identifier rubyid_records'>records</span> <span class='op'>=</span> <span class='ivar'>@raw_model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_order'>order</span><span class='lparen'>(</span><span class='symbol'>:seq</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_to_a'>to_a</span>
+  <span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_r'>r</span><span class='op'>|</span> <span class='lbrace'>{</span><span class='label'>seq:</span> <span class='id identifier rubyid_r'>r</span><span class='period'>.</span><span class='id identifier rubyid_seq'>seq</span><span class='comma'>,</span> <span class='label'>message:</span> <span class='id identifier rubyid_to_message_struct'>to_message_struct</span><span class='lparen'>(</span><span class='id identifier rubyid_r'>r</span><span class='rparen'>)</span><span class='rbrace'>}</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -485,59 +1022,132 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-41
-42
-43
-44
-45
-46
-47
-48
-49
-50
-51
-52
-53
-54
-55
-56
-57
-58
-59
-60
-61
-62
-63
-64
-65</pre>
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 68</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='rparen'>)</span>
   <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
   <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_msg'>msg</span><span class='op'>|</span>
-    <span class='id identifier rubyid_tool_calls_json'>tool_calls_json</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:tool_calls</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_tool_calls'>tool_calls</span>
-      <span class='id identifier rubyid_serializable'>serializable</span> <span class='op'>=</span> <span class='kw'>case</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_tool_calls'>tool_calls</span>
-      <span class='kw'>when</span> <span class='const'>Hash</span>
-        <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_tool_calls'>tool_calls</span><span class='period'>.</span><span class='id identifier rubyid_transform_values'>transform_values</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_tc'>tc</span><span class='op'>|</span> <span class='id identifier rubyid_tc'>tc</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:to_h</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id identifier rubyid_tc'>tc</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span> <span class='op'>:</span> <span class='id identifier rubyid_tc'>tc</span> <span class='rbrace'>}</span>
-      <span class='kw'>when</span> <span class='const'>Array</span>
-        <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_tool_calls'>tool_calls</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_tc'>tc</span><span class='op'>|</span> <span class='id identifier rubyid_tc'>tc</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:to_h</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id identifier rubyid_tc'>tc</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span> <span class='op'>:</span> <span class='id identifier rubyid_tc'>tc</span> <span class='rbrace'>}</span>
-      <span class='kw'>else</span>
-        <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_tool_calls'>tool_calls</span>
-      <span class='kw'>end</span>
-      <span class='const'>JSON</span><span class='period'>.</span><span class='id identifier rubyid_generate'>generate</span><span class='lparen'>(</span><span class='id identifier rubyid_serializable'>serializable</span><span class='rparen'>)</span>
-    <span class='kw'>end</span>
-    <span class='id identifier rubyid_model_id'>model_id</span> <span class='op'>=</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_model_id'>model_id</span> <span class='kw'>if</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:model_id</span><span class='rparen'>)</span>
-
     <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_create!'>create!</span><span class='lparen'>(</span>
       <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
       <span class='label'>role:</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_role'>role</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span>
       <span class='label'>content:</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span>
-      <span class='label'>tool_calls_json:</span> <span class='id identifier rubyid_tool_calls_json'>tool_calls_json</span><span class='comma'>,</span>
-      <span class='label'>model_id:</span> <span class='id identifier rubyid_model_id'>model_id</span>
+      <span class='label'>tool_calls_json:</span> <span class='id identifier rubyid_serialize_tool_calls'>serialize_tool_calls</span><span class='lparen'>(</span><span class='id identifier rubyid_msg'>msg</span><span class='rparen'>)</span><span class='comma'>,</span>
+      <span class='label'>model_id:</span> <span class='lparen'>(</span><span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_model_id'>model_id</span> <span class='kw'>if</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:model_id</span><span class='rparen'>)</span><span class='rparen'>)</span>
     <span class='rparen'>)</span>
   <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="save_compaction-instance_method">
+  
+    #<strong>save_compaction</strong>(thread_id:, start_seq:, end_seq:, summary_text:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>thread_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>start_seq</span>
+      
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>end_seq</span>
+      
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>summary_text</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+130
+131
+132
+133
+134
+135
+136
+137
+138</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 130</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_save_compaction'>save_compaction</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>start_seq:</span><span class='comma'>,</span> <span class='label'>end_seq:</span><span class='comma'>,</span> <span class='label'>summary_text:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_ensure_compaction_model!'>ensure_compaction_model!</span>
+  <span class='ivar'>@compaction_model_class</span><span class='period'>.</span><span class='id identifier rubyid_create!'>create!</span><span class='lparen'>(</span>
+    <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
+    <span class='label'>start_seq:</span> <span class='id identifier rubyid_start_seq'>start_seq</span><span class='comma'>,</span>
+    <span class='label'>end_seq:</span> <span class='id identifier rubyid_end_seq'>end_seq</span><span class='comma'>,</span>
+    <span class='label'>summary_text:</span> <span class='id identifier rubyid_summary_text'>summary_text</span>
+  <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -549,7 +1159,7 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
 </div>
 
       <div id="footer">
-  Generated on Fri May  8 18:22:16 2026 by
+  Generated on Fri May  8 21:39:46 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

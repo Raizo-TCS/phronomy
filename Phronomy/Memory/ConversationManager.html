@@ -109,8 +109,18 @@
 - Retrieval:   which messages to select (Recent, Semantic, ...)
 - Compression: how to reduce message size before storage (Summary, ToolOutputPruner, ...)
 </code></pre>
-<p>This is the primary entry point for context region 4 (Conversation) in Agent::Base.
-It replaces the old Memory::WindowMemory / SummaryMemory / etc. monoliths.</p>
+<p>This is the primary entry point for context region 4 (Conversation) in Agent::Base.</p>
+<h3 id="Original_preservation_policy">Original preservation policy</h3>
+<p>All original messages are appended to Storage's raw history with a
+monotonically increasing seq number (0-based, per thread). Raw messages
+are never modified or deleted.</p>
+<p>When Compression::Summary performs a compaction, a compaction record
+{ start_seq:, end_seq:, summary_text: } is saved in Storage alongside the
+raw messages. This allows callers to reconstruct the full history or audit
+which messages were summarised.</p>
+<p>On #load, the message list is reconstructed from raw history + compaction
+records: each compacted range is replaced by a single summary system message,
+and uncompacted messages are returned verbatim.</p>
 
   </div>
 </div>
@@ -128,20 +138,12 @@ It replaces the old Memory::WindowMemory / SummaryMemory / etc. monoliths.</p>
 <span class='rparen'>)</span></code></pre>
     
       
-        <h5 class="example_title"><div class='inline'><p>With LLM summary compression</p></div></h5>
+        <h5 class="example_title"><div class='inline'><p>With LLM summary compaction</p></div></h5>
       
       <pre class="example code"><code><span class='id identifier rubyid_manager'>manager</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span><span class='op'>::</span><span class='const'>ConversationManager</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Memory::ConversationManager#initialize (method)">new</a></span></span><span class='lparen'>(</span>
   <span class='label'>storage:</span>     <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Storage.html" title="Phronomy::Memory::Storage (module)">Storage</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Storage/InMemory.html" title="Phronomy::Memory::Storage::InMemory (class)">InMemory</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Storage/InMemory.html#initialize-instance_method" title="Phronomy::Memory::Storage::InMemory#initialize (method)">new</a></span></span><span class='comma'>,</span>
   <span class='label'>retrieval:</span>   <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Retrieval.html" title="Phronomy::Memory::Retrieval (module)">Retrieval</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Retrieval/Recent.html" title="Phronomy::Memory::Retrieval::Recent (class)">Recent</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Retrieval/Recent.html#initialize-instance_method" title="Phronomy::Memory::Retrieval::Recent#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>k:</span> <span class='int'>5</span><span class='rparen'>)</span><span class='comma'>,</span>
   <span class='label'>compression:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Compression.html" title="Phronomy::Memory::Compression (module)">Compression</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Compression/Summary.html" title="Phronomy::Memory::Compression::Summary (class)">Summary</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Compression/Summary.html#initialize-instance_method" title="Phronomy::Memory::Compression::Summary#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>max_tokens:</span> <span class='int'>4000</span><span class='rparen'>)</span>
-<span class='rparen'>)</span></code></pre>
-    
-      
-        <h5 class="example_title"><div class='inline'><p>Semantic retrieval with ActiveRecord persistence</p></div></h5>
-      
-      <pre class="example code"><code><span class='id identifier rubyid_manager'>manager</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span><span class='op'>::</span><span class='const'>ConversationManager</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Memory::ConversationManager#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-  <span class='label'>storage:</span>   <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Storage.html" title="Phronomy::Memory::Storage (module)">Storage</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Storage/ActiveRecord.html" title="Phronomy::Memory::Storage::ActiveRecord (class)">ActiveRecord</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Storage/ActiveRecord.html#initialize-instance_method" title="Phronomy::Memory::Storage::ActiveRecord#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>model_class:</span> <span class='const'>PhronomyMessage</span><span class='rparen'>)</span><span class='comma'>,</span>
-  <span class='label'>retrieval:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Retrieval.html" title="Phronomy::Memory::Retrieval (module)">Retrieval</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Retrieval/Semantic.html" title="Phronomy::Memory::Retrieval::Semantic (class)">Semantic</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Retrieval/Semantic.html#initialize-instance_method" title="Phronomy::Memory::Retrieval::Semantic#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>embeddings:</span> <span class='id identifier rubyid_my_embeddings'>my_embeddings</span><span class='rparen'>)</span>
 <span class='rparen'>)</span></code></pre>
     
   </div>
@@ -179,7 +181,7 @@ It replaces the old Memory::WindowMemory / SummaryMemory / etc. monoliths.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Delete all messages for a thread.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Delete all messages (raw, compaction records, and legacy store) for a thread.</p></div></span>
   
 </li>
 
@@ -247,7 +249,7 @@ It replaces the old Memory::WindowMemory / SummaryMemory / etc. monoliths.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Persist messages for a thread, applying compression before saving.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Persist new messages for a thread and optionally apply compression.</p></div></span>
   
 </li>
 
@@ -331,14 +333,14 @@ It replaces the old Memory::WindowMemory / SummaryMemory / etc. monoliths.</p>
       <pre class="lines">
 
 
-35
-36
-37
-38
-39</pre>
+43
+44
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 35</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 43</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>storage:</span><span class='comma'>,</span> <span class='label'>retrieval:</span><span class='comma'>,</span> <span class='label'>compression:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@storage</span> <span class='op'>=</span> <span class='id identifier rubyid_storage'>storage</span>
@@ -368,7 +370,7 @@ It replaces the old Memory::WindowMemory / SummaryMemory / etc. monoliths.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Delete all messages for a thread.</p>
+    <p>Delete all messages (raw, compaction records, and legacy store) for a thread.</p>
 
   </div>
 </div>
@@ -396,13 +398,13 @@ It replaces the old Memory::WindowMemory / SummaryMemory / etc. monoliths.</p>
       <pre class="lines">
 
 
-69
-70
-71
-72</pre>
+118
+119
+120
+121</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 69</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 118</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
@@ -425,6 +427,10 @@ It replaces the old Memory::WindowMemory / SummaryMemory / etc. monoliths.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Load conversation messages for a thread, applying retrieval selection.</p>
+<p>Reconstructs the message list from raw history + compaction records:</p>
+<pre class="code ruby"><code class="ruby">- Each compacted range [start_seq..end_seq] is replaced by a summary
+system message.
+- Uncompacted messages are returned in original order.</code></pre>
 
   </div>
 </div>
@@ -455,7 +461,7 @@ It replaces the old Memory::WindowMemory / SummaryMemory / etc. monoliths.</p>
       
       
         &mdash;
-        <div class='inline'><p>current user input for query-aware retrieval strategies</p></div>
+        <div class='inline'><p>current user input for query-aware retrieval</p></div>
       
     </li>
   
@@ -481,16 +487,16 @@ It replaces the old Memory::WindowMemory / SummaryMemory / etc. monoliths.</p>
       <pre class="lines">
 
 
-46
-47
-48
-49</pre>
+59
+60
+61
+62</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 46</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 59</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_messages'>messages</span> <span class='op'>=</span> <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_messages'>messages</span> <span class='op'>=</span> <span class='id identifier rubyid_reconstruct'>reconstruct</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
   <span class='ivar'>@retrieval</span><span class='period'>.</span><span class='id identifier rubyid_select'>select</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='id identifier rubyid_query'>query</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -509,8 +515,13 @@ It replaces the old Memory::WindowMemory / SummaryMemory / etc. monoliths.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Persist messages for a thread, applying compression before saving.
-Also updates any retrieval index that requires it (e.g. Semantic).</p>
+    <p>Persist new messages for a thread and optionally apply compression.</p>
+<p>New messages are determined by comparing the incoming array length with
+the existing raw history length (messages are always append-only).
+Only truly new messages (beyond raw.length) are appended to raw storage.</p>
+<p>When a compression strategy is configured, it is evaluated against the
+full set of uncompacted raw messages. If compaction fires, the resulting
+compaction record is saved in storage (originals are preserved).</p>
 
   </div>
 </div>
@@ -538,6 +549,9 @@ Also updates any retrieval index that requires it (e.g. Semantic).</p>
       
       
       
+        &mdash;
+        <div class='inline'><p>full conversation history up to this point</p></div>
+      
     </li>
   
 </ul>
@@ -549,27 +563,85 @@ Also updates any retrieval index that requires it (e.g. Semantic).</p>
       <pre class="lines">
 
 
-56
-57
-58
-59
-60
-61
-62
-63
-64</pre>
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 76</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_to_save'>to_save</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ivar'>@compression</span>
-    <span class='ivar'>@compression</span><span class='period'>.</span><span class='id identifier rubyid_compress'>compress</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span>
+  <span class='comment'># Append only new messages to the raw history.
+</span>  <span class='id identifier rubyid_raw'>raw</span> <span class='op'>=</span> <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_load_raw'>load_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_starting_seq'>starting_seq</span> <span class='op'>=</span> <span class='id identifier rubyid_raw'>raw</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span>
+  <span class='id identifier rubyid_new_messages'>new_messages</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span><span class='lbracket'>[</span><span class='id identifier rubyid_starting_seq'>starting_seq</span><span class='op'>..</span><span class='rbracket'>]</span>
+  <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_append_raw'>append_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_new_messages'>new_messages</span><span class='comma'>,</span> <span class='label'>starting_seq:</span> <span class='id identifier rubyid_starting_seq'>starting_seq</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_new_messages'>new_messages</span><span class='op'>&amp;.</span><span class='id identifier rubyid_any?'>any?</span>
+
+  <span class='comment'># Apply compression to uncompacted messages if a strategy is configured.
+</span>  <span class='kw'>if</span> <span class='ivar'>@compression</span>
+    <span class='id identifier rubyid_compactions'>compactions</span> <span class='op'>=</span> <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_load_compactions'>load_compactions</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_uncompacted_start_seq'>uncompacted_start_seq</span> <span class='op'>=</span> <span class='id identifier rubyid_compactions'>compactions</span><span class='period'>.</span><span class='id identifier rubyid_any?'>any?</span> <span class='op'>?</span> <span class='id identifier rubyid_compactions'>compactions</span><span class='period'>.</span><span class='id identifier rubyid_last'>last</span><span class='lbracket'>[</span><span class='symbol'>:end_seq</span><span class='rbracket'>]</span> <span class='op'>+</span> <span class='int'>1</span> <span class='op'>:</span> <span class='int'>0</span>
+    <span class='id identifier rubyid_all_raw'>all_raw</span> <span class='op'>=</span> <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_load_raw'>load_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_uncompacted'>uncompacted</span> <span class='op'>=</span> <span class='id identifier rubyid_all_raw'>all_raw</span><span class='period'>.</span><span class='id identifier rubyid_select'>select</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_r'>r</span><span class='op'>|</span> <span class='id identifier rubyid_r'>r</span><span class='lbracket'>[</span><span class='symbol'>:seq</span><span class='rbracket'>]</span> <span class='op'>&gt;=</span> <span class='id identifier rubyid_uncompacted_start_seq'>uncompacted_start_seq</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_r'>r</span><span class='op'>|</span> <span class='id identifier rubyid_r'>r</span><span class='lbracket'>[</span><span class='symbol'>:message</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
+
+    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='ivar'>@compression</span><span class='period'>.</span><span class='id identifier rubyid_compress'>compress</span><span class='lparen'>(</span>
+      <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
+      <span class='label'>messages:</span> <span class='id identifier rubyid_uncompacted'>uncompacted</span><span class='comma'>,</span>
+      <span class='label'>seq_offset:</span> <span class='id identifier rubyid_uncompacted_start_seq'>uncompacted_start_seq</span>
+    <span class='rparen'>)</span>
+
+    <span class='kw'>if</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:compaction</span><span class='rbracket'>]</span>
+      <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_save_compaction'>save_compaction</span><span class='lparen'>(</span>
+        <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
+        <span class='label'>start_seq:</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:compaction</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='symbol'>:start_seq</span><span class='rbracket'>]</span><span class='comma'>,</span>
+        <span class='label'>end_seq:</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:compaction</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='symbol'>:end_seq</span><span class='rbracket'>]</span><span class='comma'>,</span>
+        <span class='label'>summary_text:</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:compaction</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='symbol'>:summary_text</span><span class='rbracket'>]</span>
+      <span class='rparen'>)</span>
+    <span class='kw'>end</span>
+
+    <span class='comment'># For non-Summary compressors (ToolOutputPruner), store the pruned
+</span>    <span class='comment'># version in the legacy store so legacy #load still works.
+</span>    <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:messages</span><span class='rbracket'>]</span><span class='rparen'>)</span>
   <span class='kw'>else</span>
-    <span class='id identifier rubyid_messages'>messages</span>
+    <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
-  <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_to_save'>to_save</span><span class='rparen'>)</span>
-  <span class='ivar'>@retrieval</span><span class='period'>.</span><span class='id identifier rubyid_index'>index</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_to_save'>to_save</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='ivar'>@retrieval</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:index</span><span class='rparen'>)</span>
+
+  <span class='ivar'>@retrieval</span><span class='period'>.</span><span class='id identifier rubyid_index'>index</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='ivar'>@retrieval</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:index</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -581,7 +653,7 @@ Also updates any retrieval index that requires it (e.g. Semantic).</p>
 </div>
 
       <div id="footer">
-  Generated on Fri May  8 18:22:16 2026 by
+  Generated on Fri May  8 21:39:46 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
