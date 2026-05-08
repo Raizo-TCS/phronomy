@@ -14,6 +14,12 @@ gem "webrick", "~> 1.8"
 
 gem "standard", "~> 1.3"
 
+# OpenTelemetry SDK for tracer adapter tests (not required at runtime)
+gem "opentelemetry-sdk", require: false
+
+# HTTP stubbing for LangfuseTracer unit tests
+gem "webmock", require: false
+
 # ActiveRecord + SQLite3 for real-DB unit tests
 gem "activerecord", "~> 7.1"
 gem "sqlite3", "~> 2.0"

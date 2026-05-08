@@ -399,4 +399,38 @@ module IntegrationFactors
     else raise ArgumentError, "Unknown splitter_type label: #{label}"
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Factor: tracer_type
+  #
+  # Returns a configured tracer instance for the given label.
+  # For :open_telemetry, the caller is responsible for setting up an OTel SDK
+  # with an InMemorySpanExporter before calling this helper.
+  #
+  # @param label [String] "null_tracer" | "open_telemetry" | "langfuse"
+  # @param exporter [Object, nil] InMemorySpanExporter for open_telemetry tests
+  # @return [Phronomy::Tracing::Base]
+  # ---------------------------------------------------------------------------
+  def self.tracer(label, exporter: nil)
+    case label
+    when "null_tracer"
+      Phronomy::Tracing::NullTracer.new
+    when "open_telemetry"
+      require "opentelemetry-sdk"
+      OpenTelemetry::SDK.configure do |c|
+        c.add_span_processor(
+          OpenTelemetry::SDK::Trace::Export::SimpleSpanProcessor.new(exporter)
+        )
+      end
+      Phronomy::Tracing::OpenTelemetryTracer.new(tracer_name: "phronomy_integration_test")
+    when "langfuse"
+      Phronomy::Tracing::LangfuseTracer.new(
+        public_key: "pk-test",
+        secret_key: "sk-test",
+        host: "https://cloud.langfuse.com"
+      )
+    else
+      raise ArgumentError, "Unknown tracer_type label: #{label}"
+    end
+  end
 end
