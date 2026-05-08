@@ -204,3 +204,23 @@ Group20,TC-003,"entity; sync; unavailable","sync mode never invokes ActiveJob","
 Group20,TC-004,"entity; async; available","job enqueued; write deferred until perform_now","AsyncSaveJob.set called; load_messages empty before; populated after perform_now","enqueue verified; write verified",PASS,
 Group20,TC-005,"ar_stub; sync; available","AR stub delete_all and create! called synchronously","model_class.store not empty after save","AR write verified",PASS,
 Group20,TC-006,"ar_stub; async; unavailable","ConfigurationError raised for AR memory when ActiveJob undefined","raise_error(Phronomy::ConfigurationError)","ConfigurationError raised",PASS,
+Group21,TC-001,"ToolError; exponential; zero","immediate propagation; no sleep","raise_error(ToolError); sleep_log empty","ToolError; no sleep",PASS,
+Group21,TC-002,"ToolError; linear; two","retry and recover; linear sleep","result recovered; sleep_log [1.0, 2.0]","recovered; [1.0, 2.0]",PASS,
+Group21,TC-003,"ToolError; fixed; three","exhausted retries; fixed wait","sleep_log [0.5, 0.5, 0.5]","[0.5, 0.5, 0.5]",PASS,
+Group21,TC-004,"RuntimeError; exponential; two","custom exception; exponential back-off","recovered; sleep_log [1.0]","recovered; [1.0]",PASS,
+Group21,TC-005,"RuntimeError; linear; zero","wait unobservable with times=0","(infeasible)","n/a",SKIP,wait strategy unobservable when times=0; covered by TC-001
+Group21,TC-006,"RuntimeError; fixed; zero","wait unobservable with times=0","(infeasible)","n/a",SKIP,wait strategy unobservable when times=0; covered by TC-001
+Group21,TC-007,"RuntimeError; exponential; three","full retry count; exponential","sleep_log [1.0, 2.0, 4.0]","[1.0, 2.0, 4.0]",PASS,
+Group21,TC-008,"GuardrailError; exponential; zero","not retried; immediate ToolError","raise_error(ToolError); sleep_log empty","ToolError; no sleep",PASS,
+Group21,TC-009,"GuardrailError; linear; three for ToolError","GuardrailError not matched by policy","raise_error(ToolError); sleep_log empty","ToolError; no sleep",PASS,
+Group21,TC-010,"GuardrailError; fixed; two for RuntimeError","GuardrailError not matched by policy","raise_error(ToolError); sleep_log empty","ToolError; no sleep",PASS,
+Group22,TC-001,"RateLimitError; exponential; zero","immediate propagation; no sleep","raise_error(RubyLLM::RateLimitError); sleep_log empty","RateLimitError; no sleep",PASS,
+Group22,TC-002,"RateLimitError; linear; one","retry once; linear sleep; recover or exhaust","recovered; sleep_log [1.0] / raised; sleep_log [1.0]","recovered; [1.0]",PASS,
+Group22,TC-003,"RateLimitError; fixed; two","retry twice; fixed wait; recover or exhaust","recovered; sleep_log [0.5,0.5] / raised; [0.5,0.5]","recovered; [0.5,0.5]",PASS,
+Group22,TC-004,"ServiceUnavailableError; linear; zero","immediate propagation; no sleep","raise_error(RubyLLM::ServiceUnavailableError); sleep_log empty","ServiceUnavailableError; no sleep",PASS,
+Group22,TC-005,"ServiceUnavailableError; exponential; one","retry once; exponential; recover","recovered; sleep_log [1.0]","recovered; [1.0]",PASS,
+Group22,TC-006,"ServiceUnavailableError; exponential; two","full retry count; exponential","raise after two retries; sleep_log [1.0, 2.0]","[1.0, 2.0]",PASS,
+Group22,TC-007,"ServiceUnavailableError; fixed; zero","wait unobservable with times=0","(infeasible)","n/a",SKIP,wait strategy unobservable when times=0; covered by TC-004
+Group22,TC-008,"ServerError; exponential; zero","immediate propagation; no sleep","raise_error(RubyLLM::ServerError); sleep_log empty","ServerError; no sleep",PASS,
+Group22,TC-009,"ServerError; fixed; one","retry once; fixed sleep; recover","recovered; sleep_log [0.5]","recovered; [0.5]",PASS,
+Group22,TC-010,"ServerError; linear; two","full retry count; linear","raise after two retries; sleep_log [1.0, 2.0]","[1.0, 2.0]",PASS,

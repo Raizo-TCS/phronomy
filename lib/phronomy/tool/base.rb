@@ -96,6 +96,44 @@ module Phronomy
 
           @requires_approval = value
         end
+
+        # Registers a retry policy for one or more exception classes.
+        #
+        # When the tool raises one of the listed exception classes, it will be
+        # retried up to +times+ times with the specified wait strategy.
+        # Multiple policies can be registered and are evaluated in order.
+        #
+        # GuardrailError is never retried regardless of this configuration.
+        #
+        # @param exception_classes [Array<Class>] exception classes to retry on
+        # @param times  [Integer] maximum retry attempts (default: 1)
+        # @param wait   [Symbol, Numeric] :exponential, :linear, or a fixed Float
+        # @param base   [Float]   base wait time in seconds (default: 1.0)
+        #
+        # @example
+        #   retry_on Phronomy::ToolError, times: 3, wait: :exponential, base: 1.0
+        #   retry_on Net::ReadTimeout, times: 2, wait: 0.5
+        def retry_on(*exception_classes, times: 1, wait: 0, base: 1.0)
+          @retry_policies ||= []
+          @retry_policies << {exceptions: exception_classes, times: times, wait: wait, base: base}
+        end
+
+        # Returns all retry policies registered on this tool class.
+        # @return [Array<Hash>]
+        def retry_policies
+          @retry_policies || []
+        end
+
+        # Injectable sleep callable for testing.
+        # Defaults to Kernel#sleep.
+        # @return [#call]
+        def _sleep_proc
+          @_sleep_proc || method(:sleep)
+        end
+
+        # Overrides the sleep callable used between retries.
+        # @param proc [#call]
+        attr_writer :_sleep_proc
       end
 
       # Returns the function name exposed to the LLM.
@@ -125,13 +163,13 @@ module Phronomy
         schema
       end
 
-      # Overrides RubyLLM::Tool#call to apply schema validation, the on_error policy,
-      # and wrap errors as ToolError.
+      # Overrides RubyLLM::Tool#call to apply schema validation, the retry policy,
+      # the on_error policy, and wrap errors as ToolError.
       #
-      # Schema validation order:
-      #   1. Type checking — verifies each argument matches its declared :type.
-      #   2. Enum checking — verifies enum-constrained params are within allowed values.
-      # When a violation is found, the on_schema_error policy decides the outcome.
+      # Execution order:
+      #   1. Schema validation (type + enum checks).
+      #   2. Call super(validated_args) inside a retry loop.
+      #   3. On persistent failure, apply on_error policy.
       def call(args)
         validated_args, schema_error = validate_and_coerce(args)
         if schema_error
@@ -143,7 +181,7 @@ module Phronomy
             return "Schema validation failed: #{schema_error}"
           end
         end
-        super(validated_args)
+        with_tool_retry { super(validated_args) }
       rescue Phronomy::ToolError
         raise
       rescue => e
@@ -161,6 +199,48 @@ module Phronomy
       end
 
       private
+
+      # Executes the given block inside a retry loop driven by the class-level
+      # retry_policies. Each policy matches by exception class; the first matching
+      # policy governs the wait and retry count. Raises immediately when no policy
+      # covers the exception or when all retries are exhausted.
+      def with_tool_retry
+        policies = self.class.retry_policies
+        return yield if policies.empty?
+
+        attempt = 0
+        begin
+          yield
+        rescue => e
+          policy = policies.find { |p| p[:exceptions].any? { |ex| e.is_a?(ex) } }
+          if policy && attempt < policy[:times]
+            wait = compute_retry_wait(policy[:wait], policy[:base], attempt)
+            self.class._sleep_proc.call(wait) if wait > 0
+            attempt += 1
+            retry
+          end
+          raise
+        end
+      end
+
+      # Computes the wait duration for a given strategy, base, and attempt index.
+      #
+      # @param strategy [Symbol, Numeric] :exponential, :linear, or a fixed Numeric
+      # @param base     [Float]           base wait time in seconds
+      # @param attempt  [Integer]         zero-based attempt index
+      # @return [Float]
+      def compute_retry_wait(strategy, base, attempt)
+        case strategy
+        when :exponential
+          (2**attempt) * base
+        when :linear
+          (attempt + 1) * base
+        when Numeric
+          strategy.to_f
+        else
+          base.to_f
+        end
+      end
 
       # Validates args against declared parameter types and enum constraints.
       # When on_schema_error is :coerce, attempts type coercion first.

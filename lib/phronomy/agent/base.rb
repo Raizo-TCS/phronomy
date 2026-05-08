@@ -83,6 +83,35 @@ module Phronomy
           end
         end
 
+        # Configures a retry policy that wraps the full #invoke call.
+        # GuardrailError is never retried regardless of this setting.
+        #
+        # @param times [Integer] maximum retry attempts (default: 0)
+        # @param wait  [Symbol, Numeric] :exponential, :linear, or a fixed Float
+        # @param base  [Float]  base wait time in seconds (default: 1.0)
+        #
+        # @example
+        #   class MyAgent < Phronomy::Agent::Base
+        #     retry_policy times: 2, wait: :exponential, base: 1.0
+        #   end
+        def retry_policy(times: 0, wait: 0, base: 1.0)
+          @_retry_policy = {times: times, wait: wait, base: base}
+        end
+
+        # Returns the configured retry policy, or nil when none is set.
+        # @return [Hash, nil]
+        attr_reader :_retry_policy
+
+        # Injectable sleep callable for testing (shared with Tool::Base pattern).
+        # @return [#call]
+        def _sleep_proc
+          @_sleep_proc || method(:sleep)
+        end
+
+        # Overrides the sleep callable used between retries.
+        # @param proc [#call]
+        attr_writer :_sleep_proc
+
         # When enabled, attaches Anthropic prompt-cache markers to the system
         # message so that the fixed instructions are served from cache on
         # subsequent turns, reducing input-token costs.
@@ -138,37 +167,21 @@ module Phronomy
       end
 
       def invoke(input, config: {})
-        # Run input guardrails before touching the LLM.
-        run_input_guardrails!(input)
-
-        memory = config[:memory]
-        thread_id = config[:thread_id]
-
-        chat = build_chat
-        system_msg = build_instructions(input)
-        apply_instructions(chat, system_msg) if system_msg
-
-        # Inject previous messages from memory before asking.
-        if memory && thread_id
-          token_budget = build_token_budget
-          memory.load_messages(thread_id: thread_id, token_budget: token_budget).each do |msg|
-            chat.messages << msg
+        policy = self.class._retry_policy
+        attempt = 0
+        begin
+          invoke_once(input, config: config)
+        rescue Phronomy::GuardrailError
+          raise
+        rescue
+          if policy && attempt < policy[:times]
+            wait = compute_agent_retry_wait(policy[:wait], policy[:base], attempt)
+            self.class._sleep_proc.call(wait) if wait > 0
+            attempt += 1
+            retry
           end
+          raise
         end
-
-        user_message = extract_message(input)
-        response = chat.ask(user_message)
-
-        # Persist the updated conversation to memory.
-        memory.save_messages(thread_id: thread_id, messages: chat.messages) if memory && thread_id
-
-        output = response.content
-        usage = Phronomy::TokenUsage.from_tokens(response.tokens)
-
-        # Run output guardrails before returning to the caller.
-        run_output_guardrails!(output)
-
-        {output: output, messages: chat.messages, usage: usage}
       end
 
       # Streaming version of #invoke. Yields {Phronomy::Agent::StreamEvent} objects
@@ -263,6 +276,60 @@ module Phronomy
       end
 
       private
+
+      # Performs a single (non-retried) invocation. Extracted so that #invoke can
+      # wrap it in a retry loop without duplicating the LLM interaction logic.
+      def invoke_once(input, config: {})
+        # Run input guardrails before touching the LLM.
+        run_input_guardrails!(input)
+
+        memory = config[:memory]
+        thread_id = config[:thread_id]
+
+        chat = build_chat
+        system_msg = build_instructions(input)
+        apply_instructions(chat, system_msg) if system_msg
+
+        # Inject previous messages from memory before asking.
+        if memory && thread_id
+          token_budget = build_token_budget
+          memory.load_messages(thread_id: thread_id, token_budget: token_budget).each do |msg|
+            chat.messages << msg
+          end
+        end
+
+        user_message = extract_message(input)
+        response = chat.ask(user_message)
+
+        # Persist the updated conversation to memory.
+        memory.save_messages(thread_id: thread_id, messages: chat.messages) if memory && thread_id
+
+        output = response.content
+        usage = Phronomy::TokenUsage.from_tokens(response.tokens)
+
+        # Run output guardrails before returning to the caller.
+        run_output_guardrails!(output)
+
+        {output: output, messages: chat.messages, usage: usage}
+      end
+
+      # Computes the agent-level retry wait duration.
+      # @param strategy [Symbol, Numeric]
+      # @param base     [Float]
+      # @param attempt  [Integer]
+      # @return [Float]
+      def compute_agent_retry_wait(strategy, base, attempt)
+        case strategy
+        when :exponential
+          (2**attempt) * base
+        when :linear
+          (attempt + 1) * base
+        when Numeric
+          strategy.to_f
+        else
+          base.to_f
+        end
+      end
 
       # Builds a TokenBudget for this agent's model if possible.
       # Returns nil when the model is not registered in RubyLLM (e.g. local/unknown models).
