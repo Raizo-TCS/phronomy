@@ -28,6 +28,15 @@ RSpec.configure do |config|
     raise "Integration test timed out after 90 s: #{example.full_description}"
   end
 
+  # WebMock (required by tracing_adapters_spec.rb) globally disables real HTTP
+  # connections once loaded. Re-allow them before each example so that LM Studio
+  # calls in other spec groups are not blocked. Tests that need stubs (e.g.
+  # LangfuseTracer) use stub_request inside their example body, which WebMock
+  # still intercepts even when allow_net_connect! is active.
+  config.before(:each) do
+    WebMock.allow_net_connect! if defined?(WebMock)
+  end
+
   config.before(:suite) do
     RubyLLM.configure do |c|
       c.openai_api_base = LM_STUDIO_API_BASE
