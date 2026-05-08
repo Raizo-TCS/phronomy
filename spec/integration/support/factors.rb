@@ -161,6 +161,8 @@ module IntegrationFactors
         {memory: Phronomy::Memory::WindowMemory.new(k: 5), weight: 1.0}
       ]
       Phronomy::Memory::CompositeMemory.new(sources: sources)
+    when "entity"
+      Phronomy::Memory::EntityMemory.new(k: opts.fetch(:k, 20))
     else
       raise ArgumentError, "Unknown memory_type label: #{label}"
     end

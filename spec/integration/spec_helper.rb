@@ -19,10 +19,19 @@ RSpec.configure do |config|
     c.syntax = :expect
   end
 
+  # Abort individual integration tests that hang (e.g. LLM call never returns).
+  config.around(:each, :integration) do |example|
+    require "timeout"
+    Timeout.timeout(90) { example.run }
+  rescue Timeout::Error
+    raise "Integration test timed out after 90 s: #{example.full_description}"
+  end
+
   config.before(:suite) do
     RubyLLM.configure do |c|
       c.openai_api_base = LM_STUDIO_API_BASE
       c.openai_api_key = LM_STUDIO_API_KEY
+      c.request_timeout = 60
     end
     # default_model is intentionally left nil so that RubyLLM.chat() is called
     # without a model argument. LM Studio ignores the model name and serves
