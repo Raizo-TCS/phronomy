@@ -198,3 +198,9 @@ Group19,TC-012,"coerce; wrong_type (array)","coercion fails → error string","s
 Group19,TC-013,"coerce; bad_enum","enum still enforced after coercion → error string","starts_with('Schema validation failed:')","starts_with check passed",PASS,
 Group19,TC-014,"coerce; coercible","numeric string coerced to integer → executes","result == 'ok: count=7 mode=slow'","'ok: count=7 mode=slow'",PASS,
 Group19,TC-015,"coerce; uncoercible","coercion fails → fallback error string","starts_with('Schema validation failed:')","starts_with check passed",PASS,
+Group20,TC-001,"window; sync; available","sync save completes immediately","mem.load_messages returns msgs","msgs loaded",PASS,
+Group20,TC-002,"window; async; unavailable","ConfigurationError raised when ActiveJob undefined","raise_error(Phronomy::ConfigurationError)","ConfigurationError raised",PASS,
+Group20,TC-003,"entity; sync; unavailable","sync mode never invokes ActiveJob","(infeasible — no observable difference)","n/a",SKIP,sync mode does not invoke ActiveJob regardless of availability
+Group20,TC-004,"entity; async; available","job enqueued; write deferred until perform_now","AsyncSaveJob.set called; load_messages empty before; populated after perform_now","enqueue verified; write verified",PASS,
+Group20,TC-005,"ar_stub; sync; available","AR stub delete_all and create! called synchronously","model_class.store not empty after save","AR write verified",PASS,
+Group20,TC-006,"ar_stub; async; unavailable","ConfigurationError raised for AR memory when ActiveJob undefined","raise_error(Phronomy::ConfigurationError)","ConfigurationError raised",PASS,

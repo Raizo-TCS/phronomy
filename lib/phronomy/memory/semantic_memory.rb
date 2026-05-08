@@ -26,7 +26,8 @@ module Phronomy
       # @param embeddings       [Phronomy::Embeddings::Base, nil] embeddings adapter; default RubyLLMEmbeddings
       # @param embedding_model  [String, nil] shorthand for RubyLLMEmbeddings model; ignored when embeddings: is given
       # @param k                [Integer]     number of results to return
-      def initialize(store: nil, embeddings: nil, embedding_model: nil, k: 10)
+      def initialize(store: nil, embeddings: nil, embedding_model: nil, k: 10, async: false, queue: :default)
+        super(async: async, queue: queue)
         @store = store || Phronomy::VectorStore::InMemory.new
         @embeddings = embeddings || Phronomy::Embeddings::RubyLLMEmbeddings.new(model: embedding_model)
         @k = k

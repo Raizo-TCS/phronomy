@@ -580,4 +580,46 @@ module IntegrationFactors
       end
     end
   end
+
+  # ── async memory helpers ─────────────────────────────────────────────────
+
+  # Builds a memory backend for async write tests.
+  #
+  # @param backend_label [String] "window" | "entity" | "ar_stub"
+  # @param async         [Boolean]
+  # @param queue         [Symbol]
+  # @return [Phronomy::Memory::Base]
+  def self.async_memory(backend_label, async: false, queue: :default)
+    case backend_label
+    when "window"
+      Phronomy::Memory::WindowMemory.new(k: 5, async: async, queue: queue)
+    when "entity"
+      Phronomy::Memory::EntityMemory.new(k: 10, async: async, queue: queue)
+    when "ar_stub"
+      model_class = Class.new do
+        def self.where(*)
+          self
+        end
+
+        def self.order(*)
+          self
+        end
+
+        def self.delete_all
+        end
+
+        def self.create!(**)
+        end
+
+        def self.to_a
+          []
+        end
+      end
+      Phronomy::Memory::ActiveRecordMemory.new(
+        model_class: model_class, async: async, queue: queue
+      )
+    else
+      raise ArgumentError, "Unknown async_memory backend_label: #{backend_label}"
+    end
+  end
 end

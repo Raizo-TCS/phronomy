@@ -22,6 +22,8 @@ module Phronomy
   class RecursionLimitError < Error; end
   class ToolError < Error; end
 
+  class ConfigurationError < Error; end
+
   class GuardrailError < Error
     attr_reader :guardrail
 

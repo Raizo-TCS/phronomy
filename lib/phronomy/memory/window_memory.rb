@@ -8,7 +8,8 @@ module Phronomy
     # message count: messages are accumulated from newest to oldest until the budget's
     # effective_input_limit would be exceeded.
     class WindowMemory < Base
-      def initialize(k: 10)
+      def initialize(k: 10, async: false, queue: :default)
+        super(async: async, queue: queue)
         @k = k
         @store = {}
       end

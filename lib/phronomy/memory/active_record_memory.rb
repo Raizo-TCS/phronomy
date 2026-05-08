@@ -28,7 +28,8 @@ module Phronomy
     class ActiveRecordMemory < Base
       # @param model_class [Class] ActiveRecord model with the phronomy_messages schema.
       # @param pruner      [Phronomy::Memory::Pruner::Base, nil] optional message pruner
-      def initialize(model_class:, pruner: nil)
+      def initialize(model_class:, pruner: nil, async: false, queue: :default)
+        super(async: async, queue: queue)
         @model_class = model_class
         @pruner = pruner
       end

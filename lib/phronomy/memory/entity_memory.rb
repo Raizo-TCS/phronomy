@@ -34,7 +34,8 @@ module Phronomy
         [:preference, /\bI (?:like|love|enjoy)\s+([A-Za-z][A-Za-z0-9 \-']*)/i]
       ].freeze
 
-      def initialize(k: 20)
+      def initialize(k: 20, async: false, queue: :default)
+        super(async: async, queue: queue)
         @k = k
         @store = {}    # thread_id => Array of messages
         @entities = {} # thread_id => Hash{ key => value }

@@ -11,7 +11,8 @@ module Phronomy
     # When a token_budget is passed to load_messages, budget.effective_input_limit
     # is used as the threshold. Otherwise the constructor's max_tokens is used.
     class SummaryMemory < Base
-      def initialize(max_tokens: 4000, summarizer_model: nil, summarizer_provider: nil)
+      def initialize(max_tokens: 4000, summarizer_model: nil, summarizer_provider: nil, async: false, queue: :default)
+        super(async: async, queue: queue)
         @max_tokens = max_tokens
         @summarizer_model = summarizer_model
         @summarizer_provider = summarizer_provider

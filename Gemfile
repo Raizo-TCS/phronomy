@@ -23,3 +23,6 @@ gem "webmock", require: false
 # ActiveRecord + SQLite3 for real-DB unit tests
 gem "activerecord", "~> 7.1"
 gem "sqlite3", "~> 2.0"
+
+# ActiveJob for async memory write tests
+gem "activejob", "~> 7.1"
