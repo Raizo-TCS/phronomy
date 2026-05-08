@@ -367,4 +367,36 @@ module IntegrationFactors
       raise ArgumentError, "Unknown vector_store_backend label: #{label}"
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Factor: loader_type
+  #
+  # @param label [String] "plain_text" | "markdown_with_headings" |
+  #                       "markdown_no_split" | "csv_with_headers"
+  # @return [Phronomy::Loader::Base]
+  # ---------------------------------------------------------------------------
+  def self.loader(label)
+    case label
+    when "plain_text" then Phronomy::Loader::PlainTextLoader.new
+    when "markdown_with_headings" then Phronomy::Loader::MarkdownLoader.new(split_on_headings: true)
+    when "markdown_no_split" then Phronomy::Loader::MarkdownLoader.new(split_on_headings: false)
+    when "csv_with_headers" then Phronomy::Loader::CsvLoader.new(headers: true)
+    else raise ArgumentError, "Unknown loader_type label: #{label}"
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Factor: splitter_type
+  #
+  # @param label [String] "none" | "fixed_size" | "recursive"
+  # @return [Phronomy::Splitter::Base, nil]
+  # ---------------------------------------------------------------------------
+  def self.splitter(label)
+    case label
+    when "none" then nil
+    when "fixed_size" then Phronomy::Splitter::FixedSizeSplitter.new(chunk_size: 200, chunk_overlap: 20)
+    when "recursive" then Phronomy::Splitter::RecursiveSplitter.new(chunk_size: 200, chunk_overlap: 20)
+    else raise ArgumentError, "Unknown splitter_type label: #{label}"
+    end
+  end
 end
