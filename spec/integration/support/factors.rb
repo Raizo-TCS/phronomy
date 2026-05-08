@@ -253,4 +253,66 @@ module IntegrationFactors
       end
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Factor: prompt_template_type
+  #
+  # @param label [String] "human_only" | "with_system" | "multi_variable"
+  # @return [Phronomy::Chain::PromptTemplate]
+  # ---------------------------------------------------------------------------
+  def self.prompt_template(label)
+    case label
+    when "human_only"
+      Phronomy::Chain::PromptTemplate.new(template: "Answer this question: {{question}}")
+    when "with_system"
+      Phronomy::Chain::PromptTemplate.new(
+        template: "Answer this question: {{question}}",
+        system_template: "You are a {{role}} expert. Keep answers very short."
+      )
+    when "multi_variable"
+      Phronomy::Chain::PromptTemplate.new(
+        template: "Translate {{text}} from {{source_lang}} to {{target_lang}}.",
+        system_template: "You are a professional translator."
+      )
+    else
+      raise ArgumentError, "Unknown prompt_template_type label: #{label}"
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Factor: llm_chain
+  #
+  # @return [Phronomy::Chain::LLMChain]
+  # ---------------------------------------------------------------------------
+  def self.llm_chain
+    Phronomy::Chain::LLMChain.new(model: LM_STUDIO_MODEL, provider: :openai)
+  end
+
+  # ---------------------------------------------------------------------------
+  # Factor: streaming_agent_class
+  #
+  # Builds an agent class pre-configured for streaming tests.
+  #
+  # @param label [String] "base" | "react"
+  # @param tools [Array, Hash] tool list (default [])
+  # @param instructions [String, Phronomy::Chain::PromptTemplate] instructions
+  # @return [Class]
+  # ---------------------------------------------------------------------------
+  def self.streaming_agent_class(label, tools: [], instructions: "You are a helpful assistant.")
+    base_klass = (label == "react") ? Phronomy::Agent::ReactAgent : Phronomy::Agent::Base
+    model_name = LM_STUDIO_MODEL
+    tool_arg = tools
+    instr = instructions
+
+    Class.new(base_klass) do
+      model model_name
+      provider :openai
+      self.instructions(instr)
+
+      case tool_arg
+      when Hash then self.tools(tool_arg)
+      when Array then self.tools(*tool_arg) unless tool_arg.empty?
+      end
+    end
+  end
 end

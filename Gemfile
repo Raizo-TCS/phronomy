@@ -10,6 +10,8 @@ gem "rake", "~> 13.0"
 
 gem "rspec", "~> 3.0"
 
+gem "webrick", "~> 1.8"
+
 gem "standard", "~> 1.3"
 
 # ActiveRecord + SQLite3 for real-DB unit tests
