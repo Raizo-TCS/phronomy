@@ -316,6 +316,23 @@ module Phronomy
           end
         end
 
+        # Overrides the context window size used for token budget calculations.
+        # When set, this value takes precedence over the RubyLLM model registry,
+        # which is useful for locally-hosted models (e.g. LM Studio) where the
+        # actually-loaded context length may differ from the catalogue value.
+        #
+        # @example
+        #   class MyAgent < Phronomy::Agent::Base
+        #     context_window 4096
+        #   end
+        def context_window(val = nil)
+          if val.nil?
+            @context_window
+          else
+            @context_window = val.to_i
+          end
+        end
+
         # Tokens reserved for the system prompt + tool definitions overhead.
         # Subtract this from the context window before computing the memory budget.
         #
@@ -570,16 +587,27 @@ module Phronomy
       end
 
       # Builds a TokenBudget for this agent's model if possible.
+      # When context_window is set at the class level, that value is used directly
+      # (bypassing the RubyLLM catalogue) — useful for locally-hosted models where
+      # the loaded context length differs from the catalogue value.
       # Returns nil when the model is not registered in RubyLLM (e.g. local/unknown models).
       def build_token_budget
         model_name = self.class.model
         return nil unless model_name
 
-        Phronomy::Context::TokenBudget.new(
-          model: model_name,
-          max_output_tokens: self.class.max_output_tokens,
-          overhead: self.class.context_overhead
-        )
+        if (cw = self.class.context_window)
+          Phronomy::Context::TokenBudget.new(
+            context_window: cw,
+            max_output_tokens: self.class.max_output_tokens || 0,
+            overhead: self.class.context_overhead
+          )
+        else
+          Phronomy::Context::TokenBudget.new(
+            model: model_name,
+            max_output_tokens: self.class.max_output_tokens,
+            overhead: self.class.context_overhead
+          )
+        end
       rescue Phronomy::Context::UnknownModelError, RubyLLM::ModelNotFoundError
         nil
       end
