@@ -18,12 +18,15 @@ module Phronomy
         # Configures this model as a Phronomy message store.
         # Applies validations and exposes a convenience factory method.
         #
-        # @return [Phronomy::Memory::ActiveRecordMemory] a ready-to-use memory object
+        # @return [Phronomy::Memory::ConversationManager] a ready-to-use memory object
         def acts_as_phronomy_message
           include ::Phronomy::ActiveRecord::Message
 
           define_singleton_method(:phronomy_memory) do
-            ::Phronomy::Memory::ActiveRecordMemory.new(model_class: self)
+            ::Phronomy::Memory::ConversationManager.new(
+              storage: ::Phronomy::Memory::Storage::ActiveRecord.new(model_class: self),
+              retrieval: ::Phronomy::Memory::Retrieval::Recent.new
+            )
           end
         end
       end

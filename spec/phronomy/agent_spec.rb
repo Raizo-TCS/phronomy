@@ -133,15 +133,15 @@ RSpec.describe Phronomy::Agent::Base do
     context "with memory and thread_id in config" do
       let(:prev_msg) { double("PrevMessage", role: :user, content: "previous") }
       let(:memory) do
-        mem = instance_double(Phronomy::Memory::WindowMemory)
-        allow(mem).to receive(:load_messages).and_return([prev_msg])
-        allow(mem).to receive(:save_messages)
+        mem = instance_double(Phronomy::Memory::ConversationManager)
+        allow(mem).to receive(:load).and_return([prev_msg])
+        allow(mem).to receive(:save)
         mem
       end
 
       it "loads previous messages from memory before asking" do
         agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
-        expect(memory).to have_received(:load_messages).with(thread_id: "t1", query: "Hello")
+        expect(memory).to have_received(:load).with(thread_id: "t1", query: "Hello")
       end
 
       it "injects the loaded message into the chat" do
@@ -151,7 +151,7 @@ RSpec.describe Phronomy::Agent::Base do
 
       it "saves updated messages back to memory after invoke" do
         agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
-        expect(memory).to have_received(:save_messages).with(
+        expect(memory).to have_received(:save).with(
           thread_id: "t1",
           messages: fake_chat.messages
         )
@@ -159,8 +159,8 @@ RSpec.describe Phronomy::Agent::Base do
 
       it "skips memory when config has no thread_id" do
         agent.invoke("Hello", config: {memory: memory})
-        expect(memory).not_to have_received(:load_messages)
-        expect(memory).not_to have_received(:save_messages)
+        expect(memory).not_to have_received(:load)
+        expect(memory).not_to have_received(:save)
       end
 
       it "skips memory when config has no memory" do
@@ -215,9 +215,9 @@ RSpec.describe Phronomy::Agent::Base do
 
       let(:prev_msg) { double("PrevMessage", role: :user, content: "previous") }
       let(:memory) do
-        mem = instance_double(Phronomy::Memory::WindowMemory)
-        allow(mem).to receive(:load_messages).and_return([prev_msg])
-        allow(mem).to receive(:save_messages)
+        mem = instance_double(Phronomy::Memory::ConversationManager)
+        allow(mem).to receive(:load).and_return([prev_msg])
+        allow(mem).to receive(:save)
         mem
       end
 
@@ -466,9 +466,9 @@ RSpec.describe Phronomy::Agent::ReactAgent do
     end
 
     let(:memory) do
-      mem = instance_double(Phronomy::Memory::WindowMemory)
-      allow(mem).to receive(:load_messages).and_return([prev_msg])
-      allow(mem).to receive(:save_messages)
+      mem = instance_double(Phronomy::Memory::ConversationManager)
+      allow(mem).to receive(:load).and_return([prev_msg])
+      allow(mem).to receive(:save)
       mem
     end
 
@@ -480,7 +480,7 @@ RSpec.describe Phronomy::Agent::ReactAgent do
 
     it "loads previous messages from memory before invoking" do
       agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
-      expect(memory).to have_received(:load_messages).with(thread_id: "t1", query: "Hello")
+      expect(memory).to have_received(:load).with(thread_id: "t1", query: "Hello")
     end
 
     it "injects the loaded message into the chat before asking" do
@@ -491,7 +491,7 @@ RSpec.describe Phronomy::Agent::ReactAgent do
 
     it "saves final messages back to memory after completing" do
       result = agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
-      expect(memory).to have_received(:save_messages).with(
+      expect(memory).to have_received(:save).with(
         thread_id: "t1",
         messages: result[:messages]
       )
@@ -499,8 +499,8 @@ RSpec.describe Phronomy::Agent::ReactAgent do
 
     it "skips memory when no thread_id is provided" do
       agent.invoke("Hello", config: {memory: memory})
-      expect(memory).not_to have_received(:load_messages)
-      expect(memory).not_to have_received(:save_messages)
+      expect(memory).not_to have_received(:load)
+      expect(memory).not_to have_received(:save)
     end
   end
 end

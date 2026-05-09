@@ -40,9 +40,9 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
 
   # --------------------------------------------------------------------------
   # TC-002: base / window / splat_single / present / generous
-  # WindowMemory persists conversation; tool available; generous budget.
+  # ConversationManager persists conversation; tool available; generous budget.
   # --------------------------------------------------------------------------
-  describe "TC-002: Agent::Base, WindowMemory, single tool, thread_id=present, generous budget" do
+  describe "TC-002: Agent::Base, ConversationManager, single tool, thread_id=present, generous budget" do
     let(:memory) { IntegrationFactors.memory("window") }
     let(:budget) { IntegrationFactors.token_budget("generous") }
     let(:agent) { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("splat_single")).new }
@@ -64,55 +64,34 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
   end
 
   # --------------------------------------------------------------------------
-  # TC-003: base / summary / splat_multi / different_threads / tight
-  # SummaryMemory with tiny max_tokens forces compression.
+  # TC-003: base / window / splat_multi / different_threads / tight
   # Two threads must remain isolated; tight budget trims oldest messages.
   # --------------------------------------------------------------------------
-  describe "TC-003: Agent::Base, SummaryMemory (tiny), multi-tools, different_threads, tight budget" do
-    let(:memory) { IntegrationFactors.memory("summary", max_tokens: 10) }
+  describe "TC-003: Agent::Base, ConversationManager, multi-tools, different_threads, tight budget" do
+    let(:memory) { IntegrationFactors.memory("window") }
     let(:budget) { IntegrationFactors.token_budget("tight") }
-    # Isolation sub-test uses a separate memory instance with large max_tokens so
-    # messages are stored verbatim (no compression).
-    let(:isolation_memory) { IntegrationFactors.memory("summary", max_tokens: 100_000) }
     let(:agent) { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("splat_multi")).new }
     let(:tid_a) { "tc-003-a-#{SecureRandom.hex(4)}" }
     let(:tid_b) { "tc-003-b-#{SecureRandom.hex(4)}" }
 
-    context "thread isolation" do
-      before { @llm = LLMStub.activate(responses: ["Got it.", "Got it.", "red", "blue"]) }
+    before { @llm = LLMStub.activate(responses: ["Got it.", "Got it.", "red", "blue"]) }
 
-      it "keeps thread-A and thread-B histories isolated" do
-        cfg_a = {thread_id: tid_a, memory: isolation_memory}
-        cfg_b = {thread_id: tid_b, memory: isolation_memory}
+    it "keeps thread-A and thread-B histories isolated" do
+      cfg_a = {thread_id: tid_a, memory: memory}
+      cfg_b = {thread_id: tid_b, memory: memory}
 
-        agent.invoke("My favourite colour is red. Just say 'Got it.'", config: cfg_a)
-        agent.invoke("My favourite colour is blue. Just say 'Got it.'", config: cfg_b)
+      agent.invoke("My favourite colour is red. Just say 'Got it.'", config: cfg_a)
+      agent.invoke("My favourite colour is blue. Just say 'Got it.'", config: cfg_b)
 
-        result_a = agent.invoke(
-          "What is my favourite colour? Reply with only the colour name.", config: cfg_a
-        )
-        result_b = agent.invoke(
-          "What is my favourite colour? Reply with only the colour name.", config: cfg_b
-        )
+      result_a = agent.invoke(
+        "What is my favourite colour? Reply with only the colour name.", config: cfg_a
+      )
+      result_b = agent.invoke(
+        "What is my favourite colour? Reply with only the colour name.", config: cfg_b
+      )
 
-        expect(result_a[:output].downcase).to include("red")
-        expect(result_b[:output].downcase).to include("blue")
-      end
-    end
-
-    context "compression" do
-      before { @llm = LLMStub.activate(responses: ["OK", "Summary.", "OK", "Summary.", "OK", "Summary.", "Done.", "Summary."]) }
-
-      it "does not raise even when SummaryMemory compresses history via LLM" do
-        cfg_a = {thread_id: tid_a, memory: memory, token_budget: budget}
-
-        # Seed enough messages to trigger compression (max_tokens=10 is tiny)
-        3.times { |i| agent.invoke("Message #{i}. Just say OK.", config: cfg_a) }
-
-        expect {
-          agent.invoke("What is 2 + 3? Use the calculator tool.", config: cfg_a)
-        }.not_to raise_error
-      end
+      expect(result_a[:output].downcase).to include("red")
+      expect(result_b[:output].downcase).to include("blue")
     end
   end
 
@@ -157,11 +136,11 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
   end
 
   # --------------------------------------------------------------------------
-  # TC-009: react / summary / hash_alias / present / nil
-  # ReactAgent with SummaryMemory and tool aliased as "calc".
+  # TC-009: react / window / hash_alias / present / nil
+  # ReactAgent with ConversationManager and tool aliased as "calc".
   # --------------------------------------------------------------------------
-  describe "TC-009: ReactAgent, SummaryMemory, hash_alias tool, thread_id=present" do
-    let(:memory) { IntegrationFactors.memory("summary") }
+  describe "TC-009: ReactAgent, ConversationManager, hash_alias tool, thread_id=present" do
+    let(:memory) { IntegrationFactors.memory("window") }
     let(:agent) { IntegrationFactors.agent_class("react", tools: IntegrationFactors.tools("hash_alias")).new }
     let(:thread) { "tc-009-#{SecureRandom.hex(4)}" }
 
@@ -185,14 +164,14 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
 
   # --------------------------------------------------------------------------
   # TC-011: react / composite / none / different_threads / generous
-  # ReactAgent with CompositeMemory (WindowMemory + SummaryMemory), no tools.
+  # ReactAgent with Retrieval::Composite (two Recent sources), no tools.
   # Two threads must remain isolated.
   # --------------------------------------------------------------------------
-  describe "TC-011: ReactAgent, CompositeMemory, no tools, different_threads, generous budget" do
+  describe "TC-011: ReactAgent, Composite retrieval, no tools, different_threads, generous budget" do
     let(:memory) do
       IntegrationFactors.memory("composite", sources: [
-        {memory: Phronomy::Memory::WindowMemory.new(k: 5), weight: 0.6},
-        {memory: Phronomy::Memory::SummaryMemory.new, weight: 0.4}
+        {retrieval: Phronomy::Memory::Retrieval::Recent.new(k: 5), weight: 0.6},
+        {retrieval: Phronomy::Memory::Retrieval::Recent.new(k: 10), weight: 0.4}
       ])
     end
     let(:budget) { IntegrationFactors.token_budget("generous") }
@@ -202,7 +181,7 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
 
     before { @llm = LLMStub.activate(responses: ["Got it.", "Got it.", "dog", "cat"]) }
 
-    it "keeps thread histories isolated with CompositeMemory" do
+    it "keeps thread histories isolated with Retrieval::Composite" do
       cfg_a = {thread_id: tid_a, memory: memory, token_budget: budget}
       cfg_b = {thread_id: tid_b, memory: memory, token_budget: budget}
 
@@ -278,9 +257,9 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
 
   # --------------------------------------------------------------------------
   # TC-016: base / window / splat_multi / different_threads / nil
-  # WindowMemory + multiple tools; thread-A and thread-B are isolated.
+  # ConversationManager + multiple tools; thread-A and thread-B are isolated.
   # --------------------------------------------------------------------------
-  describe "TC-016: Agent::Base, WindowMemory, multi-tools, different_threads" do
+  describe "TC-016: Agent::Base, ConversationManager, multi-tools, different_threads" do
     let(:memory) { IntegrationFactors.memory("window") }
     let(:agent) { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("splat_multi")).new }
     let(:tid_a) { "tc-016-a-#{SecureRandom.hex(4)}" }
@@ -305,9 +284,9 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
 
   # --------------------------------------------------------------------------
   # TC-017: base / window / hash_alias / different_threads / tight
-  # WindowMemory + aliased tool + tight budget trims oldest messages.
+  # ConversationManager + aliased tool + tight budget trims oldest messages.
   # --------------------------------------------------------------------------
-  describe "TC-017: Agent::Base, WindowMemory, hash_alias tool, different_threads, tight budget" do
+  describe "TC-017: Agent::Base, ConversationManager, hash_alias tool, different_threads, tight budget" do
     let(:memory) { IntegrationFactors.memory("window") }
     let(:budget) { IntegrationFactors.token_budget("tight") }
     let(:agent) { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("hash_alias")).new }
@@ -331,12 +310,12 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
 
   # --------------------------------------------------------------------------
   # TC-025: base / composite / splat_single / present / nil
-  # CompositeMemory (WindowMemory sub-source) + single tool.
+  # Retrieval::Composite (Recent sub-source) + single tool.
   # --------------------------------------------------------------------------
-  describe "TC-025: Agent::Base, CompositeMemory, single tool, thread_id=present" do
+  describe "TC-025: Agent::Base, Composite retrieval, single tool, thread_id=present" do
     let(:memory) do
       IntegrationFactors.memory("composite", sources: [
-        {memory: Phronomy::Memory::WindowMemory.new(k: 5), weight: 1.0}
+        {retrieval: Phronomy::Memory::Retrieval::Recent.new(k: 5), weight: 1.0}
       ])
     end
     let(:agent) { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("splat_single")).new }
@@ -344,7 +323,7 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
 
     before { @llm = LLMStub.activate(responses: ["Got it.", "77"]) }
 
-    it "aggregates messages from CompositeMemory sub-sources" do
+    it "aggregates messages from Retrieval::Composite sub-sources" do
       cfg = {thread_id: thread, memory: memory}
 
       agent.invoke("My lucky number is 77. Just say 'Got it.'", config: cfg)

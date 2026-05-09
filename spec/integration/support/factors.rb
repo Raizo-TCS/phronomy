@@ -138,32 +138,30 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   # Factor: memory_type
   #
-  # @param label [String] "none" | "window" | "summary" | "composite"
+  # @param label [String] "none" | "window" | "composite"
   # @param opts  [Hash]   optional overrides
-  #   :k              – WindowMemory k (default 10)
-  #   :max_tokens     – SummaryMemory max_tokens (default 4000)
-  #   :summarizer_model – SummaryMemory summarizer_model (default nil)
-  #   :sources        – CompositeMemory sources array (default single WindowMemory)
-  # @return [Phronomy::Memory::Base, nil]
+  #   :k              – Retrieval::Recent k (default 10)
+  #   :sources        – Retrieval::Composite sources array
+  #                     each entry: { retrieval: <Retrieval::Base>, weight: Float }
+  # @return [Phronomy::Memory::ConversationManager, nil]
   # ---------------------------------------------------------------------------
   def self.memory(label, **opts)
     case label
     when "none"
       nil
     when "window"
-      Phronomy::Memory::WindowMemory.new(k: opts.fetch(:k, 10))
-    when "summary"
-      Phronomy::Memory::SummaryMemory.new(
-        max_tokens: opts.fetch(:max_tokens, 4000),
-        summarizer_model: opts[:summarizer_model]
+      Phronomy::Memory::ConversationManager.new(
+        storage: Phronomy::Memory::Storage::InMemory.new,
+        retrieval: Phronomy::Memory::Retrieval::Recent.new(k: opts.fetch(:k, 10))
       )
     when "composite"
       sources = opts[:sources] || [
-        {memory: Phronomy::Memory::WindowMemory.new(k: 5), weight: 1.0}
+        {retrieval: Phronomy::Memory::Retrieval::Recent.new(k: 5), weight: 1.0}
       ]
-      Phronomy::Memory::CompositeMemory.new(sources: sources)
-    when "entity"
-      Phronomy::Memory::EntityMemory.new(k: opts.fetch(:k, 20))
+      Phronomy::Memory::ConversationManager.new(
+        storage: Phronomy::Memory::Storage::InMemory.new,
+        retrieval: Phronomy::Memory::Retrieval::Composite.new(sources: sources)
+      )
     else
       raise ArgumentError, "Unknown memory_type label: #{label}"
     end
@@ -578,52 +576,6 @@ module IntegrationFactors
       define_method(:execute) do |count:, mode:|
         "#{result}: count=#{count} mode=#{mode}"
       end
-    end
-  end
-
-  # ── async memory helpers ─────────────────────────────────────────────────
-
-  # Builds a memory backend for async write tests.
-  #
-  # @param backend_label [String] "window" | "entity" | "ar_stub"
-  # @param async         [Boolean]
-  # @param queue         [Symbol]
-  # @return [Phronomy::Memory::Base]
-  def self.async_memory(backend_label, async: false, queue: :default)
-    case backend_label
-    when "window"
-      Phronomy::Memory::WindowMemory.new(k: 5, async: async, queue: queue)
-    when "entity"
-      Phronomy::Memory::EntityMemory.new(k: 10, async: async, queue: queue)
-    when "ar_stub"
-      model_class = Class.new do
-        def self.where(*)
-          self
-        end
-
-        def self.order(*)
-          self
-        end
-
-        def self.delete_all
-        end
-
-        def self.create!(**)
-        end
-
-        def self.to_a
-          []
-        end
-
-        def self.transaction
-          yield
-        end
-      end
-      Phronomy::Memory::ActiveRecordMemory.new(
-        model_class: model_class, async: async, queue: queue
-      )
-    else
-      raise ArgumentError, "Unknown async_memory backend_label: #{backend_label}"
     end
   end
 

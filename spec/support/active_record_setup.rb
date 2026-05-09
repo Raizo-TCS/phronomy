@@ -12,7 +12,7 @@ ActiveRecord::Base.establish_connection(
 # Suppress SQL noise in test output. Set to Logger.new($stdout) to debug.
 ActiveRecord::Base.logger = Logger.new(IO::NULL)
 
-# Create the phronomy tables used by Memory::ActiveRecordMemory.
+# Create the phronomy tables used by Memory::Storage::ActiveRecord.
 ActiveRecord::Schema.define(version: 1) do
   create_table :phronomy_messages, force: true do |t|
     t.string :thread_id, null: false

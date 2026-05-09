@@ -110,39 +110,52 @@ RSpec.describe "Group 14: Embeddings abstraction + VectorStore backends", :integ
 
   # ---------------------------------------------------------------------------
   # TC-008 (PASS) — stub + assume=false + embeddings_kw + in_memory   [NO LLM]
-  # Verifies the full SemanticMemory workflow with a stub adapter and InMemory store.
+  # Verifies the full Retrieval::Semantic workflow with a stub adapter and InMemory store.
   # ---------------------------------------------------------------------------
   describe "TC-008: stub adapter; assume=false; embeddings_kw; in_memory" do
     let(:adapter) { IntegrationFactors.embeddings_adapter("stub") }
     let(:store) { IntegrationFactors.vector_store("in_memory") }
-    let(:memory) { Phronomy::Memory::SemanticMemory.new(embeddings: adapter, store: store, k: 3) }
+    let(:memory) do
+      Phronomy::Memory::ConversationManager.new(
+        storage: Phronomy::Memory::Storage::InMemory.new,
+        retrieval: Phronomy::Memory::Retrieval::Semantic.new(embeddings: adapter, store: store, k: 3)
+      )
+    end
 
-    it "save_messages and load_messages with query return the semantically closest message" do
+    it "save and load with query return the semantically closest message" do
       msg_a = make_message("aaaa")
       msg_b = make_message("xyz")
-      memory.save_messages(thread_id: "t1", messages: [msg_a, msg_b])
+      memory.save(thread_id: "t1", messages: [msg_a, msg_b])
 
-      results = memory.load_messages(thread_id: "t1", query: "aaaa")
+      results = memory.load(thread_id: "t1", query: "aaaa")
       expect(results).not_to be_empty
       expect(results.first.content.to_s).to eq("aaaa")
     end
 
-    it "load_messages without query returns k most recent messages" do
+    it "load without query returns k most recent messages" do
       msgs = (1..5).map { |i| make_message("msg #{i}") }
-      memory.save_messages(thread_id: "t2", messages: msgs)
+      memory.save(thread_id: "t2", messages: msgs)
 
-      results = memory.load_messages(thread_id: "t2")
+      results = memory.load(thread_id: "t2")
       expect(results.size).to eq(3)
       expect(results.last.content.to_s).to eq("msg 5")
     end
 
     it "clear removes messages for the given thread and keeps other threads intact" do
-      memory.save_messages(thread_id: "t3", messages: [make_message("thread-a message")])
-      memory.save_messages(thread_id: "t4", messages: [make_message("thread-b message")])
-      memory.clear(thread_id: "t3")
+      mem_t3 = Phronomy::Memory::ConversationManager.new(
+        storage: Phronomy::Memory::Storage::InMemory.new,
+        retrieval: Phronomy::Memory::Retrieval::Semantic.new(embeddings: adapter, k: 3)
+      )
+      mem_t4 = Phronomy::Memory::ConversationManager.new(
+        storage: Phronomy::Memory::Storage::InMemory.new,
+        retrieval: Phronomy::Memory::Retrieval::Semantic.new(embeddings: adapter, k: 3)
+      )
+      mem_t3.save(thread_id: "t3", messages: [make_message("thread-a message")])
+      mem_t4.save(thread_id: "t4", messages: [make_message("thread-b message")])
+      mem_t3.clear(thread_id: "t3")
 
-      expect(memory.load_messages(thread_id: "t3")).to be_empty
-      expect(memory.load_messages(thread_id: "t4")).not_to be_empty
+      expect(mem_t3.load(thread_id: "t3")).to be_empty
+      expect(mem_t4.load(thread_id: "t4")).not_to be_empty
     end
   end
 
@@ -205,14 +218,17 @@ RSpec.describe "Group 14: Embeddings abstraction + VectorStore backends", :integ
       LLMStub.deactivate
     end
 
-    it "SemanticMemory retrieves the semantically relevant message via semantic search" do
+    it "Retrieval::Semantic retrieves the semantically relevant message via semantic search" do
       LLMStub.activate_with_embeddings(vectors: [V_CAT3, V_STOCK2, V_FELINE])
-      memory = Phronomy::Memory::SemanticMemory.new(embeddings: adapter, k: 5)
+      memory = Phronomy::Memory::ConversationManager.new(
+        storage: Phronomy::Memory::Storage::InMemory.new,
+        retrieval: Phronomy::Memory::Retrieval::Semantic.new(embeddings: adapter, k: 5)
+      )
       msg_cat = make_message("The cat climbed the tree")
       msg_stock = make_message("Stock prices rose sharply")
-      memory.save_messages(thread_id: "t5", messages: [msg_cat, msg_stock])
+      memory.save(thread_id: "t5", messages: [msg_cat, msg_stock])
 
-      results = memory.load_messages(thread_id: "t5", query: "feline climbing")
+      results = memory.load(thread_id: "t5", query: "feline climbing")
       expect(results).not_to be_empty
       expect(results.map { |m| m.content.to_s }).to include("The cat climbed the tree")
     ensure

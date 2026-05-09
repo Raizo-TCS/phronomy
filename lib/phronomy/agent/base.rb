@@ -357,7 +357,7 @@ module Phronomy
       #   +:message+, +:query+, or +:user+ as the text key, plus any template
       #   variables consumed by the configured instructions template.
       # @param config [Hash] runtime options:
-      #   +:memory+    ({Phronomy::Memory::Base}) — memory backend
+      #   +:memory+    ({Phronomy::Memory::ConversationManager}) — memory backend
       #   +:thread_id+ (+String+)                 — conversation thread identifier
       # @return [Hash] +{ output: String, messages: Array, usage: Phronomy::TokenUsage }+
       # @raise [Phronomy::GuardrailError] when an input or output guardrail rejects the value
@@ -656,33 +656,23 @@ module Phronomy
         cache.system_text.empty? ? nil : cache.system_text
       end
 
-      # Load messages from a memory object regardless of whether it implements
-      # the ConversationManager API (load/save) or the legacy Memory::Base API
-      # (load_messages/save_messages).
+      # Load messages from a ConversationManager.
       #
-      # @param memory    [Object]
+      # @param memory    [Memory::ConversationManager]
       # @param thread_id [String]
       # @param query     [String, nil]
       # @return [Array]
       def load_from_memory(memory, thread_id:, query: nil)
-        if memory.respond_to?(:load)
-          memory.load(thread_id: thread_id, query: query)
-        else
-          memory.load_messages(thread_id: thread_id, query: query)
-        end
+        memory.load(thread_id: thread_id, query: query)
       end
 
-      # Persist messages to a memory object regardless of which API it implements.
+      # Persist messages to a ConversationManager.
       #
-      # @param memory    [Object]
+      # @param memory    [Memory::ConversationManager]
       # @param thread_id [String]
       # @param messages  [Array]
       def save_to_memory(memory, thread_id:, messages:)
-        if memory.respond_to?(:save)
-          memory.save(thread_id: thread_id, messages: messages)
-        else
-          memory.save_messages(thread_id: thread_id, messages: messages)
-        end
+        memory.save(thread_id: thread_id, messages: messages)
       end
 
       def build_chat

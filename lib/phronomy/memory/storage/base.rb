@@ -17,13 +17,13 @@ module Phronomy
       #      messages and stores the summary text produced for that range.
       #      Multiple non-overlapping compaction records may exist per thread.
       #
-      # The conventional load/save/clear interface is kept for backward
-      # compatibility and is used by legacy Memory::* classes.
+      # The conventional load/save/clear interface is kept for use by
+      # ConversationManager (compression path) and direct storage access.
       #
       # @abstract Subclass and implement all abstract methods.
       class Base
         # -----------------------------------------------------------------------
-        # Legacy interface (used by Memory::WindowMemory, EntityMemory, etc.)
+        # Conventional load/save/clear interface
         # -----------------------------------------------------------------------
 
         # Load all messages for a thread in chronological order.

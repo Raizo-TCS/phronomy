@@ -28,14 +28,16 @@ RSpec.describe Phronomy::ActiveRecord::ActsAs do
       expect(model_class).to respond_to(:phronomy_memory)
     end
 
-    it "returns a Memory::ActiveRecordMemory instance from .phronomy_memory" do
+    it "returns a Memory::ConversationManager instance from .phronomy_memory" do
       mem = model_class.phronomy_memory
-      expect(mem).to be_a(Phronomy::Memory::ActiveRecordMemory)
+      expect(mem).to be_a(Phronomy::Memory::ConversationManager)
     end
 
-    it "the returned memory uses the model class" do
+    it "the returned memory uses Storage::ActiveRecord backed by the model class" do
       mem = model_class.phronomy_memory
-      expect(mem.instance_variable_get(:@model_class)).to eq(model_class)
+      storage = mem.instance_variable_get(:@storage)
+      expect(storage).to be_a(Phronomy::Memory::Storage::ActiveRecord)
+      expect(storage.instance_variable_get(:@model_class)).to eq(model_class)
     end
   end
 end
