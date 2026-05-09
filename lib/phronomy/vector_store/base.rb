@@ -25,6 +25,13 @@ module Phronomy
         raise NotImplementedError, "#{self.class}#search is not implemented"
       end
 
+      # Remove a single document by id.
+      #
+      # @param id [String] document identifier
+      def remove(id:)
+        raise NotImplementedError, "#{self.class}#remove is not implemented"
+      end
+
       # Remove all documents.
       def clear
         raise NotImplementedError, "#{self.class}#clear is not implemented"

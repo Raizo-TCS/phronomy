@@ -64,6 +64,15 @@ RSpec.describe Phronomy::VectorStore::Pgvector do
     end
   end
 
+  describe "#remove" do
+    it "calls where(id:).delete_all on the model class and returns self" do
+      relation = double("relation")
+      expect(model_class).to receive(:where).with(id: "doc1").and_return(relation)
+      expect(relation).to receive(:delete_all)
+      expect(store.remove(id: "doc1")).to eq(store)
+    end
+  end
+
   describe "inheritance" do
     it "inherits from Phronomy::VectorStore::Base" do
       expect(described_class.ancestors).to include(Phronomy::VectorStore::Base)

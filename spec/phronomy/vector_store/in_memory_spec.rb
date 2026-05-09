@@ -67,4 +67,24 @@ RSpec.describe Phronomy::VectorStore::InMemory do
       expect(store.clear).to eq(store)
     end
   end
+
+  describe "#remove" do
+    it "removes only the specified document" do
+      store.add(id: "1", embedding: [1.0, 0.0], metadata: {})
+      store.add(id: "2", embedding: [0.0, 1.0], metadata: {})
+      store.remove(id: "1")
+      expect(store.size).to eq(1)
+      results = store.search(query_embedding: [1.0, 0.0], k: 5)
+      expect(results.map { |r| r[:id] }).not_to include("1")
+    end
+
+    it "returns self for chaining" do
+      store.add(id: "x", embedding: [1.0], metadata: {})
+      expect(store.remove(id: "x")).to eq(store)
+    end
+
+    it "is a no-op for unknown ids" do
+      expect { store.remove(id: "nonexistent") }.not_to raise_error
+    end
+  end
 end

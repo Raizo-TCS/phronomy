@@ -35,6 +35,11 @@ module Phronomy
         results.sort_by { |r| -r[:score] }.first(k)
       end
 
+      def remove(id:)
+        @documents.delete(id)
+        self
+      end
+
       def clear
         @documents.clear
         self

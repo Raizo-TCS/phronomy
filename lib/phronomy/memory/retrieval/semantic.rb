@@ -46,11 +46,9 @@ module Phronomy
         # @param thread_id [String]
         def clear_index(thread_id:)
           ids = @index.select { |id, _| id.start_with?("#{thread_id}:") }.keys
-          ids.each { |id| @index.delete(id) }
-          @store.clear
-          @index.each do |id, msg|
-            embedding = @embeddings.embed(msg.content.to_s)
-            @store.add(id: id, embedding: embedding, metadata: {thread_id: id.split(":").first, message: msg})
+          ids.each do |id|
+            @index.delete(id)
+            @store.remove(id: id)
           end
         end
 

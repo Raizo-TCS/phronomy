@@ -73,6 +73,13 @@ RSpec.describe Phronomy::VectorStore::RedisSearch do
     end
   end
 
+  describe "#remove" do
+    it "calls DEL with the prefixed key and returns self" do
+      expect(redis).to receive(:call).with("DEL", "phronomy_doc:doc1")
+      expect(store.remove(id: "doc1")).to eq(store)
+    end
+  end
+
   describe "inheritance" do
     it "inherits from Phronomy::VectorStore::Base" do
       expect(described_class.ancestors).to include(Phronomy::VectorStore::Base)

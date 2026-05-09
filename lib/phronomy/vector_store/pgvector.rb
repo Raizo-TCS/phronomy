@@ -63,6 +63,11 @@ module Phronomy
           end
       end
 
+      def remove(id:)
+        @model_class.where(id: id).delete_all
+        self
+      end
+
       def clear
         @model_class.delete_all
         self

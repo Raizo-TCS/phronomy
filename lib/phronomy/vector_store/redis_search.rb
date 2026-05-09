@@ -73,6 +73,11 @@ module Phronomy
         parse_results(raw)
       end
 
+      def remove(id:)
+        @redis.call("DEL", "#{DOC_PREFIX}#{id}")
+        self
+      end
+
       def clear
         begin
           @redis.call("FT.DROPINDEX", @index_name, "DD")
