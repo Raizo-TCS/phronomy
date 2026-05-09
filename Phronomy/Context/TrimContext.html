@@ -355,14 +355,14 @@ sequentially (0-based) when messages are loaded from memory each turn.</p>
       <pre class="lines">
 
 
+31
+32
 33
 34
-35
-36
-37</pre>
+35</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 33</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>message_elements:</span><span class='comma'>,</span> <span class='label'>budget:</span><span class='rparen'>)</span>
   <span class='ivar'>@message_elements</span> <span class='op'>=</span> <span class='id identifier rubyid_message_elements'>message_elements</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
@@ -421,12 +421,12 @@ sequentially (0-based) when messages are loaded from memory each turn.</p>
       <pre class="lines">
 
 
-25
-26
-27</pre>
+23
+24
+25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 25</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_budget'>budget</span>
   <span class='ivar'>@budget</span>
@@ -478,12 +478,12 @@ sequentially (0-based) when messages are loaded from memory each turn.</p>
       <pre class="lines">
 
 
-28
-29
-30</pre>
+26
+27
+28</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 28</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 26</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_total_tokens'>total_tokens</span>
   <span class='ivar'>@total_tokens</span>
@@ -538,12 +538,12 @@ Each element is a Hash with <code>:seq</code>, <code>:message</code>, <code>:tok
       <pre class="lines">
 
 
-43
-44
-45</pre>
+41
+42
+43</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 41</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_message_elements'>message_elements</span>
   <span class='ivar'>@message_elements</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
@@ -590,12 +590,12 @@ Each element is a Hash with <code>:seq</code>, <code>:message</code>, <code>:tok
       <pre class="lines">
 
 
-62
-63
-64</pre>
+60
+61
+62</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 62</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 60</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_messages'>messages</span>
   <span class='ivar'>@message_elements</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_e'>e</span><span class='op'>|</span> <span class='id identifier rubyid_e'>e</span><span class='lbracket'>[</span><span class='symbol'>:message</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
@@ -661,15 +661,15 @@ Calling this multiple times accumulates removals.</p>
       <pre class="lines">
 
 
+50
+51
 52
 53
 54
-55
-56
-57</pre>
+55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 50</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remove'>remove</span><span class='lparen'>(</span><span class='id identifier rubyid_seqs'>seqs</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_seqs_set'>seqs_set</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_seqs'>seqs</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_to_set'>to_set</span>
@@ -687,7 +687,7 @@ Calling this multiple times accumulates removals.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May  9 18:16:40 2026 by
+  Generated on Sat May  9 18:24:13 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
