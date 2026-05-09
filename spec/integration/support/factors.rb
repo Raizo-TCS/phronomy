@@ -614,6 +614,10 @@ module IntegrationFactors
         def self.to_a
           []
         end
+
+        def self.transaction
+          yield
+        end
       end
       Phronomy::Memory::ActiveRecordMemory.new(
         model_class: model_class, async: async, queue: queue

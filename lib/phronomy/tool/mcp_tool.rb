@@ -3,6 +3,7 @@
 require "json"
 require "net/http"
 require "open3"
+require "shellwords"
 require "uri"
 
 module Phronomy
@@ -81,7 +82,9 @@ module Phronomy
       # Spawns the server command as a child process and communicates line-by-line.
       class StdioTransport
         def initialize(command)
-          @command = command
+          # Split the command string into an argv array so that Open3 executes
+          # it directly without going through the shell, preventing injection.
+          @command = Shellwords.split(command)
         end
 
         # Retrieve the tool definition from the server using the MCP `tools/list` method.
@@ -120,7 +123,7 @@ module Phronomy
 
         def rpc_call(method, params)
           payload = JSON.generate(jsonrpc: "2.0", id: 1, method: method, params: params)
-          stdout, _stderr, status = Open3.capture3(@command, stdin_data: "#{payload}\n")
+          stdout, _stderr, status = Open3.capture3(*@command, stdin_data: "#{payload}\n")
           raise Phronomy::ToolError, "MCP server exited with status #{status.exitstatus}" unless status.success?
 
           JSON.parse(stdout.lines.first.to_s)

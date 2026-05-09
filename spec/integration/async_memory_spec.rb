@@ -133,6 +133,10 @@ RSpec.describe "Group 20: Async Memory Write", :integration do
             @store << attrs
           end
 
+          def transaction
+            yield
+          end
+
           def to_a
             @store.select { |r| r[:thread_id] == @thread_filter }
           end

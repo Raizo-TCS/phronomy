@@ -49,7 +49,7 @@ module Phronomy
       # @return [Object] state instance with graph metadata restored
       def deserialize_state(json_str)
         data = JSON.parse(json_str, symbolize_names: true)
-        state_class = Object.const_get(data[:state_class])
+        state_class = safe_state_class(data[:state_class])
         state_data = symbolize_keys(data[:state_data])
         state = state_class.new(**state_data)
         state.set_graph_metadata(
@@ -58,6 +58,19 @@ module Phronomy
           halted_before: data[:halted_before]
         )
         state
+      end
+
+      # Resolves and validates a state class name.
+      # Raises ArgumentError if the name does not resolve to a class that
+      # includes Phronomy::Graph::State, preventing unsafe deserialization.
+      def safe_state_class(class_name)
+        klass = Object.const_get(class_name.to_s)
+        unless klass.is_a?(Class) && klass.include?(Phronomy::Graph::State)
+          raise ArgumentError, "Invalid state class: #{class_name.inspect}"
+        end
+        klass
+      rescue NameError
+        raise ArgumentError, "Unknown state class: #{class_name.inspect}"
       end
 
       # Recursively converts objects to JSON-safe primitives.

@@ -117,9 +117,9 @@ module Phronomy
           break if accumulated + tokens > remaining
 
           accumulated += tokens
-          result.unshift(msg)
+          result.push(msg)
         end
-        result
+        result.reverse
       end
     end
   end

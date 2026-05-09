@@ -40,9 +40,12 @@ module Phronomy
       # @param limit     [Integer, nil] hard cap on message count
       # @return [Array<OpenStruct>]
       def load_messages(thread_id:, limit: nil, query: nil, **)
-        scope = @model_class.where(thread_id: thread_id).order(:created_at)
-        records = scope.to_a
-        records = records.last(limit) if limit
+        scope = @model_class.where(thread_id: thread_id)
+        records = if limit
+          scope.order(created_at: :desc).limit(limit).to_a.reverse
+        else
+          scope.order(:created_at).to_a
+        end
         messages = records.map { |r| to_message_struct(r) }
         @pruner ? @pruner.prune(messages) : messages
       end
@@ -51,8 +54,9 @@ module Phronomy
       # @param thread_id [String]
       # @param messages [Array] objects responding to #role, #content, #tool_calls (optional), #model_id (optional)
       def save_messages(thread_id:, messages:)
-        @model_class.where(thread_id: thread_id).delete_all
-        messages.each do |msg|
+        @model_class.transaction do
+          @model_class.where(thread_id: thread_id).delete_all
+          messages.each do |msg|
           tool_calls_json = if msg.respond_to?(:tool_calls) && msg.tool_calls
             serializable = case msg.tool_calls
             when Hash
@@ -73,6 +77,7 @@ module Phronomy
             tool_calls_json: tool_calls_json,
             model_id: model_id
           )
+          end
         end
       end
 

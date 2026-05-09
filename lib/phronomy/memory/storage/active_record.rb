@@ -66,15 +66,17 @@ module Phronomy
         # @param thread_id [String]
         # @param messages  [Array]
         def save(thread_id:, messages:)
-          @model_class.where(thread_id: thread_id).delete_all
-          messages.each do |msg|
-            @model_class.create!(
-              thread_id: thread_id,
-              role: msg.role.to_s,
-              content: msg.content.to_s,
-              tool_calls_json: serialize_tool_calls(msg),
-              model_id: (msg.model_id if msg.respond_to?(:model_id))
-            )
+          @model_class.transaction do
+            @model_class.where(thread_id: thread_id).delete_all
+            messages.each do |msg|
+              @model_class.create!(
+                thread_id: thread_id,
+                role: msg.role.to_s,
+                content: msg.content.to_s,
+                tool_calls_json: serialize_tool_calls(msg),
+                model_id: (msg.model_id if msg.respond_to?(:model_id))
+              )
+            end
           end
         end
 
