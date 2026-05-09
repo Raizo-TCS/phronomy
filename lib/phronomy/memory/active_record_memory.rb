@@ -57,26 +57,26 @@ module Phronomy
         @model_class.transaction do
           @model_class.where(thread_id: thread_id).delete_all
           messages.each do |msg|
-          tool_calls_json = if msg.respond_to?(:tool_calls) && msg.tool_calls
-            serializable = case msg.tool_calls
-            when Hash
-              msg.tool_calls.transform_values { |tc| tc.respond_to?(:to_h) ? tc.to_h : tc }
-            when Array
-              msg.tool_calls.map { |tc| tc.respond_to?(:to_h) ? tc.to_h : tc }
-            else
-              msg.tool_calls
+            tool_calls_json = if msg.respond_to?(:tool_calls) && msg.tool_calls
+              serializable = case msg.tool_calls
+              when Hash
+                msg.tool_calls.transform_values { |tc| tc.respond_to?(:to_h) ? tc.to_h : tc }
+              when Array
+                msg.tool_calls.map { |tc| tc.respond_to?(:to_h) ? tc.to_h : tc }
+              else
+                msg.tool_calls
+              end
+              JSON.generate(serializable)
             end
-            JSON.generate(serializable)
-          end
-          model_id = msg.model_id if msg.respond_to?(:model_id)
+            model_id = msg.model_id if msg.respond_to?(:model_id)
 
-          @model_class.create!(
-            thread_id: thread_id,
-            role: msg.role.to_s,
-            content: msg.content.to_s,
-            tool_calls_json: tool_calls_json,
-            model_id: model_id
-          )
+            @model_class.create!(
+              thread_id: thread_id,
+              role: msg.role.to_s,
+              content: msg.content.to_s,
+              tool_calls_json: tool_calls_json,
+              model_id: model_id
+            )
           end
         end
       end
