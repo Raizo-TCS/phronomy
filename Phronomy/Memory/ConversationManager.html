@@ -254,6 +254,28 @@ and uncompacted messages are returned verbatim.</p>
 </li>
 
       
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#save_compaction-instance_method" title="#save_compaction (instance method)">#<strong>save_compaction</strong>(thread_id:, start_seq:, end_seq:, summary_text:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Record an application-driven compaction for a thread.</p></div></span>
+  
+</li>
+
+      
     </ul>
     
   
@@ -648,12 +670,119 @@ compaction record is saved in storage (originals are preserved).</p>
 </table>
 </div>
     
+      <div class="method_details ">
+  <h3 class="signature " id="save_compaction-instance_method">
+  
+    #<strong>save_compaction</strong>(thread_id:, start_seq:, end_seq:, summary_text:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Record an application-driven compaction for a thread.
+Called by CompactionContext when the on_compact callback invokes ctx.compact.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>thread_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>start_seq</span>
+      
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>first seq number in the compacted range</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>end_seq</span>
+      
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>last seq number in the compacted range</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>summary_text</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>replacement text for the compacted messages</p></div>
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+130
+131
+132
+133
+134
+135
+136
+137</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 130</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_save_compaction'>save_compaction</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>start_seq:</span><span class='comma'>,</span> <span class='label'>end_seq:</span><span class='comma'>,</span> <span class='label'>summary_text:</span><span class='rparen'>)</span>
+  <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_save_compaction'>save_compaction</span><span class='lparen'>(</span>
+    <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
+    <span class='label'>start_seq:</span> <span class='id identifier rubyid_start_seq'>start_seq</span><span class='comma'>,</span>
+    <span class='label'>end_seq:</span> <span class='id identifier rubyid_end_seq'>end_seq</span><span class='comma'>,</span>
+    <span class='label'>summary_text:</span> <span class='id identifier rubyid_summary_text'>summary_text</span>
+  <span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
   </div>
 
 </div>
 
       <div id="footer">
-  Generated on Fri May  8 21:39:46 2026 by
+  Generated on Sat May  9 07:36:29 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

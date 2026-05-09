@@ -145,6 +145,38 @@ messages are passed through unchanged.</code></pre>
 
   
     <h2>
+      Class Method Summary
+      <small><a href="#" class="summary_toggle">collapse</a></small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#xml_tag-class_method" title="xml_tag (class method)">.<strong>xml_tag</strong>(text, type:, trusted: false)  &#x21d2; String </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Builds a single XML context tag string.</p></div></span>
+  
+</li>
+
+      
+    </ul>
+    
+  
+    <h2>
       Instance Method Summary
       <small><a href="#" class="summary_toggle">collapse</a></small>
     </h2>
@@ -314,15 +346,15 @@ messages are passed through unchanged.</code></pre>
       <pre class="lines">
 
 
-30
-31
-32
-33
-34
-35</pre>
+42
+43
+44
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/assembler.rb', line 30</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/assembler.rb', line 42</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>budget:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@budget</span> <span class='op'>=</span> <span class='id identifier rubyid_budget'>budget</span>
@@ -337,6 +369,105 @@ messages are passed through unchanged.</code></pre>
   
 </div>
 
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="xml_tag-class_method">
+  
+    .<strong>xml_tag</strong>(text, type:, trusted: false)  &#x21d2; <tt>String</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Builds a single XML context tag string.
+Exposed as a class method so callers (e.g. Agent::Base) can build
+static knowledge XML tags independently of an Assembler instance.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>text</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>type</span>
+      
+      
+        <span class='type'>(<tt>Symbol</tt>, <tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>trusted</span>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>false</tt>)</em>
+      
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+36
+37
+38</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/assembler.rb', line 36</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_xml_tag'>xml_tag</span><span class='lparen'>(</span><span class='id identifier rubyid_text'>text</span><span class='comma'>,</span> <span class='label'>type:</span><span class='comma'>,</span> <span class='label'>trusted:</span> <span class='kw'>false</span><span class='rparen'>)</span>
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>&lt;context type=\&quot;</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_type'>type</span><span class='embexpr_end'>}</span><span class='tstring_content'>\&quot; trusted=\&quot;</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_trusted'>trusted</span><span class='embexpr_end'>}</span><span class='tstring_content'>\&quot;&gt;\n</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_text'>text</span><span class='embexpr_end'>}</span><span class='tstring_content'>\n&lt;/context&gt;</span><span class='tstring_end'>&quot;</span></span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
 
   <div id="instance_method_details" class="method_details_list">
     <h2>Instance Method Details</h2>
@@ -395,13 +526,13 @@ Calling this multiple times replaces the previous value.</p>
       <pre class="lines">
 
 
-42
-43
-44
-45</pre>
+54
+55
+56
+57</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/assembler.rb', line 42</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/assembler.rb', line 54</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_instruction'>add_instruction</span><span class='lparen'>(</span><span class='id identifier rubyid_text'>text</span><span class='rparen'>)</span>
   <span class='ivar'>@instruction</span> <span class='op'>=</span> <span class='id identifier rubyid_text'>text</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
@@ -495,13 +626,13 @@ The chunk is wrapped in an XML context tag automatically.</p>
       <pre class="lines">
 
 
-54
-55
-56
-57</pre>
+66
+67
+68
+69</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/assembler.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/assembler.rb', line 66</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_knowledge'>add_knowledge</span><span class='lparen'>(</span><span class='id identifier rubyid_text'>text</span><span class='comma'>,</span> <span class='label'>type:</span><span class='comma'>,</span> <span class='label'>trusted:</span> <span class='kw'>false</span><span class='rparen'>)</span>
   <span class='ivar'>@knowledge_chunks</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span><span class='label'>text:</span> <span class='id identifier rubyid_text'>text</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='id identifier rubyid_type'>type</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span> <span class='label'>trusted:</span> <span class='id identifier rubyid_trusted'>trusted</span><span class='rbrace'>}</span>
@@ -567,13 +698,13 @@ The chunk is wrapped in an XML context tag automatically.</p>
       <pre class="lines">
 
 
-63
-64
-65
-66</pre>
+75
+76
+77
+78</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/assembler.rb', line 63</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/assembler.rb', line 75</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_messages'>add_messages</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span>
   <span class='ivar'>@messages</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span>
@@ -625,25 +756,25 @@ The chunk is wrapped in an XML context tag automatically.</p>
       <pre class="lines">
 
 
-73
-74
-75
-76
-77
-78
-79
-80
-81
-82
-83
-84
 85
 86
 87
-88</pre>
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/assembler.rb', line 73</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/assembler.rb', line 85</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_build'>build</span>
   <span class='id identifier rubyid_knowledge_text'>knowledge_text</span> <span class='op'>=</span> <span class='ivar'>@knowledge_chunks</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_xml_context_tag'>xml_context_tag</span><span class='lparen'>(</span><span class='id identifier rubyid_c'>c</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>\n\n</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
@@ -671,7 +802,7 @@ The chunk is wrapped in an XML context tag automatically.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri May  8 21:39:45 2026 by
+  Generated on Sat May  9 07:36:28 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

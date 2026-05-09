@@ -156,6 +156,28 @@ Each chunk Hash must contain:</p>
 </li>
 
       
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#static%3F-instance_method" title="#static? (instance method)">#<strong>static?</strong>  &#x21d2; Boolean </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns true when this source's content is considered static (i.e. does not change between agent invocations).</p></div></span>
+  
+</li>
+
+      
     </ul>
     
   
@@ -254,12 +276,67 @@ Each chunk Hash must contain:</p>
 </table>
 </div>
     
+      <div class="method_details ">
+  <h3 class="signature " id="static?-instance_method">
+  
+    #<strong>static?</strong>  &#x21d2; <tt>Boolean</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns true when this source's content is considered static (i.e. does
+not change between agent invocations). Static sources are eligible for
+fingerprint-based caching in ContextVersionCache.</p>
+<p>Override in subclasses that return fixed content.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+27
+28
+29</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/knowledge_source/base.rb', line 27</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_static?'>static?</span>
+  <span class='kw'>false</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
   </div>
 
 </div>
 
       <div id="footer">
-  Generated on Fri May  8 21:39:45 2026 by
+  Generated on Sat May  9 07:36:28 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
