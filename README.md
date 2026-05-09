@@ -235,7 +235,7 @@ messages = memory.load_messages(thread_id: "t1", token_budget: budget)
 ```ruby
 memory = Phronomy::Memory::ActiveRecordMemory.new(
   model_class: PhronomyMessage,
-  pruner: Phronomy::Memory::Pruner::ToolOutputPruner.new(max_chars: 4000)
+  pruner: Phronomy::Memory::Compression::ToolOutputPruner.new(max_chars: 4000)
 )
 ```
 
@@ -265,16 +265,21 @@ semantic = Phronomy::Memory::SemanticMemory.new(
 messages = semantic.load_messages(thread_id: "t1", query: "user's current question")
 ```
 
-### CompositeMemory
+### Composite retrieval
 
-Merge multiple memory sources within a shared budget:
+Merge multiple retrieval strategies within a shared `ConversationManager`:
 
 ```ruby
-composite = Phronomy::Memory::CompositeMemory.new(
+composite_retrieval = Phronomy::Memory::Retrieval::Composite.new(
   sources: [
-    { memory: window_memory,   weight: 0.6 },
-    { memory: semantic_memory, weight: 0.4 }
+    { retrieval: Phronomy::Memory::Retrieval::Recent.new(k: 5),    weight: 0.4 },
+    { retrieval: Phronomy::Memory::Retrieval::Semantic.new(k: 10), weight: 0.6 }
   ]
+)
+
+manager = Phronomy::Memory::ConversationManager.new(
+  storage:   Phronomy::Memory::Storage::InMemory.new,
+  retrieval: composite_retrieval
 )
 ```
 
