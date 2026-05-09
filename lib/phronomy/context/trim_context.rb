@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "set"
-
 module Phronomy
   module Context
     # Context object passed to the +on_trim+ callback registered on an agent class.
