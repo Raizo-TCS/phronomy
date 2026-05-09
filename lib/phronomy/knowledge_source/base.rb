@@ -16,6 +16,17 @@ module Phronomy
       def fetch(query: nil)
         raise NotImplementedError, "#{self.class}#fetch is not implemented"
       end
+
+      # Returns true when this source's content is considered static (i.e. does
+      # not change between agent invocations). Static sources are eligible for
+      # fingerprint-based caching in ContextVersionCache.
+      #
+      # Override in subclasses that return fixed content.
+      #
+      # @return [Boolean]
+      def static?
+        false
+      end
     end
   end
 end

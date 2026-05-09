@@ -30,6 +30,12 @@ module Phronomy
 
         [{content: @text, type: @type}]
       end
+
+      # Static knowledge content never changes between invocations.
+      # @return [true]
+      def static?
+        true
+      end
     end
   end
 end

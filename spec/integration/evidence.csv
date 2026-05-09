@@ -233,3 +233,17 @@ Group23,TC-006,"short; best_effort; all_error","all branches raise; errors colle
 Group23,TC-007,"long; raise; all_success","generous timeout; full merge","results contain p and q","results=[p,q]",PASS,
 Group23,TC-008,"long; best_effort; one_error","generous timeout; one branch fails; error in state","results=[good]; parallel_errors.first.message=nope","results=[good]; error=nope",PASS,
 Group23,TC-009,"long; raise; all_error","generous timeout; all fail; re-raises","raise_error(RuntimeError)","RuntimeError raised",PASS,
+Group24,TC-001,"none/cold/none/none/none","Agent returns non-empty :output String","invoke single question","result[:output] is String",PASS,
+Group24,TC-002,"none/warm/remove_none/false/summarise_range","Warm cache; trim no-op; trigger=false skips compact","Two calls with same agent instance","result[:output] non-empty on 2nd call",PASS,
+Group24,TC-003,"none/stale/—/—/—","Infeasible: no-static + stale impossible","—","—",SKIP,ctx_static_knowledge:none has no cache to become stale
+Group24,TC-004,"single/cold/remove_none/true/none","Trigger=true but no compact block; no raise","invoke with single static source","result[:output] non-empty",PASS,
+Group24,TC-005,"single/warm/none/none/multi_range","Warm cache; compact block never invoked; fingerprint stable","Two calls; compare fingerprint","fp_after_first == fp_after_second",PASS,
+Group24,TC-006,"single/stale/none/false/summarise_range","Stale cache re-builds system_text; trigger=false","Manual cache reset between calls","result[:output] non-empty after reset",PASS,
+Group24,TC-007,"single/cold/remove_some/false/none","on_trim removes first message; trigger=false","Two calls with shared memory","result[:output] non-empty",PASS,
+Group24,TC-008,"multi/cold/none/true/summarise_range","Trigger=true; compact runs on first message","Two calls with shared memory","result[:output] non-empty; no raise",PASS,
+Group24,TC-009,"multi/warm/remove_some/none/none","Warm cache; on_trim removes oldest each call","Two calls","result[:output] non-empty",PASS,
+Group24,TC-010,"multi/stale/remove_none/none/multi_range","Stale cache; trim no-op; compact block without trigger","Manual cache reset between calls","result[:output] non-empty",PASS,
+Group24,TC-011,"multi/cold/none/false/multi_range","Trigger=false; compact block registered but skipped","Single invoke","result[:output] non-empty",PASS,
+Group24,TC-012,"none/warm/none/true/none","Trigger=true but no compact block; warm cache","Two calls","result[:output] non-empty",PASS,
+Group24,TC-013,"none/stale/—/—/—","Infeasible: same as TC-003","—","—",SKIP,ctx_static_knowledge:none has no cache to become stale
+Group24,TC-014,"none/cold/remove_some/none/summarise_range","on_trim removes first; compact block without trigger","Two calls with shared memory","result[:output] non-empty",PASS,

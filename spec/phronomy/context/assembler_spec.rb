@@ -89,4 +89,21 @@ RSpec.describe Phronomy::Context::Assembler do
       expect(result).to include(msgs.last) unless result.empty?
     end
   end
+
+  describe ".xml_tag" do
+    it "wraps text in a context element with type and trusted attributes" do
+      result = described_class.xml_tag("Policy text", type: :static, trusted: true)
+      expect(result).to eq('<context type="static" trusted="true">' + "\n" + "Policy text\n</context>")
+    end
+
+    it "defaults trusted to false" do
+      result = described_class.xml_tag("External fact", type: :rag)
+      expect(result).to include('trusted="false"')
+    end
+
+    it "sets the type attribute" do
+      result = described_class.xml_tag("data", type: :entity)
+      expect(result).to include('type="entity"')
+    end
+  end
 end

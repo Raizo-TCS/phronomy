@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "digest"
+
 module Phronomy
   module Agent
     # Base class for all Phronomy agents.
@@ -186,6 +188,95 @@ module Phronomy
         # Overrides the sleep callable used between retries.
         # @param proc [#call]
         attr_writer :_sleep_proc
+
+        # Registers one or more static knowledge sources on the agent class.
+        # Static sources are fetched once per agent instance and their content
+        # is cached in ContextVersionCache keyed by a fingerprint of the
+        # instruction text + source content. The cache is invalidated automatically
+        # when the fingerprint changes (e.g. because a source was updated).
+        #
+        # @param sources [Array<Phronomy::KnowledgeSource::Base>]
+        # @example
+        #   class PolicyAgent < Phronomy::Agent::Base
+        #     static_knowledge Phronomy::KnowledgeSource::StaticKnowledge.new(POLICY_TEXT)
+        #   end
+        def static_knowledge(*sources)
+          @static_knowledge_sources = sources.flatten
+        end
+
+        # Returns the registered static knowledge sources.
+        # @return [Array<Phronomy::KnowledgeSource::Base>]
+        def static_knowledge_sources
+          @static_knowledge_sources || []
+        end
+
+        # Registers a callback that is invoked before every LLM call so the
+        # application can remove stale or irrelevant messages from the
+        # conversation history.
+        #
+        # The block receives a {Phronomy::Context::TrimContext} and may call
+        # +ctx.remove(seqs)+ to drop messages by seq number. Changes affect
+        # only the current invocation; the underlying memory store is unchanged.
+        #
+        # @yield [ctx] Phronomy::Context::TrimContext
+        # @example Drop the oldest message when over 80% of budget is used
+        #   on_trim do |ctx|
+        #     limit = ctx.budget&.available(used: 0) || Float::INFINITY
+        #     ctx.remove(ctx.message_elements.first[:seq]) if ctx.total_tokens > limit * 0.8
+        #   end
+        def on_trim(&block)
+          @on_trim_callback = block
+        end
+
+        # @return [Proc, nil]
+        def _on_trim_callback
+          @on_trim_callback
+        end
+
+        # Registers a callback that decides whether compaction should run.
+        # Evaluated before every LLM call (after on_trim). If the block returns
+        # truthy AND an +on_compact+ callback is also registered, the compact
+        # pipeline is executed.
+        #
+        # The block receives a read-only {Phronomy::Context::TriggerContext}.
+        #
+        # @yield [ctx] Phronomy::Context::TriggerContext
+        # @return [Boolean] truthy → run on_compact; falsy → skip
+        # @example Trigger when messages exceed 70% of token budget
+        #   on_compaction_trigger do |ctx|
+        #     limit = ctx.budget&.available(used: 0) || Float::INFINITY
+        #     ctx.total_tokens > limit * 0.7
+        #   end
+        def on_compaction_trigger(&block)
+          @on_compaction_trigger_callback = block
+        end
+
+        # @return [Proc, nil]
+        def _on_compaction_trigger_callback
+          @on_compaction_trigger_callback
+        end
+
+        # Registers a callback that performs the actual compaction when the
+        # +on_compaction_trigger+ callback fires. The block receives a
+        # {Phronomy::Context::CompactionContext} and should call +ctx.compact+
+        # to specify which messages to summarise.
+        #
+        # @yield [ctx] Phronomy::Context::CompactionContext
+        # @example Replace the first 4 messages with a short summary
+        #   on_compact do |ctx|
+        #     ctx.compact(0..3) do |elements|
+        #       texts = elements.map { |e| e[:message].content }.join(" | ")
+        #       "Earlier conversation summary: #{texts}"
+        #     end
+        #   end
+        def on_compact(&block)
+          @on_compact_callback = block
+        end
+
+        # @return [Proc, nil]
+        def _on_compact_callback
+          @on_compact_callback
+        end
 
         # When enabled, attaches Anthropic prompt-cache markers to the system
         # message so that the fixed instructions are served from cache on
@@ -387,24 +478,60 @@ module Phronomy
         memory = config[:memory]
         thread_id = config[:thread_id]
         user_message = extract_message(input)
-
         chat = build_chat
+        budget = build_token_budget
 
-        # Assemble context regions 1 (Instruction) + 3 (Knowledge) + 4 (Conversation).
-        assembler = Context::Assembler.new(budget: build_token_budget)
-        system_msg = build_instructions(input)
-        assembler.add_instruction(system_msg) if system_msg
+        # Load conversation history from memory.
+        raw_messages = (memory && thread_id) ?
+          load_from_memory(memory, thread_id: thread_id, query: user_message) : []
 
+        # Assign synthetic 0-based seq numbers for use by trim/compaction callbacks.
+        message_elements = build_message_elements(raw_messages)
+
+        # Run on_trim: app may call ctx.remove(seqs) to drop messages this turn.
+        if (trim_cb = self.class._on_trim_callback)
+          trim_ctx = Context::TrimContext.new(message_elements: message_elements, budget: budget)
+          trim_cb.call(trim_ctx)
+          message_elements = trim_ctx.message_elements
+        end
+
+        # Run on_compaction_trigger → on_compact pipeline before calling the LLM.
+        if (trigger_cb = self.class._on_compaction_trigger_callback)
+          trigger_ctx = Context::TriggerContext.new(
+            message_elements: message_elements, budget: budget
+          )
+          if trigger_cb.call(trigger_ctx)
+            if (compact_cb = self.class._on_compact_callback)
+              compact_ctx = Context::CompactionContext.new(
+                message_elements: message_elements,
+                budget: budget,
+                thread_id: thread_id,
+                memory: memory
+              )
+              compact_cb.call(compact_ctx)
+              message_elements = build_message_elements(compact_ctx.result_messages)
+            end
+          end
+        end
+
+        # Build the system prompt via the fingerprint-keyed ContextVersionCache.
+        # Static knowledge is fetched and concatenated once; the result is reused
+        # on subsequent calls as long as the fingerprint remains valid.
+        system_text = build_cached_system_text(input)
+
+        # Assemble context regions 1 (Instruction+Static Knowledge) + 3 (Dynamic Knowledge)
+        # + 4 (Conversation).
+        assembler = Context::Assembler.new(budget: budget)
+        assembler.add_instruction(system_text) if system_text
+
+        # Dynamic knowledge from config[:knowledge_sources] (backward compatible).
         Array(config[:knowledge_sources]).each do |ks|
           ks.fetch(query: user_message).each do |chunk|
             assembler.add_knowledge(chunk[:content], type: chunk[:type])
           end
         end
 
-        if memory && thread_id
-          msgs = load_from_memory(memory, thread_id: thread_id, query: user_message)
-          assembler.add_messages(msgs)
-        end
+        assembler.add_messages(message_elements.map { |e| e[:message] })
 
         context = assembler.build
         apply_instructions(chat, context[:system]) if context[:system]
@@ -455,6 +582,50 @@ module Phronomy
         )
       rescue Phronomy::Context::UnknownModelError, RubyLLM::ModelNotFoundError
         nil
+      end
+
+      # Converts a flat Array of message objects into the internal message_elements
+      # format used by TrimContext, TriggerContext, and CompactionContext.
+      # Each element receives a 0-based synthetic seq number.
+      #
+      # @param messages [Array] message-like objects with #role and #content
+      # @return [Array<Hash>]
+      def build_message_elements(messages)
+        Array(messages).each_with_index.map do |msg, idx|
+          tokens = Context::TokenEstimator.estimate(msg.content.to_s)
+          {seq: idx, message: msg, tokens: tokens, role: msg.role}
+        end
+      end
+
+      # Builds (or returns a cached) system prompt text.
+      # The fingerprint is a SHA-256 digest of the instruction text concatenated
+      # with the content of every registered static knowledge source.
+      # When the fingerprint is unchanged the ContextVersionCache returns the
+      # previously assembled text without re-fetching any sources.
+      #
+      # @param input [String, Hash] the agent's current input (used for template evaluation)
+      # @return [String, nil] assembled system text, or nil when empty
+      def build_cached_system_text(input)
+        instruction = build_instructions(input)
+
+        static_chunks = self.class.static_knowledge_sources.flat_map { |ks|
+          ks.fetch(query: nil)
+        }
+
+        fingerprint = Digest::SHA256.hexdigest(
+          [instruction.to_s, *static_chunks.map { |c| c[:content] }].join("\0")
+        )
+
+        cache = (@_context_version_cache ||= Context::ContextVersionCache.new)
+        unless cache.valid?(fingerprint)
+          parts = [instruction]
+          static_chunks.each do |chunk|
+            parts << Context::Assembler.xml_tag(chunk[:content], type: chunk[:type], trusted: true)
+          end
+          cache.update(fingerprint: fingerprint, system_text: parts.compact.join("\n\n"))
+        end
+
+        cache.system_text.empty? ? nil : cache.system_text
       end
 
       # Load messages from a memory object regardless of whether it implements

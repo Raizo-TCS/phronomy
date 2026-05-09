@@ -741,4 +741,129 @@ module IntegrationFactors
     graph.add_edge(:run, Phronomy::Graph::StateGraph::FINISH)
     graph.compile
   end
+
+  # ---------------------------------------------------------------------------
+  # Context management factor helpers
+  # ---------------------------------------------------------------------------
+
+  # Factor: ctx_static_knowledge
+  #
+  # Returns an Array of StaticKnowledge sources for the given label.
+  #
+  # @param label [String] "none" | "single" | "multi"
+  # @return [Array<Phronomy::KnowledgeSource::StaticKnowledge>]
+  def self.static_knowledge_sources(label)
+    case label
+    when "none"
+      []
+    when "single"
+      [Phronomy::KnowledgeSource::StaticKnowledge.new("Policy: be concise and helpful.")]
+    when "multi"
+      [
+        Phronomy::KnowledgeSource::StaticKnowledge.new("Policy: be concise and helpful."),
+        Phronomy::KnowledgeSource::StaticKnowledge.new("Guide: always cite sources when possible.")
+      ]
+    else
+      raise ArgumentError, "Unknown ctx_static_knowledge label: #{label}"
+    end
+  end
+
+  # Factor: ctx_on_trim
+  #
+  # Returns a Proc or nil for on_trim based on the label.
+  # The callback receives a TrimContext; :remove_some drops the first message.
+  #
+  # @param label [String] "none" | "remove_none" | "remove_some"
+  # @return [Proc, nil]
+  def self.on_trim_callback(label)
+    case label
+    when "none"
+      nil
+    when "remove_none"
+      proc { |_ctx| }
+    when "remove_some"
+      proc do |ctx|
+        first = ctx.message_elements.first
+        ctx.remove(first[:seq]) if first
+      end
+    else
+      raise ArgumentError, "Unknown ctx_on_trim label: #{label}"
+    end
+  end
+
+  # Factor: ctx_on_compaction_trigger
+  #
+  # Returns a Proc or nil for on_compaction_trigger based on the label.
+  #
+  # @param label [String] "none" | "false" | "true"
+  # @return [Proc, nil]
+  def self.on_compaction_trigger_callback(label)
+    case label
+    when "none"
+      nil
+    when "false"
+      proc { |_ctx| false }
+    when "true"
+      proc { |_ctx| true }
+    else
+      raise ArgumentError, "Unknown ctx_on_compaction_trigger label: #{label}"
+    end
+  end
+
+  # Factor: ctx_on_compact
+  #
+  # Returns a Proc or nil for on_compact based on the label.
+  # :summarise_range compacts the first message (if any) with a fixed summary.
+  # :multi_range performs two separate compact calls on non-overlapping ranges.
+  #
+  # @param label [String] "none" | "summarise_range" | "multi_range"
+  # @return [Proc, nil]
+  def self.on_compact_callback(label)
+    case label
+    when "none"
+      nil
+    when "summarise_range"
+      proc do |ctx|
+        next if ctx.message_elements.empty?
+        ctx.compact(0..0) { |_| "Earlier conversation summary." }
+      end
+    when "multi_range"
+      proc do |ctx|
+        els = ctx.message_elements
+        next if els.length < 2
+        ctx.compact(0..0) { |_| "First compaction summary." }
+      end
+    else
+      raise ArgumentError, "Unknown ctx_on_compact label: #{label}"
+    end
+  end
+
+  # Builds an agent class configured with context management callbacks.
+  #
+  # @param static_knowledge_label  [String] ctx_static_knowledge factor label
+  # @param on_trim_label           [String] ctx_on_trim factor label
+  # @param on_trigger_label        [String] ctx_on_compaction_trigger factor label
+  # @param on_compact_label        [String] ctx_on_compact factor label
+  # @return [Class] anonymous Agent::Base subclass
+  def self.context_agent(
+    static_knowledge_label: "none",
+    on_trim_label: "none",
+    on_trigger_label: "none",
+    on_compact_label: "none"
+  )
+    sources = static_knowledge_sources(static_knowledge_label)
+    trim_cb = on_trim_callback(on_trim_label)
+    trigger_cb = on_compaction_trigger_callback(on_trigger_label)
+    compact_cb = on_compact_callback(on_compact_label)
+
+    Class.new(Phronomy::Agent::Base) do
+      model LM_STUDIO_MODEL
+      provider :openai
+      instructions "You are a helpful assistant."
+      static_knowledge(*sources) unless sources.empty?
+      on_trim(&trim_cb) if trim_cb
+      on_compaction_trigger(&trigger_cb) if trigger_cb
+      on_compact(&compact_cb) if compact_cb
+    end
+  end
 end

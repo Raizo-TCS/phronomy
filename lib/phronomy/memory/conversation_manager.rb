@@ -120,6 +120,22 @@ module Phronomy
         @retrieval.clear_index(thread_id: thread_id) if @retrieval.respond_to?(:clear_index)
       end
 
+      # Record an application-driven compaction for a thread.
+      # Called by CompactionContext when the on_compact callback invokes ctx.compact.
+      #
+      # @param thread_id   [String]
+      # @param start_seq   [Integer] first seq number in the compacted range
+      # @param end_seq     [Integer] last seq number in the compacted range
+      # @param summary_text [String] replacement text for the compacted messages
+      def save_compaction(thread_id:, start_seq:, end_seq:, summary_text:)
+        @storage.save_compaction(
+          thread_id: thread_id,
+          start_seq: start_seq,
+          end_seq: end_seq,
+          summary_text: summary_text
+        )
+      end
+
       private
 
       # Reconstruct context-ready messages from raw history + compaction records.

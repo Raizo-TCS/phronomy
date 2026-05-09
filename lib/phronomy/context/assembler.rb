@@ -25,6 +25,18 @@ module Phronomy
     #   context = assembler.build
     #   # => { system: "You are ...\n<context ...>...</context>", messages: [...] }
     class Assembler
+      # Builds a single XML context tag string.
+      # Exposed as a class method so callers (e.g. Agent::Base) can build
+      # static knowledge XML tags independently of an Assembler instance.
+      #
+      # @param text    [String]
+      # @param type    [Symbol, String]
+      # @param trusted [Boolean]
+      # @return [String]
+      def self.xml_tag(text, type:, trusted: false)
+        "<context type=\"#{type}\" trusted=\"#{trusted}\">\n#{text}\n</context>"
+      end
+
       # @param budget [Phronomy::Context::TokenBudget, nil]
       #   when nil no token trimming is performed
       def initialize(budget: nil)
