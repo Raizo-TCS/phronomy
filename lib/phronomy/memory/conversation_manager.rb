@@ -74,41 +74,8 @@ module Phronomy
       # @param thread_id [String]
       # @param messages  [Array] full conversation history up to this point
       def save(thread_id:, messages:)
-        # Append only new messages to the raw history.
-        raw = @storage.load_raw(thread_id: thread_id)
-        starting_seq = raw.length
-        new_messages = messages[starting_seq..]
-        @storage.append_raw(thread_id: thread_id, messages: new_messages, starting_seq: starting_seq) if new_messages&.any?
-
-        # Apply compression to uncompacted messages if a strategy is configured.
-        if @compression
-          compactions = @storage.load_compactions(thread_id: thread_id)
-          uncompacted_start_seq = compactions.any? ? compactions.last[:end_seq] + 1 : 0
-          all_raw = @storage.load_raw(thread_id: thread_id)
-          uncompacted = all_raw.select { |r| r[:seq] >= uncompacted_start_seq }.map { |r| r[:message] }
-
-          result = @compression.compress(
-            thread_id: thread_id,
-            messages: uncompacted,
-            seq_offset: uncompacted_start_seq
-          )
-
-          if result[:compaction]
-            @storage.save_compaction(
-              thread_id: thread_id,
-              start_seq: result[:compaction][:start_seq],
-              end_seq: result[:compaction][:end_seq],
-              summary_text: result[:compaction][:summary_text]
-            )
-          end
-
-          # For non-Summary compressors (ToolOutputPruner), store the pruned
-          # version in the legacy store so legacy #load still works.
-          @storage.save(thread_id: thread_id, messages: result[:messages])
-        else
-          @storage.save(thread_id: thread_id, messages: messages)
-        end
-
+        append_new_messages(thread_id: thread_id, messages: messages)
+        compress_and_save(thread_id: thread_id, messages: messages)
         @retrieval.index(thread_id: thread_id, messages: messages) if @retrieval.respond_to?(:index)
       end
 
@@ -137,6 +104,49 @@ module Phronomy
       end
 
       private
+
+      # Append messages that are new since the last save to the raw history.
+      # Messages are append-only; existing raw entries are never modified.
+      def append_new_messages(thread_id:, messages:)
+        raw = @storage.load_raw(thread_id: thread_id)
+        starting_seq = raw.length
+        new_messages = messages[starting_seq..]
+        @storage.append_raw(thread_id: thread_id, messages: new_messages, starting_seq: starting_seq) if new_messages&.any?
+      end
+
+      # Apply the configured compression strategy and persist the result.
+      # When no strategy is configured, saves messages directly to the legacy store.
+      # When compression fires, also persists the compaction record.
+      def compress_and_save(thread_id:, messages:)
+        unless @compression
+          @storage.save(thread_id: thread_id, messages: messages)
+          return
+        end
+
+        compactions = @storage.load_compactions(thread_id: thread_id)
+        uncompacted_start_seq = compactions.any? ? compactions.last[:end_seq] + 1 : 0
+        all_raw = @storage.load_raw(thread_id: thread_id)
+        uncompacted = all_raw.select { |r| r[:seq] >= uncompacted_start_seq }.map { |r| r[:message] }
+
+        result = @compression.compress(
+          thread_id: thread_id,
+          messages: uncompacted,
+          seq_offset: uncompacted_start_seq
+        )
+
+        if result[:compaction]
+          @storage.save_compaction(
+            thread_id: thread_id,
+            start_seq: result[:compaction][:start_seq],
+            end_seq: result[:compaction][:end_seq],
+            summary_text: result[:compaction][:summary_text]
+          )
+        end
+
+        # For non-Summary compressors (ToolOutputPruner), store the pruned
+        # version in the legacy store so legacy #load still works.
+        @storage.save(thread_id: thread_id, messages: result[:messages])
+      end
 
       # Reconstruct context-ready messages from raw history + compaction records.
       # When no compaction records exist (no Summary compaction has fired), we
