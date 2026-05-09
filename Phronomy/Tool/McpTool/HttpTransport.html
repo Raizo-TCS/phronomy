@@ -258,12 +258,12 @@ both the 2024-11-05 and 2025-03-26 MCP HTTP transport specifications.</p>
       <pre class="lines">
 
 
-154
-155
-156</pre>
+157
+158
+159</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 154</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 157</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_base_url'>base_url</span><span class='rparen'>)</span>
   <span class='ivar'>@uri</span> <span class='op'>=</span> <span class='const'>URI</span><span class='period'>.</span><span class='id identifier rubyid_parse'>parse</span><span class='lparen'>(</span><span class='id identifier rubyid_base_url'>base_url</span><span class='rparen'>)</span>
@@ -346,9 +346,6 @@ both the 2024-11-05 and 2025-03-26 MCP HTTP transport specifications.</p>
       <pre class="lines">
 
 
-177
-178
-179
 180
 181
 182
@@ -356,10 +353,13 @@ both the 2024-11-05 and 2025-03-26 MCP HTTP transport specifications.</p>
 184
 185
 186
-187</pre>
+187
+188
+189
+190</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 177</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 180</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_call_tool'>call_tool</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_name'>tool_name</span><span class='comma'>,</span> <span class='id identifier rubyid_args'>args</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_response'>response</span> <span class='op'>=</span> <span class='id identifier rubyid_rpc_call'>rpc_call</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tools/call</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='lbrace'>{</span><span class='label'>name:</span> <span class='id identifier rubyid_tool_name'>tool_name</span><span class='comma'>,</span> <span class='label'>arguments:</span> <span class='id identifier rubyid_args'>args</span><span class='rbrace'>}</span><span class='rparen'>)</span>
@@ -445,9 +445,6 @@ both the 2024-11-05 and 2025-03-26 MCP HTTP transport specifications.</p>
       <pre class="lines">
 
 
-161
-162
-163
 164
 165
 166
@@ -455,10 +452,13 @@ both the 2024-11-05 and 2025-03-26 MCP HTTP transport specifications.</p>
 168
 169
 170
-171</pre>
+171
+172
+173
+174</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 161</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 164</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fetch_tool'>fetch_tool</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_name'>tool_name</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_response'>response</span> <span class='op'>=</span> <span class='id identifier rubyid_rpc_call'>rpc_call</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tools/list</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
@@ -481,7 +481,7 @@ both the 2024-11-05 and 2025-03-26 MCP HTTP transport specifications.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May  9 07:36:27 2026 by
+  Generated on Sat May  9 08:30:35 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

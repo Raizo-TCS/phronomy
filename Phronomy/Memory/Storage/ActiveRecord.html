@@ -560,8 +560,6 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-95
-96
 97
 98
 99
@@ -572,10 +570,12 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
 104
 105
 106
-107</pre>
+107
+108
+109</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 95</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 97</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_append_raw'>append_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='comma'>,</span> <span class='label'>starting_seq:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ensure_raw_model!'>ensure_raw_model!</span>
@@ -634,14 +634,14 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-82
-83
 84
 85
-86</pre>
+86
+87
+88</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 82</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 84</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
@@ -692,12 +692,12 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-149
-150
-151</pre>
+151
+152
+153</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 149</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 151</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear_compactions'>clear_compactions</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='ivar'>@compaction_model_class</span><span class='op'>&amp;.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='op'>&amp;.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
@@ -746,12 +746,12 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-118
-119
-120</pre>
+120
+121
+122</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 118</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 120</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear_raw'>clear_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='ivar'>@raw_model_class</span><span class='op'>&amp;.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='op'>&amp;.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
@@ -882,14 +882,14 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-142
-143
 144
 145
-146</pre>
+146
+147
+148</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 142</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 144</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load_compactions'>load_compactions</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ensure_compaction_model!'>ensure_compaction_model!</span>
@@ -953,14 +953,14 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-111
-112
 113
 114
-115</pre>
+115
+116
+117</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 111</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 113</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load_raw'>load_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ensure_raw_model!'>ensure_raw_model!</span>
@@ -1033,21 +1033,25 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
 76
 77
 78
-79</pre>
+79
+80
+81</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 68</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='rparen'>)</span>
-  <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
-  <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_msg'>msg</span><span class='op'>|</span>
-    <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_create!'>create!</span><span class='lparen'>(</span>
-      <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
-      <span class='label'>role:</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_role'>role</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span>
-      <span class='label'>content:</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span>
-      <span class='label'>tool_calls_json:</span> <span class='id identifier rubyid_serialize_tool_calls'>serialize_tool_calls</span><span class='lparen'>(</span><span class='id identifier rubyid_msg'>msg</span><span class='rparen'>)</span><span class='comma'>,</span>
-      <span class='label'>model_id:</span> <span class='lparen'>(</span><span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_model_id'>model_id</span> <span class='kw'>if</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:model_id</span><span class='rparen'>)</span><span class='rparen'>)</span>
-    <span class='rparen'>)</span>
+  <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_transaction'>transaction</span> <span class='kw'>do</span>
+    <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
+    <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_msg'>msg</span><span class='op'>|</span>
+      <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_create!'>create!</span><span class='lparen'>(</span>
+        <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
+        <span class='label'>role:</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_role'>role</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span>
+        <span class='label'>content:</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span>
+        <span class='label'>tool_calls_json:</span> <span class='id identifier rubyid_serialize_tool_calls'>serialize_tool_calls</span><span class='lparen'>(</span><span class='id identifier rubyid_msg'>msg</span><span class='rparen'>)</span><span class='comma'>,</span>
+        <span class='label'>model_id:</span> <span class='lparen'>(</span><span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_model_id'>model_id</span> <span class='kw'>if</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:model_id</span><span class='rparen'>)</span><span class='rparen'>)</span>
+      <span class='rparen'>)</span>
+    <span class='kw'>end</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1127,18 +1131,18 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-130
-131
 132
 133
 134
 135
 136
 137
-138</pre>
+138
+139
+140</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 130</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 132</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save_compaction'>save_compaction</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>start_seq:</span><span class='comma'>,</span> <span class='label'>end_seq:</span><span class='comma'>,</span> <span class='label'>summary_text:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ensure_compaction_model!'>ensure_compaction_model!</span>
@@ -1159,7 +1163,7 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
 </div>
 
       <div id="footer">
-  Generated on Sat May  9 07:36:29 2026 by
+  Generated on Sat May  9 08:30:36 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

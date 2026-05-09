@@ -370,12 +370,12 @@ Persists conversation messages to a relational database.</p>
       <pre class="lines">
 
 
-80
-81
-82</pre>
+85
+86
+87</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/active_record_memory.rb', line 80</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/active_record_memory.rb', line 85</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
@@ -459,15 +459,21 @@ Persists conversation messages to a relational database.</p>
 45
 46
 47
-48</pre>
+48
+49
+50
+51</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/memory/active_record_memory.rb', line 42</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load_messages'>load_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>limit:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_scope'>scope</span> <span class='op'>=</span> <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_order'>order</span><span class='lparen'>(</span><span class='symbol'>:created_at</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_records'>records</span> <span class='op'>=</span> <span class='id identifier rubyid_scope'>scope</span><span class='period'>.</span><span class='id identifier rubyid_to_a'>to_a</span>
-  <span class='id identifier rubyid_records'>records</span> <span class='op'>=</span> <span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_last'>last</span><span class='lparen'>(</span><span class='id identifier rubyid_limit'>limit</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_limit'>limit</span>
+  <span class='id identifier rubyid_scope'>scope</span> <span class='op'>=</span> <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_records'>records</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_limit'>limit</span>
+    <span class='id identifier rubyid_scope'>scope</span><span class='period'>.</span><span class='id identifier rubyid_order'>order</span><span class='lparen'>(</span><span class='label'>created_at:</span> <span class='symbol'>:desc</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_limit'>limit</span><span class='lparen'>(</span><span class='id identifier rubyid_limit'>limit</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_to_a'>to_a</span><span class='period'>.</span><span class='id identifier rubyid_reverse'>reverse</span>
+  <span class='kw'>else</span>
+    <span class='id identifier rubyid_scope'>scope</span><span class='period'>.</span><span class='id identifier rubyid_order'>order</span><span class='lparen'>(</span><span class='symbol'>:created_at</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_to_a'>to_a</span>
+  <span class='kw'>end</span>
   <span class='id identifier rubyid_messages'>messages</span> <span class='op'>=</span> <span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_r'>r</span><span class='op'>|</span> <span class='id identifier rubyid_to_message_struct'>to_message_struct</span><span class='lparen'>(</span><span class='id identifier rubyid_r'>r</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
   <span class='ivar'>@pruner</span> <span class='op'>?</span> <span class='ivar'>@pruner</span><span class='period'>.</span><span class='id identifier rubyid_prune'>prune</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id identifier rubyid_messages'>messages</span>
 <span class='kw'>end</span></pre>
@@ -529,9 +535,6 @@ Persists conversation messages to a relational database.</p>
       <pre class="lines">
 
 
-53
-54
-55
 56
 57
 58
@@ -553,14 +556,20 @@ Persists conversation messages to a relational database.</p>
 74
 75
 76
-77</pre>
+77
+78
+79
+80
+81
+82</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/active_record_memory.rb', line 53</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/active_record_memory.rb', line 56</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save_messages'>save_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='rparen'>)</span>
-  <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
-  <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_msg'>msg</span><span class='op'>|</span>
+  <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_transaction'>transaction</span> <span class='kw'>do</span>
+    <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
+    <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_msg'>msg</span><span class='op'>|</span>
     <span class='id identifier rubyid_tool_calls_json'>tool_calls_json</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:tool_calls</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_tool_calls'>tool_calls</span>
       <span class='id identifier rubyid_serializable'>serializable</span> <span class='op'>=</span> <span class='kw'>case</span> <span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_tool_calls'>tool_calls</span>
       <span class='kw'>when</span> <span class='const'>Hash</span>
@@ -581,6 +590,7 @@ Persists conversation messages to a relational database.</p>
       <span class='label'>tool_calls_json:</span> <span class='id identifier rubyid_tool_calls_json'>tool_calls_json</span><span class='comma'>,</span>
       <span class='label'>model_id:</span> <span class='id identifier rubyid_model_id'>model_id</span>
     <span class='rparen'>)</span>
+    <span class='kw'>end</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -593,7 +603,7 @@ Persists conversation messages to a relational database.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May  9 07:36:29 2026 by
+  Generated on Sat May  9 08:30:36 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
