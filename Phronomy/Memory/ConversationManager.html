@@ -420,13 +420,13 @@ and uncompacted messages are returned verbatim.</p>
       <pre class="lines">
 
 
-118
-119
-120
-121</pre>
+85
+86
+87
+88</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 118</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 85</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
@@ -589,80 +589,14 @@ compaction record is saved in storage (originals are preserved).</p>
 77
 78
 79
-80
-81
-82
-83
-84
-85
-86
-87
-88
-89
-90
-91
-92
-93
-94
-95
-96
-97
-98
-99
-100
-101
-102
-103
-104
-105
-106
-107
-108
-109
-110
-111
-112
-113</pre>
+80</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 76</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='rparen'>)</span>
-  <span class='comment'># Append only new messages to the raw history.
-</span>  <span class='id identifier rubyid_raw'>raw</span> <span class='op'>=</span> <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_load_raw'>load_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_starting_seq'>starting_seq</span> <span class='op'>=</span> <span class='id identifier rubyid_raw'>raw</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span>
-  <span class='id identifier rubyid_new_messages'>new_messages</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span><span class='lbracket'>[</span><span class='id identifier rubyid_starting_seq'>starting_seq</span><span class='op'>..</span><span class='rbracket'>]</span>
-  <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_append_raw'>append_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_new_messages'>new_messages</span><span class='comma'>,</span> <span class='label'>starting_seq:</span> <span class='id identifier rubyid_starting_seq'>starting_seq</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_new_messages'>new_messages</span><span class='op'>&amp;.</span><span class='id identifier rubyid_any?'>any?</span>
-
-  <span class='comment'># Apply compression to uncompacted messages if a strategy is configured.
-</span>  <span class='kw'>if</span> <span class='ivar'>@compression</span>
-    <span class='id identifier rubyid_compactions'>compactions</span> <span class='op'>=</span> <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_load_compactions'>load_compactions</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_uncompacted_start_seq'>uncompacted_start_seq</span> <span class='op'>=</span> <span class='id identifier rubyid_compactions'>compactions</span><span class='period'>.</span><span class='id identifier rubyid_any?'>any?</span> <span class='op'>?</span> <span class='id identifier rubyid_compactions'>compactions</span><span class='period'>.</span><span class='id identifier rubyid_last'>last</span><span class='lbracket'>[</span><span class='symbol'>:end_seq</span><span class='rbracket'>]</span> <span class='op'>+</span> <span class='int'>1</span> <span class='op'>:</span> <span class='int'>0</span>
-    <span class='id identifier rubyid_all_raw'>all_raw</span> <span class='op'>=</span> <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_load_raw'>load_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_uncompacted'>uncompacted</span> <span class='op'>=</span> <span class='id identifier rubyid_all_raw'>all_raw</span><span class='period'>.</span><span class='id identifier rubyid_select'>select</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_r'>r</span><span class='op'>|</span> <span class='id identifier rubyid_r'>r</span><span class='lbracket'>[</span><span class='symbol'>:seq</span><span class='rbracket'>]</span> <span class='op'>&gt;=</span> <span class='id identifier rubyid_uncompacted_start_seq'>uncompacted_start_seq</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_r'>r</span><span class='op'>|</span> <span class='id identifier rubyid_r'>r</span><span class='lbracket'>[</span><span class='symbol'>:message</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
-
-    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='ivar'>@compression</span><span class='period'>.</span><span class='id identifier rubyid_compress'>compress</span><span class='lparen'>(</span>
-      <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
-      <span class='label'>messages:</span> <span class='id identifier rubyid_uncompacted'>uncompacted</span><span class='comma'>,</span>
-      <span class='label'>seq_offset:</span> <span class='id identifier rubyid_uncompacted_start_seq'>uncompacted_start_seq</span>
-    <span class='rparen'>)</span>
-
-    <span class='kw'>if</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:compaction</span><span class='rbracket'>]</span>
-      <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_save_compaction'>save_compaction</span><span class='lparen'>(</span>
-        <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
-        <span class='label'>start_seq:</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:compaction</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='symbol'>:start_seq</span><span class='rbracket'>]</span><span class='comma'>,</span>
-        <span class='label'>end_seq:</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:compaction</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='symbol'>:end_seq</span><span class='rbracket'>]</span><span class='comma'>,</span>
-        <span class='label'>summary_text:</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:compaction</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='symbol'>:summary_text</span><span class='rbracket'>]</span>
-      <span class='rparen'>)</span>
-    <span class='kw'>end</span>
-
-    <span class='comment'># For non-Summary compressors (ToolOutputPruner), store the pruned
-</span>    <span class='comment'># version in the legacy store so legacy #load still works.
-</span>    <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:messages</span><span class='rbracket'>]</span><span class='rparen'>)</span>
-  <span class='kw'>else</span>
-    <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span>
-  <span class='kw'>end</span>
-
+  <span class='id identifier rubyid_append_new_messages'>append_new_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_compress_and_save'>compress_and_save</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span>
   <span class='ivar'>@retrieval</span><span class='period'>.</span><span class='id identifier rubyid_index'>index</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='ivar'>@retrieval</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:index</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -752,17 +686,17 @@ Called by CompactionContext when the on_compact callback invokes ctx.compact.</p
       <pre class="lines">
 
 
-130
-131
-132
-133
-134
-135
-136
-137</pre>
+97
+98
+99
+100
+101
+102
+103
+104</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 130</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 97</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save_compaction'>save_compaction</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>start_seq:</span><span class='comma'>,</span> <span class='label'>end_seq:</span><span class='comma'>,</span> <span class='label'>summary_text:</span><span class='rparen'>)</span>
   <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_save_compaction'>save_compaction</span><span class='lparen'>(</span>
@@ -782,7 +716,7 @@ Called by CompactionContext when the on_compact callback invokes ctx.compact.</p
 </div>
 
       <div id="footer">
-  Generated on Sat May  9 17:26:38 2026 by
+  Generated on Sat May  9 18:16:40 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
