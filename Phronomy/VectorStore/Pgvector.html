@@ -217,6 +217,28 @@
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#remove-instance_method" title="#remove (instance method)">#<strong>remove</strong>(id:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#search-instance_method" title="#search (instance method)">#<strong>search</strong>(query_embedding:, k: 5)  &#x21d2; Array&lt;Hash&gt; </a>
     
 
@@ -429,6 +451,38 @@
       <pre class="lines">
 
 
+71
+72
+73
+74</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/pgvector.rb', line 71</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span>
+  <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
+  <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="remove-instance_method">
+  
+    #<strong>remove</strong>(id:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
 66
 67
 68
@@ -437,8 +491,8 @@
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/pgvector.rb', line 66</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span>
-  <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_remove'>remove</span><span class='lparen'>(</span><span class='label'>id:</span><span class='rparen'>)</span>
+  <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>id:</span> <span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -564,7 +618,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sat May  9 15:25:22 2026 by
+  Generated on Sat May  9 16:52:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

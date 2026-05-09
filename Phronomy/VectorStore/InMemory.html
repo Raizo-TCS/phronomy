@@ -211,6 +211,28 @@ the message count is small enough that a linear scan is fast enough.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#remove-instance_method" title="#remove (instance method)">#<strong>remove</strong>(id:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#search-instance_method" title="#search (instance method)">#<strong>search</strong>(query_embedding:, k: 5)  &#x21d2; Array&lt;Hash&gt; </a>
     
 
@@ -407,6 +429,38 @@ the message count is small enough that a linear scan is fast enough.</p>
       <pre class="lines">
 
 
+43
+44
+45
+46</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 43</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span>
+  <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span>
+  <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="remove-instance_method">
+  
+    #<strong>remove</strong>(id:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
 38
 39
 40
@@ -415,8 +469,8 @@ the message count is small enough that a linear scan is fast enough.</p>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 38</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span>
-  <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_remove'>remove</span><span class='lparen'>(</span><span class='label'>id:</span><span class='rparen'>)</span>
+  <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -555,12 +609,12 @@ the message count is small enough that a linear scan is fast enough.</p>
       <pre class="lines">
 
 
-44
-45
-46</pre>
+49
+50
+51</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 44</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 49</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_size'>size</span>
   <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
@@ -575,7 +629,7 @@ the message count is small enough that a linear scan is fast enough.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May  9 15:25:22 2026 by
+  Generated on Sat May  9 16:52:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
