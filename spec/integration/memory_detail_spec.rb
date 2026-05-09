@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "spec_helper"
+require_relative "support/llm_stub"
 
 # Group 5: Memory Detail Parameters
 # Pairwise factors: memory_type × window_memory_k × summary_memory_max_tokens ×
@@ -201,6 +202,9 @@ RSpec.describe "Group 5: Memory Detail Parameters", :integration do
   # TC-009: SummaryMemory; tiny max_tokens; tight tool pruner — LLM required
   # ---------------------------------------------------------------------------
   describe "TC-009: SummaryMemory; tiny max_tokens; tight tool pruner", :slow do
+    before { @llm = LLMStub.activate(responses: ["Conversation history summary."]) }
+    after { LLMStub.deactivate }
+
     it "compresses messages when token count exceeds tiny threshold" do
       mem = Phronomy::Memory::SummaryMemory.new(max_tokens: 1)
       messages = 6.times.map { |i| user_msg("message number #{i} with some content") }
@@ -377,6 +381,9 @@ RSpec.describe "Group 5: Memory Detail Parameters", :integration do
   # TC-021: CompositeMemory; k=1; tiny summary max_tokens; default pruner
   # ---------------------------------------------------------------------------
   describe "TC-021: CompositeMemory; k=1 window + tiny summary; default pruner" do
+    before { @llm = LLMStub.activate(responses: ["Conversation history summary."]) }
+    after { LLMStub.deactivate }
+
     it "CompositeMemory clear removes all messages from sub-memories" do
       window = Phronomy::Memory::WindowMemory.new(k: 1)
       summary = Phronomy::Memory::SummaryMemory.new(max_tokens: 1)

@@ -2,6 +2,7 @@
 
 require_relative "spec_helper"
 require_relative "support/factors"
+require_relative "support/llm_stub"
 
 # Pairwise integration test cases — Group: Context Management
 #
@@ -15,6 +16,9 @@ require_relative "support/factors"
 # with openai/gpt-oss-20b loaded.
 
 RSpec.describe "Group: Context Management", :integration do
+  before { @llm = LLMStub.activate(responses: ["Got it.", "Done.", "OK.", "OK.", "OK."]) }
+  after { LLMStub.deactivate }
+
   # --------------------------------------------------------------------------
   # TC-001: none / cold / none / none / none
   # Baseline: no static knowledge, no callbacks, cold cache.

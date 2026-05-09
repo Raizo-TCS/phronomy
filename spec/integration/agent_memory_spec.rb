@@ -2,6 +2,7 @@
 
 require_relative "spec_helper"
 require_relative "support/factors"
+require_relative "support/llm_stub"
 
 # Pairwise integration test cases — Group 1: Agent × Memory × Tools
 #
@@ -14,11 +15,15 @@ require_relative "support/factors"
 # with openai/gpt-oss-20b loaded.
 
 RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
+  after { LLMStub.deactivate }
+
   # --------------------------------------------------------------------------
   # TC-001: base / none / none / nil / nil
   # Simplest baseline — single LLM call, no tools, no memory.
   # --------------------------------------------------------------------------
   describe "TC-001: Agent::Base, no memory, no tools, no thread_id" do
+    before { @llm = LLMStub.activate(responses: ["Paris"]) }
+
     it "returns :output (String), :messages (Array), :usage and output is non-empty" do
       agent_klass = IntegrationFactors.agent_class("base",
         tools: IntegrationFactors.tools("none"))
@@ -43,6 +48,8 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
     let(:agent) { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("splat_single")).new }
     let(:thread) { "tc-002-#{SecureRandom.hex(4)}" }
 
+    before { @llm = LLMStub.activate(responses: ["Got it.", "42"]) }
+
     it "persists conversation across two invocations" do
       agent.invoke("My favourite number is 42. Just say 'Got it.'",
         config: {thread_id: thread, memory: memory, token_budget: budget})
@@ -66,43 +73,46 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
     let(:budget) { IntegrationFactors.token_budget("tight") }
     # Isolation sub-test uses a separate memory instance with large max_tokens so
     # messages are stored verbatim (no compression).
-    # SummaryMemory.compress with < 6 messages produces old_messages=[] and asks
-    # the LLM to "summarize" an empty string.  The resulting garbage system message
-    # leads the model to answer "unknown".  Thread isolation is a routing concern
-    # (keyed by thread_id), not a compression concern, so it is verified separately
-    # from the compression sub-test.
     let(:isolation_memory) { IntegrationFactors.memory("summary", max_tokens: 100_000) }
     let(:agent) { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("splat_multi")).new }
     let(:tid_a) { "tc-003-a-#{SecureRandom.hex(4)}" }
     let(:tid_b) { "tc-003-b-#{SecureRandom.hex(4)}" }
 
-    it "keeps thread-A and thread-B histories isolated" do
-      cfg_a = {thread_id: tid_a, memory: isolation_memory}
-      cfg_b = {thread_id: tid_b, memory: isolation_memory}
+    context "thread isolation" do
+      before { @llm = LLMStub.activate(responses: ["Got it.", "Got it.", "red", "blue"]) }
 
-      agent.invoke("My favourite colour is red. Just say 'Got it.'", config: cfg_a)
-      agent.invoke("My favourite colour is blue. Just say 'Got it.'", config: cfg_b)
+      it "keeps thread-A and thread-B histories isolated" do
+        cfg_a = {thread_id: tid_a, memory: isolation_memory}
+        cfg_b = {thread_id: tid_b, memory: isolation_memory}
 
-      result_a = agent.invoke(
-        "What is my favourite colour? Reply with only the colour name.", config: cfg_a
-      )
-      result_b = agent.invoke(
-        "What is my favourite colour? Reply with only the colour name.", config: cfg_b
-      )
+        agent.invoke("My favourite colour is red. Just say 'Got it.'", config: cfg_a)
+        agent.invoke("My favourite colour is blue. Just say 'Got it.'", config: cfg_b)
 
-      expect(result_a[:output].downcase).to include("red")
-      expect(result_b[:output].downcase).to include("blue")
+        result_a = agent.invoke(
+          "What is my favourite colour? Reply with only the colour name.", config: cfg_a
+        )
+        result_b = agent.invoke(
+          "What is my favourite colour? Reply with only the colour name.", config: cfg_b
+        )
+
+        expect(result_a[:output].downcase).to include("red")
+        expect(result_b[:output].downcase).to include("blue")
+      end
     end
 
-    it "does not raise even when SummaryMemory compresses history via LLM" do
-      cfg_a = {thread_id: tid_a, memory: memory, token_budget: budget}
+    context "compression" do
+      before { @llm = LLMStub.activate(responses: ["OK", "Summary.", "OK", "Summary.", "OK", "Summary.", "Done.", "Summary."]) }
 
-      # Seed enough messages to trigger compression (max_tokens=10 is tiny)
-      3.times { |i| agent.invoke("Message #{i}. Just say OK.", config: cfg_a) }
+      it "does not raise even when SummaryMemory compresses history via LLM" do
+        cfg_a = {thread_id: tid_a, memory: memory, token_budget: budget}
 
-      expect {
-        agent.invoke("What is 2 + 3? Use the calculator tool.", config: cfg_a)
-      }.not_to raise_error
+        # Seed enough messages to trigger compression (max_tokens=10 is tiny)
+        3.times { |i| agent.invoke("Message #{i}. Just say OK.", config: cfg_a) }
+
+        expect {
+          agent.invoke("What is 2 + 3? Use the calculator tool.", config: cfg_a)
+        }.not_to raise_error
+      end
     end
   end
 
@@ -113,22 +123,36 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
   describe "TC-007: ReactAgent, no memory, single tool, different_threads" do
     let(:agent_klass) { IntegrationFactors.agent_class("react", tools: IntegrationFactors.tools("splat_single")) }
 
-    it "completes the ReAct tool-call loop and returns a numeric answer" do
-      result = agent_klass.new.invoke("What is 8 plus 7? Use the calculator tool.")
-
-      expect(result[:output]).to include("15")
-      expect(result[:messages]).to be_an(Array)
-      expect(result[:messages]).not_to be_empty
-    end
-
-    it "two independent invocations on different thread_ids both succeed" do
-      threads = IntegrationFactors.thread_id("different_threads") # ["thread-001","thread-002"]
-      results = threads.map do |tid|
-        agent_klass.new.invoke("What is 3 plus 3? Use the calculator tool.",
-          config: {thread_id: tid})
+    context "single invocation" do
+      before do
+        tool_r = LLMStub.tool_call_response("calculator", {a: 8, b: 7})
+        @llm = LLMStub.activate(responses: [tool_r, "15"])
       end
 
-      results.each { |r| expect(r[:output]).to include("6") }
+      it "completes the ReAct tool-call loop and returns a numeric answer" do
+        result = agent_klass.new.invoke("What is 8 plus 7? Use the calculator tool.")
+
+        expect(result[:output]).to include("15")
+        expect(result[:messages]).to be_an(Array)
+        expect(result[:messages]).not_to be_empty
+      end
+    end
+
+    context "two independent invocations" do
+      before do
+        tool_r = LLMStub.tool_call_response("calculator", {a: 3, b: 3})
+        @llm = LLMStub.activate(responses: [tool_r, "6", tool_r, "6"])
+      end
+
+      it "two independent invocations on different thread_ids both succeed" do
+        threads = IntegrationFactors.thread_id("different_threads") # ["thread-001","thread-002"]
+        results = threads.map do |tid|
+          agent_klass.new.invoke("What is 3 plus 3? Use the calculator tool.",
+            config: {thread_id: tid})
+        end
+
+        results.each { |r| expect(r[:output]).to include("6") }
+      end
     end
   end
 
@@ -140,6 +164,11 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
     let(:memory) { IntegrationFactors.memory("summary") }
     let(:agent) { IntegrationFactors.agent_class("react", tools: IntegrationFactors.tools("hash_alias")).new }
     let(:thread) { "tc-009-#{SecureRandom.hex(4)}" }
+
+    before do
+      tool_r = LLMStub.tool_call_response("calc", {a: 5, b: 6})
+      @llm = LLMStub.activate(responses: [tool_r, "11", "11"])
+    end
 
     it "calls the aliased tool and retains history across invocations" do
       cfg = {thread_id: thread, memory: memory}
@@ -171,6 +200,8 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
     let(:tid_a) { "tc-011-a-#{SecureRandom.hex(4)}" }
     let(:tid_b) { "tc-011-b-#{SecureRandom.hex(4)}" }
 
+    before { @llm = LLMStub.activate(responses: ["Got it.", "Got it.", "dog", "cat"]) }
+
     it "keeps thread histories isolated with CompositeMemory" do
       cfg_a = {thread_id: tid_a, memory: memory, token_budget: budget}
       cfg_b = {thread_id: tid_b, memory: memory, token_budget: budget}
@@ -194,6 +225,11 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
   describe "TC-013: ReactAgent, no memory, hash_alias tool, thread_id=present, tight budget" do
     let(:agent) { IntegrationFactors.agent_class("react", tools: IntegrationFactors.tools("hash_alias")).new }
 
+    before do
+      tool_r = LLMStub.tool_call_response("calc", {a: 9, b: 4})
+      @llm = LLMStub.activate(responses: [tool_r, "13"])
+    end
+
     it "calls the aliased calc tool and returns the answer" do
       result = agent.invoke("What is 9 plus 4? Use the calc tool.",
         config: {thread_id: IntegrationFactors.thread_id("present")})
@@ -209,6 +245,11 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
   describe "TC-014: Agent::Base, no memory, multiple tools" do
     let(:agent_klass) { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("splat_multi")) }
 
+    before do
+      tool_r = LLMStub.tool_call_response("calculator", {a: 12, b: 8})
+      @llm = LLMStub.activate(responses: [tool_r, "20"])
+    end
+
     it "returns a result that uses at least one of the registered tools" do
       result = agent_klass.new.invoke("What is 12 plus 8? Use the calculator tool.")
 
@@ -222,6 +263,11 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
   # --------------------------------------------------------------------------
   describe "TC-015: Agent::Base, no memory, hash_no_alias tool" do
     let(:agent_klass) { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("hash_no_alias")) }
+
+    before do
+      tool_r = LLMStub.tool_call_response("calculator", {a: 7, b: 3})
+      @llm = LLMStub.activate(responses: [tool_r, "10"])
+    end
 
     it "can invoke the tool whose name is derived from its class name" do
       result = agent_klass.new.invoke("What is 7 plus 3? Use the available calculator tool.")
@@ -239,6 +285,8 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
     let(:agent) { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("splat_multi")).new }
     let(:tid_a) { "tc-016-a-#{SecureRandom.hex(4)}" }
     let(:tid_b) { "tc-016-b-#{SecureRandom.hex(4)}" }
+
+    before { @llm = LLMStub.activate(responses: ["Got it.", "Got it.", "Tokyo", "Paris"]) }
 
     it "keeps thread-A and thread-B context separate" do
       cfg_a = {thread_id: tid_a, memory: memory}
@@ -266,6 +314,8 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
     let(:tid_a) { "tc-017-a-#{SecureRandom.hex(4)}" }
     let(:tid_b) { "tc-017-b-#{SecureRandom.hex(4)}" }
 
+    before { @llm = LLMStub.activate(responses: ["Got it.", "Got it.", "9", "4"]) }
+
     it "does not raise when budget is tight and handles both threads" do
       cfg_a = {thread_id: tid_a, memory: memory, token_budget: budget}
       cfg_b = {thread_id: tid_b, memory: memory, token_budget: budget}
@@ -291,6 +341,8 @@ RSpec.describe "Group 1: Agent × Memory × Tools", :integration do
     end
     let(:agent) { IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("splat_single")).new }
     let(:thread) { "tc-025-#{SecureRandom.hex(4)}" }
+
+    before { @llm = LLMStub.activate(responses: ["Got it.", "77"]) }
 
     it "aggregates messages from CompositeMemory sub-sources" do
       cfg = {thread_id: thread, memory: memory}

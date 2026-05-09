@@ -2,6 +2,7 @@
 
 require_relative "spec_helper"
 require_relative "support/factors"
+require_relative "support/llm_stub"
 require "tempfile"
 
 # Group 15: Document Loaders and Text Splitters for RAG
@@ -111,7 +112,7 @@ RSpec.describe "Group 15: Document Loaders and Text Splitters for RAG", :integra
   # ---------------------------------------------------------------------------
   # TC-003: plain_text + recursive + loader_splitter_embed_store (LLM required)
   # ---------------------------------------------------------------------------
-  it "TC-003: PlainTextLoader + RecursiveSplitter + embed + store", :llm_required do
+  it "TC-003: PlainTextLoader + RecursiveSplitter + embed + store" do
     file = make_plain_text_file
     loader = IntegrationFactors.loader("plain_text")
     splitter = IntegrationFactors.splitter("recursive")
@@ -175,7 +176,7 @@ RSpec.describe "Group 15: Document Loaders and Text Splitters for RAG", :integra
   # ---------------------------------------------------------------------------
   # TC-007: markdown_with_headings + none + loader_splitter_embed_store (LLM required)
   # ---------------------------------------------------------------------------
-  it "TC-007: MarkdownLoader with headings + embed + store (no extra splitting)", :llm_required do
+  it "TC-007: MarkdownLoader with headings + embed + store (no extra splitting)" do
     file = make_markdown_file
     loader = IntegrationFactors.loader("markdown_with_headings")
     vector_store = IntegrationFactors.vector_store("in_memory")
@@ -210,7 +211,7 @@ RSpec.describe "Group 15: Document Loaders and Text Splitters for RAG", :integra
   # ---------------------------------------------------------------------------
   # TC-009: markdown_no_split + fixed_size + loader_splitter_embed_store (LLM required)
   # ---------------------------------------------------------------------------
-  it "TC-009: MarkdownLoader no-split + FixedSizeSplitter + embed + store", :llm_required do
+  it "TC-009: MarkdownLoader no-split + FixedSizeSplitter + embed + store" do
     file = make_markdown_file
     loader = IntegrationFactors.loader("markdown_no_split")
     splitter = IntegrationFactors.splitter("fixed_size")
@@ -289,7 +290,7 @@ RSpec.describe "Group 15: Document Loaders and Text Splitters for RAG", :integra
   # ---------------------------------------------------------------------------
   # TC-013: csv_with_headers + recursive + loader_splitter_embed_store (LLM required)
   # ---------------------------------------------------------------------------
-  it "TC-013: CsvLoader + RecursiveSplitter + embed + store", :llm_required do
+  it "TC-013: CsvLoader + RecursiveSplitter + embed + store" do
     file = make_csv_file
     loader = IntegrationFactors.loader("csv_with_headers")
     splitter = IntegrationFactors.splitter("recursive")

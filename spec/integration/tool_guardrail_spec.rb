@@ -2,6 +2,7 @@
 
 require_relative "spec_helper"
 require_relative "support/factors"
+require_relative "support/llm_stub"
 
 # Group 2: Tool / Guardrail
 # Pairwise factors: agent_class × agent_tools × tool_on_error × tool_requires_approval
@@ -17,6 +18,8 @@ require_relative "support/factors"
 #   - All other cases: agent.invoke smoke test — expect String output
 
 RSpec.describe "Group 2: Tool / Guardrail", :integration do
+  after { LLMStub.deactivate }
+
   # Helper: build an agent with optional guardrails attached
   def build_agent(agent_label, tools:, guardrails: [])
     klass = IntegrationFactors.agent_class(agent_label, tools: tools)
@@ -36,6 +39,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   describe "TC-001: base; no tools; no guardrails — smoke test" do
     let(:agent) { build_agent("base", tools: []) }
+
+    before { @llm = LLMStub.activate(responses: ["Hello!"]) }
 
     it "returns a non-empty String output" do
       result = agent.invoke("Reply with exactly: Hello!")
@@ -68,6 +73,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
         guardrails: IntegrationFactors.guardrails("input_only"))
     end
 
+    before { @llm = LLMStub.activate(responses: ["Tokyo is a great destination."]) }
+
     it "requires_approval? returns true on the tool" do
       expect(tool_class.new.requires_approval?).to be true
     end
@@ -87,6 +94,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
       build_agent("base", tools: IntegrationFactors.tools("splat_multi"),
         guardrails: IntegrationFactors.guardrails("output_only"))
     end
+
+    before { @llm = LLMStub.activate(responses: ["The weather in Paris is sunny."]) }
 
     it "EnumCitySelectorTool raises ToolError when called with an invalid city (direct call)" do
       expect {
@@ -108,6 +117,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
       build_agent("base", tools: IntegrationFactors.tools("hash_alias"),
         guardrails: IntegrationFactors.guardrails("both"))
     end
+
+    before { @llm = LLMStub.activate(responses: ["7"]) }
 
     it "agent with both passing guardrails and aliased calculator returns output" do
       result = agent.invoke("Add 3 and 4. Return only the number.")
@@ -140,6 +151,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
         guardrails: IntegrationFactors.guardrails("blocking_output"))
     end
 
+    before { @llm = LLMStub.activate(responses: ["I am an AI assistant."]) }
+
     it "raises GuardrailError after the LLM call (output guardrail)" do
       expect { agent.invoke("Describe yourself briefly.") }.to raise_error(Phronomy::GuardrailError)
     end
@@ -153,6 +166,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
       build_agent("react", tools: [enum_tool_class],
         guardrails: IntegrationFactors.guardrails("input_only"))
     end
+
+    before { @llm = LLMStub.activate(responses: ["London is the capital of England."]) }
 
     it "EnumCitySelectorTool raises ToolError for an invalid city (direct call)" do
       expect {
@@ -178,6 +193,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
       IntegrationFactors.apply_guardrails(a, IntegrationFactors.guardrails("output_only"))
       a
     end
+
+    before { @llm = LLMStub.activate(responses: ["The weather in Tokyo is sunny and warm."]) }
 
     it "agent continues even when error tool returns empty; output guardrail passes" do
       result = agent.invoke("What is the weather in Tokyo?")
@@ -229,6 +246,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
     end
     let(:agent) { IntegrationFactors.agent_class("react", tools: {tool_class => nil}).new }
 
+    before { @llm = LLMStub.activate(responses: ["Paris is the capital of France."]) }
+
     it "requires_approval? returns true" do
       expect(tool_class.new.requires_approval?).to be true
     end
@@ -247,6 +266,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
       build_agent("react", tools: [], guardrails: IntegrationFactors.guardrails("both"))
     end
 
+    before { @llm = LLMStub.activate(responses: ["OK"]) }
+
     it "both passing guardrails allow invocation to succeed" do
       result = agent.invoke("Say 'OK'.")
       expect(result[:output]).to be_a(String)
@@ -261,6 +282,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
       build_agent("base", tools: [], guardrails: IntegrationFactors.guardrails("input_only"))
     end
 
+    before { @llm = LLMStub.activate(responses: ["Yes"]) }
+
     it "input guardrail passes and agent returns output" do
       result = agent.invoke("Say 'Yes'.")
       expect(result[:output]).to be_a(String)
@@ -272,6 +295,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   describe "TC-016: base; single tool (splat); no guardrails — baseline" do
     let(:agent) { build_agent("base", tools: IntegrationFactors.tools("splat_single")) }
+
+    before { @llm = LLMStub.activate(responses: ["30"]) }
 
     it "agent with calculator registered returns a result" do
       result = agent.invoke("Add 10 and 20 using the calculator. Return only the number.")
@@ -288,6 +313,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
         guardrails: IntegrationFactors.guardrails("output_only"))
     end
 
+    before { @llm = LLMStub.activate(responses: ["12"]) }
+
     it "output guardrail passes and agent returns output" do
       result = agent.invoke("Add 5 and 7. Return only the number.")
       expect(result[:output]).to be_a(String)
@@ -302,6 +329,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
       build_agent("base", tools: [enum_tool_class],
         guardrails: IntegrationFactors.guardrails("both"))
     end
+
+    before { @llm = LLMStub.activate(responses: ["London is the capital of England."]) }
 
     it "EnumCitySelectorTool.call with invalid city raises ToolError" do
       expect {
@@ -338,6 +367,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
         guardrails: IntegrationFactors.guardrails("blocking_output"))
     end
 
+    before { @llm = LLMStub.activate(responses: ["Tokyo is the capital of Japan."]) }
+
     it "raises GuardrailError after LLM (blocking_output)" do
       expect { agent.invoke("Tell me about Tokyo.") }.to raise_error(Phronomy::GuardrailError)
     end
@@ -348,6 +379,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   describe "TC-021: base; multi tools; valid enum tool included; no guardrails" do
     let(:agent) { build_agent("base", tools: [calc_tool_class, enum_tool_class]) }
+
+    before { @llm = LLMStub.activate(responses: ["5"]) }
 
     it "agent returns output (calculator or city tool)" do
       result = agent.invoke("Add 2 and 3. Return only the number.")
@@ -364,6 +397,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
         guardrails: IntegrationFactors.guardrails("input_only"))
     end
 
+    before { @llm = LLMStub.activate(responses: ["13"]) }
+
     it "input guardrail passes and agent returns output" do
       result = agent.invoke("What is 6 + 7? Return only the number.")
       expect(result[:output]).to be_a(String)
@@ -378,6 +413,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
       build_agent("base", tools: IntegrationFactors.tools("splat_multi"),
         guardrails: IntegrationFactors.guardrails("both"))
     end
+
+    before { @llm = LLMStub.activate(responses: ["Sunny in London."]) }
 
     it "both passing guardrails allow invocation to succeed" do
       result = agent.invoke("What is the weather in London?")
@@ -408,6 +445,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
         guardrails: IntegrationFactors.guardrails("blocking_output"))
     end
 
+    before { @llm = LLMStub.activate(responses: ["The answer is 10."]) }
+
     it "raises GuardrailError after LLM (blocking_output)" do
       expect { agent.invoke("What is 5 + 5?") }.to raise_error(Phronomy::GuardrailError)
     end
@@ -418,6 +457,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   describe "TC-026: base; hash-aliased enum tool; invalid_enum raises ToolError (direct); no guardrails" do
     let(:agent) { build_agent("base", tools: {enum_tool_class => "city_lookup"}) }
+
+    before { @llm = LLMStub.activate(responses: ["Paris is a wonderful city."]) }
 
     it "EnumCitySelectorTool.call with invalid city raises ToolError" do
       expect {
@@ -440,6 +481,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
         guardrails: IntegrationFactors.guardrails("input_only"))
     end
 
+    before { @llm = LLMStub.activate(responses: ["12"]) }
+
     it "input guardrail passes and aliased-tool agent returns output" do
       result = agent.invoke("Add 3 and 9. Return only the number.")
       expect(result[:output]).to be_a(String)
@@ -454,6 +497,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
       build_agent("base", tools: IntegrationFactors.tools("hash_alias"),
         guardrails: IntegrationFactors.guardrails("output_only"))
     end
+
+    before { @llm = LLMStub.activate(responses: ["12"]) }
 
     it "output guardrail passes and aliased-tool agent returns output" do
       result = agent.invoke("Add 4 and 8. Return only the number.")
@@ -470,6 +515,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
         guardrails: IntegrationFactors.guardrails("blocking_output"))
     end
 
+    before { @llm = LLMStub.activate(responses: ["2"]) }
+
     it "raises GuardrailError after LLM (blocking_output)" do
       expect { agent.invoke("Add 1 and 1.") }.to raise_error(Phronomy::GuardrailError)
     end
@@ -483,6 +530,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
       build_agent("base", tools: IntegrationFactors.tools("hash_no_alias"),
         guardrails: IntegrationFactors.guardrails("input_only"))
     end
+
+    before { @llm = LLMStub.activate(responses: ["15"]) }
 
     it "input guardrail passes and nil-alias tool agent returns output" do
       result = agent.invoke("Add 6 and 9. Return only the number.")
@@ -499,6 +548,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
         guardrails: IntegrationFactors.guardrails("output_only"))
     end
 
+    before { @llm = LLMStub.activate(responses: ["10"]) }
+
     it "output guardrail passes and nil-alias tool agent returns output" do
       result = agent.invoke("Add 2 and 8. Return only the number.")
       expect(result[:output]).to be_a(String)
@@ -513,6 +564,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
       build_agent("base", tools: IntegrationFactors.tools("hash_no_alias"),
         guardrails: IntegrationFactors.guardrails("both"))
     end
+
+    before { @llm = LLMStub.activate(responses: ["10"]) }
 
     it "both passing guardrails allow invocation to succeed" do
       result = agent.invoke("Add 7 and 3. Return only the number.")
@@ -529,6 +582,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
         guardrails: IntegrationFactors.guardrails("blocking_output"))
     end
 
+    before { @llm = LLMStub.activate(responses: ["4"]) }
+
     it "raises GuardrailError after LLM (blocking_output)" do
       expect { agent.invoke("Add 2 and 2.") }.to raise_error(Phronomy::GuardrailError)
     end
@@ -539,6 +594,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   describe "TC-034: base; no tools; explicit tool_name_override has no effect; no guardrails" do
     let(:agent) { build_agent("base", tools: []) }
+
+    before { @llm = LLMStub.activate(responses: ["Done."]) }
 
     it "agent behaves identically to no-tool baseline" do
       result = agent.invoke("Reply with exactly: Done.")

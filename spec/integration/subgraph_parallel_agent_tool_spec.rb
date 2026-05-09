@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "spec_helper"
+require_relative "support/llm_stub"
 
 # Group 13: Subgraph nesting / Parallel nodes / Agent-as-Tool
 # Pairwise factors: subgraph_type × parallel_branch_count × agent_as_tool_wrapping
@@ -264,10 +265,19 @@ RSpec.describe "Group 13: Subgraph / Parallel / Agent-as-Tool", :integration do
       tools math_tool
     end
 
+    # LLM call order:
+    #   1. Parent ReactAgent LLM → tool_call("math_solver", {input: "..."})
+    #   2. Sub-agent (MathAgent) LLM → "108"
+    #   3. Parent ReactAgent LLM → final answer including "108"
+    tool_resp = LLMStub.tool_call_response("math_solver", {input: "What is 12 multiplied by 9? Use the math_solver tool."})
+    LLMStub.activate(responses: [tool_resp, "108", "The answer is 108."])
+
     result = parent_class.new.invoke("What is 12 multiplied by 9? Use the math_solver tool.")
     expect(result[:output]).to be_a(String)
     expect(result[:output]).not_to be_empty
     # The final answer should contain 108.
     expect(result[:output]).to include("108")
+  ensure
+    LLMStub.deactivate
   end
 end

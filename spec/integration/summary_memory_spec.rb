@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "spec_helper"
+require_relative "support/llm_stub"
 
 RSpec.describe "SummaryMemory integration", :integration do
   def msg(role, content)
@@ -9,6 +10,9 @@ RSpec.describe "SummaryMemory integration", :integration do
 
   describe "#save_messages / #load_messages (compression)" do
     let(:memory) { Phronomy::Memory::SummaryMemory.new(max_tokens: 10) }
+
+    before { @llm = LLMStub.activate(responses: ["Ancient Rome was a great civilization. Julius Caesar was assassinated on the Ides of March. Augustus became emperor."]) }
+    after { LLMStub.deactivate }
 
     let(:messages) do
       [
@@ -57,6 +61,9 @@ RSpec.describe "SummaryMemory integration", :integration do
 
   describe "#clear" do
     let(:memory) { Phronomy::Memory::SummaryMemory.new(max_tokens: 10) }
+
+    before { @llm = LLMStub.activate(responses: ["Ancient Rome was a great civilization."]) }
+    after { LLMStub.deactivate }
 
     it "removes both summary and stored messages" do
       messages = Array.new(9) { |i| msg(i.odd? ? :assistant : :user, "message #{i}" * 10) }

@@ -4,7 +4,7 @@
 # Group 17 — pairwise factors: eval_scorer_type × eval_dataset_size × eval_pipeline
 #
 # TC-001..TC-006  no LLM required (exact_match / includes_scorer)
-# TC-007..TC-009  LLM required    (llm_judge with a real LM Studio instance)
+# TC-007..TC-009  LLM required    (llm_judge with LLMStub)
 #
 # Run all:           bundle exec rspec spec/integration/eval_spec.rb --tag integration
 # Run LLM tests:     bundle exec rspec spec/integration/eval_spec.rb --tag integration --tag llm_required
@@ -12,6 +12,7 @@
 
 require_relative "spec_helper"
 require_relative "support/factors"
+require_relative "support/llm_stub"
 
 RSpec.describe "Evaluation framework", :integration do
   # ---------------------------------------------------------------------------
@@ -155,6 +156,7 @@ RSpec.describe "Evaluation framework", :integration do
   # TC-007: llm_judge / single / runner_only   [LLM_REQUIRED]
   # ---------------------------------------------------------------------------
   it "TC-007: runs a single-case dataset with LlmJudge scorer and returns a numeric score", :tc_007, :llm_required do
+    LLMStub.activate(responses: ["score: 0.9\nreason: The answer 4 is correct."])
     scorer = IntegrationFactors.eval_scorer("llm_judge")
     dataset = IntegrationFactors.eval_dataset("single")
     runner = Phronomy::Eval::Runner.new(scorer: scorer)
@@ -165,12 +167,15 @@ RSpec.describe "Evaluation framework", :integration do
     score = results.first.score
     expect(score).to be_a(Float)
     expect(score).to be_between(0.0, 1.0)
+  ensure
+    LLMStub.deactivate
   end
 
   # ---------------------------------------------------------------------------
   # TC-008: llm_judge / multi / runner_score   [LLM_REQUIRED]
   # ---------------------------------------------------------------------------
   it "TC-008: runs a multi-case dataset with LlmJudge and verifies Metrics aggregation", :tc_008, :llm_required do
+    LLMStub.activate(responses: ["score: 0.9\nreason: correct"])
     scorer = IntegrationFactors.eval_scorer("llm_judge")
     dataset = IntegrationFactors.eval_dataset("multi")
     runner = Phronomy::Eval::Runner.new(scorer: scorer)
@@ -182,12 +187,15 @@ RSpec.describe "Evaluation framework", :integration do
     expect(summary[:total]).to eq(3)
     expect(summary[:average_score]).to be_between(0.0, 1.0)
     expect(summary[:average_latency_ms]).to be >= 0
+  ensure
+    LLMStub.deactivate
   end
 
   # ---------------------------------------------------------------------------
   # TC-009: llm_judge / single / ab_comparison  [LLM_REQUIRED]
   # ---------------------------------------------------------------------------
   it "TC-009: compares two callables on a single-case dataset with LlmJudge scorer", :tc_009, :llm_required do
+    LLMStub.activate(responses: ["score: 0.9\nreason: correct", "score: 0.1\nreason: wrong answer"])
     scorer = IntegrationFactors.eval_scorer("llm_judge")
     dataset = IntegrationFactors.eval_dataset("single")
     comparison = Phronomy::Eval::Comparison.new(scorer: scorer)
@@ -199,5 +207,7 @@ RSpec.describe "Evaluation framework", :integration do
     expect(pairs.first.result_b.score).to be_between(0.0, 1.0)
     # perfect callable should score higher than wrong callable
     expect(pairs.first.result_a.score).to be >= pairs.first.result_b.score
+  ensure
+    LLMStub.deactivate
   end
 end

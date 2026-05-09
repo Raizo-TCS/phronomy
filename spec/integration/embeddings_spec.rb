@@ -2,6 +2,7 @@
 
 require_relative "spec_helper"
 require_relative "support/factors"
+require_relative "support/llm_stub"
 
 # Group 14: Embeddings abstraction + VectorStore backends
 #
@@ -168,26 +169,44 @@ RSpec.describe "Group 14: Embeddings abstraction + VectorStore backends", :integ
   # ---------------------------------------------------------------------------
   # TC-011 (PASS) — ruby_llm_explicit_model + assume=true + embeddings_kw + in_memory
   # Extra case to cover LLM-backed path (pairwise gap: TC-005/TC-007 both SKIP).
-  # [LLM REQUIRED] Requires LM Studio with text-embedding-nomic-embed-text-v1.5 loaded.
+  # Uses LLMStub to intercept embeddings HTTP calls without a real LM Studio server.
   # ---------------------------------------------------------------------------
   describe "TC-011: ruby_llm_explicit_model; assume=true; embeddings_kw; in_memory [LLM REQUIRED]" do
+    # Vectors chosen so that:
+    #   v_cat and v_feline are similar (high dot product),
+    #   v_cat and v_stock are dissimilar (low dot product).
+    V_HELLO = [0.8, 0.4, 0.45].freeze      # embed("Hello, embeddings!")
+    V_CAT1 = [0.9, 0.1, 0.1].freeze       # embed("The cat sat on the mat")
+    V_CAT2 = [0.88, 0.12, 0.08].freeze    # embed("A cat rested on a rug")
+    V_STOCK = [0.0, 0.95, 0.1].freeze      # embed("The stock market closed higher today")
+    V_CAT3 = [0.85, 0.1, 0.05].freeze     # embed("The cat climbed the tree")
+    V_STOCK2 = [0.05, 0.9, 0.1].freeze      # embed("Stock prices rose sharply")
+    V_FELINE = [0.87, 0.1, 0.09].freeze     # embed("feline climbing")
+
     let(:adapter) { IntegrationFactors.embeddings_adapter("ruby_llm_explicit_model") }
 
     it "embed returns a non-empty Array<Float>" do
+      LLMStub.activate_with_embeddings(vectors: [V_HELLO])
       vec = adapter.embed("Hello, embeddings!")
       expect(vec).to be_a(Array)
       expect(vec).not_to be_empty
       expect(vec.first).to be_a(Numeric)
+    ensure
+      LLMStub.deactivate
     end
 
     it "similar texts have higher cosine similarity than dissimilar texts" do
+      LLMStub.activate_with_embeddings(vectors: [V_CAT1, V_CAT2, V_STOCK])
       v1 = adapter.embed("The cat sat on the mat")
       v2 = adapter.embed("A cat rested on a rug")
       v3 = adapter.embed("The stock market closed higher today")
       expect(cosine_similarity(v1, v2)).to be > cosine_similarity(v1, v3)
+    ensure
+      LLMStub.deactivate
     end
 
     it "SemanticMemory retrieves the semantically relevant message via semantic search" do
+      LLMStub.activate_with_embeddings(vectors: [V_CAT3, V_STOCK2, V_FELINE])
       memory = Phronomy::Memory::SemanticMemory.new(embeddings: adapter, k: 5)
       msg_cat = make_message("The cat climbed the tree")
       msg_stock = make_message("Stock prices rose sharply")
@@ -196,6 +215,8 @@ RSpec.describe "Group 14: Embeddings abstraction + VectorStore backends", :integ
       results = memory.load_messages(thread_id: "t5", query: "feline climbing")
       expect(results).not_to be_empty
       expect(results.map { |m| m.content.to_s }).to include("The cat climbed the tree")
+    ensure
+      LLMStub.deactivate
     end
   end
 

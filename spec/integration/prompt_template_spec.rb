@@ -2,6 +2,7 @@
 
 require_relative "spec_helper"
 require_relative "support/factors"
+require_relative "support/llm_stub"
 
 # Group 10: PromptTemplate
 # Pairwise factors: prompt_template_type × template_variable_supply ×
@@ -75,9 +76,11 @@ RSpec.describe "Group 10: PromptTemplate", :integration do
 
   # ---------------------------------------------------------------------------
   # TC-013: multi_variable template + prompt_template instructions on Agent::Base
-  #         [LLM REQUIRED]
   # ---------------------------------------------------------------------------
   describe "TC-013: Agent::Base with PromptTemplate instructions; multi_variable" do
+    before { @llm = LLMStub.activate(responses: ["4"]) }
+    after { LLMStub.deactivate }
+
     it "injects system_template as system prompt and returns non-empty output", :llm_required do
       tmpl = Phronomy::PromptTemplate.new(
         template: "Answer this in {{lang}}: {{question}}",

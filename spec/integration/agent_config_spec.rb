@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "spec_helper"
+require_relative "support/llm_stub"
 
 # Group 6: Agent Configuration Parameters
 # Pairwise factors: agent_model × agent_instructions × agent_temperature ×
@@ -15,6 +16,9 @@ require_relative "spec_helper"
 RSpec.describe "Group 6: Agent Configuration Parameters", :integration do
   LM_MODEL = "openai/gpt-oss-20b"
   LM_PROVIDER = :openai
+
+  before { @llm = LLMStub.activate(responses: ["Here is the answer."]) }
+  after { LLMStub.deactivate }
 
   # Build a Base agent class with the given configuration options.
   # @param model        [String, nil]

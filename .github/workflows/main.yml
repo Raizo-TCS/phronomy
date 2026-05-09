@@ -33,5 +33,5 @@ jobs:
         run: bundle install --jobs 4
       - name: Run the default task
         run: bundle exec rake
-      - name: Run stub-based integration tests
-        run: bundle exec rspec spec/integration/entity_memory_spec.rb spec/integration/tracing_adapters_spec.rb --tag integration --format progress
+      - name: Run all integration tests (stub-based, no LM Studio required)
+        run: bundle exec rspec --tag integration --format progress
