@@ -276,11 +276,15 @@ module Phronomy
 
         self.class.parameters.each do |name, param|
           value = normalized[name]
-          next if value.nil? && !param.required
+          if value.nil?
+            # Return a descriptive error for missing required params so the LLM
+            # can self-correct on the next turn.
+            return [nil, "required parameter '#{name}' is missing"] if param.required
+            next
+          end
 
           if coerce_mode
             coerced, error = coerce_value(value, param.type)
-            return [nil, error] if error && !coerce_mode
             return [nil, error] if error
             value = coerced
           else

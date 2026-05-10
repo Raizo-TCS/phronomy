@@ -79,12 +79,27 @@ module Phronomy
       # -----------------------------------------------------------------------
 
       # Minimal stdio transport implementing a subset of the MCP JSON-RPC protocol.
-      # Spawns the server command as a child process and communicates line-by-line.
+      # Keeps the child process alive for the lifetime of this transport instance
+      # so that session state (registered resources, tool context, etc.) is preserved
+      # across multiple calls.
       class StdioTransport
         def initialize(command)
           # Split the command string into an argv array so that Open3 executes
           # it directly without going through the shell, preventing injection.
           @command = Shellwords.split(command)
+          @mutex = Mutex.new
+          @stdin = nil
+          @stdout = nil
+        end
+
+        # Shut down the child process and close its IO streams.
+        def close
+          @mutex.synchronize do
+            @stdin&.close
+            @stdout&.close
+            @stdin = nil
+            @stdout = nil
+          end
         end
 
         # Retrieve the tool definition from the server using the MCP `tools/list` method.
@@ -108,6 +123,10 @@ module Phronomy
         # @return [Object] the tool result
         def call_tool(tool_name, args)
           response = rpc_call("tools/call", {name: tool_name, arguments: args})
+          if response["error"]
+            err_msg = response.dig("error", "message") || response["error"].to_s
+            raise Phronomy::ToolError, "MCP server returned error: #{err_msg}"
+          end
           content = response.dig("result", "content")
 
           # MCP content is an array of content blocks; extract text blocks.
@@ -121,12 +140,22 @@ module Phronomy
 
         private
 
-        def rpc_call(method, params)
-          payload = JSON.generate(jsonrpc: "2.0", id: 1, method: method, params: params)
-          stdout, _stderr, status = Open3.capture3(*@command, stdin_data: "#{payload}\n")
-          raise Phronomy::ToolError, "MCP server exited with status #{status.exitstatus}" unless status.success?
+        # Ensure the child process is running, spawning it if necessary.
+        def ensure_started!
+          return if @stdin && !@stdin.closed?
 
-          JSON.parse(stdout.lines.first.to_s)
+          @stdin, @stdout, _stderr, _wait_thr = Open3.popen3(*@command)
+        end
+
+        def rpc_call(method, params)
+          @mutex.synchronize do
+            ensure_started!
+            payload = JSON.generate(jsonrpc: "2.0", id: SecureRandom.uuid, method: method, params: params)
+            @stdin.puts(payload)
+            raw = @stdout.gets
+            raise Phronomy::ToolError, "MCP server closed the connection unexpectedly" if raw.nil?
+            JSON.parse(raw)
+          end
         end
 
         def parse_schema_params(properties)
@@ -153,9 +182,13 @@ module Phronomy
       #     tool_name: "weather_lookup"
       #   )
       class HttpTransport
-        # @param base_url [String] full URL of the MCP endpoint, e.g. "http://localhost:8080/mcp"
-        def initialize(base_url)
+        # @param base_url     [String]  full URL of the MCP endpoint, e.g. "http://localhost:8080/mcp"
+        # @param open_timeout [Integer] TCP connection timeout in seconds (default: 5)
+        # @param read_timeout [Integer] HTTP read timeout in seconds (default: 30)
+        def initialize(base_url, open_timeout: 5, read_timeout: 30)
           @uri = URI.parse(base_url)
+          @open_timeout = open_timeout
+          @read_timeout = read_timeout
         end
 
         # Retrieve the tool definition from the server using MCP `tools/list`.
@@ -192,10 +225,12 @@ module Phronomy
         private
 
         def rpc_call(method, params)
-          payload = JSON.generate(jsonrpc: "2.0", id: 1, method: method, params: params)
+          payload = JSON.generate(jsonrpc: "2.0", id: SecureRandom.uuid, method: method, params: params)
 
           http = Net::HTTP.new(@uri.host, @uri.port)
           http.use_ssl = (@uri.scheme == "https")
+          http.open_timeout = @open_timeout
+          http.read_timeout = @read_timeout
 
           path = @uri.path.empty? ? "/" : @uri.path
           path = "#{path}?#{@uri.query}" if @uri.query

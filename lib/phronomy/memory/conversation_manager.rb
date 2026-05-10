@@ -48,6 +48,7 @@ module Phronomy
         @retrieval = retrieval
         @compression = compression
         @ttl = ttl
+        @append_mutex = Mutex.new
       end
 
       # Load conversation messages for a thread, applying retrieval selection.
@@ -126,10 +127,14 @@ module Phronomy
       # Append messages that are new since the last save to the raw history.
       # Messages are append-only; existing raw entries are never modified.
       def append_new_messages(thread_id:, messages:)
-        raw = @storage.load_raw(thread_id: thread_id)
-        starting_seq = raw.length
-        new_messages = messages[starting_seq..]
-        @storage.append_raw(thread_id: thread_id, messages: new_messages, starting_seq: starting_seq) if new_messages&.any?
+        # Synchronize load + append to prevent seq number collisions when two
+        # threads save the same thread_id concurrently.
+        @append_mutex.synchronize do
+          raw = @storage.load_raw(thread_id: thread_id)
+          starting_seq = raw.length
+          new_messages = messages[starting_seq..]
+          @storage.append_raw(thread_id: thread_id, messages: new_messages, starting_seq: starting_seq) if new_messages&.any?
+        end
       end
 
       # Apply the configured compression strategy and persist the result.
@@ -183,14 +188,16 @@ module Phronomy
         summary_msgs + uncompacted
       end
 
+      # Immutable value object used as a summary placeholder in reconstructed context.
+      SummaryMessage = Data.define(:role, :content)
+
       def summary_message(text)
-        require "ostruct"
         content = <<~CONTEXT.chomp
           <context type="summary" source="memory" trusted="false">
           #{text}
           </context>
         CONTEXT
-        OpenStruct.new(role: :system, content: content)
+        SummaryMessage.new(role: :system, content: content)
       end
     end
   end

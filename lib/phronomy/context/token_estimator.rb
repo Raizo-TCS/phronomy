@@ -23,13 +23,29 @@ module Phronomy
     #   Phronomy::Context::TokenEstimator.tokenizer = nil
     module TokenEstimator
       @tokenizer = nil
+      @tokenizer_mutex = Mutex.new
 
       class << self
         # Replace the built-in heuristic with a callable that takes a String
         # and returns an Integer token count.  Set to nil to restore the default.
         #
+        # @note This is a process-wide setting. Set it once at application startup.
+        #   In tests, call +TokenEstimator.reset_tokenizer!+ after each test to
+        #   prevent cross-test contamination.
         # @param callable [#call, nil]
-        attr_accessor :tokenizer
+        def tokenizer=(callable)
+          @tokenizer_mutex.synchronize { @tokenizer = callable }
+        end
+
+        # @return [#call, nil]
+        def tokenizer
+          @tokenizer_mutex.synchronize { @tokenizer }
+        end
+
+        # Resets the tokenizer to the built-in heuristic. Intended for test isolation.
+        def reset_tokenizer!
+          @tokenizer_mutex.synchronize { @tokenizer = nil }
+        end
 
         # Estimate the number of tokens for the given input.
         #
@@ -37,9 +53,10 @@ module Phronomy
         #   or an Array of message-like objects (each must respond to #content).
         # @return [Integer] estimated token count (>= 0)
         def estimate(input)
+          tok = @tokenizer_mutex.synchronize { @tokenizer }
           case input
           when String
-            @tokenizer ? @tokenizer.call(input) : (input.length / 4.0).ceil
+            tok ? tok.call(input) : (input.length / 4.0).ceil
           when Array
             input.sum { |m| estimate(m.content.to_s) }
           else

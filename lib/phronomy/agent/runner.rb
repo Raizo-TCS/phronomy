@@ -52,13 +52,15 @@ module Phronomy
         handoffs_taken = 0
 
         loop do
-          result = current.invoke(input, config: config)
-          target = find_handoff_target(result[:messages])
-          return result.merge(agent: current) unless target
-
+          # Check before invoking so we raise after exactly MAX_HANDOFFS handoffs,
+          # not after MAX_HANDOFFS + 1 LLM calls.
           if handoffs_taken >= MAX_HANDOFFS
             raise Phronomy::HandoffError, "Exceeded maximum handoffs (#{MAX_HANDOFFS})"
           end
+
+          result = current.invoke(input, config: config)
+          target = find_handoff_target(result[:messages])
+          return result.merge(agent: current) unless target
 
           current = target
           handoffs_taken += 1

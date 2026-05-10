@@ -204,8 +204,8 @@ RSpec.describe Phronomy::Graph::StateGraph do
       g = described_class.new(TestState)
       g.add_node(:first) { |s| {} }
       g.add_node(:second) { |s| {} }
-      compiled = g.compile
-      expect(compiled).to be_a(Phronomy::Graph::CompiledGraph)
+      # set_entry_point was not called: expect ArgumentError for multi-node graphs
+      expect { g.compile }.to raise_error(ArgumentError, /set_entry_point/)
     end
   end
 end

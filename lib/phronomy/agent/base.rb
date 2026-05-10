@@ -453,9 +453,10 @@ module Phronomy
 
         chat = build_chat
         user_message = extract_message(input)
+        budget = build_token_budget
 
         # Assemble context via Assembler (same as invoke_once).
-        assembler = Context::Assembler.new(budget: build_token_budget)
+        assembler = Context::Assembler.new(budget: budget)
         system_msg = build_instructions(input)
         assembler.add_instruction(system_msg) if system_msg
 
@@ -467,7 +468,33 @@ module Phronomy
 
         if memory && thread_id
           msgs = load_from_memory(memory, thread_id: thread_id, query: user_message)
-          assembler.add_messages(msgs)
+          message_elements = build_message_elements(msgs)
+
+          # Run on_trim: app may call ctx.remove(seqs) to drop messages this turn.
+          if (trim_cb = self.class._on_trim_callback)
+            trim_ctx = Context::TrimContext.new(message_elements: message_elements, budget: budget)
+            trim_cb.call(trim_ctx)
+            message_elements = trim_ctx.message_elements
+          end
+
+          # Run on_compaction_trigger → on_compact pipeline before calling the LLM.
+          if (trigger_cb = self.class._on_compaction_trigger_callback)
+            trigger_ctx = Context::TriggerContext.new(message_elements: message_elements, budget: budget)
+            if trigger_cb.call(trigger_ctx)
+              if (compact_cb = self.class._on_compact_callback)
+                compact_ctx = Context::CompactionContext.new(
+                  message_elements: message_elements,
+                  budget: budget,
+                  thread_id: thread_id,
+                  memory: memory
+                )
+                compact_cb.call(compact_ctx)
+                message_elements = build_message_elements(compact_ctx.result_messages)
+              end
+            end
+          end
+
+          assembler.add_messages(message_elements.map { |e| e[:message] })
         end
 
         context = assembler.build

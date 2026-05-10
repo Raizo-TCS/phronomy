@@ -76,4 +76,20 @@ RSpec.describe Phronomy::Context::TokenEstimator do
       expect(described_class.estimate([msg])).to eq(2)
     end
   end
+
+  describe ".reset_tokenizer! (S12)" do
+    after { described_class.reset_tokenizer! }
+
+    it "clears a custom tokenizer and reverts to the built-in heuristic" do
+      described_class.tokenizer = ->(text) { 999 }
+      described_class.reset_tokenizer!
+      expect(described_class.estimate("abcd")).to eq(1)
+    end
+
+    it "returns nil after reset" do
+      described_class.tokenizer = ->(text) { 1 }
+      described_class.reset_tokenizer!
+      expect(described_class.tokenizer).to be_nil
+    end
+  end
 end

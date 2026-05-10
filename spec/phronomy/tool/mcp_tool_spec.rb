@@ -59,17 +59,28 @@ RSpec.describe Phronomy::Tool::McpTool do
   describe Phronomy::Tool::McpTool::StdioTransport do
     subject(:transport) { described_class.new("./echo-server") }
 
+    # Helper: stub Open3.popen3 to return IO doubles that respond with one JSON line
+    def stub_popen3_response(json_hash)
+      json_line = JSON.generate(json_hash)
+      stdin_dbl = instance_double(IO, puts: nil, closed?: false, close: nil)
+      stdout_dbl = instance_double(IO)
+      allow(stdout_dbl).to receive(:gets).and_return("#{json_line}\n")
+      allow(stdout_dbl).to receive(:closed?).and_return(false)
+      allow(stdout_dbl).to receive(:close)
+      stderr_dbl = instance_double(IO, closed?: false, close: nil)
+      wait_thr = double("wait_thr")
+      allow(Open3).to receive(:popen3).and_return([stdin_dbl, stdout_dbl, stderr_dbl, wait_thr])
+    end
+
     describe "#fetch_tool" do
       it "raises ArgumentError when the tool is not found on the server" do
-        allow(Open3).to receive(:capture3).and_return(
-          [%({"jsonrpc":"2.0","id":1,"result":{"tools":[]}}), "", double(success?: true, exitstatus: 0)]
-        )
+        stub_popen3_response({"jsonrpc" => "2.0", "id" => "x", "result" => {"tools" => []}})
         expect { transport.fetch_tool("missing") }.to raise_error(ArgumentError, /missing/)
       end
 
       it "parses parameters from the server response" do
         schema = {
-          "jsonrpc" => "2.0", "id" => 1,
+          "jsonrpc" => "2.0", "id" => "x",
           "result" => {
             "tools" => [{
               "name" => "search",
@@ -82,8 +93,7 @@ RSpec.describe Phronomy::Tool::McpTool do
             }]
           }
         }
-        allow(Open3).to receive(:capture3)
-          .and_return([JSON.generate(schema), "", double(success?: true, exitstatus: 0)])
+        stub_popen3_response(schema)
 
         result = transport.fetch_tool("search")
         expect(result[:description]).to eq("Search tool")
@@ -94,20 +104,23 @@ RSpec.describe Phronomy::Tool::McpTool do
     describe "#call_tool" do
       it "extracts text from MCP content blocks" do
         response = {
-          "jsonrpc" => "2.0", "id" => 1,
+          "jsonrpc" => "2.0", "id" => "x",
           "result" => {
             "content" => [{"type" => "text", "text" => "hello"}]
           }
         }
-        allow(Open3).to receive(:capture3)
-          .and_return([JSON.generate(response), "", double(success?: true, exitstatus: 0)])
+        stub_popen3_response(response)
 
         expect(transport.call_tool("search", {query: "hi"})).to eq("hello")
       end
 
-      it "raises ToolError when the server exits with non-zero status" do
-        allow(Open3).to receive(:capture3).and_return(["", "err", double(success?: false, exitstatus: 1)])
-        expect { transport.call_tool("search", {}) }.to raise_error(Phronomy::ToolError, /MCP server/)
+      it "raises ToolError when the server returns an error response" do
+        error_resp = {
+          "jsonrpc" => "2.0", "id" => "x",
+          "error" => {"code" => -32600, "message" => "Internal error"}
+        }
+        stub_popen3_response(error_resp)
+        expect { transport.call_tool("search", {}) }.to raise_error(Phronomy::ToolError)
       end
     end
   end
@@ -126,6 +139,8 @@ RSpec.describe Phronomy::Tool::McpTool do
       http_dbl = instance_double(Net::HTTP)
       allow(Net::HTTP).to receive(:new).and_return(http_dbl)
       allow(http_dbl).to receive(:use_ssl=)
+      allow(http_dbl).to receive(:open_timeout=)
+      allow(http_dbl).to receive(:read_timeout=)
       allow(http_dbl).to receive(:request).and_return(response)
     end
 
@@ -237,6 +252,77 @@ RSpec.describe Phronomy::Tool::McpTool do
         tool = Phronomy::Tool::McpTool.from_server("https://api.example.com/mcp", tool_name: "search")
         expect(tool).to be_a(Phronomy::Tool::McpTool)
       end
+    end
+  end
+
+  describe "StdioTransport process reuse (S01)" do
+    subject(:transport) { Phronomy::Tool::McpTool::StdioTransport.new("./echo-server") }
+
+    it "calls Open3.popen3 only once across multiple RPC calls" do
+      json_line = JSON.generate(
+        "jsonrpc" => "2.0", "id" => "x",
+        "result" => {"content" => [{"type" => "text", "text" => "ok"}]}
+      )
+      stdin_dbl = instance_double(IO, puts: nil, closed?: false, close: nil)
+      stdout_dbl = instance_double(IO, gets: "#{json_line}\n", closed?: false, close: nil)
+      stderr_dbl = instance_double(IO, closed?: false, close: nil)
+      wait_thr = double("wait_thr")
+      allow(Open3).to receive(:popen3).once.and_return([stdin_dbl, stdout_dbl, stderr_dbl, wait_thr])
+
+      transport.call_tool("search", {})
+      transport.call_tool("search", {})
+      expect(Open3).to have_received(:popen3).once
+    end
+  end
+
+  describe "StdioTransport unique request IDs (S11)" do
+    subject(:transport) { Phronomy::Tool::McpTool::StdioTransport.new("./echo-server") }
+
+    it "uses different UUIDs for each RPC call" do
+      sent_payloads = []
+      json_line = JSON.generate(
+        "jsonrpc" => "2.0", "id" => "x",
+        "result" => {"content" => [{"type" => "text", "text" => "ok"}]}
+      )
+      stdin_dbl = instance_double(IO, closed?: false, close: nil)
+      allow(stdin_dbl).to receive(:puts) { |payload| sent_payloads << JSON.parse(payload) }
+      stdout_dbl = instance_double(IO, gets: "#{json_line}\n", closed?: false, close: nil)
+      stderr_dbl = instance_double(IO, closed?: false, close: nil)
+      wait_thr = double("wait_thr")
+      allow(Open3).to receive(:popen3).and_return([stdin_dbl, stdout_dbl, stderr_dbl, wait_thr])
+
+      transport.call_tool("search", {})
+      transport.call_tool("search", {})
+
+      ids = sent_payloads.map { |p| p["id"] }
+      expect(ids.length).to eq(2)
+      expect(ids.uniq.length).to eq(2)
+      # IDs should look like UUIDs
+      expect(ids.first).to match(/\A[0-9a-f-]{36}\z/)
+    end
+  end
+
+  describe "HttpTransport timeout configuration (S09)" do
+    it "applies custom open_timeout and read_timeout to the Net::HTTP connection" do
+      transport = Phronomy::Tool::McpTool::HttpTransport.new(
+        "http://localhost:8080/mcp",
+        open_timeout: 3,
+        read_timeout: 15
+      )
+      http_dbl = instance_double(Net::HTTP)
+      allow(Net::HTTP).to receive(:new).and_return(http_dbl)
+      allow(http_dbl).to receive(:use_ssl=)
+      allow(http_dbl).to receive(:open_timeout=)
+      allow(http_dbl).to receive(:read_timeout=)
+      body = JSON.generate(jsonrpc: "2.0", id: 1, result: {tools: []})
+      res = Net::HTTPSuccess.new("1.1", "200", "OK")
+      allow(res).to receive(:body).and_return(body)
+      allow(res).to receive(:[]).with("Content-Type").and_return("application/json")
+      allow(http_dbl).to receive(:request).and_return(res)
+
+      expect { transport.fetch_tool("missing") }.to raise_error(ArgumentError)
+      expect(http_dbl).to have_received(:open_timeout=).with(3)
+      expect(http_dbl).to have_received(:read_timeout=).with(15)
     end
   end
 end

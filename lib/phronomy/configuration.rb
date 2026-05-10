@@ -42,11 +42,17 @@ module Phronomy
     # Recursion limit for graph execution (default: 25)
     attr_accessor :recursion_limit
 
+    # When true (default), user input and LLM output are recorded in trace spans.
+    # Set to false in privacy-sensitive environments to prevent PII from reaching
+    # the tracing backend (OTel, Langfuse, etc.).
+    attr_accessor :trace_pii
+
     def initialize
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new
       @memory_async = false
       @memory_job_queue = :default
+      @trace_pii = true
     end
   end
 end

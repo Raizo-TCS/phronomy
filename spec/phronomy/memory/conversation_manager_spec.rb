@@ -222,4 +222,23 @@ RSpec.describe Phronomy::Memory::ConversationManager do
       expect(manager.load(thread_id: "t1").map(&:content)).to include("msg")
     end
   end
+
+  describe "SummaryMessage (S10)" do
+    it "is a frozen Data value object" do
+      sm = Phronomy::Memory::ConversationManager::SummaryMessage.new(role: :system, content: "sum")
+      expect(sm).to be_a(Data)
+      expect(sm.role).to eq(:system)
+      expect(sm.content).to eq("sum")
+    end
+  end
+
+  describe "append_new_messages concurrency (S06)" do
+    it "does not raise when concurrent saves overlap" do
+      msgs = (1..10).map { |i| make_msg(:user, "msg#{i}") }
+      threads = 4.times.map do
+        Thread.new { manager.save(thread_id: "t_concurrent", messages: msgs) }
+      end
+      expect { threads.each(&:join) }.not_to raise_error
+    end
+  end
 end

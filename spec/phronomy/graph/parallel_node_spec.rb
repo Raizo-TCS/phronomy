@@ -237,6 +237,39 @@ RSpec.describe Phronomy::Graph::ParallelNode do
       expect { node.call(state) }.to raise_error(Phronomy::Graph::TimeoutError)
     end
   end
+
+  describe "field-declaration-aware merge policy (S07)" do
+    # ParallelTestState has :a as :replace, :log as :append, :meta as :merge
+    it "uses last-write-wins for a :replace field even when the value is an Array" do
+      node = described_class.new([
+        ->(s) { {a: ["branch_1"]} },
+        ->(s) { {a: ["branch_2"]} }
+      ])
+      result = node.call(state)
+      # :replace policy => last write wins, no concatenation
+      expect(result[:a]).to be_an(Array)
+      expect(result[:a]).not_to include("branch_1")
+      expect(result[:a]).to include("branch_2")
+    end
+
+    it "concatenates Arrays for an :append field" do
+      node = described_class.new([
+        ->(s) { {log: ["from_1"]} },
+        ->(s) { {log: ["from_2"]} }
+      ])
+      result = node.call(state)
+      expect(result[:log]).to contain_exactly("from_1", "from_2")
+    end
+
+    it "deep-merges Hashes for a :merge field" do
+      node = described_class.new([
+        ->(s) { {meta: {x: 1}} },
+        ->(s) { {meta: {y: 2}} }
+      ])
+      result = node.call(state)
+      expect(result[:meta]).to eq({x: 1, y: 2})
+    end
+  end
 end
 
 RSpec.describe "Phronomy::Graph::StateGraph#add_parallel_node" do

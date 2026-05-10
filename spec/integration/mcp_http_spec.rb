@@ -196,7 +196,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
         )
         expect {
           transport.call_tool("add", {"a" => 1, "b" => 2})
-        }.to raise_error(Phronomy::ToolError, /exited with status/)
+        }.to raise_error(Phronomy::ToolError)
       end
     end
   end
@@ -333,9 +333,11 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
       transport = Phronomy::Tool::McpTool::HttpTransport.new("https://example.com/mcp")
       allow(Net::HTTP).to receive(:new).and_call_original
 
-      http_double = instance_double(Net::HTTP, "use_ssl=": nil, request: nil)
+      http_double = instance_double(Net::HTTP, "use_ssl=": nil, "open_timeout=": nil, "read_timeout=": nil, request: nil)
       allow(Net::HTTP).to receive(:new).with("example.com", 443).and_return(http_double)
       allow(http_double).to receive(:use_ssl=).with(true)
+      allow(http_double).to receive(:open_timeout=)
+      allow(http_double).to receive(:read_timeout=)
 
       # We expect a SocketError or connection error since example.com isn't running an MCP server;
       # the important assertion is that use_ssl= was called with true.

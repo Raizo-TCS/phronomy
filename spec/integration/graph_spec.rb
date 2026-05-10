@@ -128,9 +128,9 @@ RSpec.describe "Group 7: Graph", :integration do
         graph = Phronomy::Graph::StateGraph.new(AppendState)
         graph.add_node(:first) { |state| state.merge(log: ["first"]) }
         graph.add_node(:second) { |state| state.merge(log: ["second"]) }
+        graph.set_entry_point(:first)
         graph.add_edge(:first, :second)
         graph.add_edge(:second, Phronomy::Graph::StateGraph::FINISH)
-        # implicit entry: first node added
 
         app = graph.compile
         app.interrupt_before(:second) { |_state| :halt }
@@ -219,10 +219,10 @@ RSpec.describe "Group 7: Graph", :integration do
         graph.add_node(:router) { |state| state.merge(data: {routed: true, path: "high"}) }
         graph.add_node(:high) { |state| state.merge(data: {result: "high_result"}) }
         graph.add_node(:low) { |state| state.merge(data: {result: "low_result"}) }
+        graph.set_entry_point(:router)
         graph.add_edge(:high, Phronomy::Graph::StateGraph::FINISH)
         graph.add_edge(:low, Phronomy::Graph::StateGraph::FINISH)
         graph.add_conditional_edges(:router, ->(s) { (s.data[:path] == "high") ? :high : :low })
-        # implicit entry: :router (first added node)
 
         app = graph.compile
         app.interrupt_after(:high) { |_state| :halt }
@@ -319,10 +319,10 @@ RSpec.describe "Group 7: Graph", :integration do
         graph.add_node(:n1) { |state| state.merge(value: "n1", counter: state.counter + 1) }
         graph.add_node(:n2) { |state| state.merge(value: "n2", counter: state.counter + 1) }
         graph.add_node(:n3) { |state| state.merge(value: "n3-#{state.value}", counter: state.counter + 1) }
+        graph.set_entry_point(:n1)
         graph.add_edge(:n1, :n2)
         graph.add_edge(:n2, :n3)
         graph.add_edge(:n3, Phronomy::Graph::StateGraph::FINISH)
-        # implicit entry: :n1
 
         app = graph.compile
         app.interrupt_before(:n3) { |_state| :halt }

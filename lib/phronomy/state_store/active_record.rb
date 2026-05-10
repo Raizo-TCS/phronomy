@@ -43,9 +43,13 @@ module Phronomy
       def save(state)
         json = serialize_state(state)
         payload = @encryptor ? @encryptor.encrypt(json) : json
-        record = @model_class.find_or_initialize_by(thread_id: state.thread_id)
-        record.state_json = payload
-        record.save!
+        # Use upsert to avoid a race condition where two concurrent saves for the
+        # same thread_id would both see "no record" and collide on the unique index.
+        @model_class.upsert(
+          {thread_id: state.thread_id, state_json: payload},
+          unique_by: :thread_id,
+          update_only: [:state_json]
+        )
         self
       end
 

@@ -28,7 +28,10 @@ module Phronomy
     # @example
     #   trace("my_chain", input: input) { [invoke(input), nil] }
     def trace(name, input: nil, **meta, &block)
-      Phronomy.configuration.tracer.trace(name, input: input, **meta, &block)
+      # Redact user input from spans when trace_pii is disabled to prevent
+      # accidental PII transmission to external tracing backends.
+      traced_input = Phronomy.configuration.trace_pii ? input : "[REDACTED]"
+      Phronomy.configuration.tracer.trace(name, input: traced_input, **meta, &block)
     end
   end
 end

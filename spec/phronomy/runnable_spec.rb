@@ -67,4 +67,44 @@ RSpec.describe Phronomy::Runnable do
       expect(double_step.batch([])).to eq([])
     end
   end
+
+  describe "#trace (S05: trace_pii)" do
+    let(:recorded_calls) { [] }
+    let(:spy_tracer) do
+      calls = recorded_calls
+      t = double("tracer")
+      allow(t).to receive(:trace) do |name, input:, **meta, &block|
+        calls << {name: name, input: input}
+        block&.call
+      end
+      t
+    end
+
+    let(:traceable_step) do
+      Class.new do
+        include Phronomy::Runnable
+
+        def invoke(input, config: {})
+          trace("step", input: input) { input }
+        end
+      end.new
+    end
+
+    after { Phronomy.reset_configuration! }
+
+    it "passes the real input to the tracer when trace_pii is true (default)" do
+      Phronomy.configure { |c| c.tracer = spy_tracer }
+      traceable_step.invoke("sensitive data")
+      expect(recorded_calls.first[:input]).to eq("sensitive data")
+    end
+
+    it "passes [REDACTED] to the tracer when trace_pii is false" do
+      Phronomy.configure { |c|
+        c.tracer = spy_tracer
+        c.trace_pii = false
+      }
+      traceable_step.invoke("sensitive data")
+      expect(recorded_calls.first[:input]).to eq("[REDACTED]")
+    end
+  end
 end

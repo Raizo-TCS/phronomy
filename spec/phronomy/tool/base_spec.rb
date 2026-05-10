@@ -278,4 +278,41 @@ RSpec.describe Phronomy::Tool::Base do
       expect(klass.new.name).to eq("my_search")
     end
   end
+
+  describe "required parameter validation (S14)" do
+    let(:required_param_tool) do
+      Class.new(described_class) do
+        description "Weather tool"
+        param :city, type: :string, desc: "City name"
+
+        def execute(city:) = "Weather in #{city}"
+      end.new
+    end
+
+    it "returns a descriptive schema error including the param name when required param is missing" do
+      result = required_param_tool.call({})
+      expect(result).to include("required parameter 'city' is missing")
+    end
+
+    it "does not raise ArgumentError for a missing required param" do
+      expect { required_param_tool.call({}) }.not_to raise_error
+    end
+  end
+
+  describe "coerce_mode error handling (S02)" do
+    let(:coerce_tool) do
+      Class.new(described_class) do
+        description "Coerce tool"
+        on_schema_error :coerce
+        param :count, type: :integer, desc: "Count"
+
+        def execute(count:) = "count: #{count}"
+      end.new
+    end
+
+    it "returns a schema error message when coercion fails" do
+      result = coerce_tool.call({"count" => "not-a-number"})
+      expect(result).to include("Schema validation failed")
+    end
+  end
 end

@@ -31,6 +31,10 @@ RSpec.describe Phronomy::Configuration do
     it "defaults tracer to a NullTracer" do
       expect(config.tracer).to be_a(Phronomy::Tracing::NullTracer)
     end
+
+    it "defaults trace_pii to true" do
+      expect(config.trace_pii).to be true
+    end
   end
 
   describe "reading and writing settings" do

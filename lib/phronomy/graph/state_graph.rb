@@ -125,6 +125,11 @@ module Phronomy
       #   to use for this compiled graph, overriding the global default.
       # @return [CompiledGraph]
       def compile(state_store: nil)
+        if @entry_point.nil? && @nodes.size > 1
+          raise ArgumentError,
+            "set_entry_point was not called; call set_entry_point(:node_name) " \
+            "before compile when the graph has multiple nodes"
+        end
         CompiledGraph.new(
           state_class: @state_class,
           nodes: @nodes,

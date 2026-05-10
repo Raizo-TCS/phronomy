@@ -64,18 +64,19 @@ module Phronomy
       def call(state)
         threads = @branches.map { |branch| Thread.new { branch.call(state) } }
         deadline = @timeout ? (Process.clock_gettime(Process::CLOCK_MONOTONIC) + @timeout) : nil
+        state_class = state.class
 
         if @on_error == :best_effort
-          gather_best_effort(threads, deadline)
+          gather_best_effort(threads, deadline, state_class)
         else
-          gather_raise(threads, deadline)
+          gather_raise(threads, deadline, state_class)
         end
       end
 
       private
 
       # Joins all threads, enforcing the deadline. Re-raises branch exceptions.
-      def gather_raise(threads, deadline)
+      def gather_raise(threads, deadline, state_class)
         if deadline
           threads.each do |t|
             remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -99,11 +100,11 @@ module Phronomy
         end
 
         # All threads are done. Thread#value re-raises any stored exception.
-        merge_results(threads.map(&:value))
+        merge_results(threads.map(&:value), state_class)
       end
 
       # Joins all threads, collecting errors instead of re-raising them.
-      def gather_best_effort(threads, deadline)
+      def gather_best_effort(threads, deadline, state_class)
         errors = []
         results = threads.map do |t|
           if deadline
@@ -142,33 +143,49 @@ module Phronomy
           end
         end
 
-        merged = merge_results(results) || {}
+        merged = merge_results(results, state_class) || {}
         merged[:parallel_errors] = errors unless errors.empty?
         merged.empty? ? nil : merged
       end
 
       # Merges an Array of per-branch result Hashes (nils are skipped).
-      def merge_results(results)
+      # Field merge policy is determined from the State class field declarations:
+      #   :replace fields  — last-write-wins (rightmost branch wins)
+      #   :append  fields  — all Arrays are concatenated
+      #   :merge   fields  — all Hashes are deep-merged (rightmost wins on conflict)
+      # Unknown / undeclared fields fall back to type-based heuristics.
+      def merge_results(results, state_class = nil)
         merged = results.compact.each_with_object({}) do |result, acc|
           next unless result.is_a?(Hash)
 
           result.each do |key, val|
-            acc[key] = acc.key?(key) ? merge_values(acc[key], val) : val
+            acc[key] = acc.key?(key) ? merge_values(acc[key], val, state_class&.fields&.dig(key, :type)) : val
           end
         end
 
         merged.empty? ? nil : merged
       end
 
-      # Merges two values that share the same state field key across branches.
-      # Arrays are concatenated; Hashes are deep-merged; scalars use last-write-wins.
-      def merge_values(old_val, new_val)
-        if old_val.is_a?(Array) && new_val.is_a?(Array)
-          old_val + new_val
-        elsif old_val.is_a?(Hash) && new_val.is_a?(Hash)
-          old_val.merge(new_val)
-        else
+      # Merges two values for the same state field key across branches.
+      # Uses the declared field policy when available, otherwise falls back to
+      # type-based heuristics (Array → concat, Hash → deep-merge, scalar → last-write-wins).
+      def merge_values(old_val, new_val, policy = nil)
+        case policy
+        when :append
+          (old_val.is_a?(Array) && new_val.is_a?(Array)) ? old_val + new_val : new_val
+        when :merge
+          (old_val.is_a?(Hash) && new_val.is_a?(Hash)) ? old_val.merge(new_val) : new_val
+        when :replace
           new_val
+        else
+          # Unknown field or no State class: fall back to type-based heuristic.
+          if old_val.is_a?(Array) && new_val.is_a?(Array)
+            old_val + new_val
+          elsif old_val.is_a?(Hash) && new_val.is_a?(Hash)
+            old_val.merge(new_val)
+          else
+            new_val
+          end
         end
       end
     end

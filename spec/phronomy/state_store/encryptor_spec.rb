@@ -40,6 +40,18 @@ RSpec.describe Phronomy::StateStore::ActiveRecord do
         @_store ||= {}
       end
 
+      def self.upsert(attrs, unique_by:, update_only: nil)
+        existing = _store[attrs[:thread_id]]
+        if existing
+          existing.state_json = attrs[:state_json]
+        else
+          record = new
+          record.thread_id = attrs[:thread_id]
+          record.state_json = attrs[:state_json]
+          _store[attrs[:thread_id]] = record
+        end
+      end
+
       def self.find_or_initialize_by(thread_id:)
         _store[thread_id] || new.tap { |r| r.thread_id = thread_id }
       end
@@ -117,6 +129,19 @@ RSpec.describe Phronomy::StateStore::ActiveRecord do
       store.save(state)
       loaded = store.load("t5")
       expect(loaded.value).to eq("hello")
+    end
+
+    it "upserts: overwriting the same thread_id updates rather than duplicates (S03)" do
+      state1 = state_class.new(value: "first")
+      state1.set_graph_metadata(thread_id: "t_upsert", current_nodes: [], halted_before: false)
+      store.save(state1)
+
+      state2 = state_class.new(value: "second")
+      state2.set_graph_metadata(thread_id: "t_upsert", current_nodes: [], halted_before: false)
+      store.save(state2)
+
+      loaded = store.load("t_upsert")
+      expect(loaded.value).to eq("second")
     end
   end
 end
