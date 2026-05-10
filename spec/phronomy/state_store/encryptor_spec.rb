@@ -61,7 +61,8 @@ RSpec.describe Phronomy::StateStore::ActiveRecord do
   let(:state_class) do
     Class.new do
       include Phronomy::Graph::State
-      field :value, type: :replace, default: -> { nil }
+
+      field :value, type: :replace, default: -> {}
     end
   end
 
