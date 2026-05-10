@@ -88,7 +88,11 @@ module Phronomy
               "parallel branch timed out after #{@timeout}s"
             )
             threads.each { |thr| thr.raise(timeout_error) unless thr.stop? }
-            threads.each { |thr| thr.join(0.1) rescue nil }
+            threads.each do |thr|
+              thr.join(0.1)
+            rescue
+              nil
+            end
             raise Phronomy::Graph::TimeoutError,
               "parallel branch timed out after #{@timeout}s"
           end
@@ -118,7 +122,11 @@ module Phronomy
                 "branch timed out after #{@timeout}s"
               )
               t.raise(timeout_error) unless t.stop?
-              t.join(0.1) rescue nil
+              begin
+                t.join(0.1)
+              rescue
+                nil
+              end
               errors << Phronomy::Graph::TimeoutError.new(
                 "branch timed out after #{@timeout}s"
               )

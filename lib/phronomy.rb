@@ -65,9 +65,7 @@ module Phronomy
 
       # Returns the current registry Hash, or nil when no class has been registered.
       # @return [Hash{String => Class}, nil]
-      def state_class_registry
-        @state_class_registry
-      end
+      attr_reader :state_class_registry
 
       # Clears the registry. Primarily used in tests.
       def reset_state_class_registry!
