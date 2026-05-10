@@ -2877,14 +2877,14 @@ Called by Runner during construction when routes are configured.</p>
       <pre class="lines">
 
 
-523
-524
-525
-526
-527</pre>
+550
+551
+552
+553
+554</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 523</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 550</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_input_guardrail'>add_input_guardrail</span><span class='lparen'>(</span><span class='id identifier rubyid_guardrail'>guardrail</span><span class='rparen'>)</span>
   <span class='ivar'>@input_guardrails</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -2935,14 +2935,14 @@ Called by Runner during construction when routes are configured.</p>
       <pre class="lines">
 
 
-531
-532
-533
-534
-535</pre>
+558
+559
+560
+561
+562</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 531</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 558</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_output_guardrail'>add_output_guardrail</span><span class='lparen'>(</span><span class='id identifier rubyid_guardrail'>guardrail</span><span class='rparen'>)</span>
   <span class='ivar'>@output_guardrails</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -3156,13 +3156,13 @@ without interruption (backward-compatible behaviour).</p>
       <pre class="lines">
 
 
-516
-517
-518
-519</pre>
+543
+544
+545
+546</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 516</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 543</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_approval_required'>on_approval_required</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@approval_handler</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -3322,7 +3322,34 @@ as they are produced by the underlying LLM.</p>
 498
 499
 500
-501</pre>
+501
+502
+503
+504
+505
+506
+507
+508
+509
+510
+511
+512
+513
+514
+515
+516
+517
+518
+519
+520
+521
+522
+523
+524
+525
+526
+527
+528</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 446</span>
@@ -3337,9 +3364,10 @@ as they are produced by the underlying LLM.</p>
 
   <span class='id identifier rubyid_chat'>chat</span> <span class='op'>=</span> <span class='id identifier rubyid_build_chat'>build_chat</span>
   <span class='id identifier rubyid_user_message'>user_message</span> <span class='op'>=</span> <span class='id identifier rubyid_extract_message'>extract_message</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_budget'>budget</span> <span class='op'>=</span> <span class='id identifier rubyid_build_token_budget'>build_token_budget</span>
 
   <span class='comment'># Assemble context via Assembler (same as invoke_once).
-</span>  <span class='id identifier rubyid_assembler'>assembler</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Context.html" title="Phronomy::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Context/Assembler.html" title="Phronomy::Context::Assembler (class)">Assembler</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Context/Assembler.html#initialize-instance_method" title="Phronomy::Context::Assembler#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>budget:</span> <span class='id identifier rubyid_build_token_budget'>build_token_budget</span><span class='rparen'>)</span>
+</span>  <span class='id identifier rubyid_assembler'>assembler</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Context.html" title="Phronomy::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Context/Assembler.html" title="Phronomy::Context::Assembler (class)">Assembler</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Context/Assembler.html#initialize-instance_method" title="Phronomy::Context::Assembler#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>budget:</span> <span class='id identifier rubyid_budget'>budget</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_system_msg'>system_msg</span> <span class='op'>=</span> <span class='id identifier rubyid_build_instructions'>build_instructions</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_assembler'>assembler</span><span class='period'>.</span><span class='id identifier rubyid_add_instruction'>add_instruction</span><span class='lparen'>(</span><span class='id identifier rubyid_system_msg'>system_msg</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_system_msg'>system_msg</span>
 
@@ -3351,7 +3379,33 @@ as they are produced by the underlying LLM.</p>
 
   <span class='kw'>if</span> <span class='id identifier rubyid_memory'>memory</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
     <span class='id identifier rubyid_msgs'>msgs</span> <span class='op'>=</span> <span class='id identifier rubyid_load_from_memory'>load_from_memory</span><span class='lparen'>(</span><span class='id identifier rubyid_memory'>memory</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='id identifier rubyid_user_message'>user_message</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_assembler'>assembler</span><span class='period'>.</span><span class='id identifier rubyid_add_messages'>add_messages</span><span class='lparen'>(</span><span class='id identifier rubyid_msgs'>msgs</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_message_elements'>message_elements</span> <span class='op'>=</span> <span class='id identifier rubyid_build_message_elements'>build_message_elements</span><span class='lparen'>(</span><span class='id identifier rubyid_msgs'>msgs</span><span class='rparen'>)</span>
+
+    <span class='comment'># Run on_trim: app may call ctx.remove(seqs) to drop messages this turn.
+</span>    <span class='kw'>if</span> <span class='lparen'>(</span><span class='id identifier rubyid_trim_cb'>trim_cb</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__on_trim_callback'>_on_trim_callback</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_trim_ctx'>trim_ctx</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Context.html" title="Phronomy::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Context/TrimContext.html" title="Phronomy::Context::TrimContext (class)">TrimContext</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Context/TrimContext.html#initialize-instance_method" title="Phronomy::Context::TrimContext#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>message_elements:</span> <span class='id identifier rubyid_message_elements'>message_elements</span><span class='comma'>,</span> <span class='label'>budget:</span> <span class='id identifier rubyid_budget'>budget</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_trim_cb'>trim_cb</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_trim_ctx'>trim_ctx</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_message_elements'>message_elements</span> <span class='op'>=</span> <span class='id identifier rubyid_trim_ctx'>trim_ctx</span><span class='period'>.</span><span class='id identifier rubyid_message_elements'>message_elements</span>
+    <span class='kw'>end</span>
+
+    <span class='comment'># Run on_compaction_trigger → on_compact pipeline before calling the LLM.
+</span>    <span class='kw'>if</span> <span class='lparen'>(</span><span class='id identifier rubyid_trigger_cb'>trigger_cb</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__on_compaction_trigger_callback'>_on_compaction_trigger_callback</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_trigger_ctx'>trigger_ctx</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Context.html" title="Phronomy::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Context/TriggerContext.html" title="Phronomy::Context::TriggerContext (class)">TriggerContext</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Context/TriggerContext.html#initialize-instance_method" title="Phronomy::Context::TriggerContext#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>message_elements:</span> <span class='id identifier rubyid_message_elements'>message_elements</span><span class='comma'>,</span> <span class='label'>budget:</span> <span class='id identifier rubyid_budget'>budget</span><span class='rparen'>)</span>
+      <span class='kw'>if</span> <span class='id identifier rubyid_trigger_cb'>trigger_cb</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_trigger_ctx'>trigger_ctx</span><span class='rparen'>)</span>
+        <span class='kw'>if</span> <span class='lparen'>(</span><span class='id identifier rubyid_compact_cb'>compact_cb</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__on_compact_callback'>_on_compact_callback</span><span class='rparen'>)</span>
+          <span class='id identifier rubyid_compact_ctx'>compact_ctx</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Context.html" title="Phronomy::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Context/CompactionContext.html" title="Phronomy::Context::CompactionContext (class)">CompactionContext</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Context/CompactionContext.html#initialize-instance_method" title="Phronomy::Context::CompactionContext#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+            <span class='label'>message_elements:</span> <span class='id identifier rubyid_message_elements'>message_elements</span><span class='comma'>,</span>
+            <span class='label'>budget:</span> <span class='id identifier rubyid_budget'>budget</span><span class='comma'>,</span>
+            <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
+            <span class='label'>memory:</span> <span class='id identifier rubyid_memory'>memory</span>
+          <span class='rparen'>)</span>
+          <span class='id identifier rubyid_compact_cb'>compact_cb</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_compact_ctx'>compact_ctx</span><span class='rparen'>)</span>
+          <span class='id identifier rubyid_message_elements'>message_elements</span> <span class='op'>=</span> <span class='id identifier rubyid_build_message_elements'>build_message_elements</span><span class='lparen'>(</span><span class='id identifier rubyid_compact_ctx'>compact_ctx</span><span class='period'>.</span><span class='id identifier rubyid_result_messages'>result_messages</span><span class='rparen'>)</span>
+        <span class='kw'>end</span>
+      <span class='kw'>end</span>
+    <span class='kw'>end</span>
+
+    <span class='id identifier rubyid_assembler'>assembler</span><span class='period'>.</span><span class='id identifier rubyid_add_messages'>add_messages</span><span class='lparen'>(</span><span class='id identifier rubyid_message_elements'>message_elements</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_e'>e</span><span class='op'>|</span> <span class='id identifier rubyid_e'>e</span><span class='lbracket'>[</span><span class='symbol'>:message</span><span class='rbracket'>]</span> <span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
 
   <span class='id identifier rubyid_context'>context</span> <span class='op'>=</span> <span class='id identifier rubyid_assembler'>assembler</span><span class='period'>.</span><span class='id identifier rubyid_build'>build</span>
@@ -3393,7 +3447,7 @@ as they are produced by the underlying LLM.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 12:57:57 2026 by
+  Generated on Sun May 10 13:56:46 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

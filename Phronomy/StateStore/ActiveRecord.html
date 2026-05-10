@@ -378,13 +378,13 @@ When nil (default), data is stored as plain JSON.</p></div>
       <pre class="lines">
 
 
-66
-67
-68
-69</pre>
+70
+71
+72
+73</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/active_record.rb', line 66</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/active_record.rb', line 70</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
   <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
@@ -450,17 +450,17 @@ When nil (default), data is stored as plain JSON.</p></div>
       <pre class="lines">
 
 
-55
-56
-57
-58
 59
 60
 61
-62</pre>
+62
+63
+64
+65
+66</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/active_record.rb', line 55</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/active_record.rb', line 59</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_record'>record</span> <span class='op'>=</span> <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_find_by'>find_by</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
@@ -537,7 +537,11 @@ When nil (default), data is stored as plain JSON.</p></div>
 47
 48
 49
-50</pre>
+50
+51
+52
+53
+54</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/active_record.rb', line 43</span>
@@ -545,9 +549,13 @@ When nil (default), data is stored as plain JSON.</p></div>
 <span class='kw'>def</span> <span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_json'>json</span> <span class='op'>=</span> <span class='id identifier rubyid_serialize_state'>serialize_state</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='ivar'>@encryptor</span> <span class='op'>?</span> <span class='ivar'>@encryptor</span><span class='period'>.</span><span class='id identifier rubyid_encrypt'>encrypt</span><span class='lparen'>(</span><span class='id identifier rubyid_json'>json</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id identifier rubyid_json'>json</span>
-  <span class='id identifier rubyid_record'>record</span> <span class='op'>=</span> <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_find_or_initialize_by'>find_or_initialize_by</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_state_json'>state_json</span> <span class='op'>=</span> <span class='id identifier rubyid_payload'>payload</span>
-  <span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_save!'>save!</span>
+  <span class='comment'># Use upsert to avoid a race condition where two concurrent saves for the
+</span>  <span class='comment'># same thread_id would both see &quot;no record&quot; and collide on the unique index.
+</span>  <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_upsert'>upsert</span><span class='lparen'>(</span>
+    <span class='lbrace'>{</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>state_json:</span> <span class='id identifier rubyid_payload'>payload</span><span class='rbrace'>}</span><span class='comma'>,</span>
+    <span class='label'>unique_by:</span> <span class='symbol'>:thread_id</span><span class='comma'>,</span>
+    <span class='label'>update_only:</span> <span class='lbracket'>[</span><span class='symbol'>:state_json</span><span class='rbracket'>]</span>
+  <span class='rparen'>)</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -560,7 +568,7 @@ When nil (default), data is stored as plain JSON.</p></div>
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 12:57:58 2026 by
+  Generated on Sun May 10 13:56:47 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

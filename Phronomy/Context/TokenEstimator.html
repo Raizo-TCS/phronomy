@@ -123,36 +123,6 @@ so this is a slight underestimate for Japanese.</p>
 
 
 
-  <h2>Class Attribute Summary <small><a href="#" class="summary_toggle">collapse</a></small></h2>
-  <ul class="summary">
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#tokenizer-class_method" title="tokenizer (class method)">.<strong>tokenizer</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Replace the built-in heuristic with a callable that takes a String and returns an Integer token count.</p></div></span>
-  
-</li>
-
-    
-  </ul>
-
 
 
 
@@ -186,72 +156,76 @@ so this is a slight underestimate for Japanese.</p>
 </li>
 
       
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#reset_tokenizer!-class_method" title="reset_tokenizer! (class method)">.<strong>reset_tokenizer!</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Resets the tokenizer to the built-in heuristic.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#tokenizer-class_method" title="tokenizer (class method)">.<strong>tokenizer</strong>  &#x21d2; #call<sup>?</sup> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#tokenizer=-class_method" title="tokenizer= (class method)">.<strong>tokenizer=</strong>(callable)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Replace the built-in heuristic with a callable that takes a String and returns an Integer token count.</p></div></span>
+  
+</li>
+
+      
     </ul>
     
   
 
-
-  <div id="class_attr_details" class="attr_details">
-    <h2>Class Attribute Details</h2>
-    
-      
-      <span id="tokenizer=-class_method"></span>
-      <div class="method_details first">
-  <h3 class="signature first" id="tokenizer-class_method">
-  
-    .<strong>tokenizer</strong>  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Replace the built-in heuristic with a callable that takes a String
-and returns an Integer token count.  Set to nil to restore the default.</p>
-
-  </div>
-</div>
-<div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
-  
-    <li>
-      
-        <span class='name'>callable</span>
-      
-      
-        <span class='type'>(<tt>#call</tt>, <tt>nil</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-32
-33
-34</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/token_estimator.rb', line 32</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_tokenizer'>tokenizer</span>
-  <span class='ivar'>@tokenizer</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-  </div>
 
 
   <div id="class_method_details" class="method_details_list">
@@ -317,24 +291,26 @@ or an Array of message-like objects (each must respond to #content).</p></div>
       <pre class="lines">
 
 
-39
-40
-41
-42
-43
-44
-45
-46
-47
-48</pre>
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/token_estimator.rb', line 39</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/token_estimator.rb', line 55</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_estimate'>estimate</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_tok'>tok</span> <span class='op'>=</span> <span class='ivar'>@tokenizer_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@tokenizer</span> <span class='rbrace'>}</span>
   <span class='kw'>case</span> <span class='id identifier rubyid_input'>input</span>
   <span class='kw'>when</span> <span class='const'>String</span>
-    <span class='ivar'>@tokenizer</span> <span class='op'>?</span> <span class='ivar'>@tokenizer</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span> <span class='op'>/</span> <span class='float'>4.0</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_ceil'>ceil</span>
+    <span class='id identifier rubyid_tok'>tok</span> <span class='op'>?</span> <span class='id identifier rubyid_tok'>tok</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span> <span class='op'>/</span> <span class='float'>4.0</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_ceil'>ceil</span>
   <span class='kw'>when</span> <span class='const'>Array</span>
     <span class='id identifier rubyid_input'>input</span><span class='period'>.</span><span class='id identifier rubyid_sum'>sum</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_m'>m</span><span class='op'>|</span> <span class='id identifier rubyid_estimate'>estimate</span><span class='lparen'>(</span><span class='id identifier rubyid_m'>m</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
   <span class='kw'>else</span>
@@ -346,12 +322,166 @@ or an Array of message-like objects (each must respond to #content).</p></div>
 </table>
 </div>
     
+      <div class="method_details ">
+  <h3 class="signature " id="reset_tokenizer!-class_method">
+  
+    .<strong>reset_tokenizer!</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Resets the tokenizer to the built-in heuristic. Intended for test isolation.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+46
+47
+48</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/token_estimator.rb', line 46</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_reset_tokenizer!'>reset_tokenizer!</span>
+  <span class='ivar'>@tokenizer_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@tokenizer</span> <span class='op'>=</span> <span class='kw'>nil</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="tokenizer-class_method">
+  
+    .<strong>tokenizer</strong>  &#x21d2; <tt>#call</tt><sup>?</sup> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>#call</tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+41
+42
+43</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/token_estimator.rb', line 41</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_tokenizer'>tokenizer</span>
+  <span class='ivar'>@tokenizer_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@tokenizer</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="tokenizer=-class_method">
+  
+    .<strong>tokenizer=</strong>(callable)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+  <div class="note notetag">
+    <strong>Note:</strong>
+    <div class='inline'><p>This is a process-wide setting. Set it once at application startup.
+In tests, call <code>TokenEstimator.reset_tokenizer!</code> after each test to
+prevent cross-test contamination.</p></div>
+  </div>
+
+<p>Replace the built-in heuristic with a callable that takes a String
+and returns an Integer token count.  Set to nil to restore the default.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>callable</span>
+      
+      
+        <span class='type'>(<tt>#call</tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+36
+37
+38</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/token_estimator.rb', line 36</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_tokenizer='>tokenizer=</span><span class='lparen'>(</span><span class='id identifier rubyid_callable'>callable</span><span class='rparen'>)</span>
+  <span class='ivar'>@tokenizer_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@tokenizer</span> <span class='op'>=</span> <span class='id identifier rubyid_callable'>callable</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
   </div>
 
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 12:57:56 2026 by
+  Generated on Sun May 10 13:56:45 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

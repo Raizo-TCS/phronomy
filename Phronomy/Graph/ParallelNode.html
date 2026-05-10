@@ -414,7 +414,8 @@ Unknown keys are silently ignored by the State#merge machinery.</p>
 70
 71
 72
-73</pre>
+73
+74</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/graph/parallel_node.rb', line 64</span>
@@ -422,11 +423,12 @@ Unknown keys are silently ignored by the State#merge machinery.</p>
 <span class='kw'>def</span> <span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_threads'>threads</span> <span class='op'>=</span> <span class='ivar'>@branches</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_branch'>branch</span><span class='op'>|</span> <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_branch'>branch</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='rparen'>)</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span>
   <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>=</span> <span class='ivar'>@timeout</span> <span class='op'>?</span> <span class='lparen'>(</span><span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='ivar'>@timeout</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='kw'>nil</span>
+  <span class='id identifier rubyid_state_class'>state_class</span> <span class='op'>=</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span>
 
   <span class='kw'>if</span> <span class='ivar'>@on_error</span> <span class='op'>==</span> <span class='symbol'>:best_effort</span>
-    <span class='id identifier rubyid_gather_best_effort'>gather_best_effort</span><span class='lparen'>(</span><span class='id identifier rubyid_threads'>threads</span><span class='comma'>,</span> <span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_gather_best_effort'>gather_best_effort</span><span class='lparen'>(</span><span class='id identifier rubyid_threads'>threads</span><span class='comma'>,</span> <span class='id identifier rubyid_deadline'>deadline</span><span class='comma'>,</span> <span class='id identifier rubyid_state_class'>state_class</span><span class='rparen'>)</span>
   <span class='kw'>else</span>
-    <span class='id identifier rubyid_gather_raise'>gather_raise</span><span class='lparen'>(</span><span class='id identifier rubyid_threads'>threads</span><span class='comma'>,</span> <span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_gather_raise'>gather_raise</span><span class='lparen'>(</span><span class='id identifier rubyid_threads'>threads</span><span class='comma'>,</span> <span class='id identifier rubyid_deadline'>deadline</span><span class='comma'>,</span> <span class='id identifier rubyid_state_class'>state_class</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -439,7 +441,7 @@ Unknown keys are silently ignored by the State#merge machinery.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 12:57:57 2026 by
+  Generated on Sun May 10 13:56:46 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

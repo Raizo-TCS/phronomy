@@ -149,7 +149,17 @@ and uncompacted messages are returned verbatim.</p>
   </div>
 
 
-</div>
+</div><h2>Defined Under Namespace</h2>
+<p class="children">
+  
+    
+  
+    
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="ConversationManager/SummaryMessage.html" title="Phronomy::Memory::ConversationManager::SummaryMessage (class)">SummaryMessage</a></span>
+    
+  
+</p>
+
 
 
 
@@ -400,7 +410,8 @@ than this value are removed from storage on each <span class='object_link'><a hr
 48
 49
 50
-51</pre>
+51
+52</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 46</span>
@@ -410,6 +421,7 @@ than this value are removed from storage on each <span class='object_link'><a hr
   <span class='ivar'>@retrieval</span> <span class='op'>=</span> <span class='id identifier rubyid_retrieval'>retrieval</span>
   <span class='ivar'>@compression</span> <span class='op'>=</span> <span class='id identifier rubyid_compression'>compression</span>
   <span class='ivar'>@ttl</span> <span class='op'>=</span> <span class='id identifier rubyid_ttl'>ttl</span>
+  <span class='ivar'>@append_mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -462,13 +474,13 @@ than this value are removed from storage on each <span class='object_link'><a hr
       <pre class="lines">
 
 
-93
 94
 95
-96</pre>
+96
+97</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 93</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 94</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
@@ -553,14 +565,14 @@ system message.
       <pre class="lines">
 
 
-66
 67
 68
 69
-70</pre>
+70
+71</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 66</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 67</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_purge_older_than'>purge_older_than</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>older_than:</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span> <span class='op'>-</span> <span class='ivar'>@ttl</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='ivar'>@ttl</span>
@@ -613,13 +625,13 @@ any retrieval index for the thread.</p>
       <pre class="lines">
 
 
-103
 104
 105
-106</pre>
+106
+107</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 103</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 104</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_purge'>purge</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_purge'>purge</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
@@ -689,14 +701,14 @@ compaction record is saved in storage (originals are preserved).</p>
       <pre class="lines">
 
 
-84
 85
 86
 87
-88</pre>
+88
+89</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 84</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 85</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_append_new_messages'>append_new_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span>
@@ -790,17 +802,17 @@ Called by CompactionContext when the on_compact callback invokes ctx.compact.</p
       <pre class="lines">
 
 
-115
 116
 117
 118
 119
 120
 121
-122</pre>
+122
+123</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 115</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 116</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save_compaction'>save_compaction</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>start_seq:</span><span class='comma'>,</span> <span class='label'>end_seq:</span><span class='comma'>,</span> <span class='label'>summary_text:</span><span class='rparen'>)</span>
   <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_save_compaction'>save_compaction</span><span class='lparen'>(</span>
@@ -820,7 +832,7 @@ Called by CompactionContext when the on_compact callback invokes ctx.compact.</p
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 12:57:58 2026 by
+  Generated on Sun May 10 13:56:47 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
