@@ -22,10 +22,21 @@ ActiveRecord::Schema.define(version: 1) do
     t.string :model_id
     t.timestamps
   end
+
+  create_table :phronomy_states, force: true do |t|
+    t.string :thread_id, null: false, index: {unique: true}
+    t.text :state_json, null: false
+    t.timestamps
+  end
 end
 
 # Minimal ActiveRecord model mirroring the generator template.
 class PhronomyMessageRecord < ActiveRecord::Base
   self.table_name = "phronomy_messages"
   include Phronomy::ActiveRecord::Message
+end
+
+# Minimal ActiveRecord model for StateStore::ActiveRecord tests.
+class PhronomyStateRecord < ActiveRecord::Base
+  self.table_name = "phronomy_states"
 end
