@@ -160,4 +160,66 @@ RSpec.describe Phronomy::Memory::ConversationManager do
       expect(storage.load_compactions(thread_id: "t1")).to eq([])
     end
   end
+
+  describe "#purge" do
+    it "removes all messages for the thread" do
+      manager.save(thread_id: "t1", messages: [make_msg(:user, "a"), make_msg(:assistant, "b")])
+      manager.purge(thread_id: "t1")
+      expect(manager.load(thread_id: "t1")).to eq([])
+    end
+
+    it "does not affect other threads" do
+      manager.save(thread_id: "t1", messages: [make_msg(:user, "a")])
+      manager.save(thread_id: "t2", messages: [make_msg(:user, "b")])
+      manager.purge(thread_id: "t1")
+      expect(manager.load(thread_id: "t2").length).to eq(1)
+    end
+
+    it "clears the retrieval index for the thread" do
+      indexing_retrieval = double("retrieval")
+      allow(indexing_retrieval).to receive(:select).and_return([])
+      allow(indexing_retrieval).to receive(:index)
+      expect(indexing_retrieval).to receive(:clear_index).with(thread_id: "t1")
+      mgr = described_class.new(storage: storage, retrieval: indexing_retrieval)
+      mgr.save(thread_id: "t1", messages: [make_msg(:user, "a")])
+      mgr.purge(thread_id: "t1")
+    end
+  end
+
+  describe "TTL filtering" do
+    subject(:ttl_manager) { described_class.new(storage: storage, retrieval: retrieval, ttl: 60) }
+
+    it "calls purge_older_than with the correct cutoff time on each load" do
+      fake_storage = instance_double(Phronomy::Memory::Storage::InMemory)
+      allow(fake_storage).to receive(:load).and_return([])
+      allow(fake_storage).to receive(:load_raw).and_return([])
+      allow(fake_storage).to receive(:load_compactions).and_return([])
+      expect(fake_storage).to receive(:purge_older_than) do |thread_id:, older_than:|
+        expect(thread_id).to eq("t1")
+        expect(older_than).to be_within(2).of(Time.now - 60)
+      end
+      mgr = described_class.new(storage: fake_storage, retrieval: retrieval, ttl: 60)
+      mgr.load(thread_id: "t1")
+    end
+
+    it "does not call purge_older_than when TTL is not configured" do
+      fake_storage = instance_double(Phronomy::Memory::Storage::InMemory)
+      allow(fake_storage).to receive(:load).and_return([])
+      allow(fake_storage).to receive(:load_raw).and_return([])
+      allow(fake_storage).to receive(:load_compactions).and_return([])
+      expect(fake_storage).not_to receive(:purge_older_than)
+      mgr = described_class.new(storage: fake_storage, retrieval: retrieval)
+      mgr.load(thread_id: "t1")
+    end
+
+    it "returns messages saved within the TTL window" do
+      ttl_manager.save(thread_id: "t1", messages: [make_msg(:user, "recent")])
+      expect(ttl_manager.load(thread_id: "t1").map(&:content)).to include("recent")
+    end
+
+    it "does not filter messages when no TTL is configured" do
+      manager.save(thread_id: "t1", messages: [make_msg(:user, "msg")])
+      expect(manager.load(thread_id: "t1").map(&:content)).to include("msg")
+    end
+  end
 end

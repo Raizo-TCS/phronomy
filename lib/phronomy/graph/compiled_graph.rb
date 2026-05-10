@@ -43,14 +43,22 @@ module Phronomy
       # Executes the graph from the entry point.
       # Automatically assigns a thread_id if not supplied via config.
       # @param input [Hash] initial state field values
-      # @param config [Hash] { thread_id: String, recursion_limit: Integer }
+      # @param config [Hash] { thread_id: String, recursion_limit: Integer,
+      #   user_id: String (optional), session_id: String (optional) }
       # @return [Object] final state (includes Phronomy::Graph::State)
       def invoke(input, config: {})
-        thread_id = config[:thread_id] || SecureRandom.uuid
-        recursion_limit = config.fetch(:recursion_limit, Phronomy.configuration.recursion_limit)
-        state = @state_class.new(**input)
-        state.set_graph_metadata(thread_id: thread_id, current_nodes: [], halted_before: false)
-        execute_graph(state, recursion_limit: recursion_limit)
+        caller_meta = {}
+        caller_meta[:user_id] = config[:user_id] if config[:user_id]
+        caller_meta[:session_id] = config[:session_id] if config[:session_id]
+
+        trace("graph.invoke", input: input.inspect, **caller_meta) do |_span|
+          thread_id = config[:thread_id] || SecureRandom.uuid
+          recursion_limit = config.fetch(:recursion_limit, Phronomy.configuration.recursion_limit)
+          state = @state_class.new(**input)
+          state.set_graph_metadata(thread_id: thread_id, current_nodes: [], halted_before: false)
+          result = execute_graph(state, recursion_limit: recursion_limit)
+          [result, nil]
+        end
       end
 
       # Resumes a halted graph from the state returned by a previous invoke/resume.

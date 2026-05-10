@@ -503,4 +503,58 @@ RSpec.describe Phronomy::Agent::ReactAgent do
       expect(memory).not_to have_received(:save)
     end
   end
+
+  describe "caller identity propagation to tracer" do
+    subject(:agent) { SimpleReactAgent.new }
+    let(:spy_tracer) do
+      Class.new(Phronomy::Tracing::NullTracer) do
+        attr_reader :last_span_attributes
+
+        def start_span(name, **attributes)
+          @last_span_attributes = attributes
+          super
+        end
+      end.new
+    end
+
+    let(:reply_msg) { double("Msg", role: :assistant, content: "ok", tool_calls: nil, tokens: double("Tok", input: 1, output: 1, cached: 0, cache_creation: 0)) }
+    let(:spy_chat) do
+      dbl = double("Chat")
+      allow(dbl).to receive(:with_instructions).and_return(dbl)
+      allow(dbl).to receive(:with_tool).and_return(dbl)
+      allow(dbl).to receive(:with_temperature).and_return(dbl)
+      allow(dbl).to receive(:messages).and_return([reply_msg])
+      allow(dbl).to receive(:last_message).and_return(reply_msg)
+      allow(dbl).to receive(:add_message)
+      allow(dbl).to receive(:ask).and_return(reply_msg)
+      dbl
+    end
+
+    before do
+      Phronomy.configure { |c| c.tracer = spy_tracer }
+      allow(RubyLLM).to receive(:chat).and_return(spy_chat)
+    end
+
+    after { Phronomy.configure { |c| c.tracer = Phronomy::Tracing::NullTracer.new } }
+
+    it "forwards user_id to the tracer span attributes" do
+      agent.invoke("Hello", config: {user_id: "u-42"})
+      expect(spy_tracer.last_span_attributes[:user_id]).to eq("u-42")
+    end
+
+    it "forwards session_id to the tracer span attributes" do
+      agent.invoke("Hello", config: {session_id: "sess-abc"})
+      expect(spy_tracer.last_span_attributes[:session_id]).to eq("sess-abc")
+    end
+
+    it "does not include user_id key when not supplied" do
+      agent.invoke("Hello", config: {})
+      expect(spy_tracer.last_span_attributes).not_to have_key(:user_id)
+    end
+
+    it "does not include session_id key when not supplied" do
+      agent.invoke("Hello", config: {})
+      expect(spy_tracer.last_span_attributes).not_to have_key(:session_id)
+    end
+  end
 end

@@ -47,9 +47,10 @@ module Phronomy
         # @param messages     [Array]
         # @param starting_seq [Integer]
         def append_raw(thread_id:, messages:, starting_seq:)
+          now = Time.now
           @raw_store[thread_id] ||= []
           messages.each_with_index do |msg, i|
-            @raw_store[thread_id] << {seq: starting_seq + i, message: msg}
+            @raw_store[thread_id] << {seq: starting_seq + i, message: msg, recorded_at: now}
           end
         end
 
@@ -86,6 +87,16 @@ module Phronomy
         # @param thread_id [String]
         def clear_compactions(thread_id:)
           @compaction_store.delete(thread_id)
+        end
+
+        # Remove raw messages recorded before +older_than+ for this thread.
+        #
+        # @param thread_id  [String]
+        # @param older_than [Time]
+        def purge_older_than(thread_id:, older_than:)
+          return unless @raw_store[thread_id]
+
+          @raw_store[thread_id].reject! { |entry| entry[:recorded_at] && entry[:recorded_at] < older_than }
         end
       end
     end

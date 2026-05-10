@@ -357,8 +357,10 @@ module Phronomy
       #   +:message+, +:query+, or +:user+ as the text key, plus any template
       #   variables consumed by the configured instructions template.
       # @param config [Hash] runtime options:
-      #   +:memory+    ({Phronomy::Memory::ConversationManager}) — memory backend
-      #   +:thread_id+ (+String+)                 — conversation thread identifier
+      #   +:memory+     ({Phronomy::Memory::ConversationManager}) — memory backend
+      #   +:thread_id+  (+String+)                 — conversation thread identifier
+      #   +:user_id+    (+String+, optional)        — caller identity forwarded to the tracer
+      #   +:session_id+ (+String+, optional)        — session identity forwarded to the tracer
       # @return [Hash] +{ output: String, messages: Array, usage: Phronomy::TokenUsage }+
       # @raise [Phronomy::GuardrailError] when an input or output guardrail rejects the value
       # @example
@@ -489,83 +491,90 @@ module Phronomy
       # Performs a single (non-retried) invocation. Extracted so that #invoke can
       # wrap it in a retry loop without duplicating the LLM interaction logic.
       def invoke_once(input, config: {})
-        # Run input guardrails before touching the LLM.
-        run_input_guardrails!(input)
+        caller_meta = {}
+        caller_meta[:user_id] = config[:user_id] if config[:user_id]
+        caller_meta[:session_id] = config[:session_id] if config[:session_id]
 
-        memory = config[:memory]
-        thread_id = config[:thread_id]
-        user_message = extract_message(input)
-        chat = build_chat
-        budget = build_token_budget
+        trace("agent.invoke", input: input, **caller_meta) do |_span|
+          # Run input guardrails before touching the LLM.
+          run_input_guardrails!(input)
 
-        # Load conversation history from memory.
-        raw_messages = (memory && thread_id) ?
-          load_from_memory(memory, thread_id: thread_id, query: user_message) : []
+          memory = config[:memory]
+          thread_id = config[:thread_id]
+          user_message = extract_message(input)
+          chat = build_chat
+          budget = build_token_budget
 
-        # Assign synthetic 0-based seq numbers for use by trim/compaction callbacks.
-        message_elements = build_message_elements(raw_messages)
+          # Load conversation history from memory.
+          raw_messages = (memory && thread_id) ?
+            load_from_memory(memory, thread_id: thread_id, query: user_message) : []
 
-        # Run on_trim: app may call ctx.remove(seqs) to drop messages this turn.
-        if (trim_cb = self.class._on_trim_callback)
-          trim_ctx = Context::TrimContext.new(message_elements: message_elements, budget: budget)
-          trim_cb.call(trim_ctx)
-          message_elements = trim_ctx.message_elements
-        end
+          # Assign synthetic 0-based seq numbers for use by trim/compaction callbacks.
+          message_elements = build_message_elements(raw_messages)
 
-        # Run on_compaction_trigger → on_compact pipeline before calling the LLM.
-        if (trigger_cb = self.class._on_compaction_trigger_callback)
-          trigger_ctx = Context::TriggerContext.new(
-            message_elements: message_elements, budget: budget
-          )
-          if trigger_cb.call(trigger_ctx)
-            if (compact_cb = self.class._on_compact_callback)
-              compact_ctx = Context::CompactionContext.new(
-                message_elements: message_elements,
-                budget: budget,
-                thread_id: thread_id,
-                memory: memory
-              )
-              compact_cb.call(compact_ctx)
-              message_elements = build_message_elements(compact_ctx.result_messages)
+          # Run on_trim: app may call ctx.remove(seqs) to drop messages this turn.
+          if (trim_cb = self.class._on_trim_callback)
+            trim_ctx = Context::TrimContext.new(message_elements: message_elements, budget: budget)
+            trim_cb.call(trim_ctx)
+            message_elements = trim_ctx.message_elements
+          end
+
+          # Run on_compaction_trigger → on_compact pipeline before calling the LLM.
+          if (trigger_cb = self.class._on_compaction_trigger_callback)
+            trigger_ctx = Context::TriggerContext.new(
+              message_elements: message_elements, budget: budget
+            )
+            if trigger_cb.call(trigger_ctx)
+              if (compact_cb = self.class._on_compact_callback)
+                compact_ctx = Context::CompactionContext.new(
+                  message_elements: message_elements,
+                  budget: budget,
+                  thread_id: thread_id,
+                  memory: memory
+                )
+                compact_cb.call(compact_ctx)
+                message_elements = build_message_elements(compact_ctx.result_messages)
+              end
             end
           end
-        end
 
-        # Build the system prompt via the fingerprint-keyed ContextVersionCache.
-        # Static knowledge is fetched and concatenated once; the result is reused
-        # on subsequent calls as long as the fingerprint remains valid.
-        system_text = build_cached_system_text(input)
+          # Build the system prompt via the fingerprint-keyed ContextVersionCache.
+          # Static knowledge is fetched and concatenated once; the result is reused
+          # on subsequent calls as long as the fingerprint remains valid.
+          system_text = build_cached_system_text(input)
 
-        # Assemble context regions 1 (Instruction+Static Knowledge) + 3 (Dynamic Knowledge)
-        # + 4 (Conversation).
-        assembler = Context::Assembler.new(budget: budget)
-        assembler.add_instruction(system_text) if system_text
+          # Assemble context regions 1 (Instruction+Static Knowledge) + 3 (Dynamic Knowledge)
+          # + 4 (Conversation).
+          assembler = Context::Assembler.new(budget: budget)
+          assembler.add_instruction(system_text) if system_text
 
-        # Dynamic knowledge from config[:knowledge_sources] (backward compatible).
-        Array(config[:knowledge_sources]).each do |ks|
-          ks.fetch(query: user_message).each do |chunk|
-            assembler.add_knowledge(chunk[:content], type: chunk[:type])
+          # Dynamic knowledge from config[:knowledge_sources] (backward compatible).
+          Array(config[:knowledge_sources]).each do |ks|
+            ks.fetch(query: user_message).each do |chunk|
+              assembler.add_knowledge(chunk[:content], type: chunk[:type])
+            end
           end
+
+          assembler.add_messages(message_elements.map { |e| e[:message] })
+
+          context = assembler.build
+          apply_instructions(chat, context[:system]) if context[:system]
+          context[:messages].each { |msg| chat.messages << msg }
+
+          response = chat.ask(user_message)
+
+          # Persist the updated conversation to memory.
+          save_to_memory(memory, thread_id: thread_id, messages: chat.messages) if memory && thread_id
+
+          output = response.content
+          usage = Phronomy::TokenUsage.from_tokens(response.tokens)
+
+          # Run output guardrails before returning to the caller.
+          run_output_guardrails!(output)
+
+          result = {output: output, messages: chat.messages, usage: usage}
+          [result, usage]
         end
-
-        assembler.add_messages(message_elements.map { |e| e[:message] })
-
-        context = assembler.build
-        apply_instructions(chat, context[:system]) if context[:system]
-        context[:messages].each { |msg| chat.messages << msg }
-
-        response = chat.ask(user_message)
-
-        # Persist the updated conversation to memory.
-        save_to_memory(memory, thread_id: thread_id, messages: chat.messages) if memory && thread_id
-
-        output = response.content
-        usage = Phronomy::TokenUsage.from_tokens(response.tokens)
-
-        # Run output guardrails before returning to the caller.
-        run_output_guardrails!(output)
-
-        {output: output, messages: chat.messages, usage: usage}
       end
 
       # Computes the agent-level retry wait duration.
