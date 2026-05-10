@@ -193,6 +193,11 @@ module Phronomy
         end
       end
 
+      # Instance method accessor — delegates to the class-level flag.
+      def requires_approval
+        self.class.requires_approval
+      end
+
       # Instance method for requires_approval? (convenience accessor).
       def requires_approval?
         self.class.requires_approval
