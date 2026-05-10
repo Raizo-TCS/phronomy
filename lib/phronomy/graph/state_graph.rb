@@ -121,8 +121,10 @@ module Phronomy
       # Compiles the graph and returns a CompiledGraph.
       # Callbacks registered on StateGraph are inherited; additional callbacks can be
       # registered on the returned CompiledGraph to override or extend them.
+      # @param state_store [Phronomy::StateStore::Base, nil] optional state store
+      #   to use for this compiled graph, overriding the global default.
       # @return [CompiledGraph]
-      def compile
+      def compile(state_store: nil)
         CompiledGraph.new(
           state_class: @state_class,
           nodes: @nodes,
@@ -130,7 +132,8 @@ module Phronomy
           conditional_edges: @conditional_edges,
           entry_point: @entry_point || @nodes.keys.first,
           before_callbacks: @before_callbacks.dup,
-          after_callbacks: @after_callbacks.dup
+          after_callbacks: @after_callbacks.dup,
+          state_store: state_store
         )
       end
 

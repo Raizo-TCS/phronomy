@@ -28,8 +28,13 @@ module Phronomy
     #   end
     class ActiveRecord < Base
       # @param model_class [Class] ActiveRecord model with the schema above.
-      def initialize(model_class:)
+      # @param encryptor [Phronomy::StateStore::Encryptor::Base, nil]
+      #   Optional encryption adapter. When supplied, the JSON payload is
+      #   encrypted before writing and decrypted after reading.
+      #   When nil (default), data is stored as plain JSON.
+      def initialize(model_class:, encryptor: nil)
         @model_class = model_class
+        @encryptor = encryptor
       end
 
       # Serializes and upserts the state for the given thread_id.
@@ -37,8 +42,9 @@ module Phronomy
       # @return [self]
       def save(state)
         json = serialize_state(state)
+        payload = @encryptor ? @encryptor.encrypt(json) : json
         record = @model_class.find_or_initialize_by(thread_id: state.thread_id)
-        record.state_json = json
+        record.state_json = payload
         record.save!
         self
       end
@@ -50,7 +56,9 @@ module Phronomy
         record = @model_class.find_by(thread_id: thread_id)
         return nil unless record
 
-        deserialize_state(record.state_json)
+        payload = record.state_json
+        json = @encryptor ? @encryptor.decrypt(payload) : payload
+        deserialize_state(json)
       end
 
       # Deletes the state for the given thread_id.

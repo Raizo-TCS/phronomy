@@ -40,13 +40,20 @@ module Phronomy
       # @param storage     [Memory::Storage::Base]     persistence backend (required)
       # @param retrieval   [Memory::Retrieval::Base]   selection strategy (required)
       # @param compression [Memory::Compression::Base, nil] optional compression strategy
-      def initialize(storage:, retrieval:, compression: nil)
+      # @param ttl         [Integer, nil] message time-to-live in seconds; messages older
+      #                    than this value are removed from storage on each {#load} call.
+      #                    +nil+ disables TTL (default).
+      def initialize(storage:, retrieval:, compression: nil, ttl: nil)
         @storage = storage
         @retrieval = retrieval
         @compression = compression
+        @ttl = ttl
       end
 
       # Load conversation messages for a thread, applying retrieval selection.
+      #
+      # When a TTL is configured, raw messages older than the TTL are permanently
+      # removed from storage before reconstruction.
       #
       # Reconstructs the message list from raw history + compaction records:
       #   - Each compacted range [start_seq..end_seq] is replaced by a summary
@@ -57,6 +64,7 @@ module Phronomy
       # @param query     [String, nil] current user input for query-aware retrieval
       # @return [Array]
       def load(thread_id:, query: nil)
+        @storage.purge_older_than(thread_id: thread_id, older_than: Time.now - @ttl) if @ttl
         messages = reconstruct(thread_id)
         @retrieval.select(messages, query: query)
       end
@@ -84,6 +92,16 @@ module Phronomy
       # @param thread_id [String]
       def clear(thread_id:)
         @storage.clear(thread_id: thread_id)
+        @retrieval.clear_index(thread_id: thread_id) if @retrieval.respond_to?(:clear_index)
+      end
+
+      # Permanently erase all stored data for a thread (right-to-erasure / purge).
+      # Delegates to the storage backend's {Storage::Base#purge} and also clears
+      # any retrieval index for the thread.
+      #
+      # @param thread_id [String]
+      def purge(thread_id:)
+        @storage.purge(thread_id: thread_id)
         @retrieval.clear_index(thread_id: thread_id) if @retrieval.respond_to?(:clear_index)
       end
 

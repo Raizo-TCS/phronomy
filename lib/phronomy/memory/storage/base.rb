@@ -108,6 +108,25 @@ module Phronomy
         def clear_compactions(thread_id:)
           raise NotImplementedError, "#{self.class}#clear_compactions is not implemented"
         end
+
+        # Remove all stored data (raw messages, compaction records, legacy store)
+        # for a thread. Equivalent to {#clear}, provided as a named alias to make
+        # the "right to erasure" intent explicit.
+        #
+        # @param thread_id [String]
+        def purge(thread_id:)
+          clear(thread_id: thread_id)
+        end
+
+        # Remove raw messages recorded before +older_than+ for a thread.
+        # The default implementation is a no-op; backends that support
+        # timestamp-based deletion should override this method.
+        #
+        # @param thread_id  [String]
+        # @param older_than [Time]
+        def purge_older_than(thread_id:, older_than:)
+          # no-op by default
+        end
       end
     end
   end

@@ -6,40 +6,47 @@ module Phronomy
     # Repeats the LLM <-> Tool loop until no more tool calls are made.
     class ReactAgent < Base
       def invoke(input, config: {})
-        # Run input guardrails before any LLM interaction.
-        run_input_guardrails!(input)
+        caller_meta = {}
+        caller_meta[:user_id] = config[:user_id] if config[:user_id]
+        caller_meta[:session_id] = config[:session_id] if config[:session_id]
 
-        memory = config[:memory]
-        thread_id = config[:thread_id]
-        max_iter = self.class.max_iterations
+        trace("agent.invoke", input: input, **caller_meta) do |_span|
+          # Run input guardrails before any LLM interaction.
+          run_input_guardrails!(input)
 
-        # Seed with persisted messages when memory is provided.
-        initial_messages = if memory && thread_id
-          load_from_memory(memory, thread_id: thread_id, query: extract_message(input))
-        else
-          []
+          memory = config[:memory]
+          thread_id = config[:thread_id]
+          max_iter = self.class.max_iterations
+
+          # Seed with persisted messages when memory is provided.
+          initial_messages = if memory && thread_id
+            load_from_memory(memory, thread_id: thread_id, query: extract_message(input))
+          else
+            []
+          end
+
+          messages = initial_messages.dup
+          user_asked = false
+          total_usage = Phronomy::TokenUsage.zero
+
+          max_iter.times do
+            response = step(messages, input, user_asked: user_asked)
+            user_asked = true
+            messages = response[:messages]
+            total_usage += response[:usage]
+            break if response[:done]
+          end
+
+          save_to_memory(memory, thread_id: thread_id, messages: messages) if memory && thread_id
+
+          output = messages.last&.content
+
+          # Run output guardrails before returning to the caller.
+          run_output_guardrails!(output)
+
+          result = {output: output, messages: messages, usage: total_usage}
+          [result, total_usage]
         end
-
-        messages = initial_messages.dup
-        user_asked = false
-        total_usage = Phronomy::TokenUsage.zero
-
-        max_iter.times do
-          response = step(messages, input, user_asked: user_asked)
-          user_asked = true
-          messages = response[:messages]
-          total_usage += response[:usage]
-          break if response[:done]
-        end
-
-        save_to_memory(memory, thread_id: thread_id, messages: messages) if memory && thread_id
-
-        output = messages.last&.content
-
-        # Run output guardrails before returning to the caller.
-        run_output_guardrails!(output)
-
-        {output: output, messages: messages, usage: total_usage}
       end
 
       # Streaming version of #invoke for the ReAct loop.

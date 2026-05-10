@@ -95,7 +95,8 @@ module Phronomy
         # @param messages     [Array]
         # @param starting_seq [Integer]
         def append_raw(thread_id:, messages:, starting_seq:)
-          ensure_raw_model!
+          return unless @raw_model_class
+
           messages.each_with_index do |msg, i|
             @raw_model_class.create!(
               thread_id: thread_id,
@@ -111,7 +112,8 @@ module Phronomy
         # @param thread_id [String]
         # @return [Array<Hash>]
         def load_raw(thread_id:)
-          ensure_raw_model!
+          return [] unless @raw_model_class
+
           records = @raw_model_class.where(thread_id: thread_id).order(:seq).to_a
           records.map { |r| {seq: r.seq, message: to_message_struct(r)} }
         end
@@ -142,7 +144,8 @@ module Phronomy
         # @param thread_id [String]
         # @return [Array<Hash>]
         def load_compactions(thread_id:)
-          ensure_compaction_model!
+          return [] unless @compaction_model_class
+
           records = @compaction_model_class.where(thread_id: thread_id).order(:start_seq).to_a
           records.map { |r| {start_seq: r.start_seq, end_seq: r.end_seq, summary_text: r.summary_text} }
         end
@@ -150,6 +153,16 @@ module Phronomy
         # @param thread_id [String]
         def clear_compactions(thread_id:)
           @compaction_model_class&.where(thread_id: thread_id)&.delete_all
+        end
+
+        # Remove messages for a thread that were created before +older_than+.
+        # Only the legacy message store is filtered; raw and compaction records
+        # are left untouched because they use seq-based addressing.
+        #
+        # @param thread_id  [String]
+        # @param older_than [Time]
+        def purge_older_than(thread_id:, older_than:)
+          @model_class.where(thread_id: thread_id).where("created_at < ?", older_than).delete_all
         end
 
         private
