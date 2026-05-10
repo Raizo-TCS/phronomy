@@ -6,15 +6,22 @@ It provides composable building blocks — Graphs, Agents, and Memory — all po
 ## Features
 
 - **Graph** — Build stateful, branching agent workflows with interrupt/resume support
+- **Graph Parallel Node** — Execute independent graph branches concurrently with configurable merge and error policies
 - **Agent** — ReAct-style tool-calling agents with memory and guardrails
+- **Before-Completion Hook** — Three-tier (global / class / instance) LLM parameter injection before each chat request
 - **Memory** — Window, summary, ActiveRecord-backed, semantic, and composite conversation memory
+- **Memory Compression** — Automatic summarisation and tool-output pruning to stay within token limits
 - **Context Management** — Token budget calculation, estimation, and pruning for any model
-- **Multi-agent** — LLM-driven coordination via the Agent-as-Tool pattern (sub-agents wrapped as `Tool::Base`)
-- **Guardrails** — Validate inputs and outputs before/after LLM calls
-- **Tracing** — Pluggable span-based observability (ships with a no-op NullTracer)
-- **StateStore** — Persist graph state to memory, ActiveRecord, or Redis
+- **Knowledge/RAG** — Static, entity, and vector-backed retrieval sources with pluggable loaders, splitters, and vector stores
+- **Multi-agent** — Agent-as-Tool pattern (sub-agents wrapped as `Tool::Base`) and hub-and-spoke handoff routing via `Agent::Runner`
+- **TrustPipeline** — Citation tracking, self-review loop, and confidence gate for trustworthy outputs
+- **Guardrails** — Validate inputs and outputs before/after LLM calls; built-in PII and prompt-injection detectors
+- **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses
+- **Eval Framework** — Dataset-driven evaluation with ExactMatch, Includes, and LLM-as-a-Judge scorers
+- **Tracing** — Pluggable span-based observability (NullTracer, LangfuseTracer, OpenTelemetryTracer)
+- **StateStore** — Persist graph state to memory, ActiveRecord, or Redis (with optional AES-256-GCM encryption)
 - **MCP Tool** — Integrate Model Context Protocol (MCP) servers as native tools
-- **Rails integration** — `acts_as_phronomy_message` mixin and Rails generators
+- **Rails integration** — `AgentJob`, `acts_as_phronomy_message` mixin, and Rails generators
 
 ## Installation
 
@@ -136,6 +143,161 @@ agent = ResearchAgent.new
 agent.add_input_guardrail(NoSensitiveDataGuardrail.new)
 ```
 
+### Built-in Guardrails — PII and prompt injection detection
+
+```ruby
+# Detect credit cards, SSNs, emails, and phone numbers automatically
+agent.add_input_guardrail(Phronomy::Guardrail::Builtin::PIIPatternDetector.new)
+
+# Block common prompt-injection attempts
+agent.add_input_guardrail(Phronomy::Guardrail::Builtin::PromptInjectionDetector.new)
+```
+
+### Knowledge/RAG — Context injection and vector retrieval
+
+```ruby
+# Static knowledge (policy files, reference docs)
+policy = Phronomy::KnowledgeSource::StaticKnowledge.new(
+  File.read("policy.md"),
+  type:   :policy,
+  source: "policy.md"   # exposed to LLM for citation
+)
+
+# RAG retrieval from a vector store
+store      = Phronomy::VectorStore::InMemory.new
+embeddings = Phronomy::Embeddings::RubyLLMEmbeddings.new(model: "text-embedding-3-small")
+rag = Phronomy::KnowledgeSource::RAGKnowledge.new(store: store, embeddings: embeddings, k: 5)
+
+# Inject at invocation time
+result = MyAgent.new.invoke("What is the refund policy?",
+  config: { knowledge_sources: [policy, rag] })
+```
+
+Load and split documents with built-in loaders:
+
+```ruby
+chunks = Phronomy::Loader::MarkdownLoader.new.load("docs/guide.md")
+         .then { |docs| Phronomy::Splitter::RecursiveSplitter.new(chunk_size: 512).split(docs) }
+```
+
+### Multi-Agent Handoff — Hub-and-spoke routing
+
+```ruby
+triage  = TriageAgent.new
+billing = BillingAgent.new
+support = SupportAgent.new
+
+runner = Phronomy::Agent::Runner.new(
+  agents: [triage, billing, support],
+  routes: { triage => [billing, support] }
+)
+
+result = runner.invoke("I need help with my invoice")
+puts result[:output]           # final answer
+puts result[:agent].class      # => BillingAgent
+```
+
+### Before-Completion Hook — Dynamic LLM parameter injection
+
+```ruby
+# Class-level: applies to all instances
+class MyAgent < Phronomy::Agent::Base
+  model "gpt-4o"
+  before_completion ->(ctx) { { temperature: ctx.config[:precise] ? 0.0 : 0.7 } }
+end
+
+# Instance-level: overrides class hook for this agent only
+agent = MyAgent.new
+agent.before_completion = ->(ctx) { { max_tokens: 512 } }
+
+# Global: applies to every agent across the app
+Phronomy.configure do |c|
+  c.before_completion = ->(ctx) { { temperature: 0.3 } }
+end
+```
+
+Hooks are called in order — global → class → instance — and deep-merged.
+
+### TrustPipeline — Trustworthy outputs with citations and review
+
+```ruby
+pipeline = Phronomy::TrustPipeline.new(
+  draft_agent:          PolicyDraftAgent,
+  review_agent:         PolicyReviewAgent,
+  confidence_threshold: 0.7,
+  max_iterations:       3
+)
+
+result = pipeline.invoke("What is the refund policy?")
+puts result.output             # final answer
+puts result.trusted?           # true when confidence >= 0.7
+puts result.confidence         # Float 0.0–1.0
+
+result.citations.each do |c|
+  puts "#{c[:source]}: #{c[:excerpt]}"
+end
+```
+
+### Graph Parallel Node — Concurrent branches
+
+```ruby
+class MyState
+  include Phronomy::Graph::State
+  field :summary, type: :replace
+  field :tags,    type: :append,  default: -> { [] }
+end
+
+graph = Phronomy::Graph::StateGraph.new(MyState)
+
+graph.add_parallel_node(
+  :enrich,
+  ->(s) { { summary: Summarizer.call(s) } },
+  ->(s) { { tags:    Tagger.call(s) } },
+  timeout:  10,
+  on_error: :best_effort
+)
+
+graph.set_entry_point(:enrich)
+graph.add_edge(:enrich, Phronomy::Graph::StateGraph::FINISH)
+app = graph.compile
+app.invoke({}, config: { thread_id: "t1" })
+```
+
+### Output Parser — Structured LLM responses
+
+```ruby
+# Extract JSON from LLM output (handles Markdown code fences automatically)
+parser = Phronomy::OutputParser::JsonParser.new
+data   = parser.parse('```json\n{"name":"Alice","score":0.9}\n```')
+# => { name: "Alice", score: 0.9 }
+
+# Map JSON directly to a Struct
+PersonSchema = Struct.new(:name, :age, keyword_init: true)
+parser = Phronomy::OutputParser::StructuredParser.new(PersonSchema)
+person = parser.parse('{"name":"Alice","age":30}')
+# => #<struct PersonSchema name="Alice", age=30>
+```
+
+### Eval Framework — Dataset-driven quality evaluation
+
+```ruby
+dataset = Phronomy::Eval::Dataset.from_array([
+  { input: "Capital of France?", expected: "Paris" },
+  { input: "Capital of Japan?",  expected: "Tokyo" }
+])
+
+agent   = MyGeographyAgent.new
+runner  = Phronomy::Eval::Runner.new(
+  scorer: Phronomy::Eval::Scorer::LlmJudge.new(model: "gpt-4o-mini")
+)
+
+results = runner.run(dataset, ->(q) { agent.invoke(q) })
+metrics = Phronomy::Eval::Metrics.new(results)
+
+puts "Mean score: #{metrics.mean_score}"   # Float 0.0–1.0
+puts "Pass rate:  #{metrics.pass_rate}"    # fraction with score >= threshold
+```
+
 ### Tracing — Custom observability
 
 ```ruby
@@ -190,6 +352,8 @@ Phronomy.configure do |c|
   c.recursion_limit     = 25
   c.tracer              = Phronomy::Tracing::NullTracer.new
   c.default_state_store = Phronomy::StateStore::InMemory.new  # optional
+  c.memory_compression  = []                                   # optional; Array of compressors
+  c.before_completion   = nil                                  # optional; global hook lambda
 end
 ```
 
@@ -281,6 +445,26 @@ manager = Phronomy::Memory::ConversationManager.new(
   storage:   Phronomy::Memory::Storage::InMemory.new,
   retrieval: composite_retrieval
 )
+```
+
+### Memory Compression
+
+Automatically shrink conversation history before it reaches the LLM.
+
+```ruby
+# Truncate oversized tool outputs (no LLM call, cheap)
+pruner = Phronomy::Memory::Compression::ToolOutputPruner.new(max_chars: 4000)
+
+# Summarise old messages when history exceeds max_tokens (calls summarizer_model)
+summary = Phronomy::Memory::Compression::Summary.new(
+  max_tokens:       4000,
+  keep:             10,             # always preserve the N most recent messages
+  summarizer_model: "gpt-4o-mini"
+)
+
+Phronomy.configure do |c|
+  c.memory_compression = [pruner, summary]   # applied in order: pruner first, then summary
+end
 ```
 
 
