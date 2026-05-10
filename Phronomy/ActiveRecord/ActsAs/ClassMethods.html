@@ -213,7 +213,7 @@ for encrypting <code>state_json</code> at rest.</p></div>
       <pre class="code"><span class="info file"># File 'lib/phronomy/active_record/acts_as.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_acts_as_phronomy_checkpoint'>acts_as_phronomy_checkpoint</span><span class='lparen'>(</span><span class='label'>encryptor:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_include'>include</span> <span class='op'>::</span><span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../ActiveRecord.html" title="Phronomy::ActiveRecord (module)">ActiveRecord</a></span></span><span class='op'>::</span><span class='const'>Checkpoint</span>
+  <span class='id identifier rubyid_include'>include</span> <span class='op'>::</span><span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../ActiveRecord.html" title="Phronomy::ActiveRecord (module)">ActiveRecord</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Checkpoint.html" title="Phronomy::ActiveRecord::Checkpoint (module)">Checkpoint</a></span></span>
 
   <span class='id identifier rubyid_define_singleton_method'>define_singleton_method</span><span class='lparen'>(</span><span class='symbol'>:phronomy_checkpointer</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='label'>enc:</span> <span class='id identifier rubyid_encryptor'>encryptor</span><span class='op'>|</span>
     <span class='op'>::</span><span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../StateStore.html" title="Phronomy::StateStore (module)">StateStore</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../StateStore/ActiveRecord.html" title="Phronomy::StateStore::ActiveRecord (class)">ActiveRecord</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../../StateStore/ActiveRecord.html#initialize-instance_method" title="Phronomy::StateStore::ActiveRecord#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>model_class:</span> <span class='kw'>self</span><span class='comma'>,</span> <span class='label'>encryptor:</span> <span class='id identifier rubyid_enc'>enc</span><span class='rparen'>)</span>
@@ -299,7 +299,7 @@ Applies validations and exposes a convenience factory method.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 08:27:36 2026 by
+  Generated on Sun May 10 08:28:31 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
