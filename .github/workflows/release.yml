@@ -80,5 +80,8 @@ jobs:
             - https://rubygems.org/gems/phronomy
           files: '*.gem'
 
+      - name: Configure RubyGems credentials (OIDC Trusted Publisher)
+        uses: rubygems/configure-rubygems-credentials@v1
+
       - name: Publish to RubyGems.org
-        uses: rubygems/release-gem@v1
+        run: gem push *.gem
