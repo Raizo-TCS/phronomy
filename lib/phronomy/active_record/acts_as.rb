@@ -15,6 +15,19 @@ module Phronomy
       end
 
       module ClassMethods
+        # Configures this model as a Phronomy checkpoint store.
+        # Applies validations and exposes a convenience checkpointer factory.
+        #
+        # @param encryptor [StateStore::Encryptor::Base, nil] optional encryptor
+        #   for encrypting +state_json+ at rest.
+        def acts_as_phronomy_checkpoint(encryptor: nil)
+          include ::Phronomy::ActiveRecord::Checkpoint
+
+          define_singleton_method(:phronomy_checkpointer) do |enc: encryptor|
+            ::Phronomy::StateStore::ActiveRecord.new(model_class: self, encryptor: enc)
+          end
+        end
+
         # Configures this model as a Phronomy message store.
         # Applies validations and exposes a convenience factory method.
         #

@@ -10,7 +10,7 @@ module Phronomy
       include Phronomy::Runnable
 
       def initialize(state_class:, nodes:, edges:, conditional_edges:, entry_point:,
-        before_callbacks: {}, after_callbacks: {})
+        before_callbacks: {}, after_callbacks: {}, state_store: nil)
         @state_class = state_class
         @nodes = nodes
         @edges = edges
@@ -18,6 +18,7 @@ module Phronomy
         @entry_point = entry_point
         @before_callbacks = before_callbacks
         @after_callbacks = after_callbacks
+        @state_store_override = state_store
       end
 
       # Registers a callback to run before the given node executes.
@@ -90,7 +91,7 @@ module Phronomy
       private
 
       def state_store
-        Phronomy.configuration.default_state_store
+        @state_store_override || Phronomy.configuration.default_state_store
       end
 
       def execute_graph(state, from_node: nil, recursion_limit: 25,
