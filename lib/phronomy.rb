@@ -24,6 +24,8 @@ module Phronomy
 
   class ConfigurationError < Error; end
 
+  class HandoffError < Error; end
+
   class GuardrailError < Error
     attr_reader :guardrail
 

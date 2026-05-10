@@ -27,6 +27,13 @@ module Phronomy
       end
     end
 
+    # Loads Phronomy::Rails::AgentJob when both ActionCable and ActiveJob are present.
+    initializer "phronomy.agent_job" do
+      if defined?(::ActionCable) && defined?(::ActiveJob)
+        require "phronomy/rails/agent_job"
+      end
+    end
+
     # Loads Phronomy ActiveRecord extensions when ActiveRecord is available.
     initializer "phronomy.active_record", after: "active_record.initialize_database" do
       ActiveSupport.on_load(:active_record) do

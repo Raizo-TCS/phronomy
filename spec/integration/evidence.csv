@@ -247,3 +247,37 @@ Group24,TC-011,"multi/cold/none/false/multi_range","Trigger=false; compact block
 Group24,TC-012,"none/warm/none/true/none","Trigger=true but no compact block; warm cache","Two calls","result[:output] non-empty",PASS,
 Group24,TC-013,"none/stale/—/—/—","Infeasible: same as TC-003","—","—",SKIP,ctx_static_knowledge:none has no cache to become stale
 Group24,TC-014,"none/cold/remove_some/none/summarise_range","on_trim removes first; compact block without trigger","Two calls with shared memory","result[:output] non-empty",PASS,
+Group25,TC-001,"none/nil/base/invoke","No hook registered; Base.invoke baseline","invoke with LLMStub","result[:output] non-empty",PASS,
+Group25,TC-002,"none/empty_hash/react/stream","bc_hook_return irrelevant when no hook","—","—",SKIP,bc_hook_return has no effect when bc_hook_tier is none
+Group25,TC-003,"none/param_merge/base/stream","bc_hook_return irrelevant when no hook","—","—",SKIP,bc_hook_return has no effect when bc_hook_tier is none
+Group25,TC-004,"none/model_override/base/invoke","bc_hook_return irrelevant when no hook","—","—",SKIP,bc_hook_return has no effect when bc_hook_tier is none
+Group25,TC-005,"global/nil/react/invoke","Global hook returning nil; ReactAgent invoke","Hook spy callable","received_ctx is BeforeCompletionContext",PASS,
+Group25,TC-006,"global/empty_hash/base/invoke","Global hook returning {}; Base invoke","Hook spy callable","hook called; invoke succeeds",PASS,
+Group25,TC-007,"global/param_merge/react/invoke","Global hook merging temperature; ReactAgent invoke","llm.calls.first","temperature in request body",PASS,
+Group25,TC-008,"global/model_override/react/stream","streaming stub not implemented","—","—",SKIP,streaming stub not implemented; hook verified via invoke in TC-007
+Group25,TC-009,"class_level/nil/base/stream","streaming stub not implemented","—","—",SKIP,streaming stub not implemented; class-level hook verified via invoke in TC-011
+Group25,TC-010,"class_level/empty_hash/react/invoke","Class-level hook returning {}; ReactAgent invoke","Hook spy callable","hook called",PASS,
+Group25,TC-011,"class_level/param_merge/base/invoke","Class-level hook merging temperature; Base invoke","llm.calls.first","temperature in request body",PASS,
+Group25,TC-012,"class_level/model_override/base/invoke","Class-level hook returning model override; Base invoke","Hook spy callable","hook_result eq override hash",PASS,
+Group25,TC-013,"instance_level/nil/base/invoke","Instance-level hook returning nil; Base invoke","Hook spy callable","hook called",PASS,
+Group25,TC-014,"instance_level/empty_hash/react/stream","streaming stub not implemented","—","—",SKIP,streaming stub not implemented; instance-level hook verified via invoke in TC-013
+Group25,TC-015,"instance_level/param_merge/base/invoke","Instance-level hook merging temperature; Base invoke","llm.calls.first","temperature in request body",PASS,
+Group25,TC-016,"instance_level/model_override/base/invoke","Instance-level hook returning model override; Base invoke","Hook spy callable","hook_called is true",PASS,
+Group25,TC-017,"multi_tier/nil/base/invoke","All tiers return nil; Base invoke; all three hooks called","call_order spy","[:global,:class,:instance]",PASS,
+Group25,TC-018,"multi_tier/empty_hash/react/stream","streaming stub not implemented","—","—",SKIP,streaming stub not implemented; multi-tier hooks verified via invoke in TC-017
+Group25,TC-019,"multi_tier/param_merge/base/invoke","All tiers return temperature; Base invoke; merged temperature sent","llm.calls.first","temperature in request body",PASS,
+Group25,TC-020,"multi_tier/model_override/base/invoke","Instance-level model wins in multi-tier merge; Base invoke","run_before_completion_hooks! spy","received_models.last eq LM_MODEL_25",PASS,
+Group26,TC-001,"single_agent/no_handoff/fresh/one","Single agent; no handoff; runner returns entry agent result","Runner.invoke with one agent","result[:agent] == entry_agent",PASS,
+Group26,TC-002,"single_agent/handoff_once/shared_thread/two","single_agent topology registers no handoff tools; trigger impossible","—","—",SKIP,single_agent topology registers no handoff tools; handoff_once cannot trigger without a transfer tool registered on the agent
+Group26,TC-003,"single_agent/no_handoff/shared_thread/three","single_agent topology contradicts multiple agents","—","—",SKIP,single_agent topology contradicts having three agents; three agents are only meaningful when routing is configured
+Group26,TC-004,"linear/no_handoff/fresh/two","Two agents; handoff tool registered; LLM does not call it","Runner.invoke with two agents; handoff tool not triggered","result[:agent] == entry_agent",PASS,
+Group26,TC-005,"linear/handoff_once/fresh/three","Entry calls transfer tool; Runner routes to second agent","LLMStub: tool_call then text then target text","result[:agent] == target_agent",PASS,
+Group26,TC-006,"linear/no_handoff/shared_thread/one","linear topology requires ≥2 agents","—","—",SKIP,linear topology requires ≥2 agents; one agent contradicts linear routing setup
+Group26,TC-007,"hub_spoke/no_handoff/fresh/one","hub_spoke requires ≥3 agents","—","—",SKIP,hub_spoke topology requires ≥3 agents; one agent contradicts hub_spoke setup
+Group26,TC-008,"hub_spoke/handoff_once/shared_thread/one","hub_spoke requires ≥3 agents","—","—",SKIP,hub_spoke topology requires ≥3 agents; one agent contradicts hub_spoke setup and makes handoff impossible
+Group26,TC-009,"hub_spoke/no_handoff/fresh/two","Hub + 1 spoke; no handoff; runner returns hub result","Runner.invoke with hub+spoke; no trigger","result[:agent] == hub",PASS,
+Group26,TC-010,"hub_spoke/no_handoff/fresh/three","Hub + 2 spokes; no handoff; runner returns hub result","Runner.invoke with hub+2spokes; no trigger","result[:agent] == hub",PASS,
+Group27,TC-001,"base/no_error/symbol_keys","Base agent; no error; symbol config keys; broadcasts :token and :done","stream stub yields token+done events","broadcasts include token and done types",PASS,
+Group27,TC-002,"base/agent_error/string_keys","Base agent raises; string config keys; broadcasts :error","stream stub raises RuntimeError","broadcasts single :error payload with message",PASS,
+Group27,TC-003,"react/no_error/string_keys","ReactAgent; no error; string keys transformed to symbols","stream stub yields token+done events","broadcasts include done type",PASS,
+Group27,TC-004,"react/agent_error/symbol_keys","ReactAgent raises; symbol config keys; broadcasts :error","stream stub raises RuntimeError","broadcasts single :error payload with message",PASS,

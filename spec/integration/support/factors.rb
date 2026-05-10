@@ -822,4 +822,173 @@ module IntegrationFactors
       on_compact(&compact_cb) if compact_cb
     end
   end
+
+  # ===========================================================================
+  # GROUP 25 — BEFORE_COMPLETION HOOK
+  # ===========================================================================
+
+  # Returns a hook callable for the given bc_hook_return factor label.
+  # The callable accepts a BeforeCompletionContext and returns a Hash (or nil).
+  #
+  # @param return_label [String] bc_hook_return factor label
+  # @return [Proc]
+  def self.bc_hook_callable(return_label)
+    case return_label
+    when "nil"
+      ->(_ctx) {}
+    when "empty_hash"
+      ->(_ctx) { {} }
+    when "param_merge"
+      ->(_ctx) { {temperature: 0.1} }
+    when "model_override"
+      ->(_ctx) { {model: LM_STUDIO_MODEL} }
+    else
+      raise ArgumentError, "Unknown bc_hook_return label: #{return_label}"
+    end
+  end
+
+  # Returns a fresh agent class for the given bc_agent_class label.
+  #
+  # @param label [String] "base" or "react"
+  # @return [Class] anonymous subclass of Agent::Base or Agent::ReactAgent
+  def self.bc_agent_class(label)
+    case label
+    when "base"
+      Class.new(Phronomy::Agent::Base) do
+        model LM_STUDIO_MODEL
+        provider :openai
+        instructions "You are a helpful assistant."
+      end
+    when "react"
+      Class.new(Phronomy::Agent::ReactAgent) do
+        model LM_STUDIO_MODEL
+        provider :openai
+        instructions "You are a helpful assistant."
+        tools IntegrationFactors::CalculatorTool
+      end
+    else
+      raise ArgumentError, "Unknown bc_agent_class label: #{label}"
+    end
+  end
+
+  # Builds an agent instance with the before_completion hook configured at
+  # the appropriate tier(s). Returns the agent instance.
+  # Callers are responsible for resetting global config after the test.
+  #
+  # @param tier_label   [String] bc_hook_tier factor label
+  # @param return_label [String] bc_hook_return factor label
+  # @param klass        [Class]  agent class (from bc_agent_class)
+  # @return [Phronomy::Agent::Base]
+  def self.bc_build_agent(tier_label:, return_label:, klass:)
+    callable = (tier_label == "none") ? nil : bc_hook_callable(return_label)
+
+    case tier_label
+    when "none"
+      klass.new
+    when "global"
+      Phronomy.configuration.before_completion = callable
+      klass.new
+    when "class_level"
+      klass.before_completion callable
+      klass.new
+    when "instance_level"
+      instance = klass.new
+      instance.before_completion = callable
+      instance
+    when "multi_tier"
+      Phronomy.configuration.before_completion = callable
+      klass.before_completion callable
+      instance = klass.new
+      instance.before_completion = callable
+      instance
+    else
+      raise ArgumentError, "Unknown bc_hook_tier label: #{tier_label}"
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # GROUP 26 — MULTI-AGENT HANDOFF helpers
+  # ---------------------------------------------------------------------------
+
+  # Model identifier used in all Group 26 agents.
+  LM_MODEL_26 = LM_STUDIO_MODEL
+
+  # Builds a pair of anonymous agent classes for linear handoff tests.
+  # Returns [entry_class, target_class].
+  def self.handoff_linear_classes
+    entry_klass = Class.new(Phronomy::Agent::ReactAgent) do
+      model LM_MODEL_26
+      provider :openai
+      instructions "You are a triage assistant. Route billing questions to billing."
+    end
+    target_klass = Class.new(Phronomy::Agent::Base) do
+      model LM_MODEL_26
+      provider :openai
+      instructions "You are a billing assistant. Answer billing questions."
+    end
+    [entry_klass, target_klass]
+  end
+
+  # Builds a hub + spoke agent setup for hub_spoke topology tests.
+  # Returns [hub_instance, spoke1_instance, spoke2_instance].
+  def self.handoff_hub_spoke_instances(spoke_count: 2)
+    spoke_klasses = (1..spoke_count).map do |i|
+      Class.new(Phronomy::Agent::Base) do
+        model LM_MODEL_26
+        provider :openai
+        instructions "You are spoke agent #{i}."
+      end
+    end
+
+    hub_klass = Class.new(Phronomy::Agent::ReactAgent) do
+      model LM_MODEL_26
+      provider :openai
+      instructions "You are a hub agent. Route to spokes when needed."
+    end
+
+    hub = hub_klass.new
+    spokes = spoke_klasses.map(&:new)
+    [hub, *spokes]
+  end
+
+  # ---------------------------------------------------------------------------
+  # GROUP 27 — RAILS WEBSOCKET AGENT JOB helpers
+  # ---------------------------------------------------------------------------
+
+  # Model identifier used in all Group 27 agents.
+  LM_MODEL_27 = LM_STUDIO_MODEL
+
+  # Builds an anonymous Base or ReactAgent class for AgentJob tests.
+  # @param label [String] "base" or "react"
+  # @return [Class<Phronomy::Agent::Base>]
+  def self.job_agent_class(label)
+    case label
+    when "base"
+      Class.new(Phronomy::Agent::Base) do
+        model LM_MODEL_27
+        provider :openai
+        instructions "You are a helpful assistant."
+      end
+    when "react"
+      Class.new(Phronomy::Agent::ReactAgent) do
+        model LM_MODEL_27
+        provider :openai
+        instructions "You are a helpful assistant."
+        tools IntegrationFactors::CalculatorTool
+      end
+    else
+      raise ArgumentError, "Unknown job_agent_type label: #{label}"
+    end
+  end
+
+  # Builds a config hash with the given style (symbol or string keys).
+  # @param label [String] "symbol_keys" or "string_keys"
+  # @return [Hash]
+  def self.job_config(label)
+    case label
+    when "symbol_keys" then {thread_id: nil}
+    when "string_keys" then {"thread_id" => nil}
+    else raise ArgumentError, "Unknown job_config_style label: #{label}"
+    end
+  end
 end

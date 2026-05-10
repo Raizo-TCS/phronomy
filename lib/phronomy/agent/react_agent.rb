@@ -30,7 +30,7 @@ module Phronomy
           total_usage = Phronomy::TokenUsage.zero
 
           max_iter.times do
-            response = step(messages, input, user_asked: user_asked)
+            response = step(messages, input, user_asked: user_asked, config: config)
             user_asked = true
             messages = response[:messages]
             total_usage += response[:usage]
@@ -76,7 +76,7 @@ module Phronomy
         total_usage = Phronomy::TokenUsage.zero
 
         max_iter.times do
-          response = stream_step(messages, input, user_asked: user_asked, &block)
+          response = stream_step(messages, input, user_asked: user_asked, config: config, &block)
           user_asked = true
           messages = response[:messages]
           total_usage += response[:usage]
@@ -98,11 +98,14 @@ module Phronomy
 
       private
 
-      def step(messages, initial_input, user_asked: false)
+      def step(messages, initial_input, user_asked: false, config: {})
         chat = build_chat
 
         # Inject any existing history (from previous loop iterations or loaded memory).
         messages.each { |m| chat.add_message(m) }
+
+        # Run before_completion hooks before each LLM call in the ReAct loop.
+        run_before_completion_hooks!(chat, config)
 
         response = if user_asked
           # Subsequent loop iteration — history already contains the user message;
@@ -121,12 +124,15 @@ module Phronomy
 
       # Streaming variant of #step.  Yields :token / :tool_call / :tool_result events
       # via the block while the LLM call is in progress.
-      def stream_step(messages, initial_input, user_asked: false, &block)
+      def stream_step(messages, initial_input, user_asked: false, config: {}, &block)
         chat = build_chat
         messages.each { |m| chat.add_message(m) }
 
         chat.on_tool_call { |tc| block.call(StreamEvent.new(type: :tool_call, payload: {tool_call: tc})) }
         chat.on_tool_result { |tr| block.call(StreamEvent.new(type: :tool_result, payload: {tool_result: tr})) }
+
+        # Run before_completion hooks before each LLM call in the streaming loop.
+        run_before_completion_hooks!(chat, config)
 
         streaming_block = proc { |chunk| block.call(StreamEvent.new(type: :token, payload: {content: chunk.content})) }
 

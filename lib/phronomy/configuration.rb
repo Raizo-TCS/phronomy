@@ -33,6 +33,12 @@ module Phronomy
     # Tracer instance
     attr_accessor :tracer
 
+    # Global before_completion hook callable (Proc / lambda).
+    # Called before every LLM request across all agents.
+    # Receives a {Phronomy::Agent::BeforeCompletionContext}; must return a Hash
+    # of params to merge, or nil to pass through unchanged.
+    attr_accessor :before_completion
+
     # Recursion limit for graph execution (default: 25)
     attr_accessor :recursion_limit
 

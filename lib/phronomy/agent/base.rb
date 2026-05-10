@@ -347,6 +347,51 @@ module Phronomy
             @context_overhead = val.to_i
           end
         end
+
+        # Sets or reads the class-level before_completion hook.
+        # The hook is called before every LLM request for instances of this class.
+        # Receives a {Phronomy::Agent::BeforeCompletionContext}; must return a Hash
+        # of params to merge into the LLM call, or nil to pass through unchanged.
+        #
+        # @param callable [#call, nil] lambda/proc to register, or nil to clear
+        # @return [#call, nil]
+        # @example
+        #   class MyAgent < Phronomy::Agent::Base
+        #     before_completion ->(ctx) { { temperature: 0.2 } }
+        #   end
+        def before_completion(callable = nil)
+          if callable.nil? && !block_given?
+            @before_completion
+          else
+            @before_completion = callable
+          end
+        end
+
+        # @return [#call, nil]
+        def _before_completion
+          @before_completion
+        end
+      end
+
+      # Instance-level before_completion hook. When set, takes precedence over
+      # the class-level hook for this specific agent instance only.
+      # @return [#call, nil]
+      attr_accessor :before_completion
+
+      # Registers an anonymous handoff tool class on this agent instance.
+      # Called by Runner during construction when routes are configured.
+      # @param tool_class [Class<Phronomy::Tool::Base>]
+      # @return [self]
+      def _add_handoff_tool(tool_class)
+        @_handoff_tools ||= []
+        @_handoff_tools << tool_class
+        self
+      end
+
+      # Returns handoff tool classes registered on this instance by Runner.
+      # @return [Array<Class>]
+      def _handoff_tools
+        @_handoff_tools || []
       end
 
       # Invokes the agent with the given input and returns a result Hash.
@@ -432,6 +477,9 @@ module Phronomy
         # Wire per-event callbacks to yield StreamEvents.
         chat.on_tool_call { |tool_call| block.call(StreamEvent.new(type: :tool_call, payload: {tool_call: tool_call})) }
         chat.on_tool_result { |tool_result| block.call(StreamEvent.new(type: :tool_result, payload: {tool_result: tool_result})) }
+
+        # Run before_completion hooks (global → class → instance) before the LLM call.
+        run_before_completion_hooks!(chat, config)
 
         response = chat.ask(user_message) do |chunk|
           block.call(StreamEvent.new(type: :token, payload: {content: chunk.content}))
@@ -561,6 +609,9 @@ module Phronomy
           apply_instructions(chat, context[:system]) if context[:system]
           context[:messages].each { |msg| chat.messages << msg }
 
+          # Run before_completion hooks (global → class → instance) before the LLM call.
+          run_before_completion_hooks!(chat, config)
+
           response = chat.ask(user_message)
 
           # Persist the updated conversation to memory.
@@ -592,6 +643,59 @@ module Phronomy
           strategy.to_f
         else
           base.to_f
+        end
+      end
+
+      # Collects and runs all registered before_completion hooks in order
+      # (global → class → instance) and applies the merged params to the chat.
+      #
+      # @param chat   [RubyLLM::Chat] the assembled chat object
+      # @param config [Hash] the invocation config hash
+      # @return [Hash] the merged params applied to the chat
+      def run_before_completion_hooks!(chat, config)
+        hooks = [
+          Phronomy.configuration.before_completion,
+          self.class._before_completion,
+          @before_completion
+        ].compact
+
+        return {} if hooks.empty?
+
+        ctx = BeforeCompletionContext.new(
+          agent: self,
+          messages: chat.messages,
+          config: config,
+          params: {}
+        )
+
+        merged = {}
+        hooks.each do |hook|
+          result = hook.call(ctx)
+          merged.merge!(result) if result.is_a?(Hash)
+        end
+
+        apply_before_completion_params!(chat, merged)
+        merged
+      end
+
+      # Applies a merged param hash returned by before_completion hooks to
+      # the chat object using the appropriate RubyLLM::Chat API methods.
+      # When overriding the model, reuses the agent's configured provider and
+      # assume_exists setting so that local/namespaced models continue to work.
+      #
+      # @param chat   [RubyLLM::Chat]
+      # @param params [Hash]
+      def apply_before_completion_params!(chat, params)
+        params.each do |key, value|
+          case key
+          when :model
+            prov = self.class.provider
+            chat.with_model(value, provider: prov, assume_exists: !prov.nil?)
+          when :temperature
+            chat.with_temperature(value)
+          else
+            chat.with_params(key => value)
+          end
         end
       end
 
@@ -699,6 +803,7 @@ module Phronomy
         self.class.tools.each do |tool_class|
           chat.with_tool(prepare_tool_class(tool_class))
         end
+        _handoff_tools.each { |tc| chat.with_tool(tc) }
         chat
       end
 
