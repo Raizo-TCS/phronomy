@@ -461,7 +461,7 @@ module Phronomy
 
         Array(config[:knowledge_sources]).each do |ks|
           ks.fetch(query: user_message).each do |chunk|
-            assembler.add_knowledge(chunk[:content], type: chunk[:type])
+            assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
           end
         end
 
@@ -599,7 +599,7 @@ module Phronomy
           # Dynamic knowledge from config[:knowledge_sources] (backward compatible).
           Array(config[:knowledge_sources]).each do |ks|
             ks.fetch(query: user_message).each do |chunk|
-              assembler.add_knowledge(chunk[:content], type: chunk[:type])
+              assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
             end
           end
 

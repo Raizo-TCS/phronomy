@@ -62,9 +62,11 @@ module Phronomy
       # @param text    [String]
       # @param type    [Symbol, String]  semantic label for the context tag (e.g. :entity, :rag, :static)
       # @param trusted [Boolean]         false (default) indicates externally sourced data
+      # @param source  [String, nil]     optional source label (e.g. filename); included in the
+      #   XML tag so the LLM can produce grounded citations. Omitted when nil.
       # @return [self]
-      def add_knowledge(text, type:, trusted: false)
-        @knowledge_chunks << {text: text.to_s, type: type.to_s, trusted: trusted}
+      def add_knowledge(text, type:, trusted: false, source: nil)
+        @knowledge_chunks << {text: text.to_s, type: type.to_s, trusted: trusted, source: source}
         self
       end
 
@@ -102,7 +104,8 @@ module Phronomy
       private
 
       def xml_context_tag(chunk)
-        "<context type=\"#{chunk[:type]}\" trusted=\"#{chunk[:trusted]}\">\n#{chunk[:text]}\n</context>"
+        src_attr = chunk[:source] ? " source=\"#{chunk[:source]}\"" : ""
+        "<context type=\"#{chunk[:type]}\"#{src_attr} trusted=\"#{chunk[:trusted]}\">\n#{chunk[:text]}\n</context>"
       end
 
       def trim_messages_to_budget(messages, system_text)

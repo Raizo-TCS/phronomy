@@ -14,11 +14,15 @@ module Phronomy
     #   )
     #   agent.invoke("What is the refund policy?", config: { knowledge_sources: [ks] })
     class StaticKnowledge < Base
-      # @param text [String] the static knowledge text to inject
-      # @param type [Symbol] semantic tag for the chunk (default :static)
-      def initialize(text, type: :static)
+      # @param text   [String] the static knowledge text to inject
+      # @param type   [Symbol] semantic tag for the chunk (default :static)
+      # @param source [String, nil] label identifying where this knowledge came from
+      #   (e.g. a filename). Included in the context XML tag and exposed to the LLM
+      #   so that agents can produce grounded citations.
+      def initialize(text, type: :static, source: nil)
         @text = text.to_s
         @type = type
+        @source = source
       end
 
       # Returns the fixed text as a single chunk, regardless of query.
@@ -28,7 +32,9 @@ module Phronomy
       def fetch(query: nil)
         return [] if @text.empty?
 
-        [{content: @text, type: @type}]
+        chunk = {content: @text, type: @type}
+        chunk[:source] = @source if @source
+        [chunk]
       end
 
       # Static knowledge content never changes between invocations.

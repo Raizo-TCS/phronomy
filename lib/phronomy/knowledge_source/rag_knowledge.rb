@@ -20,11 +20,14 @@ module Phronomy
       # @param embeddings [Phronomy::Embeddings::Base]     embeddings adapter
       # @param k          [Integer]                        number of chunks to retrieve
       # @param type       [Symbol]                         semantic tag (default :rag)
-      def initialize(store:, embeddings:, k: 5, type: :rag)
+      # @param source     [String, nil]                    default source label; falls back to
+      #   each document's :source metadata when nil
+      def initialize(store:, embeddings:, k: 5, type: :rag, source: nil)
         @store = store
         @embeddings = embeddings
         @k = k
         @type = type
+        @source = source
       end
 
       # Embed the query and retrieve the k nearest chunks from the vector store.
@@ -37,8 +40,13 @@ module Phronomy
         return [] if query.nil? || query.strip.empty?
 
         vector = @embeddings.embed(query)
-        results = @store.search(vector, k: @k)
-        results.map { |doc| {content: doc.content, type: @type} }
+        results = @store.search(query_embedding: vector, k: @k)
+        results.map do |doc|
+          chunk = {content: doc[:metadata][:content], type: @type}
+          src = @source || doc[:metadata][:source]
+          chunk[:source] = src if src
+          chunk
+        end
       end
     end
   end

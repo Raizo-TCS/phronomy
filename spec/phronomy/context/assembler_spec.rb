@@ -44,6 +44,16 @@ RSpec.describe Phronomy::Context::Assembler do
       expect(assembler.build[:system]).to include('trusted="true"')
     end
 
+    it "includes source attribute in XML tag when source is given" do
+      assembler.add_knowledge("Policy text.", type: :static, source: "policy.md")
+      expect(assembler.build[:system]).to include('source="policy.md"')
+    end
+
+    it "omits source attribute when source is nil" do
+      assembler.add_knowledge("Fact.", type: :static)
+      expect(assembler.build[:system]).not_to include("source=")
+    end
+
     it "passes all messages through when no budget" do
       msgs = (1..5).map { |i| make_msg(:user, "msg #{i}") }
       assembler.add_messages(msgs)

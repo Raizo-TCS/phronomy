@@ -20,6 +20,15 @@ RSpec.describe Phronomy::KnowledgeSource::StaticKnowledge do
   it "ignores the query argument" do
     expect(ks.fetch(query: "anything")).to eq(ks.fetch)
   end
+
+  it "omits :source when not given" do
+    expect(ks.fetch.first).not_to have_key(:source)
+  end
+
+  it "includes :source when given" do
+    ks2 = described_class.new("policy text", source: "policy.md")
+    expect(ks2.fetch.first[:source]).to eq("policy.md")
+  end
 end
 
 RSpec.describe Phronomy::KnowledgeSource::EntityKnowledge do
