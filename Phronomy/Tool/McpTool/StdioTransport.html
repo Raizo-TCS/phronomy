@@ -257,7 +257,10 @@ across multiple calls.</p>
 90
 91
 92
-93</pre>
+93
+94
+95
+96</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 86</span>
@@ -269,6 +272,9 @@ across multiple calls.</p>
   <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@stdin</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@stdout</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@stderr</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@wait_thr</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@stderr_thread</span> <span class='op'>=</span> <span class='kw'>nil</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -348,25 +354,25 @@ across multiple calls.</p>
       <pre class="lines">
 
 
-124
-125
-126
-127
-128
-129
-130
-131
-132
-133
-134
 135
 136
 137
 138
-139</pre>
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 124</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 135</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_call_tool'>call_tool</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_name'>tool_name</span><span class='comma'>,</span> <span class='id identifier rubyid_args'>args</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_response'>response</span> <span class='op'>=</span> <span class='id identifier rubyid_rpc_call'>rpc_call</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tools/call</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='lbrace'>{</span><span class='label'>name:</span> <span class='id identifier rubyid_tool_name'>tool_name</span><span class='comma'>,</span> <span class='label'>arguments:</span> <span class='id identifier rubyid_args'>args</span><span class='rbrace'>}</span><span class='rparen'>)</span>
@@ -413,25 +419,41 @@ across multiple calls.</p>
       <pre class="lines">
 
 
-96
-97
-98
 99
 100
 101
 102
-103</pre>
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 96</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 99</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_close'>close</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='ivar'>@stdin</span><span class='op'>&amp;.</span><span class='id identifier rubyid_close'>close</span>
     <span class='ivar'>@stdout</span><span class='op'>&amp;.</span><span class='id identifier rubyid_close'>close</span>
+    <span class='ivar'>@stderr</span><span class='op'>&amp;.</span><span class='id identifier rubyid_close'>close</span>
     <span class='ivar'>@stdin</span> <span class='op'>=</span> <span class='kw'>nil</span>
     <span class='ivar'>@stdout</span> <span class='op'>=</span> <span class='kw'>nil</span>
+    <span class='ivar'>@stderr</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='kw'>end</span>
+  <span class='comment'># Join the stderr drain thread and the child process outside the mutex
+</span>  <span class='comment'># to avoid holding the lock during potentially slow joins.
+</span>  <span class='ivar'>@stderr_thread</span><span class='op'>&amp;.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='int'>1</span><span class='rparen'>)</span>
+  <span class='ivar'>@wait_thr</span><span class='op'>&amp;.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='int'>5</span><span class='rparen'>)</span>
+  <span class='ivar'>@stderr_thread</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@wait_thr</span> <span class='op'>=</span> <span class='kw'>nil</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -506,20 +528,20 @@ across multiple calls.</p>
       <pre class="lines">
 
 
-108
-109
-110
-111
-112
-113
-114
-115
-116
-117
-118</pre>
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 108</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 119</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fetch_tool'>fetch_tool</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_name'>tool_name</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_response'>response</span> <span class='op'>=</span> <span class='id identifier rubyid_rpc_call'>rpc_call</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tools/list</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
@@ -542,7 +564,7 @@ across multiple calls.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 15:19:54 2026 by
+  Generated on Sun May 10 17:58:01 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
