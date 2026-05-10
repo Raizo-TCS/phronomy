@@ -284,6 +284,39 @@ manager = Phronomy::Memory::ConversationManager.new(
 ```
 
 
+## Examples
+
+Runnable examples covering all major features are available in the
+[phronomy-examples](https://github.com/Raizo-TCS/phronomy-examples) repository.
+
+Each example lives in its own numbered directory and can be run with:
+
+```bash
+bundle exec ruby NN_example_name/run.rb
+```
+
+| # | Directory | What it demonstrates |
+|---|-----------|----------------------|
+| 01 | `01_basic_chain/` | PromptTemplate → LLMChain pipeline |
+| 02 | `02_react_agent/` | ReAct tool-calling agent |
+| 03 | `03_state_graph/` | Stateful graph with interrupt/resume |
+| 04 | `04_interrupt_resume/` | Human-in-the-loop interrupt and resume |
+| 05 | `05_multi_agent/` | Multi-agent coordination via Agent-as-Tool |
+| 06 | `06_guardrails/` | Input/output guardrails |
+| 07 | `07_tracing/` | Custom observability with Langfuse tracer |
+| 08 | `08_mcp_tool/` | MCP tool integration |
+| 09 | `09_rails_chat/` | Rails chat app with ActionCable streaming |
+| 10 | `10_context_management/` | Token budget and context pruning |
+| 11 | `11_agent_streaming/` | Streaming agent responses |
+| 12 | `12_prompt_template/` | Advanced prompt templates |
+| 13 | `13_mcp_http_tool/` | HTTP-based MCP tool server |
+| 14 | `14_code_review/` | Automated code review agent |
+| 15 | `15_rails_secure_chat/` | Rails chat with PII guardrails and secure memory |
+| 16 | `16_before_completion_hook/` | Global/class/instance before_completion hooks |
+| 17 | `17_multi_agent_handoff/` | Hub-and-spoke agent routing via Runner |
+| 18 | `18_rails_agent_job/` | Rails app with AgentJob + ActionCable streaming |
+| 19 | `19_trust_pipeline/` | Trustworthy output via Citation Tracking + Self-Review + Confidence Gate |
+
 ## Development
 
 After checking out the repo, install dependencies:
