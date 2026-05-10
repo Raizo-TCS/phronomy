@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "json"
-require "ostruct"
 
 module Phronomy
   module Memory
@@ -38,6 +37,10 @@ module Phronomy
       #     compaction_model_class: PhronomyCompaction
       #   )
       #   manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)
+      # Internal value object representing a loaded message record.
+      MessageStruct = Data.define(:role, :content, :tool_calls, :model_id)
+      private_constant :MessageStruct
+
       class ActiveRecord < Base
         # @param model_class            [Class]      AR model for the legacy load/save interface
         # @param raw_model_class        [Class, nil] AR model for raw message storage
@@ -55,7 +58,7 @@ module Phronomy
         # Load all messages for a thread, ordered by creation time.
         #
         # @param thread_id [String]
-        # @return [Array<OpenStruct>]
+        # @return [Array<MessageStruct>]
         def load(thread_id:)
           records = @model_class.where(thread_id: thread_id).order(:created_at).to_a
           records.map { |r| to_message_struct(r) }
@@ -201,7 +204,7 @@ module Phronomy
               parsed
             end
           end
-          OpenStruct.new(
+          MessageStruct.new(
             role: record.role.to_sym,
             content: record.content,
             tool_calls: tool_calls,

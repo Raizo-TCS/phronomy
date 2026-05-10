@@ -117,7 +117,7 @@ RSpec.describe "Group 27: Rails WebSocket Agent Job", :integration do
       broadcasts = ActionCable.server.broadcasts.select { |b| b[:stream] == stream_id }
       expect(broadcasts.size).to eq(1)
       expect(broadcasts.first[:payload][:type]).to eq("error")
-      expect(broadcasts.first[:payload][:message]).to eq("LLM timeout")
+      expect(broadcasts.first[:payload][:message]).to eq("An error occurred while processing your request.")
     end
   end
 
@@ -162,7 +162,7 @@ RSpec.describe "Group 27: Rails WebSocket Agent Job", :integration do
       broadcasts = ActionCable.server.broadcasts.select { |b| b[:stream] == stream_id }
       expect(broadcasts.size).to eq(1)
       expect(broadcasts.first[:payload][:type]).to eq("error")
-      expect(broadcasts.first[:payload][:message]).to eq("Connection refused")
+      expect(broadcasts.first[:payload][:message]).to eq("An error occurred while processing your request.")
     end
   end
 end

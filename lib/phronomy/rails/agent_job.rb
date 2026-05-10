@@ -43,7 +43,8 @@ module Phronomy
           ActionCable.server.broadcast(stream, build_payload(event))
         end
       rescue => e
-        ActionCable.server.broadcast(stream, {type: "error", message: e.message})
+        ::Rails.logger.error("[Phronomy::Rails::AgentJob] agent error (#{e.class}): #{e.message}")
+        ActionCable.server.broadcast(stream, {type: "error", message: "An error occurred while processing your request."})
       end
 
       private
@@ -65,7 +66,7 @@ module Phronomy
         case event.type
         when :token then {type: "token", content: event.payload[:content]}
         when :done then {type: "done", output: event.payload[:output]}
-        when :error then {type: "error", message: event.payload[:error]&.message}
+        when :error then {type: "error", message: "An error occurred while processing your request."}
         else {type: event.type.to_s}
         end
       end

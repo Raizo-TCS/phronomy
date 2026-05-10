@@ -78,13 +78,17 @@ module Phronomy
         messages = initial_messages.dup
         user_asked = false
         total_usage = Phronomy::TokenUsage.zero
+        iterations_exhausted = true
 
         max_iter.times do
           response = stream_step(messages, input, user_asked: user_asked, config: config, &block)
           user_asked = true
           messages = response[:messages]
           total_usage += response[:usage]
-          break if response[:done]
+          if response[:done]
+            iterations_exhausted = false
+            break
+          end
         end
 
         save_to_memory(memory, thread_id: thread_id, messages: messages) if memory && thread_id
@@ -92,7 +96,7 @@ module Phronomy
         output = messages.last&.content
         run_output_guardrails!(output)
 
-        result = {output: output, messages: messages, usage: total_usage}
+        result = {output: output, messages: messages, usage: total_usage, iterations_exhausted: iterations_exhausted}
         block.call(StreamEvent.new(type: :done, payload: result))
         result
       rescue => e

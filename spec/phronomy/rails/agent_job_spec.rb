@@ -39,6 +39,17 @@ unless defined?(::ActionCable)
   end
 end
 
+unless defined?(::Rails)
+  module Rails
+    def self.logger
+      @logger ||= begin
+        require "logger"
+        Logger.new(File::NULL)
+      end
+    end
+  end
+end
+
 require "phronomy/rails/agent_job"
 
 RSpec.describe Phronomy::Rails::AgentJob do
@@ -142,7 +153,21 @@ RSpec.describe Phronomy::Rails::AgentJob do
 
       error_broadcast = ActionCable.server.broadcasts
         .find { |b| b[:payload][:type] == "error" }
-      expect(error_broadcast[:payload][:message]).to eq("Something went wrong")
+      expect(error_broadcast).not_to be_nil
+      expect(error_broadcast[:payload][:message]).to eq("An error occurred while processing your request.")
+    end
+
+    it "does not expose the raw exception message to ActionCable clients" do
+      allow_any_instance_of(agent_klass).to receive(:stream)
+        .and_raise(RuntimeError, "DB password: secret123")
+
+      described_class.new.perform(
+        "SpecJobAgentErr", "Hello",
+        channel: "AgentChannel", stream: stream_id
+      )
+
+      all_messages = ActionCable.server.broadcasts.map { |b| b[:payload][:message].to_s }
+      expect(all_messages).not_to include(match(/secret123/))
     end
 
     it "does not re-raise after broadcasting :error" do

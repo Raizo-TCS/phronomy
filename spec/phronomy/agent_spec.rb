@@ -540,6 +540,55 @@ RSpec.describe Phronomy::Agent::ReactAgent do
     end
   end
 
+  describe "#stream iterations_exhausted flag" do
+    class ExhaustedStreamAgent < Phronomy::Agent::ReactAgent
+      model "test-model"
+      max_iterations 1
+    end
+
+    let(:normal_msg) do
+      double("NormalMsg", content: "done", tool_calls: nil,
+        tokens: double("Tok", input: 1, output: 1, cached: 0, cache_creation: 0))
+    end
+    let(:normal_chat) do
+      dbl = double("NormalStreamChat")
+      allow(dbl).to receive(:with_instructions).and_return(dbl)
+      allow(dbl).to receive(:with_tool).and_return(dbl)
+      allow(dbl).to receive(:messages).and_return([normal_msg])
+      allow(dbl).to receive(:last_message).and_return(normal_msg)
+      allow(dbl).to receive(:add_message)
+      allow(dbl).to receive(:on_tool_call)
+      allow(dbl).to receive(:on_tool_result)
+      allow(dbl).to receive(:ask).and_return(normal_msg)
+      dbl
+    end
+
+    it "returns iterations_exhausted: false when LLM completes without tool calls" do
+      allow(RubyLLM).to receive(:chat).and_return(normal_chat)
+      result = SimpleReactAgent.new.stream("Hello") { |_e| }
+      expect(result[:iterations_exhausted]).to be false
+    end
+
+    it "returns iterations_exhausted: true when max_iterations is reached in stream" do
+      # Reuse stuck_chat from the outer context via a local double
+      stuck = double("StuckStreamChat")
+      always_msg = double("AlwaysToolMsg", content: nil,
+        tool_calls: [double("tc", name: "noop")],
+        tokens: double("Tok", input: 1, output: 1, cached: 0, cache_creation: 0))
+      allow(stuck).to receive(:with_instructions).and_return(stuck)
+      allow(stuck).to receive(:with_tool).and_return(stuck)
+      allow(stuck).to receive(:messages).and_return([always_msg])
+      allow(stuck).to receive(:last_message).and_return(always_msg)
+      allow(stuck).to receive(:add_message)
+      allow(stuck).to receive(:on_tool_call)
+      allow(stuck).to receive(:on_tool_result)
+      allow(stuck).to receive(:ask).and_return(always_msg)
+      allow(RubyLLM).to receive(:chat).and_return(stuck)
+      result = ExhaustedStreamAgent.new.stream("Hello") { |_e| }
+      expect(result[:iterations_exhausted]).to be true
+    end
+  end
+
   describe "caller identity propagation to tracer" do
     subject(:agent) { SimpleReactAgent.new }
     let(:spy_tracer) do
