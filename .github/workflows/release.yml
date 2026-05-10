@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v0.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate-tag:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version_check.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate tag and version
+        id: version_check
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          if [[ -z "$TAG" ]]; then
+            echo "::error::Tag input cannot be empty"
+            exit 1
+          fi
+          git fetch --tags --force origin
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "::error::Tag $TAG was not found in the repository"
+            exit 1
+          fi
+          FILE_VERSION="$(grep -oP '(?<=VERSION = \").*(?=\")' lib/phronomy/version.rb)"
+          if [[ "${TAG#v}" != "$FILE_VERSION" ]]; then
+            echo "::error::Version mismatch: tag=${TAG#v}, lib/phronomy/version.rb=$FILE_VERSION"
+            exit 1
+          fi
+          echo "version=$FILE_VERSION" >> "$GITHUB_OUTPUT"
+
+  release-and-publish:
+    runs-on: ubuntu-24.04
+    needs: validate-tag
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: false
+
+      - name: Build gem
+        run: gem build phronomy.gemspec
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: phronomy ${{ inputs.tag }}
+          draft: false
+          prerelease: ${{ contains(inputs.tag, '-rc') }}
+          generate_release_notes: true
+          body: |
+            See [CHANGELOG](https://github.com/Raizo-TCS/phronomy/blob/main/CHANGELOG.md) for details.
+
+            RubyGems:
+            - https://rubygems.org/gems/phronomy
+          files: '*.gem'
+
+      - name: Publish to RubyGems.org
+        uses: rubygems/release-gem@v1
