@@ -167,7 +167,7 @@ knowledge that does not change per request.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(text, type: :static)  &#x21d2; StaticKnowledge </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(text, type: :static, source: nil)  &#x21d2; StaticKnowledge </a>
     
 
     
@@ -227,7 +227,7 @@ knowledge that does not change per request.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(text, type: :static)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::KnowledgeSource::StaticKnowledge (class)">StaticKnowledge</a></span></tt> 
+    #<strong>initialize</strong>(text, type: :static, source: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::KnowledgeSource::StaticKnowledge (class)">StaticKnowledge</a></span></tt> 
   
 
   
@@ -273,6 +273,24 @@ knowledge that does not change per request.</p>
       
     </li>
   
+    <li>
+      
+        <span class='name'>source</span>
+      
+      
+        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>label identifying where this knowledge came from
+(e.g. a filename). Included in the context XML tag and exposed to the LLM
+so that agents can produce grounded citations.</p></div>
+      
+    </li>
+  
 </ul>
 
 
@@ -282,17 +300,19 @@ knowledge that does not change per request.</p>
       <pre class="lines">
 
 
-19
-20
-21
-22</pre>
+22
+23
+24
+25
+26</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/knowledge_source/static_knowledge.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/knowledge_source/static_knowledge.rb', line 22</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_text'>text</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='symbol'>:static</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_text'>text</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='symbol'>:static</span><span class='comma'>,</span> <span class='label'>source:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@text</span> <span class='op'>=</span> <span class='id identifier rubyid_text'>text</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
   <span class='ivar'>@type</span> <span class='op'>=</span> <span class='id identifier rubyid_type'>type</span>
+  <span class='ivar'>@source</span> <span class='op'>=</span> <span class='id identifier rubyid_source'>source</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -363,19 +383,23 @@ knowledge that does not change per request.</p>
       <pre class="lines">
 
 
-28
-29
-30
-31
-32</pre>
+32
+33
+34
+35
+36
+37
+38</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/knowledge_source/static_knowledge.rb', line 28</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/knowledge_source/static_knowledge.rb', line 32</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='label'>query:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='lbracket'>[</span><span class='rbracket'>]</span> <span class='kw'>if</span> <span class='ivar'>@text</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
 
-  <span class='lbracket'>[</span><span class='lbrace'>{</span><span class='label'>content:</span> <span class='ivar'>@text</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='ivar'>@type</span><span class='rbrace'>}</span><span class='rbracket'>]</span>
+  <span class='id identifier rubyid_chunk'>chunk</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='label'>content:</span> <span class='ivar'>@text</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='ivar'>@type</span><span class='rbrace'>}</span>
+  <span class='id identifier rubyid_chunk'>chunk</span><span class='lbracket'>[</span><span class='symbol'>:source</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='ivar'>@source</span> <span class='kw'>if</span> <span class='ivar'>@source</span>
+  <span class='lbracket'>[</span><span class='id identifier rubyid_chunk'>chunk</span><span class='rbracket'>]</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -419,12 +443,12 @@ knowledge that does not change per request.</p>
       <pre class="lines">
 
 
-36
-37
-38</pre>
+42
+43
+44</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/knowledge_source/static_knowledge.rb', line 36</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/knowledge_source/static_knowledge.rb', line 42</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_static?'>static?</span>
   <span class='kw'>true</span>
@@ -439,7 +463,7 @@ knowledge that does not change per request.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 08:28:33 2026 by
+  Generated on Sun May 10 09:39:02 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

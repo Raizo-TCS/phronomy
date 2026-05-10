@@ -169,7 +169,7 @@ returned as knowledge chunks.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(store:, embeddings:, k: 5, type: :rag)  &#x21d2; RAGKnowledge </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(store:, embeddings:, k: 5, type: :rag, source: nil)  &#x21d2; RAGKnowledge </a>
     
 
     
@@ -212,7 +212,7 @@ returned as knowledge chunks.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(store:, embeddings:, k: 5, type: :rag)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::KnowledgeSource::RAGKnowledge (class)">RAGKnowledge</a></span></tt> 
+    #<strong>initialize</strong>(store:, embeddings:, k: 5, type: :rag, source: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::KnowledgeSource::RAGKnowledge (class)">RAGKnowledge</a></span></tt> 
   
 
   
@@ -288,6 +288,23 @@ returned as knowledge chunks.</p>
       
     </li>
   
+    <li>
+      
+        <span class='name'>source</span>
+      
+      
+        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>default source label; falls back to
+each document's :source metadata when nil</p></div>
+      
+    </li>
+  
 </ul>
 
 
@@ -297,21 +314,23 @@ returned as knowledge chunks.</p>
       <pre class="lines">
 
 
-23
-24
 25
 26
 27
-28</pre>
+28
+29
+30
+31</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/knowledge_source/rag_knowledge.rb', line 23</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/knowledge_source/rag_knowledge.rb', line 25</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>store:</span><span class='comma'>,</span> <span class='label'>embeddings:</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='int'>5</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='symbol'>:rag</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>store:</span><span class='comma'>,</span> <span class='label'>embeddings:</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='int'>5</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='symbol'>:rag</span><span class='comma'>,</span> <span class='label'>source:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@store</span> <span class='op'>=</span> <span class='id identifier rubyid_store'>store</span>
   <span class='ivar'>@embeddings</span> <span class='op'>=</span> <span class='id identifier rubyid_embeddings'>embeddings</span>
   <span class='ivar'>@k</span> <span class='op'>=</span> <span class='id identifier rubyid_k'>k</span>
   <span class='ivar'>@type</span> <span class='op'>=</span> <span class='id identifier rubyid_type'>type</span>
+  <span class='ivar'>@source</span> <span class='op'>=</span> <span class='id identifier rubyid_source'>source</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -380,23 +399,33 @@ returned as knowledge chunks.</p>
       <pre class="lines">
 
 
-36
-37
-38
 39
 40
 41
-42</pre>
+42
+43
+44
+45
+46
+47
+48
+49
+50</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/knowledge_source/rag_knowledge.rb', line 36</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/knowledge_source/rag_knowledge.rb', line 39</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='label'>query:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='lbracket'>[</span><span class='rbracket'>]</span> <span class='kw'>if</span> <span class='id identifier rubyid_query'>query</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span> <span class='op'>||</span> <span class='id identifier rubyid_query'>query</span><span class='period'>.</span><span class='id identifier rubyid_strip'>strip</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
 
   <span class='id identifier rubyid_vector'>vector</span> <span class='op'>=</span> <span class='ivar'>@embeddings</span><span class='period'>.</span><span class='id identifier rubyid_embed'>embed</span><span class='lparen'>(</span><span class='id identifier rubyid_query'>query</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_results'>results</span> <span class='op'>=</span> <span class='ivar'>@store</span><span class='period'>.</span><span class='id identifier rubyid_search'>search</span><span class='lparen'>(</span><span class='id identifier rubyid_vector'>vector</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='ivar'>@k</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_results'>results</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_doc'>doc</span><span class='op'>|</span> <span class='lbrace'>{</span><span class='label'>content:</span> <span class='id identifier rubyid_doc'>doc</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='ivar'>@type</span><span class='rbrace'>}</span> <span class='rbrace'>}</span>
+  <span class='id identifier rubyid_results'>results</span> <span class='op'>=</span> <span class='ivar'>@store</span><span class='period'>.</span><span class='id identifier rubyid_search'>search</span><span class='lparen'>(</span><span class='label'>query_embedding:</span> <span class='id identifier rubyid_vector'>vector</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='ivar'>@k</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_results'>results</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_doc'>doc</span><span class='op'>|</span>
+    <span class='id identifier rubyid_chunk'>chunk</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='label'>content:</span> <span class='id identifier rubyid_doc'>doc</span><span class='lbracket'>[</span><span class='symbol'>:metadata</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='symbol'>:content</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='ivar'>@type</span><span class='rbrace'>}</span>
+    <span class='id identifier rubyid_src'>src</span> <span class='op'>=</span> <span class='ivar'>@source</span> <span class='op'>||</span> <span class='id identifier rubyid_doc'>doc</span><span class='lbracket'>[</span><span class='symbol'>:metadata</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='symbol'>:source</span><span class='rbracket'>]</span>
+    <span class='id identifier rubyid_chunk'>chunk</span><span class='lbracket'>[</span><span class='symbol'>:source</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_src'>src</span> <span class='kw'>if</span> <span class='id identifier rubyid_src'>src</span>
+    <span class='id identifier rubyid_chunk'>chunk</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -408,7 +437,7 @@ returned as knowledge chunks.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 08:28:33 2026 by
+  Generated on Sun May 10 09:39:02 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
