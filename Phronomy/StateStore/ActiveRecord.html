@@ -178,7 +178,7 @@ Persists graph state to a relational database using an AR model.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(model_class:)  &#x21d2; ActiveRecord </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(model_class:, encryptor: nil)  &#x21d2; ActiveRecord </a>
     
 
     
@@ -260,7 +260,7 @@ Persists graph state to a relational database using an AR model.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(model_class:)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::StateStore::ActiveRecord (class)">ActiveRecord</a></span></tt> 
+    #<strong>initialize</strong>(model_class:, encryptor: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::StateStore::ActiveRecord (class)">ActiveRecord</a></span></tt> 
   
 
   
@@ -290,6 +290,24 @@ Persists graph state to a relational database using an AR model.</p>
       
     </li>
   
+    <li>
+      
+        <span class='name'>encryptor</span>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Encryptor/Base.html" title="Phronomy::StateStore::Encryptor::Base (class)">Phronomy::StateStore::Encryptor::Base</a></span></tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>Optional encryption adapter. When supplied, the JSON payload is
+encrypted before writing and decrypted after reading.
+When nil (default), data is stored as plain JSON.</p></div>
+      
+    </li>
+  
 </ul>
 
 
@@ -299,15 +317,17 @@ Persists graph state to a relational database using an AR model.</p>
       <pre class="lines">
 
 
-31
-32
-33</pre>
+35
+36
+37
+38</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/active_record.rb', line 31</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/active_record.rb', line 35</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>model_class:</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>model_class:</span><span class='comma'>,</span> <span class='label'>encryptor:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@model_class</span> <span class='op'>=</span> <span class='id identifier rubyid_model_class'>model_class</span>
+  <span class='ivar'>@encryptor</span> <span class='op'>=</span> <span class='id identifier rubyid_encryptor'>encryptor</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -358,13 +378,13 @@ Persists graph state to a relational database using an AR model.</p>
       <pre class="lines">
 
 
-58
-59
-60
-61</pre>
+66
+67
+68
+69</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/active_record.rb', line 58</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/active_record.rb', line 66</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
   <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_delete_all'>delete_all</span>
@@ -430,21 +450,25 @@ Persists graph state to a relational database using an AR model.</p>
       <pre class="lines">
 
 
-49
-50
-51
-52
-53
-54</pre>
+55
+56
+57
+58
+59
+60
+61
+62</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/active_record.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/active_record.rb', line 55</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_record'>record</span> <span class='op'>=</span> <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_find_by'>find_by</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='kw'>nil</span> <span class='kw'>unless</span> <span class='id identifier rubyid_record'>record</span>
 
-  <span class='id identifier rubyid_deserialize_state'>deserialize_state</span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_state_json'>state_json</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_state_json'>state_json</span>
+  <span class='id identifier rubyid_json'>json</span> <span class='op'>=</span> <span class='ivar'>@encryptor</span> <span class='op'>?</span> <span class='ivar'>@encryptor</span><span class='period'>.</span><span class='id identifier rubyid_decrypt'>decrypt</span><span class='lparen'>(</span><span class='id identifier rubyid_payload'>payload</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id identifier rubyid_payload'>payload</span>
+  <span class='id identifier rubyid_deserialize_state'>deserialize_state</span><span class='lparen'>(</span><span class='id identifier rubyid_json'>json</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -506,21 +530,23 @@ Persists graph state to a relational database using an AR model.</p>
       <pre class="lines">
 
 
-38
-39
-40
-41
-42
 43
-44</pre>
+44
+45
+46
+47
+48
+49
+50</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/active_record.rb', line 38</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/active_record.rb', line 43</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_json'>json</span> <span class='op'>=</span> <span class='id identifier rubyid_serialize_state'>serialize_state</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_payload'>payload</span> <span class='op'>=</span> <span class='ivar'>@encryptor</span> <span class='op'>?</span> <span class='ivar'>@encryptor</span><span class='period'>.</span><span class='id identifier rubyid_encrypt'>encrypt</span><span class='lparen'>(</span><span class='id identifier rubyid_json'>json</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id identifier rubyid_json'>json</span>
   <span class='id identifier rubyid_record'>record</span> <span class='op'>=</span> <span class='ivar'>@model_class</span><span class='period'>.</span><span class='id identifier rubyid_find_or_initialize_by'>find_or_initialize_by</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_state_json'>state_json</span> <span class='op'>=</span> <span class='id identifier rubyid_json'>json</span>
+  <span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_state_json'>state_json</span> <span class='op'>=</span> <span class='id identifier rubyid_payload'>payload</span>
   <span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_save!'>save!</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
@@ -534,7 +560,7 @@ Persists graph state to a relational database using an AR model.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 01:30:20 2026 by
+  Generated on Sun May 10 05:01:10 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

@@ -2430,14 +2430,14 @@ The alias form is useful when two tools share the same auto-generated name
       <pre class="lines">
 
 
-473
-474
 475
 476
-477</pre>
+477
+478
+479</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 473</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 475</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_input_guardrail'>add_input_guardrail</span><span class='lparen'>(</span><span class='id identifier rubyid_guardrail'>guardrail</span><span class='rparen'>)</span>
   <span class='ivar'>@input_guardrails</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -2488,14 +2488,14 @@ The alias form is useful when two tools share the same auto-generated name
       <pre class="lines">
 
 
-481
-482
 483
 484
-485</pre>
+485
+486
+487</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 481</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 483</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_output_guardrail'>add_output_guardrail</span><span class='lparen'>(</span><span class='id identifier rubyid_guardrail'>guardrail</span><span class='rparen'>)</span>
   <span class='ivar'>@output_guardrails</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -2566,8 +2566,10 @@ variables consumed by the configured instructions template.</p></div>
       
         &mdash;
         <div class='inline'><p>runtime options:
-<code>:memory</code>    (<span class='object_link'><a href="../Memory/ConversationManager.html" title="Phronomy::Memory::ConversationManager (class)">Memory::ConversationManager</a></span>) — memory backend
-<code>:thread_id</code> (+String+)                 — conversation thread identifier</p></div>
+<code>:memory</code>     (<span class='object_link'><a href="../Memory/ConversationManager.html" title="Phronomy::Memory::ConversationManager (class)">Memory::ConversationManager</a></span>) — memory backend
+<code>:thread_id</code>  (+String+)                 — conversation thread identifier
+<code>:user_id</code>    (+String+, optional)        — caller identity forwarded to the tracer
+<code>:session_id</code> (+String+, optional)        — session identity forwarded to the tracer</p></div>
       
     </li>
   
@@ -2612,8 +2614,6 @@ variables consumed by the configured instructions template.</p></div>
       <pre class="lines">
 
 
-367
-368
 369
 370
 371
@@ -2628,10 +2628,12 @@ variables consumed by the configured instructions template.</p></div>
 380
 381
 382
-383</pre>
+383
+384
+385</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 367</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 369</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_policy'>policy</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__retry_policy'>_retry_policy</span>
@@ -2707,13 +2709,13 @@ without interruption (backward-compatible behaviour).</p>
       <pre class="lines">
 
 
-466
-467
 468
-469</pre>
+469
+470
+471</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 466</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 468</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_approval_required'>on_approval_required</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@approval_handler</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -2818,8 +2820,6 @@ as they are produced by the underlying LLM.</p>
       <pre class="lines">
 
 
-399
-400
 401
 402
 403
@@ -2870,10 +2870,12 @@ as they are produced by the underlying LLM.</p>
 448
 449
 450
-451</pre>
+451
+452
+453</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 399</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 401</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
@@ -2938,7 +2940,7 @@ as they are produced by the underlying LLM.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 01:30:19 2026 by
+  Generated on Sun May 10 05:01:09 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

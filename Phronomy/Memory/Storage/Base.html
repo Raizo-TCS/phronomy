@@ -304,6 +304,50 @@ ConversationManager (compression path) and direct storage access.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#purge-instance_method" title="#purge (instance method)">#<strong>purge</strong>(thread_id:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Remove all stored data (raw messages, compaction records, legacy store) for a thread.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#purge_older_than-instance_method" title="#purge_older_than (instance method)">#<strong>purge_older_than</strong>(thread_id:, older_than:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Remove raw messages recorded before <code>older_than</code> for a thread.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#save-instance_method" title="#save (instance method)">#<strong>save</strong>(thread_id:, messages:)  &#x21d2; Object </a>
     
 
@@ -899,6 +943,129 @@ Each message is stored together with its seq number.</p>
 </div>
     
       <div class="method_details ">
+  <h3 class="signature " id="purge-instance_method">
+  
+    #<strong>purge</strong>(thread_id:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Remove all stored data (raw messages, compaction records, legacy store)
+for a thread. Equivalent to <span class='object_link'><a href="#clear-instance_method" title="Phronomy::Memory::Storage::Base#clear (method)">#clear</a></span>, provided as a named alias to make
+the &quot;right to erasure&quot; intent explicit.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>thread_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+117
+118
+119</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/base.rb', line 117</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_purge'>purge</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="purge_older_than-instance_method">
+  
+    #<strong>purge_older_than</strong>(thread_id:, older_than:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Remove raw messages recorded before <code>older_than</code> for a thread.
+The default implementation is a no-op; backends that support
+timestamp-based deletion should override this method.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>thread_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>older_than</span>
+      
+      
+        <span class='type'>(<tt>Time</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+127
+128
+129</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/base.rb', line 127</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_purge_older_than'>purge_older_than</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>older_than:</span><span class='rparen'>)</span>
+  <span class='comment'># no-op by default
+</span><span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
   <h3 class="signature " id="save-instance_method">
   
     #<strong>save</strong>(thread_id:, messages:)  &#x21d2; <tt>Object</tt> 
@@ -1083,7 +1250,7 @@ messages from start_seq to end_seq (inclusive).</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 01:30:19 2026 by
+  Generated on Sun May 10 05:01:10 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

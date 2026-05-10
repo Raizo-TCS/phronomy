@@ -374,7 +374,7 @@ Assembles nodes and edges, then returns an executable CompiledGraph via compile.
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#compile-instance_method" title="#compile (instance method)">#<strong>compile</strong>  &#x21d2; CompiledGraph </a>
+      <a href="#compile-instance_method" title="#compile (instance method)">#<strong>compile</strong>(state_store: nil)  &#x21d2; CompiledGraph </a>
     
 
     
@@ -590,12 +590,12 @@ Assembles nodes and edges, then returns an executable CompiledGraph via compile.
       <pre class="lines">
 
 
-137
-138
-139</pre>
+140
+141
+142</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/graph/state_graph.rb', line 137</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/graph/state_graph.rb', line 140</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_conditional_edges'>conditional_edges</span>
   <span class='ivar'>@conditional_edges</span>
@@ -1281,7 +1281,7 @@ defaults to sub_state.to_h (passes all subgraph fields)</p></div>
       <div class="method_details ">
   <h3 class="signature " id="compile-instance_method">
   
-    #<strong>compile</strong>  &#x21d2; <tt><span class='object_link'><a href="CompiledGraph.html" title="Phronomy::Graph::CompiledGraph (class)">CompiledGraph</a></span></tt> 
+    #<strong>compile</strong>(state_store: nil)  &#x21d2; <tt><span class='object_link'><a href="CompiledGraph.html" title="Phronomy::Graph::CompiledGraph (class)">CompiledGraph</a></span></tt> 
   
 
   
@@ -1296,7 +1296,28 @@ registered on the returned CompiledGraph to override or extend them.</p>
   </div>
 </div>
 <div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
   
+    <li>
+      
+        <span class='name'>state_store</span>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="../StateStore/Base.html" title="Phronomy::StateStore::Base (class)">Phronomy::StateStore::Base</a></span></tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>optional state store
+to use for this compiled graph, overriding the global default.</p></div>
+      
+    </li>
+  
+</ul>
+
 <p class="tag_title">Returns:</p>
 <ul class="return">
   
@@ -1317,8 +1338,6 @@ registered on the returned CompiledGraph to override or extend them.</p>
       <pre class="lines">
 
 
-125
-126
 127
 128
 129
@@ -1327,12 +1346,15 @@ registered on the returned CompiledGraph to override or extend them.</p>
 132
 133
 134
-135</pre>
+135
+136
+137
+138</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/graph/state_graph.rb', line 125</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/graph/state_graph.rb', line 127</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_compile'>compile</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_compile'>compile</span><span class='lparen'>(</span><span class='label'>state_store:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="CompiledGraph.html" title="Phronomy::Graph::CompiledGraph (class)">CompiledGraph</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="CompiledGraph.html#initialize-instance_method" title="Phronomy::Graph::CompiledGraph#initialize (method)">new</a></span></span><span class='lparen'>(</span>
     <span class='label'>state_class:</span> <span class='ivar'>@state_class</span><span class='comma'>,</span>
     <span class='label'>nodes:</span> <span class='ivar'>@nodes</span><span class='comma'>,</span>
@@ -1340,7 +1362,8 @@ registered on the returned CompiledGraph to override or extend them.</p>
     <span class='label'>conditional_edges:</span> <span class='ivar'>@conditional_edges</span><span class='comma'>,</span>
     <span class='label'>entry_point:</span> <span class='ivar'>@entry_point</span> <span class='op'>||</span> <span class='ivar'>@nodes</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span><span class='period'>.</span><span class='id identifier rubyid_first'>first</span><span class='comma'>,</span>
     <span class='label'>before_callbacks:</span> <span class='ivar'>@before_callbacks</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span><span class='comma'>,</span>
-    <span class='label'>after_callbacks:</span> <span class='ivar'>@after_callbacks</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
+    <span class='label'>after_callbacks:</span> <span class='ivar'>@after_callbacks</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span><span class='comma'>,</span>
+    <span class='label'>state_store:</span> <span class='id identifier rubyid_state_store'>state_store</span>
   <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1596,7 +1619,7 @@ Callbacks registered here become defaults for every CompiledGraph produced by co
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 01:30:19 2026 by
+  Generated on Sun May 10 05:01:09 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

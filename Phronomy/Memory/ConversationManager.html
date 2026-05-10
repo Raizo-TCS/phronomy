@@ -189,7 +189,7 @@ and uncompacted messages are returned verbatim.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(storage:, retrieval:, compression: nil)  &#x21d2; ConversationManager </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(storage:, retrieval:, compression: nil, ttl: nil)  &#x21d2; ConversationManager </a>
     
 
     
@@ -228,6 +228,28 @@ and uncompacted messages are returned verbatim.</p>
 
   
     <span class="summary_desc"><div class='inline'><p>Load conversation messages for a thread, applying retrieval selection.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#purge-instance_method" title="#purge (instance method)">#<strong>purge</strong>(thread_id:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Permanently erase all stored data for a thread (right-to-erasure / purge).</p></div></span>
   
 </li>
 
@@ -286,7 +308,7 @@ and uncompacted messages are returned verbatim.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(storage:, retrieval:, compression: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Memory::ConversationManager (class)">ConversationManager</a></span></tt> 
+    #<strong>initialize</strong>(storage:, retrieval:, compression: nil, ttl: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Memory::ConversationManager (class)">ConversationManager</a></span></tt> 
   
 
   
@@ -346,6 +368,24 @@ and uncompacted messages are returned verbatim.</p>
       
     </li>
   
+    <li>
+      
+        <span class='name'>ttl</span>
+      
+      
+        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>message time-to-live in seconds; messages older
+than this value are removed from storage on each <span class='object_link'><a href="#load-instance_method" title="Phronomy::Memory::ConversationManager#load (method)">#load</a></span> call.
+<code>nil</code> disables TTL (default).</p></div>
+      
+    </li>
+  
 </ul>
 
 
@@ -355,19 +395,21 @@ and uncompacted messages are returned verbatim.</p>
       <pre class="lines">
 
 
-43
-44
-45
 46
-47</pre>
+47
+48
+49
+50
+51</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 46</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>storage:</span><span class='comma'>,</span> <span class='label'>retrieval:</span><span class='comma'>,</span> <span class='label'>compression:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>storage:</span><span class='comma'>,</span> <span class='label'>retrieval:</span><span class='comma'>,</span> <span class='label'>compression:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>ttl:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@storage</span> <span class='op'>=</span> <span class='id identifier rubyid_storage'>storage</span>
   <span class='ivar'>@retrieval</span> <span class='op'>=</span> <span class='id identifier rubyid_retrieval'>retrieval</span>
   <span class='ivar'>@compression</span> <span class='op'>=</span> <span class='id identifier rubyid_compression'>compression</span>
+  <span class='ivar'>@ttl</span> <span class='op'>=</span> <span class='id identifier rubyid_ttl'>ttl</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -420,13 +462,13 @@ and uncompacted messages are returned verbatim.</p>
       <pre class="lines">
 
 
-85
-86
-87
-88</pre>
+93
+94
+95
+96</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 85</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 93</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
@@ -449,6 +491,8 @@ and uncompacted messages are returned verbatim.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Load conversation messages for a thread, applying retrieval selection.</p>
+<p>When a TTL is configured, raw messages older than the TTL are permanently
+removed from storage before reconstruction.</p>
 <p>Reconstructs the message list from raw history + compaction records:</p>
 <pre class="code ruby"><code class="ruby">- Each compacted range [start_seq..end_seq] is replaced by a summary
 system message.
@@ -509,17 +553,77 @@ system message.
       <pre class="lines">
 
 
-59
-60
-61
-62</pre>
+66
+67
+68
+69
+70</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 59</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 66</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_purge_older_than'>purge_older_than</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>older_than:</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span> <span class='op'>-</span> <span class='ivar'>@ttl</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='ivar'>@ttl</span>
   <span class='id identifier rubyid_messages'>messages</span> <span class='op'>=</span> <span class='id identifier rubyid_reconstruct'>reconstruct</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
   <span class='ivar'>@retrieval</span><span class='period'>.</span><span class='id identifier rubyid_select'>select</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='id identifier rubyid_query'>query</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="purge-instance_method">
+  
+    #<strong>purge</strong>(thread_id:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Permanently erase all stored data for a thread (right-to-erasure / purge).
+Delegates to the storage backend's <span class='object_link'><a href="Storage/Base.html#purge-instance_method" title="Phronomy::Memory::Storage::Base#purge (method)">Storage::Base#purge</a></span> and also clears
+any retrieval index for the thread.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>thread_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+103
+104
+105
+106</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 103</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_purge'>purge</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
+  <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_purge'>purge</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+  <span class='ivar'>@retrieval</span><span class='period'>.</span><span class='id identifier rubyid_clear_index'>clear_index</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='ivar'>@retrieval</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:clear_index</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -585,14 +689,14 @@ compaction record is saved in storage (originals are preserved).</p>
       <pre class="lines">
 
 
-76
-77
-78
-79
-80</pre>
+84
+85
+86
+87
+88</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 76</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 84</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_append_new_messages'>append_new_messages</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span>
@@ -686,17 +790,17 @@ Called by CompactionContext when the on_compact callback invokes ctx.compact.</p
       <pre class="lines">
 
 
-97
-98
-99
-100
-101
-102
-103
-104</pre>
+115
+116
+117
+118
+119
+120
+121
+122</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 97</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/conversation_manager.rb', line 115</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save_compaction'>save_compaction</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>start_seq:</span><span class='comma'>,</span> <span class='label'>end_seq:</span><span class='comma'>,</span> <span class='label'>summary_text:</span><span class='rparen'>)</span>
   <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_save_compaction'>save_compaction</span><span class='lparen'>(</span>
@@ -716,7 +820,7 @@ Called by CompactionContext when the on_compact callback invokes ctx.compact.</p
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 01:30:20 2026 by
+  Generated on Sun May 10 05:01:10 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
