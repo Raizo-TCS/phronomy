@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "cgi"
+
 module Phronomy
   module Context
     # Assembler collects all four context regions and produces the final
@@ -34,7 +36,7 @@ module Phronomy
       # @param trusted [Boolean]
       # @return [String]
       def self.xml_tag(text, type:, trusted: false)
-        "<context type=\"#{type}\" trusted=\"#{trusted}\">\n#{text}\n</context>"
+        "<context type=\"#{CGI.escapeHTML(type.to_s)}\" trusted=\"#{trusted}\">\n#{CGI.escapeHTML(text.to_s)}\n</context>"
       end
 
       # @param budget [Phronomy::Context::TokenBudget, nil]
@@ -104,8 +106,8 @@ module Phronomy
       private
 
       def xml_context_tag(chunk)
-        src_attr = chunk[:source] ? " source=\"#{chunk[:source]}\"" : ""
-        "<context type=\"#{chunk[:type]}\"#{src_attr} trusted=\"#{chunk[:trusted]}\">\n#{chunk[:text]}\n</context>"
+        src_attr = chunk[:source] ? " source=\"#{CGI.escapeHTML(chunk[:source].to_s)}\"" : ""
+        "<context type=\"#{CGI.escapeHTML(chunk[:type].to_s)}\"#{src_attr} trusted=\"#{chunk[:trusted]}\">\n#{CGI.escapeHTML(chunk[:text].to_s)}\n</context>"
       end
 
       def trim_messages_to_budget(messages, system_text)

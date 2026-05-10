@@ -90,6 +90,9 @@ module Phronomy
           @mutex = Mutex.new
           @stdin = nil
           @stdout = nil
+          @stderr = nil
+          @wait_thr = nil
+          @stderr_thread = nil
         end
 
         # Shut down the child process and close its IO streams.
@@ -97,9 +100,17 @@ module Phronomy
           @mutex.synchronize do
             @stdin&.close
             @stdout&.close
+            @stderr&.close
             @stdin = nil
             @stdout = nil
+            @stderr = nil
           end
+          # Join the stderr drain thread and the child process outside the mutex
+          # to avoid holding the lock during potentially slow joins.
+          @stderr_thread&.join(1)
+          @wait_thr&.join(5)
+          @stderr_thread = nil
+          @wait_thr = nil
         end
 
         # Retrieve the tool definition from the server using the MCP `tools/list` method.
@@ -144,7 +155,15 @@ module Phronomy
         def ensure_started!
           return if @stdin && !@stdin.closed?
 
-          @stdin, @stdout, _stderr, _wait_thr = Open3.popen3(*@command)
+          @stdin, @stdout, @stderr, @wait_thr = Open3.popen3(*@command)
+          # Drain stderr asynchronously to prevent the pipe buffer from filling
+          # and deadlocking the child process. Errors inside the drain thread are
+          # silently ignored since stderr content is diagnostics-only.
+          @stderr_thread = Thread.new do
+            @stderr.read
+          rescue
+            nil
+          end
         end
 
         def rpc_call(method, params)
@@ -212,6 +231,10 @@ module Phronomy
         # @return [Object] the tool result
         def call_tool(tool_name, args)
           response = rpc_call("tools/call", {name: tool_name, arguments: args})
+          if response["error"]
+            err_msg = response.dig("error", "message") || response["error"].to_s
+            raise Phronomy::ToolError, "MCP HTTP server returned error: #{err_msg}"
+          end
           content = response.dig("result", "content")
 
           if content.is_a?(Array)

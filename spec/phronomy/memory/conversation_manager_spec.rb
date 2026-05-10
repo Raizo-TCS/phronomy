@@ -241,4 +241,61 @@ RSpec.describe Phronomy::Memory::ConversationManager do
       expect { threads.each(&:join) }.not_to raise_error
     end
   end
+
+  # Regression tests for GitHub Issue #27 (ID-9):
+  # ConversationManager#append_new_messages uses raw.length as starting_seq.
+  # After purge_older_than removes entries, raw.length decreases and the next
+  # append re-assigns seq numbers that were already used by the purged entries,
+  # causing seq collisions or re-insertion of expired messages.
+  describe "TTL purge seq number isolation (Issue #27 / ID-9)" do
+    let(:storage) { Phronomy::Memory::Storage::InMemory.new }
+    let(:retrieval) { Phronomy::Memory::Retrieval::Recent.new(k: 100) }
+    subject(:ttl_manager) { described_class.new(storage: storage, retrieval: retrieval, ttl: 1) }
+
+    it "does not re-insert expired messages after TTL purge" do
+      past = Time.now - 100
+      allow(Time).to receive(:now).and_return(past)
+
+      msg_a = make_msg(:user, "expired message")
+      ttl_manager.save(thread_id: "t1", messages: [msg_a])
+
+      allow(Time).to receive(:now).and_call_original
+
+      # Load triggers TTL purge — msg_a should be removed from raw store
+      ttl_manager.load(thread_id: "t1")
+
+      # Now a new message arrives; the caller passes full history [msg_a, msg_b]
+      msg_b = make_msg(:assistant, "new message")
+      ttl_manager.save(thread_id: "t1", messages: [msg_a, msg_b])
+
+      raw = storage.load_raw(thread_id: "t1")
+      raw_contents = raw.map { |e| e[:message].content }
+
+      # expired message should NOT be re-inserted into raw store
+      expect(raw_contents).not_to include("expired message")
+    end
+
+    it "assigns non-colliding seq numbers after TTL purge removes entries" do
+      past = Time.now - 100
+      allow(Time).to receive(:now).and_return(past)
+
+      msgs = 3.times.map { |i| make_msg(:user, "msg#{i}") }
+      ttl_manager.save(thread_id: "t1", messages: msgs)
+
+      allow(Time).to receive(:now).and_call_original
+
+      # Purge via load
+      ttl_manager.load(thread_id: "t1")
+
+      # Save a new fourth message; caller passes full history
+      msg_new = make_msg(:assistant, "msg3")
+      ttl_manager.save(thread_id: "t1", messages: msgs + [msg_new])
+
+      raw = storage.load_raw(thread_id: "t1")
+      seqs = raw.map { |e| e[:seq] }
+
+      # All seq numbers in the current raw store must be unique
+      expect(seqs).to eq(seqs.uniq)
+    end
+  end
 end

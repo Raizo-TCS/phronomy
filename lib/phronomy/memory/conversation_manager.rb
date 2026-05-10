@@ -49,6 +49,9 @@ module Phronomy
         @compression = compression
         @ttl = ttl
         @append_mutex = Mutex.new
+        # Tracks the monotonically increasing next-seq per thread so that TTL
+        # purges (which reduce raw.length) do not reset the sequence counter.
+        @raw_seq_hwm = {}
       end
 
       # Load conversation messages for a thread, applying retrieval selection.
@@ -126,14 +129,27 @@ module Phronomy
 
       # Append messages that are new since the last save to the raw history.
       # Messages are append-only; existing raw entries are never modified.
+      #
+      # Uses a per-thread high-water-mark (HWM) to determine the next seq number.
+      # The HWM is the maximum of:
+      #   - The highest seq stored in the raw store (correct after normal appends)
+      #   - The in-memory HWM (correct after TTL purge empties the raw store)
+      # This prevents seq number collisions when TTL purge reduces raw.length.
       def append_new_messages(thread_id:, messages:)
         # Synchronize load + append to prevent seq number collisions when two
         # threads save the same thread_id concurrently.
         @append_mutex.synchronize do
           raw = @storage.load_raw(thread_id: thread_id)
-          starting_seq = raw.length
-          new_messages = messages[starting_seq..]
-          @storage.append_raw(thread_id: thread_id, messages: new_messages, starting_seq: starting_seq) if new_messages&.any?
+          # Derive the next seq from the raw store's high-water-mark seq when
+          # entries are present. Fall back to the in-memory HWM when the raw
+          # store has been partially or fully purged by TTL expiry.
+          stored_next_seq = raw.any? ? raw.map { |e| e[:seq] }.max + 1 : nil
+          next_seq = [stored_next_seq, @raw_seq_hwm[thread_id]].compact.max || 0
+          new_messages = messages[next_seq..]
+          if new_messages&.any?
+            @storage.append_raw(thread_id: thread_id, messages: new_messages, starting_seq: next_seq)
+            @raw_seq_hwm[thread_id] = next_seq + new_messages.length
+          end
         end
       end
 

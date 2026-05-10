@@ -302,6 +302,56 @@ RSpec.describe Phronomy::Tool::McpTool do
     end
   end
 
+  # Regression test for GitHub Issue #23 (ID-5):
+  # HttpTransport#call_tool was missing the JSON-RPC error field check
+  # that StdioTransport already had. This caused server errors to be
+  # silently ignored and nil returned instead of raising ToolError.
+  describe "HttpTransport JSON-RPC error response (Issue #23 / ID-5)" do
+    subject(:transport) { Phronomy::Tool::McpTool::HttpTransport.new("http://localhost:8080/mcp") }
+
+    def ok_response(body, content_type: "application/json")
+      res = Net::HTTPSuccess.new("1.1", "200", "OK")
+      allow(res).to receive(:body).and_return(body)
+      allow(res).to receive(:[]).with("Content-Type").and_return(content_type)
+      res
+    end
+
+    def stub_http(response)
+      http_dbl = instance_double(Net::HTTP)
+      allow(Net::HTTP).to receive(:new).and_return(http_dbl)
+      allow(http_dbl).to receive(:use_ssl=)
+      allow(http_dbl).to receive(:open_timeout=)
+      allow(http_dbl).to receive(:read_timeout=)
+      allow(http_dbl).to receive(:request).and_return(response)
+    end
+
+    it "raises ToolError when the server returns a JSON-RPC error object in a 200 OK response" do
+      body = JSON.generate(
+        jsonrpc: "2.0", id: 1,
+        error: {code: -32600, message: "Invalid MCP request"}
+      )
+      stub_http(ok_response(body))
+
+      expect { transport.call_tool("weather", {city: "Tokyo"}) }
+        .to raise_error(Phronomy::ToolError, /Invalid MCP request/)
+    end
+
+    it "does not return nil silently when JSON-RPC error is present" do
+      body = JSON.generate(
+        jsonrpc: "2.0", id: 1,
+        error: {code: -32601, message: "Method not found"}
+      )
+      stub_http(ok_response(body))
+
+      result = begin
+        transport.call_tool("weather", {})
+      rescue Phronomy::ToolError
+        :raised
+      end
+      expect(result).to eq(:raised)
+    end
+  end
+
   describe "HttpTransport timeout configuration (S09)" do
     it "applies custom open_timeout and read_timeout to the Net::HTTP connection" do
       transport = Phronomy::Tool::McpTool::HttpTransport.new(

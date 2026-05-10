@@ -90,7 +90,8 @@ module Phronomy
         req["Authorization"] = "Basic #{Base64.strict_encode64("#{@public_key}:#{@secret_key}")}"
         req.body = JSON.generate({batch: events})
         http.request(req)
-      rescue
+      rescue => e
+        warn "[Phronomy::LangfuseTracer] Ingestion failed: #{e.class}: #{e.message}"
         nil
       end
     end

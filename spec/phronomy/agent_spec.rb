@@ -643,3 +643,52 @@ RSpec.describe Phronomy::Agent::ReactAgent do
     end
   end
 end
+
+# Regression tests for GitHub Issue #30 (ID-12):
+# The temperature DSL uses `if val` to guard the assignment, which was reported
+# to fail silently for temperature(0). In Ruby, 0 and 0.0 are truthy, so this
+# code is actually correct. These specs document and lock in the correct behavior.
+RSpec.describe "Phronomy::Agent::Base temperature DSL zero value (Issue #30 / ID-12)" do
+  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0) }
+  let(:fake_message) { double("Message", content: "LLM response", tool_calls: nil, tokens: fake_tokens) }
+  let(:fake_messages) { [fake_message] }
+  let(:fake_chat) do
+    dbl = double("Chat")
+    allow(dbl).to receive(:with_instructions).and_return(dbl)
+    allow(dbl).to receive(:with_tool).and_return(dbl)
+    allow(dbl).to receive(:with_temperature).and_return(dbl)
+    allow(dbl).to receive(:ask).and_return(fake_message)
+    allow(dbl).to receive(:messages).and_return(fake_messages)
+    allow(dbl).to receive(:last_message).and_return(fake_message)
+    dbl
+  end
+
+  before do
+    allow(RubyLLM).to receive(:chat).and_return(fake_chat)
+  end
+
+  it "stores 0 correctly via the temperature DSL (0 is truthy in Ruby)" do
+    klass = Class.new(Phronomy::Agent::Base) do
+      model "test-model"
+      temperature 0
+    end
+    expect(klass.temperature).to eq(0)
+  end
+
+  it "stores 0.0 correctly via the temperature DSL" do
+    klass = Class.new(Phronomy::Agent::Base) do
+      model "test-model"
+      temperature 0.0
+    end
+    expect(klass.temperature).to eq(0.0)
+  end
+
+  it "calls with_temperature(0) on the chat object when temperature is 0" do
+    klass = Class.new(Phronomy::Agent::Base) do
+      model "test-model"
+      temperature 0
+    end
+    klass.new.invoke("Hello")
+    expect(fake_chat).to have_received(:with_temperature).with(0)
+  end
+end
