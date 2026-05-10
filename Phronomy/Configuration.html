@@ -133,6 +133,31 @@ Configure via the Phronomy.configure block.</p>
       <li class="public ">
   <span class="summary_signature">
     
+      <a href="#before_completion-instance_method" title="#before_completion (instance method)">#<strong>before_completion</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Global before_completion hook callable (Proc / lambda).</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#default_embedding_model-instance_method" title="#default_embedding_model (instance method)">#<strong>default_embedding_model</strong>  &#x21d2; Object </a>
     
 
@@ -398,15 +423,15 @@ Configure via the Phronomy.configure block.</p>
       <pre class="lines">
 
 
-39
-40
-41
-42
-43
-44</pre>
+45
+46
+47
+48
+49
+50</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 39</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@recursion_limit</span> <span class='op'>=</span> <span class='int'>25</span>
@@ -425,9 +450,53 @@ Configure via the Phronomy.configure block.</p>
     <h2>Instance Attribute Details</h2>
     
       
-      <span id="default_embedding_model=-instance_method"></span>
+      <span id="before_completion=-instance_method"></span>
       <div class="method_details first">
-  <h3 class="signature first" id="default_embedding_model-instance_method">
+  <h3 class="signature first" id="before_completion-instance_method">
+  
+    #<strong>before_completion</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Global before_completion hook callable (Proc / lambda).
+Called before every LLM request across all agents.
+Receives a <span class='object_link'><a href="Agent/BeforeCompletionContext.html" title="Phronomy::Agent::BeforeCompletionContext (class)">Agent::BeforeCompletionContext</a></span>; must return a Hash
+of params to merge, or nil to pass through unchanged.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+40
+41
+42</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 40</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_before_completion'>before_completion</span>
+  <span class='ivar'>@before_completion</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="default_embedding_model=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="default_embedding_model-instance_method">
   
     #<strong>default_embedding_model</strong>  &#x21d2; <tt>Object</tt> 
   
@@ -698,12 +767,12 @@ Requires ActiveJob to be available.</p>
       <pre class="lines">
 
 
-37
-38
-39</pre>
+43
+44
+45</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 37</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 43</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_recursion_limit'>recursion_limit</span>
   <span class='ivar'>@recursion_limit</span>
@@ -760,7 +829,7 @@ Requires ActiveJob to be available.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 05:05:13 2026 by
+  Generated on Sun May 10 08:07:48 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
