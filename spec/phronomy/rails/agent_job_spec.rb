@@ -107,6 +107,27 @@ RSpec.describe Phronomy::Rails::AgentJob do
     end
   end
 
+  describe "#perform — class validation" do
+    it "broadcasts :error when agent_class_name is not a valid constant" do
+      described_class.new.perform(
+        "NonExistentAgentClass99", "Hello",
+        channel: "AgentChannel", stream: stream_id
+      )
+      error_broadcast = ActionCable.server.broadcasts.find { |b| b[:payload][:type] == "error" }
+      expect(error_broadcast).not_to be_nil
+    end
+
+    it "broadcasts :error when agent_class_name resolves to a non-Agent::Base subclass" do
+      stub_const("NotAnAgent", Class.new)
+      described_class.new.perform(
+        "NotAnAgent", "Hello",
+        channel: "AgentChannel", stream: stream_id
+      )
+      error_broadcast = ActionCable.server.broadcasts.find { |b| b[:payload][:type] == "error" }
+      expect(error_broadcast).not_to be_nil
+    end
+  end
+
   describe "#perform — error rescue" do
     before { stub_const("SpecJobAgentErr", agent_klass) }
 

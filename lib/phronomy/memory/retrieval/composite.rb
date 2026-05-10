@@ -29,15 +29,16 @@ module Phronomy
         # Merge results from all child retrievals, deduplicating by role+content.
         # System messages are sorted to the front; others preserve insertion order.
         #
-        # @param messages [Array]       full chronological history
-        # @param query    [String, nil] forwarded to each child retrieval
+        # @param messages  [Array]        full chronological history
+        # @param query     [String, nil]  forwarded to each child retrieval
+        # @param thread_id [String, nil]  forwarded to each child retrieval
         # @return [Array]
-        def select(messages, query: nil)
+        def select(messages, query: nil, thread_id: nil)
           all_messages = []
           seen = {}
 
           @sources.each do |source|
-            source[:retrieval].select(messages, query: query).each do |msg|
+            source[:retrieval].select(messages, query: query, thread_id: thread_id).each do |msg|
               key = "#{msg.role}:#{msg.content}"
               next if seen[key]
 

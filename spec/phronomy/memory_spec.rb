@@ -47,8 +47,8 @@ RSpec.describe Phronomy::Memory::Retrieval::Composite do
     end
 
     it "passes query keyword to each child retrieval" do
-      expect(source_a).to receive(:select).with(user_msgs, query: "hi")
-      expect(source_b).to receive(:select).with(user_msgs, query: "hi")
+      expect(source_a).to receive(:select).with(user_msgs, query: "hi", thread_id: nil)
+      expect(source_b).to receive(:select).with(user_msgs, query: "hi", thread_id: nil)
       composite.select(user_msgs, query: "hi")
     end
   end

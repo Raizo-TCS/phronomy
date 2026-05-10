@@ -83,6 +83,8 @@ module Phronomy
         uri = URI.parse("#{@host}/api/public/ingestion")
         http = Net::HTTP.new(uri.host, uri.port)
         http.use_ssl = (uri.scheme == "https")
+        http.open_timeout = 3
+        http.read_timeout = 5
         req = Net::HTTP::Post.new(uri.request_uri)
         req["Content-Type"] = "application/json"
         req["Authorization"] = "Basic #{Base64.strict_encode64("#{@public_key}:#{@secret_key}")}"

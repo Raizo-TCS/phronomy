@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "securerandom"
+
 module Phronomy
   module Agent
     # Represents a transfer edge from one agent to another.
@@ -25,6 +27,8 @@ module Phronomy
         klass_name = target_agent.class.name&.split("::")&.last || "Agent"
         @tool_name = "transfer_to_#{snake_case(klass_name)}"
         @description = description || "Transfer the conversation to #{klass_name}."
+        # Use a UUID so that two handoffs targeting the same class remain distinct.
+        @uuid = SecureRandom.uuid
       end
 
       # Builds an anonymous Phronomy::Tool::Base subclass for this handoff.
@@ -43,7 +47,7 @@ module Phronomy
       # The sentinel string embedded in the tool result.
       # @return [String]
       def sentinel
-        "#{SENTINEL_PREFIX}:#{target_agent.class.name}"
+        "#{SENTINEL_PREFIX}:#{target_agent.class.name}:#{@uuid}"
       end
 
       private

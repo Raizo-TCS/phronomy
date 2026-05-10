@@ -134,6 +134,25 @@ RSpec.describe Phronomy::TrustPipeline do
     end
   end
 
+  describe "compiled_graph caching" do
+    subject(:pipeline) do
+      described_class.new(
+        draft_agent: good_draft,
+        review_agent: approve,
+        confidence_threshold: 0.7,
+        max_iterations: 3
+      )
+    end
+
+    it "returns the same compiled graph object on repeated invocations" do
+      pipeline.invoke("question one")
+      graph_first = pipeline.send(:compiled_graph)
+      pipeline.invoke("question two")
+      graph_second = pipeline.send(:compiled_graph)
+      expect(graph_first).to equal(graph_second)
+    end
+  end
+
   describe "Result" do
     it "exposes trusted? as an alias for trusted" do
       r = Phronomy::TrustPipeline::Result.new(

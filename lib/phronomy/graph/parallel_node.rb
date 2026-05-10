@@ -82,7 +82,13 @@ module Phronomy
             next if t.join([remaining, 0].max)
 
             # Thread did not finish within the time limit.
-            threads.each(&:kill)
+            # Use Thread#raise instead of Thread#kill so that ensure blocks in
+            # branches (DB connection return, Mutex release, etc.) are executed.
+            timeout_error = Phronomy::Graph::TimeoutError.new(
+              "parallel branch timed out after #{@timeout}s"
+            )
+            threads.each { |thr| thr.raise(timeout_error) unless thr.stop? }
+            threads.each { |thr| thr.join(0.1) rescue nil }
             raise Phronomy::Graph::TimeoutError,
               "parallel branch timed out after #{@timeout}s"
           end
@@ -108,7 +114,11 @@ module Phronomy
               next nil
             end
             if joined.nil?
-              t.kill
+              timeout_error = Phronomy::Graph::TimeoutError.new(
+                "branch timed out after #{@timeout}s"
+              )
+              t.raise(timeout_error) unless t.stop?
+              t.join(0.1) rescue nil
               errors << Phronomy::Graph::TimeoutError.new(
                 "branch timed out after #{@timeout}s"
               )

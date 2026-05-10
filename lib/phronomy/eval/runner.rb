@@ -32,9 +32,9 @@ module Phronomy
           latency_ms = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond) - t0
 
           actual, usage = extract(result)
-          score = @scorer.score(actual: actual, expected: eval_case.expected, input: eval_case.input)
+          score, score_error = score_safely(@scorer, actual: actual, expected: eval_case.expected, input: eval_case.input)
 
-          EvalResult.new(eval_case: eval_case, actual: actual, score: score, usage: usage, latency_ms: latency_ms)
+          EvalResult.new(eval_case: eval_case, actual: actual, score: score, usage: usage, latency_ms: latency_ms, error: score_error)
         end
       end
 
@@ -47,6 +47,13 @@ module Phronomy
         else
           [result.to_s, nil]
         end
+      end
+
+      # Calls the scorer and returns [score, error]. On failure, returns [0.0, exception].
+      def score_safely(scorer, **kwargs)
+        [scorer.score(**kwargs), nil]
+      rescue => e
+        [0.0, e]
       end
     end
   end

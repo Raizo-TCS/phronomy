@@ -32,5 +32,28 @@ RSpec.describe Phronomy::Eval::EvalResult do
       expect(result.usage).to eq(usage)
       expect(result.latency_ms).to eq(42)
     end
+
+    it "defaults error to nil" do
+      result = described_class.new(eval_case: eval_case, actual: "a", score: 1.0, usage: nil, latency_ms: 5)
+      expect(result.error).to be_nil
+    end
+
+    it "stores an error when provided" do
+      err = RuntimeError.new("scorer blew up")
+      result = described_class.new(eval_case: eval_case, actual: "a", score: 0.0, usage: nil, latency_ms: 5, error: err)
+      expect(result.error).to eq(err)
+    end
+  end
+
+  describe "#scorer_error?" do
+    it "returns false when error is nil" do
+      result = described_class.new(eval_case: eval_case, actual: "a", score: 1.0, usage: nil, latency_ms: 5)
+      expect(result.scorer_error?).to be false
+    end
+
+    it "returns true when error is set" do
+      result = described_class.new(eval_case: eval_case, actual: "a", score: 0.0, usage: nil, latency_ms: 5, error: RuntimeError.new("boom"))
+      expect(result.scorer_error?).to be true
+    end
   end
 end

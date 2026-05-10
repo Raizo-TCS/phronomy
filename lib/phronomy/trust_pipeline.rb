@@ -82,6 +82,8 @@ module Phronomy
       @review_agent_class = review_agent
       @threshold = confidence_threshold.to_f
       @max_iterations = max_iterations.to_i
+      @graph_mutex = Mutex.new
+      @compiled_graph = nil
     end
 
     # Run the pipeline.
@@ -90,7 +92,7 @@ module Phronomy
     # @param config [Hash]   forwarded to the underlying agents (e.g. thread_id)
     # @return [Result]
     def invoke(input, config: {})
-      app = build_graph.compile
+      app = compiled_graph
       state = app.invoke({input: input}, config: config)
       confidence = combined_confidence(state)
       Result.new(
@@ -107,6 +109,16 @@ module Phronomy
 
     def combined_confidence(state)
       [(state.self_score || 0.0).to_f, (state.review_score || 0.0).to_f].min
+    end
+
+    # Returns the compiled graph, building and caching it on first call.
+    # Thread-safe via double-checked locking.
+    def compiled_graph
+      return @compiled_graph if @compiled_graph
+
+      @graph_mutex.synchronize do
+        @compiled_graph ||= build_graph.compile
+      end
     end
 
     def build_graph

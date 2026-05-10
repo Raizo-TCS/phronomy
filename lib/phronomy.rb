@@ -35,6 +35,47 @@ module Phronomy
     end
   end
 
+  # Namespace for graph-related classes (StateGraph, State, ParallelNode, …).
+  # Also serves as the registry for State classes that may be serialized to
+  # external stores (Redis, DB). Call +register_state_class+ at application
+  # startup so that only known classes can be deserialized.
+  module Graph
+    @state_class_registry = nil
+    @registry_mutex = Mutex.new
+
+    class << self
+      # Register one or more State classes that are allowed to be deserialized
+      # by StateStore backends. When at least one class is registered, only
+      # registered classes will be accepted by +StateStore::Base#safe_state_class+.
+      #
+      # Call this once at application startup (e.g. in a Rails initializer).
+      #
+      # @param classes [Array<Class>] classes including Phronomy::Graph::State
+      # @example
+      #   Phronomy::Graph.register_state_class(MyWorkflowState, OtherState)
+      def register_state_class(*classes)
+        @registry_mutex.synchronize do
+          @state_class_registry ||= {}
+          classes.each do |klass|
+            raise ArgumentError, "#{klass.inspect} is not a Class" unless klass.is_a?(Class)
+            @state_class_registry[klass.name] = klass
+          end
+        end
+      end
+
+      # Returns the current registry Hash, or nil when no class has been registered.
+      # @return [Hash{String => Class}, nil]
+      def state_class_registry
+        @state_class_registry
+      end
+
+      # Clears the registry. Primarily used in tests.
+      def reset_state_class_registry!
+        @registry_mutex.synchronize { @state_class_registry = nil }
+      end
+    end
+  end
+
   class << self
     def configuration
       @configuration ||= Configuration.new

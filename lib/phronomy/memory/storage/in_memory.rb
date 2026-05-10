@@ -11,6 +11,7 @@ module Phronomy
       #   manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)
       class InMemory < Base
         def initialize
+          @mutex = Mutex.new
           @store = {}
           @raw_store = {}       # thread_id => [{seq:, message:}, ...]
           @compaction_store = {} # thread_id => [{start_seq:, end_seq:, summary_text:}, ...]
@@ -23,20 +24,22 @@ module Phronomy
         # @param thread_id [String]
         # @return [Array]
         def load(thread_id:)
-          (@store[thread_id] || []).dup
+          @mutex.synchronize { (@store[thread_id] || []).dup }
         end
 
         # @param thread_id [String]
         # @param messages  [Array]
         def save(thread_id:, messages:)
-          @store[thread_id] = messages.dup
+          @mutex.synchronize { @store[thread_id] = messages.dup }
         end
 
         # @param thread_id [String]
         def clear(thread_id:)
-          @store.delete(thread_id)
-          clear_raw(thread_id: thread_id)
-          clear_compactions(thread_id: thread_id)
+          @mutex.synchronize do
+            @store.delete(thread_id)
+            @raw_store.delete(thread_id)
+            @compaction_store.delete(thread_id)
+          end
         end
 
         # -----------------------------------------------------------------------
@@ -48,21 +51,23 @@ module Phronomy
         # @param starting_seq [Integer]
         def append_raw(thread_id:, messages:, starting_seq:)
           now = Time.now
-          @raw_store[thread_id] ||= []
-          messages.each_with_index do |msg, i|
-            @raw_store[thread_id] << {seq: starting_seq + i, message: msg, recorded_at: now}
+          @mutex.synchronize do
+            @raw_store[thread_id] ||= []
+            messages.each_with_index do |msg, i|
+              @raw_store[thread_id] << {seq: starting_seq + i, message: msg, recorded_at: now}
+            end
           end
         end
 
         # @param thread_id [String]
         # @return [Array<Hash>]
         def load_raw(thread_id:)
-          (@raw_store[thread_id] || []).dup
+          @mutex.synchronize { (@raw_store[thread_id] || []).dup }
         end
 
         # @param thread_id [String]
         def clear_raw(thread_id:)
-          @raw_store.delete(thread_id)
+          @mutex.synchronize { @raw_store.delete(thread_id) }
         end
 
         # -----------------------------------------------------------------------
@@ -74,19 +79,21 @@ module Phronomy
         # @param end_seq      [Integer]
         # @param summary_text [String]
         def save_compaction(thread_id:, start_seq:, end_seq:, summary_text:)
-          @compaction_store[thread_id] ||= []
-          @compaction_store[thread_id] << {start_seq: start_seq, end_seq: end_seq, summary_text: summary_text}
+          @mutex.synchronize do
+            @compaction_store[thread_id] ||= []
+            @compaction_store[thread_id] << {start_seq: start_seq, end_seq: end_seq, summary_text: summary_text}
+          end
         end
 
         # @param thread_id [String]
         # @return [Array<Hash>]
         def load_compactions(thread_id:)
-          (@compaction_store[thread_id] || []).dup
+          @mutex.synchronize { (@compaction_store[thread_id] || []).dup }
         end
 
         # @param thread_id [String]
         def clear_compactions(thread_id:)
-          @compaction_store.delete(thread_id)
+          @mutex.synchronize { @compaction_store.delete(thread_id) }
         end
 
         # Remove raw messages recorded before +older_than+ for this thread.
@@ -94,9 +101,11 @@ module Phronomy
         # @param thread_id  [String]
         # @param older_than [Time]
         def purge_older_than(thread_id:, older_than:)
-          return unless @raw_store[thread_id]
+          @mutex.synchronize do
+            next unless @raw_store[thread_id]
 
-          @raw_store[thread_id].reject! { |entry| entry[:recorded_at] && entry[:recorded_at] < older_than }
+            @raw_store[thread_id].reject! { |entry| entry[:recorded_at] && entry[:recorded_at] < older_than }
+          end
         end
       end
     end

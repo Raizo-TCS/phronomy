@@ -53,4 +53,36 @@ RSpec.describe Phronomy::Memory::Retrieval::Semantic do
       retrieval.clear_index(thread_id: "t1")
     end
   end
+
+  describe "max_index_size eviction" do
+    subject(:bounded_retrieval) do
+      described_class.new(embeddings: embeddings, store: store, k: 10, max_index_size: 2)
+    end
+
+    it "evicts the oldest entry when the index exceeds max_index_size" do
+      bounded_retrieval.index(thread_id: "t1", messages: [make_msg("first")])
+      bounded_retrieval.index(thread_id: "t1", messages: [make_msg("second")])
+      bounded_retrieval.index(thread_id: "t1", messages: [make_msg("third")])
+
+      # Store should contain at most 2 entries (oldest evicted)
+      expect(store.size).to eq(2)
+    end
+
+    it "keeps the most recent entries after eviction" do
+      bounded_retrieval.index(thread_id: "t1", messages: [make_msg("alpha")])
+      bounded_retrieval.index(thread_id: "t1", messages: [make_msg("beta")])
+      bounded_retrieval.index(thread_id: "t1", messages: [make_msg("gamma")])
+
+      results = bounded_retrieval.select([make_msg("gamma")], query: "gamma", thread_id: "t1")
+      contents = results.map(&:content)
+      expect(contents).to include("gamma")
+      expect(contents).not_to include("alpha")
+    end
+
+    it "does not evict when under the limit" do
+      bounded_retrieval.index(thread_id: "t1", messages: [make_msg("a")])
+      bounded_retrieval.index(thread_id: "t1", messages: [make_msg("b")])
+      expect(store.size).to eq(2)
+    end
+  end
 end

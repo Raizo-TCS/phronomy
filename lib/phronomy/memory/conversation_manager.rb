@@ -66,7 +66,7 @@ module Phronomy
       def load(thread_id:, query: nil)
         @storage.purge_older_than(thread_id: thread_id, older_than: Time.now - @ttl) if @ttl
         messages = reconstruct(thread_id)
-        @retrieval.select(messages, query: query)
+        @retrieval.select(messages, query: query, thread_id: thread_id)
       end
 
       # Persist new messages for a thread and optionally apply compression.

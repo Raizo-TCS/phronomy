@@ -112,7 +112,8 @@ RSpec.describe Phronomy::Agent::Runner do
 
     context "when a handoff is triggered once" do
       it "routes to the target agent and returns its result" do
-        sentinel = "#{Phronomy::Agent::Handoff::SENTINEL_PREFIX}:#{target_klass.name}"
+        runner = described_class.new(agents: [entry, target], routes: {entry => [target]})
+        sentinel = runner.instance_variable_get(:@sentinel_map).keys.first
         tool_msg = double("tool_msg", role: :tool, content: sentinel)
 
         entry_result = {output: "Transferring.", messages: [tool_msg], usage: Phronomy::TokenUsage.zero}
@@ -121,7 +122,6 @@ RSpec.describe Phronomy::Agent::Runner do
         allow(entry).to receive(:invoke).and_return(entry_result)
         allow(target).to receive(:invoke).and_return(target_result)
 
-        runner = described_class.new(agents: [entry, target], routes: {entry => [target]})
         result = runner.invoke("I need help.")
         expect(result[:agent]).to equal(target)
         expect(result[:output]).to eq("I can help.")
@@ -130,8 +130,15 @@ RSpec.describe Phronomy::Agent::Runner do
 
     context "when MAX_HANDOFFS is exceeded" do
       it "raises Phronomy::HandoffError" do
-        sentinel1 = "#{Phronomy::Agent::Handoff::SENTINEL_PREFIX}:#{target_klass.name}"
-        sentinel2 = "#{Phronomy::Agent::Handoff::SENTINEL_PREFIX}:#{entry_klass.name}"
+        runner = described_class.new(
+          agents: [entry, target],
+          routes: {entry => [target], target => [entry]}
+        )
+        sentinel_map = runner.instance_variable_get(:@sentinel_map)
+        sentinel1 = sentinel_map.keys.find { |k| k.include?(target_klass.name.to_s.split("::").last.to_s) } ||
+          sentinel_map.keys.first
+        sentinel2 = sentinel_map.keys.find { |k| k.include?(entry_klass.name.to_s.split("::").last.to_s) } ||
+          sentinel_map.keys.last
 
         msg1 = double("msg1", role: :tool, content: sentinel1)
         msg2 = double("msg2", role: :tool, content: sentinel2)
@@ -143,15 +150,30 @@ RSpec.describe Phronomy::Agent::Runner do
           {output: "y", messages: [msg2], usage: Phronomy::TokenUsage.zero}
         )
 
-        runner = described_class.new(
-          agents: [entry, target],
-          routes: {entry => [target], target => [entry]}
-        )
-
         stub_const("Phronomy::Agent::Runner::MAX_HANDOFFS", 1)
         expect { runner.invoke("ping") }.to raise_error(Phronomy::HandoffError, /exceeded/i)
       end
     end
+  end
+end
+
+RSpec.describe "Phronomy::Agent::Handoff sentinel uniqueness" do
+  let(:target) do
+    Class.new(Phronomy::Agent::Base) do
+      model "stub-model"
+      provider :openai
+    end.new
+  end
+
+  it "generates a different sentinel for each Handoff instance pointing at the same target" do
+    h1 = Phronomy::Agent::Handoff.new(target_agent: target)
+    h2 = Phronomy::Agent::Handoff.new(target_agent: target)
+    expect(h1.sentinel).not_to eq(h2.sentinel)
+  end
+
+  it "includes the target class name in the sentinel" do
+    handoff = Phronomy::Agent::Handoff.new(target_agent: target)
+    expect(handoff.sentinel).to include(target.class.name.to_s)
   end
 end
 

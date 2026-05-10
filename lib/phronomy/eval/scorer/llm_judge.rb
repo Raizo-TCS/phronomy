@@ -34,17 +34,22 @@ module Phronomy
 
         # @param model           [String]  RubyLLM model identifier
         # @param prompt_template [String]  format string with %<input>s, %<expected>s, %<actual>s
-        def initialize(model:, prompt_template: DEFAULT_PROMPT)
+        # @param raise_on_error  [Boolean] when true, re-raises scoring exceptions instead of
+        #   returning 0.0. Use this in batch eval pipelines where silent failures are unacceptable.
+        def initialize(model:, prompt_template: DEFAULT_PROMPT, raise_on_error: false)
           @model = model
           @prompt_template = prompt_template
+          @raise_on_error = raise_on_error
         end
 
-        # @return [Float] score in [0.0, 1.0]; 0.0 on any error
+        # @return [Float] score in [0.0, 1.0]; 0.0 on error when raise_on_error is false
         def score(actual:, expected:, input: nil)
           prompt = format(@prompt_template, input: input.to_s, expected: expected.to_s, actual: actual.to_s)
           response = RubyLLM.chat(model: @model).ask(prompt)
           response.content.to_s.strip.scan(/-?\d+\.?\d*/).first.to_f.clamp(0.0, 1.0)
         rescue => e
+          raise if @raise_on_error
+
           warn "[LlmJudge] Scoring failed: #{e.message}"
           0.0
         end

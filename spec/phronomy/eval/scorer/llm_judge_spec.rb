@@ -44,6 +44,24 @@ RSpec.describe Phronomy::Eval::Scorer::LlmJudge do
       # scan returns empty array → .first.to_f == 0.0
       expect(judge.score(actual: "a", expected: "a")).to eq(0.0)
     end
+
+    context "when raise_on_error: true" do
+      subject(:strict_judge) { described_class.new(model: "test-model", raise_on_error: true) }
+
+      it "re-raises the exception instead of returning 0.0" do
+        allow(RubyLLM).to receive(:chat).and_raise(RuntimeError, "network error")
+        expect { strict_judge.score(actual: "a", expected: "a") }
+          .to raise_error(RuntimeError, "network error")
+      end
+    end
+
+    context "when raise_on_error: false (default)" do
+      it "returns 0.0 on error and does not raise" do
+        allow(RubyLLM).to receive(:chat).and_raise(RuntimeError, "timeout")
+        expect { judge.score(actual: "a", expected: "a") }.not_to raise_error
+        expect(judge.score(actual: "a", expected: "a")).to eq(0.0)
+      end
+    end
   end
 
   describe "custom prompt template" do

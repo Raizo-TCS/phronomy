@@ -72,4 +72,34 @@ RSpec.describe Phronomy::Eval::Runner do
       expect { described_class.new.run(dataset, callable) }.to raise_error(RuntimeError, "boom")
     end
   end
+
+  describe "#run with a scorer that raises" do
+    let(:raising_scorer) do
+      scorer = double("Scorer")
+      allow(scorer).to receive(:score).and_raise(RuntimeError, "LLM unavailable")
+      scorer
+    end
+
+    it "captures the scorer exception in EvalResult#error instead of propagating" do
+      runner = described_class.new(scorer: raising_scorer)
+      callable = ->(_input) { "answer" }
+      results = runner.run(dataset, callable)
+      expect(results.all?(&:scorer_error?)).to be true
+    end
+
+    it "sets score to 0.0 when scorer raises" do
+      runner = described_class.new(scorer: raising_scorer)
+      callable = ->(_input) { "answer" }
+      results = runner.run(dataset, callable)
+      expect(results.map(&:score)).to all(eq(0.0))
+    end
+
+    it "stores the exception instance in error" do
+      runner = described_class.new(scorer: raising_scorer)
+      callable = ->(_input) { "answer" }
+      results = runner.run(dataset, callable)
+      expect(results.first.error).to be_a(RuntimeError)
+      expect(results.first.error.message).to eq("LLM unavailable")
+    end
+  end
 end

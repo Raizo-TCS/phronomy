@@ -61,9 +61,23 @@ module Phronomy
       end
 
       # Resolves and validates a state class name.
-      # Raises ArgumentError if the name does not resolve to a class that
-      # includes Phronomy::Graph::State, preventing unsafe deserialization.
+      # When a registry has been configured via +Phronomy::Graph.register_state_class+,
+      # only registered classes are accepted — this prevents unintended autoloading
+      # of arbitrary files from an untrusted class name stored in Redis/DB.
+      # When no registry is configured, falls back to Object.const_get with a check
+      # that the resolved class includes Phronomy::Graph::State.
       def safe_state_class(class_name)
+        registry = Phronomy::Graph.state_class_registry
+        if registry
+          klass = registry[class_name.to_s]
+          unless klass
+            raise ArgumentError,
+              "Unregistered state class: #{class_name.inspect}. " \
+              "Call Phronomy::Graph.register_state_class(#{class_name}) at startup."
+          end
+          return klass
+        end
+
         klass = Object.const_get(class_name.to_s)
         unless klass.is_a?(Class) && klass.include?(Phronomy::Graph::State)
           raise ArgumentError, "Invalid state class: #{class_name.inspect}"

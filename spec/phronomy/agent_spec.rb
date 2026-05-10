@@ -504,6 +504,42 @@ RSpec.describe Phronomy::Agent::ReactAgent do
     end
   end
 
+  describe "iterations_exhausted flag" do
+    class ExhaustedReactAgent < Phronomy::Agent::ReactAgent
+      model "test-model"
+      max_iterations 1
+    end
+
+    # A chat double that always returns a tool call (never terminates)
+    let(:always_tool_msg) do
+      double("AlwaysToolMsg", content: nil,
+        tool_calls: [double("tc", name: "noop")],
+        tokens: double("Tok", input: 1, output: 1, cached: 0, cache_creation: 0))
+    end
+    let(:stuck_chat) do
+      dbl = double("StuckChat")
+      allow(dbl).to receive(:with_instructions).and_return(dbl)
+      allow(dbl).to receive(:with_tool).and_return(dbl)
+      allow(dbl).to receive(:ask).and_return(always_tool_msg)
+      allow(dbl).to receive(:messages).and_return([always_tool_msg])
+      allow(dbl).to receive(:last_message).and_return(always_tool_msg)
+      allow(dbl).to receive(:complete).and_return(always_tool_msg)
+      allow(dbl).to receive(:add_message)
+      dbl
+    end
+
+    it "returns iterations_exhausted: false on normal completion" do
+      result = SimpleReactAgent.new.invoke("Hello")
+      expect(result[:iterations_exhausted]).to be false
+    end
+
+    it "returns iterations_exhausted: true when max_iterations is reached" do
+      allow(RubyLLM).to receive(:chat).and_return(stuck_chat)
+      result = ExhaustedReactAgent.new.invoke("Hello")
+      expect(result[:iterations_exhausted]).to be true
+    end
+  end
+
   describe "caller identity propagation to tracer" do
     subject(:agent) { SimpleReactAgent.new }
     let(:spy_tracer) do

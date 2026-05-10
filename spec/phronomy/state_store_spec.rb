@@ -113,6 +113,47 @@ RSpec.describe Phronomy::StateStore::InMemory do
   end
 end
 
+RSpec.describe "Phronomy::Graph class registry" do
+  after { Phronomy::Graph.reset_state_class_registry! }
+
+  describe ".register_state_class" do
+    it "adds the class to the registry keyed by name" do
+      Phronomy::Graph.register_state_class(StoreTestState)
+      expect(Phronomy::Graph.state_class_registry[StoreTestState.name]).to eq(StoreTestState)
+    end
+
+    it "accepts multiple classes at once" do
+      Phronomy::Graph.register_state_class(StoreTestState, StoreTestState)
+      expect(Phronomy::Graph.state_class_registry).to have_key(StoreTestState.name)
+    end
+  end
+
+  describe ".reset_state_class_registry!" do
+    it "clears the registry back to nil" do
+      Phronomy::Graph.register_state_class(StoreTestState)
+      Phronomy::Graph.reset_state_class_registry!
+      expect(Phronomy::Graph.state_class_registry).to be_nil
+    end
+  end
+
+  describe "StateStore::Base#safe_state_class with registry" do
+    let(:store_instance) { Phronomy::StateStore::InMemory.new }
+
+    it "allows a registered class" do
+      Phronomy::Graph.register_state_class(StoreTestState)
+      klass = store_instance.send(:safe_state_class, StoreTestState.name)
+      expect(klass).to eq(StoreTestState)
+    end
+
+    it "raises ArgumentError for an unregistered class when registry is present" do
+      Phronomy::Graph.register_state_class(StoreTestState)
+      expect {
+        store_instance.send(:safe_state_class, "UnregisteredClass")
+      }.to raise_error(ArgumentError, /Unregistered state class/)
+    end
+  end
+end
+
 RSpec.describe "CompiledGraph and StateStore integration" do
   def build_compiled
     g = Phronomy::Graph::StateGraph.new(StoreTestState)

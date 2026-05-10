@@ -70,6 +70,22 @@ RSpec.describe Phronomy::Tracing::LangfuseTracer do
       expect(body["endTime"]).to be_a(String)
     end
 
+    it "sets open_timeout and read_timeout on the HTTP connection" do
+      observed_timeouts = []
+      stub_request(:post, "#{host}/api/public/ingestion")
+        .to_return(status: 200, body: "{}")
+
+      # Intercept Net::HTTP#open_timeout= and read_timeout= calls
+      allow_any_instance_of(Net::HTTP).to receive(:open_timeout=) { |_inst, v| observed_timeouts << [:open, v] }
+      allow_any_instance_of(Net::HTTP).to receive(:read_timeout=) { |_inst, v| observed_timeouts << [:read, v] }
+
+      span = tracer.start_span("timed_request")
+      tracer.finish_span(span, output: "ok")
+
+      expect(observed_timeouts).to include([:open, 3])
+      expect(observed_timeouts).to include([:read, 5])
+    end
+
     it "includes the output in the request body on success" do
       posted_bodies = []
       stub_request(:post, "#{host}/api/public/ingestion")

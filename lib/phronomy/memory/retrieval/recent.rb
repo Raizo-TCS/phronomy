@@ -22,10 +22,11 @@ module Phronomy
 
         # Returns the last k*2 messages from the history.
         #
-        # @param messages [Array]       full chronological history
-        # @param query    [String, nil] unused for recency-based retrieval
+        # @param messages  [Array]        full chronological history
+        # @param query     [String, nil]  unused for recency-based retrieval
+        # @param thread_id [String, nil]  unused for recency-based retrieval
         # @return [Array]
-        def select(messages, query: nil)
+        def select(messages, query: nil, thread_id: nil)
           messages.last(@k * 2)
         end
       end

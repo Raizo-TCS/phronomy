@@ -25,6 +25,8 @@ module Phronomy
     class AgentJob < ::ActiveJob::Base
       # @param agent_class_name [String]
       #   The constantize-able class name of the agent to run (e.g. "MyAgent").
+      #   **Security**: only classes that are subclasses of +Phronomy::Agent::Base+
+      #   are accepted. Never pass a value derived from user-controlled input.
       # @param input [String, Hash]
       #   User input forwarded unchanged to the agent's +#stream+ method.
       # @param channel [String]
@@ -35,7 +37,8 @@ module Phronomy
       #   Configuration forwarded to the agent's +#stream+ call. Both symbol and
       #   string keys are accepted; all keys are converted to symbols before use.
       def perform(agent_class_name, input, channel:, stream:, config: {})
-        agent = Object.const_get(agent_class_name).new
+        klass = resolve_agent_class!(agent_class_name)
+        agent = klass.new
         agent.stream(input, config: config.transform_keys(&:to_sym)) do |event|
           ActionCable.server.broadcast(stream, build_payload(event))
         end
@@ -44,6 +47,19 @@ module Phronomy
       end
 
       private
+
+      # Resolves and validates the agent class name.
+      # Raises ArgumentError when the name does not resolve to a subclass of
+      # Phronomy::Agent::Base, preventing arbitrary class instantiation.
+      def resolve_agent_class!(class_name)
+        klass = Object.const_get(class_name.to_s)
+        unless klass.is_a?(Class) && klass < Phronomy::Agent::Base
+          raise ArgumentError, "#{class_name.inspect} is not a Phronomy::Agent::Base subclass"
+        end
+        klass
+      rescue NameError
+        raise ArgumentError, "Unknown agent class: #{class_name.inspect}"
+      end
 
       def build_payload(event)
         case event.type
