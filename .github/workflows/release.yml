@@ -81,7 +81,7 @@ jobs:
           files: '*.gem'
 
       - name: Configure RubyGems credentials (OIDC Trusted Publisher)
-        uses: rubygems/configure-rubygems-credentials@v1
+        uses: rubygems/configure-rubygems-credentials@v1.0.0
 
       - name: Publish to RubyGems.org
         run: gem push *.gem
