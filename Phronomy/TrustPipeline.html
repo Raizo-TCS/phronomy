@@ -358,7 +358,9 @@ the result as untrusted when the threshold was not reached.</p>
 82
 83
 84
-85</pre>
+85
+86
+87</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 78</span>
@@ -370,6 +372,8 @@ the result as untrusted when the threshold was not reached.</p>
   <span class='ivar'>@review_agent_class</span> <span class='op'>=</span> <span class='id identifier rubyid_review_agent'>review_agent</span>
   <span class='ivar'>@threshold</span> <span class='op'>=</span> <span class='id identifier rubyid_confidence_threshold'>confidence_threshold</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span>
   <span class='ivar'>@max_iterations</span> <span class='op'>=</span> <span class='id identifier rubyid_max_iterations'>max_iterations</span><span class='period'>.</span><span class='id identifier rubyid_to_i'>to_i</span>
+  <span class='ivar'>@graph_mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
+  <span class='ivar'>@compiled_graph</span> <span class='op'>=</span> <span class='kw'>nil</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -454,8 +458,6 @@ the result as untrusted when the threshold was not reached.</p>
       <pre class="lines">
 
 
-92
-93
 94
 95
 96
@@ -466,13 +468,15 @@ the result as untrusted when the threshold was not reached.</p>
 101
 102
 103
-104</pre>
+104
+105
+106</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 92</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 94</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_app'>app</span> <span class='op'>=</span> <span class='id identifier rubyid_build_graph'>build_graph</span><span class='period'>.</span><span class='id identifier rubyid_compile'>compile</span>
+  <span class='id identifier rubyid_app'>app</span> <span class='op'>=</span> <span class='id identifier rubyid_compiled_graph'>compiled_graph</span>
   <span class='id identifier rubyid_state'>state</span> <span class='op'>=</span> <span class='id identifier rubyid_app'>app</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='lbrace'>{</span><span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_confidence'>confidence</span> <span class='op'>=</span> <span class='id identifier rubyid_combined_confidence'>combined_confidence</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="TrustPipeline/Result.html" title="Phronomy::TrustPipeline::Result (class)">Result</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::TrustPipeline#initialize (method)">new</a></span></span><span class='lparen'>(</span>
@@ -494,7 +498,7 @@ the result as untrusted when the threshold was not reached.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 11:30:45 2026 by
+  Generated on Sun May 10 12:54:37 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

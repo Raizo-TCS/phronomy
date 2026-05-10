@@ -213,7 +213,9 @@ real time.</p>
       
       
         &mdash;
-        <div class='inline'><p>The constantize-able class name of the agent to run (e.g. &quot;MyAgent&quot;).</p></div>
+        <div class='inline'><p>The constantize-able class name of the agent to run (e.g. &quot;MyAgent&quot;).
+<strong>Security</strong>: only classes that are subclasses of <code>Phronomy::Agent::Base</code>
+are accepted. Never pass a value derived from user-controlled input.</p></div>
       
     </li>
   
@@ -285,20 +287,22 @@ string keys are accepted; all keys are converted to symbols before use.</p></div
       <pre class="lines">
 
 
-37
-38
 39
 40
 41
 42
 43
-44</pre>
+44
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/rails/agent_job.rb', line 37</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/rails/agent_job.rb', line 39</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_perform'>perform</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_class_name'>agent_class_name</span><span class='comma'>,</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>channel:</span><span class='comma'>,</span> <span class='label'>stream:</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='const'>Object</span><span class='period'>.</span><span class='id identifier rubyid_const_get'>const_get</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_class_name'>agent_class_name</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
+  <span class='id identifier rubyid_klass'>klass</span> <span class='op'>=</span> <span class='id identifier rubyid_resolve_agent_class!'>resolve_agent_class!</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_class_name'>agent_class_name</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='id identifier rubyid_klass'>klass</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_transform_keys'>transform_keys</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:to_sym</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_event'>event</span><span class='op'>|</span>
     <span class='const'>ActionCable</span><span class='period'>.</span><span class='id identifier rubyid_server'>server</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span><span class='lparen'>(</span><span class='id identifier rubyid_stream'>stream</span><span class='comma'>,</span> <span class='id identifier rubyid_build_payload'>build_payload</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
@@ -315,7 +319,7 @@ string keys are accepted; all keys are converted to symbols before use.</p></div
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 11:30:45 2026 by
+  Generated on Sun May 10 12:54:37 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

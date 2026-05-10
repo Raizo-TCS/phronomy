@@ -429,12 +429,14 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
 14
 15
 16
-17</pre>
+17
+18</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 13</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
+  <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@store</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
   <span class='ivar'>@raw_store</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>       <span class='comment'># thread_id =&gt; [{seq:, message:}, ...]
 </span>  <span class='ivar'>@compaction_store</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span> <span class='comment'># thread_id =&gt; [{start_seq:, end_seq:, summary_text:}, ...]
@@ -512,22 +514,26 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-49
-50
-51
 52
 53
 54
-55</pre>
+55
+56
+57
+58
+59
+60</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 52</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_append_raw'>append_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='comma'>,</span> <span class='label'>starting_seq:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_now'>now</span> <span class='op'>=</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span>
-  <span class='ivar'>@raw_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
-  <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_each_with_index'>each_with_index</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_msg'>msg</span><span class='comma'>,</span> <span class='id identifier rubyid_i'>i</span><span class='op'>|</span>
-    <span class='ivar'>@raw_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span><span class='label'>seq:</span> <span class='id identifier rubyid_starting_seq'>starting_seq</span> <span class='op'>+</span> <span class='id identifier rubyid_i'>i</span><span class='comma'>,</span> <span class='label'>message:</span> <span class='id identifier rubyid_msg'>msg</span><span class='comma'>,</span> <span class='label'>recorded_at:</span> <span class='id identifier rubyid_now'>now</span><span class='rbrace'>}</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='ivar'>@raw_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+    <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_each_with_index'>each_with_index</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_msg'>msg</span><span class='comma'>,</span> <span class='id identifier rubyid_i'>i</span><span class='op'>|</span>
+      <span class='ivar'>@raw_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span><span class='label'>seq:</span> <span class='id identifier rubyid_starting_seq'>starting_seq</span> <span class='op'>+</span> <span class='id identifier rubyid_i'>i</span><span class='comma'>,</span> <span class='label'>message:</span> <span class='id identifier rubyid_msg'>msg</span><span class='comma'>,</span> <span class='label'>recorded_at:</span> <span class='id identifier rubyid_now'>now</span><span class='rbrace'>}</span>
+    <span class='kw'>end</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -574,19 +580,23 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-36
 37
 38
 39
-40</pre>
+40
+41
+42
+43</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 36</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 37</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
-  <span class='ivar'>@store</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_clear_raw'>clear_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_clear_compactions'>clear_compactions</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='ivar'>@store</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+    <span class='ivar'>@raw_store</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+    <span class='ivar'>@compaction_store</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -632,15 +642,15 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-88
-89
-90</pre>
+95
+96
+97</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 88</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 95</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear_compactions'>clear_compactions</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
-  <span class='ivar'>@compaction_store</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@compaction_store</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -686,15 +696,15 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-64
-65
-66</pre>
+69
+70
+71</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 64</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 69</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear_raw'>clear_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
-  <span class='ivar'>@raw_store</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@raw_store</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -753,15 +763,15 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-25
 26
-27</pre>
+27
+28</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 25</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 26</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
-  <span class='lparen'>(</span><span class='ivar'>@store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='lparen'>(</span><span class='ivar'>@store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -820,15 +830,15 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-83
-84
-85</pre>
+90
+91
+92</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 83</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 90</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load_compactions'>load_compactions</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
-  <span class='lparen'>(</span><span class='ivar'>@compaction_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='lparen'>(</span><span class='ivar'>@compaction_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -887,15 +897,15 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-59
-60
-61</pre>
+64
+65
+66</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 59</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 64</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load_raw'>load_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
-  <span class='lparen'>(</span><span class='ivar'>@raw_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='lparen'>(</span><span class='ivar'>@raw_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -952,19 +962,23 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-96
-97
-98
-99
-100</pre>
+103
+104
+105
+106
+107
+108
+109</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 96</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 103</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_purge_older_than'>purge_older_than</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>older_than:</span><span class='rparen'>)</span>
-  <span class='kw'>return</span> <span class='kw'>unless</span> <span class='ivar'>@raw_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='kw'>next</span> <span class='kw'>unless</span> <span class='ivar'>@raw_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span>
 
-  <span class='ivar'>@raw_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_reject!'>reject!</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_entry'>entry</span><span class='op'>|</span> <span class='id identifier rubyid_entry'>entry</span><span class='lbracket'>[</span><span class='symbol'>:recorded_at</span><span class='rbracket'>]</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_entry'>entry</span><span class='lbracket'>[</span><span class='symbol'>:recorded_at</span><span class='rbracket'>]</span> <span class='op'>&lt;</span> <span class='id identifier rubyid_older_than'>older_than</span> <span class='rbrace'>}</span>
+    <span class='ivar'>@raw_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_reject!'>reject!</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_entry'>entry</span><span class='op'>|</span> <span class='id identifier rubyid_entry'>entry</span><span class='lbracket'>[</span><span class='symbol'>:recorded_at</span><span class='rbracket'>]</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_entry'>entry</span><span class='lbracket'>[</span><span class='symbol'>:recorded_at</span><span class='rbracket'>]</span> <span class='op'>&lt;</span> <span class='id identifier rubyid_older_than'>older_than</span> <span class='rbrace'>}</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1021,15 +1035,15 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-31
 32
-33</pre>
+33
+34</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 31</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 32</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='rparen'>)</span>
-  <span class='ivar'>@store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1108,17 +1122,21 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-76
-77
-78
-79</pre>
+81
+82
+83
+84
+85
+86</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 76</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 81</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save_compaction'>save_compaction</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>start_seq:</span><span class='comma'>,</span> <span class='label'>end_seq:</span><span class='comma'>,</span> <span class='label'>summary_text:</span><span class='rparen'>)</span>
-  <span class='ivar'>@compaction_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
-  <span class='ivar'>@compaction_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span><span class='label'>start_seq:</span> <span class='id identifier rubyid_start_seq'>start_seq</span><span class='comma'>,</span> <span class='label'>end_seq:</span> <span class='id identifier rubyid_end_seq'>end_seq</span><span class='comma'>,</span> <span class='label'>summary_text:</span> <span class='id identifier rubyid_summary_text'>summary_text</span><span class='rbrace'>}</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='ivar'>@compaction_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+    <span class='ivar'>@compaction_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span><span class='label'>start_seq:</span> <span class='id identifier rubyid_start_seq'>start_seq</span><span class='comma'>,</span> <span class='label'>end_seq:</span> <span class='id identifier rubyid_end_seq'>end_seq</span><span class='comma'>,</span> <span class='label'>summary_text:</span> <span class='id identifier rubyid_summary_text'>summary_text</span><span class='rbrace'>}</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1130,7 +1148,7 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 11:30:46 2026 by
+  Generated on Sun May 10 12:54:38 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

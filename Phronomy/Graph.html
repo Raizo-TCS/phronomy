@@ -80,15 +80,27 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/graph.rb<span class="defines">,<br>
-  lib/phronomy/graph/state.rb,<br> lib/phronomy/graph/state_graph.rb,<br> lib/phronomy/graph/parallel_node.rb,<br> lib/phronomy/graph/compiled_graph.rb</span>
+    <dd>lib/phronomy.rb<span class="defines">,<br>
+  lib/phronomy/graph.rb,<br> lib/phronomy/graph/state.rb,<br> lib/phronomy/graph/state_graph.rb,<br> lib/phronomy/graph/parallel_node.rb,<br> lib/phronomy/graph/compiled_graph.rb</span>
 
 </dd>
   </dl>
   
 </div>
 
-<h2>Defined Under Namespace</h2>
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>Namespace for graph-related classes (StateGraph, State, ParallelNode, …).
+Also serves as the registry for State classes that may be serialized to
+external stores (Redis, DB). Call <code>register_state_class</code> at application
+startup so that only known classes can be deserialized.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><h2>Defined Under Namespace</h2>
 <p class="children">
   
     
@@ -107,12 +119,267 @@
 
 
 
+  
+    <h2>
+      Class Method Summary
+      <small><a href="#" class="summary_toggle">collapse</a></small>
+    </h2>
 
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#register_state_class-class_method" title="register_state_class (class method)">.<strong>register_state_class</strong>(*classes)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Register one or more State classes that are allowed to be deserialized by StateStore backends.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#reset_state_class_registry!-class_method" title="reset_state_class_registry! (class method)">.<strong>reset_state_class_registry!</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Clears the registry.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#state_class_registry-class_method" title="state_class_registry (class method)">.<strong>state_class_registry</strong>  &#x21d2; Hash{String =&gt; Class}<sup>?</sup> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the current registry Hash, or nil when no class has been registered.</p></div></span>
+  
+</li>
+
+      
+    </ul>
+    
+  
+
+
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="register_state_class-class_method">
+  
+    .<strong>register_state_class</strong>(*classes)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Register one or more State classes that are allowed to be deserialized
+by StateStore backends. When at least one class is registered, only
+registered classes will be accepted by <code>StateStore::Base#safe_state_class</code>.</p>
+<p>Call this once at application startup (e.g. in a Rails initializer).</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="examples">
+    <h4 class="tag_title">Examples:</h4>
+    
+      
+      <pre class="example code"><code><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="" title="Phronomy::Graph (module)">Graph</a></span></span><span class='period'>.</span><span class='id identifier rubyid_register_state_class'>register_state_class</span><span class='lparen'>(</span><span class='const'>MyWorkflowState</span><span class='comma'>,</span> <span class='const'>OtherState</span><span class='rparen'>)</span></code></pre>
+    
+  </div>
+<p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>classes</span>
+      
+      
+        <span class='type'>(<tt>Array&lt;Class&gt;</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>classes including Phronomy::Graph::State</p></div>
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+56
+57
+58
+59
+60
+61
+62
+63
+64</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 56</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_register_state_class'>register_state_class</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_classes'>classes</span><span class='rparen'>)</span>
+  <span class='ivar'>@registry_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='ivar'>@state_class_registry</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+    <span class='id identifier rubyid_classes'>classes</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_klass'>klass</span><span class='op'>|</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_klass'>klass</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'> is not a Class</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_klass'>klass</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Class</span><span class='rparen'>)</span>
+      <span class='ivar'>@state_class_registry</span><span class='lbracket'>[</span><span class='id identifier rubyid_klass'>klass</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_klass'>klass</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="reset_state_class_registry!-class_method">
+  
+    .<strong>reset_state_class_registry!</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Clears the registry. Primarily used in tests.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+73
+74
+75</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 73</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_reset_state_class_registry!'>reset_state_class_registry!</span>
+  <span class='ivar'>@registry_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@state_class_registry</span> <span class='op'>=</span> <span class='kw'>nil</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="state_class_registry-class_method">
+  
+    .<strong>state_class_registry</strong>  &#x21d2; <tt>Hash{String =&gt; Class}</tt><sup>?</sup> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the current registry Hash, or nil when no class has been registered.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Hash{String =&gt; Class}</tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+68
+69
+70</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 68</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_state_class_registry'>state_class_registry</span>
+  <span class='ivar'>@state_class_registry</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
 
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 11:30:44 2026 by
+  Generated on Sun May 10 12:54:36 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

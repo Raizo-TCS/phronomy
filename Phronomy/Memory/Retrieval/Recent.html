@@ -169,7 +169,7 @@ discarded without compression.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#select-instance_method" title="#select (instance method)">#<strong>select</strong>(messages, query: nil)  &#x21d2; Array </a>
+      <a href="#select-instance_method" title="#select (instance method)">#<strong>select</strong>(messages, query: nil, thread_id: nil)  &#x21d2; Array </a>
     
 
     
@@ -271,7 +271,7 @@ discarded without compression.</p>
       <div class="method_details first">
   <h3 class="signature first" id="select-instance_method">
   
-    #<strong>select</strong>(messages, query: nil)  &#x21d2; <tt>Array</tt> 
+    #<strong>select</strong>(messages, query: nil, thread_id: nil)  &#x21d2; <tt>Array</tt> 
   
 
   
@@ -317,6 +317,22 @@ discarded without compression.</p>
       
     </li>
   
+    <li>
+      
+        <span class='name'>thread_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>unused for recency-based retrieval</p></div>
+      
+    </li>
+  
 </ul>
 
 <p class="tag_title">Returns:</p>
@@ -339,14 +355,14 @@ discarded without compression.</p>
       <pre class="lines">
 
 
-28
 29
-30</pre>
+30
+31</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/retrieval/recent.rb', line 28</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/retrieval/recent.rb', line 29</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_select'>select</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_select'>select</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_last'>last</span><span class='lparen'>(</span><span class='ivar'>@k</span> <span class='op'>*</span> <span class='int'>2</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -359,7 +375,7 @@ discarded without compression.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 11:30:46 2026 by
+  Generated on Sun May 10 12:54:38 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

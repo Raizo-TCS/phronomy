@@ -112,6 +112,10 @@
 <p>Matches a built-in list of injection patterns (case-insensitive) and raises
 <span class='object_link'><a href="../../GuardrailError.html" title="Phronomy::GuardrailError (class)">Phronomy::GuardrailError</a></span> when any pattern is found in the input string.
 Additional patterns can be supplied via the <code>additional_patterns:</code> argument.</p>
+<p><strong>Limitations</strong>: the built-in patterns cover well-known English and Japanese
+phrasings. Obfuscated, Base64-encoded, or novel injection phrasing may not
+be detected. For higher-assurance use cases, combine this guardrail with an
+LLM-based classifier.</p>
 
   </div>
 </div>
@@ -155,7 +159,8 @@ Additional patterns can be supplied via the <code>additional_patterns:</code> ar
 </div>
         </dt>
         <dd><pre class="code"><span class='lbracket'>[</span>
-  <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>ignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|rules?|prompts?)</span><span class='regexp_end'>/i</span></span><span class='comma'>,</span>
+  <span class='comment'># --- English patterns ---
+</span>  <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>ignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|rules?|prompts?)</span><span class='regexp_end'>/i</span></span><span class='comma'>,</span>
   <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>disregard\s+(all\s+)?(previous|prior|above)\s+(instructions?|rules?|prompts?)</span><span class='regexp_end'>/i</span></span><span class='comma'>,</span>
   <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>forget\s+(all\s+)?(previous|prior|above)\s+(instructions?|rules?|prompts?)</span><span class='regexp_end'>/i</span></span><span class='comma'>,</span>
   <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\bsystem\s*prompt\s*:</span><span class='regexp_end'>/i</span></span><span class='comma'>,</span>
@@ -164,7 +169,15 @@ Additional patterns can be supplied via the <code>additional_patterns:</code> ar
   <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\bpretend\s+(?:you\s+are|to\s+be)\b</span><span class='regexp_end'>/i</span></span><span class='comma'>,</span>
   <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\bjailbreak\b</span><span class='regexp_end'>/i</span></span><span class='comma'>,</span>
   <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\bdan\s*mode\b</span><span class='regexp_end'>/i</span></span><span class='comma'>,</span>
-  <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\bdev(?:eloper)?\s*mode\b</span><span class='regexp_end'>/i</span></span>
+  <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\bdev(?:eloper)?\s*mode\b</span><span class='regexp_end'>/i</span></span><span class='comma'>,</span>
+  <span class='comment'># --- Japanese patterns ---
+</span>  <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>以前の(指示|ルール|プロンプト)を無視</span><span class='regexp_end'>/</span></span><span class='comma'>,</span>
+  <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>指示を無視して</span><span class='regexp_end'>/</span></span><span class='comma'>,</span>
+  <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>ルールを無視して</span><span class='regexp_end'>/</span></span><span class='comma'>,</span>
+  <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>あなたは今(から)?(?!助けて)</span><span class='regexp_end'>/</span></span><span class='comma'>,</span>
+  <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>システムプロンプト</span><span class='regexp_end'>/</span></span><span class='comma'>,</span>
+  <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>制約(を|から)無視</span><span class='regexp_end'>/</span></span><span class='comma'>,</span>
+  <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>制限(を|から)解除</span><span class='regexp_end'>/</span></span>
 <span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
       
     </dl>
@@ -301,12 +314,12 @@ to the built-in list.</p></div>
       <pre class="lines">
 
 
-38
-39
-40</pre>
+52
+53
+54</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/guardrail/builtin/prompt_injection_detector.rb', line 38</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/guardrail/builtin/prompt_injection_detector.rb', line 52</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>additional_patterns:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span>
   <span class='ivar'>@patterns</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="#DEFAULT_PATTERNS-constant" title="Phronomy::Guardrail::Builtin::PromptInjectionDetector::DEFAULT_PATTERNS (constant)">DEFAULT_PATTERNS</a></span></span> <span class='op'>+</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_additional_patterns'>additional_patterns</span><span class='rparen'>)</span>
@@ -381,15 +394,15 @@ to the built-in list.</p></div>
       <pre class="lines">
 
 
-44
-45
-46
-47
-48
-49</pre>
+58
+59
+60
+61
+62
+63</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/guardrail/builtin/prompt_injection_detector.rb', line 44</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/guardrail/builtin/prompt_injection_detector.rb', line 58</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_check'>check</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_text'>text</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
@@ -407,7 +420,7 @@ to the built-in list.</p></div>
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 11:30:47 2026 by
+  Generated on Sun May 10 12:54:39 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

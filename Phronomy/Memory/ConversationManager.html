@@ -565,7 +565,7 @@ system message.
 <span class='kw'>def</span> <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@storage</span><span class='period'>.</span><span class='id identifier rubyid_purge_older_than'>purge_older_than</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>older_than:</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span> <span class='op'>-</span> <span class='ivar'>@ttl</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='ivar'>@ttl</span>
   <span class='id identifier rubyid_messages'>messages</span> <span class='op'>=</span> <span class='id identifier rubyid_reconstruct'>reconstruct</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-  <span class='ivar'>@retrieval</span><span class='period'>.</span><span class='id identifier rubyid_select'>select</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='id identifier rubyid_query'>query</span><span class='rparen'>)</span>
+  <span class='ivar'>@retrieval</span><span class='period'>.</span><span class='id identifier rubyid_select'>select</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='id identifier rubyid_query'>query</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -820,7 +820,7 @@ Called by CompactionContext when the on_compact callback invokes ctx.compact.</p
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 11:30:46 2026 by
+  Generated on Sun May 10 12:54:38 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

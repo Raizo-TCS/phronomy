@@ -217,6 +217,31 @@
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#error=-instance_method" title="#error= (instance method)">#<strong>error</strong>(value)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>set when the scorer raised an exception.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#eval_case=-instance_method" title="#eval_case= (instance method)">#<strong>eval_case</strong>(value)  &#x21d2; Object </a>
     
 
@@ -235,6 +260,30 @@
 
   
     <span class="summary_desc"><div class='inline'><p>the original sample.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(eval_case:, actual:, score:, usage:, latency_ms:, error: nil)  &#x21d2; EvalResult </a>
+    
+
+    
+  </span>
+  
+  
+    <span class="note title constructor">constructor</span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>A new instance of EvalResult.</p></div></span>
   
 </li>
 
@@ -286,12 +335,77 @@
 </li>
 
       
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#scorer_error%3F-instance_method" title="#scorer_error? (instance method)">#<strong>scorer_error?</strong>  &#x21d2; Boolean </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns true when the scorer raised an exception.</p></div></span>
+  
+</li>
+
+      
     </ul>
     
   
 
 
+  <div id="constructor_details" class="method_details_list">
+  <h2>Constructor Details</h2>
   
+    <div class="method_details first">
+  <h3 class="signature first" id="initialize-instance_method">
+  
+    #<strong>initialize</strong>(eval_case:, actual:, score:, usage:, latency_ms:, error: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Eval::EvalResult (class)">EvalResult</a></span></tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns a new instance of EvalResult.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+14
+15
+16</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/eval_result.rb', line 14</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>eval_case:</span><span class='comma'>,</span> <span class='label'>actual:</span><span class='comma'>,</span> <span class='label'>score:</span><span class='comma'>,</span> <span class='label'>usage:</span><span class='comma'>,</span> <span class='label'>latency_ms:</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='kw'>super</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+  
+</div>
+
   <div id="instance_attr_details" class="attr_details">
     <h2>Instance Attribute Details</h2>
     
@@ -321,20 +435,38 @@
       <pre class="lines">
 
 
-12
 13
 14
 15
 16
-17</pre>
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/eval_result.rb', line 12</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/eval_result.rb', line 13</span>
 
-<span class='const'><span class='object_link'><a href="" title="Phronomy::Eval::EvalResult (class)">EvalResult</a></span></span> <span class='op'>=</span> <span class='const'>Data</span><span class='period'>.</span><span class='id identifier rubyid_define'>define</span><span class='lparen'>(</span><span class='symbol'>:eval_case</span><span class='comma'>,</span> <span class='symbol'>:actual</span><span class='comma'>,</span> <span class='symbol'>:score</span><span class='comma'>,</span> <span class='symbol'>:usage</span><span class='comma'>,</span> <span class='symbol'>:latency_ms</span><span class='rparen'>)</span> <span class='kw'>do</span>
+<span class='const'><span class='object_link'><a href="" title="Phronomy::Eval::EvalResult (class)">EvalResult</a></span></span> <span class='op'>=</span> <span class='const'>Data</span><span class='period'>.</span><span class='id identifier rubyid_define'>define</span><span class='lparen'>(</span><span class='symbol'>:eval_case</span><span class='comma'>,</span> <span class='symbol'>:actual</span><span class='comma'>,</span> <span class='symbol'>:score</span><span class='comma'>,</span> <span class='symbol'>:usage</span><span class='comma'>,</span> <span class='symbol'>:latency_ms</span><span class='comma'>,</span> <span class='symbol'>:error</span><span class='rparen'>)</span> <span class='kw'>do</span>
+  <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>eval_case:</span><span class='comma'>,</span> <span class='label'>actual:</span><span class='comma'>,</span> <span class='label'>score:</span><span class='comma'>,</span> <span class='label'>usage:</span><span class='comma'>,</span> <span class='label'>latency_ms:</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+    <span class='kw'>super</span>
+  <span class='kw'>end</span>
+
   <span class='comment'># Returns true when the scorer assigned a perfect score of 1.0.
 </span>  <span class='kw'>def</span> <span class='id identifier rubyid_pass?'>pass?</span>
     <span class='id identifier rubyid_score'>score</span> <span class='op'>&gt;=</span> <span class='float'>1.0</span>
+  <span class='kw'>end</span>
+
+  <span class='comment'># Returns true when the scorer raised an exception.
+</span>  <span class='kw'>def</span> <span class='id identifier rubyid_scorer_error?'>scorer_error?</span>
+    <span class='op'>!</span><span class='id identifier rubyid_error'>error</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -368,20 +500,38 @@
       <pre class="lines">
 
 
-12
 13
 14
 15
 16
-17</pre>
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/eval_result.rb', line 12</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/eval_result.rb', line 13</span>
 
-<span class='const'><span class='object_link'><a href="" title="Phronomy::Eval::EvalResult (class)">EvalResult</a></span></span> <span class='op'>=</span> <span class='const'>Data</span><span class='period'>.</span><span class='id identifier rubyid_define'>define</span><span class='lparen'>(</span><span class='symbol'>:eval_case</span><span class='comma'>,</span> <span class='symbol'>:actual</span><span class='comma'>,</span> <span class='symbol'>:score</span><span class='comma'>,</span> <span class='symbol'>:usage</span><span class='comma'>,</span> <span class='symbol'>:latency_ms</span><span class='rparen'>)</span> <span class='kw'>do</span>
+<span class='const'><span class='object_link'><a href="" title="Phronomy::Eval::EvalResult (class)">EvalResult</a></span></span> <span class='op'>=</span> <span class='const'>Data</span><span class='period'>.</span><span class='id identifier rubyid_define'>define</span><span class='lparen'>(</span><span class='symbol'>:eval_case</span><span class='comma'>,</span> <span class='symbol'>:actual</span><span class='comma'>,</span> <span class='symbol'>:score</span><span class='comma'>,</span> <span class='symbol'>:usage</span><span class='comma'>,</span> <span class='symbol'>:latency_ms</span><span class='comma'>,</span> <span class='symbol'>:error</span><span class='rparen'>)</span> <span class='kw'>do</span>
+  <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>eval_case:</span><span class='comma'>,</span> <span class='label'>actual:</span><span class='comma'>,</span> <span class='label'>score:</span><span class='comma'>,</span> <span class='label'>usage:</span><span class='comma'>,</span> <span class='label'>latency_ms:</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+    <span class='kw'>super</span>
+  <span class='kw'>end</span>
+
   <span class='comment'># Returns true when the scorer assigned a perfect score of 1.0.
 </span>  <span class='kw'>def</span> <span class='id identifier rubyid_pass?'>pass?</span>
     <span class='id identifier rubyid_score'>score</span> <span class='op'>&gt;=</span> <span class='float'>1.0</span>
+  <span class='kw'>end</span>
+
+  <span class='comment'># Returns true when the scorer raised an exception.
+</span>  <span class='kw'>def</span> <span class='id identifier rubyid_scorer_error?'>scorer_error?</span>
+    <span class='op'>!</span><span class='id identifier rubyid_error'>error</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -415,20 +565,38 @@
       <pre class="lines">
 
 
-12
 13
 14
 15
 16
-17</pre>
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/eval_result.rb', line 12</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/eval_result.rb', line 13</span>
 
-<span class='const'><span class='object_link'><a href="" title="Phronomy::Eval::EvalResult (class)">EvalResult</a></span></span> <span class='op'>=</span> <span class='const'>Data</span><span class='period'>.</span><span class='id identifier rubyid_define'>define</span><span class='lparen'>(</span><span class='symbol'>:eval_case</span><span class='comma'>,</span> <span class='symbol'>:actual</span><span class='comma'>,</span> <span class='symbol'>:score</span><span class='comma'>,</span> <span class='symbol'>:usage</span><span class='comma'>,</span> <span class='symbol'>:latency_ms</span><span class='rparen'>)</span> <span class='kw'>do</span>
+<span class='const'><span class='object_link'><a href="" title="Phronomy::Eval::EvalResult (class)">EvalResult</a></span></span> <span class='op'>=</span> <span class='const'>Data</span><span class='period'>.</span><span class='id identifier rubyid_define'>define</span><span class='lparen'>(</span><span class='symbol'>:eval_case</span><span class='comma'>,</span> <span class='symbol'>:actual</span><span class='comma'>,</span> <span class='symbol'>:score</span><span class='comma'>,</span> <span class='symbol'>:usage</span><span class='comma'>,</span> <span class='symbol'>:latency_ms</span><span class='comma'>,</span> <span class='symbol'>:error</span><span class='rparen'>)</span> <span class='kw'>do</span>
+  <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>eval_case:</span><span class='comma'>,</span> <span class='label'>actual:</span><span class='comma'>,</span> <span class='label'>score:</span><span class='comma'>,</span> <span class='label'>usage:</span><span class='comma'>,</span> <span class='label'>latency_ms:</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+    <span class='kw'>super</span>
+  <span class='kw'>end</span>
+
   <span class='comment'># Returns true when the scorer assigned a perfect score of 1.0.
 </span>  <span class='kw'>def</span> <span class='id identifier rubyid_pass?'>pass?</span>
     <span class='id identifier rubyid_score'>score</span> <span class='op'>&gt;=</span> <span class='float'>1.0</span>
+  <span class='kw'>end</span>
+
+  <span class='comment'># Returns true when the scorer raised an exception.
+</span>  <span class='kw'>def</span> <span class='id identifier rubyid_scorer_error?'>scorer_error?</span>
+    <span class='op'>!</span><span class='id identifier rubyid_error'>error</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -444,7 +612,70 @@
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="eval_case=-instance_method">
+  <h3 class="signature first" id="error=-instance_method">
+  
+    #<strong>error=</strong>(value)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>set when the scorer raised an exception</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/eval_result.rb', line 13</span>
+
+<span class='const'><span class='object_link'><a href="" title="Phronomy::Eval::EvalResult (class)">EvalResult</a></span></span> <span class='op'>=</span> <span class='const'>Data</span><span class='period'>.</span><span class='id identifier rubyid_define'>define</span><span class='lparen'>(</span><span class='symbol'>:eval_case</span><span class='comma'>,</span> <span class='symbol'>:actual</span><span class='comma'>,</span> <span class='symbol'>:score</span><span class='comma'>,</span> <span class='symbol'>:usage</span><span class='comma'>,</span> <span class='symbol'>:latency_ms</span><span class='comma'>,</span> <span class='symbol'>:error</span><span class='rparen'>)</span> <span class='kw'>do</span>
+  <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>eval_case:</span><span class='comma'>,</span> <span class='label'>actual:</span><span class='comma'>,</span> <span class='label'>score:</span><span class='comma'>,</span> <span class='label'>usage:</span><span class='comma'>,</span> <span class='label'>latency_ms:</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+    <span class='kw'>super</span>
+  <span class='kw'>end</span>
+
+  <span class='comment'># Returns true when the scorer assigned a perfect score of 1.0.
+</span>  <span class='kw'>def</span> <span class='id identifier rubyid_pass?'>pass?</span>
+    <span class='id identifier rubyid_score'>score</span> <span class='op'>&gt;=</span> <span class='float'>1.0</span>
+  <span class='kw'>end</span>
+
+  <span class='comment'># Returns true when the scorer raised an exception.
+</span>  <span class='kw'>def</span> <span class='id identifier rubyid_scorer_error?'>scorer_error?</span>
+    <span class='op'>!</span><span class='id identifier rubyid_error'>error</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="eval_case=-instance_method">
   
     #<strong>eval_case=</strong>(value)  &#x21d2; <tt>Object</tt> 
   
@@ -467,20 +698,38 @@
       <pre class="lines">
 
 
-12
 13
 14
 15
 16
-17</pre>
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/eval_result.rb', line 12</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/eval_result.rb', line 13</span>
 
-<span class='const'><span class='object_link'><a href="" title="Phronomy::Eval::EvalResult (class)">EvalResult</a></span></span> <span class='op'>=</span> <span class='const'>Data</span><span class='period'>.</span><span class='id identifier rubyid_define'>define</span><span class='lparen'>(</span><span class='symbol'>:eval_case</span><span class='comma'>,</span> <span class='symbol'>:actual</span><span class='comma'>,</span> <span class='symbol'>:score</span><span class='comma'>,</span> <span class='symbol'>:usage</span><span class='comma'>,</span> <span class='symbol'>:latency_ms</span><span class='rparen'>)</span> <span class='kw'>do</span>
+<span class='const'><span class='object_link'><a href="" title="Phronomy::Eval::EvalResult (class)">EvalResult</a></span></span> <span class='op'>=</span> <span class='const'>Data</span><span class='period'>.</span><span class='id identifier rubyid_define'>define</span><span class='lparen'>(</span><span class='symbol'>:eval_case</span><span class='comma'>,</span> <span class='symbol'>:actual</span><span class='comma'>,</span> <span class='symbol'>:score</span><span class='comma'>,</span> <span class='symbol'>:usage</span><span class='comma'>,</span> <span class='symbol'>:latency_ms</span><span class='comma'>,</span> <span class='symbol'>:error</span><span class='rparen'>)</span> <span class='kw'>do</span>
+  <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>eval_case:</span><span class='comma'>,</span> <span class='label'>actual:</span><span class='comma'>,</span> <span class='label'>score:</span><span class='comma'>,</span> <span class='label'>usage:</span><span class='comma'>,</span> <span class='label'>latency_ms:</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+    <span class='kw'>super</span>
+  <span class='kw'>end</span>
+
   <span class='comment'># Returns true when the scorer assigned a perfect score of 1.0.
 </span>  <span class='kw'>def</span> <span class='id identifier rubyid_pass?'>pass?</span>
     <span class='id identifier rubyid_score'>score</span> <span class='op'>&gt;=</span> <span class='float'>1.0</span>
+  <span class='kw'>end</span>
+
+  <span class='comment'># Returns true when the scorer raised an exception.
+</span>  <span class='kw'>def</span> <span class='id identifier rubyid_scorer_error?'>scorer_error?</span>
+    <span class='op'>!</span><span class='id identifier rubyid_error'>error</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -525,12 +774,12 @@
       <pre class="lines">
 
 
-14
-15
-16</pre>
+19
+20
+21</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/eval_result.rb', line 14</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/eval_result.rb', line 19</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pass?'>pass?</span>
   <span class='id identifier rubyid_score'>score</span> <span class='op'>&gt;=</span> <span class='float'>1.0</span>
@@ -564,21 +813,91 @@
       <pre class="lines">
 
 
-12
 13
 14
 15
 16
-17</pre>
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/eval_result.rb', line 12</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/eval_result.rb', line 13</span>
 
-<span class='const'><span class='object_link'><a href="" title="Phronomy::Eval::EvalResult (class)">EvalResult</a></span></span> <span class='op'>=</span> <span class='const'>Data</span><span class='period'>.</span><span class='id identifier rubyid_define'>define</span><span class='lparen'>(</span><span class='symbol'>:eval_case</span><span class='comma'>,</span> <span class='symbol'>:actual</span><span class='comma'>,</span> <span class='symbol'>:score</span><span class='comma'>,</span> <span class='symbol'>:usage</span><span class='comma'>,</span> <span class='symbol'>:latency_ms</span><span class='rparen'>)</span> <span class='kw'>do</span>
+<span class='const'><span class='object_link'><a href="" title="Phronomy::Eval::EvalResult (class)">EvalResult</a></span></span> <span class='op'>=</span> <span class='const'>Data</span><span class='period'>.</span><span class='id identifier rubyid_define'>define</span><span class='lparen'>(</span><span class='symbol'>:eval_case</span><span class='comma'>,</span> <span class='symbol'>:actual</span><span class='comma'>,</span> <span class='symbol'>:score</span><span class='comma'>,</span> <span class='symbol'>:usage</span><span class='comma'>,</span> <span class='symbol'>:latency_ms</span><span class='comma'>,</span> <span class='symbol'>:error</span><span class='rparen'>)</span> <span class='kw'>do</span>
+  <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>eval_case:</span><span class='comma'>,</span> <span class='label'>actual:</span><span class='comma'>,</span> <span class='label'>score:</span><span class='comma'>,</span> <span class='label'>usage:</span><span class='comma'>,</span> <span class='label'>latency_ms:</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+    <span class='kw'>super</span>
+  <span class='kw'>end</span>
+
   <span class='comment'># Returns true when the scorer assigned a perfect score of 1.0.
 </span>  <span class='kw'>def</span> <span class='id identifier rubyid_pass?'>pass?</span>
     <span class='id identifier rubyid_score'>score</span> <span class='op'>&gt;=</span> <span class='float'>1.0</span>
   <span class='kw'>end</span>
+
+  <span class='comment'># Returns true when the scorer raised an exception.
+</span>  <span class='kw'>def</span> <span class='id identifier rubyid_scorer_error?'>scorer_error?</span>
+    <span class='op'>!</span><span class='id identifier rubyid_error'>error</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="scorer_error?-instance_method">
+  
+    #<strong>scorer_error?</strong>  &#x21d2; <tt>Boolean</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns true when the scorer raised an exception.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+24
+25
+26</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/eval_result.rb', line 24</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_scorer_error?'>scorer_error?</span>
+  <span class='op'>!</span><span class='id identifier rubyid_error'>error</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -590,7 +909,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 11:30:45 2026 by
+  Generated on Sun May 10 12:54:37 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
