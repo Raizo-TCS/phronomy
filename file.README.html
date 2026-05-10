@@ -277,6 +277,118 @@ silently skipped.</p>
   <span class='label'>retrieval:</span> <span class='id identifier rubyid_composite_retrieval'>composite_retrieval</span>
 <span class='rparen'>)</span>
 </code></pre>
+<h2 id="Examples">Examples</h2>
+<p>Runnable examples covering all major features are available in the
+<a href="https://github.com/Raizo-TCS/phronomy-examples">phronomy-examples</a> repository.</p>
+<p>Each example lives in its own numbered directory and can be run with:</p>
+<pre class="code bash"><code class="bash">bundle exec ruby NN_example_name/run.rb
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Directory</th>
+<th>What it demonstrates</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01</td>
+<td><code>01_basic_chain/</code></td>
+<td>PromptTemplate → LLMChain pipeline</td>
+</tr>
+<tr>
+<td>02</td>
+<td><code>02_react_agent/</code></td>
+<td>ReAct tool-calling agent</td>
+</tr>
+<tr>
+<td>03</td>
+<td><code>03_state_graph/</code></td>
+<td>Stateful graph with interrupt/resume</td>
+</tr>
+<tr>
+<td>04</td>
+<td><code>04_interrupt_resume/</code></td>
+<td>Human-in-the-loop interrupt and resume</td>
+</tr>
+<tr>
+<td>05</td>
+<td><code>05_multi_agent/</code></td>
+<td>Multi-agent coordination via Agent-as-Tool</td>
+</tr>
+<tr>
+<td>06</td>
+<td><code>06_guardrails/</code></td>
+<td>Input/output guardrails</td>
+</tr>
+<tr>
+<td>07</td>
+<td><code>07_tracing/</code></td>
+<td>Custom observability with Langfuse tracer</td>
+</tr>
+<tr>
+<td>08</td>
+<td><code>08_mcp_tool/</code></td>
+<td>MCP tool integration</td>
+</tr>
+<tr>
+<td>09</td>
+<td><code>09_rails_chat/</code></td>
+<td>Rails chat app with ActionCable streaming</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>10_context_management/</code></td>
+<td>Token budget and context pruning</td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>11_agent_streaming/</code></td>
+<td>Streaming agent responses</td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>12_prompt_template/</code></td>
+<td>Advanced prompt templates</td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>13_mcp_http_tool/</code></td>
+<td>HTTP-based MCP tool server</td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>14_code_review/</code></td>
+<td>Automated code review agent</td>
+</tr>
+<tr>
+<td>15</td>
+<td><code>15_rails_secure_chat/</code></td>
+<td>Rails chat with PII guardrails and secure memory</td>
+</tr>
+<tr>
+<td>16</td>
+<td><code>16_before_completion_hook/</code></td>
+<td>Global/class/instance before_completion hooks</td>
+</tr>
+<tr>
+<td>17</td>
+<td><code>17_multi_agent_handoff/</code></td>
+<td>Hub-and-spoke agent routing via Runner</td>
+</tr>
+<tr>
+<td>18</td>
+<td><code>18_rails_agent_job/</code></td>
+<td>Rails app with AgentJob + ActionCable streaming</td>
+</tr>
+<tr>
+<td>19</td>
+<td><code>19_trust_pipeline/</code></td>
+<td>Trustworthy output via Citation Tracking + Self-Review + Confidence Gate</td>
+</tr>
+</tbody>
+</table>
 <h2 id="Development">Development</h2>
 <p>After checking out the repo, install dependencies:</p>
 <pre class="code bash"><code class="bash">bin/setup
@@ -296,7 +408,7 @@ silently skipped.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sun May 10 09:39:00 2026 by
+  Generated on Sun May 10 09:52:36 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
