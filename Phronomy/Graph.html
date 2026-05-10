@@ -116,6 +116,38 @@ startup so that only known classes can be deserialized.</p>
 
 
 
+  <h2>Class Attribute Summary <small><a href="#" class="summary_toggle">collapse</a></small></h2>
+  <ul class="summary">
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#state_class_registry-class_method" title="state_class_registry (class method)">.<strong>state_class_registry</strong>  &#x21d2; Hash{String =&gt; Class}<sup>?</sup> </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the current registry Hash, or nil when no class has been registered.</p></div></span>
+  
+</li>
+
+    
+  </ul>
+
 
 
 
@@ -171,32 +203,69 @@ startup so that only known classes can be deserialized.</p>
 </li>
 
       
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#state_class_registry-class_method" title="state_class_registry (class method)">.<strong>state_class_registry</strong>  &#x21d2; Hash{String =&gt; Class}<sup>?</sup> </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the current registry Hash, or nil when no class has been registered.</p></div></span>
-  
-</li>
-
-      
     </ul>
     
   
 
+
+  <div id="class_attr_details" class="attr_details">
+    <h2>Class Attribute Details</h2>
+    
+      
+      <span id=""></span>
+      <div class="method_details first">
+  <h3 class="signature first" id="state_class_registry-class_method">
+  
+    .<strong>state_class_registry</strong>  &#x21d2; <tt>Hash{String =&gt; Class}</tt><sup>?</sup>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the current registry Hash, or nil when no class has been registered.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Hash{String =&gt; Class}</tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+68
+69
+70</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 68</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_state_class_registry'>state_class_registry</span>
+  <span class='ivar'>@state_class_registry</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
 
 
   <div id="class_method_details" class="method_details_list">
@@ -307,67 +376,15 @@ registered classes will be accepted by <code>StateStore::Base#safe_state_class</
       <pre class="lines">
 
 
-73
-74
-75</pre>
+71
+72
+73</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 73</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 71</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_reset_state_class_registry!'>reset_state_class_registry!</span>
   <span class='ivar'>@registry_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@state_class_registry</span> <span class='op'>=</span> <span class='kw'>nil</span> <span class='rbrace'>}</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="state_class_registry-class_method">
-  
-    .<strong>state_class_registry</strong>  &#x21d2; <tt>Hash{String =&gt; Class}</tt><sup>?</sup> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the current registry Hash, or nil when no class has been registered.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Hash{String =&gt; Class}</tt>, <tt>nil</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-68
-69
-70</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 68</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_state_class_registry'>state_class_registry</span>
-  <span class='ivar'>@state_class_registry</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -379,7 +396,7 @@ registered classes will be accepted by <code>StateStore::Base#safe_state_class</
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 12:54:36 2026 by
+  Generated on Sun May 10 12:57:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
