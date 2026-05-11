@@ -507,8 +507,8 @@ module Phronomy
           context[:messages].each { |msg| chat.messages << msg }
 
           # Wire per-event callbacks to yield StreamEvents.
-          chat.on_tool_call { |tool_call| block.call(StreamEvent.new(type: :tool_call, payload: {tool_call: tool_call})) }
-          chat.on_tool_result { |tool_result| block.call(StreamEvent.new(type: :tool_result, payload: {tool_result: tool_result})) }
+          chat.before_tool_call { |tool_call| block.call(StreamEvent.new(type: :tool_call, payload: {tool_call: tool_call})) }
+          chat.after_tool_result { |tool_result| block.call(StreamEvent.new(type: :tool_result, payload: {tool_result: tool_result})) }
 
           # Run before_completion hooks (global → class → instance) before the LLM call.
           run_before_completion_hooks!(chat, config)

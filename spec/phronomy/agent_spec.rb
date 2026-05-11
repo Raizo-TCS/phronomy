@@ -557,8 +557,8 @@ RSpec.describe Phronomy::Agent::ReactAgent do
       allow(dbl).to receive(:messages).and_return([normal_msg])
       allow(dbl).to receive(:last_message).and_return(normal_msg)
       allow(dbl).to receive(:add_message)
-      allow(dbl).to receive(:on_tool_call)
-      allow(dbl).to receive(:on_tool_result)
+      allow(dbl).to receive(:before_tool_call)
+      allow(dbl).to receive(:after_tool_result)
       allow(dbl).to receive(:ask).and_return(normal_msg)
       dbl
     end
@@ -580,8 +580,8 @@ RSpec.describe Phronomy::Agent::ReactAgent do
       allow(stuck).to receive(:messages).and_return([always_msg])
       allow(stuck).to receive(:last_message).and_return(always_msg)
       allow(stuck).to receive(:add_message)
-      allow(stuck).to receive(:on_tool_call)
-      allow(stuck).to receive(:on_tool_result)
+      allow(stuck).to receive(:before_tool_call)
+      allow(stuck).to receive(:after_tool_result)
       allow(stuck).to receive(:ask).and_return(always_msg)
       allow(RubyLLM).to receive(:chat).and_return(stuck)
       result = ExhaustedStreamAgent.new.stream("Hello") { |_e| }

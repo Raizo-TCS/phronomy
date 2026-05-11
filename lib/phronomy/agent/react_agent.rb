@@ -154,8 +154,8 @@ module Phronomy
         chat = build_chat
         messages.each { |m| chat.add_message(m) }
 
-        chat.on_tool_call { |tc| block.call(StreamEvent.new(type: :tool_call, payload: {tool_call: tc})) }
-        chat.on_tool_result { |tr| block.call(StreamEvent.new(type: :tool_result, payload: {tool_result: tr})) }
+        chat.before_tool_call { |tc| block.call(StreamEvent.new(type: :tool_call, payload: {tool_call: tc})) }
+        chat.after_tool_result { |tr| block.call(StreamEvent.new(type: :tool_result, payload: {tool_result: tr})) }
 
         # Run before_completion hooks before each LLM call in the streaming loop.
         run_before_completion_hooks!(chat, config)
