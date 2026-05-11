@@ -590,12 +590,12 @@ Assembles nodes and edges, then returns an executable CompiledGraph via compile.
       <pre class="lines">
 
 
-145
 146
-147</pre>
+147
+148</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/graph/state_graph.rb', line 145</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/graph/state_graph.rb', line 146</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_conditional_edges'>conditional_edges</span>
   <span class='ivar'>@conditional_edges</span>
@@ -1261,7 +1261,8 @@ defaults to sub_state.to_h (passes all subgraph fields)</p></div>
 116
 117
 118
-119</pre>
+119
+120</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/graph/state_graph.rb', line 113</span>
@@ -1269,7 +1270,8 @@ defaults to sub_state.to_h (passes all subgraph fields)</p></div>
 <span class='kw'>def</span> <span class='id identifier rubyid_add_subgraph'>add_subgraph</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_subgraph'>subgraph</span><span class='comma'>,</span> <span class='label'>input_mapper:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>output_mapper:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_add_node'>add_node</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_state'>state</span><span class='op'>|</span>
     <span class='id identifier rubyid_input'>input</span> <span class='op'>=</span> <span class='id identifier rubyid_input_mapper'>input_mapper</span> <span class='op'>?</span> <span class='id identifier rubyid_input_mapper'>input_mapper</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span>
-    <span class='id identifier rubyid_sub_state'>sub_state</span> <span class='op'>=</span> <span class='id identifier rubyid_subgraph'>subgraph</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_sub_thread_id'>sub_thread_id</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='embexpr_end'>}</span><span class='tstring_content'>/</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='id identifier rubyid_sub_state'>sub_state</span> <span class='op'>=</span> <span class='id identifier rubyid_subgraph'>subgraph</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_sub_thread_id'>sub_thread_id</span><span class='rbrace'>}</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_output_mapper'>output_mapper</span> <span class='op'>?</span> <span class='id identifier rubyid_output_mapper'>output_mapper</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_sub_state'>sub_state</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id identifier rubyid_sub_state'>sub_state</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
@@ -1338,7 +1340,6 @@ to use for this compiled graph, overriding the global default.</p></div>
       <pre class="lines">
 
 
-127
 128
 129
 130
@@ -1354,10 +1355,11 @@ to use for this compiled graph, overriding the global default.</p></div>
 140
 141
 142
-143</pre>
+143
+144</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/graph/state_graph.rb', line 127</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/graph/state_graph.rb', line 128</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_compile'>compile</span><span class='lparen'>(</span><span class='label'>state_store:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='ivar'>@entry_point</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@nodes</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span> <span class='op'>&gt;</span> <span class='int'>1</span>
@@ -1629,7 +1631,7 @@ Callbacks registered here become defaults for every CompiledGraph produced by co
 </div>
 
       <div id="footer">
-  Generated on Mon May 11 00:53:32 2026 by
+  Generated on Mon May 11 06:38:38 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
