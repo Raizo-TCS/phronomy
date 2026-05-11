@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "ostruct"
-
 module Phronomy
   module Tracing
     # Abstract tracer.

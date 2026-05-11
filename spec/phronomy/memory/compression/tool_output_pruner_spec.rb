@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "ostruct"
 
 RSpec.describe Phronomy::Memory::Compression::ToolOutputPruner do
   def make_msg(role, content)
@@ -50,6 +51,25 @@ RSpec.describe Phronomy::Memory::Compression::ToolOutputPruner do
       msg = make_msg(:tool, "x" * 100)
       result = compressor.compress(thread_id: "t1", messages: [msg])
       expect(result[:compaction]).to be_nil
+    end
+  end
+
+  # Regression test for Issue #53: cloned message objects must not use OpenStruct,
+  # which silently returns nil for any unknown method call (including typos).
+  describe "cloned message value object (Issue #53)" do
+    it "raises NoMethodError for unknown attributes (not silently nil)" do
+      msg = make_msg(:tool, "x" * 100)
+      result = compressor.compress(thread_id: "t1", messages: [msg])
+      cloned = result[:messages].first
+      expect { cloned.nonexistent_attribute }.to raise_error(NoMethodError)
+    end
+
+    it "preserves role and content on cloned messages" do
+      msg = make_msg(:tool, "x" * 100)
+      result = compressor.compress(thread_id: "t1", messages: [msg])
+      cloned = result[:messages].first
+      expect(cloned.role).to eq(:tool)
+      expect(cloned.content).to end_with(described_class::TRUNCATION_NOTE)
     end
   end
 end

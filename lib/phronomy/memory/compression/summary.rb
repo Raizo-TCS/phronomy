@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "ostruct"
-
 module Phronomy
   module Memory
     module Compression
@@ -34,6 +32,10 @@ module Phronomy
       #     compression: compressor
       #   )
       class Summary < Base
+        # Internal value object for synthetic summary messages.
+        # Uses Struct (not OpenStruct) so that unknown attribute access raises NoMethodError.
+        SummaryMessage = Struct.new(:role, :content, keyword_init: true)
+        private_constant :SummaryMessage
         # @param max_tokens          [Integer]     token threshold above which old messages are compacted
         # @param keep                [Integer]     number of recent messages to preserve verbatim
         # @param summarizer_model    [String, nil] LLM model for summarization; nil uses global default
@@ -98,7 +100,7 @@ module Phronomy
             #{text}
             </context>
           CONTEXT
-          OpenStruct.new(role: :system, content: content)
+          SummaryMessage.new(role: :system, content: content)
         end
       end
     end

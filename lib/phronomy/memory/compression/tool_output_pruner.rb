@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "ostruct"
-
 module Phronomy
   module Memory
     module Compression
@@ -24,6 +22,11 @@ module Phronomy
       #   )
       class ToolOutputPruner < Base
         TRUNCATION_NOTE = "\n[... output truncated ...]"
+
+        # Internal value object for cloned messages.
+        # Uses Struct (not OpenStruct) so that unknown attribute access raises NoMethodError.
+        ClonedMessage = Struct.new(:role, :content, :tool_calls, :model_id, keyword_init: true)
+        private_constant :ClonedMessage
 
         # @param max_chars [Integer] maximum character length for tool-result content
         def initialize(max_chars: 4000)
@@ -51,10 +54,12 @@ module Phronomy
         private
 
         def clone_message(original, new_content)
-          attrs = {role: original.role, content: new_content}
-          attrs[:tool_calls] = original.tool_calls if original.respond_to?(:tool_calls)
-          attrs[:model_id] = original.model_id if original.respond_to?(:model_id)
-          OpenStruct.new(attrs)
+          ClonedMessage.new(
+            role: original.role,
+            content: new_content,
+            tool_calls: (original.tool_calls if original.respond_to?(:tool_calls)),
+            model_id: (original.model_id if original.respond_to?(:model_id))
+          )
         end
       end
     end

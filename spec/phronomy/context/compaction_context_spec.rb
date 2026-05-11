@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "ostruct"
 
 RSpec.describe Phronomy::Context::CompactionContext do
   def make_msg(role, content)
@@ -158,6 +159,23 @@ RSpec.describe Phronomy::Context::CompactionContext do
 
     it "does not raise when memory is nil" do
       expect { ctx.compact(0..1) { |_| "summary" } }.not_to raise_error
+    end
+  end
+
+  # Regression test for Issue #53: summary message objects produced by #compact
+  # must not use OpenStruct, which silently returns nil for any unknown method call.
+  describe "summary message value object (Issue #53)" do
+    it "raises NoMethodError for unknown attributes (not silently nil)" do
+      result = ctx.compact(0..1) { |_| "some summary" }
+      summary_msg = result.first
+      expect { summary_msg.nonexistent_attribute }.to raise_error(NoMethodError)
+    end
+
+    it "has role :system and the provided summary text" do
+      result = ctx.compact(0..1) { |_| "generated summary" }
+      summary_msg = result.first
+      expect(summary_msg.role).to eq(:system)
+      expect(summary_msg.content).to eq("generated summary")
     end
   end
 end
