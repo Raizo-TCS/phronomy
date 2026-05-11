@@ -176,7 +176,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#run-instance_method" title="#run (instance method)">#<strong>run</strong>(dataset, callable)  &#x21d2; Array&lt;EvalResult&gt; </a>
+      <a href="#run-instance_method" title="#run (instance method)">#<strong>run</strong>(dataset, callable, concurrency: 1)  &#x21d2; Array&lt;EvalResult&gt; </a>
     
 
     
@@ -271,7 +271,7 @@
       <div class="method_details first">
   <h3 class="signature first" id="run-instance_method">
   
-    #<strong>run</strong>(dataset, callable)  &#x21d2; <tt>Array&lt;<span class='object_link'><a href="EvalResult.html" title="Phronomy::Eval::EvalResult (class)">EvalResult</a></span>&gt;</tt> 
+    #<strong>run</strong>(dataset, callable, concurrency: 1)  &#x21d2; <tt>Array&lt;<span class='object_link'><a href="EvalResult.html" title="Phronomy::Eval::EvalResult (class)">EvalResult</a></span>&gt;</tt> 
   
 
   
@@ -315,6 +315,22 @@
       
     </li>
   
+    <li>
+      
+        <span class='name'>concurrency</span>
+      
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>1</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>number of parallel threads (default: 1, sequential)</p></div>
+      
+    </li>
+  
 </ul>
 
 <p class="tag_title">Returns:</p>
@@ -337,7 +353,6 @@
       <pre class="lines">
 
 
-28
 29
 30
 31
@@ -348,22 +363,31 @@
 36
 37
 38
-39</pre>
+39
+40
+41
+42
+43
+44</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/runner.rb', line 28</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/runner.rb', line 29</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_run'>run</span><span class='lparen'>(</span><span class='id identifier rubyid_dataset'>dataset</span><span class='comma'>,</span> <span class='id identifier rubyid_callable'>callable</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_dataset'>dataset</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_eval_case'>eval_case</span><span class='op'>|</span>
-    <span class='id identifier rubyid_t0'>t0</span> <span class='op'>=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='comma'>,</span> <span class='symbol'>:millisecond</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_callable'>callable</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_eval_case'>eval_case</span><span class='period'>.</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_latency_ms'>latency_ms</span> <span class='op'>=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='comma'>,</span> <span class='symbol'>:millisecond</span><span class='rparen'>)</span> <span class='op'>-</span> <span class='id identifier rubyid_t0'>t0</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_run'>run</span><span class='lparen'>(</span><span class='id identifier rubyid_dataset'>dataset</span><span class='comma'>,</span> <span class='id identifier rubyid_callable'>callable</span><span class='comma'>,</span> <span class='label'>concurrency:</span> <span class='int'>1</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_cases'>cases</span> <span class='op'>=</span> <span class='id identifier rubyid_dataset'>dataset</span><span class='period'>.</span><span class='id identifier rubyid_to_a'>to_a</span>
+  <span class='kw'>return</span> <span class='id identifier rubyid_cases'>cases</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_eval_case'>eval_case</span><span class='op'>|</span> <span class='id identifier rubyid_run_one'>run_one</span><span class='lparen'>(</span><span class='id identifier rubyid_eval_case'>eval_case</span><span class='comma'>,</span> <span class='id identifier rubyid_callable'>callable</span><span class='rparen'>)</span> <span class='rbrace'>}</span> <span class='kw'>if</span> <span class='id identifier rubyid_concurrency'>concurrency</span> <span class='op'>&lt;=</span> <span class='int'>1</span>
 
-    <span class='id identifier rubyid_actual'>actual</span><span class='comma'>,</span> <span class='id identifier rubyid_usage'>usage</span> <span class='op'>=</span> <span class='id identifier rubyid_extract'>extract</span><span class='lparen'>(</span><span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_score'>score</span><span class='comma'>,</span> <span class='id identifier rubyid_score_error'>score_error</span> <span class='op'>=</span> <span class='id identifier rubyid_score_safely'>score_safely</span><span class='lparen'>(</span><span class='ivar'>@scorer</span><span class='comma'>,</span> <span class='label'>actual:</span> <span class='id identifier rubyid_actual'>actual</span><span class='comma'>,</span> <span class='label'>expected:</span> <span class='id identifier rubyid_eval_case'>eval_case</span><span class='period'>.</span><span class='id identifier rubyid_expected'>expected</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_eval_case'>eval_case</span><span class='period'>.</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
-
-    <span class='const'><span class='object_link'><a href="EvalResult.html" title="Phronomy::Eval::EvalResult (class)">EvalResult</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="EvalResult.html#initialize-instance_method" title="Phronomy::Eval::EvalResult#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>eval_case:</span> <span class='id identifier rubyid_eval_case'>eval_case</span><span class='comma'>,</span> <span class='label'>actual:</span> <span class='id identifier rubyid_actual'>actual</span><span class='comma'>,</span> <span class='label'>score:</span> <span class='id identifier rubyid_score'>score</span><span class='comma'>,</span> <span class='label'>usage:</span> <span class='id identifier rubyid_usage'>usage</span><span class='comma'>,</span> <span class='label'>latency_ms:</span> <span class='id identifier rubyid_latency_ms'>latency_ms</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='id identifier rubyid_score_error'>score_error</span><span class='rparen'>)</span>
+  <span class='comment'># Run cases in slices of +concurrency+ threads. Each slice is joined
+</span>  <span class='comment'># before the next starts, bounding peak thread count to +concurrency+.
+</span>  <span class='comment'># Writing to pre-allocated slots (one per thread) is safe because each
+</span>  <span class='comment'># thread writes to a unique index and all threads in a slice are joined
+</span>  <span class='comment'># before the next slice begins.
+</span>  <span class='id identifier rubyid_results'>results</span> <span class='op'>=</span> <span class='const'>Array</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_cases'>cases</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_cases'>cases</span><span class='period'>.</span><span class='id identifier rubyid_each_with_index'>each_with_index</span><span class='period'>.</span><span class='id identifier rubyid_each_slice'>each_slice</span><span class='lparen'>(</span><span class='id identifier rubyid_concurrency'>concurrency</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_batch'>batch</span><span class='op'>|</span>
+    <span class='id identifier rubyid_batch'>batch</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_eval_case'>eval_case</span><span class='comma'>,</span> <span class='id identifier rubyid_i'>i</span><span class='op'>|</span> <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_results'>results</span><span class='lbracket'>[</span><span class='id identifier rubyid_i'>i</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_run_one'>run_one</span><span class='lparen'>(</span><span class='id identifier rubyid_eval_case'>eval_case</span><span class='comma'>,</span> <span class='id identifier rubyid_callable'>callable</span><span class='rparen'>)</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span>
+      <span class='period'>.</span><span class='id identifier rubyid_each'>each</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:join</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
+  <span class='id identifier rubyid_results'>results</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -375,7 +399,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 17:58:01 2026 by
+  Generated on Mon May 11 00:53:31 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

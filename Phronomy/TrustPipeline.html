@@ -213,7 +213,7 @@ the result as untrusted when the threshold was not reached.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(draft_agent:, review_agent:, confidence_threshold: DEFAULT_CONFIDENCE_THRESHOLD, max_iterations: DEFAULT_MAX_ITERATIONS)  &#x21d2; TrustPipeline </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(draft_agent:, review_agent:, confidence_threshold: DEFAULT_CONFIDENCE_THRESHOLD, max_iterations: DEFAULT_MAX_ITERATIONS, input_delimiter: nil)  &#x21d2; TrustPipeline </a>
     
 
     
@@ -266,7 +266,7 @@ the result as untrusted when the threshold was not reached.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(draft_agent:, review_agent:, confidence_threshold: DEFAULT_CONFIDENCE_THRESHOLD, max_iterations: DEFAULT_MAX_ITERATIONS)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::TrustPipeline (class)">TrustPipeline</a></span></tt> 
+    #<strong>initialize</strong>(draft_agent:, review_agent:, confidence_threshold: DEFAULT_CONFIDENCE_THRESHOLD, max_iterations: DEFAULT_MAX_ITERATIONS, input_delimiter: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::TrustPipeline (class)">TrustPipeline</a></span></tt> 
   
 
   
@@ -342,6 +342,26 @@ the result as untrusted when the threshold was not reached.</p>
       
     </li>
   
+    <li>
+      
+        <span class='name'>input_delimiter</span>
+      
+      
+        <span class='type'>(<tt>Array&lt;String&gt;</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>optional two-element array
+[start_tag, end_tag] used to wrap user input in prompts, e.g.
+[&quot;&lt;user_input&gt;&quot;, &quot;&lt;/user_input&gt;&quot;] or
+[&quot;=== user input start ===&quot;, &quot;=== user input end ===&quot;].
+When nil (default), input is embedded as-is for backward compatibility.</p></div>
+      
+    </li>
+  
 </ul>
 
 
@@ -351,27 +371,31 @@ the result as untrusted when the threshold was not reached.</p>
       <pre class="lines">
 
 
-78
-79
-80
-81
-82
 83
 84
 85
 86
-87</pre>
+87
+88
+89
+90
+91
+92
+93
+94</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 78</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 83</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>draft_agent:</span><span class='comma'>,</span> <span class='label'>review_agent:</span><span class='comma'>,</span>
   <span class='label'>confidence_threshold:</span> <span class='const'><span class='object_link'><a href="#DEFAULT_CONFIDENCE_THRESHOLD-constant" title="Phronomy::TrustPipeline::DEFAULT_CONFIDENCE_THRESHOLD (constant)">DEFAULT_CONFIDENCE_THRESHOLD</a></span></span><span class='comma'>,</span>
-  <span class='label'>max_iterations:</span> <span class='const'><span class='object_link'><a href="#DEFAULT_MAX_ITERATIONS-constant" title="Phronomy::TrustPipeline::DEFAULT_MAX_ITERATIONS (constant)">DEFAULT_MAX_ITERATIONS</a></span></span><span class='rparen'>)</span>
+  <span class='label'>max_iterations:</span> <span class='const'><span class='object_link'><a href="#DEFAULT_MAX_ITERATIONS-constant" title="Phronomy::TrustPipeline::DEFAULT_MAX_ITERATIONS (constant)">DEFAULT_MAX_ITERATIONS</a></span></span><span class='comma'>,</span>
+  <span class='label'>input_delimiter:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@draft_agent_class</span> <span class='op'>=</span> <span class='id identifier rubyid_draft_agent'>draft_agent</span>
   <span class='ivar'>@review_agent_class</span> <span class='op'>=</span> <span class='id identifier rubyid_review_agent'>review_agent</span>
   <span class='ivar'>@threshold</span> <span class='op'>=</span> <span class='id identifier rubyid_confidence_threshold'>confidence_threshold</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span>
   <span class='ivar'>@max_iterations</span> <span class='op'>=</span> <span class='id identifier rubyid_max_iterations'>max_iterations</span><span class='period'>.</span><span class='id identifier rubyid_to_i'>to_i</span>
+  <span class='ivar'>@input_delimiter</span> <span class='op'>=</span> <span class='id identifier rubyid_input_delimiter'>input_delimiter</span>
   <span class='ivar'>@graph_mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@compiled_graph</span> <span class='op'>=</span> <span class='kw'>nil</span>
 <span class='kw'>end</span></pre>
@@ -458,22 +482,22 @@ the result as untrusted when the threshold was not reached.</p>
       <pre class="lines">
 
 
-94
-95
-96
-97
-98
-99
-100
 101
 102
 103
 104
 105
-106</pre>
+106
+107
+108
+109
+110
+111
+112
+113</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 94</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 101</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_app'>app</span> <span class='op'>=</span> <span class='id identifier rubyid_compiled_graph'>compiled_graph</span>
@@ -498,7 +522,7 @@ the result as untrusted when the threshold was not reached.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 10 17:58:01 2026 by
+  Generated on Mon May 11 00:53:32 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
