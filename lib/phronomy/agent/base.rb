@@ -412,21 +412,8 @@ module Phronomy
       #   result = MyAgent.new.invoke("What is Ruby?")
       #   puts result[:output]
       def invoke(input, config: {})
-        policy = self.class._retry_policy
-        attempt = 0
-        begin
-          invoke_once(input, config: config)
-        rescue Phronomy::GuardrailError
-          raise
-        rescue
-          if policy && attempt < policy[:times]
-            wait = compute_agent_retry_wait(policy[:wait], policy[:base], attempt)
-            self.class._sleep_proc.call(wait) if wait > 0
-            attempt += 1
-            retry
-          end
-          raise
-        end
+        thread_id = config[:thread_id]
+        _run_in_thread_actor(thread_id) { _invoke_impl(input, config: config) }
       end
 
       # Streaming version of #invoke. Yields {Phronomy::Agent::StreamEvent} objects
@@ -446,6 +433,76 @@ module Phronomy
       def stream(input, config: {}, &block)
         return invoke(input, config: config) unless block
 
+        thread_id = config[:thread_id]
+        _run_in_thread_actor(thread_id) { _stream_impl(input, config: config, &block) }
+      rescue => e
+        block&.call(StreamEvent.new(type: :error, payload: {error: e}))
+        raise
+      end
+
+      # Registers a callback that is invoked before executing any tool that has
+      # +requires_approval true+ set. The block receives the tool name (String)
+      # and the arguments Hash, and must return a truthy value to allow execution.
+      # Returning a falsy value causes the tool to return a denial message instead
+      # of executing.
+      #
+      # When no handler is registered, tools with +requires_approval+ execute
+      # without interruption (backward-compatible behaviour).
+      #
+      # @example
+      #   agent = MyAgent.new
+      #   agent.on_approval_required { |tool_name, args| prompt_user(tool_name, args) }
+      # @return [self]
+      def on_approval_required(&block)
+        @approval_handler = block
+        self
+      end
+
+      # Attach a guardrail that validates input before every #invoke call.
+      # @param guardrail [Phronomy::Guardrail::InputGuardrail]
+      def add_input_guardrail(guardrail)
+        @input_guardrails ||= []
+        @input_guardrails << guardrail
+        self
+      end
+
+      # Attach a guardrail that validates output before it is returned.
+      # @param guardrail [Phronomy::Guardrail::OutputGuardrail]
+      def add_output_guardrail(guardrail)
+        @output_guardrails ||= []
+        @output_guardrails << guardrail
+        self
+      end
+
+      # Returns the {Context::ContextVersionCache} for the current thread.
+      # @api private
+      def context_version_cache
+        (Thread.current[:phronomy_context_version_caches] ||= {})[object_id]
+      end
+
+      private
+
+      # Retry loop for #invoke. Separated so that ReactAgent can override #invoke_once.
+      def _invoke_impl(input, config: {})
+        policy = self.class._retry_policy
+        attempt = 0
+        begin
+          invoke_once(input, config: config)
+        rescue Phronomy::GuardrailError
+          raise
+        rescue
+          if policy && attempt < policy[:times]
+            wait = compute_agent_retry_wait(policy[:wait], policy[:base], attempt)
+            self.class._sleep_proc.call(wait) if wait > 0
+            attempt += 1
+            retry
+          end
+          raise
+        end
+      end
+
+      # Streaming implementation for #stream.
+      def _stream_impl(input, config: {}, &block)
         caller_meta = {}
         caller_meta[:user_id] = config[:user_id] if config[:user_id]
         caller_meta[:session_id] = config[:session_id] if config[:session_id]
@@ -528,46 +585,15 @@ module Phronomy
           block.call(StreamEvent.new(type: :done, payload: result))
           [result, usage]
         end
-      rescue => e
-        block&.call(StreamEvent.new(type: :error, payload: {error: e}))
-        raise
       end
 
-      # Registers a callback that is invoked before executing any tool that has
-      # +requires_approval true+ set. The block receives the tool name (String)
-      # and the arguments Hash, and must return a truthy value to allow execution.
-      # Returning a falsy value causes the tool to return a denial message instead
-      # of executing.
-      #
-      # When no handler is registered, tools with +requires_approval+ execute
-      # without interruption (backward-compatible behaviour).
-      #
-      # @example
-      #   agent = MyAgent.new
-      #   agent.on_approval_required { |tool_name, args| prompt_user(tool_name, args) }
-      # @return [self]
-      def on_approval_required(&block)
-        @approval_handler = block
-        self
-      end
+      # Runs +block+ inside the {Phronomy::ThreadActorRegistry} Actor for
+      # +thread_id+. When +thread_id+ is nil the block executes on the calling thread.
+      def _run_in_thread_actor(thread_id, &block)
+        return block.call unless thread_id
 
-      # Attach a guardrail that validates input before every #invoke call.
-      # @param guardrail [Phronomy::Guardrail::InputGuardrail]
-      def add_input_guardrail(guardrail)
-        @input_guardrails ||= []
-        @input_guardrails << guardrail
-        self
+        Phronomy::ThreadActorRegistry.for(thread_id).call(&block)
       end
-
-      # Attach a guardrail that validates output before it is returned.
-      # @param guardrail [Phronomy::Guardrail::OutputGuardrail]
-      def add_output_guardrail(guardrail)
-        @output_guardrails ||= []
-        @output_guardrails << guardrail
-        self
-      end
-
-      private
 
       # Performs a single (non-retried) invocation. Extracted so that #invoke can
       # wrap it in a retry loop without duplicating the LLM interaction logic.
@@ -790,7 +816,9 @@ module Phronomy
           [instruction.to_s, *static_chunks.map { |c| c[:content] }].join("\0")
         )
 
-        cache = (@_context_version_cache ||= Context::ContextVersionCache.new)
+        agent_id = object_id
+        cache = (Thread.current[:phronomy_context_version_caches] ||= {})[agent_id] ||=
+          Context::ContextVersionCache.new
         unless cache.valid?(fingerprint)
           parts = [instruction]
           static_chunks.each do |chunk|

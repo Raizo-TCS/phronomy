@@ -4,7 +4,12 @@ require "spec_helper"
 require "json"
 require "open3"
 require "tempfile"
-require_relative "../support/active_record_setup"
+ACTIVE_RECORD_AVAILABLE = begin
+  require_relative "../support/active_record_setup"
+  true
+rescue LoadError
+  false
+end
 
 # State class for testing
 class StoreTestState
@@ -238,6 +243,7 @@ RSpec.describe "CompiledGraph and StateStore integration" do
 end
 
 RSpec.describe "CompiledGraph and StateStore::ActiveRecord: true cross-process interrupt and resume" do
+  before { skip "ActiveRecord not available" unless ACTIVE_RECORD_AVAILABLE }
   # Returns the phronomy/ gem root directory (two levels up from spec/phronomy/).
   def gem_root
     File.expand_path("../..", __dir__)

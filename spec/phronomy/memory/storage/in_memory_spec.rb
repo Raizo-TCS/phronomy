@@ -172,10 +172,8 @@ RSpec.describe Phronomy::Memory::Storage::InMemory do
     end
 
     it "removes raw messages recorded before older_than" do
-      storage.append_raw(thread_id: "t1", messages: [make_msg(:user, "old")], starting_seq: 0)
+      storage.append_raw(thread_id: "t1", messages: [make_msg(:user, "old")], starting_seq: 0, recorded_at: Time.now - 120)
       storage.append_raw(thread_id: "t1", messages: [make_msg(:user, "new")], starting_seq: 1)
-      # Backdate the first entry
-      storage.instance_variable_get(:@raw_store)["t1"].first[:recorded_at] = Time.now - 120
       storage.purge_older_than(thread_id: "t1", older_than: Time.now - 60)
       raw = storage.load_raw(thread_id: "t1")
       expect(raw.length).to eq(1)
@@ -189,9 +187,8 @@ RSpec.describe Phronomy::Memory::Storage::InMemory do
     end
 
     it "does not affect other threads" do
-      storage.append_raw(thread_id: "t1", messages: [make_msg(:user, "a")], starting_seq: 0)
+      storage.append_raw(thread_id: "t1", messages: [make_msg(:user, "a")], starting_seq: 0, recorded_at: Time.now - 120)
       storage.append_raw(thread_id: "t2", messages: [make_msg(:user, "b")], starting_seq: 0)
-      storage.instance_variable_get(:@raw_store)["t1"].first[:recorded_at] = Time.now - 120
       storage.purge_older_than(thread_id: "t1", older_than: Time.now - 60)
       expect(storage.load_raw(thread_id: "t2").length).to eq(1)
     end

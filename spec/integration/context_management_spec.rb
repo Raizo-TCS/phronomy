@@ -102,11 +102,11 @@ RSpec.describe "Group: Context Management", :integration do
     it "reuses the cached system_text on the second call (fingerprint stable)" do
       agent = agent_klass.new
       agent.invoke("Say 'hello'.")
-      cache = agent.instance_variable_get(:@_context_version_cache)
+      cache = agent.context_version_cache
       fp_after_first = cache.fingerprint
 
       agent.invoke("Say 'hello again'.")
-      fp_after_second = agent.instance_variable_get(:@_context_version_cache).fingerprint
+      fp_after_second = agent.context_version_cache.fingerprint
 
       expect(fp_after_second).to eq(fp_after_first)
     end
@@ -126,7 +126,7 @@ RSpec.describe "Group: Context Management", :integration do
       agent.invoke("Say 'first call'.")
 
       # Simulate stale cache by resetting it.
-      agent.instance_variable_get(:@_context_version_cache)&.reset
+      agent.context_version_cache&.reset
 
       result = agent.invoke("Say 'second call after stale reset'.")
       expect(result[:output]).to be_a(String)
@@ -223,7 +223,7 @@ RSpec.describe "Group: Context Management", :integration do
         on_compact_label: "multi_range"
       ).new
       agent.invoke("Say 'hello'.")
-      agent.instance_variable_get(:@_context_version_cache)&.reset
+      agent.context_version_cache&.reset
       result = agent.invoke("Say 'after stale reset'.")
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
