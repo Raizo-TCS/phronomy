@@ -106,7 +106,8 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>In-process Hash-backed storage for conversation messages.
+    <p>In-process storage for conversation messages backed by per-thread-id
+<span class='object_link'><a href="../../Actor.html" title="Phronomy::Actor (class)">Actor</a></span> instances from <span class='object_link'><a href="../../ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span>.
 Messages are lost when the process exits.</p>
 
   </div>
@@ -129,10 +130,36 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
     
   
     
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="InMemory/Actor.html" title="Phronomy::Memory::Storage::InMemory::Actor (class)">Actor</a></span>
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="InMemory/ThreadData.html" title="Phronomy::Memory::Storage::InMemory::ThreadData (class)">ThreadData</a></span>
     
   
 </p>
+
+  
+    <h2>
+      Constant Summary
+      <small><a href="#" class="constants_summary_toggle">collapse</a></small>
+    </h2>
+
+    <dl class="constants">
+      
+        <dt id="THREAD_DATA_KEY-constant" class="">THREAD_DATA_KEY =
+          <div class="docstring">
+  <div class="discussion">
+    <p>Thread-local key for per-thread-id storage data (namespaced by store
+instance object_id to support multiple independent InMemory stores).</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='symbol'>:phronomy_storage_in_memory_data</span></pre></dd>
+      
+    </dl>
+  
 
 
 
@@ -151,7 +178,7 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#append_raw-instance_method" title="#append_raw (instance method)">#<strong>append_raw</strong>(thread_id:, messages:, starting_seq:)  &#x21d2; Object </a>
+      <a href="#append_raw-instance_method" title="#append_raw (instance method)">#<strong>append_raw</strong>(thread_id:, messages:, starting_seq:, recorded_at: nil)  &#x21d2; Object </a>
     
 
     
@@ -431,7 +458,7 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Yields while holding the per-thread-id actor's sequential queue.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Routes <code>block</code> through the per-thread-id <span class='object_link'><a href="../../Actor.html" title="Phronomy::Actor (class)">Actor</a></span>, serialising all operations for the same thread.</p></div></span>
   
 </li>
 
@@ -479,27 +506,13 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-13
-14
-15
-16
-17
 18
-19
-20
-21</pre>
+19</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 13</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
-  <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
-  <span class='ivar'>@store</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
-  <span class='ivar'>@raw_store</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>        <span class='comment'># thread_id =&gt; [{seq:, message:, recorded_at:}, ...]
-</span>  <span class='ivar'>@compaction_store</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span> <span class='comment'># thread_id =&gt; [{start_seq:, end_seq:, summary_text:}, ...]
-</span>  <span class='ivar'>@hwm_store</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>        <span class='comment'># thread_id =&gt; Integer (highest seq ever written; survives purge)
-</span>  <span class='ivar'>@actors</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
-  <span class='ivar'>@actors_mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -516,7 +529,7 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <div class="method_details first">
   <h3 class="signature first" id="append_raw-instance_method">
   
-    #<strong>append_raw</strong>(thread_id:, messages:, starting_seq:)  &#x21d2; <tt>Object</tt> 
+    #<strong>append_raw</strong>(thread_id:, messages:, starting_seq:, recorded_at: nil)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -565,6 +578,22 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       
     </li>
   
+    <li>
+      
+        <span class='name'>recorded_at</span>
+      
+      
+        <span class='type'>(<tt>Time</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>timestamp for test overrides; defaults to <code>Time.now</code></p></div>
+      
+    </li>
+  
 </ul>
 
 
@@ -574,29 +603,29 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
+53
+54
+55
+56
 57
 58
 59
 60
 61
 62
-63
-64
-65
-66
-67</pre>
+63</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 57</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 53</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_append_raw'>append_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='comma'>,</span> <span class='label'>starting_seq:</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_now'>now</span> <span class='op'>=</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span>
-  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
-    <span class='ivar'>@raw_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_append_raw'>append_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='comma'>,</span> <span class='label'>starting_seq:</span><span class='comma'>,</span> <span class='label'>recorded_at:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_now'>now</span> <span class='op'>=</span> <span class='id identifier rubyid_recorded_at'>recorded_at</span> <span class='op'>||</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span>
+  <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_for'><span class='object_link'><a href="../../ThreadActorRegistry.html#for-class_method" title="Phronomy::ThreadActorRegistry.for (method)">for</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="../../Actor.html#call-instance_method" title="Phronomy::Actor#call (method)">call</a></span></span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_data'>data</span> <span class='op'>=</span> <span class='id identifier rubyid_thread_data'>thread_data</span>
     <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_each_with_index'>each_with_index</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_msg'>msg</span><span class='comma'>,</span> <span class='id identifier rubyid_i'>i</span><span class='op'>|</span>
       <span class='id identifier rubyid_seq'>seq</span> <span class='op'>=</span> <span class='id identifier rubyid_starting_seq'>starting_seq</span> <span class='op'>+</span> <span class='id identifier rubyid_i'>i</span>
-      <span class='ivar'>@raw_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span><span class='label'>seq:</span> <span class='id identifier rubyid_seq'>seq</span><span class='comma'>,</span> <span class='label'>message:</span> <span class='id identifier rubyid_msg'>msg</span><span class='comma'>,</span> <span class='label'>recorded_at:</span> <span class='id identifier rubyid_now'>now</span><span class='rbrace'>}</span>
-      <span class='ivar'>@hwm_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='ivar'>@hwm_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='op'>-</span><span class='int'>1</span><span class='comma'>,</span> <span class='id identifier rubyid_seq'>seq</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_max'>max</span>
+      <span class='id identifier rubyid_data'>data</span><span class='period'>.</span><span class='id identifier rubyid_raw_messages'>raw_messages</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span><span class='label'>seq:</span> <span class='id identifier rubyid_seq'>seq</span><span class='comma'>,</span> <span class='label'>message:</span> <span class='id identifier rubyid_msg'>msg</span><span class='comma'>,</span> <span class='label'>recorded_at:</span> <span class='id identifier rubyid_now'>now</span><span class='rbrace'>}</span>
+      <span class='id identifier rubyid_data'>data</span><span class='period'>.</span><span class='id identifier rubyid_hwm'>hwm</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='id identifier rubyid_data'>data</span><span class='period'>.</span><span class='id identifier rubyid_hwm'>hwm</span><span class='comma'>,</span> <span class='id identifier rubyid_seq'>seq</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_max'>max</span>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
@@ -644,27 +673,21 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
+38
+39
 40
 41
 42
-43
-44
-45
-46
-47
-48</pre>
+43</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 38</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
-  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
-    <span class='ivar'>@store</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-    <span class='ivar'>@raw_store</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-    <span class='ivar'>@compaction_store</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-    <span class='ivar'>@hwm_store</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_store_id'>store_id</span> <span class='op'>=</span> <span class='id identifier rubyid_object_id'>object_id</span>
+  <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_for'><span class='object_link'><a href="../../ThreadActorRegistry.html#for-class_method" title="Phronomy::ThreadActorRegistry.for (method)">for</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="../../Actor.html#call-instance_method" title="Phronomy::Actor#call (method)">call</a></span></span> <span class='kw'>do</span>
+    <span class='lparen'>(</span><span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='lbracket'>[</span><span class='const'><span class='object_link'><a href="#THREAD_DATA_KEY-constant" title="Phronomy::Memory::Storage::InMemory::THREAD_DATA_KEY (constant)">THREAD_DATA_KEY</a></span></span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_store_id'>store_id</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
-  <span class='ivar'>@actors_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@actors</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='op'>&amp;.</span><span class='id identifier rubyid_stop'>stop</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -710,15 +733,15 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-116
-117
-118</pre>
+114
+115
+116</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 116</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 114</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear_compactions'>clear_compactions</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
-  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@compaction_store</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+  <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_for'><span class='object_link'><a href="../../ThreadActorRegistry.html#for-class_method" title="Phronomy::ThreadActorRegistry.for (method)">for</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="../../Actor.html#call-instance_method" title="Phronomy::Actor#call (method)">call</a></span></span> <span class='lbrace'>{</span> <span class='id identifier rubyid_thread_data'>thread_data</span><span class='period'>.</span><span class='id identifier rubyid_compactions'>compactions</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -764,15 +787,15 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
+89
 90
-91
-92</pre>
+91</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 90</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 89</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear_raw'>clear_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
-  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@raw_store</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+  <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_for'><span class='object_link'><a href="../../ThreadActorRegistry.html#for-class_method" title="Phronomy::ThreadActorRegistry.for (method)">for</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="../../Actor.html#call-instance_method" title="Phronomy::Actor#call (method)">call</a></span></span> <span class='lbrace'>{</span> <span class='id identifier rubyid_thread_data'>thread_data</span><span class='period'>.</span><span class='id identifier rubyid_raw_messages'>raw_messages</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -831,15 +854,15 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-29
-30
-31</pre>
+27
+28
+29</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 27</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
-  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='lparen'>(</span><span class='ivar'>@store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
+  <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_for'><span class='object_link'><a href="../../ThreadActorRegistry.html#for-class_method" title="Phronomy::ThreadActorRegistry.for (method)">for</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="../../Actor.html#call-instance_method" title="Phronomy::Actor#call (method)">call</a></span></span> <span class='lbrace'>{</span> <span class='lparen'>(</span><span class='id identifier rubyid_thread_data'>thread_data</span><span class='period'>.</span><span class='id identifier rubyid_store'>store</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -898,15 +921,15 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-111
-112
-113</pre>
+109
+110
+111</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 111</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 109</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load_compactions'>load_compactions</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
-  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='lparen'>(</span><span class='ivar'>@compaction_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
+  <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_for'><span class='object_link'><a href="../../ThreadActorRegistry.html#for-class_method" title="Phronomy::ThreadActorRegistry.for (method)">for</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="../../Actor.html#call-instance_method" title="Phronomy::Actor#call (method)">call</a></span></span> <span class='lbrace'>{</span> <span class='id identifier rubyid_thread_data'>thread_data</span><span class='period'>.</span><span class='id identifier rubyid_compactions'>compactions</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -965,15 +988,15 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
+84
 85
-86
-87</pre>
+86</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 85</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 84</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load_raw'>load_raw</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
-  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='lparen'>(</span><span class='ivar'>@raw_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
+  <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_for'><span class='object_link'><a href="../../ThreadActorRegistry.html#for-class_method" title="Phronomy::ThreadActorRegistry.for (method)">for</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="../../Actor.html#call-instance_method" title="Phronomy::Actor#call (method)">call</a></span></span> <span class='lbrace'>{</span> <span class='id identifier rubyid_thread_data'>thread_data</span><span class='period'>.</span><span class='id identifier rubyid_raw_messages'>raw_messages</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1032,15 +1055,15 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-71
-72
-73</pre>
+67
+68
+69</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 71</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 67</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_next_seq'>next_seq</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
-  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='lparen'>(</span><span class='ivar'>@hwm_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='op'>-</span><span class='int'>1</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='int'>1</span> <span class='rbrace'>}</span>
+  <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_for'><span class='object_link'><a href="../../ThreadActorRegistry.html#for-class_method" title="Phronomy::ThreadActorRegistry.for (method)">for</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="../../Actor.html#call-instance_method" title="Phronomy::Actor#call (method)">call</a></span></span> <span class='lbrace'>{</span> <span class='id identifier rubyid_thread_data'>thread_data</span><span class='period'>.</span><span class='id identifier rubyid_hwm'>hwm</span> <span class='op'>+</span> <span class='int'>1</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1097,22 +1120,18 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
+122
+123
 124
 125
-126
-127
-128
-129
-130</pre>
+126</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 124</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 122</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_purge_older_than'>purge_older_than</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>older_than:</span><span class='rparen'>)</span>
-  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
-    <span class='kw'>next</span> <span class='kw'>unless</span> <span class='ivar'>@raw_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span>
-
-    <span class='ivar'>@raw_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_reject!'>reject!</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_entry'>entry</span><span class='op'>|</span> <span class='id identifier rubyid_entry'>entry</span><span class='lbracket'>[</span><span class='symbol'>:recorded_at</span><span class='rbracket'>]</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_entry'>entry</span><span class='lbracket'>[</span><span class='symbol'>:recorded_at</span><span class='rbracket'>]</span> <span class='op'>&lt;</span> <span class='id identifier rubyid_older_than'>older_than</span> <span class='rbrace'>}</span>
+  <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_for'><span class='object_link'><a href="../../ThreadActorRegistry.html#for-class_method" title="Phronomy::ThreadActorRegistry.for (method)">for</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="../../Actor.html#call-instance_method" title="Phronomy::Actor#call (method)">call</a></span></span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_thread_data'>thread_data</span><span class='period'>.</span><span class='id identifier rubyid_raw_messages'>raw_messages</span><span class='period'>.</span><span class='id identifier rubyid_reject!'>reject!</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_entry'>entry</span><span class='op'>|</span> <span class='id identifier rubyid_entry'>entry</span><span class='lbracket'>[</span><span class='symbol'>:recorded_at</span><span class='rbracket'>]</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_entry'>entry</span><span class='lbracket'>[</span><span class='symbol'>:recorded_at</span><span class='rbracket'>]</span> <span class='op'>&lt;</span> <span class='id identifier rubyid_older_than'>older_than</span> <span class='rbrace'>}</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1170,15 +1189,15 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
-35
-36
-37</pre>
+33
+34
+35</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 35</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 33</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='rparen'>)</span>
-  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
+  <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_for'><span class='object_link'><a href="../../ThreadActorRegistry.html#for-class_method" title="Phronomy::ThreadActorRegistry.for (method)">for</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="../../Actor.html#call-instance_method" title="Phronomy::Actor#call (method)">call</a></span></span> <span class='lbrace'>{</span> <span class='id identifier rubyid_thread_data'>thread_data</span><span class='period'>.</span><span class='id identifier rubyid_store'>store</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1257,20 +1276,18 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
       <pre class="lines">
 
 
+101
 102
 103
 104
-105
-106
-107</pre>
+105</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 102</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 101</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save_compaction'>save_compaction</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>start_seq:</span><span class='comma'>,</span> <span class='label'>end_seq:</span><span class='comma'>,</span> <span class='label'>summary_text:</span><span class='rparen'>)</span>
-  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
-    <span class='ivar'>@compaction_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
-    <span class='ivar'>@compaction_store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span><span class='label'>start_seq:</span> <span class='id identifier rubyid_start_seq'>start_seq</span><span class='comma'>,</span> <span class='label'>end_seq:</span> <span class='id identifier rubyid_end_seq'>end_seq</span><span class='comma'>,</span> <span class='label'>summary_text:</span> <span class='id identifier rubyid_summary_text'>summary_text</span><span class='rbrace'>}</span>
+  <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_for'><span class='object_link'><a href="../../ThreadActorRegistry.html#for-class_method" title="Phronomy::ThreadActorRegistry.for (method)">for</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="../../Actor.html#call-instance_method" title="Phronomy::Actor#call (method)">call</a></span></span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_thread_data'>thread_data</span><span class='period'>.</span><span class='id identifier rubyid_compactions'>compactions</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span><span class='label'>start_seq:</span> <span class='id identifier rubyid_start_seq'>start_seq</span><span class='comma'>,</span> <span class='label'>end_seq:</span> <span class='id identifier rubyid_end_seq'>end_seq</span><span class='comma'>,</span> <span class='label'>summary_text:</span> <span class='id identifier rubyid_summary_text'>summary_text</span><span class='rbrace'>}</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1289,8 +1306,11 @@ manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)</code
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Yields while holding the per-thread-id actor's sequential queue.
-Prevents concurrent compaction records for the same thread.</p>
+    <p>Routes <code>block</code> through the per-thread-id <span class='object_link'><a href="../../Actor.html" title="Phronomy::Actor (class)">Actor</a></span>, serialising
+all operations for the same thread.  Reentrant calls (the block itself
+calling storage methods that also route through the Actor) are safe
+because <span class='object_link'><a href="../../Actor.html#call-instance_method" title="Phronomy::Actor#call (method)">Actor#call</a></span> detects the same-thread case and executes
+inline.</p>
 
   </div>
 </div>
@@ -1320,15 +1340,13 @@ Prevents concurrent compaction records for the same thread.</p>
 
 78
 79
-80
-81</pre>
+80</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 78</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_with_thread_lock'>with_thread_lock</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_actor'>actor</span> <span class='op'>=</span> <span class='ivar'>@actors_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@actors</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="InMemory/Actor.html" title="Phronomy::Memory::Storage::InMemory::Actor (class)">Actor</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="InMemory/Actor.html#initialize-instance_method" title="Phronomy::Memory::Storage::InMemory::Actor#initialize (method)">new</a></span></span> <span class='rbrace'>}</span>
-  <span class='id identifier rubyid_actor'>actor</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_for'><span class='object_link'><a href="../../ThreadActorRegistry.html#for-class_method" title="Phronomy::ThreadActorRegistry.for (method)">for</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="../../Actor.html#call-instance_method" title="Phronomy::Actor#call (method)">call</a></span></span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1340,7 +1358,7 @@ Prevents concurrent compaction records for the same thread.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 11 20:24:09 2026 by
+  Generated on Mon May 11 21:20:05 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

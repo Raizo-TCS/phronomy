@@ -106,9 +106,8 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>In-memory state store. Stores state objects keyed by thread_id.
-State objects are stored directly (no serialization), so this
-backend is suitable for single-process use only.</p>
+    <p>In-memory state store backed by per-thread-id <span class='object_link'><a href="../Actor.html" title="Phronomy::Actor (class)">Actor</a></span> instances
+from <span class='object_link'><a href="../ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span>. Suitable for single-process use only.</p>
 
   </div>
 </div>
@@ -116,6 +115,32 @@ backend is suitable for single-process use only.</p>
   
 
 </div>
+  
+    <h2>
+      Constant Summary
+      <small><a href="#" class="constants_summary_toggle">collapse</a></small>
+    </h2>
+
+    <dl class="constants">
+      
+        <dt id="THREAD_DATA_KEY-constant" class="">THREAD_DATA_KEY =
+          <div class="docstring">
+  <div class="discussion">
+    <p>Thread-local key for per-thread-id state data (namespaced by store
+instance object_id to support multiple independent InMemory stores).</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='symbol'>:phronomy_state_store_in_memory_data</span></pre></dd>
+      
+    </dl>
+  
+
 
 
 
@@ -280,17 +305,13 @@ backend is suitable for single-process use only.</p>
       <pre class="lines">
 
 
-9
-10
-11
-12</pre>
+12
+13</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/in_memory.rb', line 9</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/in_memory.rb', line 12</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
-  <span class='ivar'>@store</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
-  <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -356,16 +377,22 @@ backend is suitable for single-process use only.</p>
       <pre class="lines">
 
 
-29
-30
-31
-32</pre>
+36
+37
+38
+39
+40
+41
+42</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/in_memory.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/in_memory.rb', line 36</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@store</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+  <span class='id identifier rubyid_store_id'>store_id</span> <span class='op'>=</span> <span class='id identifier rubyid_object_id'>object_id</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_for'><span class='object_link'><a href="../ThreadActorRegistry.html#for-class_method" title="Phronomy::ThreadActorRegistry.for (method)">for</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="../Actor.html#call-instance_method" title="Phronomy::Actor#call (method)">call</a></span></span> <span class='kw'>do</span>
+    <span class='lparen'>(</span><span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='lbracket'>[</span><span class='const'><span class='object_link'><a href="#THREAD_DATA_KEY-constant" title="Phronomy::StateStore::InMemory::THREAD_DATA_KEY (constant)">THREAD_DATA_KEY</a></span></span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_store_id'>store_id</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -388,16 +415,22 @@ backend is suitable for single-process use only.</p>
       <pre class="lines">
 
 
-34
-35
-36
-37</pre>
+44
+45
+46
+47
+48
+49
+50</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/in_memory.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/in_memory.rb', line 44</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear_all'>clear_all</span>
-  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@store</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span> <span class='rbrace'>}</span>
+  <span class='id identifier rubyid_store_id'>store_id</span> <span class='op'>=</span> <span class='id identifier rubyid_object_id'>object_id</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_each_actor'><span class='object_link'><a href="../ThreadActorRegistry.html#each_actor-class_method" title="Phronomy::ThreadActorRegistry.each_actor (method)">each_actor</a></span></span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_actor'>actor</span><span class='op'>|</span>
+    <span class='id identifier rubyid_actor'>actor</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span> <span class='lbrace'>{</span> <span class='lparen'>(</span><span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='lbracket'>[</span><span class='const'><span class='object_link'><a href="#THREAD_DATA_KEY-constant" title="Phronomy::StateStore::InMemory::THREAD_DATA_KEY (constant)">THREAD_DATA_KEY</a></span></span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_store_id'>store_id</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+  <span class='kw'>end</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -460,15 +493,21 @@ backend is suitable for single-process use only.</p>
       <pre class="lines">
 
 
-23
-24
-25</pre>
+27
+28
+29
+30
+31
+32</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/in_memory.rb', line 23</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/in_memory.rb', line 27</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@store</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
+  <span class='id identifier rubyid_store_id'>store_id</span> <span class='op'>=</span> <span class='id identifier rubyid_object_id'>object_id</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_for'><span class='object_link'><a href="../ThreadActorRegistry.html#for-class_method" title="Phronomy::ThreadActorRegistry.for (method)">for</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="../Actor.html#call-instance_method" title="Phronomy::Actor#call (method)">call</a></span></span> <span class='kw'>do</span>
+    <span class='lparen'>(</span><span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='lbracket'>[</span><span class='const'><span class='object_link'><a href="#THREAD_DATA_KEY-constant" title="Phronomy::StateStore::InMemory::THREAD_DATA_KEY (constant)">THREAD_DATA_KEY</a></span></span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='lbracket'>[</span><span class='id identifier rubyid_store_id'>store_id</span><span class='rbracket'>]</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -530,16 +569,22 @@ backend is suitable for single-process use only.</p>
       <pre class="lines">
 
 
-16
 17
 18
-19</pre>
+19
+20
+21
+22
+23</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/in_memory.rb', line 16</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/state_store/in_memory.rb', line 17</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='rparen'>)</span>
-  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@store</span><span class='lbracket'>[</span><span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_state'>state</span> <span class='rbrace'>}</span>
+  <span class='id identifier rubyid_store_id'>store_id</span> <span class='op'>=</span> <span class='id identifier rubyid_object_id'>object_id</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_for'><span class='object_link'><a href="../ThreadActorRegistry.html#for-class_method" title="Phronomy::ThreadActorRegistry.for (method)">for</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_call'><span class='object_link'><a href="../Actor.html#call-instance_method" title="Phronomy::Actor#call (method)">call</a></span></span> <span class='kw'>do</span>
+    <span class='lparen'>(</span><span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='lbracket'>[</span><span class='const'><span class='object_link'><a href="#THREAD_DATA_KEY-constant" title="Phronomy::StateStore::InMemory::THREAD_DATA_KEY (constant)">THREAD_DATA_KEY</a></span></span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='lbracket'>[</span><span class='id identifier rubyid_store_id'>store_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_state'>state</span>
+  <span class='kw'>end</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -552,7 +597,7 @@ backend is suitable for single-process use only.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 11 20:24:09 2026 by
+  Generated on Mon May 11 21:20:05 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

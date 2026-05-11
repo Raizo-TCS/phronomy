@@ -835,6 +835,28 @@ and retry behaviour. Instance methods handle invocation.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#context_version_cache-instance_method" title="#context_version_cache (instance method)">#<strong>context_version_cache</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the <span class='object_link'><a href="../Context/ContextVersionCache.html" title="Phronomy::Context::ContextVersionCache (class)">Context::ContextVersionCache</a></span> for the current thread.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#invoke-instance_method" title="#invoke (instance method)">#<strong>invoke</strong>(input, config: {})  &#x21d2; Hash </a>
     
 
@@ -2877,14 +2899,14 @@ Called by Runner during construction when routes are configured.</p>
       <pre class="lines">
 
 
-556
-557
-558
-559
-560</pre>
+463
+464
+465
+466
+467</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 556</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 463</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_input_guardrail'>add_input_guardrail</span><span class='lparen'>(</span><span class='id identifier rubyid_guardrail'>guardrail</span><span class='rparen'>)</span>
   <span class='ivar'>@input_guardrails</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -2935,19 +2957,62 @@ Called by Runner during construction when routes are configured.</p>
       <pre class="lines">
 
 
-564
-565
-566
-567
-568</pre>
+471
+472
+473
+474
+475</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 564</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 471</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_output_guardrail'>add_output_guardrail</span><span class='lparen'>(</span><span class='id identifier rubyid_guardrail'>guardrail</span><span class='rparen'>)</span>
   <span class='ivar'>@output_guardrails</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
   <span class='ivar'>@output_guardrails</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_guardrail'>guardrail</span>
   <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="context_version_cache-instance_method">
+  
+    #<strong>context_version_cache</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns the <span class='object_link'><a href="../Context/ContextVersionCache.html" title="Phronomy::Context::ContextVersionCache (class)">Context::ContextVersionCache</a></span> for the current thread.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+479
+480
+481</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 479</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_context_version_cache'>context_version_cache</span>
+  <span class='lparen'>(</span><span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='lbracket'>[</span><span class='symbol'>:phronomy_context_version_caches</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='lbracket'>[</span><span class='id identifier rubyid_object_id'>object_id</span><span class='rbracket'>]</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -3064,40 +3129,14 @@ variables consumed by the configured instructions template.</p></div>
 414
 415
 416
-417
-418
-419
-420
-421
-422
-423
-424
-425
-426
-427
-428
-429
-430</pre>
+417</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 414</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_policy'>policy</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__retry_policy'>_retry_policy</span>
-  <span class='id identifier rubyid_attempt'>attempt</span> <span class='op'>=</span> <span class='int'>0</span>
-  <span class='kw'>begin</span>
-    <span class='id identifier rubyid_invoke_once'>invoke_once</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
-  <span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../GuardrailError.html" title="Phronomy::GuardrailError (class)">GuardrailError</a></span></span>
-    <span class='id identifier rubyid_raise'>raise</span>
-  <span class='kw'>rescue</span>
-    <span class='kw'>if</span> <span class='id identifier rubyid_policy'>policy</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_attempt'>attempt</span> <span class='op'>&lt;</span> <span class='id identifier rubyid_policy'>policy</span><span class='lbracket'>[</span><span class='symbol'>:times</span><span class='rbracket'>]</span>
-      <span class='id identifier rubyid_wait'>wait</span> <span class='op'>=</span> <span class='id identifier rubyid_compute_agent_retry_wait'>compute_agent_retry_wait</span><span class='lparen'>(</span><span class='id identifier rubyid_policy'>policy</span><span class='lbracket'>[</span><span class='symbol'>:wait</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='id identifier rubyid_policy'>policy</span><span class='lbracket'>[</span><span class='symbol'>:base</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='id identifier rubyid_attempt'>attempt</span><span class='rparen'>)</span>
-      <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__sleep_proc'>_sleep_proc</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_wait'>wait</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_wait'>wait</span> <span class='op'>&gt;</span> <span class='int'>0</span>
-      <span class='id identifier rubyid_attempt'>attempt</span> <span class='op'>+=</span> <span class='int'>1</span>
-      <span class='kw'>retry</span>
-    <span class='kw'>end</span>
-    <span class='id identifier rubyid_raise'>raise</span>
-  <span class='kw'>end</span>
+  <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:thread_id</span><span class='rbracket'>]</span>
+  <span class='id identifier rubyid__run_in_thread_actor'>_run_in_thread_actor</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid__invoke_impl'>_invoke_impl</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -3156,13 +3195,13 @@ without interruption (backward-compatible behaviour).</p>
       <pre class="lines">
 
 
-549
-550
-551
-552</pre>
+456
+457
+458
+459</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 549</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 456</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_approval_required'>on_approval_required</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@approval_handler</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -3267,184 +3306,24 @@ as they are produced by the underlying LLM.</p>
       <pre class="lines">
 
 
-446
-447
-448
-449
-450
-451
-452
-453
-454
-455
-456
-457
-458
-459
-460
-461
-462
-463
-464
-465
-466
-467
-468
-469
-470
-471
-472
-473
-474
-475
-476
-477
-478
-479
-480
-481
-482
-483
-484
-485
-486
-487
-488
-489
-490
-491
-492
-493
-494
-495
-496
-497
-498
-499
-500
-501
-502
-503
-504
-505
-506
-507
-508
-509
-510
-511
-512
-513
-514
-515
-516
-517
-518
-519
-520
-521
-522
-523
-524
-525
-526
-527
-528
-529
-530
-531
-532
-533
-534</pre>
+433
+434
+435
+436
+437
+438
+439
+440
+441</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 446</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 433</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
 
-  <span class='id identifier rubyid_caller_meta'>caller_meta</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
-  <span class='id identifier rubyid_caller_meta'>caller_meta</span><span class='lbracket'>[</span><span class='symbol'>:user_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:user_id</span><span class='rbracket'>]</span> <span class='kw'>if</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:user_id</span><span class='rbracket'>]</span>
-  <span class='id identifier rubyid_caller_meta'>caller_meta</span><span class='lbracket'>[</span><span class='symbol'>:session_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:session_id</span><span class='rbracket'>]</span> <span class='kw'>if</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:session_id</span><span class='rbracket'>]</span>
-
-  <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent.invoke</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_caller_meta'>caller_meta</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid__span'>_span</span><span class='op'>|</span>
-    <span class='id identifier rubyid_run_input_guardrails!'>run_input_guardrails!</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
-
-    <span class='id identifier rubyid_memory'>memory</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:memory</span><span class='rbracket'>]</span>
-    <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:thread_id</span><span class='rbracket'>]</span>
-
-    <span class='id identifier rubyid_chat'>chat</span> <span class='op'>=</span> <span class='id identifier rubyid_build_chat'>build_chat</span>
-    <span class='id identifier rubyid_user_message'>user_message</span> <span class='op'>=</span> <span class='id identifier rubyid_extract_message'>extract_message</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_budget'>budget</span> <span class='op'>=</span> <span class='id identifier rubyid_build_token_budget'>build_token_budget</span>
-
-    <span class='comment'># Assemble context via Assembler (same as invoke_once).
-</span>    <span class='id identifier rubyid_assembler'>assembler</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Context.html" title="Phronomy::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Context/Assembler.html" title="Phronomy::Context::Assembler (class)">Assembler</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Context/Assembler.html#initialize-instance_method" title="Phronomy::Context::Assembler#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>budget:</span> <span class='id identifier rubyid_budget'>budget</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_system_msg'>system_msg</span> <span class='op'>=</span> <span class='id identifier rubyid_build_instructions'>build_instructions</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_assembler'>assembler</span><span class='period'>.</span><span class='id identifier rubyid_add_instruction'>add_instruction</span><span class='lparen'>(</span><span class='id identifier rubyid_system_msg'>system_msg</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_system_msg'>system_msg</span>
-
-    <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:knowledge_sources</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_ks'>ks</span><span class='op'>|</span>
-      <span class='id identifier rubyid_ks'>ks</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='label'>query:</span> <span class='id identifier rubyid_user_message'>user_message</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_chunk'>chunk</span><span class='op'>|</span>
-        <span class='id identifier rubyid_assembler'>assembler</span><span class='period'>.</span><span class='id identifier rubyid_add_knowledge'>add_knowledge</span><span class='lparen'>(</span><span class='id identifier rubyid_chunk'>chunk</span><span class='lbracket'>[</span><span class='symbol'>:content</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='id identifier rubyid_chunk'>chunk</span><span class='lbracket'>[</span><span class='symbol'>:type</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>source:</span> <span class='id identifier rubyid_chunk'>chunk</span><span class='lbracket'>[</span><span class='symbol'>:source</span><span class='rbracket'>]</span><span class='rparen'>)</span>
-      <span class='kw'>end</span>
-    <span class='kw'>end</span>
-
-    <span class='kw'>if</span> <span class='id identifier rubyid_memory'>memory</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
-      <span class='id identifier rubyid_msgs'>msgs</span> <span class='op'>=</span> <span class='id identifier rubyid_load_from_memory'>load_from_memory</span><span class='lparen'>(</span><span class='id identifier rubyid_memory'>memory</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='id identifier rubyid_user_message'>user_message</span><span class='rparen'>)</span>
-      <span class='id identifier rubyid_message_elements'>message_elements</span> <span class='op'>=</span> <span class='id identifier rubyid_build_message_elements'>build_message_elements</span><span class='lparen'>(</span><span class='id identifier rubyid_msgs'>msgs</span><span class='rparen'>)</span>
-
-      <span class='comment'># Run on_trim: app may call ctx.remove(seqs) to drop messages this turn.
-</span>      <span class='kw'>if</span> <span class='lparen'>(</span><span class='id identifier rubyid_trim_cb'>trim_cb</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__on_trim_callback'>_on_trim_callback</span><span class='rparen'>)</span>
-        <span class='id identifier rubyid_trim_ctx'>trim_ctx</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Context.html" title="Phronomy::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Context/TrimContext.html" title="Phronomy::Context::TrimContext (class)">TrimContext</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Context/TrimContext.html#initialize-instance_method" title="Phronomy::Context::TrimContext#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>message_elements:</span> <span class='id identifier rubyid_message_elements'>message_elements</span><span class='comma'>,</span> <span class='label'>budget:</span> <span class='id identifier rubyid_budget'>budget</span><span class='rparen'>)</span>
-        <span class='id identifier rubyid_trim_cb'>trim_cb</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_trim_ctx'>trim_ctx</span><span class='rparen'>)</span>
-        <span class='id identifier rubyid_message_elements'>message_elements</span> <span class='op'>=</span> <span class='id identifier rubyid_trim_ctx'>trim_ctx</span><span class='period'>.</span><span class='id identifier rubyid_message_elements'>message_elements</span>
-      <span class='kw'>end</span>
-
-      <span class='comment'># Run on_compaction_trigger → on_compact pipeline before calling the LLM.
-</span>      <span class='kw'>if</span> <span class='lparen'>(</span><span class='id identifier rubyid_trigger_cb'>trigger_cb</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__on_compaction_trigger_callback'>_on_compaction_trigger_callback</span><span class='rparen'>)</span>
-        <span class='id identifier rubyid_trigger_ctx'>trigger_ctx</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Context.html" title="Phronomy::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Context/TriggerContext.html" title="Phronomy::Context::TriggerContext (class)">TriggerContext</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Context/TriggerContext.html#initialize-instance_method" title="Phronomy::Context::TriggerContext#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>message_elements:</span> <span class='id identifier rubyid_message_elements'>message_elements</span><span class='comma'>,</span> <span class='label'>budget:</span> <span class='id identifier rubyid_budget'>budget</span><span class='rparen'>)</span>
-        <span class='kw'>if</span> <span class='id identifier rubyid_trigger_cb'>trigger_cb</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_trigger_ctx'>trigger_ctx</span><span class='rparen'>)</span>
-          <span class='kw'>if</span> <span class='lparen'>(</span><span class='id identifier rubyid_compact_cb'>compact_cb</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__on_compact_callback'>_on_compact_callback</span><span class='rparen'>)</span>
-            <span class='id identifier rubyid_compact_ctx'>compact_ctx</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Context.html" title="Phronomy::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Context/CompactionContext.html" title="Phronomy::Context::CompactionContext (class)">CompactionContext</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Context/CompactionContext.html#initialize-instance_method" title="Phronomy::Context::CompactionContext#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-              <span class='label'>message_elements:</span> <span class='id identifier rubyid_message_elements'>message_elements</span><span class='comma'>,</span>
-              <span class='label'>budget:</span> <span class='id identifier rubyid_budget'>budget</span><span class='comma'>,</span>
-              <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
-              <span class='label'>memory:</span> <span class='id identifier rubyid_memory'>memory</span>
-            <span class='rparen'>)</span>
-            <span class='id identifier rubyid_compact_cb'>compact_cb</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_compact_ctx'>compact_ctx</span><span class='rparen'>)</span>
-            <span class='id identifier rubyid_message_elements'>message_elements</span> <span class='op'>=</span> <span class='id identifier rubyid_build_message_elements'>build_message_elements</span><span class='lparen'>(</span><span class='id identifier rubyid_compact_ctx'>compact_ctx</span><span class='period'>.</span><span class='id identifier rubyid_result_messages'>result_messages</span><span class='rparen'>)</span>
-          <span class='kw'>end</span>
-        <span class='kw'>end</span>
-      <span class='kw'>end</span>
-
-      <span class='id identifier rubyid_assembler'>assembler</span><span class='period'>.</span><span class='id identifier rubyid_add_messages'>add_messages</span><span class='lparen'>(</span><span class='id identifier rubyid_message_elements'>message_elements</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_e'>e</span><span class='op'>|</span> <span class='id identifier rubyid_e'>e</span><span class='lbracket'>[</span><span class='symbol'>:message</span><span class='rbracket'>]</span> <span class='rbrace'>}</span><span class='rparen'>)</span>
-    <span class='kw'>end</span>
-
-    <span class='id identifier rubyid_context'>context</span> <span class='op'>=</span> <span class='id identifier rubyid_assembler'>assembler</span><span class='period'>.</span><span class='id identifier rubyid_build'>build</span>
-    <span class='id identifier rubyid_apply_instructions'>apply_instructions</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_context'>context</span><span class='lbracket'>[</span><span class='symbol'>:system</span><span class='rbracket'>]</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_context'>context</span><span class='lbracket'>[</span><span class='symbol'>:system</span><span class='rbracket'>]</span>
-    <span class='id identifier rubyid_context'>context</span><span class='lbracket'>[</span><span class='symbol'>:messages</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_msg'>msg</span><span class='op'>|</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_messages'>messages</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_msg'>msg</span> <span class='rbrace'>}</span>
-
-    <span class='comment'># Wire per-event callbacks to yield StreamEvents.
-</span>    <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_before_tool_call'>before_tool_call</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_tool_call'>tool_call</span><span class='op'>|</span> <span class='id identifier rubyid_block'>block</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="StreamEvent.html" title="Phronomy::Agent::StreamEvent (class)">StreamEvent</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>type:</span> <span class='symbol'>:tool_call</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='lbrace'>{</span><span class='label'>tool_call:</span> <span class='id identifier rubyid_tool_call'>tool_call</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
-    <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_after_tool_result'>after_tool_result</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_tool_result'>tool_result</span><span class='op'>|</span> <span class='id identifier rubyid_block'>block</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="StreamEvent.html" title="Phronomy::Agent::StreamEvent (class)">StreamEvent</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>type:</span> <span class='symbol'>:tool_result</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='lbrace'>{</span><span class='label'>tool_result:</span> <span class='id identifier rubyid_tool_result'>tool_result</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
-
-    <span class='comment'># Run before_completion hooks (global → class → instance) before the LLM call.
-</span>    <span class='id identifier rubyid_run_before_completion_hooks!'>run_before_completion_hooks!</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
-
-    <span class='id identifier rubyid_response'>response</span> <span class='op'>=</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_ask'>ask</span><span class='lparen'>(</span><span class='id identifier rubyid_user_message'>user_message</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_chunk'>chunk</span><span class='op'>|</span>
-      <span class='id identifier rubyid_block'>block</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="StreamEvent.html" title="Phronomy::Agent::StreamEvent (class)">StreamEvent</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>type:</span> <span class='symbol'>:token</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='lbrace'>{</span><span class='label'>content:</span> <span class='id identifier rubyid_chunk'>chunk</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='rparen'>)</span>
-    <span class='kw'>end</span>
-
-    <span class='id identifier rubyid_save_to_memory'>save_to_memory</span><span class='lparen'>(</span><span class='id identifier rubyid_memory'>memory</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_memory'>memory</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
-
-    <span class='id identifier rubyid_output'>output</span> <span class='op'>=</span> <span class='id identifier rubyid_response'>response</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span>
-    <span class='id identifier rubyid_usage'>usage</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../TokenUsage.html" title="Phronomy::TokenUsage (class)">TokenUsage</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_tokens'><span class='object_link'><a href="../TokenUsage.html#from_tokens-class_method" title="Phronomy::TokenUsage.from_tokens (method)">from_tokens</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_response'>response</span><span class='period'>.</span><span class='id identifier rubyid_tokens'>tokens</span><span class='rparen'>)</span>
-
-    <span class='id identifier rubyid_run_output_guardrails!'>run_output_guardrails!</span><span class='lparen'>(</span><span class='id identifier rubyid_output'>output</span><span class='rparen'>)</span>
-
-    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='label'>output:</span> <span class='id identifier rubyid_output'>output</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>usage:</span> <span class='id identifier rubyid_usage'>usage</span><span class='rbrace'>}</span>
-    <span class='id identifier rubyid_block'>block</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="StreamEvent.html" title="Phronomy::Agent::StreamEvent (class)">StreamEvent</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>type:</span> <span class='symbol'>:done</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span><span class='rparen'>)</span>
-    <span class='lbracket'>[</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_usage'>usage</span><span class='rbracket'>]</span>
-  <span class='kw'>end</span>
+  <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:thread_id</span><span class='rbracket'>]</span>
+  <span class='id identifier rubyid__run_in_thread_actor'>_run_in_thread_actor</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid__stream_impl'>_stream_impl</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
   <span class='id identifier rubyid_block'>block</span><span class='op'>&amp;.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="StreamEvent.html" title="Phronomy::Agent::StreamEvent (class)">StreamEvent</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>type:</span> <span class='symbol'>:error</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='lbrace'>{</span><span class='label'>error:</span> <span class='id identifier rubyid_e'>e</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span>
@@ -3459,7 +3338,7 @@ as they are produced by the underlying LLM.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 11 20:24:08 2026 by
+  Generated on Mon May 11 21:20:04 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

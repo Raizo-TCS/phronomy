@@ -4,25 +4,25 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-  Class: Phronomy::Memory::Storage::InMemory::Actor
+  Class: Phronomy::Actor
   
     &mdash; Documentation by YARD 0.9.43
   
 </title>
 
-  <link rel="stylesheet" href="../../../../css/style.css" type="text/css">
+  <link rel="stylesheet" href="../css/style.css" type="text/css">
 
-  <link rel="stylesheet" href="../../../../css/common.css" type="text/css">
+  <link rel="stylesheet" href="../css/common.css" type="text/css">
 
 <script type="text/javascript">
-  pathId = "Phronomy::Memory::Storage::InMemory::Actor";
-  relpath = '../../../../';
+  pathId = "Phronomy::Actor";
+  relpath = '../';
 </script>
 
 
-  <script type="text/javascript" charset="utf-8" src="../../../../js/jquery.js"></script>
+  <script type="text/javascript" charset="utf-8" src="../js/jquery.js"></script>
 
-  <script type="text/javascript" charset="utf-8" src="../../../../js/app.js"></script>
+  <script type="text/javascript" charset="utf-8" src="../js/app.js"></script>
 
 
   </head>
@@ -30,7 +30,7 @@
     <div id="main_progress" aria-hidden="true"></div>
 
     <div class="nav_wrap">
-      <iframe id="nav" src="../../../../class_list.html?1"></iframe>
+      <iframe id="nav" src="../class_list.html?1"></iframe>
       <div id="resizer"></div>
     </div>
 
@@ -38,8 +38,8 @@
       <div id="header">
         <div id="menu">
   
-    <a href="../../../../_index.html">Index (A)</a> &raquo;
-    <span class='title'><span class='object_link'><a href="../../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../../Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../Storage.html" title="Phronomy::Memory::Storage (module)">Storage</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../InMemory.html" title="Phronomy::Memory::Storage::InMemory (class)">InMemory</a></span></span>
+    <a href="../_index.html">Index (A)</a> &raquo;
+    <span class='title'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span>
      &raquo; 
     <span class="title">Actor</span>
   
@@ -48,7 +48,7 @@
         <div id="search">
   
     <a class="full_list_link" id="class_list_link"
-        href="../../../../class_list.html">
+        href="../class_list.html">
 
         <svg width="24" height="24">
           <rect x="0" y="4" width="24" height="4" rx="1" ry="1"></rect>
@@ -61,7 +61,7 @@
         <div class="clear"></div>
       </div>
 
-      <div id="content"><h1>Class: Phronomy::Memory::Storage::InMemory::Actor
+      <div id="content"><h1>Class: Phronomy::Actor
   
   
   
@@ -76,7 +76,7 @@
         <ul class="fullTree">
           <li>Object</li>
           
-            <li class="next">Phronomy::Memory::Storage::InMemory::Actor</li>
+            <li class="next">Phronomy::Actor</li>
           
         </ul>
         <a href="#" class="inheritanceTree">show all</a>
@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/memory/storage/in_memory.rb
+    <dd>lib/phronomy/actor.rb
 </dd>
   </dl>
   
@@ -104,10 +104,20 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Lightweight synchronous actor: a dedicated Thread drains a Queue,
-guaranteeing sequential execution of all operations for one thread_id.
-The calling thread blocks until the actor finishes and re-raises any
-exception that occurred inside the actor.</p>
+    <p>Lightweight synchronous actor backed by a dedicated <code>Thread</code> and a <code>Queue</code>.</p>
+<p>A caller submits work via <span class='object_link'><a href="#call-instance_method" title="Phronomy::Actor#call (method)">#call</a></span>, which blocks until the actor's thread
+finishes executing the block and then returns the result (or re-raises any
+exception that occurred inside the actor).</p>
+<h3 id="Reentrant_safety">Reentrant safety</h3>
+<p>If <span class='object_link'><a href="#call-instance_method" title="Phronomy::Actor#call (method)">#call</a></span> is invoked from within the actor's own thread (i.e. from inside
+a block that is already executing on this actor), the block is executed
+directly in the current thread instead of being pushed onto the queue.
+This prevents deadlocks in deeply nested call paths without requiring
+callers to track whether they are already &quot;inside&quot; the actor.</p>
+<h3 id="Usage">Usage</h3>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_actor'>actor</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>Actor</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Actor#initialize (method)">new</a></span></span>
+<span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_actor'>actor</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_expensive_operation'>expensive_operation</span><span class='lparen'>(</span><span class='rparen'>)</span> <span class='rbrace'>}</span>   <span class='comment'># blocks caller; runs on actor thread
+</span><span class='id identifier rubyid_actor'>actor</span><span class='period'>.</span><span class='id identifier rubyid_stop'>stop</span>                                       <span class='comment'># graceful shutdown</span></code></pre>
 
   </div>
 </div>
@@ -132,7 +142,7 @@ exception that occurred inside the actor.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#call-instance_method" title="#call (instance method)">#<strong>call</strong>(&amp;block)  &#x21d2; Object </a>
+      <a href="#call-instance_method" title="#call (instance method)">#<strong>call</strong> { ... } &#x21d2; Object </a>
     
 
     
@@ -192,7 +202,7 @@ exception that occurred inside the actor.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Send a stop sentinel to gracefully terminate the actor's thread.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Send a <code>:stop</code> sentinel to gracefully terminate the actor's thread.</p></div></span>
   
 </li>
 
@@ -207,7 +217,7 @@ exception that occurred inside the actor.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Memory::Storage::InMemory::Actor (class)">Actor</a></span></tt> 
+    #<strong>initialize</strong>  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Actor (class)">Actor</a></span></tt> 
   
 
   
@@ -228,19 +238,19 @@ exception that occurred inside the actor.</p>
       <pre class="lines">
 
 
-139
-140
-141
-142
-143
-144
-145
-146
-147
-148</pre>
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 139</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/actor.rb', line 24</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@queue</span> <span class='op'>=</span> <span class='const'>Queue</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
@@ -267,7 +277,7 @@ exception that occurred inside the actor.</p>
       <div class="method_details first">
   <h3 class="signature first" id="call-instance_method">
   
-    #<strong>call</strong>(&amp;block)  &#x21d2; <tt>Object</tt> 
+    #<strong>call</strong> { ... } &#x21d2; <tt>Object</tt> 
   
 
   
@@ -275,13 +285,48 @@ exception that occurred inside the actor.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Run <code>block</code> on the actor's thread and return its result.
-Exceptions are captured and re-raised in the caller's thread.</p>
+    <p>Run <code>block</code> on the actor's thread and return its result.</p>
+<p>If the current thread is already the actor's thread (reentrant call),
+the block is executed inline to prevent deadlocks.</p>
+<p>Any exception raised inside the block is captured and re-raised in the
+calling thread.</p>
 
   </div>
 </div>
 <div class="tags">
   
+<p class="tag_title">Yields:</p>
+<ul class="yield">
+  
+    <li>
+      
+      
+        <span class='type'></span>
+      
+      
+      
+        
+        <div class='inline'><p>block to execute on the actor's thread</p></div>
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'></span>
+      
+      
+      
+        
+        <div class='inline'><p>the return value of the block</p></div>
+      
+    </li>
+  
+</ul>
 
 </div><table class="source_code">
   <tr>
@@ -289,24 +334,28 @@ Exceptions are captured and re-raised in the caller's thread.</p>
       <pre class="lines">
 
 
-152
-153
-154
-155
-156
-157
-158
-159
-160
-161
-162
-163
-164</pre>
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 152</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/actor.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id identifier rubyid_block'>block</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span> <span class='kw'>if</span> <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span> <span class='op'>==</span> <span class='ivar'>@thread</span>
+
   <span class='id identifier rubyid_done'>done</span> <span class='op'>=</span> <span class='const'>Queue</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span>
     <span class='kw'>begin</span>
@@ -335,7 +384,9 @@ Exceptions are captured and re-raised in the caller's thread.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Send a stop sentinel to gracefully terminate the actor's thread.</p>
+    <p>Send a <code>:stop</code> sentinel to gracefully terminate the actor's thread.
+Pending tasks already in the queue will still be processed before
+the thread exits.</p>
 
   </div>
 </div>
@@ -348,12 +399,12 @@ Exceptions are captured and re-raised in the caller's thread.</p>
       <pre class="lines">
 
 
-167
-168
-169</pre>
+64
+65
+66</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/in_memory.rb', line 167</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/actor.rb', line 64</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stop'>stop</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='symbol'>:stop</span><span class='rparen'>)</span>
@@ -368,7 +419,7 @@ Exceptions are captured and re-raised in the caller's thread.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 11 20:24:09 2026 by
+  Generated on Mon May 11 21:20:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
