@@ -367,7 +367,7 @@ Yields <span class='object_link'><a href="StreamEvent.html" title="Phronomy::Age
 
     <span class='comment'># Fall back to the last message that carries non-nil content (same as
 </span>    <span class='comment'># the non-streaming path above).
-</span>    <span class='id identifier rubyid_output'>output</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_reverse'>reverse</span><span class='period'>.</span><span class='id identifier rubyid_find'>find</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_m'>m</span><span class='op'>|</span> <span class='op'>!</span><span class='id identifier rubyid_m'>m</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span> <span class='rbrace'>}</span><span class='op'>&amp;.</span><span class='id identifier rubyid_content'>content</span>
+</span>    <span class='id identifier rubyid_output'>output</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_reverse'>reverse</span><span class='period'>.</span><span class='id identifier rubyid_find'>find</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_m'>m</span><span class='op'>|</span> <span class='id identifier rubyid_m'>m</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_m'>m</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span> <span class='rbrace'>}</span><span class='op'>&amp;.</span><span class='id identifier rubyid_content'>content</span>
     <span class='id identifier rubyid_run_output_guardrails!'>run_output_guardrails!</span><span class='lparen'>(</span><span class='id identifier rubyid_output'>output</span><span class='rparen'>)</span>
 
     <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='label'>output:</span> <span class='id identifier rubyid_output'>output</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>usage:</span> <span class='id identifier rubyid_total_usage'>total_usage</span><span class='comma'>,</span> <span class='label'>iterations_exhausted:</span> <span class='id identifier rubyid_iterations_exhausted'>iterations_exhausted</span><span class='rbrace'>}</span>
@@ -388,7 +388,7 @@ Yields <span class='object_link'><a href="StreamEvent.html" title="Phronomy::Age
 </div>
 
       <div id="footer">
-  Generated on Mon May 11 10:52:19 2026 by
+  Generated on Mon May 11 11:39:01 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
