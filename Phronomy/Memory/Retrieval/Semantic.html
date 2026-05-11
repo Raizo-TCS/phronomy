@@ -346,7 +346,8 @@ oldest entries (by insertion order) are evicted.</p></div>
 29
 30
 31
-32</pre>
+32
+33</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/memory/retrieval/semantic.rb', line 24</span>
@@ -359,7 +360,8 @@ oldest entries (by insertion order) are evicted.</p></div>
 </span>  <span class='ivar'>@counter</span> <span class='op'>=</span> <span class='int'>0</span>
   <span class='ivar'>@max_index_size</span> <span class='op'>=</span> <span class='id identifier rubyid_max_index_size'>max_index_size</span>
   <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
-<span class='kw'>end</span></pre>
+  <span class='ivar'>@indexed_object_ids</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>  <span class='comment'># thread_id =&gt; { object_id =&gt; true }
+</span><span class='kw'>end</span></pre>
     </td>
   </tr>
 </table>
@@ -411,18 +413,19 @@ oldest entries (by insertion order) are evicted.</p></div>
       <pre class="lines">
 
 
-55
-56
-57
-58
-59
-60
-61
-62
-63</pre>
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/retrieval/semantic.rb', line 55</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/retrieval/semantic.rb', line 70</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear_index'>clear_index</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -431,6 +434,7 @@ oldest entries (by insertion order) are evicted.</p></div>
       <span class='ivar'>@index</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
       <span class='ivar'>@store</span><span class='period'>.</span><span class='id identifier rubyid_remove'>remove</span><span class='lparen'>(</span><span class='label'>id:</span> <span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
     <span class='kw'>end</span>
+    <span class='ivar'>@indexed_object_ids</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -451,6 +455,8 @@ oldest entries (by insertion order) are evicted.</p></div>
   <div class="discussion">
     <p>Index a new batch of messages so they are searchable on future #select calls.
 Called by ConversationManager#save.</p>
+<p>Messages are deduplicated by object identity: if a message object has already
+been indexed for the given thread_id, it is skipped (no duplicate embed call).</p>
 
   </div>
 </div>
@@ -489,10 +495,6 @@ Called by ConversationManager#save.</p>
       <pre class="lines">
 
 
-39
-40
-41
-42
 43
 44
 45
@@ -500,19 +502,45 @@ Called by ConversationManager#save.</p>
 47
 48
 49
-50</pre>
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/retrieval/semantic.rb', line 39</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/retrieval/semantic.rb', line 43</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_index'>index</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_msg'>msg</span><span class='op'>|</span>
+    <span class='comment'># Fast path: skip already-indexed messages without calling embed.
+</span>    <span class='id identifier rubyid_already_indexed'>already_indexed</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+      <span class='lparen'>(</span><span class='ivar'>@indexed_object_ids</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='lbracket'>[</span><span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_object_id'>object_id</span><span class='rbracket'>]</span>
+    <span class='kw'>end</span>
+    <span class='kw'>next</span> <span class='kw'>if</span> <span class='id identifier rubyid_already_indexed'>already_indexed</span>
+
     <span class='id identifier rubyid_embedding'>embedding</span> <span class='op'>=</span> <span class='ivar'>@embeddings</span><span class='period'>.</span><span class='id identifier rubyid_embed'>embed</span><span class='lparen'>(</span><span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span>
     <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+      <span class='comment'># Re-check inside lock to handle concurrent callers for the same thread.
+</span>      <span class='id identifier rubyid_indexed'>indexed</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@indexed_object_ids</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+      <span class='kw'>next</span> <span class='kw'>if</span> <span class='id identifier rubyid_indexed'>indexed</span><span class='lbracket'>[</span><span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_object_id'>object_id</span><span class='rbracket'>]</span>
+
       <span class='id identifier rubyid_id'>id</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='embexpr_end'>}</span><span class='tstring_content'>:</span><span class='embexpr_beg'>#{</span><span class='ivar'>@counter</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
       <span class='ivar'>@counter</span> <span class='op'>+=</span> <span class='int'>1</span>
       <span class='ivar'>@store</span><span class='period'>.</span><span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='label'>id:</span> <span class='id identifier rubyid_id'>id</span><span class='comma'>,</span> <span class='label'>embedding:</span> <span class='id identifier rubyid_embedding'>embedding</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>message:</span> <span class='id identifier rubyid_msg'>msg</span><span class='rbrace'>}</span><span class='rparen'>)</span>
       <span class='ivar'>@index</span><span class='lbracket'>[</span><span class='id identifier rubyid_id'>id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_msg'>msg</span>
+      <span class='id identifier rubyid_indexed'>indexed</span><span class='lbracket'>[</span><span class='id identifier rubyid_msg'>msg</span><span class='period'>.</span><span class='id identifier rubyid_object_id'>object_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='kw'>true</span>
       <span class='id identifier rubyid_evict_oldest!'>evict_oldest!</span> <span class='kw'>if</span> <span class='ivar'>@max_index_size</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@index</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span> <span class='op'>&gt;</span> <span class='ivar'>@max_index_size</span>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
@@ -609,21 +637,21 @@ Called by ConversationManager#save.</p>
       <pre class="lines">
 
 
-71
-72
-73
-74
-75
-76
-77
-78
-79
-80
-81
-82</pre>
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/retrieval/semantic.rb', line 71</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/retrieval/semantic.rb', line 87</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_select'>select</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_query'>query</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_query'>query</span><span class='period'>.</span><span class='id identifier rubyid_strip'>strip</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
@@ -647,7 +675,7 @@ Called by ConversationManager#save.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 11 06:38:39 2026 by
+  Generated on Mon May 11 09:49:45 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

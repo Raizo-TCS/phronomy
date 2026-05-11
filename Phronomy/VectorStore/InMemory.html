@@ -314,13 +314,15 @@ the message count is small enough that a linear scan is fast enough.</p>
 
 15
 16
-17</pre>
+17
+18</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 15</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@documents</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+  <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -397,16 +399,16 @@ the message count is small enough that a linear scan is fast enough.</p>
       <pre class="lines">
 
 
-22
 23
 24
-25</pre>
+25
+26</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 22</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='label'>id:</span><span class='comma'>,</span> <span class='label'>embedding:</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='ivar'>@documents</span><span class='lbracket'>[</span><span class='id identifier rubyid_id'>id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='label'>embedding:</span> <span class='id identifier rubyid_embedding'>embedding</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='rbrace'>}</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@documents</span><span class='lbracket'>[</span><span class='id identifier rubyid_id'>id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='label'>embedding:</span> <span class='id identifier rubyid_embedding'>embedding</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='rbrace'>}</span> <span class='rbrace'>}</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -429,16 +431,16 @@ the message count is small enough that a linear scan is fast enough.</p>
       <pre class="lines">
 
 
-43
-44
 45
-46</pre>
+46
+47
+48</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span>
-  <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span> <span class='rbrace'>}</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -461,16 +463,16 @@ the message count is small enough that a linear scan is fast enough.</p>
       <pre class="lines">
 
 
-38
-39
 40
-41</pre>
+41
+42
+43</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 38</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 40</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remove'>remove</span><span class='lparen'>(</span><span class='label'>id:</span><span class='rparen'>)</span>
-  <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -546,19 +548,21 @@ the message count is small enough that a linear scan is fast enough.</p>
       <pre class="lines">
 
 
-30
 31
 32
 33
 34
 35
-36</pre>
+36
+37
+38</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 30</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_search'>search</span><span class='lparen'>(</span><span class='label'>query_embedding:</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='int'>5</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_results'>results</span> <span class='op'>=</span> <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_id'>id</span><span class='comma'>,</span> <span class='id identifier rubyid_doc'>doc</span><span class='op'>|</span>
+  <span class='id identifier rubyid_snapshot'>snapshot</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
+  <span class='id identifier rubyid_results'>results</span> <span class='op'>=</span> <span class='id identifier rubyid_snapshot'>snapshot</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_id'>id</span><span class='comma'>,</span> <span class='id identifier rubyid_doc'>doc</span><span class='op'>|</span>
     <span class='id identifier rubyid_score'>score</span> <span class='op'>=</span> <span class='id identifier rubyid_cosine_similarity'>cosine_similarity</span><span class='lparen'>(</span><span class='id identifier rubyid_query_embedding'>query_embedding</span><span class='comma'>,</span> <span class='id identifier rubyid_doc'>doc</span><span class='lbracket'>[</span><span class='symbol'>:embedding</span><span class='rbracket'>]</span><span class='rparen'>)</span>
     <span class='lbrace'>{</span><span class='label'>id:</span> <span class='id identifier rubyid_id'>id</span><span class='comma'>,</span> <span class='label'>score:</span> <span class='id identifier rubyid_score'>score</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='id identifier rubyid_doc'>doc</span><span class='lbracket'>[</span><span class='symbol'>:metadata</span><span class='rbracket'>]</span><span class='rbrace'>}</span>
   <span class='kw'>end</span>
@@ -609,15 +613,15 @@ the message count is small enough that a linear scan is fast enough.</p>
       <pre class="lines">
 
 
-49
-50
-51</pre>
+51
+52
+53</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 51</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_size'>size</span>
-  <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -629,7 +633,7 @@ the message count is small enough that a linear scan is fast enough.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 11 06:38:39 2026 by
+  Generated on Mon May 11 09:49:45 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
