@@ -27,32 +27,46 @@ module Phronomy
       attr_reader :system_tokens
 
       def initialize
-        reset
+        @mutex = Mutex.new
+        @fingerprint = nil
+        @system_text = nil
+        @system_tokens = 0
       end
 
       # Returns true when the given fingerprint matches the stored one.
+      # The check is performed under a mutex so that a concurrent #update cannot
+      # expose a partially-written state where fingerprint is new but system_text
+      # is still nil (Issue #55).
       #
       # @param fingerprint [String] SHA-256 hex digest to compare
       # @return [Boolean]
       def valid?(fingerprint)
-        !@fingerprint.nil? && @fingerprint == fingerprint
+        @mutex.synchronize do
+          !@fingerprint.nil? && !@system_text.nil? && @fingerprint == fingerprint
+        end
       end
 
       # Update the cache with a new fingerprint and system text.
+      # All three assignments are performed atomically under a mutex so that
+      # concurrent readers never observe a partial state (Issue #55).
       #
       # @param fingerprint  [String] new SHA-256 hex digest
       # @param system_text  [String] fully assembled system prompt text
       def update(fingerprint:, system_text:)
-        @fingerprint = fingerprint
-        @system_text = system_text.to_s
-        @system_tokens = TokenEstimator.estimate(@system_text)
+        @mutex.synchronize do
+          @fingerprint = fingerprint
+          @system_text = system_text.to_s
+          @system_tokens = TokenEstimator.estimate(@system_text)
+        end
       end
 
       # Clear all cached values (used for testing and forced invalidation).
       def reset
-        @fingerprint = nil
-        @system_text = nil
-        @system_tokens = 0
+        @mutex.synchronize do
+          @fingerprint = nil
+          @system_text = nil
+          @system_tokens = 0
+        end
       end
     end
   end

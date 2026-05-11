@@ -17,7 +17,7 @@ ActiveRecord::Schema.define(version: 1) do
   create_table :phronomy_messages, force: true do |t|
     t.string :thread_id, null: false
     t.string :role, null: false
-    t.text :content, null: false
+    t.text :content
     t.text :tool_calls_json
     t.string :model_id
     t.timestamps

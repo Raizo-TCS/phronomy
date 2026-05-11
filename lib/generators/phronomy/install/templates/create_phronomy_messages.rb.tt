@@ -3,7 +3,7 @@ class CreatePhronomyMessages < ActiveRecord::Migration[<%= ActiveRecord::Migrati
     create_table :phronomy_messages do |t|
       t.string :thread_id,       null: false
       t.string :role,            null: false
-      t.text   :content,         null: false
+      t.text   :content
       t.text   :tool_calls_json
       t.string :model_id
       t.timestamps

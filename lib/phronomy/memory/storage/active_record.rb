@@ -75,7 +75,7 @@ module Phronomy
               @model_class.create!(
                 thread_id: thread_id,
                 role: msg.role.to_s,
-                content: msg.content.to_s,
+                content: msg.content,
                 tool_calls_json: serialize_tool_calls(msg),
                 model_id: (msg.model_id if msg.respond_to?(:model_id))
               )
@@ -105,7 +105,7 @@ module Phronomy
               thread_id: thread_id,
               seq: starting_seq + i,
               role: msg.role.to_s,
-              content: msg.content.to_s,
+              content: msg.content,
               tool_calls_json: serialize_tool_calls(msg),
               model_id: (msg.model_id if msg.respond_to?(:model_id))
             )
