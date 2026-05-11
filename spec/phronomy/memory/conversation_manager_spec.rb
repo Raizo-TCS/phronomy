@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "ostruct"
 
 RSpec.describe Phronomy::Memory::ConversationManager do
   def make_msg(role, content)
@@ -239,6 +240,46 @@ RSpec.describe Phronomy::Memory::ConversationManager do
         Thread.new { manager.save(thread_id: "t_concurrent", messages: msgs) }
       end
       expect { threads.each(&:join) }.not_to raise_error
+    end
+  end
+
+  # Regression test for Issue #60: @raw_seq_hwm is accessed by threads holding
+  # *different* per-thread-id mutexes, so concurrent writes to distinct keys are
+  # unguarded on the shared Hash.
+  # Under MRI the GIL reduces (but does not eliminate) the risk; under JRuby /
+  # TruffleRuby (no GIL) this test will fail without synchronization.
+  describe "concurrent access (Issue #60)" do
+    it "does not corrupt the HWM for any thread_id after concurrent saves to distinct ids" do
+      # Repeated 5 times to increase the probability of catching the race
+      # on JRuby / TruffleRuby where genuine parallel Hash writes occur.
+      5.times do |cycle|
+        local_storage = Phronomy::Memory::Storage::InMemory.new
+        local_mgr = described_class.new(
+          storage: local_storage,
+          retrieval: Phronomy::Memory::Retrieval::Recent.new(k: 100)
+        )
+
+        thread_count = 50
+        msgs_per_thread = 4
+
+        threads = thread_count.times.map do |i|
+          Thread.new do
+            tid = "hwm-c#{cycle}-t#{i}"
+            msgs = msgs_per_thread.times.map { |j| make_msg(:user, "msg-#{i}-#{j}") }
+            local_mgr.save(thread_id: tid, messages: msgs)
+          end
+        end
+        threads.each(&:join)
+
+        thread_count.times do |i|
+          tid = "hwm-c#{cycle}-t#{i}"
+          raw = local_storage.load_raw(thread_id: tid)
+          expect(raw.length).to eq(msgs_per_thread),
+            "cycle=#{cycle} #{tid}: expected #{msgs_per_thread} raw msgs, got #{raw.length}"
+          expect(raw.map { |r| r[:seq] }).to eq((0...msgs_per_thread).to_a),
+            "cycle=#{cycle} #{tid}: seq mismatch: #{raw.map { |r| r[:seq] }.inspect}"
+        end
+      end
     end
   end
 

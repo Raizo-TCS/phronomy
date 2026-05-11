@@ -99,3 +99,46 @@ RSpec.describe Phronomy::Memory::Storage::ActiveRecord do
     end
   end
 end
+
+# Regression test for Issue #59:
+# ActiveRecord::Storage#append_raw must wrap multiple create! calls in a
+# transaction so that a mid-batch failure does not leave partial records.
+RSpec.describe Phronomy::Memory::Storage::ActiveRecord, "Issue #59 – append_raw atomicity" do
+  subject(:storage) do
+    described_class.new(
+      model_class: PhronomyMessageRecord,
+      raw_model_class: PhronomyRawMessageRecord
+    )
+  end
+
+  AppendRawMsg = Struct.new(:role, :content, :tool_calls, :model_id, keyword_init: true)
+
+  before do
+    PhronomyMessageRecord.delete_all
+    PhronomyRawMessageRecord.delete_all
+  end
+
+  it "rolls back all raw records when a mid-batch create! fails (Issue #59)" do
+    msgs = [
+      AppendRawMsg.new(role: :user, content: "msg0", tool_calls: nil, model_id: nil),
+      AppendRawMsg.new(role: :assistant, content: "msg1", tool_calls: nil, model_id: nil),
+      AppendRawMsg.new(role: :user, content: "msg2", tool_calls: nil, model_id: nil)
+    ]
+
+    # Intercept the second create! and raise to simulate a mid-batch DB error.
+    call_count = 0
+    allow(PhronomyRawMessageRecord).to receive(:create!).and_wrap_original do |orig, **args|
+      call_count += 1
+      raise ActiveRecord::RecordInvalid.new(PhronomyRawMessageRecord.new) if call_count == 2
+      orig.call(**args)
+    end
+
+    expect {
+      storage.append_raw(thread_id: "t1", messages: msgs, starting_seq: 0)
+    }.to raise_error(ActiveRecord::RecordInvalid)
+
+    # Without a transaction, msg0 (call 1) would already be committed.
+    # With a proper transaction, the count must be 0.
+    expect(PhronomyRawMessageRecord.where(thread_id: "t1").count).to eq(0)
+  end
+end

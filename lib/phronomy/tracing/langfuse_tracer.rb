@@ -35,6 +35,8 @@ module Phronomy
         @public_key = public_key
         @secret_key = secret_key
         @host = host.chomp("/")
+        @http = nil
+        @http_mutex = Mutex.new
       end
 
       # Returns a plain Hash that records the span start state.
@@ -78,21 +80,36 @@ module Phronomy
       private
 
       # Sends a batch of events to the Langfuse ingestion endpoint.
+      # The Net::HTTP connection is cached and reused across calls to avoid
+      # per-span TCP + TLS handshake overhead (Issue #61).
       # Errors are rescued and ignored to keep the tracer non-disruptive.
       def ingest(events)
         uri = URI.parse("#{@host}/api/public/ingestion")
-        http = Net::HTTP.new(uri.host, uri.port)
-        http.use_ssl = (uri.scheme == "https")
-        http.open_timeout = 3
-        http.read_timeout = 5
         req = Net::HTTP::Post.new(uri.request_uri)
         req["Content-Type"] = "application/json"
         req["Authorization"] = "Basic #{Base64.strict_encode64("#{@public_key}:#{@secret_key}")}"
         req.body = JSON.generate({batch: events})
-        http.request(req)
+
+        @http_mutex.synchronize do
+          @http ||= build_http(uri)
+          @http.request(req)
+        end
+      rescue IOError, Errno::ECONNRESET, Errno::EPIPE => e
+        # Connection was reset; drop the cached connection and warn.
+        @http_mutex.synchronize { @http = nil }
+        warn "[Phronomy::LangfuseTracer] Ingestion failed: #{e.class}: #{e.message}"
+        nil
       rescue => e
         warn "[Phronomy::LangfuseTracer] Ingestion failed: #{e.class}: #{e.message}"
         nil
+      end
+
+      def build_http(uri)
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl = (uri.scheme == "https")
+        http.open_timeout = 3
+        http.read_timeout = 5
+        http
       end
     end
   end

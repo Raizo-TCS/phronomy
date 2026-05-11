@@ -62,6 +62,9 @@ module Phronomy
           else
             {messages: messages, compaction: nil}
           end
+        rescue => e
+          warn "[Phronomy] Compression failed (#{e.class}: #{e.message}); saving without compaction."
+          {messages: messages, compaction: nil}
         end
 
         private

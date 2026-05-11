@@ -28,6 +28,24 @@ ActiveRecord::Schema.define(version: 1) do
     t.text :state_json, null: false
     t.timestamps
   end
+
+  create_table :phronomy_raw_messages, force: true do |t|
+    t.string :thread_id, null: false
+    t.integer :seq, null: false
+    t.string :role, null: false
+    t.text :content
+    t.text :tool_calls_json
+    t.string :model_id
+    t.timestamps
+  end
+
+  create_table :phronomy_compactions, force: true do |t|
+    t.string :thread_id, null: false
+    t.integer :start_seq, null: false
+    t.integer :end_seq, null: false
+    t.text :summary_text, null: false
+    t.timestamps
+  end
 end
 
 # Minimal ActiveRecord model mirroring the generator template.
@@ -39,4 +57,14 @@ end
 # Minimal ActiveRecord model for StateStore::ActiveRecord tests.
 class PhronomyStateRecord < ActiveRecord::Base
   self.table_name = "phronomy_states"
+end
+
+# AR model for raw message storage (used in append_raw tests).
+class PhronomyRawMessageRecord < ActiveRecord::Base
+  self.table_name = "phronomy_raw_messages"
+end
+
+# AR model for compaction record storage.
+class PhronomyCompactionRecord < ActiveRecord::Base
+  self.table_name = "phronomy_compactions"
 end

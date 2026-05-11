@@ -54,7 +54,10 @@ module Phronomy
         @thread_mutexes_mutex = Mutex.new
         # Tracks the monotonically increasing next-seq per thread so that TTL
         # purges (which reduce raw.length) do not reset the sequence counter.
+        # Protected by a dedicated mutex so concurrent saves for distinct
+        # thread_ids do not race on the shared Hash (Issue #60).
         @raw_seq_hwm = {}
+        @raw_seq_hwm_mutex = Mutex.new
       end
 
       # Load conversation messages for a thread, applying retrieval selection.
@@ -155,17 +158,21 @@ module Phronomy
         # entries are present. Fall back to the in-memory HWM when the raw
         # store has been partially or fully purged by TTL expiry.
         stored_next_seq = raw.any? ? raw.map { |e| e[:seq] }.max + 1 : nil
-        next_seq = [stored_next_seq, @raw_seq_hwm[thread_id]].compact.max || 0
+        hwm = @raw_seq_hwm_mutex.synchronize { @raw_seq_hwm[thread_id] }
+        next_seq = [stored_next_seq, hwm].compact.max || 0
         new_messages = messages[next_seq..]
         if new_messages&.any?
           @storage.append_raw(thread_id: thread_id, messages: new_messages, starting_seq: next_seq)
-          @raw_seq_hwm[thread_id] = next_seq + new_messages.length
+          @raw_seq_hwm_mutex.synchronize { @raw_seq_hwm[thread_id] = next_seq + new_messages.length }
         end
       end
 
       # Apply the configured compression strategy and persist the result.
       # When no strategy is configured, saves messages directly to the legacy store.
       # When compression fires, also persists the compaction record.
+      # If the compression strategy raises (e.g. LLM timeout), we fall back to
+      # saving the messages without compaction so the conversation is never lost
+      # due to a transient summarization failure (Issue #58).
       def compress_and_save(thread_id:, messages:)
         unless @compression
           @storage.save(thread_id: thread_id, messages: messages)
@@ -177,11 +184,16 @@ module Phronomy
         all_raw = @storage.load_raw(thread_id: thread_id)
         uncompacted = all_raw.select { |r| r[:seq] >= uncompacted_start_seq }.map { |r| r[:message] }
 
-        result = @compression.compress(
-          thread_id: thread_id,
-          messages: uncompacted,
-          seq_offset: uncompacted_start_seq
-        )
+        result = begin
+          @compression.compress(
+            thread_id: thread_id,
+            messages: uncompacted,
+            seq_offset: uncompacted_start_seq
+          )
+        rescue => e
+          warn "[Phronomy] Compression failed (#{e.class}: #{e.message}); saving without compaction."
+          {messages: messages, compaction: nil}
+        end
 
         if result[:compaction]
           @storage.save_compaction(

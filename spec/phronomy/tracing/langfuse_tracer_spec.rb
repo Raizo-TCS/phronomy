@@ -191,4 +191,29 @@ RSpec.describe Phronomy::Tracing::LangfuseTracer do
       expect(stub).to have_been_requested
     end
   end
+
+  # Regression test for Issue #61:
+  # LangfuseTracer#ingest must reuse a persistent HTTP connection rather than
+  # creating a new Net::HTTP object on every finish_span call.
+  describe "HTTP connection reuse (Issue #61)" do
+    it "creates only one Net::HTTP object when finish_span is called multiple times (Issue #61)" do
+      stub_request(:post, "#{host}/api/public/ingestion")
+        .to_return(status: 200, body: "{}")
+
+      http_new_count = 0
+      allow(Net::HTTP).to receive(:new).and_wrap_original do |orig, *args|
+        http_new_count += 1
+        orig.call(*args)
+      end
+
+      span1 = tracer.start_span("op1")
+      tracer.finish_span(span1, output: "out1")
+      span2 = tracer.start_span("op2")
+      tracer.finish_span(span2, output: "out2")
+
+      # Currently fails: Net::HTTP.new is called twice (once per ingest).
+      # After the fix, the connection is cached and Net::HTTP.new is called once.
+      expect(http_new_count).to eq(1)
+    end
+  end
 end
