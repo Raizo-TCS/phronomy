@@ -169,7 +169,15 @@ module Phronomy
       def next_node(current, state)
         if (cond = @conditional_edges[current])
           result = cond[:condition].call(state)
-          return cond[:mapping] ? cond[:mapping][result] : result
+          if cond[:mapping]
+            unless cond[:mapping].key?(result)
+              raise ArgumentError,
+                "Conditional edge from #{current.inspect} returned #{result.inspect}, " \
+                "which is not present in the mapping (#{cond[:mapping].keys.inspect})"
+            end
+            return cond[:mapping][result]
+          end
+          return result
         end
 
         edges = @edges[current]

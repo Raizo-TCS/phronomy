@@ -89,8 +89,8 @@ RSpec.describe "Group 26: Multi-Agent Handoff", :integration do
         routes: {entry => [target]}
       )
 
-      # Capture the tool_name the handoff tool will use.
-      handoff_tool_name = "transfer_to_#{target_klass.name&.split("::")&.last&.gsub(/([A-Z])/) { "_#{$1}" }&.downcase&.delete_prefix("_") || "agent"}"
+      # Capture the actual tool_name registered by Runner (includes UUID suffix).
+      handoff_tool_name = entry._handoff_tools.first.tool_name
       LLMStub.deactivate
       @llm = LLMStub.activate(responses: [
         LLMStub.tool_call_response(handoff_tool_name, {}),

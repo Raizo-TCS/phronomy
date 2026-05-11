@@ -20,7 +20,7 @@ RSpec.describe Phronomy::Agent::Handoff do
     end
 
     it "derives tool_name from the last segment of the class name" do
-      expect(handoff.tool_name).to eq("transfer_to_billing_agent")
+      expect(handoff.tool_name).to match(/\Atransfer_to_billing_agent_[0-9a-f]{8}\z/)
     end
 
     it "generates a default description" do
@@ -51,12 +51,43 @@ RSpec.describe Phronomy::Agent::Handoff do
     end
 
     it "sets the tool_name on the returned class" do
-      expect(tool_class.tool_name).to eq("transfer_to_billing_agent")
+      expect(tool_class.tool_name).to match(/\Atransfer_to_billing_agent_[0-9a-f]{8}\z/)
     end
 
     it "executes and returns the sentinel string" do
       tool_instance = tool_class.new
       expect(tool_instance.execute).to eq(handoff.sentinel)
+    end
+  end
+
+  # Regression test for issue #41:
+  # Two Handoff instances targeting the same agent class must have distinct
+  # tool_names so the LLM can address each target independently.
+  describe "tool_name uniqueness across instances (issue #41)" do
+    it "assigns different tool_names to two Handoffs for the same class" do
+      agent_a = target_klass.new
+      agent_b = target_klass.new
+
+      handoff_a = described_class.new(target_agent: agent_a)
+      handoff_b = described_class.new(target_agent: agent_b)
+
+      expect(handoff_a.tool_name).not_to eq(handoff_b.tool_name)
+    end
+
+    it "assigns different tool_names even when two classes share the same simple name" do
+      # Simulate Accounts::BillingAgent vs Payments::BillingAgent — both
+      # have the same last segment "BillingAgent".
+      klass_accounts = Class.new(Phronomy::Agent::Base) do
+        def self.name = "Accounts::BillingAgent"
+      end
+      klass_payments = Class.new(Phronomy::Agent::Base) do
+        def self.name = "Payments::BillingAgent"
+      end
+
+      h1 = described_class.new(target_agent: klass_accounts.new)
+      h2 = described_class.new(target_agent: klass_payments.new)
+
+      expect(h1.tool_name).not_to eq(h2.tool_name)
     end
   end
 end

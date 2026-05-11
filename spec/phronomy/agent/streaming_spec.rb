@@ -142,4 +142,60 @@ RSpec.describe "Agent streaming" do
       expect(result[:output]).to eq("Hello, world!")
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Regression tests for issue #40:
+  # Agent::Base#stream and ReactAgent#stream must produce a trace span.
+  # Before the fix, neither stream method called trace(), so streaming
+  # invocations produced no span in Langfuse / OpenTelemetry.
+  # ---------------------------------------------------------------------------
+  describe "stream produces a trace span (issue #40)" do
+    # A minimal tracer that records every start_span call.
+    let(:recording_tracer) do
+      Class.new(Phronomy::Tracing::Base) do
+        attr_reader :spans
+
+        def initialize
+          @spans = []
+        end
+
+        def start_span(name, **attrs)
+          span = {name: name, attrs: attrs}
+          @spans << span
+          span
+        end
+
+        def finish_span(span, output: nil, usage: nil, error: nil)
+          # no-op
+        end
+      end.new
+    end
+
+    around do |example|
+      original = Phronomy.configuration.tracer
+      Phronomy.configure { |c| c.tracer = recording_tracer }
+      example.run
+      Phronomy.configure { |c| c.tracer = original }
+    end
+
+    context "Agent::Base#stream" do
+      subject(:agent) { StreamingBasicAgent.new }
+
+      it "creates a span named 'agent.invoke'" do
+        agent.stream("hello") { |_e| }
+        span_names = recording_tracer.spans.map { |s| s[:name] }
+        expect(span_names).to include("agent.invoke")
+      end
+    end
+
+    context "ReactAgent#stream" do
+      subject(:agent) { StreamingReactAgent.new }
+
+      it "creates a span named 'agent.invoke'" do
+        agent.stream("hello") { |_e| }
+        span_names = recording_tracer.spans.map { |s| s[:name] }
+        expect(span_names).to include("agent.invoke")
+      end
+    end
+  end
 end

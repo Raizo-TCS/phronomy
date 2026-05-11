@@ -298,4 +298,63 @@ RSpec.describe Phronomy::Memory::ConversationManager do
       expect(seqs).to eq(seqs.uniq)
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Regression tests for issue #44:
+  # Concurrent saves to the same thread_id must not produce duplicate
+  # compaction records.  Before the fix, compress_and_save ran outside the
+  # mutex, allowing two threads to each read an empty compaction list and then
+  # each write an overlapping compaction record.
+  # ---------------------------------------------------------------------------
+  describe "concurrent saves do not produce duplicate compaction records (issue #44)" do
+    it "never writes overlapping compaction records under concurrent saves" do
+      # A compressor that sleeps between the read and write stages to reliably
+      # widen the race window.
+      # Without the fix (compress_and_save outside the per-thread mutex):
+      #   Two threads both call load_compactions, see an empty list, sleep, and
+      #   both write a compaction record → overlapping compactions.
+      # With the fix (compress_and_save inside the per-thread mutex):
+      #   Only one thread at a time can run the full read-compute-write cycle,
+      #   so the second thread sees the first thread's compaction and skips.
+      sleep_compressor = Class.new(Phronomy::Memory::Compression::Base) do
+        def compress(thread_id:, messages:, seq_offset: 0)
+          return {messages: messages, compaction: nil} if messages.length < 2
+          sleep(0.005) # Widen the race window so concurrent threads can both read
+          {
+            messages: [],
+            compaction: {
+              start_seq: seq_offset,
+              end_seq: seq_offset + messages.length - 1,
+              summary_text: "summary"
+            }
+          }
+        end
+      end.new
+
+      concurrent_storage = Phronomy::Memory::Storage::InMemory.new
+      concurrent_manager = described_class.new(
+        storage: concurrent_storage,
+        retrieval: Phronomy::Memory::Retrieval::Recent.new(k: 10),
+        compression: sleep_compressor
+      )
+
+      msgs = [make_msg(:user, "a"), make_msg(:assistant, "b"),
+              make_msg(:user, "c"), make_msg(:assistant, "d")]
+
+      # Run many threads all saving the same thread_id concurrently.
+      threads = 10.times.map do
+        Thread.new { concurrent_manager.save(thread_id: "concurrent-t1", messages: msgs) }
+      end
+      threads.each(&:join)
+
+      compactions = concurrent_storage.load_compactions(thread_id: "concurrent-t1")
+
+      # No two compaction records may cover an overlapping seq range.
+      compactions.combination(2).each do |a, b|
+        overlap = a[:start_seq] <= b[:end_seq] && b[:start_seq] <= a[:end_seq]
+        expect(overlap).to be(false),
+          "Found overlapping compactions: #{a.inspect} and #{b.inspect}"
+      end
+    end
+  end
 end

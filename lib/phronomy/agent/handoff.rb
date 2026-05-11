@@ -25,10 +25,10 @@ module Phronomy
       def initialize(target_agent:, description: nil)
         @target_agent = target_agent
         klass_name = target_agent.class.name&.split("::")&.last || "Agent"
-        @tool_name = "transfer_to_#{snake_case(klass_name)}"
-        @description = description || "Transfer the conversation to #{klass_name}."
         # Use a UUID so that two handoffs targeting the same class remain distinct.
         @uuid = SecureRandom.uuid
+        @tool_name = "transfer_to_#{snake_case(klass_name)}_#{@uuid.delete("-")[0, 8]}"
+        @description = description || "Transfer the conversation to #{klass_name}."
       end
 
       # Builds an anonymous Phronomy::Tool::Base subclass for this handoff.

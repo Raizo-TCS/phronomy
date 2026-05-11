@@ -426,4 +426,54 @@ RSpec.describe "Agent::Base retry_policy DSL" do
       expect(sleep_calls).to be_empty
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Regression tests for issue #39:
+  # ReactAgent#invoke must respect retry_policy.
+  # Before the fix, ReactAgent overrode #invoke entirely, so the retry loop in
+  # Base#invoke was never reached for ReactAgent subclasses.
+  # ---------------------------------------------------------------------------
+  describe "retry_policy is honoured by ReactAgent (issue #39)" do
+    def make_react_agent(fail_times:, times: 2, wait: 0)
+      invocations = 0
+      agent_class = Class.new(Phronomy::Agent::ReactAgent) do
+        retry_policy times: times, wait: wait, base: 1.0
+      end
+      agent_class._sleep_proc = sleep_stub
+
+      agent = agent_class.new
+      # Stub invoke_once (the private method that ReactAgent now overrides).
+      allow(agent).to receive(:invoke_once) do
+        invocations += 1
+        raise RuntimeError, "transient" if invocations <= fail_times
+        {output: "recovered", messages: [], usage: Phronomy::TokenUsage.zero,
+         iterations_exhausted: false}
+      end
+      [agent, -> { invocations }]
+    end
+
+    it "retries and recovers within the retry budget" do
+      agent, inv = make_react_agent(fail_times: 2, times: 3)
+      result = agent.invoke("hi")
+      expect(result[:output]).to eq("recovered")
+      expect(inv.call).to eq(3)
+    end
+
+    it "re-raises after all retries are exhausted" do
+      agent, inv = make_react_agent(fail_times: 5, times: 2)
+      expect { agent.invoke("hi") }.to raise_error(RuntimeError, /transient/)
+      expect(inv.call).to eq(3) # 1 initial + 2 retries
+    end
+
+    it "does not retry GuardrailError" do
+      agent_class = Class.new(Phronomy::Agent::ReactAgent) do
+        retry_policy times: 3, wait: 0
+      end
+      agent_class._sleep_proc = sleep_stub
+      agent = agent_class.new
+      allow(agent).to receive(:invoke_once).and_raise(Phronomy::GuardrailError, "blocked")
+      expect { agent.invoke("hi") }.to raise_error(Phronomy::GuardrailError)
+      expect(sleep_calls).to be_empty
+    end
+  end
 end

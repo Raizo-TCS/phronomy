@@ -446,82 +446,88 @@ module Phronomy
       def stream(input, config: {}, &block)
         return invoke(input, config: config) unless block
 
-        run_input_guardrails!(input)
+        caller_meta = {}
+        caller_meta[:user_id] = config[:user_id] if config[:user_id]
+        caller_meta[:session_id] = config[:session_id] if config[:session_id]
 
-        memory = config[:memory]
-        thread_id = config[:thread_id]
+        trace("agent.invoke", input: input, **caller_meta) do |_span|
+          run_input_guardrails!(input)
 
-        chat = build_chat
-        user_message = extract_message(input)
-        budget = build_token_budget
+          memory = config[:memory]
+          thread_id = config[:thread_id]
 
-        # Assemble context via Assembler (same as invoke_once).
-        assembler = Context::Assembler.new(budget: budget)
-        system_msg = build_instructions(input)
-        assembler.add_instruction(system_msg) if system_msg
+          chat = build_chat
+          user_message = extract_message(input)
+          budget = build_token_budget
 
-        Array(config[:knowledge_sources]).each do |ks|
-          ks.fetch(query: user_message).each do |chunk|
-            assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
-          end
-        end
+          # Assemble context via Assembler (same as invoke_once).
+          assembler = Context::Assembler.new(budget: budget)
+          system_msg = build_instructions(input)
+          assembler.add_instruction(system_msg) if system_msg
 
-        if memory && thread_id
-          msgs = load_from_memory(memory, thread_id: thread_id, query: user_message)
-          message_elements = build_message_elements(msgs)
-
-          # Run on_trim: app may call ctx.remove(seqs) to drop messages this turn.
-          if (trim_cb = self.class._on_trim_callback)
-            trim_ctx = Context::TrimContext.new(message_elements: message_elements, budget: budget)
-            trim_cb.call(trim_ctx)
-            message_elements = trim_ctx.message_elements
-          end
-
-          # Run on_compaction_trigger → on_compact pipeline before calling the LLM.
-          if (trigger_cb = self.class._on_compaction_trigger_callback)
-            trigger_ctx = Context::TriggerContext.new(message_elements: message_elements, budget: budget)
-            if trigger_cb.call(trigger_ctx)
-              if (compact_cb = self.class._on_compact_callback)
-                compact_ctx = Context::CompactionContext.new(
-                  message_elements: message_elements,
-                  budget: budget,
-                  thread_id: thread_id,
-                  memory: memory
-                )
-                compact_cb.call(compact_ctx)
-                message_elements = build_message_elements(compact_ctx.result_messages)
-              end
+          Array(config[:knowledge_sources]).each do |ks|
+            ks.fetch(query: user_message).each do |chunk|
+              assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
             end
           end
 
-          assembler.add_messages(message_elements.map { |e| e[:message] })
+          if memory && thread_id
+            msgs = load_from_memory(memory, thread_id: thread_id, query: user_message)
+            message_elements = build_message_elements(msgs)
+
+            # Run on_trim: app may call ctx.remove(seqs) to drop messages this turn.
+            if (trim_cb = self.class._on_trim_callback)
+              trim_ctx = Context::TrimContext.new(message_elements: message_elements, budget: budget)
+              trim_cb.call(trim_ctx)
+              message_elements = trim_ctx.message_elements
+            end
+
+            # Run on_compaction_trigger → on_compact pipeline before calling the LLM.
+            if (trigger_cb = self.class._on_compaction_trigger_callback)
+              trigger_ctx = Context::TriggerContext.new(message_elements: message_elements, budget: budget)
+              if trigger_cb.call(trigger_ctx)
+                if (compact_cb = self.class._on_compact_callback)
+                  compact_ctx = Context::CompactionContext.new(
+                    message_elements: message_elements,
+                    budget: budget,
+                    thread_id: thread_id,
+                    memory: memory
+                  )
+                  compact_cb.call(compact_ctx)
+                  message_elements = build_message_elements(compact_ctx.result_messages)
+                end
+              end
+            end
+
+            assembler.add_messages(message_elements.map { |e| e[:message] })
+          end
+
+          context = assembler.build
+          apply_instructions(chat, context[:system]) if context[:system]
+          context[:messages].each { |msg| chat.messages << msg }
+
+          # Wire per-event callbacks to yield StreamEvents.
+          chat.on_tool_call { |tool_call| block.call(StreamEvent.new(type: :tool_call, payload: {tool_call: tool_call})) }
+          chat.on_tool_result { |tool_result| block.call(StreamEvent.new(type: :tool_result, payload: {tool_result: tool_result})) }
+
+          # Run before_completion hooks (global → class → instance) before the LLM call.
+          run_before_completion_hooks!(chat, config)
+
+          response = chat.ask(user_message) do |chunk|
+            block.call(StreamEvent.new(type: :token, payload: {content: chunk.content}))
+          end
+
+          save_to_memory(memory, thread_id: thread_id, messages: chat.messages) if memory && thread_id
+
+          output = response.content
+          usage = Phronomy::TokenUsage.from_tokens(response.tokens)
+
+          run_output_guardrails!(output)
+
+          result = {output: output, messages: chat.messages, usage: usage}
+          block.call(StreamEvent.new(type: :done, payload: result))
+          [result, usage]
         end
-
-        context = assembler.build
-        apply_instructions(chat, context[:system]) if context[:system]
-        context[:messages].each { |msg| chat.messages << msg }
-
-        # Wire per-event callbacks to yield StreamEvents.
-        chat.on_tool_call { |tool_call| block.call(StreamEvent.new(type: :tool_call, payload: {tool_call: tool_call})) }
-        chat.on_tool_result { |tool_result| block.call(StreamEvent.new(type: :tool_result, payload: {tool_result: tool_result})) }
-
-        # Run before_completion hooks (global → class → instance) before the LLM call.
-        run_before_completion_hooks!(chat, config)
-
-        response = chat.ask(user_message) do |chunk|
-          block.call(StreamEvent.new(type: :token, payload: {content: chunk.content}))
-        end
-
-        save_to_memory(memory, thread_id: thread_id, messages: chat.messages) if memory && thread_id
-
-        output = response.content
-        usage = Phronomy::TokenUsage.from_tokens(response.tokens)
-
-        run_output_guardrails!(output)
-
-        result = {output: output, messages: chat.messages, usage: usage}
-        block.call(StreamEvent.new(type: :done, payload: result))
-        result
       rescue => e
         block&.call(StreamEvent.new(type: :error, payload: {error: e}))
         raise

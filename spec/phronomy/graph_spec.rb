@@ -320,6 +320,27 @@ RSpec.describe Phronomy::Graph::CompiledGraph do
 
         expect(compiled.invoke({}).value).to eq(42)
       end
+
+      # Regression test for issue #42:
+      # An unmapped conditional-edge result must raise ArgumentError, not silently
+      # terminate the graph and return intermediate (incomplete) state.
+      it "raises ArgumentError when the condition returns a key absent from the mapping" do
+        compiled = build_graph do |g|
+          g.add_node(:router) { |s| {step: "unknown_route"} }
+          g.add_node(:path_a) { |s| {value: 999} }
+          g.add_conditional_edges(
+            :router,
+            ->(s) { s.step },
+            {"path_a" => :path_a}
+          )
+          g.add_edge(:path_a, Phronomy::Graph::StateGraph::FINISH)
+          g.set_entry_point(:router)
+        end
+
+        expect { compiled.invoke({}) }.to raise_error(
+          ArgumentError, /unknown_route/
+        )
+      end
     end
 
     context "with guard-condition edges" do
@@ -553,5 +574,54 @@ RSpec.describe Phronomy::Graph::CompiledGraph do
       results = compiled.batch([{value: 2}, {value: 3}, {value: 4}])
       expect(results.map(&:value)).to eq([4, 6, 8])
     end
+  end
+end
+
+# Regression tests for issue #43:
+# StateGraph#add_subgraph must use a namespaced child thread_id
+# ("parent_id/node_name") so that parent and child checkpoints never collide
+# in a shared StateStore.
+RSpec.describe "StateGraph#add_subgraph thread_id namespacing (issue #43)" do
+  # Simple state class for the parent graph
+  class ParentIssue43State
+    include Phronomy::Graph::State
+    field :output, type: :replace, default: nil
+  end
+
+  # Simple state class for the child graph
+  class ChildIssue43State
+    include Phronomy::Graph::State
+    field :sub_result, type: :replace, default: nil
+  end
+
+  it "saves the child checkpoint under a namespaced thread_id, not the parent thread_id" do
+    store = Phronomy::StateStore::InMemory.new
+
+    # Build and compile the child graph
+    sub_graph = Phronomy::Graph::StateGraph.new(ChildIssue43State)
+    sub_graph.add_node(:sub_step) { |s| s.merge(sub_result: "sub done") }
+    sub_graph.set_entry_point(:sub_step)
+    sub_compiled = sub_graph.compile(state_store: store)
+
+    # Build and compile the parent graph, embedding the child as a subgraph
+    parent_graph = Phronomy::Graph::StateGraph.new(ParentIssue43State)
+    parent_graph.add_subgraph(:child, sub_compiled)
+    parent_graph.add_node(:final) { |s| s.merge(output: "parent done") }
+    parent_graph.set_entry_point(:child)
+    parent_graph.add_edge(:child, :final)
+    parent_graph.add_edge(:final, Phronomy::Graph::StateGraph::FINISH)
+    parent_compiled = parent_graph.compile(state_store: store)
+
+    parent_compiled.invoke({}, config: {thread_id: "t1"})
+
+    # The parent checkpoint must be a ParentIssue43State
+    parent_checkpoint = store.load("t1")
+    expect(parent_checkpoint).to be_a(ParentIssue43State), \
+      "expected ParentIssue43State at key 't1', got #{parent_checkpoint.class}"
+
+    # The child checkpoint must be saved under the namespaced key
+    child_checkpoint = store.load("t1/child")
+    expect(child_checkpoint).to be_a(ChildIssue43State), \
+      "expected ChildIssue43State at key 't1/child', got #{child_checkpoint.inspect}"
   end
 end

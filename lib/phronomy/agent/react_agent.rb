@@ -5,7 +5,11 @@ module Phronomy
     # ReAct pattern (Reasoning + Acting) agent.
     # Repeats the LLM <-> Tool loop until no more tool calls are made.
     class ReactAgent < Base
-      def invoke(input, config: {})
+      private
+
+      # Performs a single (non-retried) ReAct invocation.
+      # Overrides Base#invoke_once so that Base#invoke's retry loop is inherited.
+      def invoke_once(input, config: {})
         caller_meta = {}
         caller_meta[:user_id] = config[:user_id] if config[:user_id]
         caller_meta[:session_id] = config[:session_id] if config[:session_id]
@@ -57,6 +61,8 @@ module Phronomy
         end
       end
 
+      public
+
       # Streaming version of #invoke for the ReAct loop.
       # Yields {Phronomy::Agent::StreamEvent} events while the LLM-tool loop runs.
       #
@@ -67,44 +73,50 @@ module Phronomy
       def stream(input, config: {}, &block)
         return invoke(input, config: config) unless block
 
-        run_input_guardrails!(input)
+        caller_meta = {}
+        caller_meta[:user_id] = config[:user_id] if config[:user_id]
+        caller_meta[:session_id] = config[:session_id] if config[:session_id]
 
-        memory = config[:memory]
-        thread_id = config[:thread_id]
-        max_iter = self.class.max_iterations
+        trace("agent.invoke", input: input, **caller_meta) do |_span|
+          run_input_guardrails!(input)
 
-        initial_messages = if memory && thread_id
-          load_from_memory(memory, thread_id: thread_id, query: extract_message(input))
-        else
-          []
-        end
+          memory = config[:memory]
+          thread_id = config[:thread_id]
+          max_iter = self.class.max_iterations
 
-        messages = initial_messages.dup
-        user_asked = false
-        total_usage = Phronomy::TokenUsage.zero
-        iterations_exhausted = true
-
-        max_iter.times do
-          response = stream_step(messages, input, user_asked: user_asked, config: config, &block)
-          user_asked = true
-          messages = response[:messages]
-          total_usage += response[:usage]
-          if response[:done]
-            iterations_exhausted = false
-            break
+          initial_messages = if memory && thread_id
+            load_from_memory(memory, thread_id: thread_id, query: extract_message(input))
+          else
+            []
           end
+
+          messages = initial_messages.dup
+          user_asked = false
+          total_usage = Phronomy::TokenUsage.zero
+          iterations_exhausted = true
+
+          max_iter.times do
+            response = stream_step(messages, input, user_asked: user_asked, config: config, &block)
+            user_asked = true
+            messages = response[:messages]
+            total_usage += response[:usage]
+            if response[:done]
+              iterations_exhausted = false
+              break
+            end
+          end
+
+          save_to_memory(memory, thread_id: thread_id, messages: messages) if memory && thread_id
+
+          # Fall back to the last message that carries non-nil content (same as
+          # the non-streaming path above).
+          output = messages.reverse.find { |m| !m.content.nil? }&.content
+          run_output_guardrails!(output)
+
+          result = {output: output, messages: messages, usage: total_usage, iterations_exhausted: iterations_exhausted}
+          block.call(StreamEvent.new(type: :done, payload: result))
+          [result, total_usage]
         end
-
-        save_to_memory(memory, thread_id: thread_id, messages: messages) if memory && thread_id
-
-        # Fall back to the last message that carries non-nil content (same as
-        # the non-streaming path above).
-        output = messages.reverse.find { |m| !m.content.nil? }&.content
-        run_output_guardrails!(output)
-
-        result = {output: output, messages: messages, usage: total_usage, iterations_exhausted: iterations_exhausted}
-        block.call(StreamEvent.new(type: :done, payload: result))
-        result
       rescue => e
         block&.call(StreamEvent.new(type: :error, payload: {error: e}))
         raise

@@ -113,7 +113,8 @@ module Phronomy
       def add_subgraph(name, subgraph, input_mapper: nil, output_mapper: nil)
         add_node(name) do |state|
           input = input_mapper ? input_mapper.call(state) : state.to_h
-          sub_state = subgraph.invoke(input, config: {thread_id: state.thread_id})
+          sub_thread_id = "#{state.thread_id}/#{name}"
+          sub_state = subgraph.invoke(input, config: {thread_id: sub_thread_id})
           output_mapper ? output_mapper.call(sub_state) : sub_state.to_h
         end
       end
