@@ -24,11 +24,6 @@ module Phronomy
     #     end
     #   end
     class CompactionContext
-      # Internal value object for synthetic summary messages.
-      # Uses Struct (not OpenStruct) so that unknown attribute access raises NoMethodError.
-      SummaryMessage = Struct.new(:role, :content, keyword_init: true)
-      private_constant :SummaryMessage
-
       # @return [Array<Hash>] message elements at compaction time
       attr_reader :message_elements
 
@@ -106,7 +101,7 @@ module Phronomy
         end
 
         remaining = (@message_elements[(last_idx + 1)..] || []).map { |e| e[:message] }
-        summary_msg = SummaryMessage.new(role: :system, content: summary_text)
+        summary_msg = RubyLLM::Message.new(role: :system, content: summary_text)
         @result_messages = [summary_msg] + remaining
       end
     end
