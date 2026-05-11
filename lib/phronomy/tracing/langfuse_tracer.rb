@@ -36,7 +36,7 @@ module Phronomy
         @secret_key = secret_key
         @host = host.chomp("/")
         @http = nil
-        @http_mutex = Mutex.new
+        @actor = Phronomy::Actor.new
       end
 
       # Returns a plain Hash that records the span start state.
@@ -90,13 +90,13 @@ module Phronomy
         req["Authorization"] = "Basic #{Base64.strict_encode64("#{@public_key}:#{@secret_key}")}"
         req.body = JSON.generate({batch: events})
 
-        @http_mutex.synchronize do
+        @actor.call do
           @http ||= build_http(uri)
           @http.request(req)
         end
       rescue IOError, Errno::ECONNRESET, Errno::EPIPE => e
         # Connection was reset; drop the cached connection and warn.
-        @http_mutex.synchronize { @http = nil }
+        @actor.call { @http = nil }
         warn "[Phronomy::LangfuseTracer] Ingestion failed: #{e.class}: #{e.message}"
         nil
       rescue => e

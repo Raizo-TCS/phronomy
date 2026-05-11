@@ -28,7 +28,7 @@ module Phronomy
           @index = {}   # id => message  (insertion-ordered via Ruby Hash)
           @counter = 0
           @max_index_size = max_index_size
-          @mutex = Mutex.new
+          @actor = Phronomy::Actor.new
           @indexed_object_ids = {}  # thread_id => { object_id => true }
         end
 
@@ -43,14 +43,14 @@ module Phronomy
         def index(thread_id:, messages:)
           messages.each do |msg|
             # Fast path: skip already-indexed messages without calling embed.
-            already_indexed = @mutex.synchronize do
+            already_indexed = @actor.call do
               (@indexed_object_ids[thread_id] ||= {})[msg.object_id]
             end
             next if already_indexed
 
             embedding = @embeddings.embed(msg.content.to_s)
-            @mutex.synchronize do
-              # Re-check inside lock to handle concurrent callers for the same thread.
+            @actor.call do
+              # Re-check inside Actor to handle concurrent callers for the same thread.
               indexed = (@indexed_object_ids[thread_id] ||= {})
               next if indexed[msg.object_id]
 
@@ -68,7 +68,7 @@ module Phronomy
         #
         # @param thread_id [String]
         def clear_index(thread_id:)
-          @mutex.synchronize do
+          @actor.call do
             ids = @index.keys.select { |id| id.start_with?("#{thread_id}:") }
             ids.each do |id|
               @index.delete(id)
@@ -87,7 +87,7 @@ module Phronomy
         def select(messages, query: nil, thread_id: nil)
           if query && !query.strip.empty?
             query_embedding = @embeddings.embed(query)
-            results = @mutex.synchronize { @store.search(query_embedding: query_embedding, k: @k * 3) }
+            results = @actor.call { @store.search(query_embedding: query_embedding, k: @k * 3) }
             results
               .select { |r| thread_id.nil? || r[:metadata][:thread_id] == thread_id }
               .first(@k)
@@ -100,7 +100,7 @@ module Phronomy
         private
 
         # Evicts the oldest index entry to enforce max_index_size.
-        # Must be called inside @mutex.synchronize.
+        # Must be called inside the Actor.
         def evict_oldest!
           oldest_id = @index.keys.first
           return unless oldest_id

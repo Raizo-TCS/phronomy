@@ -89,7 +89,7 @@ module Phronomy
       @threshold = confidence_threshold.to_f
       @max_iterations = max_iterations.to_i
       @input_delimiter = input_delimiter
-      @graph_mutex = Mutex.new
+      @actor = Phronomy::Actor.new
       @compiled_graph = nil
     end
 
@@ -119,13 +119,8 @@ module Phronomy
     end
 
     # Returns the compiled graph, building and caching it on first call.
-    # Thread-safe via double-checked locking.
     def compiled_graph
-      return @compiled_graph if @compiled_graph
-
-      @graph_mutex.synchronize do
-        @compiled_graph ||= build_graph.compile
-      end
+      @actor.call { @compiled_graph ||= build_graph.compile }
     end
 
     def build_graph

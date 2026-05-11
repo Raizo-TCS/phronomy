@@ -14,7 +14,7 @@ module Phronomy
   #   end
   module ThreadActorRegistry
     @actors = {}
-    @registry_mutex = Mutex.new
+    @registry_actor = Actor.new
 
     class << self
       # Returns (or lazily creates) the {Actor} for +thread_id+.
@@ -22,7 +22,7 @@ module Phronomy
       # @param thread_id [String]
       # @return [Phronomy::Actor]
       def for(thread_id)
-        @registry_mutex.synchronize { @actors[thread_id] ||= Actor.new }
+        @registry_actor.call { @actors[thread_id] ||= Actor.new }
       end
 
       # Gracefully stops the Actor for +thread_id+ and removes it from the
@@ -30,23 +30,22 @@ module Phronomy
       #
       # @param thread_id [String]
       def stop(thread_id)
-        @registry_mutex.synchronize { @actors.delete(thread_id) }&.stop
+        @registry_actor.call { @actors.delete(thread_id) }&.stop
       end
 
       # Stops and removes every registered Actor.
       # Intended for test teardown and process shutdown.
       def clear_all
-        actors = @registry_mutex.synchronize { @actors.values.tap { @actors.clear } }
+        actors = @registry_actor.call { @actors.values.tap { @actors.clear } }
         actors.each(&:stop)
       end
 
       # Yields each currently registered Actor.
-      # A snapshot is taken under the mutex so the registry cannot change
-      # while callers iterate.
+      # A snapshot is taken so the registry cannot change while callers iterate.
       #
       # @yield [Phronomy::Actor]
       def each_actor(&block)
-        @registry_mutex.synchronize { @actors.values.dup }.each(&block)
+        @registry_actor.call { @actors.values.dup }.each(&block)
       end
     end
   end

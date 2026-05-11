@@ -14,14 +14,13 @@ module Phronomy
     class InMemory < Base
       def initialize
         @documents = {}
-        @mutex = Mutex.new
       end
 
       # @param id        [String]
       # @param embedding [Array<Float>]
       # @param metadata  [Hash]
       def add(id:, embedding:, metadata: {})
-        @mutex.synchronize { @documents[id] = {embedding: embedding, metadata: metadata} }
+        @documents[id] = {embedding: embedding, metadata: metadata}
         self
       end
 
@@ -29,8 +28,7 @@ module Phronomy
       # @param k               [Integer]
       # @return [Array<Hash>] sorted by descending score
       def search(query_embedding:, k: 5)
-        snapshot = @mutex.synchronize { @documents.dup }
-        results = snapshot.map do |id, doc|
+        results = @documents.map do |id, doc|
           score = cosine_similarity(query_embedding, doc[:embedding])
           {id: id, score: score, metadata: doc[:metadata]}
         end
@@ -38,18 +36,18 @@ module Phronomy
       end
 
       def remove(id:)
-        @mutex.synchronize { @documents.delete(id) }
+        @documents.delete(id)
         self
       end
 
       def clear
-        @mutex.synchronize { @documents.clear }
+        @documents.clear
         self
       end
 
       # @return [Integer] number of documents stored
       def size
-        @mutex.synchronize { @documents.size }
+        @documents.size
       end
 
       private

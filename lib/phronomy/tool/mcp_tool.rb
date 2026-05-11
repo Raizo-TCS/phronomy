@@ -87,7 +87,7 @@ module Phronomy
           # Split the command string into an argv array so that Open3 executes
           # it directly without going through the shell, preventing injection.
           @command = Shellwords.split(command)
-          @mutex = Mutex.new
+          @actor = Phronomy::Actor.new
           @stdin = nil
           @stdout = nil
           @stderr = nil
@@ -97,20 +97,21 @@ module Phronomy
 
         # Shut down the child process and close its IO streams.
         def close
-          @mutex.synchronize do
+          stderr_thread, wait_thr = @actor.call do
             @stdin&.close
             @stdout&.close
             @stderr&.close
             @stdin = nil
             @stdout = nil
             @stderr = nil
+            t = [@stderr_thread, @wait_thr]
+            @stderr_thread = nil
+            @wait_thr = nil
+            t
           end
-          # Join the stderr drain thread and the child process outside the mutex
-          # to avoid holding the lock during potentially slow joins.
-          @stderr_thread&.join(1)
-          @wait_thr&.join(5)
-          @stderr_thread = nil
-          @wait_thr = nil
+          # Join outside the Actor to avoid blocking the Actor thread on slow joins.
+          stderr_thread&.join(1)
+          wait_thr&.join(5)
         end
 
         # Retrieve the tool definition from the server using the MCP `tools/list` method.
@@ -167,7 +168,7 @@ module Phronomy
         end
 
         def rpc_call(method, params)
-          @mutex.synchronize do
+          @actor.call do
             ensure_started!
             payload = JSON.generate(jsonrpc: "2.0", id: SecureRandom.uuid, method: method, params: params)
             @stdin.puts(payload)
