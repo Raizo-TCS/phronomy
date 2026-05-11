@@ -300,6 +300,28 @@
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#next_seq-instance_method" title="#next_seq (instance method)">#<strong>next_seq</strong>(thread_id:)  &#x21d2; Integer </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the next seq number to use for new raw messages for <code>thread_id</code>.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#purge_older_than-instance_method" title="#purge_older_than (instance method)">#<strong>purge_older_than</strong>(thread_id:, older_than:)  &#x21d2; Object </a>
     
 
@@ -359,6 +381,28 @@
 
   
     <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#with_thread_lock-instance_method" title="#with_thread_lock (instance method)">#<strong>with_thread_lock</strong>(thread_id:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Delegates to the block directly; serialisation of concurrent saves for the same thread_id is the caller's responsibility (e.g. DB-level transaction isolation or application-layer queuing).</p></div></span>
   
 </li>
 
@@ -966,6 +1010,79 @@
 </div>
     
       <div class="method_details ">
+  <h3 class="signature " id="next_seq-instance_method">
+  
+    #<strong>next_seq</strong>(thread_id:)  &#x21d2; <tt>Integer</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the next seq number to use for new raw messages for <code>thread_id</code>.
+Derived from MAX(seq) in the database; since purge_older_than does not
+touch raw records, this value is always correct.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>thread_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+179
+180
+181
+182
+183</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 179</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_next_seq'>next_seq</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='int'>0</span> <span class='kw'>unless</span> <span class='ivar'>@raw_model_class</span>
+
+  <span class='lparen'>(</span><span class='lparen'>(</span><span class='ivar'>@raw_model_class</span><span class='period'>.</span><span class='id identifier rubyid_where'>where</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_maximum'>maximum</span><span class='lparen'>(</span><span class='symbol'>:seq</span><span class='rparen'>)</span> <span class='op'>||</span> <span class='op'>-</span><span class='int'>1</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='int'>1</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
   <h3 class="signature " id="purge_older_than-instance_method">
   
     #<strong>purge_older_than</strong>(thread_id:, older_than:)  &#x21d2; <tt>Object</tt> 
@@ -1218,12 +1335,68 @@ are left untouched because they use seq-based addressing.</p>
 </table>
 </div>
     
+      <div class="method_details ">
+  <h3 class="signature " id="with_thread_lock-instance_method">
+  
+    #<strong>with_thread_lock</strong>(thread_id:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Delegates to the block directly; serialisation of concurrent saves
+for the same thread_id is the caller's responsibility (e.g. DB-level
+transaction isolation or application-layer queuing).</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>thread_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+189
+190
+191</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/active_record.rb', line 189</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_with_thread_lock'>with_thread_lock</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
+  <span class='kw'>yield</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
   </div>
 
 </div>
 
       <div id="footer">
-  Generated on Mon May 11 15:20:53 2026 by
+  Generated on Mon May 11 18:41:28 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

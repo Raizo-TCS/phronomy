@@ -304,6 +304,28 @@ ConversationManager (compression path) and direct storage access.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#next_seq-instance_method" title="#next_seq (instance method)">#<strong>next_seq</strong>(thread_id:)  &#x21d2; Integer </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the next seq number to assign when appending new raw messages for <code>thread_id</code>.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#purge-instance_method" title="#purge (instance method)">#<strong>purge</strong>(thread_id:)  &#x21d2; Object </a>
     
 
@@ -385,6 +407,28 @@ ConversationManager (compression path) and direct storage access.</p>
 
   
     <span class="summary_desc"><div class='inline'><p>Persist a compaction record for a thread.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#with_thread_lock-instance_method" title="#with_thread_lock (instance method)">#<strong>with_thread_lock</strong>(thread_id:) { ... } &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Executes the block while holding a per-thread-id lock for <code>thread_id</code>.</p></div></span>
   
 </li>
 
@@ -943,6 +987,89 @@ Each message is stored together with its seq number.</p>
 </div>
     
       <div class="method_details ">
+  <h3 class="signature " id="next_seq-instance_method">
+  
+    #<strong>next_seq</strong>(thread_id:)  &#x21d2; <tt>Integer</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the next seq number to assign when appending new raw messages
+for <code>thread_id</code>. Must be monotonically increasing and must survive
+purge_older_than (i.e. the counter must not reset when old raw records
+are deleted by a TTL purge).</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>thread_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>NotImplementedError</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+138
+139
+140</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/base.rb', line 138</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_next_seq'>next_seq</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#next_seq is not implemented</span><span class='tstring_end'>&quot;</span></span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
   <h3 class="signature " id="purge-instance_method">
   
     #<strong>purge</strong>(thread_id:)  &#x21d2; <tt>Object</tt> 
@@ -1245,12 +1372,82 @@ messages from start_seq to end_seq (inclusive).</p>
 </table>
 </div>
     
+      <div class="method_details ">
+  <h3 class="signature " id="with_thread_lock-instance_method">
+  
+    #<strong>with_thread_lock</strong>(thread_id:) { ... } &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Executes the block while holding a per-thread-id lock for <code>thread_id</code>.
+Used by ConversationManager to prevent concurrent compaction for the
+same thread. The default implementation yields without locking; backends
+that require serialisation should override this method.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>thread_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Yields:</p>
+<ul class="yield">
+  
+    <li>
+      
+      
+        <span class='type'></span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+149
+150
+151</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/storage/base.rb', line 149</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_with_thread_lock'>with_thread_lock</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='rparen'>)</span>
+  <span class='kw'>yield</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
   </div>
 
 </div>
 
       <div id="footer">
-  Generated on Mon May 11 15:20:53 2026 by
+  Generated on Mon May 11 18:41:27 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
