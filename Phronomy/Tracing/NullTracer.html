@@ -220,10 +220,10 @@
       <pre class="lines">
 
 
-17</pre>
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/null_tracer.rb', line 17</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/null_tracer.rb', line 20</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_finish_span'>finish_span</span><span class='lparen'>(</span><span class='id identifier rubyid_span'>span</span><span class='comma'>,</span> <span class='op'>**</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='kw'>nil</span></pre>
     </td>
@@ -255,12 +255,12 @@
       <pre class="lines">
 
 
-14</pre>
+17</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/null_tracer.rb', line 14</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/null_tracer.rb', line 17</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_start_span'>start_span</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='op'>**</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='const'>OpenStruct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>name:</span> <span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_start_span'>start_span</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='op'>**</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='const'>SpanStruct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span></pre>
     </td>
   </tr>
 </table>
@@ -271,7 +271,7 @@
 </div>
 
       <div id="footer">
-  Generated on Mon May 11 09:53:50 2026 by
+  Generated on Mon May 11 10:37:11 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

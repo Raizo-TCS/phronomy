@@ -404,17 +404,17 @@ for compaction records to be persisted</p></div>
       <pre class="lines">
 
 
-50
-51
-52
 53
 54
 55
 56
-57</pre>
+57
+58
+59
+60</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 50</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 53</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>message_elements:</span><span class='comma'>,</span> <span class='label'>budget:</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>memory:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@message_elements</span> <span class='op'>=</span> <span class='id identifier rubyid_message_elements'>message_elements</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
@@ -473,12 +473,12 @@ for compaction records to be persisted</p></div>
       <pre class="lines">
 
 
-33
-34
-35</pre>
+36
+37
+38</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 33</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 36</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_budget'>budget</span>
   <span class='ivar'>@budget</span>
@@ -530,12 +530,12 @@ for compaction records to be persisted</p></div>
       <pre class="lines">
 
 
-30
-31
-32</pre>
+33
+34
+35</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 30</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 33</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_message_elements'>message_elements</span>
   <span class='ivar'>@message_elements</span>
@@ -585,12 +585,12 @@ Updated by each call to #compact.</p>
       <pre class="lines">
 
 
-42
-43
-44</pre>
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 42</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_result_messages'>result_messages</span>
   <span class='ivar'>@result_messages</span>
@@ -642,12 +642,12 @@ Updated by each call to #compact.</p>
       <pre class="lines">
 
 
-36
-37
-38</pre>
+39
+40
+41</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 36</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 39</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_total_tokens'>total_tokens</span>
   <span class='ivar'>@total_tokens</span>
@@ -761,9 +761,6 @@ reflects the replacement.</p>
       <pre class="lines">
 
 
-72
-73
-74
 75
 76
 77
@@ -797,10 +794,13 @@ reflects the replacement.</p>
 105
 106
 107
-108</pre>
+108
+109
+110
+111</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 72</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 75</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_compact'>compact</span><span class='lparen'>(</span><span class='id identifier rubyid_range'>range</span><span class='rparen'>)</span>
   <span class='comment'># Normalise: Integer index → single-element Array; Range → Array slice.
@@ -836,7 +836,7 @@ reflects the replacement.</p>
   <span class='kw'>end</span>
 
   <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@message_elements</span><span class='lbracket'>[</span><span class='lparen'>(</span><span class='id identifier rubyid_last_idx'>last_idx</span> <span class='op'>+</span> <span class='int'>1</span><span class='rparen'>)</span><span class='op'>..</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_e'>e</span><span class='op'>|</span> <span class='id identifier rubyid_e'>e</span><span class='lbracket'>[</span><span class='symbol'>:message</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
-  <span class='id identifier rubyid_summary_msg'>summary_msg</span> <span class='op'>=</span> <span class='const'>OpenStruct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>role:</span> <span class='symbol'>:system</span><span class='comma'>,</span> <span class='label'>content:</span> <span class='id identifier rubyid_summary_text'>summary_text</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_summary_msg'>summary_msg</span> <span class='op'>=</span> <span class='const'>SummaryMessage</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Context::CompactionContext#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>role:</span> <span class='symbol'>:system</span><span class='comma'>,</span> <span class='label'>content:</span> <span class='id identifier rubyid_summary_text'>summary_text</span><span class='rparen'>)</span>
   <span class='ivar'>@result_messages</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='id identifier rubyid_summary_msg'>summary_msg</span><span class='rbracket'>]</span> <span class='op'>+</span> <span class='id identifier rubyid_remaining'>remaining</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -849,7 +849,7 @@ reflects the replacement.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 11 09:53:50 2026 by
+  Generated on Mon May 11 10:37:11 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

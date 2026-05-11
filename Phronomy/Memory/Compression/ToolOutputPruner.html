@@ -267,12 +267,12 @@ state across calls and requires no thread_id bookkeeping.</p>
       <pre class="lines">
 
 
-29
-30
-31</pre>
+32
+33
+34</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/compression/tool_output_pruner.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/compression/tool_output_pruner.rb', line 32</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>max_chars:</span> <span class='int'>4000</span><span class='rparen'>)</span>
   <span class='ivar'>@max_chars</span> <span class='op'>=</span> <span class='id identifier rubyid_max_chars'>max_chars</span>
@@ -375,19 +375,19 @@ Content pruning does not produce a compaction record; :compaction is always nil.
       <pre class="lines">
 
 
-40
-41
-42
 43
 44
 45
 46
 47
 48
-49</pre>
+49
+50
+51
+52</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/compression/tool_output_pruner.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/compression/tool_output_pruner.rb', line 43</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_compress'>compress</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='comma'>,</span> <span class='label'>seq_offset:</span> <span class='int'>0</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_pruned'>pruned</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_msg'>msg</span><span class='op'>|</span>
@@ -409,7 +409,7 @@ Content pruning does not produce a compaction record; :compaction is always nil.
 </div>
 
       <div id="footer">
-  Generated on Mon May 11 09:53:51 2026 by
+  Generated on Mon May 11 10:37:12 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
