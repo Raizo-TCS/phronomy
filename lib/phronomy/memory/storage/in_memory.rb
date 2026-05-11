@@ -13,8 +13,11 @@ module Phronomy
         def initialize
           @mutex = Mutex.new
           @store = {}
-          @raw_store = {}       # thread_id => [{seq:, message:}, ...]
+          @raw_store = {}        # thread_id => [{seq:, message:, recorded_at:}, ...]
           @compaction_store = {} # thread_id => [{start_seq:, end_seq:, summary_text:}, ...]
+          @hwm_store = {}        # thread_id => Integer (highest seq ever written; survives purge)
+          @actors = {}
+          @actors_mutex = Mutex.new
         end
 
         # -----------------------------------------------------------------------
@@ -39,7 +42,9 @@ module Phronomy
             @store.delete(thread_id)
             @raw_store.delete(thread_id)
             @compaction_store.delete(thread_id)
+            @hwm_store.delete(thread_id)
           end
+          @actors_mutex.synchronize { @actors.delete(thread_id)&.stop }
         end
 
         # -----------------------------------------------------------------------
@@ -54,9 +59,25 @@ module Phronomy
           @mutex.synchronize do
             @raw_store[thread_id] ||= []
             messages.each_with_index do |msg, i|
-              @raw_store[thread_id] << {seq: starting_seq + i, message: msg, recorded_at: now}
+              seq = starting_seq + i
+              @raw_store[thread_id] << {seq: seq, message: msg, recorded_at: now}
+              @hwm_store[thread_id] = [@hwm_store[thread_id] || -1, seq].max
             end
           end
+        end
+
+        # @param thread_id [String]
+        # @return [Integer]
+        def next_seq(thread_id:)
+          @mutex.synchronize { (@hwm_store[thread_id] || -1) + 1 }
+        end
+
+        # Yields while holding the per-thread-id actor's sequential queue.
+        # Prevents concurrent compaction records for the same thread.
+        # @param thread_id [String]
+        def with_thread_lock(thread_id:, &block)
+          actor = @actors_mutex.synchronize { @actors[thread_id] ||= Actor.new }
+          actor.call(&block)
         end
 
         # @param thread_id [String]
@@ -105,6 +126,46 @@ module Phronomy
             next unless @raw_store[thread_id]
 
             @raw_store[thread_id].reject! { |entry| entry[:recorded_at] && entry[:recorded_at] < older_than }
+          end
+        end
+
+        private
+
+        # Lightweight synchronous actor: a dedicated Thread drains a Queue,
+        # guaranteeing sequential execution of all operations for one thread_id.
+        # The calling thread blocks until the actor finishes and re-raises any
+        # exception that occurred inside the actor.
+        class Actor
+          def initialize
+            @queue = Queue.new
+            @thread = Thread.new do
+              loop do
+                task = @queue.pop
+                break if task == :stop
+                task.call
+              end
+            end
+          end
+
+          # Run +block+ on the actor's thread and return its result.
+          # Exceptions are captured and re-raised in the caller's thread.
+          def call(&block)
+            done = Queue.new
+            @queue.push(-> {
+              begin
+                done.push([true, block.call])
+              rescue => e
+                done.push([false, e])
+              end
+            })
+            success, value = done.pop
+            raise value unless success
+            value
+          end
+
+          # Send a stop sentinel to gracefully terminate the actor's thread.
+          def stop
+            @queue.push(:stop)
           end
         end
       end

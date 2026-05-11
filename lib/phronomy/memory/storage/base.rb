@@ -127,6 +127,28 @@ module Phronomy
         def purge_older_than(thread_id:, older_than:)
           # no-op by default
         end
+
+        # Returns the next seq number to assign when appending new raw messages
+        # for +thread_id+. Must be monotonically increasing and must survive
+        # purge_older_than (i.e. the counter must not reset when old raw records
+        # are deleted by a TTL purge).
+        #
+        # @param thread_id [String]
+        # @return [Integer]
+        def next_seq(thread_id:)
+          raise NotImplementedError, "#{self.class}#next_seq is not implemented"
+        end
+
+        # Executes the block while holding a per-thread-id lock for +thread_id+.
+        # Used by ConversationManager to prevent concurrent compaction for the
+        # same thread. The default implementation yields without locking; backends
+        # that require serialisation should override this method.
+        #
+        # @param thread_id [String]
+        # @yield
+        def with_thread_lock(thread_id:)
+          yield
+        end
       end
     end
   end

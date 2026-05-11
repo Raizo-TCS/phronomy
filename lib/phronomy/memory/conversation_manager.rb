@@ -48,16 +48,6 @@ module Phronomy
         @retrieval = retrieval
         @compression = compression
         @ttl = ttl
-        # Per-thread mutexes allow concurrent saves for different thread_ids while
-        # preventing races (duplicate compaction records) within the same thread_id.
-        @thread_mutexes = {}
-        @thread_mutexes_mutex = Mutex.new
-        # Tracks the monotonically increasing next-seq per thread so that TTL
-        # purges (which reduce raw.length) do not reset the sequence counter.
-        # Protected by a dedicated mutex so concurrent saves for distinct
-        # thread_ids do not race on the shared Hash (Issue #60).
-        @raw_seq_hwm = {}
-        @raw_seq_hwm_mutex = Mutex.new
       end
 
       # Load conversation messages for a thread, applying retrieval selection.
@@ -92,8 +82,8 @@ module Phronomy
       # @param thread_id [String]
       # @param messages  [Array] full conversation history up to this point
       def save(thread_id:, messages:)
-        thread_mutex(thread_id).synchronize do
-          append_new_messages_unlocked(thread_id: thread_id, messages: messages)
+        @storage.with_thread_lock(thread_id: thread_id) do
+          append_new_messages(thread_id: thread_id, messages: messages)
           compress_and_save(thread_id: thread_id, messages: messages)
         end
         @retrieval.index(thread_id: thread_id, messages: messages) if @retrieval.respond_to?(:index)
@@ -135,36 +125,17 @@ module Phronomy
 
       private
 
-      # Returns (or lazily creates) the per-thread mutex for +thread_id+.
-      # The outer @thread_mutexes_mutex protects the hash from concurrent creation.
-      def thread_mutex(thread_id)
-        @thread_mutexes_mutex.synchronize do
-          @thread_mutexes[thread_id] ||= Mutex.new
-        end
-      end
-
       # Append messages that are new since the last save to the raw history.
-      # Must be called while holding the per-thread mutex (via thread_mutex).
+      # Must be called while holding the per-thread lock (via Storage#with_thread_lock).
       # Messages are append-only; existing raw entries are never modified.
       #
-      # Uses a per-thread high-water-mark (HWM) to determine the next seq number.
-      # The HWM is the maximum of:
-      #   - The highest seq stored in the raw store (correct after normal appends)
-      #   - The in-memory HWM (correct after TTL purge empties the raw store)
-      # This prevents seq number collisions when TTL purge reduces raw.length.
-      def append_new_messages_unlocked(thread_id:, messages:)
-        raw = @storage.load_raw(thread_id: thread_id)
-        # Derive the next seq from the raw store's high-water-mark seq when
-        # entries are present. Fall back to the in-memory HWM when the raw
-        # store has been partially or fully purged by TTL expiry.
-        stored_next_seq = raw.any? ? raw.map { |e| e[:seq] }.max + 1 : nil
-        hwm = @raw_seq_hwm_mutex.synchronize { @raw_seq_hwm[thread_id] }
-        next_seq = [stored_next_seq, hwm].compact.max || 0
+      # The next seq number is derived from Storage#next_seq, which owns the
+      # high-water-mark counter. This survives TTL purges because Storage tracks
+      # the HWM independently of the stored raw entries.
+      def append_new_messages(thread_id:, messages:)
+        next_seq = @storage.next_seq(thread_id: thread_id)
         new_messages = messages[next_seq..]
-        if new_messages&.any?
-          @storage.append_raw(thread_id: thread_id, messages: new_messages, starting_seq: next_seq)
-          @raw_seq_hwm_mutex.synchronize { @raw_seq_hwm[thread_id] = next_seq + new_messages.length }
-        end
+        @storage.append_raw(thread_id: thread_id, messages: new_messages, starting_seq: next_seq) if new_messages&.any?
       end
 
       # Apply the configured compression strategy and persist the result.

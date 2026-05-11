@@ -170,6 +170,26 @@ module Phronomy
           @model_class.where(thread_id: thread_id).where("created_at < ?", older_than).delete_all
         end
 
+        # Returns the next seq number to use for new raw messages for +thread_id+.
+        # Derived from MAX(seq) in the database; since purge_older_than does not
+        # touch raw records, this value is always correct.
+        #
+        # @param thread_id [String]
+        # @return [Integer]
+        def next_seq(thread_id:)
+          return 0 unless @raw_model_class
+
+          ((@raw_model_class.where(thread_id: thread_id).maximum(:seq) || -1) + 1)
+        end
+
+        # Delegates to the block directly; serialisation of concurrent saves
+        # for the same thread_id is the caller's responsibility (e.g. DB-level
+        # transaction isolation or application-layer queuing).
+        # @param thread_id [String]
+        def with_thread_lock(thread_id:)
+          yield
+        end
+
         private
 
         def ensure_raw_model!
