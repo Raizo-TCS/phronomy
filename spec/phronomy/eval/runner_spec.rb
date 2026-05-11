@@ -86,7 +86,10 @@ RSpec.describe Phronomy::Eval::Runner do
     end
 
     it "propagates errors from the callable when concurrency > 1" do
-      callable = ->(input) { raise "concurrent boom" if input == "boom"; input }
+      callable = ->(input) {
+        raise "concurrent boom" if input == "boom"
+        input
+      }
       expect {
         described_class.new.run(three_case_dataset, callable, concurrency: 3)
       }.to raise_error(RuntimeError, "concurrent boom")
@@ -102,7 +105,7 @@ RSpec.describe Phronomy::Eval::Runner do
     # With a correct implementation (all threads joined before re-raise),
     # ok2 is waited for, finishes after ~0.2s, and completed = ["ok1","ok2"] → PASS.
     it "joins all threads before propagating the exception (no orphaned threads)" do
-      mutex     = Mutex.new
+      mutex = Mutex.new
       completed = []
 
       callable = lambda do |input|

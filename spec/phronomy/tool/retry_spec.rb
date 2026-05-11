@@ -445,7 +445,7 @@ RSpec.describe "Agent::Base retry_policy DSL" do
       # Stub invoke_once (the private method that ReactAgent now overrides).
       allow(agent).to receive(:invoke_once) do
         invocations += 1
-        raise RuntimeError, "transient" if invocations <= fail_times
+        raise "transient" if invocations <= fail_times
         {output: "recovered", messages: [], usage: Phronomy::TokenUsage.zero,
          iterations_exhausted: false}
       end

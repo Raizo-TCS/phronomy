@@ -339,7 +339,7 @@ RSpec.describe Phronomy::Memory::ConversationManager do
       )
 
       msgs = [make_msg(:user, "a"), make_msg(:assistant, "b"),
-              make_msg(:user, "c"), make_msg(:assistant, "d")]
+        make_msg(:user, "c"), make_msg(:assistant, "d")]
 
       # Run many threads all saving the same thread_id concurrently.
       threads = 10.times.map do

@@ -585,12 +585,14 @@ RSpec.describe "StateGraph#add_subgraph thread_id namespacing (issue #43)" do
   # Simple state class for the parent graph
   class ParentIssue43State
     include Phronomy::Graph::State
+
     field :output, type: :replace, default: nil
   end
 
   # Simple state class for the child graph
   class ChildIssue43State
     include Phronomy::Graph::State
+
     field :sub_result, type: :replace, default: nil
   end
 
@@ -616,12 +618,12 @@ RSpec.describe "StateGraph#add_subgraph thread_id namespacing (issue #43)" do
 
     # The parent checkpoint must be a ParentIssue43State
     parent_checkpoint = store.load("t1")
-    expect(parent_checkpoint).to be_a(ParentIssue43State), \
+    expect(parent_checkpoint).to be_a(ParentIssue43State),
       "expected ParentIssue43State at key 't1', got #{parent_checkpoint.class}"
 
     # The child checkpoint must be saved under the namespaced key
     child_checkpoint = store.load("t1/child")
-    expect(child_checkpoint).to be_a(ChildIssue43State), \
+    expect(child_checkpoint).to be_a(ChildIssue43State),
       "expected ChildIssue43State at key 't1/child', got #{child_checkpoint.inspect}"
   end
 end
