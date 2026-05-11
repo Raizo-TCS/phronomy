@@ -22,23 +22,40 @@ module Phronomy
         @scorer = scorer
       end
 
-      # @param dataset  [Dataset]  collection of EvalCase objects
-      # @param callable [#call]    accepts a single String argument
+      # @param dataset     [Dataset]  collection of EvalCase objects
+      # @param callable    [#call]    accepts a single String argument
+      # @param concurrency [Integer]  number of parallel threads (default: 1, sequential)
       # @return [Array<EvalResult>]
-      def run(dataset, callable)
-        dataset.map do |eval_case|
-          t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
-          result = callable.call(eval_case.input)
-          latency_ms = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond) - t0
+      def run(dataset, callable, concurrency: 1)
+        cases = dataset.to_a
+        return cases.map { |eval_case| run_one(eval_case, callable) } if concurrency <= 1
 
-          actual, usage = extract(result)
-          score, score_error = score_safely(@scorer, actual: actual, expected: eval_case.expected, input: eval_case.input)
-
-          EvalResult.new(eval_case: eval_case, actual: actual, score: score, usage: usage, latency_ms: latency_ms, error: score_error)
+        # Run cases in slices of +concurrency+ threads. Each slice is joined
+        # before the next starts, bounding peak thread count to +concurrency+.
+        # Writing to pre-allocated slots (one per thread) is safe because each
+        # thread writes to a unique index and all threads in a slice are joined
+        # before the next slice begins.
+        results = Array.new(cases.length)
+        cases.each_with_index.each_slice(concurrency) do |batch|
+          batch.map { |eval_case, i| Thread.new { results[i] = run_one(eval_case, callable) } }
+            .each(&:join)
         end
+        results
       end
 
       private
+
+      # Evaluate a single EvalCase with the given callable and return an EvalResult.
+      def run_one(eval_case, callable)
+        t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
+        result = callable.call(eval_case.input)
+        latency_ms = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond) - t0
+
+        actual, usage = extract(result)
+        score, score_error = score_safely(@scorer, actual: actual, expected: eval_case.expected, input: eval_case.input)
+
+        EvalResult.new(eval_case: eval_case, actual: actual, score: score, usage: usage, latency_ms: latency_ms, error: score_error)
+      end
 
       # Normalises the callable's return value into [actual_string, usage_or_nil].
       def extract(result)

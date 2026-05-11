@@ -75,13 +75,20 @@ module Phronomy
     # @param review_agent         [Class]   subclass of Phronomy::Agent::Base
     # @param confidence_threshold [Float]   answers below this are retried (default: 0.7)
     # @param max_iterations       [Integer] maximum draft-review cycles (default: 3)
+    # @param input_delimiter      [Array<String>, nil] optional two-element array
+    #   [start_tag, end_tag] used to wrap user input in prompts, e.g.
+    #   ["<user_input>", "</user_input>"] or
+    #   ["=== user input start ===", "=== user input end ==="].
+    #   When nil (default), input is embedded as-is for backward compatibility.
     def initialize(draft_agent:, review_agent:,
       confidence_threshold: DEFAULT_CONFIDENCE_THRESHOLD,
-      max_iterations: DEFAULT_MAX_ITERATIONS)
+      max_iterations: DEFAULT_MAX_ITERATIONS,
+      input_delimiter: nil)
       @draft_agent_class = draft_agent
       @review_agent_class = review_agent
       @threshold = confidence_threshold.to_f
       @max_iterations = max_iterations.to_i
+      @input_delimiter = input_delimiter
       @graph_mutex = Mutex.new
       @compiled_graph = nil
     end
@@ -173,6 +180,15 @@ module Phronomy
       graph
     end
 
+    # Wraps +input+ with the configured delimiter pair when +input_delimiter+ is set.
+    # When no delimiter is configured the input is returned unchanged.
+    def wrap_input(input)
+      return input unless @input_delimiter
+
+      start_tag, end_tag = @input_delimiter
+      "#{start_tag}\n#{input}\n#{end_tag}"
+    end
+
     # Builds the prompt sent to the DraftAgent for each iteration.
     def draft_prompt(input, feedback)
       lines = [
@@ -186,7 +202,7 @@ module Phronomy
       end
       lines += [
         "",
-        "Question: #{input}",
+        "Question: #{wrap_input(input)}",
         "",
         "RESPOND ONLY WITH VALID JSON (no text outside the JSON block):",
         '{"answer":"<full answer>","confidence":<0.0-1.0>,' \
@@ -205,7 +221,7 @@ module Phronomy
       [
         "You are a rigorous quality reviewer. Evaluate the draft answer below.",
         "",
-        "Question: #{input}",
+        "Question: #{wrap_input(input)}",
         "",
         "Draft answer:",
         draft.to_s,

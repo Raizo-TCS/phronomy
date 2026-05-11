@@ -43,7 +43,11 @@ module Phronomy
 
           save_to_memory(memory, thread_id: thread_id, messages: messages) if memory && thread_id
 
-          output = messages.last&.content
+          # Fall back to the last message that carries non-nil content. This
+          # guards against the case where the final message is a tool-call or
+          # tool-result message (content == nil) when max_iterations is
+          # exhausted before the model produces a text reply.
+          output = messages.reverse.find { |m| !m.content.nil? }&.content
 
           # Run output guardrails before returning to the caller.
           run_output_guardrails!(output)
@@ -93,7 +97,9 @@ module Phronomy
 
         save_to_memory(memory, thread_id: thread_id, messages: messages) if memory && thread_id
 
-        output = messages.last&.content
+        # Fall back to the last message that carries non-nil content (same as
+        # the non-streaming path above).
+        output = messages.reverse.find { |m| !m.content.nil? }&.content
         run_output_guardrails!(output)
 
         result = {output: output, messages: messages, usage: total_usage, iterations_exhausted: iterations_exhausted}

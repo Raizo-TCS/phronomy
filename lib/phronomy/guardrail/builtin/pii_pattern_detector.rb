@@ -25,14 +25,20 @@ module Phronomy
         # Recognised PII categories and their detection patterns.
         PATTERNS = {
           # Japanese My Number: 12 consecutive or grouped digits (4-4-4).
+          # Matched candidates are additionally validated with the official check-digit
+          # algorithm (JIS X 0076) to eliminate false positives from arbitrary 12-digit strings.
           my_number: {
             pattern: /(?<!\d)(?<!\d[- ])\d{4}[- ]?\d{4}[- ]?\d{4}(?![- ]?\d)/,
-            label: "My Number"
+            label: "My Number",
+            validate_my_number: true
           },
           # Credit / debit card: 16 digits, optionally separated by spaces or hyphens.
+          # Matched candidates are additionally validated with the Luhn algorithm
+          # to eliminate false positives from arbitrary 16-digit sequences.
           credit_card: {
             pattern: /\b(?:\d{4}[- ]?){3}\d{4}\b/,
-            label: "credit card number"
+            label: "credit card number",
+            validate_luhn: true
           },
           # Email address (simplified RFC 5322).
           email: {
@@ -64,8 +70,46 @@ module Phronomy
         def check(value)
           text = value.to_s
           @active_patterns.each do |entry|
-            fail!("PII detected in input: #{entry[:label]}") if text.match?(entry[:pattern])
+            detected = if entry[:validate_luhn]
+              # Scan for all candidates then filter by Luhn check-digit validation.
+              # This avoids false positives on arbitrary 16-digit strings (e.g. internal IDs).
+              text.scan(entry[:pattern]).any? { |m| luhn_valid?(m.gsub(/[- ]/, "")) }
+            elsif entry[:validate_my_number]
+              # Scan for all candidates then apply the JIS X 0076 check-digit algorithm.
+              # This avoids false positives on arbitrary 12-digit strings.
+              text.scan(entry[:pattern]).any? { |m| my_number_valid?(m.gsub(/[- ]/, "")) }
+            else
+              text.match?(entry[:pattern])
+            end
+            fail!("PII detected in input: #{entry[:label]}") if detected
           end
+        end
+
+        private
+
+        # Returns true when +digits+ (a 12-character string of decimal digits) satisfies
+        # the Japanese My Number check-digit algorithm defined in JIS X 0076.
+        # The check digit is the 12th digit.
+        def my_number_valid?(digits)
+          weights = [6, 5, 4, 3, 2, 7, 6, 5, 4, 3, 2]
+          total = weights.each_with_index.sum { |w, i| w * digits[i].to_i }
+          remainder = total % 11
+          check = (remainder <= 1) ? 0 : 11 - remainder
+          check == digits[11].to_i
+        end
+
+        # Returns true when +digits+ (a string of decimal digits) satisfies the
+        # Luhn check-digit algorithm used by payment card networks.
+        def luhn_valid?(digits)
+          digits.chars.reverse.each_with_index.sum do |d, i|
+            n = d.to_i
+            if i.odd?
+              doubled = n * 2
+              (doubled > 9) ? (doubled - 9) : doubled
+            else
+              n
+            end
+          end % 10 == 0
         end
       end
     end

@@ -71,7 +71,7 @@ module Phronomy
         def select(messages, query: nil, thread_id: nil)
           if query && !query.strip.empty?
             query_embedding = @embeddings.embed(query)
-            results = @store.search(query_embedding: query_embedding, k: @k * 3)
+            results = @mutex.synchronize { @store.search(query_embedding: query_embedding, k: @k * 3) }
             results
               .select { |r| thread_id.nil? || r[:metadata][:thread_id] == thread_id }
               .first(@k)

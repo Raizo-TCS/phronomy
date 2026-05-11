@@ -153,6 +153,49 @@ RSpec.describe Phronomy::TrustPipeline do
     end
   end
 
+  describe "input_delimiter:" do
+    def capture_prompt(delimiter)
+      received = []
+      capturing_draft = Class.new(Phronomy::Agent::Base) do
+        define_method(:invoke) do |input, config: {}|
+          received << input
+          {output: '{"answer":"ok","confidence":0.9,"citations":[]}', messages: []}
+        end
+      end
+      pipeline = described_class.new(
+        draft_agent: capturing_draft,
+        review_agent: stub_agent('{"approved":true,"score":0.9,"feedback":""}'),
+        confidence_threshold: 0.7,
+        max_iterations: 1,
+        input_delimiter: delimiter
+      )
+      pipeline.invoke("What is the refund policy?")
+      received.first
+    end
+
+    context "when input_delimiter is nil (default)" do
+      it "embeds user input without any wrapper" do
+        prompt = capture_prompt(nil)
+        expect(prompt).to include("Question: What is the refund policy?")
+        expect(prompt).not_to match(/<user_input>|===/)
+      end
+    end
+
+    context "when input_delimiter is XML-style tags" do
+      it "wraps user input in the specified tags in the draft prompt" do
+        prompt = capture_prompt(["<user_input>", "</user_input>"])
+        expect(prompt).to include("<user_input>\nWhat is the refund policy?\n</user_input>")
+      end
+    end
+
+    context "when input_delimiter uses custom separator strings" do
+      it "wraps user input with the custom strings" do
+        prompt = capture_prompt(["=== user input start ===", "=== user input end ==="])
+        expect(prompt).to include("=== user input start ===\nWhat is the refund policy?\n=== user input end ===")
+      end
+    end
+  end
+
   describe "Result" do
     it "exposes trusted? as an alias for trusted" do
       r = Phronomy::TrustPipeline::Result.new(

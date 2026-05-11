@@ -27,19 +27,26 @@ RSpec.describe Phronomy::Guardrail::Builtin::PIIPatternDetector do
   end
 
   describe "#check — My Number" do
+    # 123456789018 is a syntactically valid My Number:
+    # first 11 digits 12345678901, check digit = 11 - (212 % 11) = 8.
     it "raises for a 12-digit My Number (no separators)" do
-      expect { detector.run!("My number is 123456789012") }
+      expect { detector.run!("My number is 123456789018") }
         .to raise_error(Phronomy::GuardrailError, /My Number/)
     end
 
     it "raises for a My Number with hyphen groups (4-4-4)" do
-      expect { detector.run!("ID: 1234-5678-9012") }
+      expect { detector.run!("ID: 1234-5678-9018") }
         .to raise_error(Phronomy::GuardrailError, /My Number/)
     end
 
     it "raises for a My Number with space groups (4 4 4)" do
-      expect { detector.run!("ID: 1234 5678 9012") }
+      expect { detector.run!("ID: 1234 5678 9018") }
         .to raise_error(Phronomy::GuardrailError, /My Number/)
+    end
+
+    it "does not raise for a 12-digit string with an invalid check digit" do
+      # 123456789012 looks like a My Number but fails JIS X 0076 check-digit validation.
+      expect { detector.run!("My number is 123456789012") }.not_to raise_error
     end
   end
 

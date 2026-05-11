@@ -124,6 +124,12 @@ module Phronomy
           accumulated += tokens
           result.push(msg)
         end
+
+        if result.empty? && messages.any?
+          warn "[Phronomy::Assembler] All #{messages.length} conversation message(s) dropped: " \
+               "token budget exhausted by system context (budget=#{@budget.context_window}, used_by_system=#{used})"
+        end
+
         result.reverse
       end
     end
