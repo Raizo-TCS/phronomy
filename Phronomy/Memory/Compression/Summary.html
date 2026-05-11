@@ -310,15 +310,15 @@ record in Storage, ensuring originals are never discarded.</p>
       <pre class="lines">
 
 
+39
+40
+41
+42
 43
-44
-45
-46
-47
-48</pre>
+44</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/compression/summary.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/compression/summary.rb', line 39</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>max_tokens:</span> <span class='int'>4000</span><span class='comma'>,</span> <span class='label'>keep:</span> <span class='int'>5</span><span class='comma'>,</span> <span class='label'>summarizer_model:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>summarizer_provider:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@max_tokens</span> <span class='op'>=</span> <span class='id identifier rubyid_max_tokens'>max_tokens</span>
@@ -427,18 +427,18 @@ compaction is { start_seq:, end_seq:, summary_text: } or nil</p></div>
       <pre class="lines">
 
 
+57
+58
+59
+60
 61
 62
 63
 64
-65
-66
-67
-68
-69</pre>
+65</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/compression/summary.rb', line 61</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/memory/compression/summary.rb', line 57</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_compress'>compress</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='comma'>,</span> <span class='label'>seq_offset:</span> <span class='int'>0</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_estimated'>estimated</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_sum'>sum</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_m'>m</span><span class='op'>|</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Context.html" title="Phronomy::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Context/TokenEstimator.html" title="Phronomy::Context::TokenEstimator (module)">TokenEstimator</a></span></span><span class='period'>.</span><span class='id identifier rubyid_estimate'><span class='object_link'><a href="../../Context/TokenEstimator.html#estimate-class_method" title="Phronomy::Context::TokenEstimator.estimate (method)">estimate</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_m'>m</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
@@ -459,7 +459,7 @@ compaction is { start_seq:, end_seq:, summary_text: } or nil</p></div>
 </div>
 
       <div id="footer">
-  Generated on Mon May 11 10:37:11 2026 by
+  Generated on Mon May 11 10:52:20 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
