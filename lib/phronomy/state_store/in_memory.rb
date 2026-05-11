@@ -8,30 +8,31 @@ module Phronomy
     class InMemory < Base
       def initialize
         @store = {}
+        @mutex = Mutex.new
       end
 
       # @param state [Object] includes Phronomy::Graph::State; must have a non-nil thread_id
       # @return [self]
       def save(state)
-        @store[state.thread_id] = state
+        @mutex.synchronize { @store[state.thread_id] = state }
         self
       end
 
       # @param thread_id [String]
       # @return [Object, nil] state object or nil
       def load(thread_id)
-        @store[thread_id]
+        @mutex.synchronize { @store[thread_id] }
       end
 
       # @param thread_id [String]
       # @return [self]
       def clear(thread_id)
-        @store.delete(thread_id)
+        @mutex.synchronize { @store.delete(thread_id) }
         self
       end
 
       def clear_all
-        @store.clear
+        @mutex.synchronize { @store.clear }
         self
       end
     end

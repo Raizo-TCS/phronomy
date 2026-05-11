@@ -210,6 +210,82 @@ RSpec.describe Phronomy::Tool::Base do
     end
   end
 
+  # Regression tests for Issue #48: params_schema always converts enum values to String
+  # via .map(&:to_s), even for :integer and :number params.  The JSON Schema spec
+  # requires enum values to match the declared type.
+  describe ".param with enum: and non-string types (Issue #48)" do
+    context "with an integer param and integer enum values" do
+      let(:int_enum_tool_class) do
+        Class.new(described_class) do
+          description "Priority tool"
+          param :level, type: :integer, desc: "Priority level", enum: [1, 2, 3]
+
+          def execute(level:) = "priority: #{level}"
+        end
+      end
+
+      it "preserves Integer type in JSON Schema enum values" do
+        schema = int_enum_tool_class.new.params_schema
+        enum_vals = schema["properties"]["level"]["enum"]
+        expect(enum_vals).to all(be_a(Integer))
+      end
+
+      it "does not convert integer enum values to String" do
+        schema = int_enum_tool_class.new.params_schema
+        enum_vals = schema["properties"]["level"]["enum"]
+        expect(enum_vals).not_to include("1", "2", "3")
+      end
+
+      it "produces a conforming JSON Schema (integer type with integer enum)" do
+        schema = int_enum_tool_class.new.params_schema
+        prop = schema["properties"]["level"]
+        expect(prop["type"]).to eq("integer")
+        expect(prop["enum"]).to eq([1, 2, 3])
+      end
+    end
+
+    context "with a number param and float enum values" do
+      let(:float_enum_tool_class) do
+        Class.new(described_class) do
+          description "Temperature tool"
+          param :temp, type: :number, desc: "Temperature", enum: [0.0, 0.5, 1.0]
+
+          def execute(temp:) = "temp: #{temp}"
+        end
+      end
+
+      it "preserves Numeric type in JSON Schema enum values" do
+        schema = float_enum_tool_class.new.params_schema
+        enum_vals = schema["properties"]["temp"]["enum"]
+        expect(enum_vals).to all(be_a(Numeric))
+      end
+
+      it "does not convert float enum values to String" do
+        schema = float_enum_tool_class.new.params_schema
+        enum_vals = schema["properties"]["temp"]["enum"]
+        expect(enum_vals).not_to include("0.0", "0.5", "1.0")
+      end
+    end
+
+    context "with a string param and enum values (existing behaviour should be unchanged)" do
+      let(:str_enum_tool_class) do
+        Class.new(described_class) do
+          description "Lang tool"
+          param :lang, type: :string, desc: "Language", enum: %w[en ja fr]
+
+          def execute(lang:) = lang
+        end
+      end
+
+      it "keeps String type for string enum values" do
+        schema = str_enum_tool_class.new.params_schema
+        enum_vals = schema["properties"]["lang"]["enum"]
+        expect(enum_vals).to all(be_a(String))
+        expect(enum_vals).to eq(%w[en ja fr])
+      end
+    end
+  end
+
   describe ".tool_name DSL" do
     context "when tool_name is set" do
       let(:named_tool_class) do

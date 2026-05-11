@@ -111,6 +111,42 @@ RSpec.describe Phronomy::StateStore::InMemory do
       expect(store.load("t2")).to be_nil
     end
   end
+
+  # Regression test for Issue #45: @store is not protected by a Mutex.
+  # Under MRI the GIL reduces (but does not eliminate) the risk; under JRuby /
+  # TruffleRuby (no GIL) this test will fail without synchronization.
+  describe "concurrent access (Issue #45)" do
+    it "does not lose writes when multiple threads save to distinct thread_ids simultaneously" do
+      thread_count = 20
+      threads = thread_count.times.map do |i|
+        Thread.new do
+          store.save(make_state(value: i, thread_id: "concurrent-#{i}"))
+        end
+      end
+      threads.each(&:join)
+
+      thread_count.times do |i|
+        saved = store.load("concurrent-#{i}")
+        expect(saved).not_to be_nil
+        expect(saved.value).to eq(i)
+      end
+    end
+
+    it "does not corrupt state when concurrent saves and loads interleave" do
+      store.save(make_state(value: 0, thread_id: "shared"))
+
+      writers = 10.times.map do |i|
+        Thread.new { store.save(make_state(value: i, thread_id: "shared")) }
+      end
+      readers = 5.times.map do
+        Thread.new { store.load("shared") }
+      end
+      (writers + readers).each(&:join)
+
+      # After all threads finish, the stored value must be a valid integer (not nil).
+      expect(store.load("shared")).not_to be_nil
+    end
+  end
 end
 
 RSpec.describe "Phronomy::Graph class registry" do

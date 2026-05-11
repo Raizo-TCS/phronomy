@@ -29,21 +29,36 @@ module Phronomy
           @counter = 0
           @max_index_size = max_index_size
           @mutex = Mutex.new
+          @indexed_object_ids = {}  # thread_id => { object_id => true }
         end
 
         # Index a new batch of messages so they are searchable on future #select calls.
         # Called by ConversationManager#save.
         #
+        # Messages are deduplicated by object identity: if a message object has already
+        # been indexed for the given thread_id, it is skipped (no duplicate embed call).
+        #
         # @param thread_id [String]
         # @param messages  [Array]
         def index(thread_id:, messages:)
           messages.each do |msg|
+            # Fast path: skip already-indexed messages without calling embed.
+            already_indexed = @mutex.synchronize do
+              (@indexed_object_ids[thread_id] ||= {})[msg.object_id]
+            end
+            next if already_indexed
+
             embedding = @embeddings.embed(msg.content.to_s)
             @mutex.synchronize do
+              # Re-check inside lock to handle concurrent callers for the same thread.
+              indexed = (@indexed_object_ids[thread_id] ||= {})
+              next if indexed[msg.object_id]
+
               id = "#{thread_id}:#{@counter}"
               @counter += 1
               @store.add(id: id, embedding: embedding, metadata: {thread_id: thread_id, message: msg})
               @index[id] = msg
+              indexed[msg.object_id] = true
               evict_oldest! if @max_index_size && @index.size > @max_index_size
             end
           end
@@ -59,6 +74,7 @@ module Phronomy
               @index.delete(id)
               @store.remove(id: id)
             end
+            @indexed_object_ids.delete(thread_id)
           end
         end
 

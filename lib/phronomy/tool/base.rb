@@ -157,7 +157,14 @@ module Phronomy
           key = properties.key?(param_name.to_s) ? param_name.to_s : param_name.to_sym
           next unless properties[key]
 
-          properties[key]["enum"] = values.map(&:to_s)
+          param_type = properties[key]["type"]
+          properties[key]["enum"] = values.map do |v|
+            case param_type
+            when "integer" then v.is_a?(Integer) ? v : Integer(v.to_s)
+            when "number" then v.is_a?(Numeric) ? v : Float(v.to_s)
+            else v.to_s
+            end
+          end
         end
 
         schema

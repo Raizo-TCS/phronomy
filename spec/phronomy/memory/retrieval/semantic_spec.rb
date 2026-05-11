@@ -27,6 +27,33 @@ RSpec.describe Phronomy::Memory::Retrieval::Semantic do
       retrieval.index(thread_id: "t2", messages: [make_msg("b")])
       expect(store.size).to eq(2)
     end
+
+    # Regression tests for Issue #46: index always adds ALL messages on each call,
+    # causing O(n^2) embed calls and duplicate vector store entries over a conversation.
+    describe "re-indexing deduplication (Issue #46)" do
+      it "does not create duplicate entries when the same messages are indexed twice" do
+        msgs = [make_msg("hello"), make_msg("world")]
+        retrieval.index(thread_id: "t1", messages: msgs)
+        retrieval.index(thread_id: "t1", messages: msgs)
+        expect(store.size).to eq(2)
+      end
+
+      it "adds only new messages when full history including already-indexed messages is passed" do
+        first_msgs = [make_msg("first"), make_msg("second")]
+        retrieval.index(thread_id: "t1", messages: first_msgs)
+        all_msgs = first_msgs + [make_msg("third")]
+        retrieval.index(thread_id: "t1", messages: all_msgs)
+        expect(store.size).to eq(3)
+      end
+
+      it "does not call embed for already-indexed messages on a subsequent call" do
+        msgs = [make_msg("alpha"), make_msg("beta")]
+        retrieval.index(thread_id: "t1", messages: msgs)
+        # Only the one new message should be embedded on the second call.
+        expect(embeddings).to receive(:embed).once
+        retrieval.index(thread_id: "t1", messages: msgs + [make_msg("gamma")])
+      end
+    end
   end
 
   describe "#clear_index" do
