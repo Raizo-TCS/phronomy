@@ -256,7 +256,7 @@ Intended for test teardown and process shutdown.</p>
       <pre class="code"><span class="info file"># File 'lib/phronomy/thread_actor_registry.rb', line 38</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear_all'>clear_all</span>
-  <span class='id identifier rubyid_actors'>actors</span> <span class='op'>=</span> <span class='ivar'>@registry_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@actors</span><span class='period'>.</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_tap'>tap</span> <span class='lbrace'>{</span> <span class='ivar'>@actors</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span>
+  <span class='id identifier rubyid_actors'>actors</span> <span class='op'>=</span> <span class='ivar'>@registry_actor</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span> <span class='lbrace'>{</span> <span class='ivar'>@actors</span><span class='period'>.</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_tap'>tap</span> <span class='lbrace'>{</span> <span class='ivar'>@actors</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span>
   <span class='id identifier rubyid_actors'>actors</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:stop</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -276,8 +276,7 @@ Intended for test teardown and process shutdown.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Yields each currently registered Actor.
-A snapshot is taken under the mutex so the registry cannot change
-while callers iterate.</p>
+A snapshot is taken so the registry cannot change while callers iterate.</p>
 
   </div>
 </div>
@@ -303,15 +302,15 @@ while callers iterate.</p>
       <pre class="lines">
 
 
+47
 48
-49
-50</pre>
+49</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/thread_actor_registry.rb', line 48</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/thread_actor_registry.rb', line 47</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_each_actor'>each_actor</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='ivar'>@registry_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@actors</span><span class='period'>.</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='ivar'>@registry_actor</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span> <span class='lbrace'>{</span> <span class='ivar'>@actors</span><span class='period'>.</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -378,7 +377,7 @@ while callers iterate.</p>
       <pre class="code"><span class="info file"># File 'lib/phronomy/thread_actor_registry.rb', line 24</span>
 
 <span class='kw'>def</span> <span class='kw'>for</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-  <span class='ivar'>@registry_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@actors</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="Actor.html" title="Phronomy::Actor (class)">Actor</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Actor.html#initialize-instance_method" title="Phronomy::Actor#initialize (method)">new</a></span></span> <span class='rbrace'>}</span>
+  <span class='ivar'>@registry_actor</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span> <span class='lbrace'>{</span> <span class='ivar'>@actors</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="Actor.html" title="Phronomy::Actor (class)">Actor</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Actor.html#initialize-instance_method" title="Phronomy::Actor#initialize (method)">new</a></span></span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -433,7 +432,7 @@ registry.  The next call to <span class='object_link'><a href="#for-class_method
       <pre class="code"><span class="info file"># File 'lib/phronomy/thread_actor_registry.rb', line 32</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stop'>stop</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-  <span class='ivar'>@registry_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@actors</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='op'>&amp;.</span><span class='id identifier rubyid_stop'>stop</span>
+  <span class='ivar'>@registry_actor</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span> <span class='lbrace'>{</span> <span class='ivar'>@actors</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='op'>&amp;.</span><span class='id identifier rubyid_stop'>stop</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -445,7 +444,7 @@ registry.  The next call to <span class='object_link'><a href="#for-class_method
 </div>
 
       <div id="footer">
-  Generated on Mon May 11 21:20:03 2026 by
+  Generated on Mon May 11 22:18:23 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
