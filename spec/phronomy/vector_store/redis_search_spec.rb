@@ -93,4 +93,45 @@ RSpec.describe Phronomy::VectorStore::RedisSearch do
         .to raise_error(LoadError, /redis gem/)
     end
   end
+
+  describe "thread safety" do
+    # Regression test for: VectorStore::RedisSearch#ensure_index! has no mutex
+    # protecting @index_created.  A concurrent clear + add sequence can leave
+    # @index_created = true even though the index has been dropped, causing
+    # subsequent add/search calls to skip ensure_index! and fail.
+    it "keeps @index_created = false when clear races with ensure_index!" do
+      entered_create = Queue.new
+      release_create = Queue.new
+
+      allow(redis).to receive(:call).with("FT.CREATE", any_args) do
+        entered_create << :in
+        release_create.pop
+      end
+      allow(redis).to receive(:call).with("FT.DROPINDEX", any_args)
+      allow(redis).to receive(:call).with("HSET", any_args)
+
+      # add_thread enters ensure_index! and blocks inside FT.CREATE
+      add_thread = Thread.new do
+        store.add(id: "d1", embedding: [1.0, 0.0], metadata: {})
+      end
+
+      # Wait until add_thread is inside FT.CREATE (has passed the @index_created check)
+      entered_create.pop
+
+      # Run clear in a separate thread so we don't deadlock if a mutex is added
+      clear_thread = Thread.new { store.clear }
+
+      # Give clear_thread time to acquire any lock and run (or block waiting for mutex)
+      sleep 0.02
+
+      # Unblock FT.CREATE so add_thread can finish
+      release_create << :go
+      add_thread.join
+      clear_thread.join
+
+      # Invariant: after clear, @index_created must be false so that the next
+      # add/search call recreates the index rather than using a non-existent one.
+      expect(store.instance_variable_get(:@index_created)).to be(false)
+    end
+  end
 end

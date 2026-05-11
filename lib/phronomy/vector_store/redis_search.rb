@@ -38,6 +38,7 @@ module Phronomy
         @index_name = index_name
         @dimension = dimension
         @index_created = false
+        @mutex = Mutex.new
       end
 
       # @param id        [String]
@@ -79,37 +80,43 @@ module Phronomy
       end
 
       def clear
-        begin
-          @redis.call("FT.DROPINDEX", @index_name, "DD")
-        rescue => e
-          raise unless e.message.to_s.include?("Unknown Index name")
+        @mutex.synchronize do
+          begin
+            @redis.call("FT.DROPINDEX", @index_name, "DD")
+          rescue => e
+            raise unless e.message.to_s.include?("Unknown Index name")
+          end
+          @index_created = false
         end
-        @index_created = false
         self
       end
 
       private
 
       def ensure_index!(dim)
-        return if @index_created
+        return if @index_created # fast path outside lock
 
-        @dimension ||= dim
-        begin
-          @redis.call(
-            "FT.CREATE", @index_name,
-            "ON", "HASH",
-            "PREFIX", 1, DOC_PREFIX,
-            "SCHEMA",
-            "embedding", "VECTOR", "FLAT", 6,
-            "TYPE", "FLOAT32",
-            "DIM", @dimension,
-            "DISTANCE_METRIC", "COSINE",
-            "metadata", "TEXT"
-          )
-        rescue => e
-          raise unless e.message.to_s.include?("Index already exists")
+        @mutex.synchronize do
+          return if @index_created # re-check inside lock
+
+          @dimension ||= dim
+          begin
+            @redis.call(
+              "FT.CREATE", @index_name,
+              "ON", "HASH",
+              "PREFIX", 1, DOC_PREFIX,
+              "SCHEMA",
+              "embedding", "VECTOR", "FLAT", 6,
+              "TYPE", "FLOAT32",
+              "DIM", @dimension,
+              "DISTANCE_METRIC", "COSINE",
+              "metadata", "TEXT"
+            )
+          rescue => e
+            raise unless e.message.to_s.include?("Index already exists")
+          end
+          @index_created = true
         end
-        @index_created = true
       end
 
       # Pack a Float array as a FLOAT32 binary string for RediSearch.
