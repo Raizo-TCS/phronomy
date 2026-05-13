@@ -7,11 +7,12 @@ module Phronomy
     # Abstract base class for state persistence backends.
     # Subclasses must implement save, load, and clear.
     #
-    # The state object passed to save must include Phronomy::Graph::State
+    # The state object passed to save must include Phronomy::Graph::Context
+    # (or the legacy alias Phronomy::Graph::State)
     # and have a non-nil thread_id (set automatically by CompiledGraph#invoke).
     class Base
       # Persists the state. The thread_id is read from state.thread_id.
-      # @param state [Object] object including Phronomy::Graph::State
+      # @param state [Object] object including Phronomy::Graph::Context
       # @return [self]
       def save(state)
         raise NotImplementedError, "#{self.class}#save is not implemented"
@@ -60,31 +61,31 @@ module Phronomy
         state
       end
 
-      # Resolves and validates a state class name.
-      # When a registry has been configured via +Phronomy::Graph.register_state_class+,
+      # Resolves and validates a context class name.
+      # When a registry has been configured via +Phronomy::Graph.register_context_class+,
       # only registered classes are accepted — this prevents unintended autoloading
       # of arbitrary files from an untrusted class name stored in Redis/DB.
       # When no registry is configured, falls back to Object.const_get with a check
-      # that the resolved class includes Phronomy::Graph::State.
+      # that the resolved class includes Phronomy::Graph::Context.
       def safe_state_class(class_name)
         registry = Phronomy::Graph.state_class_registry
         if registry
           klass = registry[class_name.to_s]
           unless klass
             raise ArgumentError,
-              "Unregistered state class: #{class_name.inspect}. " \
-              "Call Phronomy::Graph.register_state_class(#{class_name}) at startup."
+              "Unregistered context class: #{class_name.inspect}. " \
+              "Call Phronomy::Graph.register_context_class(#{class_name}) at startup."
           end
           return klass
         end
 
         klass = Object.const_get(class_name.to_s)
-        unless klass.is_a?(Class) && klass.include?(Phronomy::Graph::State)
-          raise ArgumentError, "Invalid state class: #{class_name.inspect}"
+        unless klass.is_a?(Class) && klass.include?(Phronomy::Graph::Context)
+          raise ArgumentError, "Invalid context class: #{class_name.inspect}"
         end
         klass
       rescue NameError
-        raise ArgumentError, "Unknown state class: #{class_name.inspect}"
+        raise ArgumentError, "Unknown context class: #{class_name.inspect}"
       end
 
       # Recursively converts objects to JSON-safe primitives.

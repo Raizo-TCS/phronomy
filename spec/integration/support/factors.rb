@@ -673,10 +673,10 @@ module IntegrationFactors
   # Builds a State class for parallel integration tests.
   # Declares :results (append), :parallel_errors (append).
   #
-  # @return [Class<Phronomy::Graph::State>]
+  # @return [Class<Phronomy::Graph::Context>]
   def self.parallel_state_class
     Class.new do
-      include Phronomy::Graph::State
+      include Phronomy::Graph::Context
 
       field :results, type: :append, default: -> { [] }
       field :parallel_errors, type: :append, default: -> { [] }

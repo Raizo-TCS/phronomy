@@ -1,27 +1,34 @@
 # frozen_string_literal: true
 
-# Backward-compatibility shim.
-# Phronomy::Graph::State is a constant alias for Phronomy::Graph::Context.
-# This constant will be removed in v1.0. Use +include Phronomy::Graph::Context+ in new code.
-require_relative "context"
-
 module Phronomy
   module Graph
-    # @deprecated Use Phronomy::Graph::Context instead.
-    State = Context
-  end
-end
-
-# The rest of this file is intentionally empty — implementation lives in context.rb.
-__END__
-    module State
+    # Module for defining graph context (the data that travels through a graph).
+    # Include in a class and use the field DSL to declare context fields.
+    #
+    # In StateChart terminology this is the "extended state" or "context" —
+    # data associated with the current execution that does not affect transitions
+    # directly, as opposed to the current phase (which is the machine's state).
+    #
+    # Field update policies:
+    #   :replace (default) -- overwrites with the new value
+    #   :append            -- appends to an Array
+    #   :merge             -- deep-merges into a Hash
+    #
+    # @example
+    #   class ScanContext
+    #     include Phronomy::Graph::Context
+    #     field :messages, type: :append, default: -> { [] }
+    #     field :query,    type: :replace
+    #     field :metadata, type: :merge,   default: -> { {} }
+    #   end
+    module Context
       def self.included(base)
         base.extend(ClassMethods)
         base.instance_variable_set(:@fields, {})
       end
 
       module ClassMethods
-        # Defines a state field.
+        # Defines a context field.
         # @param name [Symbol]
         # @param type [Symbol] :replace / :append / :merge
         # @param default [Object, Proc, nil]
@@ -60,10 +67,10 @@ __END__
         @halted_before = false
       end
 
-      # Immutably updates state fields. Returns a new instance with the applied changes.
+      # Immutably updates context fields. Returns a new instance with the applied changes.
       # Internal graph metadata (thread_id, current_nodes, halted_before) is preserved.
       # @param updates [Hash] { field_name => new_value }
-      # @return [self.class] new state instance
+      # @return [self.class] new context instance
       def merge(updates)
         new_attrs = {}
         self.class.fields.each_key do |name|
@@ -81,13 +88,13 @@ __END__
             send(name)
           end
         end
-        new_state = self.class.new(**new_attrs)
-        new_state.set_graph_metadata(
+        new_context = self.class.new(**new_attrs)
+        new_context.set_graph_metadata(
           thread_id: @thread_id,
           current_nodes: @current_nodes,
           halted_before: @halted_before
         )
-        new_state
+        new_context
       end
 
       # Converts user-defined fields to a Hash (excludes internal graph metadata).

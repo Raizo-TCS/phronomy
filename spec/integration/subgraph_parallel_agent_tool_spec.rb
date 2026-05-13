@@ -18,7 +18,7 @@ RSpec.describe "Group 13: Subgraph / Parallel / Agent-as-Tool", :integration do
   # ---------------------------------------------------------------------------
 
   class G13BaseState
-    include Phronomy::Graph::State
+    include Phronomy::Graph::Context
 
     field :value, type: :replace
     field :step, type: :replace, default: 0
@@ -27,7 +27,7 @@ RSpec.describe "Group 13: Subgraph / Parallel / Agent-as-Tool", :integration do
   end
 
   class G13SubState
-    include Phronomy::Graph::State
+    include Phronomy::Graph::Context
 
     field :value, type: :replace
     field :step, type: :replace, default: 0

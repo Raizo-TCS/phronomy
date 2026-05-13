@@ -37,6 +37,7 @@ Gem::Specification.new do |spec|
   # Required dependencies
   spec.add_dependency "ruby_llm", ">= 1.3"
   spec.add_dependency "zeitwerk", ">= 2.6"
+  spec.add_dependency "state_machines", "~> 0.6"
 
   # For more information and examples about making a new gem, check out our
   # guide at: https://guides.rubygems.org/make-your-own-gem/

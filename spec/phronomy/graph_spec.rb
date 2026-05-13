@@ -4,7 +4,7 @@ require "spec_helper"
 
 # --- State class for testing ---
 class TestState
-  include Phronomy::Graph::State
+  include Phronomy::Graph::Context
 
   field :value, type: :replace, default: 0
   field :messages, type: :append, default: -> { [] }
@@ -12,7 +12,7 @@ class TestState
   field :step, type: :replace, default: nil
 end
 
-RSpec.describe Phronomy::Graph::State do
+RSpec.describe Phronomy::Graph::Context do
   describe "field DSL" do
     it "defines fields as accessors" do
       s = TestState.new(value: 42)
@@ -584,14 +584,14 @@ end
 RSpec.describe "StateGraph#add_subgraph thread_id namespacing (issue #43)" do
   # Simple state class for the parent graph
   class ParentIssue43State
-    include Phronomy::Graph::State
+    include Phronomy::Graph::Context
 
     field :output, type: :replace, default: nil
   end
 
   # Simple state class for the child graph
   class ChildIssue43State
-    include Phronomy::Graph::State
+    include Phronomy::Graph::Context
 
     field :sub_result, type: :replace, default: nil
   end

@@ -56,7 +56,7 @@ module Phronomy
     # Internal graph state — not part of the public API.
     # @private
     class PipelineState
-      include Phronomy::Graph::State
+      include Phronomy::Graph::Context
 
       field :input, type: :replace, default: -> { "" }
       field :draft, type: :replace, default: -> {}

@@ -35,25 +35,25 @@ module Phronomy
     end
   end
 
-  # Namespace for graph-related classes (StateGraph, State, ParallelNode, …).
-  # Also serves as the registry for State classes that may be serialized to
-  # external stores (Redis, DB). Call +register_state_class+ at application
+  # Namespace for graph-related classes (StateGraph, Context, ParallelNode, …).
+  # Also serves as the registry for Context classes that may be serialized to
+  # external stores (Redis, DB). Call +register_context_class+ at application
   # startup so that only known classes can be deserialized.
   module Graph
     @state_class_registry = nil
     @registry_mutex = Mutex.new
 
     class << self
-      # Register one or more State classes that are allowed to be deserialized
+      # Register one or more Context classes that are allowed to be deserialized
       # by StateStore backends. When at least one class is registered, only
       # registered classes will be accepted by +StateStore::Base#safe_state_class+.
       #
       # Call this once at application startup (e.g. in a Rails initializer).
       #
-      # @param classes [Array<Class>] classes including Phronomy::Graph::State
+      # @param classes [Array<Class>] classes including Phronomy::Graph::Context
       # @example
-      #   Phronomy::Graph.register_state_class(MyWorkflowState, OtherState)
-      def register_state_class(*classes)
+      #   Phronomy::Graph.register_context_class(ScanContext, OtherContext)
+      def register_context_class(*classes)
         @registry_mutex.synchronize do
           @state_class_registry ||= {}
           classes.each do |klass|
@@ -66,6 +66,9 @@ module Phronomy
       # Returns the current registry Hash, or nil when no class has been registered.
       # @return [Hash{String => Class}, nil]
       attr_reader :state_class_registry
+
+      # @deprecated Use register_context_class instead.
+      alias_method :register_state_class, :register_context_class
 
       # Clears the registry. Primarily used in tests.
       def reset_state_class_registry!

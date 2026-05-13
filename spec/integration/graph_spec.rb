@@ -50,7 +50,7 @@ RSpec.describe "Group 7: Graph", :integration do
 
   # Replace-type state (default)
   class ReplaceState
-    include Phronomy::Graph::State
+    include Phronomy::Graph::Context
 
     field :value, type: :replace
     field :step, type: :replace, default: 0
@@ -58,7 +58,7 @@ RSpec.describe "Group 7: Graph", :integration do
 
   # Replace-type state with proc default
   class ProcDefaultState
-    include Phronomy::Graph::State
+    include Phronomy::Graph::Context
 
     field :value, type: :replace
     field :counter, type: :replace, default: -> { 0 }
@@ -66,14 +66,14 @@ RSpec.describe "Group 7: Graph", :integration do
 
   # Append-type state
   class AppendState
-    include Phronomy::Graph::State
+    include Phronomy::Graph::Context
 
     field :log, type: :append, default: -> { [] }
   end
 
   # Append-type state with scalar default
   class AppendScalarState
-    include Phronomy::Graph::State
+    include Phronomy::Graph::Context
 
     field :log, type: :append, default: -> { [] }
     field :count, type: :replace, default: 0
@@ -81,14 +81,14 @@ RSpec.describe "Group 7: Graph", :integration do
 
   # Merge-type state
   class MergeState
-    include Phronomy::Graph::State
+    include Phronomy::Graph::Context
 
     field :data, type: :merge, default: -> { {} }
   end
 
   # Merge-type state with scalar default on a replace field
   class MergeScalarState
-    include Phronomy::Graph::State
+    include Phronomy::Graph::Context
 
     field :data, type: :merge, default: -> { {} }
     field :label, type: :replace, default: "initial"

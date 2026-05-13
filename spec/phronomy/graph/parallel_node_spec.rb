@@ -5,7 +5,7 @@ require "spec_helper"
 RSpec.describe Phronomy::Graph::ParallelNode do
   # Simple append-type state for parallel tests.
   class ParallelTestState
-    include Phronomy::Graph::State
+    include Phronomy::Graph::Context
 
     field :a, type: :replace
     field :b, type: :replace
@@ -274,7 +274,7 @@ end
 
 RSpec.describe "Phronomy::Graph::StateGraph#add_parallel_node" do
   class ParallelGraphState
-    include Phronomy::Graph::State
+    include Phronomy::Graph::Context
 
     field :sum, type: :replace, default: 0
     field :parts, type: :append, default: -> { [] }
@@ -336,14 +336,14 @@ end
 RSpec.describe "Phronomy::Graph::StateGraph#add_subgraph" do
   # Sub-state and parent state share the :result field.
   class SubState
-    include Phronomy::Graph::State
+    include Phronomy::Graph::Context
 
     field :value, type: :replace
     field :step, type: :replace, default: 0
   end
 
   class ParentState
-    include Phronomy::Graph::State
+    include Phronomy::Graph::Context
 
     field :value, type: :replace
     field :step, type: :replace, default: 0

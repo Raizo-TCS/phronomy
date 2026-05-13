@@ -13,7 +13,7 @@ end
 
 # State class for testing
 class StoreTestState
-  include Phronomy::Graph::State
+  include Phronomy::Graph::Context
 
   field :value, type: :replace, default: 0
 end
@@ -157,21 +157,21 @@ end
 RSpec.describe "Phronomy::Graph class registry" do
   after { Phronomy::Graph.reset_state_class_registry! }
 
-  describe ".register_state_class" do
+  describe ".register_context_class" do
     it "adds the class to the registry keyed by name" do
-      Phronomy::Graph.register_state_class(StoreTestState)
+      Phronomy::Graph.register_context_class(StoreTestState)
       expect(Phronomy::Graph.state_class_registry[StoreTestState.name]).to eq(StoreTestState)
     end
 
     it "accepts multiple classes at once" do
-      Phronomy::Graph.register_state_class(StoreTestState, StoreTestState)
+      Phronomy::Graph.register_context_class(StoreTestState, StoreTestState)
       expect(Phronomy::Graph.state_class_registry).to have_key(StoreTestState.name)
     end
   end
 
   describe ".reset_state_class_registry!" do
     it "clears the registry back to nil" do
-      Phronomy::Graph.register_state_class(StoreTestState)
+      Phronomy::Graph.register_context_class(StoreTestState)
       Phronomy::Graph.reset_state_class_registry!
       expect(Phronomy::Graph.state_class_registry).to be_nil
     end
@@ -181,16 +181,16 @@ RSpec.describe "Phronomy::Graph class registry" do
     let(:store_instance) { Phronomy::StateStore::InMemory.new }
 
     it "allows a registered class" do
-      Phronomy::Graph.register_state_class(StoreTestState)
+      Phronomy::Graph.register_context_class(StoreTestState)
       klass = store_instance.send(:safe_state_class, StoreTestState.name)
       expect(klass).to eq(StoreTestState)
     end
 
     it "raises ArgumentError for an unregistered class when registry is present" do
-      Phronomy::Graph.register_state_class(StoreTestState)
+      Phronomy::Graph.register_context_class(StoreTestState)
       expect {
         store_instance.send(:safe_state_class, "UnregisteredClass")
-      }.to raise_error(ArgumentError, /Unregistered state class/)
+      }.to raise_error(ArgumentError, /Unregistered context class/)
     end
   end
 end
@@ -267,7 +267,7 @@ RSpec.describe "CompiledGraph and StateStore::ActiveRecord: true cross-process i
 
       # Must match the class name embedded by serialize_state in Process 1.
       class StoreTestState
-        include Phronomy::Graph::State
+        include Phronomy::Graph::Context
         field :value, type: :replace, default: 0
       end
 
