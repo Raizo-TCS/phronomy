@@ -7,9 +7,9 @@ module Phronomy
   module Graph
     # Execution engine for compiled graphs.
     # Manages node execution, phase transitions, halt/resume, and wait states.
-    # Instantiated by StateGraph#compile and wrapped by CompiledGraph.
+    # Instantiated by Phronomy::Workflow and used internally.
     #
-    # Wait states (registered via StateGraph#add_wait_state) are virtual nodes
+    # Wait states (registered via wait_states:) are virtual nodes
     # that automatically halt execution when reached. They can be resumed with
     # either #resume (generic) or #send_event (event-typed).
     #
@@ -18,6 +18,9 @@ module Phronomy
     # execution; invalid transitions are logged as warnings without halting.
     class WorkflowRunner
       include Phronomy::Runnable
+
+      # Sentinel value for the terminal state of a workflow.
+      FINISH = :__end__
 
       def initialize(state_class:, nodes:, edges:, conditional_edges:, entry_point:,
         before_callbacks: {}, after_callbacks: {}, wait_states: {}, state_store: nil)
@@ -34,28 +37,7 @@ module Phronomy
         @phase_machine_class = build_phase_machine_class
       end
 
-      # Registers a callback to run before the given node executes.
-      # Return :halt from the block to pause execution; any other value continues.
-      # When called without a block, execution always halts before the node.
-      # @param node [Symbol]
-      # @yield [state] optional — omit to always halt
-      # @return [self]
-      def interrupt_before(node, &block)
-        @before_callbacks[node] = block || ->(_) { :halt }
-        self
-      end
-
-      # Registers a callback to run after the given node completes.
-      # Return :halt from the block to pause execution; any other value continues.
-      # @param node [Symbol]
-      # @yield [state]
-      # @return [self]
-      def interrupt_after(node, &block)
-        @after_callbacks[node] = block
-        self
-      end
-
-      # Executes the graph from the entry point.
+      # Executes the workflow from the entry point.
       # @param input [Hash] initial context field values
       # @param config [Hash] { thread_id:, recursion_limit:, user_id:, session_id: }
       # @return [Object] final context (includes Phronomy::Graph::Context)
@@ -84,16 +66,13 @@ module Phronomy
         send_event(state: state, event: :resume, input: input)
       end
 
-      # Fires a named event to advance a halted graph.
+      # Fires a named event to advance a halted workflow.
       #
       # The special event +:resume+ is accepted for all halt types:
-      # - Named wait state (add_wait_state)  → resumes at +resume_to+ node
-      # - interrupt_before style halt        → resumes at the halted node, skipping
-      #                                        the before callback
-      # - interrupt_after / finish-boundary  → resumes at the stored next node
+      # - Named wait state → resumes at +resume_to+ node
       #
       # Any other event name must match the +resume_event:+ declared in
-      # +StateGraph#add_wait_state+.
+      # the wait_states configuration.
       #
       # @param state [Object] halted context
       # @param event [Symbol] +:resume+ for generic resumption, or a named event
@@ -109,18 +88,7 @@ module Phronomy
           if @wait_states.key?(current_phase)
             return run_graph(state, from_node: @wait_states[current_phase][:resume_to])
           end
-
-          # interrupt_before style: phase is :awaiting_X, skip before callback on resume
-          if state.halted_before
-            node = current_phase.to_s.delete_prefix("awaiting_").to_sym
-            raise ArgumentError, "State has no pending nodes to resume from" unless @nodes.key?(node)
-            return run_graph(state, from_node: node, skip_first_before: true)
-          end
-
-          # interrupt_after / finish-boundary: resume from stored next node
-          from_nodes = state.current_nodes
-          raise ArgumentError, "State has no pending nodes to resume from" if from_nodes.nil? || from_nodes.empty?
-          return run_graph(state, from_node: from_nodes.first)
+          raise ArgumentError, "State has no wait state registered for phase #{current_phase.inspect}"
         end
 
         # Named event lookup
@@ -129,7 +97,7 @@ module Phronomy
           valid = @wait_states.values.filter_map { |c| c[:resume_event] }.uniq
           raise ArgumentError, "Unknown event #{event.inspect}. Valid events: #{valid.inspect}"
         end
-        run_graph(state, from_node: wait_cfg[:resume_to], skip_first_before: false)
+        run_graph(state, from_node: wait_cfg[:resume_to])
       end
 
       # Streaming execution. Yields { node: Symbol, state: Object } after each node completes.
@@ -151,41 +119,23 @@ module Phronomy
         @state_store_override || Phronomy.configuration.default_state_store
       end
 
-      def run_graph(state, from_node: nil, recursion_limit: 25,
-        skip_first_before: false, &event_block)
+      def run_graph(state, from_node: nil, recursion_limit: 25, &event_block)
         current_node = from_node || @entry_point
         tracker = new_phase_machine(current_node)
         step = 0
-        first_step = true
 
-        while current_node && current_node != StateGraph::FINISH
+        while current_node && current_node != FINISH
           if step >= recursion_limit
             raise Phronomy::RecursionLimitError,
               "Recursion limit (#{recursion_limit}) exceeded"
           end
 
-          # Auto-halt at wait states declared via add_wait_state.
-          # The wait state name becomes the phase directly so that #resume and
-          # #send_event can look it up via state.phase.
+          # Auto-halt at wait states.
           if @wait_states.key?(current_node)
             state.set_graph_metadata(thread_id: state.thread_id, phase: current_node)
             state_store&.save(state)
             return state
           end
-
-          # interrupt_before callback
-          unless skip_first_before && first_step
-            if (cb = @before_callbacks[current_node])
-              if cb.call(state) == :halt
-                halt_phase = :"awaiting_#{current_node}"
-                advance_phase(tracker, current_node, halt_phase)
-                state.set_graph_metadata(thread_id: state.thread_id, phase: halt_phase)
-                state_store&.save(state)
-                return state
-              end
-            end
-          end
-          first_step = false
 
           node_fn = @nodes[current_node]
           raise ArgumentError, "Node #{current_node} is not defined" unless node_fn
@@ -202,18 +152,8 @@ module Phronomy
 
           event_block&.call({node: current_node, state: state})
 
-          # interrupt_after callback
           next_n = resolve_next_node(current_node, state)
-          if (cb = @after_callbacks[current_node]) && cb.call(state) == :halt
-            # When next_n is FINISH (or nil), use :__at_finish__ so that the
-            # context signals "halted at finish boundary" rather than "completed".
-            halt_phase = (next_n.nil? || next_n == StateGraph::FINISH) ? :__at_finish__ : next_n
-            advance_phase(tracker, current_node, halt_phase)
-            state.set_graph_metadata(thread_id: state.thread_id, phase: halt_phase)
-            state_store&.save(state)
-            return state
-          end
-          advance_phase(tracker, current_node, next_n || StateGraph::FINISH)
+          advance_phase(tracker, current_node, next_n || FINISH)
           current_node = next_n
 
           step += 1
@@ -245,20 +185,19 @@ module Phronomy
         matched&.fetch(:to)
       end
 
-      # Builds a state_machines-based PhaseTracker class encoding the graph topology.
+      # Builds a state_machines-based PhaseTracker class encoding the workflow topology.
       # Returns nil if the build fails (execution continues without phase validation).
       def build_phase_machine_class
         entry = @entry_point
         nodes = @nodes.keys
         ws_names = @wait_states.keys
-        awaiting = nodes.map { |n| :"awaiting_#{n}" }
 
         # Collect all valid (from, to) pairs; use a Hash to deduplicate.
         trans = {}
 
         @edges.each do |from, edge_list|
           edge_list.each do |edge|
-            to = (edge[:to] == StateGraph::FINISH) ? :__end__ : edge[:to]
+            to = (edge[:to] == FINISH) ? :__end__ : edge[:to]
             trans[[from, to]] = true
           end
         end
@@ -266,7 +205,7 @@ module Phronomy
         @conditional_edges.each do |from, cfg|
           targets = cfg[:mapping] ? cfg[:mapping].values : (nodes + ws_names + [:__end__])
           targets.each do |to|
-            t = (to == StateGraph::FINISH) ? :__end__ : to
+            t = (to == FINISH) ? :__end__ : to
             trans[[from, t]] = true
           end
         end
@@ -274,18 +213,7 @@ module Phronomy
         # Any node can be terminal (no outgoing edge = implicit advance to :__end__).
         nodes.each { |n| trans[[n, :__end__]] = true }
 
-        # Any node can also halt at the finish boundary (interrupt_after on last step).
-        nodes.each { |n| trans[[n, :__at_finish__]] = true }
-        # Resuming from :__at_finish__ completes the graph.
-        trans[[:__at_finish__, :__end__]] = true
-
-        # interrupt_before: node ↔ awaiting_node
-        nodes.each do |n|
-          trans[[n, :"awaiting_#{n}"]] = true
-          trans[[:"awaiting_#{n}", n]] = true
-        end
-
-        all_states = (nodes + ws_names + awaiting + [:__end__, :__at_finish__]).uniq
+        all_states = (nodes + ws_names + [:__end__]).uniq
         trans_pairs = trans.keys
 
         Class.new do
@@ -304,13 +232,10 @@ module Phronomy
       end
 
       # Creates a PhaseTracker instance initialised to +from_node+.
-      # Teleports the machine state directly (bypasses transition hooks) to
-      # support resumption mid-graph without replaying history.
       def new_phase_machine(from_node)
         return nil unless @phase_machine_class && from_node
 
         machine = @phase_machine_class.new
-        # state_machines stores state as a String in the instance variable.
         machine.instance_variable_set(:@phase, from_node.to_s)
         machine
       rescue => e
@@ -324,7 +249,7 @@ module Phronomy
         return unless tracker && from
 
         to_sym = case to
-        when nil, StateGraph::FINISH then :__end__
+        when nil, FINISH then :__end__
         else to
         end
         event_name = :"advance_#{from}_to_#{to_sym}"

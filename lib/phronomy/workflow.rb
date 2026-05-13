@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative "graph/workflow_runner"
-require_relative "graph/compiled_graph"
 require_relative "runnable"
 
 module Phronomy
@@ -108,7 +107,7 @@ module Phronomy
     # DSL builder for Phronomy::Workflow.define.
     # Collects state/event/transition declarations and produces a WorkflowRunner.
     class Builder
-      FINISH = Graph::StateGraph::FINISH
+      FINISH = Graph::WorkflowRunner::FINISH
 
       def initialize(context_class)
         @context_class = context_class

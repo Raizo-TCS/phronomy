@@ -968,48 +968,47 @@ module IntegrationFactors
   # Helpers for Group 28: Graph Wait State / Phase
   # ---------------------------------------------------------------------------
 
-  # Builds and compiles a linear graph (A → B → FINISH) that halts between
-  # A and B via interrupt_before.
+  # Builds a Workflow (node_a -> wait_state(:awaiting_node_b) -> node_b -> finish)
+  # that halts at the wait state between node_a and node_b.
   #
   # The state class has a single :replace field `value` (String).
   #
   # @param state_class [Class] a class that includes Phronomy::Graph::Context
-  # @return [Phronomy::Graph::CompiledGraph]
+  # @return [Phronomy::Graph::WorkflowRunner]
   def self.interrupt_before_graph(state_class)
-    graph = Phronomy::Graph::StateGraph.new(state_class)
-    graph.add_node(:node_a) { |s| s.merge(value: "#{s.value}:a") }
-    graph.add_node(:node_b) { |s| s.merge(value: "#{s.value}:b") }
-    graph.set_entry_point(:node_a)
-    graph.add_edge(:node_a, :node_b)
-    graph.add_edge(:node_b, Phronomy::Graph::StateGraph::FINISH)
-
     store = Phronomy::StateStore::InMemory.new
     Phronomy.configure { |c| c.default_state_store = store }
 
-    compiled = graph.compile
-    compiled.interrupt_before(:node_b) { :halt }
-    compiled
+    Phronomy::Workflow.define(state_class) do
+      initial :node_a
+      state :node_a, action: ->(s) { s.merge(value: "#{s.value}:a") }
+      wait_state :awaiting_node_b
+      state :node_b, action: ->(s) { s.merge(value: "#{s.value}:b") }
+      after :node_a, to: :awaiting_node_b
+      after :node_b, to: :__finish__
+      event :resume, from: :awaiting_node_b, to: :node_b
+    end
   end
 
-  # Builds and compiles a graph (A → awaiting_b → B → FINISH) using
-  # add_wait_state DSL. The wait state halts between A and B.
+  # Builds a Workflow (node_a -> wait_state(:awaiting_node_b) -> node_b -> finish)
+  # using a named resume event. The wait state halts between node_a and node_b.
   #
   # @param state_class [Class] a class that includes Phronomy::Graph::Context
   # @param resume_event [Symbol] event name for send_event (default :proceed)
-  # @return [Phronomy::Graph::CompiledGraph]
+  # @return [Phronomy::Graph::WorkflowRunner]
   def self.wait_state_graph(state_class, resume_event: :proceed)
-    graph = Phronomy::Graph::StateGraph.new(state_class)
-    graph.add_node(:node_a) { |s| s.merge(value: "#{s.value}:a") }
-    graph.add_node(:node_b) { |s| s.merge(value: "#{s.value}:b") }
-    graph.set_entry_point(:node_a)
-    graph.add_wait_state(:awaiting_node_b, resume_event: resume_event,
-      after: :node_a, before: :node_b)
-    graph.add_edge(:node_b, Phronomy::Graph::StateGraph::FINISH)
-
     store = Phronomy::StateStore::InMemory.new
     Phronomy.configure { |c| c.default_state_store = store }
 
-    graph.compile
+    Phronomy::Workflow.define(state_class) do
+      initial :node_a
+      state :node_a, action: ->(s) { s.merge(value: "#{s.value}:a") }
+      wait_state :awaiting_node_b
+      state :node_b, action: ->(s) { s.merge(value: "#{s.value}:b") }
+      after :node_a, to: :awaiting_node_b
+      after :node_b, to: :__finish__
+      event resume_event, from: :awaiting_node_b, to: :node_b
+    end
   end
 
   # Resets the default state store to nil after a wait_state test.
