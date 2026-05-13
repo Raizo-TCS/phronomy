@@ -104,22 +104,6 @@ module Phronomy
         self
       end
 
-      # Adds a parallel node that executes multiple branches concurrently.
-      # Each branch callable receives the current state and must return a Hash or nil.
-      # Results are merged in registration order (see ParallelNode for merge policy).
-      #
-      # @param name     [Symbol]
-      # @param branches [Array<#call>]    at least one callable required
-      # @param timeout  [Numeric, nil]   wall-clock limit in seconds (nil = unlimited)
-      # @param on_error [Symbol]         :raise (default) or :best_effort
-      # @return [self]
-      def add_parallel_node(name, *branches, timeout: nil, on_error: :raise)
-        raise ArgumentError, "add_parallel_node requires at least one branch" if branches.empty?
-
-        @nodes[name] = ParallelNode.new(branches, timeout: timeout, on_error: on_error)
-        self
-      end
-
       # Embeds a compiled subgraph as a single node in this graph.
       # The subgraph is invoked with a Hash derived from the parent state;
       # its final state Hash is returned and merged into the parent state.

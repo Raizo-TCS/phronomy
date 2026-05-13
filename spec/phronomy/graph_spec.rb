@@ -101,11 +101,11 @@ RSpec.describe Phronomy::Graph::Context do
   end
 
   describe "#set_graph_metadata" do
-    it "stores thread_id, current_nodes, and halted_before" do
+    it "stores thread_id and derives current_nodes/halted_before from phase" do
       s = TestState.new
-      s.set_graph_metadata(thread_id: "abc", current_nodes: [:foo, :bar], halted_before: true)
+      s.set_graph_metadata(thread_id: "abc", current_nodes: [:foo], halted_before: true)
       expect(s.thread_id).to eq("abc")
-      expect(s.current_nodes).to eq([:foo, :bar])
+      expect(s.current_nodes).to eq([:foo])
       expect(s.halted_before).to be(true)
     end
 

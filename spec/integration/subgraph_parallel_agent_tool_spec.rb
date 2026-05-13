@@ -3,16 +3,16 @@
 require_relative "spec_helper"
 require_relative "support/llm_stub"
 
-# Group 13: Subgraph nesting / Parallel nodes / Agent-as-Tool
-# Pairwise factors: subgraph_type × parallel_branch_count × agent_as_tool_wrapping
+# Group 13: Subgraph nesting / Agent-as-Tool
+# Pairwise factors: subgraph_type × agent_as_tool_wrapping
 #
-# TC-001..TC-007: pure graph tests (no LLM calls)
+# TC-001..TC-003: pure graph tests (no LLM calls)
 # TC-008..TC-010: LLM-required tests (AgentTool with ReactAgent)
 #
-# Feasible cases: 10
+# Feasible cases: 6
 # Infeasible cases: 0
 
-RSpec.describe "Group 13: Subgraph / Parallel / Agent-as-Tool", :integration do
+RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
   # ---------------------------------------------------------------------------
   # State classes used across tests
   # ---------------------------------------------------------------------------
@@ -119,81 +119,6 @@ RSpec.describe "Group 13: Subgraph / Parallel / Agent-as-Tool", :integration do
 
     final = app.invoke({})
     expect(final.value).to start_with("high_")
-  end
-
-  # ---------------------------------------------------------------------------
-  # TC-004: two-branch parallel node with disjoint replace fields
-  # ---------------------------------------------------------------------------
-
-  it "TC-004: two-branch parallel node merges disjoint replace fields" do
-    graph = Phronomy::Graph::StateGraph.new(G13BaseState)
-    graph.add_parallel_node(:parallel,
-      ->(s) { {value: "branch_a"} },
-      ->(s) { {step: 42} })
-    graph.set_entry_point(:parallel)
-    graph.add_edge(:parallel, FINISH)
-    app = graph.compile
-
-    final = app.invoke({})
-    expect(final.value).to eq("branch_a")
-    expect(final.step).to eq(42)
-  end
-
-  # ---------------------------------------------------------------------------
-  # TC-005: parallel node with append-type fields — both arrays concatenated
-  # ---------------------------------------------------------------------------
-
-  it "TC-005: parallel node concatenates append-type fields from all branches" do
-    graph = Phronomy::Graph::StateGraph.new(G13BaseState)
-    graph.add_parallel_node(:parallel,
-      ->(s) { {log: ["from_a"]} },
-      ->(s) { {log: ["from_b"]} })
-    graph.set_entry_point(:parallel)
-    graph.add_edge(:parallel, FINISH)
-    app = graph.compile
-
-    final = app.invoke({})
-    expect(final.log).to contain_exactly("from_a", "from_b")
-  end
-
-  # ---------------------------------------------------------------------------
-  # TC-006: parallel node branch exception propagates to caller
-  # ---------------------------------------------------------------------------
-
-  it "TC-006: exception in a parallel branch is re-raised in the calling thread" do
-    graph = Phronomy::Graph::StateGraph.new(G13BaseState)
-    graph.add_parallel_node(:parallel,
-      ->(s) { {value: "ok"} },
-      ->(_s) { raise "branch_failure" })
-    graph.set_entry_point(:parallel)
-    graph.add_edge(:parallel, FINISH)
-    app = graph.compile
-
-    expect { app.invoke({}) }.to raise_error(RuntimeError, "branch_failure")
-  end
-
-  # ---------------------------------------------------------------------------
-  # TC-007: subgraph + parallel node combined in one parent graph
-  # ---------------------------------------------------------------------------
-
-  it "TC-007: subgraph and parallel node can coexist in the same parent graph" do
-    sub = linear_subgraph
-
-    graph = Phronomy::Graph::StateGraph.new(G13BaseState)
-    graph.add_parallel_node(:parallel,
-      ->(s) { {log: ["p1"]} },
-      ->(s) { {log: ["p2"]} })
-    graph.add_subgraph(:nested, sub,
-      input_mapper: ->(s) { {value: "base"} },
-      output_mapper: ->(sub_s) { {value: sub_s.value} })
-    graph.set_entry_point(:parallel)
-    graph.add_edge(:parallel, :nested)
-    graph.add_edge(:nested, FINISH)
-    app = graph.compile
-
-    final = app.invoke({})
-    expect(final.log).to contain_exactly("p1", "p2")
-    expect(final.value).to eq("base_s1_s2")
   end
 
   # ---------------------------------------------------------------------------

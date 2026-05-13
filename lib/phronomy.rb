@@ -35,7 +35,7 @@ module Phronomy
     end
   end
 
-  # Namespace for graph-related classes (StateGraph, Context, ParallelNode, …).
+  # Namespace for graph-related classes (StateGraph, Context, …).
   # Also serves as the registry for Context classes that may be serialized to
   # external stores (Redis, DB). Call +register_context_class+ at application
   # startup so that only known classes can be deserialized.

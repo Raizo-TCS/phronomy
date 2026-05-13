@@ -44,49 +44,70 @@ module Phronomy
 
       # Internal graph metadata accessors (not user-defined fields).
       # These are preserved through merge but excluded from to_h.
-      attr_reader :thread_id, :current_nodes, :halted_before
+      attr_reader :thread_id
 
       # Returns the current execution phase of the workflow.
       # Encoding:
       #   :__end__           — graph completed (or not yet started)
       #   :awaiting_<node>   — halted before <node> (interrupt_before or add_wait_state)
-      #   :<node>            — halted after a node; :<node> is the next node to execute
+      #   :<node>            — about to execute <node> (halted after previous node)
       # @return [Symbol]
       def phase
-        return :__end__ if @current_nodes.nil? || @current_nodes.empty?
+        @phase || :__end__
+      end
 
-        @halted_before ? :"awaiting_#{@current_nodes.first}" : @current_nodes.first
+      # Backward-compatibility wrapper. Returns the next node(s) to execute as an Array.
+      # Derives from +#phase+; at most one element is returned.
+      # @deprecated Use +#phase+ directly.
+      # @return [Array<Symbol>]
+      def current_nodes
+        p = phase
+        return [] if p == :__end__
+        # :__at_finish__ — halted after the last active node; resume will complete the graph.
+        return [:__end__] if p == :__at_finish__
+
+        p.to_s.start_with?("awaiting_") ? [p.to_s.delete_prefix("awaiting_").to_sym] : [p]
+      end
+
+      # Backward-compatibility wrapper. Returns true when halted before a node.
+      # @deprecated Use +phase.to_s.start_with?("awaiting_")+ directly.
+      # @return [Boolean]
+      def halted_before
+        phase.to_s.start_with?("awaiting_")
       end
 
       # Returns true if the graph is paused mid-execution (not yet completed).
       # @return [Boolean]
       def halted?
-        @current_nodes&.any? || false
+        phase != :__end__
       end
 
       # Sets internal graph metadata. Returns self.
-      # Pass +phase:+ to set the phase directly (derives current_nodes and halted_before).
-      # Pass +current_nodes:+ / +halted_before:+ for the legacy explicit-field form.
+      # Pass +phase:+ to set the phase directly (preferred form).
+      # Pass +current_nodes:+ / +halted_before:+ for backward-compatible form
+      # (derives phase from the first element of current_nodes and halted_before).
       # @param thread_id [String, nil]
       # @param current_nodes [Array<Symbol>, nil]
       # @param halted_before [Boolean, nil]
-      # @param phase [Symbol, nil] when given, derives current_nodes and halted_before automatically
+      # @param phase [Symbol, nil] when given, sets @phase directly
       def set_graph_metadata(thread_id: nil, current_nodes: nil, halted_before: nil, phase: nil)
-        @thread_id = thread_id
+        @thread_id = thread_id unless thread_id.nil?
         if !phase.nil?
-          if phase == :__end__
-            @current_nodes = []
-            @halted_before = false
-          elsif phase.to_s.start_with?("awaiting_")
-            @current_nodes = [phase.to_s.delete_prefix("awaiting_").to_sym]
-            @halted_before = true
+          @phase = phase
+        elsif !current_nodes.nil? || !halted_before.nil?
+          nodes = current_nodes || []
+          hb = halted_before || false
+          @phase = if nodes.empty?
+            :__end__
+          elsif hb
+            :"awaiting_#{nodes.first}"
+          elsif nodes.first == :__end__
+            # Legacy deserialization: current_nodes = [:__end__], halted_before = false
+            # represents the "halted at finish boundary" state (:__at_finish__).
+            :__at_finish__
           else
-            @current_nodes = [phase]
-            @halted_before = false
+            nodes.first
           end
-        else
-          @current_nodes = current_nodes || []
-          @halted_before = halted_before || false
         end
         self
       end
@@ -97,12 +118,11 @@ module Phronomy
           send(:"#{name}=", attrs.fetch(name, default))
         end
         @thread_id = nil
-        @current_nodes = []
-        @halted_before = false
+        @phase = :__end__
       end
 
       # Immutably updates context fields. Returns a new instance with the applied changes.
-      # Internal graph metadata (thread_id, current_nodes, halted_before) is preserved.
+      # Internal graph metadata (thread_id, phase) is preserved.
       # @param updates [Hash] { field_name => new_value }
       # @return [self.class] new context instance
       def merge(updates)
@@ -125,8 +145,7 @@ module Phronomy
         new_context = self.class.new(**new_attrs)
         new_context.set_graph_metadata(
           thread_id: @thread_id,
-          current_nodes: @current_nodes,
-          halted_before: @halted_before
+          phase: @phase
         )
         new_context
       end
