@@ -7,11 +7,11 @@ module Phronomy
     # Abstract base class for state persistence backends.
     # Subclasses must implement save, load, and clear.
     #
-    # The state object passed to save must include Phronomy::Graph::State
-    # and have a non-nil thread_id (set automatically by CompiledGraph#invoke).
+    # The state object passed to save must include Phronomy::WorkflowContext
+    # and have a non-nil thread_id (set automatically by WorkflowRunner#invoke).
     class Base
       # Persists the state. The thread_id is read from state.thread_id.
-      # @param state [Object] object including Phronomy::Graph::State
+      # @param state [Object] object including Phronomy::WorkflowContext
       # @return [self]
       def save(state)
         raise NotImplementedError, "#{self.class}#save is not implemented"
@@ -40,8 +40,7 @@ module Phronomy
           state_class: state.class.name,
           state_data: json_safe(state.to_h),
           thread_id: state.thread_id,
-          current_nodes: state.current_nodes&.map(&:to_s),
-          halted_before: state.halted_before
+          phase: state.phase&.to_s
         )
       end
 
@@ -54,37 +53,36 @@ module Phronomy
         state = state_class.new(**state_data)
         state.set_graph_metadata(
           thread_id: data[:thread_id],
-          current_nodes: data[:current_nodes]&.map(&:to_sym),
-          halted_before: data[:halted_before]
+          phase: data[:phase]&.to_sym
         )
         state
       end
 
-      # Resolves and validates a state class name.
-      # When a registry has been configured via +Phronomy::Graph.register_state_class+,
+      # Resolves and validates a context class name.
+      # When a registry has been configured via +Phronomy.register_workflow_context+,
       # only registered classes are accepted — this prevents unintended autoloading
       # of arbitrary files from an untrusted class name stored in Redis/DB.
       # When no registry is configured, falls back to Object.const_get with a check
-      # that the resolved class includes Phronomy::Graph::State.
+      # that the resolved class includes Phronomy::WorkflowContext.
       def safe_state_class(class_name)
-        registry = Phronomy::Graph.state_class_registry
+        registry = Phronomy.workflow_context_registry
         if registry
           klass = registry[class_name.to_s]
           unless klass
             raise ArgumentError,
-              "Unregistered state class: #{class_name.inspect}. " \
-              "Call Phronomy::Graph.register_state_class(#{class_name}) at startup."
+              "Unregistered context class: #{class_name.inspect}. " \
+              "Call Phronomy.register_workflow_context(#{class_name}) at startup."
           end
           return klass
         end
 
         klass = Object.const_get(class_name.to_s)
-        unless klass.is_a?(Class) && klass.include?(Phronomy::Graph::State)
-          raise ArgumentError, "Invalid state class: #{class_name.inspect}"
+        unless klass.is_a?(Class) && klass.include?(Phronomy::WorkflowContext)
+          raise ArgumentError, "Invalid context class: #{class_name.inspect}"
         end
         klass
       rescue NameError
-        raise ArgumentError, "Unknown state class: #{class_name.inspect}"
+        raise ArgumentError, "Unknown context class: #{class_name.inspect}"
       end
 
       # Recursively converts objects to JSON-safe primitives.

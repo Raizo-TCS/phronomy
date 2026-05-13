@@ -15,14 +15,13 @@ module Phronomy
   class Error < StandardError; end
   class ParseError < Error; end
   class RecursionLimitError < Error; end
-  
-  # Human-in-the-Loop interrupt exception
-  class Interrupt < Error
-    attr_reader :node, :state
-    def initialize(node:, state:)
-      @node  = node
-      @state = state
-      super("Graph execution interrupted at node #{node}")
+  class GuardrailError < Error; end
+  class ToolError < Error
+    attr_reader :tool_name, :cause
+    def initialize(tool_name:, cause:)
+      @tool_name = tool_name
+      @cause     = cause
+      super("Tool #{tool_name} failed: #{cause}")
     end
   end
   
@@ -45,16 +44,14 @@ module Phronomy
       Chain::Builder.new(**opts).tap { |b| block.call(b) if block }.build
     end
     
-    # Shortcut: returns a StateGraph
+    # Shortcut: build a Workflow
     # @example
-    #   graph = Phronomy.graph(MyState) do |g|
-    #     g.node(:search) { |state| ... }
-    #     g.edge(:search, :answer)
+    #   app = Phronomy::Workflow.define(MyContext) do
+    #     initial :fetch
+    #     state :fetch, action: FETCH_FN
     #   end
-    def graph(state_class, &block)
-      g = Graph::StateGraph.new(state_class)
-      block.call(g) if block
-      g
+    def workflow(context_class, &block)
+      Workflow.define(context_class, &block)
     end
   end
 end
@@ -71,7 +68,7 @@ Phronomy.configure do |config|
   config.default_embedding_model = "text-embedding-3-small"
   
   # Default checkpointer
-  config.default_checkpointer = Phronomy::Checkpointer::InMemory.new
+  config.default_state_store = Phronomy::StateStore::InMemory.new
   
   # Default memory
   config.default_memory = Phronomy::Memory::WindowMemory.new(k: 20)
@@ -132,80 +129,85 @@ results = chain.batch([
 
 ---
 
-## 4. Graph API
+## 4. Workflow API
 
 ```ruby
-# === State definition ===
-class MyWorkflowState
-  include Phronomy::Graph::State
-  
+# === Context definition ===
+class MyWorkflowContext
+  include Phronomy::WorkflowContext
+
   field :input,    type: :replace
   field :messages, type: :append,  default: -> { [] }
   field :result,   type: :replace
   field :done,     type: :replace, default: false
 end
 
-# === Graph definition (block DSL) ===
-graph = Phronomy.graph(MyWorkflowState) do |g|
-  g.add_node(:fetch) do |state|
-    data = fetch_data(state.input)
-    { messages: [{ role: :user, content: data }] }
-  end
-  
-  g.add_node(:process) do |state|
-    chat = RubyLLM.chat
-    response = chat.ask(state.messages.last[:content])
-    { result: response.content, done: true }
-  end
-  
-  g.add_node(:retry_handler) do |state|
-    { messages: [{ role: :user, content: "Please retry." }] }
-  end
-  
-  g.add_edge(:fetch, :process)
-  g.add_conditional_edges(
-    :process,
-    ->(state) { state.done ? Phronomy::Graph::StateGraph::END : :retry_handler }
-  )
-  g.add_edge(:retry_handler, :process)
-  
-  g.set_entry_point(:fetch)
+# === Workflow definition ===
+app = Phronomy::Workflow.define(MyWorkflowContext) do
+  initial :fetch
+
+  state :fetch, action: ->(s) {
+    data = fetch_data(s.input)
+    s.merge(messages: [{ role: :user, content: data }])
+  }
+
+  state :process, action: ->(s) {
+    response = RubyLLM.chat.ask(s.messages.last[:content])
+    s.merge(result: response.content, done: true)
+  }
+
+  state :retry_handler, action: ->(s) {
+    s.merge(messages: [{ role: :user, content: "Please retry." }])
+  }
+
+  after :fetch, to: :process
+  # Conditional: retry if not done, else finish
+  after :process, to: :retry_handler, guard: ->(s) { !s.done }
+  after :process, to: :__finish__
+  after :retry_handler, to: :process
 end
 
-# === Compile ===
-checkpointer = Phronomy::Checkpointer::ActiveRecord.new  # Rails environment
-compiled = graph.compile(
-  checkpointer:,
-  interrupt_before: [:process],  # interrupt before :process
-  interrupt_after:  []
-)
-
 # === Execute ===
-result = compiled.invoke(
+Phronomy.configure { |c| c.default_state_store = Phronomy::StateStore::ActiveRecord.new(...) }
+
+result = app.invoke(
   { input: "Data to analyze" },
   config: { thread_id: "session_#{user.id}" }
 )
 
-# === Human-in-the-Loop ===
-begin
-  compiled.invoke(input_data, config: { thread_id: "t1" })
-rescue Phronomy::Interrupt => e
-  puts "Confirmation required before executing #{e.node}"
-  puts "Current state: #{e.state.to_h}"
-  
-  # User confirms
-  compiled.resume(thread_id: "t1")
+# === Human-in-the-Loop with wait_state ===
+class ApprovalContext
+  include Phronomy::WorkflowContext
+  field :input,  type: :replace
+  field :result, type: :replace
 end
 
-# === Streaming (event per node completion) ===
-compiled.stream({ input: "..." }) do |event|
+app = Phronomy::Workflow.define(ApprovalContext) do
+  initial :process
+  state     :process,             action: PROCESS_NODE
+  wait_state :awaiting_approval             # execution halts here
+  state     :finalize,            action: FINALIZE_NODE
+  after :process,  to: :awaiting_approval
+  after :finalize, to: :__finish__
+  event :approve, from: :awaiting_approval, to: :finalize
+end
+
+# First invocation halts at :awaiting_approval
+state = app.invoke({ input: "..." }, config: { thread_id: "t1" })
+puts "Halted: #{state.halted?}, phase: #{state.phase}"
+
+# Human approves — resume via send_event
+app.send_event(:approve, config: { thread_id: "t1" })
+
+# === Streaming ===
+app.stream({ input: "..." }, config: { thread_id: "t1" }) do |event|
   case event[:type]
   when :node_start
     puts "-> Executing #{event[:node]}..."
   when :node_end
-    puts "✓ #{event[:node]} completed"
+    puts "\u2713 #{event[:node]} completed"
   when :graph_end
-    puts "Graph execution complete"
+    puts "Workflow execution complete"
   end
 end
 ```
@@ -237,11 +239,18 @@ agent = CustomerSupportAgent.new
 result = agent.invoke("What is the status of order #12345?")
 puts result[:output]
 
-# === Use as a Graph node ===
-state_graph = Phronomy.graph(SupportState) do |g|
-  g.add_node(:greet) { |state| { messages: ["Hello! How can I help you?"] } }
-  g.add_node(:support, CustomerSupportAgent.new)  # pass a Runnable directly
-  g.add_edge(:greet, :support)
+# === Use as a Workflow state action ===
+class SupportContext
+  include Phronomy::WorkflowContext
+  field :messages, type: :append, default: -> { [] }
+end
+
+app = Phronomy::Workflow.define(SupportContext) do
+  initial :greet
+  state :greet,   action: ->(s) { s.merge(messages: ["Hello! How can I help you?"]) }
+  state :support, action: ->(s) { s.merge(messages: [CustomerSupportAgent.new.invoke(s.messages.last)[:output]]) }
+  after :greet,   to: :support
+  after :support, to: :__finish__
 end
 ```
 
@@ -324,29 +333,23 @@ end
 
 ---
 
-## 8. Checkpointer API
+## 8. StateStore API
 
 ```ruby
 # === In-memory (development / testing) ===
-checkpointer = Phronomy::Checkpointer::InMemory.new
+Phronomy.configure { |c| c.default_state_store = Phronomy::StateStore::InMemory.new }
 
 # === ActiveRecord (Rails production) ===
-checkpointer = Phronomy::Checkpointer::ActiveRecord.new
+Phronomy.configure { |c| c.default_state_store = Phronomy::StateStore::ActiveRecord.new(model_class: PhronmyState) }
+
+# === Redis ===
+Phronomy.configure { |c| c.default_state_store = Phronomy::StateStore::Redis.new(client: Redis.new, ttl: 3600) }
 
 # === Manual operations ===
-# Save
-checkpointer.save("thread_1", state, completed_node: :search)
-
-# Load
-checkpoint = checkpointer.load("thread_1")
-puts checkpoint.state.to_h
-puts checkpoint.completed_node
-
-# List history
-history = checkpointer.list("thread_1")
-
-# Delete
-checkpointer.delete("thread_1")
+store = Phronomy::StateStore::InMemory.new
+store.save(state)          # state.thread_id is used as key
+state = store.load("t1")
+store.clear("t1")
 ```
 
 ---
@@ -395,12 +398,12 @@ gem 'phronomy'
 # config/initializers/phronomy.rb
 Phronomy.configure do |config|
   config.default_model = "claude-3-5-sonnet-20241022"
-  config.default_checkpointer = Phronomy::Checkpointer::ActiveRecord.new
+  config.default_state_store = Phronomy::StateStore::ActiveRecord.new(model_class: PhronmyState)
   config.default_memory = Phronomy::Memory::ActiveRecordMemory.new
 end
 
 # migration (generated by rails generate phronomy:install)
-# create_table :phronomy_checkpoints
+# create_table :phronomy_states
 # create_table :phronomy_messages
 
 # ActiveRecord model integration
@@ -443,26 +446,26 @@ end
 # Standard exception hierarchy
 Phronomy::Error
   ├── Phronomy::ParseError          # OutputParser failure
-  ├── Phronomy::RecursionLimitError # Graph recursion limit exceeded
-  ├── Phronomy::Interrupt           # Human-in-the-Loop suspension
-  │     attr_reader :node, :state
-  ├── Phronomy::CheckpointError     # Checkpointer failure
+  ├── Phronomy::RecursionLimitError # Workflow recursion limit exceeded
+  ├── Phronomy::GuardrailError      # Guardrail violation
   └── Phronomy::ToolError           # Tool execution failure
         attr_reader :tool_name, :cause
 
-# Usage example
-begin
-  graph.invoke(input, config: { thread_id: "t1" })
-rescue Phronomy::Interrupt => e
-  # Approval flow
-  if approved_by_user?(e)
-    graph.resume(thread_id: "t1")
-  else
-    graph.cancel(thread_id: "t1")
-  end
+# Halt and resume (no exception raised — use wait_state + send_event)
+app = Phronomy::Workflow.define(MyContext) do
+  # ...
+  wait_state :awaiting_approval
+  event :approve, from: :awaiting_approval, to: :next_step
+end
+
+state = app.invoke(input, config: { thread_id: "t1" })
+if state.halted?
+  # User reviews state, then resumes
+  app.send_event(:approve, config: { thread_id: "t1" })
+end
+
 rescue Phronomy::RecursionLimitError
-  # Loop detected
-  Rails.logger.error "Graph recursion limit exceeded"
+  Rails.logger.error "Workflow recursion limit exceeded"
 rescue Phronomy::ToolError => e
   Rails.logger.error "Tool #{e.tool_name} failed: #{e.cause}"
 end

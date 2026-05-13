@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.email = ["raizo.tcs@gmail.com"]
 
   spec.summary = "Ruby AI Agent Framework for composable, stateful AI agent workflows"
-  spec.description = "Phronomy provides Agent, Graph, Memory, Tool, Guardrail, " \
+  spec.description = "Phronomy provides Agent, Workflow, Memory, Tool, Guardrail, " \
                      "RAG, and Multi-agent capabilities for building AI agents " \
                      "in Ruby and Rails. Powered by RubyLLM for LLM abstraction."
   spec.homepage = "https://github.com/Raizo-TCS/phronomy"
@@ -37,6 +37,7 @@ Gem::Specification.new do |spec|
   # Required dependencies
   spec.add_dependency "ruby_llm", ">= 1.3"
   spec.add_dependency "zeitwerk", ">= 2.6"
+  spec.add_dependency "state_machines", "~> 0.6"
 
   # For more information and examples about making a new gem, check out our
   # guide at: https://guides.rubygems.org/make-your-own-gem/

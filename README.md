@@ -1,12 +1,12 @@
 # Phronomy
 
 **Phronomy** is a Ruby AI agent framework inspired by open-source AI agent frameworks.  
-It provides composable building blocks — Graphs, Agents, and Memory — all powered by [RubyLLM](https://github.com/crmne/ruby_llm) for LLM abstraction.
+It provides composable building blocks — Workflows, Agents, and Memory — all powered by [RubyLLM](https://github.com/crmne/ruby_llm) for LLM abstraction.
 
 ## Features
 
-- **Graph** — Build stateful, branching agent workflows with interrupt/resume support
-- **Graph Parallel Node** — Execute independent graph branches concurrently with configurable merge and error policies
+- **Workflow** — Build stateful, branching agent workflows with wait_state/send_event support
+- **Workflow Parallel Node** — Execute independent workflow branches concurrently using application-level Ruby threads
 - **Agent** — ReAct-style tool-calling agents with memory and guardrails
 - **Before-Completion Hook** — Three-tier (global / class / instance) LLM parameter injection before each chat request
 - **Memory** — Window, summary, ActiveRecord-backed, semantic, and composite conversation memory
@@ -70,31 +70,39 @@ result = ResearchAgent.new.invoke("What happened in AI research this week?")
 puts result[:output]
 ```
 
-### Graph — Stateful workflow with interrupt/resume
+### Workflow — Stateful workflow with wait_state/send_event
 
 ```ruby
-class ReviewState
-  include Phronomy::Graph::State
+class ReviewContext
+  include Phronomy::WorkflowContext
   field :draft,    type: :replace
   field :feedback, type: :replace
   field :approved, type: :replace, default: false
 end
 
-graph = Phronomy::Graph::StateGraph.new(ReviewState)
-graph.add_node(:write)    { |s| { draft: Writer.call(s) } }
-graph.add_node(:review)   { |s| { feedback: Reviewer.call(s.draft) } }
-graph.add_node(:finalize) { |s| { approved: true } }
-graph.add_edge(:write, :review)
-graph.add_edge(:review, :finalize)
-graph.set_entry_point(:write)
-
-# Register an interrupt callback before the :finalize node
-graph.interrupt_before(:finalize) do |state|
-  puts "Draft ready for human review: #{state.draft}"
+app = Phronomy::Workflow.define(ReviewContext) do
+  initial :write
+  state     :write,    action: ->(s) { s.merge(draft: Writer.call(s)) }
+  state     :review,   action: ->(s) { s.merge(feedback: Reviewer.call(s.draft)) }
+  wait_state :awaiting_approval           # halts here for human decision
+  state     :finalize, action: ->(s) { s.merge(approved: true) }
+  after :write,    to: :review
+  after :review,   to: :awaiting_approval
+  after :finalize, to: :__finish__
+  event :approve, from: :awaiting_approval, to: :finalize
+  event :reject,  from: :awaiting_approval, to: :write
 end
 
-compiled = graph.compile
-compiled.invoke({ draft: "" }, config: { thread_id: "doc-1" })
+Phronomy.configure { |c| c.default_state_store = Phronomy::StateStore::InMemory.new }
+
+# First run — halts at :awaiting_approval
+state = app.invoke({ draft: "" }, config: { thread_id: "doc-1" })
+puts "Halted: #{state.halted?}"   # => true
+puts "Draft: #{state.draft}"
+
+# Resume after human approval
+final = app.send_event(:approve, config: { thread_id: "doc-1" })
+puts "Approved: #{final.approved}"  # => true
 ```
 
 ### Multi-Agent — Agent-as-Tool pattern
@@ -238,29 +246,32 @@ result.citations.each do |c|
 end
 ```
 
-### Graph Parallel Node — Concurrent branches
+### Workflow Parallel Node — Concurrent branches
+
+Phronomy does not provide a built-in parallel abstraction. Use application-level Ruby threads inside a `state` action:
 
 ```ruby
-class MyState
-  include Phronomy::Graph::State
+class EnrichContext
+  include Phronomy::WorkflowContext
   field :summary, type: :replace
-  field :tags,    type: :append,  default: -> { [] }
+  field :tags,    type: :append, default: -> { [] }
 end
 
-graph = Phronomy::Graph::StateGraph.new(MyState)
+app = Phronomy::Workflow.define(EnrichContext) do
+  initial :enrich
+  state :enrich, action: ->(s) do
+    results = {}
+    threads = [
+      Thread.new { results[:summary] = Summarizer.call(s) },
+      Thread.new { results[:tags]    = Tagger.call(s) }
+    ]
+    threads.each { |t| t.join(10) }  # 10-second timeout
+    s.merge(summary: results[:summary], tags: Array(results[:tags]))
+  end
+  after :enrich, to: :__finish__
+end
 
-graph.add_parallel_node(
-  :enrich,
-  ->(s) { { summary: Summarizer.call(s) } },
-  ->(s) { { tags:    Tagger.call(s) } },
-  timeout:  10,
-  on_error: :best_effort
-)
-
-graph.set_entry_point(:enrich)
-graph.add_edge(:enrich, Phronomy::Graph::StateGraph::FINISH)
-app = graph.compile
-app.invoke({}, config: { thread_id: "t1" })
+state = app.invoke({}, config: { thread_id: "t1" })
 ```
 
 ### Output Parser — Structured LLM responses
@@ -483,8 +494,8 @@ bundle exec ruby NN_example_name/run.rb
 |---|-----------|----------------------|
 | 01 | `01_basic_chain/` | PromptTemplate → LLMChain pipeline |
 | 02 | `02_react_agent/` | ReAct tool-calling agent |
-| 03 | `03_state_graph/` | Stateful graph with interrupt/resume |
-| 04 | `04_interrupt_resume/` | Human-in-the-loop interrupt and resume |
+| 03 | `03_state_graph/` | Stateful workflow with wait_state/send_event |
+| 04 | `04_interrupt_resume/` | Human-in-the-loop wait_state and resume |
 | 05 | `05_multi_agent/` | Multi-agent coordination via Agent-as-Tool |
 | 06 | `06_guardrails/` | Input/output guardrails |
 | 07 | `07_tracing/` | Custom observability with Langfuse tracer |

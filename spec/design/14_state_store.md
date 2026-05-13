@@ -2,8 +2,8 @@
 
 ## 1. Overview
 
-`StateStore` provides pluggable persistence for `Graph::StateGraph` thread
-state. This decouples the graph runtime from any specific storage technology.
+`StateStore` provides pluggable persistence for `Workflow` thread
+state. This decouples the workflow runtime from any specific storage technology.
 
 ```ruby
 Phronomy.configure do |c|
@@ -11,7 +11,7 @@ Phronomy.configure do |c|
 end
 ```
 
-The store is accessed by `StateGraph#invoke` via `config[:thread_id]`:
+The store is accessed by `WorkflowRunner#invoke` via `config[:thread_id]`:
 
 ```ruby
 app.invoke({}, config: { thread_id: "user-42" })
@@ -168,18 +168,18 @@ The encryptor wraps `ActiveSupport::MessageEncryptor.new(key)`. `encrypt` calls
 
 ---
 
-## 8. Integration with StateGraph
+## 8. Integration with WorkflowRunner
 
-`StateGraph#invoke` loads and saves state automatically:
+`WorkflowRunner#invoke` loads and saves state automatically:
 
 ```ruby
 def invoke(input, config: {})
   thread_id = config[:thread_id]
   stored    = thread_id ? @store.load(thread_id) : nil
-  state     = @state_class.build_initial(stored || {}).merge(input)
+  state     = build_initial_state(stored || {}, input)
 
-  run_graph(state, config).tap do |final|
-    @store.save(thread_id, final.to_h) if thread_id
+  run_workflow(state, config).tap do |final|
+    @store.save(thread_id, final) if thread_id
   end
 end
 ```

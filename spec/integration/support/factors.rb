@@ -670,34 +670,6 @@ module IntegrationFactors
     klass
   end
 
-  # Builds a State class for parallel integration tests.
-  # Declares :results (append), :parallel_errors (append).
-  #
-  # @return [Class<Phronomy::Graph::State>]
-  def self.parallel_state_class
-    Class.new do
-      include Phronomy::Graph::State
-
-      field :results, type: :append, default: -> { [] }
-      field :parallel_errors, type: :append, default: -> { [] }
-    end
-  end
-
-  # Builds a compiled graph with a single parallel node followed by FINISH.
-  #
-  # @param branches  [Array<#call>]
-  # @param timeout   [Numeric, nil]
-  # @param on_error  [Symbol]         :raise or :best_effort
-  # @return [Phronomy::Graph::CompiledGraph]
-  def self.parallel_graph(branches:, timeout: nil, on_error: :raise)
-    state_klass = parallel_state_class
-    graph = Phronomy::Graph::StateGraph.new(state_klass)
-    graph.add_parallel_node(:run, *branches, timeout: timeout, on_error: on_error)
-    graph.set_entry_point(:run)
-    graph.add_edge(:run, Phronomy::Graph::StateGraph::FINISH)
-    graph.compile
-  end
-
   # ---------------------------------------------------------------------------
   # Context management factor helpers
   # ---------------------------------------------------------------------------
@@ -990,5 +962,57 @@ module IntegrationFactors
     when "string_keys" then {"thread_id" => nil}
     else raise ArgumentError, "Unknown job_config_style label: #{label}"
     end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Helpers for Group 28: Workflow Wait State / Phase
+  # ---------------------------------------------------------------------------
+
+  # Builds a Workflow (node_a -> wait_state(:awaiting_node_b) -> node_b -> finish)
+  # that halts at the wait state and resumes via the :resume event.
+  #
+  # The state class has a single :replace field `value` (String).
+  #
+  # @param state_class [Class] a class that includes Phronomy::WorkflowContext
+  # @return [Phronomy::WorkflowRunner]
+  def self.wait_state_resume_graph(state_class)
+    store = Phronomy::StateStore::InMemory.new
+    Phronomy.configure { |c| c.default_state_store = store }
+
+    Phronomy::Workflow.define(state_class) do
+      initial :node_a
+      state :node_a, action: ->(s) { s.merge(value: "#{s.value}:a") }
+      wait_state :awaiting_node_b
+      state :node_b, action: ->(s) { s.merge(value: "#{s.value}:b") }
+      after :node_a, to: :awaiting_node_b
+      after :node_b, to: :__finish__
+      event :resume, from: :awaiting_node_b, to: :node_b
+    end
+  end
+
+  # Builds a Workflow (node_a -> wait_state(:awaiting_node_b) -> node_b -> finish)
+  # using a named resume event. The wait state halts between node_a and node_b.
+  #
+  # @param state_class [Class] a class that includes Phronomy::WorkflowContext
+  # @param resume_event [Symbol] event name for send_event (default :proceed)
+  # @return [Phronomy::WorkflowRunner]
+  def self.wait_state_graph(state_class, resume_event: :proceed)
+    store = Phronomy::StateStore::InMemory.new
+    Phronomy.configure { |c| c.default_state_store = store }
+
+    Phronomy::Workflow.define(state_class) do
+      initial :node_a
+      state :node_a, action: ->(s) { s.merge(value: "#{s.value}:a") }
+      wait_state :awaiting_node_b
+      state :node_b, action: ->(s) { s.merge(value: "#{s.value}:b") }
+      after :node_a, to: :awaiting_node_b
+      after :node_b, to: :__finish__
+      event resume_event, from: :awaiting_node_b, to: :node_b
+    end
+  end
+
+  # Resets the default state store to nil after a wait_state test.
+  def self.reset_state_store
+    Phronomy.configure { |c| c.default_state_store = nil }
   end
 end

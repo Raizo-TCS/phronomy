@@ -13,11 +13,11 @@ Phronomy follows the "three-layer model" from the AI Agent Design Guide.
 ┌─────────────────────────────▼───────────────────────────────────┐
 │                   Framework Layer (Phronomy)                     │
 │                                                                  │
-│  ┌─────────┐ ┌─────────┐ ┌──────────┐ ┌─────────┐             │
-│  │  Graph  │ │  Agent  │ │  Memory  │ │  Tool   │             │
+│  ┌──────────┐ ┌─────────┐ ┌──────────┐ ┌─────────┐             │
+│  │ Workflow │ │  Agent  │ │  Memory  │ │  Tool   │             │
 │  └─────────┘ └─────────┘ └──────────┘ └─────────┘             │
 │  ┌──────────────┐ ┌──────────┐ ┌────────────┐ ┌─────────────┐  │
-│  │ Checkpointer │ │Guardrail │ │   Tracer   │ │ OutputParser│  │
+│  │  StateStore  │ │Guardrail │ │   Tracer   │ │ OutputParser│  │
 │  └──────────────┘ └──────────┘ └────────────┘ └─────────────┘  │
 └─────────────────────────────┬───────────────────────────────────┘
                               │ uses
@@ -37,7 +37,7 @@ Phronomy follows the "three-layer model" from the AI Agent Design Guide.
 
 | Component | Role | LangGraph/LangChain Equivalent |
 |---|---|---|
-| `Graph` | Define and execute agent workflows as a directed graph | LangGraph StateGraph |
+| `Workflow` | Define and execute agent workflows via Workflow DSL (`WorkflowRunner`) | LangGraph StateGraph |
 | `Agent` | Execution node with tools, instructions, and LLM config | LangGraph ToolNode + Agent |
 | `Tool` | Function definition callable from LLM | LangChain Tool |
 | `Memory` | Conversation history and context management | LangChain Memory + mem0 |
@@ -46,10 +46,9 @@ Phronomy follows the "three-layer model" from the AI Agent Design Guide.
 
 | Component | Role | Equivalent |
 |---|---|---|
-| `Runtime` | Execution engine for Graph | LangGraph Pregel |
-| `State` | State definition and updates for graph execution | LangGraph State |
-| `Channel` | Value propagation definition between nodes | LangGraph Channel |
-| `Checkpointer` | Persistence, suspension, and resumption of execution state | LangGraph Checkpoint |
+| `Runtime` | Execution engine for Workflow | LangGraph Pregel |
+| `WorkflowContext` | State mixin (fields + metadata) for workflow execution | LangGraph State |
+| `StateStore` | Persistence, suspension, and resumption of execution state | LangGraph Checkpoint |
 
 ### 2.3 Extension Components (Optional gems)
 
@@ -59,7 +58,7 @@ Phronomy follows the "three-layer model" from the AI Agent Design Guide.
 | `Tracer` | Execution trace collection and output | `phronomy-tracing` |
 | `OutputParser` | Conversion to various output formats | Included in core |
 | `VectorStore` | In-process vector store for SemanticMemory | Included in core |
-| `StateStore` | Persistence and resumption of graph execution state | LangGraph Checkpoint |
+| `StateStore` | Persistence and resumption of workflow execution state | LangGraph Checkpoint |
 
 ### 2.4 Context Management Components (Core)
 
@@ -86,17 +85,8 @@ phronomy/
 │       ├── version.rb
 │       ├── configuration.rb             # global configuration
 │       │
-│       ├── graph/                       # Graph component
-│       │   ├── state_graph.rb           # graph definition API
-│       │   ├── node.rb                  # node base
-│       │   ├── edge.rb                  # edge definition
-│       │   ├── channel.rb               # channel value propagation
-│       │   └── conditional_edge.rb      # conditional edges
-│       │
-│       ├── runtime/                     # execution engine
-│       │   ├── pregel.rb                # Pregel-like graph execution
-│       │   ├── executor.rb              # node execution
-│       │   └── event_bus.rb             # event notifications
+│       ├── workflow_context.rb          # WorkflowContext mixin (state fields + metadata)
+│       ├── workflow_runner.rb           # state-machine execution engine (WorkflowRunner)
 │       │
 │       ├── agent/                       # Agent component
 │       │   ├── base.rb                  # Agent base class
@@ -114,8 +104,8 @@ phronomy/
 │       │   ├── summary_memory.rb        # summary compression
 │       │   └── active_record_memory.rb  # ActiveRecord persistence
 │       │
-│       ├── checkpoint/                  # Checkpointer component
-│       │   ├── base.rb                  # Checkpointer interface
+│       ├── state_store/                 # StateStore component
+│       │   ├── base.rb                  # StateStore interface
 │       │   ├── in_memory.rb             # in-memory (for development)
 │       │   ├── active_record.rb         # ActiveRecord persistence
 │       │   └── redis.rb                 # Redis persistence (optional)
@@ -134,7 +124,7 @@ phronomy/
 │       │   ├── base.rb
 │       │   └── null_tracer.rb
 │       │
-│       ├── state_store/                 # graph state persistence
+│       ├── state_store/                 # workflow state persistence
 │       │   ├── base.rb
 │       │   ├── in_memory.rb
 │       │   ├── active_record.rb
@@ -163,14 +153,14 @@ Phronomy's approach to the 11 design topics from the AI Agent Design Guide.
 
 **Corresponding components**: `Memory`
 
-- Instructions area: managed by the system prompt inside Graph nodes
+- Instructions area: managed by the system prompt inside Workflow nodes
 - Capability area: managed by `Agent`'s `tools` list
 - Knowledge area: injected into nodes from `Memory` retrieval results
 - Conversation area: managed by `Memory::WindowMemory` / `SummaryMemory`
 
 ### 4.2 Instruction Composition Design (prompt-design)
 
-**Corresponding component**: `Agent`, `Graph`
+**Corresponding component**: `Agent`, `Workflow`
 
 - Define 5 sections (role instruction, task instruction, environment info, behavior policy, output policy) in Agent's `instructions` or as a node's system prompt
 - Support both static templates (YAML/ERB file-based) and dynamic composition (block-based)
@@ -212,34 +202,33 @@ Phronomy's approach to the 11 design topics from the AI Agent Design Guide.
 
 ### 4.6 Processing Cycle and Persistence (cycle-persistence)
 
-**Corresponding components**: `Graph`, `Checkpointer`
+**Corresponding components**: `Workflow`, `StateStore`
 
-- Checkpoint: Save state after each node completes in graph execution
-- Suspend/resume: Identify and resume state using `thread_id`
-- Fault recovery: Re-execute from the last checkpoint
+- State is persisted via `StateStore` after each workflow transition
+- Suspend/resume: identify and resume execution using `thread_id`
+- Fault recovery: re-execute from the last persisted state
 
 ### 4.7 Agent Composition Selection (agent-composition)
 
-**Corresponding components**: `Graph`, `Agent`
+**Corresponding components**: `Workflow`, `Agent`
 
 - Single agent: Run `Agent` standalone
-- Graph composition: Conditional branching and loops between nodes via `Graph`
+- Workflow composition: Conditional branching and loops between nodes via `Workflow`
 - Multi-agent: Agent-as-Tool pattern — wrap sub-agents as `Tool::Base` subclasses and register them on an orchestrator `Agent`
 
 ### 4.8 Response and Streaming UX (streaming-ux)
 
-**Corresponding components**: `Graph`
+**Corresponding components**: `Workflow`
 
-- Propagate RubyLLM streaming at the Graph level
+- Propagate RubyLLM streaming at the Workflow level
 - Integration with Rails ActionController::Live / ActionCable
 
 ### 4.9 Human Intervention Design (human-in-loop)
 
-**Corresponding components**: `Graph`, `Tool::HumanApproval`
+**Corresponding components**: `Workflow`, `Tool::HumanApproval`
 
-- `Graph` allows setting `interrupt` before/after node execution
-- When `interrupt` occurs: Save state to Checkpointer and wait for human input
-- Resume: Continue with `graph.resume(thread_id:, input:)`
+- Workflow halts at `wait_state`: state is persisted to `StateStore` and execution pauses
+- Resume: continue with `app.send_event(:event_name, config: { thread_id: })`
 
 ### 4.10 External Integration and Protocols (external-integration)
 
@@ -262,12 +251,12 @@ Phronomy's approach to the 11 design topics from the AI Agent Design Guide.
 ## 5. Dependency Diagram
 
 ```
-Phronomy::Graph
-  └─ Phronomy::Runtime::Pregel  (execution engine)
-      └─ Phronomy::Graph::Node
+Phronomy::Workflow
+  └─ Phronomy::WorkflowRunner  (execution engine)
+      └─ Phronomy::WorkflowContext
           └─ Phronomy::Agent::Base
               └─ RubyLLM::Agent  (or RubyLLM::Chat + Tool)
-      └─ Phronomy::Checkpoint::Base
+      └─ Phronomy::StateStore::Base
       └─ Phronomy::Memory::Base
 
 Phronomy::Tool

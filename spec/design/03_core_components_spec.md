@@ -196,339 +196,131 @@ end
 
 ---
 
-## 2. Graph Component
+## 2. Workflow Component
 
-State graph-based agent workflow definition and execution, equivalent to LangGraph's StateGraph.
+Workflow execution based on a statechart DSL (`Phronomy::Workflow`).
+States, transitions, and halt points are declared with a Ruby DSL; the
+execution engine is `Phronomy::WorkflowRunner`.
 
-### 2.1 State Definition
+### 2.1 Context Mixin
+
+All context (state) classes must include `Phronomy::WorkflowContext`.
+It provides the `field` DSL, immutable `merge`, serialisation helpers, and
+internal workflow metadata (`thread_id`, `phase`, `halted?`).
 
 ```ruby
-module Phronomy
-  module Graph
-    # Module for defining graph state
-    # Include in a class to use
-    module State
-      def self.included(base)
-        base.extend(ClassMethods)
-        base.instance_variable_set(:@fields, {})
-      end
-      
-      module ClassMethods
-        # Field definition
-        # @param name [Symbol]
-        # @param type [Symbol] :replace, :append, :merge
-        # @param default [Object, Proc]
-        def field(name, type: :replace, default: nil)
-          @fields[name] = { type:, default: }
-          attr_accessor name
-        end
-        
-        def fields
-          @fields
-        end
-      end
-      
-      def initialize(**attrs)
-        self.class.fields.each do |name, config|
-          default = config[:default].is_a?(Proc) ? config[:default].call : config[:default]
-          send(:"#{name}=", attrs.fetch(name, default))
-        end
-      end
-      
-      # Immutably update state (returns a new object)
-      def merge(updates)
-        new_attrs = {}
-        self.class.fields.each_key do |name|
-          field_config = self.class.fields[name]
-          if updates.key?(name)
-            new_attrs[name] = case field_config[:type]
-                              when :append
-                                Array(send(name)) + Array(updates[name])
-                              when :merge
-                                (send(name) || {}).merge(updates[name])
-                              else
-                                updates[name]
-                              end
-          else
-            new_attrs[name] = send(name)
-          end
-        end
-        self.class.new(**new_attrs)
-      end
-      
-      def to_h
-        self.class.fields.keys.each_with_object({}) do |name, h|
-          h[name] = send(name)
-        end
-      end
-    end
-  end
-end
+class ResearchContext
+  include Phronomy::WorkflowContext
 
-# Usage example
-class AgentState
-  include Phronomy::Graph::State
-  
+  field :query,    type: :replace
+  field :research, type: :replace
+  field :answer,   type: :replace
   field :messages, type: :append, default: -> { [] }
-  field :query, type: :replace
-  field :result, type: :replace
-  field :error, type: :replace
-  field :metadata, type: :merge, default: -> { {} }
 end
 ```
 
-### 2.2 StateGraph
+Field types:
+- `:replace` — overwrites the current value
+- `:append`  — array concatenation
+- `:merge`   — hash deep merge
+
+### 2.2 Workflow DSL
+
+`Phronomy::Workflow.define` returns a `WorkflowRunner` ready for `invoke`.
 
 ```ruby
-module Phronomy
-  module Graph
-    class StateGraph
-      START = :__start__
-      END   = :__end__
-      
-      attr_reader :nodes, :edges, :entry_point
-      
-      def initialize(state_class)
-        @state_class = state_class
-        @nodes = {}
-        @edges = {}          # { from_node => to_node_or_array }
-        @conditional_edges = {}  # { from_node => lambda }
-        @entry_point = nil
-      end
-      
-      # Add a node
-      # @param name [Symbol]
-      # @param callable [#call, nil] node execution logic (block also accepted)
-      def add_node(name, callable = nil, &block)
-        @nodes[name] = callable || block
-        self
-      end
-      
-      # Add an edge
-      # @param from [Symbol]
-      # @param to [Symbol]
-      def add_edge(from, to)
-        @edges[from] ||= []
-        @edges[from] << to
-        self
-      end
-      
-      # Add a conditional edge
-      # @param from [Symbol]
-      # @param condition [Proc] receives state and returns the next node name
-      # @param mapping [Hash, nil] return value → node name mapping (optional)
-      def add_conditional_edges(from, condition, mapping = nil)
-        @conditional_edges[from] = { condition:, mapping: }
-        self
-      end
-      
-      # Set the entry point
-      def set_entry_point(node_name)
-        @entry_point = node_name
-        self
-      end
-      
-      # Compile (convert to an executable graph)
-      # @param checkpointer [Checkpointer::Base, nil]
-      # @param interrupt_before [Array<Symbol>]
-      # @param interrupt_after [Array<Symbol>]
-      def compile(checkpointer: nil, interrupt_before: [], interrupt_after: [])
-        CompiledGraph.new(
-          state_class: @state_class,
-          nodes: @nodes,
-          edges: @edges,
-          conditional_edges: @conditional_edges,
-          entry_point: @entry_point || @nodes.keys.first,
-          checkpointer:,
-          interrupt_before:,
-          interrupt_after:
-        )
-      end
-    end
-  end
+SEARCH_NODE  = ->(s) { s.merge(research: WebSearchTool.new.execute(query: s.query)) }
+ANSWER_NODE  = ->(s) { s.merge(answer: RubyLLM.chat.ask("#{s.query}\n#{s.research}").content) }
+REVIEW_NODE  = ->(s) { s.merge(needs_more: s.answer.include?("I don't know")) }
+
+app = Phronomy::Workflow.define(ResearchContext) do
+  initial :search
+
+  state :search,  action: SEARCH_NODE
+  state :answer,  action: ANSWER_NODE
+  state :review,  action: REVIEW_NODE
+
+  # Conditional routing: guard succeeds → loop back; no guard → finish
+  after :review, to: :search,       guard: ->(s) { s.needs_more }
+  after :review, to: :__finish__
 end
 ```
 
-### 2.3 CompiledGraph (Execution Engine)
+DSL keywords:
+
+| Keyword | Purpose |
+|---|---|
+| `initial :node` | Entry point of the workflow |
+| `state :name, action: lambda` | Defines an executable state |
+| `wait_state :name` | Declares a halt point (no action); execution pauses here |
+| `after :from, to: :to` | Unconditional transition |
+| `after :from, to: :to, guard: lambda` | Guarded transition (evaluated in order) |
+| `event :name, from: :state, to: :target` | Named event for resuming a `wait_state` |
+
+`Phronomy::Workflow::FINISH` (`:__end__`) is the terminal sentinel. Use
+`:__finish__` in `after` edges as a shorthand.
+
+### 2.3 WorkflowRunner — Execution
 
 ```ruby
-module Phronomy
-  module Graph
-    class CompiledGraph
-      include Phronomy::Runnable
-      
-      def initialize(state_class:, nodes:, edges:, conditional_edges:,
-                     entry_point:, checkpointer:, interrupt_before:, interrupt_after:)
-        @state_class = state_class
-        @nodes = nodes
-        @edges = edges
-        @conditional_edges = conditional_edges
-        @entry_point = entry_point
-        @checkpointer = checkpointer
-        @interrupt_before = interrupt_before
-        @interrupt_after = interrupt_after
-      end
-      
-      # Execute the graph
-      # @param input [Hash] initial state
-      # @param config [Hash] { thread_id:, recursion_limit: }
-      def invoke(input, config: {})
-        thread_id = config[:thread_id]
-        recursion_limit = config.fetch(:recursion_limit, 25)
-        
-        # Resume from checkpoint or start fresh
-        state = if @checkpointer && thread_id
-          @checkpointer.load(thread_id) || @state_class.new(**input)
-        else
-          @state_class.new(**input)
-        end
-        
-        result = execute_graph(state, thread_id:, recursion_limit:)
-        result
-      rescue Phronomy::Interrupt => e
-        # Human-in-the-Loop: save suspended state and re-raise
-        @checkpointer&.save(thread_id, e.state, interrupted_at: e.node)
-        raise
-      end
-      
-      # Resume a suspended graph
-      # @param thread_id [String]
-      # @param input [Hash] user input (nil to continue from saved state)
-      def resume(thread_id:, input: nil)
-        raise "Checkpointer not configured" unless @checkpointer
-        
-        checkpoint = @checkpointer.load(thread_id)
-        raise "State not found for thread #{thread_id}" unless checkpoint
-        
-        state = input ? checkpoint.state.merge(input) : checkpoint.state
-        execute_graph(state, from_node: checkpoint.interrupted_at, thread_id:)
-      end
-      
-      # Streaming execution (yields an event after each node completes)
-      def stream(input, config: {}, &block)
-        thread_id = config[:thread_id]
-        state = @state_class.new(**input)
-        
-        execute_graph_with_events(state, thread_id:) do |event|
-          yield event if block_given?
-        end
-      end
-      
-      private
-      
-      def execute_graph(state, from_node: nil, thread_id: nil, recursion_limit: 25)
-        current_node = from_node || @entry_point
-        step = 0
-        
-        while current_node && current_node != StateGraph::END
-          raise Phronomy::RecursionLimitError if step >= recursion_limit
-          
-          # interrupt_before check
-          if @interrupt_before.include?(current_node)
-            raise Phronomy::Interrupt.new(node: current_node, state:)
-          end
-          
-          # Execute node
-          node_fn = @nodes[current_node]
-          raise "Node #{current_node} is not defined" unless node_fn
-          
-          updates = node_fn.call(state)
-          state = state.merge(updates) if updates.is_a?(Hash)
-          
-          # Save checkpoint
-          @checkpointer&.save(thread_id, state, completed_node: current_node)
-          
-          # interrupt_after check
-          if @interrupt_after.include?(current_node)
-            raise Phronomy::Interrupt.new(node: current_node, state:)
-          end
-          
-          # Determine next node
-          current_node = next_node(current_node, state)
-          step += 1
-        end
-        
-        state
-      end
-      
-      def next_node(current, state)
-        # Conditional edges take priority
-        if (cond = @conditional_edges[current])
-          result = cond[:condition].call(state)
-          return cond[:mapping] ? cond[:mapping][result] : result
-        end
-        
-        # Normal edges
-        edges = @edges[current]
-        return nil unless edges&.any?
-        edges.first  # parallel execution is future work
-      end
-    end
-  end
-end
+# Simple run (no persistence)
+result = app.invoke({ query: "Ruby 3.4 features?" })
+puts result.answer
+
+# With state persistence (thread_id enables suspend/resume)
+Phronomy.configure { |c| c.default_state_store = Phronomy::StateStore::InMemory.new }
+
+result = app.invoke({ query: "Ruby 3.4 features?" }, config: { thread_id: "t1" })
 ```
 
-### 2.4 Usage Example
+Halt and resume using `wait_state`:
 
 ```ruby
-# State definition
-class ResearchState
-  include Phronomy::Graph::State
-  
+app = Phronomy::Workflow.define(ApprovalContext) do
+  initial :draft
+  state     :draft,             action: DRAFT_NODE
+  wait_state :awaiting_approval             # execution halts here
+  state     :publish,           action: PUBLISH_NODE
+  after :draft, to: :awaiting_approval
+  after :publish, to: :__finish__
+  event :approve, from: :awaiting_approval, to: :publish
+end
+
+# First invocation — halts at :awaiting_approval
+state = app.invoke({ content: "..." }, config: { thread_id: "t1" })
+state.halted?  # => true
+state.phase    # => :awaiting_approval
+
+# Human reviews, then resumes
+app.send_event(:approve, config: { thread_id: "t1" })
+```
+
+### 2.4 Usage Example (multi-step with loop)
+
+```ruby
+class ResearchContext
+  include Phronomy::WorkflowContext
   field :query,     type: :replace
-  field :messages,  type: :append, default: -> { [] }
   field :research,  type: :replace
   field :answer,    type: :replace
+  field :needs_more, type: :replace, default: false
 end
 
-# Graph definition
-graph = Phronomy::Graph::StateGraph.new(ResearchState)
+app = Phronomy::Workflow.define(ResearchContext) do
+  initial :search
 
-graph.add_node(:search) do |state|
-  results = WebSearchTool.new.execute(query: state.query)
-  { research: results }
+  state :search,  action: ->(s) { s.merge(research: WebSearchTool.new.execute(query: s.query)) }
+  state :answer,  action: ->(s) { s.merge(answer: RubyLLM.chat.ask("#{s.query}: #{s.research}").content) }
+  state :review,  action: ->(s) { s.merge(needs_more: s.answer.include?("I don't know")) }
+
+  after :search,  to: :answer
+  after :answer,  to: :review
+  after :review,  to: :search,      guard: ->(s) { s.needs_more }
+  after :review,  to: :__finish__
 end
 
-graph.add_node(:answer) do |state|
-  llm_response = RubyLLM.chat.ask(
-    "Answer #{state.query} based on the following information:\n#{state.research}"
-  )
-  { answer: llm_response.content }
-end
-
-graph.add_node(:evaluate) do |state|
-  needs_more = state.answer.include?("I don't know")
-  { needs_more: needs_more }
-end
-
-graph.add_edge(:search, :answer)
-graph.add_edge(:answer, :evaluate)
-
-graph.add_conditional_edges(
-  :evaluate,
-  ->(state) { state.needs_more ? :search : Phronomy::Graph::StateGraph::END }
-)
-
-graph.set_entry_point(:search)
-
-# Compile and run
-checkpointer = Phronomy::Checkpointer::InMemory.new
-compiled = graph.compile(
-  checkpointer:,
-  interrupt_before: [:search]  # require human confirmation before search
-)
-
-begin
-  result = compiled.invoke(
-    { query: "What are the new features in Ruby 3.3?" },
-    config: { thread_id: "user_123" }
-  )
-rescue Phronomy::Interrupt => e
-  puts "Confirm: about to execute #{e.node}. Continue? (y/n)"
-  if gets.chomp == 'y'
-    result = compiled.resume(thread_id: "user_123")
-  end
-end
+result = app.invoke({ query: "What are the new features in Ruby 3.4?" })
+puts result.answer
 ```
 
 ---
@@ -637,13 +429,13 @@ puts result[:output]
 
 ### 3.2 ReAct Agent (Thought → Action → Observation loop)
 
-Implemented as a Graph node, driven by the Graph execution engine.
+Implemented as a Workflow node, driven by WorkflowRunner.
 
 ```ruby
 module Phronomy
   module Agent
     # ReAct pattern: Reasoning + Acting loop
-    # Used as a node inside a Graph, or standalone
+    # Used as a node inside a Workflow, or standalone
     class ReactAgent < Base
       def invoke(input, config: {})
         max_iter = self.class.max_iterations
@@ -797,120 +589,90 @@ end
 
 ---
 
-## 5. Checkpointer Component
+## 5. StateStore Component
 
-### 5.1 Checkpointer Interface
+`StateStore` provides pluggable persistence for workflow thread state.
+
+### 5.1 StateStore Interface
 
 ```ruby
 module Phronomy
-  module Checkpointer
-    Checkpoint = Struct.new(:thread_id, :state, :completed_node, :interrupted_at,
-                            :created_at, keyword_init: true)
-    
+  module StateStore
     class Base
-      def save(thread_id, state, completed_node: nil, interrupted_at: nil)
-        raise NotImplementedError
-      end
-      
-      def load(thread_id)
-        raise NotImplementedError
-      end
-      
-      def list(thread_id)
-        raise NotImplementedError
-      end
-      
-      def delete(thread_id)
-        raise NotImplementedError
-      end
+      # Persists the state object. thread_id is read from state.thread_id.
+      # @param state [Object] object including Phronomy::WorkflowContext
+      def save(state) = raise NotImplementedError
+
+      # Loads the state for the given thread_id.
+      # @return [Object, nil]
+      def load(thread_id) = raise NotImplementedError
+
+      # Deletes the state for the given thread_id.
+      def clear(thread_id) = raise NotImplementedError
     end
-    
-    # In-memory implementation (for development and testing)
+
+    # In-memory implementation (development / testing)
     class InMemory < Base
       def initialize
         @store = {}
-        @history = Hash.new { |h, k| h[k] = [] }
+        @mutex = Mutex.new
       end
-      
-      def save(thread_id, state, completed_node: nil, interrupted_at: nil)
-        checkpoint = Checkpoint.new(
-          thread_id:,
-          state:,
-          completed_node:,
-          interrupted_at:,
-          created_at: Time.now
-        )
-        @store[thread_id] = checkpoint
-        @history[thread_id] << checkpoint
-        checkpoint
+
+      def save(state)
+        @mutex.synchronize { @store[state.thread_id] = serialize(state) }
+        self
       end
-      
+
       def load(thread_id)
-        @store[thread_id]
+        json = @mutex.synchronize { @store[thread_id] }
+        json ? deserialize(json) : nil
       end
-      
-      def list(thread_id)
-        @history[thread_id]
-      end
-      
-      def delete(thread_id)
-        @store.delete(thread_id)
-        @history.delete(thread_id)
+
+      def clear(thread_id)
+        @mutex.synchronize { @store.delete(thread_id) }
+        self
       end
     end
   end
 end
 ```
 
-### 5.2 ActiveRecord Persistence Implementation (Rails Integration)
+### 5.2 ActiveRecord Persistence
 
 ```ruby
-# migration
-# create_table :phronomy_checkpoints do |t|
-#   t.string :thread_id, null: false, index: true
-#   t.string :completed_node
-#   t.string :interrupted_at
-#   t.text :state_json, null: false
+# Migration (generated by rails generate phronomy:install)
+# create_table :phronomy_states do |t|
+#   t.string :thread_id, null: false, index: { unique: true }
+#   t.text   :state_json, null: false
 #   t.timestamps
 # end
 
-module Phronomy
-  module Checkpointer
-    class ActiveRecord < Base
-      def save(thread_id, state, completed_node: nil, interrupted_at: nil)
-        record = CheckpointRecord.find_or_initialize_by(thread_id:)
-        record.update!(
-          state_json: state.to_h.to_json,
-          completed_node:,
-          interrupted_at:
-        )
-        
-        # Also save history
-        CheckpointHistoryRecord.create!(
-          thread_id:,
-          state_json: state.to_h.to_json,
-          completed_node:,
-          interrupted_at:
-        )
-        
-        to_checkpoint(record, state)
-      end
-      
-      def load(thread_id)
-        record = CheckpointRecord.find_by(thread_id:)
-        return nil unless record
-        
-        state_hash = JSON.parse(record.state_json, symbolize_names: true)
-        Checkpoint.new(
-          thread_id:,
-          state: state_hash,  # caller restores to a State class
-          completed_node: record.completed_node&.to_sym,
-          interrupted_at: record.interrupted_at&.to_sym,
-          created_at: record.updated_at
-        )
-      end
-    end
-  end
+store = Phronomy::StateStore::ActiveRecord.new(
+  model_class: PhronmyState
+)
+
+# With encryption (ActiveSupport::MessageEncryptor)
+enc   = Phronomy::Encryptor::ActiveSupport.new(key: key)
+store = Phronomy::StateStore::ActiveRecord.new(
+  model_class: PhronmyState,
+  encryptor:   enc
+)
+```
+
+### 5.3 Redis Persistence
+
+```ruby
+store = Phronomy::StateStore::Redis.new(
+  client: Redis.new(url: ENV["REDIS_URL"]),
+  ttl:    3600   # seconds; nil = no expiry
+)
+```
+
+### 5.4 Configuration
+
+```ruby
+Phronomy.configure do |c|
+  c.default_state_store = Phronomy::StateStore::InMemory.new
 end
 ```
 
@@ -991,13 +753,23 @@ end
 result = OrchestratorAgent.new.invoke("Write a blog post about Ruby 3.4 new features")
 ```
 
-For fixed-order multi-agent pipelines, use Graph nodes directly:
+For fixed-order multi-agent pipelines, use Workflow states directly:
 
 ```ruby
-graph.add_node(:research) { |s| s.merge(research: ResearcherAgent.new.invoke(s.topic)[:output]) }
-graph.add_node(:write)    { |s| s.merge(article: WriterAgent.new.invoke(s.research)[:output]) }
-graph.add_edge(:research, :write)
-graph.add_edge(:write, Phronomy::Graph::StateGraph::FINISH)
+class PipelineContext
+  include Phronomy::WorkflowContext
+  field :topic,    type: :replace
+  field :research, type: :replace
+  field :article,  type: :replace
+end
+
+app = Phronomy::Workflow.define(PipelineContext) do
+  initial :research
+  state :research, action: ->(s) { s.merge(research: ResearcherAgent.new.invoke(s.topic)[:output]) }
+  state :write,    action: ->(s) { s.merge(article: WriterAgent.new.invoke(s.research)[:output]) }
+  after :research, to: :write
+  after :write,    to: :__finish__
+end
 ```
 
 ---

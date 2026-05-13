@@ -25,7 +25,7 @@ A record of design decisions and their rationale. Use this as a reference when r
 
 ## Decision 2: Manage state as immutable objects
 
-**Situation**: Needed to choose between mutable hashes and immutable objects for Graph state management.
+**Situation**: Needed to choose between mutable hashes and immutable objects for Workflow state management.
 
 **Choice**: Adopt a design where `State#merge` immutably returns a new object.
 
@@ -69,7 +69,7 @@ A record of design decisions and their rationale. Use this as a reference when r
 - Phase 1–2 implements sequential execution only; parallel execution is deferred to Phase 4+, keeping the initial implementation simple
 
 **Trade-offs**:
-- Graph bugs must be handled in-house
+- Workflow bugs must be handled in-house
 - Complexity of future parallel execution implementation remains
 
 ---
@@ -102,7 +102,7 @@ A record of design decisions and their rationale. Use this as a reference when r
 - `requires_approval: true` is required for irreversible operations (delete, send) and must be documented clearly
 
 **Risk mitigation**:
-- Tools with `requires_approval: true` are automatically added to `interrupt_before` in the Graph
+- Tools with `requires_approval: true` trigger a `wait_state` halt in the Workflow before execution
 - Shell-execution tools are not provided by the framework; users must implement them explicitly
 - Include the OWASP Top 10 checklist in the implementation guidelines
 

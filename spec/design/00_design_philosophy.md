@@ -13,13 +13,13 @@ Currently, the Ruby/Rails ecosystem lacks a framework that provides the followin
 | Feature | Python Options | Ruby Status |
 |---|---|---|
 | LLM Abstraction | LangChain Core, LiteLLM | RubyLLM (available) |
-| Chain Composition | LangChain LCEL | **none** |
-| State Graph Execution | LangGraph StateGraph | **none** |
-| Checkpoint Persistence | LangGraph Checkpoint | **none** |
-| Multi-agent Coordination | CrewAI / LangGraph | **none** |
-| Conversation Memory | LangChain Memory, mem0 | partial (RubyLLM AR) |
-| Human-in-the-Loop | LangGraph interrupt | **none** |
-| Observability / Tracing | LangSmith, Langfuse | **none** |
+| Chain Composition | LangChain LCEL | **implemented** (`Chain`) |
+| State Graph Execution | LangGraph StateGraph | **implemented** (`Workflow` DSL + `WorkflowRunner`) |
+| Checkpoint Persistence | LangGraph Checkpoint | **implemented** (`StateStore`) |
+| Multi-agent Coordination | CrewAI / LangGraph | **implemented** (`Agent`, handoff) |
+| Conversation Memory | LangChain Memory, mem0 | **implemented** (`Memory`) |
+| Human-in-the-Loop | LangGraph interrupt | **implemented** (`wait_state` + `send_event`) |
+| Observability / Tracing | LangSmith, Langfuse | **implemented** (`Tracer`, Langfuse) |
 
 ---
 
@@ -33,8 +33,8 @@ Rather than a direct translation of Python frameworks, this framework is redesig
 
 - **Level 0**: Simple chat and tool calls where RubyLLM alone is sufficient
 - **Level 1**: Compose prompt → LLM → parser pipelines with Phronomy's Chain
-- **Level 2**: Define multi-step workflows and agent loops with Graph
-- **Level 3**: Add state persistence and suspend/resume with Memory/Checkpointer
+- **Level 2**: Define multi-step workflows and agent loops with Workflow
+- **Level 3**: Add state persistence and suspend/resume with Memory/StateStore
 - **Level 4**: Coordinate multiple agents with Multi-agent
 
 Each level can be adopted independently, so there is no need to introduce the entire framework at once.
@@ -59,9 +59,9 @@ The core depends only on RubyLLM and the Ruby standard library. Optional feature
 
 - **Chain**: A composable pipeline of prompt template → LLM → output parser
 - **Agent**: A reusable execution unit with tools, instructions, and LLM settings
-- **Graph**: A state-based agent workflow defined as a directed graph
+- **Workflow**: A state-based agent workflow defined via a statechart DSL (`Phronomy::Workflow`)
 - **Memory**: Conversation history management (short-term and long-term), context window management
-- **Checkpointer**: Persistence, suspension, and resumption of graph execution state
+- **StateStore**: Persistence, suspension, and resumption of workflow execution state
 - **Tool**: Function definitions callable from LLM (extends RubyLLM's Tool)
 - **Guardrail**: Input/output validation and constraints
 - **Tracer**: Execution trace collection and output
@@ -81,7 +81,7 @@ The core depends only on RubyLLM and the Ruby standard library. Optional feature
 | OSS | Concepts Referenced | Corresponding Component |
 |---|---|---|
 | LangChain Core | Runnable / LCEL chain composition | Chain component |
-| LangGraph | StateGraph, Pregel execution, Checkpoint | Graph / Checkpointer components |
+| LangGraph | StateGraph, Pregel execution, Checkpoint | `Workflow` DSL / `WorkflowRunner` / `StateStore` components |
 | CrewAI | Agent role-separation model (Crew/Task dropped; Agent-as-Tool adopted instead) | Agent component |
 | OpenAI Agents SDK | Handoff, Guardrail, Tracing | Handoff / Guardrail / Tracer |
 | RubyLLM | LLM abstraction, Tool, Rails integration | Used as the LLM abstraction layer |

@@ -13,14 +13,14 @@ end
 
 # State class for testing
 class StoreTestState
-  include Phronomy::Graph::State
+  include Phronomy::WorkflowContext
 
   field :value, type: :replace, default: 0
 end
 
-def make_state(value:, thread_id: "t1", current_nodes: [], halted_before: false)
+def make_state(value:, thread_id: "t1", phase: :__end__)
   s = StoreTestState.new(value: value)
-  s.set_graph_metadata(thread_id: thread_id, current_nodes: current_nodes, halted_before: halted_before)
+  s.set_graph_metadata(thread_id: thread_id, phase: phase)
   s
 end
 
@@ -57,12 +57,12 @@ RSpec.describe Phronomy::StateStore::InMemory do
       expect(store.load("mythread").thread_id).to eq("mythread")
     end
 
-    it "preserves current_nodes in loaded state" do
-      state = make_state(value: 1, thread_id: "t1", current_nodes: [:send], halted_before: true)
+    it "preserves phase in loaded state" do
+      state = make_state(value: 1, thread_id: "t1", phase: :awaiting_send)
       store.save(state)
       loaded = store.load("t1")
-      expect(loaded.current_nodes).to eq([:send])
-      expect(loaded.halted_before).to be(true)
+      expect(loaded.phase).to eq(:awaiting_send)
+      expect(loaded.halted?).to be(true)
     end
 
     it "save returns self for chaining" do
@@ -154,26 +154,26 @@ RSpec.describe Phronomy::StateStore::InMemory do
   end
 end
 
-RSpec.describe "Phronomy::Graph class registry" do
-  after { Phronomy::Graph.reset_state_class_registry! }
+RSpec.describe "Phronomy WorkflowContext registry" do
+  after { Phronomy.reset_workflow_context_registry! }
 
-  describe ".register_state_class" do
+  describe ".register_workflow_context" do
     it "adds the class to the registry keyed by name" do
-      Phronomy::Graph.register_state_class(StoreTestState)
-      expect(Phronomy::Graph.state_class_registry[StoreTestState.name]).to eq(StoreTestState)
+      Phronomy.register_workflow_context(StoreTestState)
+      expect(Phronomy.workflow_context_registry[StoreTestState.name]).to eq(StoreTestState)
     end
 
     it "accepts multiple classes at once" do
-      Phronomy::Graph.register_state_class(StoreTestState, StoreTestState)
-      expect(Phronomy::Graph.state_class_registry).to have_key(StoreTestState.name)
+      Phronomy.register_workflow_context(StoreTestState, StoreTestState)
+      expect(Phronomy.workflow_context_registry).to have_key(StoreTestState.name)
     end
   end
 
-  describe ".reset_state_class_registry!" do
+  describe ".reset_workflow_context_registry!" do
     it "clears the registry back to nil" do
-      Phronomy::Graph.register_state_class(StoreTestState)
-      Phronomy::Graph.reset_state_class_registry!
-      expect(Phronomy::Graph.state_class_registry).to be_nil
+      Phronomy.register_workflow_context(StoreTestState)
+      Phronomy.reset_workflow_context_registry!
+      expect(Phronomy.workflow_context_registry).to be_nil
     end
   end
 
@@ -181,28 +181,41 @@ RSpec.describe "Phronomy::Graph class registry" do
     let(:store_instance) { Phronomy::StateStore::InMemory.new }
 
     it "allows a registered class" do
-      Phronomy::Graph.register_state_class(StoreTestState)
+      Phronomy.register_workflow_context(StoreTestState)
       klass = store_instance.send(:safe_state_class, StoreTestState.name)
       expect(klass).to eq(StoreTestState)
     end
 
     it "raises ArgumentError for an unregistered class when registry is present" do
-      Phronomy::Graph.register_state_class(StoreTestState)
+      Phronomy.register_workflow_context(StoreTestState)
       expect {
         store_instance.send(:safe_state_class, "UnregisteredClass")
-      }.to raise_error(ArgumentError, /Unregistered state class/)
+      }.to raise_error(ArgumentError, /Unregistered context class/)
     end
   end
 end
 
-RSpec.describe "CompiledGraph and StateStore integration" do
-  def build_compiled
-    g = Phronomy::Graph::StateGraph.new(StoreTestState)
-    g.add_node(:step1) { |s| {value: s.value + 10} }
-    g.add_node(:step2) { |s| {value: s.value + 1} }
-    g.add_edge(:step1, :step2)
-    g.set_entry_point(:step1)
-    g.compile
+RSpec.describe "Workflow and StateStore integration" do
+  def build_workflow
+    Phronomy::Workflow.define(StoreTestState) do
+      initial :step1
+      state :step1, action: ->(s) { s.merge(value: s.value + 10) }
+      state :step2, action: ->(s) { s.merge(value: s.value + 1) }
+      after :step1, to: :step2
+      after :step2, to: :__finish__
+    end
+  end
+
+  def build_workflow_with_wait
+    Phronomy::Workflow.define(StoreTestState) do
+      initial :step1
+      state :step1, action: ->(s) { s.merge(value: s.value + 10) }
+      wait_state :awaiting_step2
+      state :step2, action: ->(s) { s.merge(value: s.value + 1) }
+      after :step1, to: :awaiting_step2
+      after :step2, to: :__finish__
+      event :resume, from: :awaiting_step2, to: :step2
+    end
   end
 
   around do |example|
@@ -212,37 +225,35 @@ RSpec.describe "CompiledGraph and StateStore integration" do
   end
 
   it "saves final state to store after normal completion" do
-    compiled = build_compiled
-    result = compiled.invoke({value: 0})
+    runner = build_workflow
+    result = runner.invoke({value: 0})
     store = Phronomy.configuration.default_state_store
     saved = store.load(result.thread_id)
     expect(saved).not_to be_nil
     expect(saved.value).to eq(11)
   end
 
-  it "saves halted state to store on interrupt_before" do
-    compiled = build_compiled
-    compiled.interrupt_before(:step2) { |_s| :halt }
-    halted = compiled.invoke({value: 0})
+  it "saves halted state to store on wait_state" do
+    runner = build_workflow_with_wait
+    halted = runner.invoke({value: 0})
 
     store = Phronomy.configuration.default_state_store
     saved = store.load(halted.thread_id)
-    expect(saved.current_nodes).to eq([:step2])
-    expect(saved.halted_before).to be(true)
+    expect(saved.halted?).to be(true)
+    expect(saved.phase).to eq(:awaiting_step2)
   end
 
   it "resumes and completes, then stores final state" do
-    compiled = build_compiled
-    compiled.interrupt_before(:step2) { |_s| :halt }
-    halted = compiled.invoke({value: 0})
+    runner = build_workflow_with_wait
+    halted = runner.invoke({value: 0})
 
-    final = compiled.resume(state: halted)
+    final = runner.send_event(state: halted, event: :resume)
     expect(final.value).to eq(11)
-    expect(final.current_nodes).to eq([])
+    expect(final.halted?).to be(false)
   end
 end
 
-RSpec.describe "CompiledGraph and StateStore::ActiveRecord: true cross-process interrupt and resume" do
+RSpec.describe "Workflow and StateStore::ActiveRecord: true cross-process wait and resume" do
   before { skip "ActiveRecord not available" unless ACTIVE_RECORD_AVAILABLE }
   # Returns the phronomy/ gem root directory (two levels up from spec/phronomy/).
   def gem_root
@@ -250,7 +261,7 @@ RSpec.describe "CompiledGraph and StateStore::ActiveRecord: true cross-process i
   end
 
   # Ruby script run in a real subprocess (Process 2).
-  # It reads the halted state from the file DB and resumes the graph.
+  # It reads the halted state from the file DB and resumes the workflow.
   def subprocess_script(db_path, result_path)
     <<~RUBY
       # frozen_string_literal: true
@@ -259,7 +270,10 @@ RSpec.describe "CompiledGraph and StateStore::ActiveRecord: true cross-process i
       require "active_record"
       require "json"
 
-      ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: #{db_path.inspect})
+      db_path   = ARGV[0]
+      result_path = ARGV[1]
+
+      ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: db_path)
 
       class PhronomyXprocModel < ActiveRecord::Base
         self.table_name = "phronomy_xproc_states"
@@ -267,28 +281,31 @@ RSpec.describe "CompiledGraph and StateStore::ActiveRecord: true cross-process i
 
       # Must match the class name embedded by serialize_state in Process 1.
       class StoreTestState
-        include Phronomy::Graph::State
+        include Phronomy::WorkflowContext
         field :value, type: :replace, default: 0
       end
 
       store = Phronomy::StateStore::ActiveRecord.new(model_class: PhronomyXprocModel)
+      Phronomy.configure { |c| c.default_state_store = store }
       loaded = store.load("xproc-test")
       raise "State not found in DB" if loaded.nil?
 
-      graph = Phronomy::Graph::StateGraph.new(StoreTestState)
-      graph.add_node(:step1) { |s| {value: s.value + 10} }
-      graph.add_node(:step2) { |s| {value: s.value + 1} }
-      graph.set_entry_point(:step1)
-      graph.add_edge(:step1, :step2)
-      graph.add_edge(:step2, Phronomy::Graph::StateGraph::FINISH)
-      app = graph.compile
+      workflow = Phronomy::Workflow.define(StoreTestState) do
+        initial :step1
+        state :step1, action: ->(s) { s.merge(value: s.value + 10) }
+        wait_state :awaiting_step2
+        state :step2, action: ->(s) { s.merge(value: s.value + 1) }
+        after :step1, to: :awaiting_step2
+        after :step2, to: :__finish__
+        event :resume, from: :awaiting_step2, to: :step2
+      end
 
-      final = app.resume(state: loaded)
-      File.write(#{result_path.inspect}, JSON.generate({value: final.value, current_nodes: final.current_nodes}))
+      final = workflow.send_event(state: loaded, event: :resume)
+      File.write(result_path, JSON.generate({value: final.value, halted: final.halted?}))
     RUBY
   end
 
-  it "halts mid-graph, persists state to a file DB, and a real subprocess resumes it" do
+  it "halts mid-workflow, persists state to a file DB, and a real subprocess resumes it" do
     db_file = result_file = script_file = nil
 
     db_file = Tempfile.new(["phronomy_state_xproc", ".db"])
@@ -305,7 +322,7 @@ RSpec.describe "CompiledGraph and StateStore::ActiveRecord: true cross-process i
     script_file.flush
     script_file.close
 
-    # --- Process 1: run graph until halt, write state to file-based SQLite ---
+    # --- Process 1: run workflow until wait_state, write state to file-based SQLite ---
     # Use an isolated abstract AR base so the :memory: connection is unaffected.
     xproc_base = Class.new(ActiveRecord::Base) { self.abstract_class = true }
     Object.const_set(:PhronomyXprocBase, xproc_base)
@@ -323,18 +340,19 @@ RSpec.describe "CompiledGraph and StateStore::ActiveRecord: true cross-process i
     store = Phronomy::StateStore::ActiveRecord.new(model_class: PhronomyXprocModel)
     Phronomy.configure { |c| c.default_state_store = store }
 
-    graph = Phronomy::Graph::StateGraph.new(StoreTestState)
-    graph.add_node(:step1) { |s| {value: s.value + 10} }
-    graph.add_node(:step2) { |s| {value: s.value + 1} }
-    graph.set_entry_point(:step1)
-    graph.add_edge(:step1, :step2)
-    graph.add_edge(:step2, Phronomy::Graph::StateGraph::FINISH)
-    app = graph.compile
-    app.interrupt_before(:step2) { |_s| :halt }
+    workflow = Phronomy::Workflow.define(StoreTestState) do
+      initial :step1
+      state :step1, action: ->(s) { s.merge(value: s.value + 10) }
+      wait_state :awaiting_step2
+      state :step2, action: ->(s) { s.merge(value: s.value + 1) }
+      after :step1, to: :awaiting_step2
+      after :step2, to: :__finish__
+      event :resume, from: :awaiting_step2, to: :step2
+    end
 
-    halted = app.invoke({value: 0}, config: {thread_id: "xproc-test"})
-    expect(halted.current_nodes).to eq([:step2])
-    expect(halted.halted_before).to be(true)
+    halted = workflow.invoke({value: 0}, config: {thread_id: "xproc-test"})
+    expect(halted.halted?).to be(true)
+    expect(halted.phase).to eq(:awaiting_step2)
     expect(halted.value).to eq(10)
 
     # Confirm the record was physically written to the file DB.
@@ -343,7 +361,7 @@ RSpec.describe "CompiledGraph and StateStore::ActiveRecord: true cross-process i
     # --- Process 2: a real subprocess reads from the same file DB and resumes ---
     stdout, stderr, status = Open3.capture3(
       {"BUNDLE_GEMFILE" => File.join(gem_root, "Gemfile")},
-      "bundle", "exec", "ruby", script_path,
+      "bundle", "exec", "ruby", script_path, db_path, result_path,
       chdir: gem_root
     )
     expect(status.exitstatus).to eq(0),
@@ -351,7 +369,7 @@ RSpec.describe "CompiledGraph and StateStore::ActiveRecord: true cross-process i
 
     result = JSON.parse(File.read(result_path))
     expect(result["value"]).to eq(11)
-    expect(result["current_nodes"]).to be_empty
+    expect(result["halted"]).to be(false)
   ensure
     Phronomy.reset_configuration!
     Object.send(:remove_const, :PhronomyXprocModel) if Object.const_defined?(:PhronomyXprocModel)

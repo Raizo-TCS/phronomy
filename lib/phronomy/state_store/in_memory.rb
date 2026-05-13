@@ -12,7 +12,7 @@ module Phronomy
       def initialize
       end
 
-      # @param state [Object] includes Phronomy::Graph::State; must have a non-nil thread_id
+      # @param state [Object] includes Phronomy::WorkflowContext; must have a non-nil thread_id
       # @return [self]
       def save(state)
         store_id = object_id

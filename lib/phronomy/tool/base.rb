@@ -58,7 +58,7 @@ module Phronomy
         end
 
         # Sets the access scope for this tool (metadata; enforcement is the responsibility of
-        # the Graph/Guardrail layer).
+        # the Workflow/Guardrail layer).
         # @param value [Symbol] e.g. :read_only, :write, :admin
         def scope(value = nil)
           return @scope if value.nil?

@@ -72,7 +72,7 @@ RSpec.describe Phronomy::StateStore::ActiveRecord do
 
   let(:state_class) do
     Class.new do
-      include Phronomy::Graph::State
+      include Phronomy::WorkflowContext
 
       field :value, type: :replace, default: -> {}
     end
@@ -87,7 +87,7 @@ RSpec.describe Phronomy::StateStore::ActiveRecord do
 
     it "stores the encrypted payload (not raw JSON)" do
       state = state_class.new(value: "secret")
-      state.set_graph_metadata(thread_id: "t1", current_nodes: [], halted_before: false)
+      state.set_graph_metadata(thread_id: "t1")
       store.save(state)
       raw = model_class.find_by(thread_id: "t1").state_json
       expect(raw).not_to include('"secret"')
@@ -96,7 +96,7 @@ RSpec.describe Phronomy::StateStore::ActiveRecord do
 
     it "round-trips save and load through the encryptor" do
       state = state_class.new(value: "round_trip")
-      state.set_graph_metadata(thread_id: "t2", current_nodes: [], halted_before: false)
+      state.set_graph_metadata(thread_id: "t2")
       store.save(state)
       loaded = store.load("t2")
       expect(loaded.value).to eq("round_trip")
@@ -104,11 +104,12 @@ RSpec.describe Phronomy::StateStore::ActiveRecord do
 
     it "preserves thread_id and graph metadata through the encryptor" do
       state = state_class.new(value: "x")
-      state.set_graph_metadata(thread_id: "t3", current_nodes: [:node_a], halted_before: true)
+      state.set_graph_metadata(thread_id: "t3", phase: :awaiting_node_a)
       store.save(state)
       loaded = store.load("t3")
       expect(loaded.thread_id).to eq("t3")
-      expect(loaded.halted_before).to be true
+      expect(loaded.halted?).to be true
+      expect(loaded.phase).to eq(:awaiting_node_a)
     end
   end
 
@@ -117,7 +118,7 @@ RSpec.describe Phronomy::StateStore::ActiveRecord do
 
     it "stores raw JSON without encryption" do
       state = state_class.new(value: "plain")
-      state.set_graph_metadata(thread_id: "t4", current_nodes: [], halted_before: false)
+      state.set_graph_metadata(thread_id: "t4")
       store.save(state)
       raw = model_class.find_by(thread_id: "t4").state_json
       expect(raw).to include('"plain"')
@@ -125,7 +126,7 @@ RSpec.describe Phronomy::StateStore::ActiveRecord do
 
     it "round-trips save and load" do
       state = state_class.new(value: "hello")
-      state.set_graph_metadata(thread_id: "t5", current_nodes: [], halted_before: false)
+      state.set_graph_metadata(thread_id: "t5")
       store.save(state)
       loaded = store.load("t5")
       expect(loaded.value).to eq("hello")
@@ -133,11 +134,11 @@ RSpec.describe Phronomy::StateStore::ActiveRecord do
 
     it "upserts: overwriting the same thread_id updates rather than duplicates (S03)" do
       state1 = state_class.new(value: "first")
-      state1.set_graph_metadata(thread_id: "t_upsert", current_nodes: [], halted_before: false)
+      state1.set_graph_metadata(thread_id: "t_upsert")
       store.save(state1)
 
       state2 = state_class.new(value: "second")
-      state2.set_graph_metadata(thread_id: "t_upsert", current_nodes: [], halted_before: false)
+      state2.set_graph_metadata(thread_id: "t_upsert")
       store.save(state2)
 
       loaded = store.load("t_upsert")

@@ -56,7 +56,7 @@ module Phronomy
     # Internal graph state — not part of the public API.
     # @private
     class PipelineState
-      include Phronomy::Graph::State
+      include Phronomy::WorkflowContext
 
       field :input, type: :replace, default: -> { "" }
       field :draft, type: :replace, default: -> {}
@@ -118,61 +118,58 @@ module Phronomy
       [(state.self_score || 0.0).to_f, (state.review_score || 0.0).to_f].min
     end
 
-    # Returns the compiled graph, building and caching it on first call.
+    # Returns the compiled workflow, building and caching it on first call.
     def compiled_graph
-      @actor.call { @compiled_graph ||= build_graph.compile }
+      @actor.call { @compiled_graph ||= build_workflow }
     end
 
-    def build_graph
+    def build_workflow
       draft_agent = @draft_agent_class.new
       review_agent = @review_agent_class.new
       threshold = @threshold
       max_iter = @max_iterations
+      pipeline = self
 
-      graph = Phronomy::Graph::StateGraph.new(PipelineState)
+      Phronomy::Workflow.define(PipelineState) do
+        initial :draft
 
-      graph.add_node(:draft) do |state|
-        feedback = state.review_notes.last
-        prompt = draft_prompt(state.input, feedback)
-        result = draft_agent.invoke(prompt)
-        parsed = safe_parse_draft(result[:output])
-        state.merge(
-          draft: parsed[:answer].to_s,
-          self_score: clamp(parsed[:confidence]),
-          citations: normalize_citations(parsed[:citations]),
-          iteration: state.iteration + 1
-        )
-      end
-
-      graph.add_node(:review) do |state|
-        prompt = review_prompt(state.input, state.draft, state.citations)
-        result = review_agent.invoke(prompt)
-        parsed = safe_parse_review(result[:output])
-        state.merge(
-          review_score: clamp(parsed[:score]),
-          approved: parsed[:approved] == true,
-          review_notes: parsed[:feedback].to_s
-        )
-      end
-
-      graph.add_node(:finalize) do |state|
-        state.merge(output: state.draft)
-      end
-
-      graph.set_entry_point(:draft)
-      graph.add_edge(:draft, :review)
-      graph.add_conditional_edges(
-        :review,
-        ->(state) {
-          confidence = [state.self_score || 0.0, state.review_score || 0.0].min
-          passed = confidence >= threshold && state.approved
-          exhausted = state.iteration >= max_iter
-          (passed || exhausted) ? :finalize : :draft
+        state :draft, action: ->(state) {
+          feedback = state.review_notes.last
+          prompt = pipeline.__send__(:draft_prompt, state.input, feedback)
+          result = draft_agent.invoke(prompt)
+          parsed = pipeline.__send__(:safe_parse_draft, result[:output])
+          state.merge(
+            draft: parsed[:answer].to_s,
+            self_score: pipeline.__send__(:clamp, parsed[:confidence]),
+            citations: pipeline.__send__(:normalize_citations, parsed[:citations]),
+            iteration: state.iteration + 1
+          )
         }
-      )
-      graph.add_edge(:finalize, Phronomy::Graph::StateGraph::FINISH)
 
-      graph
+        state :review, action: ->(state) {
+          prompt = pipeline.__send__(:review_prompt, state.input, state.draft, state.citations)
+          result = review_agent.invoke(prompt)
+          parsed = pipeline.__send__(:safe_parse_review, result[:output])
+          state.merge(
+            review_score: pipeline.__send__(:clamp, parsed[:score]),
+            approved: parsed[:approved] == true,
+            review_notes: parsed[:feedback].to_s
+          )
+        }
+
+        state :finalize, action: ->(state) { state.merge(output: state.draft) }
+
+        after :draft, to: :review
+        after :finalize, to: :__finish__
+
+        event :route_review, from: :review,
+          guard: ->(state) {
+            confidence = [state.self_score || 0.0, state.review_score || 0.0].min
+            (confidence >= threshold && state.approved) || state.iteration >= max_iter
+          },
+          to: :finalize
+        event :route_review, from: :review, to: :draft
+      end
     end
 
     # Wraps +input+ with the configured delimiter pair when +input_delimiter+ is set.
