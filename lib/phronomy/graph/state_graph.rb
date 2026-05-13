@@ -10,7 +10,7 @@ module Phronomy
 
       attr_reader :nodes, :edges, :entry_point
 
-      # @param state_class [Class] class that includes Phronomy::Graph::State
+      # @param state_class [Class] class that includes Phronomy::Graph::Context
       def initialize(state_class)
         @state_class = state_class
         @nodes = {}
@@ -19,6 +19,7 @@ module Phronomy
         @entry_point = nil
         @before_callbacks = {}
         @after_callbacks = {}
+        @wait_states = {}
       end
 
       # Adds a node.
@@ -83,6 +84,26 @@ module Phronomy
         self
       end
 
+      # Declares a named wait state that automatically halts execution when reached.
+      # The graph edge from +after:+ to this wait state is added automatically.
+      # To resume, call either +compiled.resume(state:)+ (generic) or
+      # +compiled.send_event(state:, event: resume_event)+ (event-typed).
+      #
+      # Convention: name the wait state +:awaiting_<before_node>+ so that
+      # +state.phase+ reflects the intent (e.g. +:awaiting_run_checks+).
+      #
+      # @param name [Symbol] wait state identifier (e.g. :awaiting_run_checks)
+      # @param resume_event [Symbol] event name accepted by #send_event
+      # @param after [Symbol] node that flows into this wait state
+      # @param before [Symbol] node to execute after the wait state is resolved
+      # @return [self]
+      def add_wait_state(name, resume_event:, after:, before:)
+        name = name.to_sym
+        @wait_states[name] = {resume_event: resume_event.to_sym, resume_to: before.to_sym}
+        add_edge(after, name)
+        self
+      end
+
       # Adds a parallel node that executes multiple branches concurrently.
       # Each branch callable receives the current state and must return a Hash or nil.
       # Results are merged in registration order (see ParallelNode for merge policy).
@@ -139,6 +160,7 @@ module Phronomy
           entry_point: @entry_point || @nodes.keys.first,
           before_callbacks: @before_callbacks.dup,
           after_callbacks: @after_callbacks.dup,
+          wait_states: @wait_states.dup,
           state_store: state_store
         )
       end

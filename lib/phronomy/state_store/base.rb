@@ -36,11 +36,15 @@ module Phronomy
 
       # Serializes a state object to a JSON string.
       # Includes user-defined fields and internal graph metadata.
+      # The +phase+ key is derived from current_nodes and halted_before and
+      # is included for informational purposes; deserialization uses
+      # current_nodes and halted_before directly for backward compatibility.
       def serialize_state(state)
         JSON.generate(
           state_class: state.class.name,
           state_data: json_safe(state.to_h),
           thread_id: state.thread_id,
+          phase: state.phase&.to_s,
           current_nodes: state.current_nodes&.map(&:to_s),
           halted_before: state.halted_before
         )

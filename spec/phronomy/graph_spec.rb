@@ -115,6 +115,72 @@ RSpec.describe Phronomy::Graph::Context do
       expect(s.current_nodes).to eq([])
       expect(s.halted_before).to be(false)
     end
+
+    it "accepts phase: to set phase directly (derives current_nodes/halted_before)" do
+      s = TestState.new
+      s.set_graph_metadata(thread_id: "t", phase: :awaiting_foo)
+      expect(s.phase).to eq(:awaiting_foo)
+      expect(s.current_nodes).to eq([:foo])
+      expect(s.halted_before).to be(true)
+    end
+
+    it "phase: :__end__ clears current_nodes" do
+      s = TestState.new
+      s.set_graph_metadata(thread_id: "t", phase: :__end__)
+      expect(s.phase).to eq(:__end__)
+      expect(s.current_nodes).to eq([])
+      expect(s.halted_before).to be(false)
+    end
+
+    it "phase: :some_node sets current_nodes and halted_before false" do
+      s = TestState.new
+      s.set_graph_metadata(thread_id: "t", phase: :some_node)
+      expect(s.phase).to eq(:some_node)
+      expect(s.current_nodes).to eq([:some_node])
+      expect(s.halted_before).to be(false)
+    end
+  end
+
+  describe "#phase" do
+    it "returns :__end__ for a fresh state" do
+      expect(TestState.new.phase).to eq(:__end__)
+    end
+
+    it "returns :awaiting_node when halted_before is true" do
+      s = TestState.new
+      s.set_graph_metadata(thread_id: "t", current_nodes: [:run_checks], halted_before: true)
+      expect(s.phase).to eq(:awaiting_run_checks)
+    end
+
+    it "returns the node name when halted_before is false (interrupt_after style)" do
+      s = TestState.new
+      s.set_graph_metadata(thread_id: "t", current_nodes: [:run_checks], halted_before: false)
+      expect(s.phase).to eq(:run_checks)
+    end
+
+    it "returns the wait state name when stored as-is in current_nodes" do
+      s = TestState.new
+      s.set_graph_metadata(thread_id: "t", current_nodes: [:awaiting_approval], halted_before: false)
+      expect(s.phase).to eq(:awaiting_approval)
+    end
+  end
+
+  describe "#halted?" do
+    it "returns false for a fresh (unstarted) state" do
+      expect(TestState.new.halted?).to be(false)
+    end
+
+    it "returns true when current_nodes is non-empty" do
+      s = TestState.new
+      s.set_graph_metadata(thread_id: "t", current_nodes: [:foo], halted_before: true)
+      expect(s.halted?).to be(true)
+    end
+
+    it "returns false when current_nodes is empty (completed)" do
+      s = TestState.new
+      s.set_graph_metadata(thread_id: "t", current_nodes: [], halted_before: false)
+      expect(s.halted?).to be(false)
+    end
   end
 
   describe "#merge preserves internal graph metadata" do
@@ -547,6 +613,42 @@ RSpec.describe Phronomy::Graph::CompiledGraph do
     end
   end
 
+  describe "#send_event" do
+    let(:compiled) do
+      build_graph do |g|
+        g.add_node(:propose) { |s| {value: "proposed"} }
+        g.add_node(:run) { |s| {value: s.value + "_run"} }
+        g.set_entry_point(:propose)
+        g.add_wait_state(:awaiting_run, resume_event: :approve, after: :propose, before: :run)
+        g.add_edge(:run, Phronomy::Graph::StateGraph::FINISH)
+      end
+    end
+
+    it "resumes from the wait state and completes the graph" do
+      halted = compiled.invoke({})
+      expect(halted.phase).to eq(:awaiting_run)
+      expect(halted.halted?).to be(true)
+
+      final = compiled.send_event(state: halted, event: :approve)
+      expect(final.value).to eq("proposed_run")
+      expect(final.halted?).to be(false)
+      expect(final.phase).to eq(:__end__)
+    end
+
+    it "passes optional input to the resumed execution" do
+      halted = compiled.invoke({})
+      final = compiled.send_event(state: halted, event: :approve, input: {value: "override"})
+      expect(final.value).to eq("override_run")
+    end
+
+    it "raises ArgumentError for an unknown event" do
+      halted = compiled.invoke({})
+      expect {
+        compiled.send_event(state: halted, event: :nonexistent)
+      }.to raise_error(ArgumentError, /Unknown event/)
+    end
+  end
+
   describe "#stream" do
     it "yields a { node:, state: } event after each node completes" do
       compiled = build_graph do |g|
@@ -561,6 +663,26 @@ RSpec.describe Phronomy::Graph::CompiledGraph do
 
       expect(events.map { |e| e[:node] }).to eq([:a, :b])
       expect(events.last[:state].value).to eq(2)
+    end
+  end
+
+  describe "#add_wait_state" do
+    let(:graph) { Phronomy::Graph::StateGraph.new(TestState) }
+
+    it "adds a wait state and registers the edge from after: to the wait state" do
+      graph.add_node(:propose) { |s| s }
+      graph.add_node(:run) { |s| s }
+      graph.add_wait_state(:awaiting_run, resume_event: :approve, after: :propose, before: :run)
+      graph.set_entry_point(:propose)
+
+      expect(graph.edges[:propose].map { |e| e[:to] }).to include(:awaiting_run)
+    end
+
+    it "returns self for chaining" do
+      graph.add_node(:a) { |s| s }
+      graph.add_node(:b) { |s| s }
+      result = graph.add_wait_state(:awaiting_b, resume_event: :go, after: :a, before: :b)
+      expect(result).to be(graph)
     end
   end
 
