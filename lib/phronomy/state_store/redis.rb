@@ -33,7 +33,7 @@ module Phronomy
         @ttl = ttl
       end
 
-      # @param state [Object] includes Phronomy::Graph::Context
+      # @param state [Object] includes Phronomy::WorkflowContext
       # @return [self]
       def save(state)
         serialized = serialize_state(state)

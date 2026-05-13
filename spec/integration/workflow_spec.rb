@@ -16,7 +16,7 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
   # ---------------------------------------------------------------------------
 
   class WorkflowTestContext
-    include Phronomy::Graph::Context
+    include Phronomy::WorkflowContext
 
     field :value, type: :replace, default: ""
     field :score, type: :replace, default: 0

@@ -38,7 +38,7 @@ module Phronomy
       end
 
       # Serializes and upserts the state for the given thread_id.
-      # @param state [Object] includes Phronomy::Graph::Context
+      # @param state [Object] includes Phronomy::WorkflowContext
       # @return [self]
       def save(state)
         json = serialize_state(state)

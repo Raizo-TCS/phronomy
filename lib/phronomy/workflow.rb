@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require_relative "graph/workflow_runner"
+require_relative "workflow_runner"
 require_relative "runnable"
 
 module Phronomy
   # StateChart-style workflow definition DSL.
   #
-  # Provides a higher-level alternative to Phronomy::Graph::StateGraph.
-  # Users describe workflows in terms of *states* and *events* rather than
-  # nodes and edges.
+  # Defines agent workflows in terms of *states* and *events* backed by
+  # Phronomy::WorkflowRunner. This is the primary high-level API
+  # for graph-based execution in phronomy.
   #
   # == Basic usage
   #
@@ -52,7 +52,7 @@ module Phronomy
     include Phronomy::Runnable
 
     # Defines a new Workflow.
-    # @param context_class [Class] class that includes Phronomy::Graph::Context
+    # @param context_class [Class] class that includes Phronomy::WorkflowContext
     # @yield block evaluated in DSL context
     # @return [Phronomy::Workflow] compiled and ready-to-run workflow instance
     def self.define(context_class, &block)
@@ -61,7 +61,7 @@ module Phronomy
       builder.build
     end
 
-    # @param runner [Phronomy::Graph::WorkflowRunner]
+    # @param runner [Phronomy::WorkflowRunner]
     def initialize(runner)
       @runner = runner
     end
@@ -107,7 +107,7 @@ module Phronomy
     # DSL builder for Phronomy::Workflow.define.
     # Collects state/event/transition declarations and produces a WorkflowRunner.
     class Builder
-      FINISH = Graph::WorkflowRunner::FINISH
+      FINISH = Phronomy::WorkflowRunner::FINISH
 
       def initialize(context_class)
         @context_class = context_class
@@ -174,7 +174,7 @@ module Phronomy
         conditional_edges = build_conditional_edges
         wait_states = build_wait_states
 
-        runner = Graph::WorkflowRunner.new(
+        runner = Phronomy::WorkflowRunner.new(
           state_class: @context_class,
           nodes: nodes,
           edges: edges,

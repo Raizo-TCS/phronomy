@@ -49,10 +49,10 @@ result.review_notes # Array<String> — reviewer feedback per cycle
 
 ---
 
-## 3. Internal Graph
+## 3. Internal Workflow
 
-`TrustPipeline` uses `Phronomy::Graph::StateGraph` internally with a private
-`PipelineState` class that includes `Phronomy::Graph::State`.
+`TrustPipeline` uses `Phronomy::Workflow` internally with a private
+`PipelineContext` class that includes `Phronomy::WorkflowContext`.
 
 ### State fields
 
@@ -68,7 +68,7 @@ result.review_notes # Array<String> — reviewer feedback per cycle
 | `approved` | `:replace` | Whether the ReviewAgent approved the draft |
 | `output` | `:replace` | Final answer string |
 
-### Graph topology
+### Workflow topology
 
 ```
 :draft ──→ :review ──→ (conditional)
@@ -176,7 +176,7 @@ providing grounded, traceable answers.
 
 | Decision | Rationale |
 |----------|-----------|
-| Uses `StateGraph` internally | Consistent with phronomy's own graph runtime; loop logic is naturally expressed as a conditional edge |
+| Uses `Workflow` DSL internally | Consistent with phronomy's own graph runtime; loop logic is naturally expressed as a guarded transition |
 | `Result` is a Struct | Immutable value object; all fields accessible without mutation |
 | `min(self, review)` for confidence | Both parties must agree; prevents an agent from inflating its own score |
 | JSON output format | Structured parsing; robust to model variation |

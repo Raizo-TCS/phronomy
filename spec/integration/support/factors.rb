@@ -965,17 +965,17 @@ module IntegrationFactors
   end
 
   # ---------------------------------------------------------------------------
-  # Helpers for Group 28: Graph Wait State / Phase
+  # Helpers for Group 28: Workflow Wait State / Phase
   # ---------------------------------------------------------------------------
 
   # Builds a Workflow (node_a -> wait_state(:awaiting_node_b) -> node_b -> finish)
-  # that halts at the wait state between node_a and node_b.
+  # that halts at the wait state and resumes via the :resume event.
   #
   # The state class has a single :replace field `value` (String).
   #
-  # @param state_class [Class] a class that includes Phronomy::Graph::Context
-  # @return [Phronomy::Graph::WorkflowRunner]
-  def self.interrupt_before_graph(state_class)
+  # @param state_class [Class] a class that includes Phronomy::WorkflowContext
+  # @return [Phronomy::WorkflowRunner]
+  def self.wait_state_resume_graph(state_class)
     store = Phronomy::StateStore::InMemory.new
     Phronomy.configure { |c| c.default_state_store = store }
 
@@ -993,9 +993,9 @@ module IntegrationFactors
   # Builds a Workflow (node_a -> wait_state(:awaiting_node_b) -> node_b -> finish)
   # using a named resume event. The wait state halts between node_a and node_b.
   #
-  # @param state_class [Class] a class that includes Phronomy::Graph::Context
+  # @param state_class [Class] a class that includes Phronomy::WorkflowContext
   # @param resume_event [Symbol] event name for send_event (default :proceed)
-  # @return [Phronomy::Graph::WorkflowRunner]
+  # @return [Phronomy::WorkflowRunner]
   def self.wait_state_graph(state_class, resume_event: :proceed)
     store = Phronomy::StateStore::InMemory.new
     Phronomy.configure { |c| c.default_state_store = store }

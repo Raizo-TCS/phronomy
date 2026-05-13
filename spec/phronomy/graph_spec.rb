@@ -4,7 +4,7 @@ require "spec_helper"
 
 # --- State class for testing ---
 class TestState
-  include Phronomy::Graph::Context
+  include Phronomy::WorkflowContext
 
   field :value, type: :replace, default: 0
   field :messages, type: :append, default: -> { [] }
@@ -12,7 +12,7 @@ class TestState
   field :step, type: :replace, default: nil
 end
 
-RSpec.describe Phronomy::Graph::Context do
+RSpec.describe Phronomy::WorkflowContext do
   describe "field DSL" do
     it "defines fields as accessors" do
       s = TestState.new(value: 42)

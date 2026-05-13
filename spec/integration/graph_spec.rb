@@ -2,11 +2,11 @@
 
 require_relative "spec_helper"
 
-# Group 7: Graph (rewritten with Phronomy::Workflow DSL)
-# interrupt_before / interrupt_after replaced by wait_state.
+# Group 7: Workflow (Phronomy::Workflow DSL)
+# All halt/resume tests use wait_state + send_event (interrupt_before/interrupt_after removed).
 # Infeasible cases: R-redis TC-003,005,009,013,015; R-resume TC-006,009
 
-RSpec.describe "Group 7: Graph", :integration do
+RSpec.describe "Group 7: Workflow", :integration do
   def with_in_memory_store
     store = Phronomy::StateStore::InMemory.new
     old = Phronomy.configuration.default_state_store
@@ -25,40 +25,40 @@ RSpec.describe "Group 7: Graph", :integration do
   end
 
   class G7ReplaceState
-    include Phronomy::Graph::Context
+    include Phronomy::WorkflowContext
 
     field :value, type: :replace
     field :step, type: :replace, default: 0
   end
 
   class G7ProcDefaultState
-    include Phronomy::Graph::Context
+    include Phronomy::WorkflowContext
 
     field :value, type: :replace
     field :counter, type: :replace, default: -> { 0 }
   end
 
   class G7AppendState
-    include Phronomy::Graph::Context
+    include Phronomy::WorkflowContext
 
     field :log, type: :append, default: -> { [] }
   end
 
   class G7AppendScalarState
-    include Phronomy::Graph::Context
+    include Phronomy::WorkflowContext
 
     field :log, type: :append, default: -> { [] }
     field :count, type: :replace, default: 0
   end
 
   class G7MergeState
-    include Phronomy::Graph::Context
+    include Phronomy::WorkflowContext
 
     field :data, type: :merge, default: -> { {} }
   end
 
   class G7MergeScalarState
-    include Phronomy::Graph::Context
+    include Phronomy::WorkflowContext
 
     field :data, type: :merge, default: -> { {} }
     field :label, type: :replace, default: "initial"

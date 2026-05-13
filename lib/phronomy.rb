@@ -35,49 +35,42 @@ module Phronomy
     end
   end
 
-  # Namespace for graph-related classes (StateGraph, Context, …).
-  # Also serves as the registry for Context classes that may be serialized to
-  # external stores (Redis, DB). Call +register_context_class+ at application
-  # startup so that only known classes can be deserialized.
-  module Graph
-    @state_class_registry = nil
-    @registry_mutex = Mutex.new
-
-    class << self
-      # Register one or more Context classes that are allowed to be deserialized
-      # by StateStore backends. When at least one class is registered, only
-      # registered classes will be accepted by +StateStore::Base#safe_state_class+.
-      #
-      # Call this once at application startup (e.g. in a Rails initializer).
-      #
-      # @param classes [Array<Class>] classes including Phronomy::Graph::Context
-      # @example
-      #   Phronomy::Graph.register_context_class(ScanContext, OtherContext)
-      def register_context_class(*classes)
-        @registry_mutex.synchronize do
-          @state_class_registry ||= {}
-          classes.each do |klass|
-            raise ArgumentError, "#{klass.inspect} is not a Class" unless klass.is_a?(Class)
-            @state_class_registry[klass.name] = klass
-          end
-        end
-      end
-
-      # Returns the current registry Hash, or nil when no class has been registered.
-      # @return [Hash{String => Class}, nil]
-      attr_reader :state_class_registry
-
-      # @deprecated Use register_context_class instead.
-      alias_method :register_state_class, :register_context_class
-
-      # Clears the registry. Primarily used in tests.
-      def reset_state_class_registry!
-        @registry_mutex.synchronize { @state_class_registry = nil }
-      end
-    end
-  end
+  # Registry for WorkflowContext classes that may be serialized to external stores
+  # (Redis, DB). Call +register_workflow_context+ at application startup so that
+  # only known classes can be deserialized.
+  @workflow_context_registry = nil
+  @registry_mutex = Mutex.new
 
   class << self
+    # Register one or more WorkflowContext classes that are allowed to be
+    # deserialized by StateStore backends. When at least one class is registered,
+    # only registered classes will be accepted by
+    # +StateStore::Base#safe_state_class+.
+    #
+    # Call this once at application startup (e.g. in a Rails initializer).
+    #
+    # @param classes [Array<Class>] classes including Phronomy::WorkflowContext
+    # @example
+    #   Phronomy.register_workflow_context(ScanContext, OtherContext)
+    def register_workflow_context(*classes)
+      @registry_mutex.synchronize do
+        @workflow_context_registry ||= {}
+        classes.each do |klass|
+          raise ArgumentError, "#{klass.inspect} is not a Class" unless klass.is_a?(Class)
+          @workflow_context_registry[klass.name] = klass
+        end
+      end
+    end
+
+    # Returns the current registry Hash, or nil when no class has been registered.
+    # @return [Hash{String => Class}, nil]
+    attr_reader :workflow_context_registry
+
+    # Clears the registry. Primarily used in tests.
+    def reset_workflow_context_registry!
+      @registry_mutex.synchronize { @workflow_context_registry = nil }
+    end
+
     def configuration
       @configuration ||= Configuration.new
     end

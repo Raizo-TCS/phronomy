@@ -2,15 +2,15 @@
 
 require_relative "spec_helper"
 
-# Group 28: Graph Wait State / Phase (rewritten with Phronomy::Workflow DSL)
-# interrupt_before / interrupt_after removed; all halt tests use wait_state.
+# Group 28: Workflow Wait State / Phase (Phronomy::Workflow DSL)
+# All halt tests use wait_state + send_event; interrupt_before/interrupt_after are removed.
 # Pairwise factors: halt_mechanism x resume_api x resume_input x phase_assertion
 #
 # Feasible cases: 11
 
-RSpec.describe "Group 28: Graph Wait State / Phase", :integration do
+RSpec.describe "Group 28: Workflow Wait State / Phase", :integration do
   class WaitStateTestContext
-    include Phronomy::Graph::Context
+    include Phronomy::WorkflowContext
 
     field :value, type: :replace, default: ""
   end

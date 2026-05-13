@@ -72,7 +72,7 @@ RSpec.describe Phronomy::StateStore::ActiveRecord do
 
   let(:state_class) do
     Class.new do
-      include Phronomy::Graph::Context
+      include Phronomy::WorkflowContext
 
       field :value, type: :replace, default: -> {}
     end

@@ -60,7 +60,7 @@ Phronomy's Tool component can be designed to inherit and extend this DSL.
 
 #### (C) Affinity with Rails / ActiveRecord
 
-`acts_as_chat` and `acts_as_message` allow DB persistence of conversation history directly. Useful as the foundation for Phronomy's `Checkpointer::ActiveRecord` implementation.
+`acts_as_chat` and `acts_as_message` allow DB persistence of conversation history directly. Useful as the foundation for Phronomy's `StateStore::ActiveRecord` implementation.
 
 #### (D) Built-in model registry
 
@@ -86,7 +86,7 @@ SSE-based streaming is implemented as standard, so Phronomy's streaming UX featu
 
 `RubyLLM::Agent` can declare model/instructions/tools/temperature to run a single agent, but does not support:
 
-- **State graph**: Graph execution defining multiple steps with nodes and edges
+- **State graph**: Workflow execution defining multiple steps with states and transitions
 - **Checkpoint**: Suspend/resume of graph state (ActiveRecord persistence exists, but not AgentLoop state saving)
 - **Multi-agent coordination**: Agent-to-agent handoff / delegation
 - **Human-in-the-Loop**: Mechanism to pause execution and wait for user approval
@@ -123,9 +123,9 @@ No massive plugin ecosystem or integration library collection like LangChain or 
 
 → **Mitigation**: Phronomy implements MCP (Model Context Protocol) support so that Python's MCP tool ecosystem can be used from Ruby.
 
-#### (G) No Pregel/Graph runtime
+#### (G) No Pregel/Workflow runtime
 
-There is no Ruby implementation equivalent to LangGraph's core Pregel computation model (state graph node scheduling, parallel execution, channel-based value propagation).
+There is no Ruby implementation equivalent to LangGraph's core Pregel computation model (workflow state scheduling, parallel execution, channel-based value propagation).
 
 → **Mitigation**: Phronomy implements a lightweight Pregel-like graph runtime (simple version initially, extended later).
 
@@ -157,7 +157,7 @@ RubyLLM covers all necessary functionality as an "LLM abstraction layer" and has
 - **Core dependency**: Require `ruby_llm` as a mandatory dependency
 - **Extension point**: Define a `Phronomy::LLM::Base` interface so adapters for non-RubyLLM clients can be connected in the future
 - **Tool inheritance**: `Phronomy::Tool` inherits (or delegates to) `RubyLLM::Tool` to provide additional functionality
-- **Agent usage**: Use `RubyLLM::Agent` internally while wrapping it as a Phronomy Graph node
+- **Agent usage**: Use `RubyLLM::Agent` internally while wrapping it as a Phronomy Workflow node
 
 ---
 
