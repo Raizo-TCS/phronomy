@@ -65,11 +65,15 @@ module Phronomy
       # Registers a callback to run before the given node executes.
       # Return :halt from the block to pause execution; any other value continues.
       # Callbacks registered here become defaults for every CompiledGraph produced by compile.
+      # Registers a callback to run before the given node executes.
+      # Return :halt from the block to pause execution; any other value continues.
+      # When called without a block, execution always halts before the node.
+      # Callbacks registered here become defaults for every CompiledGraph produced by compile.
       # @param node [Symbol]
-      # @yield [state] the current state
+      # @yield [state] optional — omit to always halt
       # @return [self]
       def interrupt_before(node, &block)
-        @before_callbacks[node] = block
+        @before_callbacks[node] = block || ->(_) { :halt }
         self
       end
 

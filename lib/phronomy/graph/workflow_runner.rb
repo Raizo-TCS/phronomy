@@ -36,11 +36,12 @@ module Phronomy
 
       # Registers a callback to run before the given node executes.
       # Return :halt from the block to pause execution; any other value continues.
+      # When called without a block, execution always halts before the node.
       # @param node [Symbol]
-      # @yield [state]
+      # @yield [state] optional — omit to always halt
       # @return [self]
       def interrupt_before(node, &block)
-        @before_callbacks[node] = block
+        @before_callbacks[node] = block || ->(_) { :halt }
         self
       end
 
@@ -73,56 +74,61 @@ module Phronomy
         end
       end
 
-      # Resumes a halted graph from the state returned by a previous invoke/resume.
+      # Generic resume. Routes based on the current phase encoding.
+      # Equivalent to +send_event(state:, event: :resume, input:)+.
       #
-      # For wait states (registered via add_wait_state), prefer #send_event for
-      # event-typed resumption. This method also works as a generic resume.
-      #
-      # @param state [Object] halted context with current_nodes set
+      # @param state [Object] halted context
       # @param input [Hash, nil] optional field updates to merge before resuming
       # @return [Object] final context
       def resume(state:, input: nil)
-        state = state.merge(input) if input
-
-        current_phase = state.phase
-
-        # Wait state registered via add_wait_state — use resume_to directly.
-        if @wait_states.key?(current_phase)
-          run_graph(state, from_node: @wait_states[current_phase][:resume_to],
-            skip_first_before: false)
-
-        # interrupt_before style halt — skip the before callback on resume.
-        elsif state.halted_before
-          raise ArgumentError, "State has no pending nodes to resume from" if state.current_nodes.empty?
-
-          run_graph(state, from_node: state.current_nodes.first, skip_first_before: true)
-
-        # interrupt_after or pending-at-finish — run from stored next node.
-        else
-          from_nodes = state.current_nodes
-          raise ArgumentError, "State has no pending nodes to resume from" if from_nodes.nil? || from_nodes.empty?
-
-          run_graph(state, from_node: from_nodes.first, skip_first_before: false)
-        end
+        send_event(state: state, event: :resume, input: input)
       end
 
-      # Fires a named resume event to advance from a wait state.
-      # The event must match the +resume_event:+ declared in add_wait_state.
+      # Fires a named event to advance a halted graph.
       #
-      # @param state [Object] halted context whose phase is the target wait state
-      # @param event [Symbol] the resume event name declared in add_wait_state
+      # The special event +:resume+ is accepted for all halt types:
+      # - Named wait state (add_wait_state)  → resumes at +resume_to+ node
+      # - interrupt_before style halt        → resumes at the halted node, skipping
+      #                                        the before callback
+      # - interrupt_after / finish-boundary  → resumes at the stored next node
+      #
+      # Any other event name must match the +resume_event:+ declared in
+      # +StateGraph#add_wait_state+.
+      #
+      # @param state [Object] halted context
+      # @param event [Symbol] +:resume+ for generic resumption, or a named event
       # @param input [Hash, nil] optional field updates to merge before resuming
       # @return [Object] final context
       def send_event(state:, event:, input: nil)
         state = state.merge(input) if input
         event = event.to_sym
+        current_phase = state.phase
 
+        if event == :resume
+          # Named wait state: use resume_to
+          if @wait_states.key?(current_phase)
+            return run_graph(state, from_node: @wait_states[current_phase][:resume_to])
+          end
+
+          # interrupt_before style: phase is :awaiting_X, skip before callback on resume
+          if state.halted_before
+            node = current_phase.to_s.delete_prefix("awaiting_").to_sym
+            raise ArgumentError, "State has no pending nodes to resume from" unless @nodes.key?(node)
+            return run_graph(state, from_node: node, skip_first_before: true)
+          end
+
+          # interrupt_after / finish-boundary: resume from stored next node
+          from_nodes = state.current_nodes
+          raise ArgumentError, "State has no pending nodes to resume from" if from_nodes.nil? || from_nodes.empty?
+          return run_graph(state, from_node: from_nodes.first)
+        end
+
+        # Named event lookup
         _, wait_cfg = @wait_states.find { |_, c| c[:resume_event] == event }
         unless wait_cfg
           valid = @wait_states.values.filter_map { |c| c[:resume_event] }.uniq
           raise ArgumentError, "Unknown event #{event.inspect}. Valid events: #{valid.inspect}"
         end
-
         run_graph(state, from_node: wait_cfg[:resume_to], skip_first_before: false)
       end
 

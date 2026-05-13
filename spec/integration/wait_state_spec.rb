@@ -54,6 +54,21 @@ RSpec.describe "Group 28: Graph Wait State / Phase", :integration do
     compiled
   end
 
+  # Builds and compiles a graph that always halts via no-block interrupt_before.
+  # Equivalent to interrupt_before(:node_b) { :halt }.
+  def build_noblock_interrupt_before_graph
+    graph = Phronomy::Graph::StateGraph.new(WaitStateTestContext)
+    graph.add_node(:node_a) { |s| s.merge(value: "#{s.value}:a") }
+    graph.add_node(:node_b) { |s| s.merge(value: "#{s.value}:b") }
+    graph.set_entry_point(:node_a)
+    graph.add_edge(:node_a, :node_b)
+    graph.add_edge(:node_b, Phronomy::Graph::StateGraph::FINISH)
+    compiled = graph.compile
+    # No-block form: always halt before node_b
+    compiled.interrupt_before(:node_b)
+    compiled
+  end
+
   # Builds and compiles a graph that halts via add_wait_state.
   # Graph topology: node_a → (wait) → node_b → FINISH.
   # The wait state node is named :awaiting_node_b.
@@ -233,6 +248,62 @@ RSpec.describe "Group 28: Graph Wait State / Phase", :integration do
       expect do
         compiled.send_event(state: halted, event: :some_event)
       end.to raise_error(ArgumentError, /Unknown event/)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Phase 2+3 additions
+  # ---------------------------------------------------------------------------
+
+  # TC-008: no-block interrupt_before halts correctly
+  it "TC-008: interrupt_before (no block) — halts before the node" do
+    with_in_memory_store do
+      compiled = build_noblock_interrupt_before_graph
+      halted = compiled.invoke({value: "start"}, config: {thread_id: "tc008"})
+
+      expect(halted.halted?).to be(true)
+      expect(halted.phase).to eq(:awaiting_node_b)
+      expect(halted.value).to eq("start:a")
+    end
+  end
+
+  # TC-009: send_event(:resume) resumes interrupt_before (block) halt
+  it "TC-009: send_event(:resume) resumes interrupt_before-halted graph" do
+    with_in_memory_store do
+      compiled = build_interrupt_before_graph
+      halted = compiled.invoke({value: "x"}, config: {thread_id: "tc009"})
+      expect(halted.halted?).to be(true)
+
+      final = compiled.send_event(state: halted, event: :resume)
+      expect(final.halted?).to be(false)
+      expect(final.phase).to eq(:__end__)
+      expect(final.value).to eq("x:a:b")
+    end
+  end
+
+  # TC-010: send_event(:resume) resumes no-block interrupt_before halt
+  it "TC-010: send_event(:resume) resumes no-block interrupt_before halt" do
+    with_in_memory_store do
+      compiled = build_noblock_interrupt_before_graph
+      halted = compiled.invoke({value: "y"}, config: {thread_id: "tc010"})
+      expect(halted.halted?).to be(true)
+
+      final = compiled.send_event(state: halted, event: :resume, input: {value: "replaced"})
+      expect(final.phase).to eq(:__end__)
+      expect(final.value).to eq("replaced:b")
+    end
+  end
+
+  # TC-011: send_event(:resume) resumes add_wait_state halt (generic resume)
+  it "TC-011: send_event(:resume) resumes add_wait_state halt" do
+    with_in_memory_store do
+      compiled = build_wait_state_graph(resume_event: :proceed)
+      halted = compiled.invoke({value: "z"}, config: {thread_id: "tc011"})
+      expect(halted.halted?).to be(true)
+
+      final = compiled.send_event(state: halted, event: :resume)
+      expect(final.phase).to eq(:__end__)
+      expect(final.value).to eq("z:a:b")
     end
   end
 end

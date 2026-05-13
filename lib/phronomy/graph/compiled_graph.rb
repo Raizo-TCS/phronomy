@@ -25,8 +25,9 @@ module Phronomy
 
       # Registers a callback to run before the given node executes.
       # Return :halt from the block to pause execution; any other value continues.
+      # When called without a block, execution always halts before the node.
       # @param node [Symbol]
-      # @yield [state]
+      # @yield [state] optional — omit to always halt
       # @return [self]
       def interrupt_before(node, &block)
         @runner.interrupt_before(node, &block)
@@ -80,5 +81,3 @@ module Phronomy
     end
   end
 end
-
-
