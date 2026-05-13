@@ -4,25 +4,25 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-  Module: Phronomy::Graph::State
+  Module: Phronomy::WorkflowContext
   
     &mdash; Documentation by YARD 0.9.43
   
 </title>
 
-  <link rel="stylesheet" href="../../css/style.css" type="text/css">
+  <link rel="stylesheet" href="../css/style.css" type="text/css">
 
-  <link rel="stylesheet" href="../../css/common.css" type="text/css">
+  <link rel="stylesheet" href="../css/common.css" type="text/css">
 
 <script type="text/javascript">
-  pathId = "Phronomy::Graph::State";
-  relpath = '../../';
+  pathId = "Phronomy::WorkflowContext";
+  relpath = '../';
 </script>
 
 
-  <script type="text/javascript" charset="utf-8" src="../../js/jquery.js"></script>
+  <script type="text/javascript" charset="utf-8" src="../js/jquery.js"></script>
 
-  <script type="text/javascript" charset="utf-8" src="../../js/app.js"></script>
+  <script type="text/javascript" charset="utf-8" src="../js/app.js"></script>
 
 
   </head>
@@ -30,7 +30,7 @@
     <div id="main_progress" aria-hidden="true"></div>
 
     <div class="nav_wrap">
-      <iframe id="nav" src="../../class_list.html?1"></iframe>
+      <iframe id="nav" src="../class_list.html?1"></iframe>
       <div id="resizer"></div>
     </div>
 
@@ -38,17 +38,17 @@
       <div id="header">
         <div id="menu">
   
-    <a href="../../_index.html">Index (S)</a> &raquo;
-    <span class='title'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Graph.html" title="Phronomy::Graph (module)">Graph</a></span></span>
+    <a href="../_index.html">Index (W)</a> &raquo;
+    <span class='title'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span>
      &raquo; 
-    <span class="title">State</span>
+    <span class="title">WorkflowContext</span>
   
 </div>
 
         <div id="search">
   
     <a class="full_list_link" id="class_list_link"
-        href="../../class_list.html">
+        href="../class_list.html">
 
         <svg width="24" height="24">
           <rect x="0" y="4" width="24" height="4" rx="1" ry="1"></rect>
@@ -61,7 +61,7 @@
         <div class="clear"></div>
       </div>
 
-      <div id="content"><h1>Module: Phronomy::Graph::State
+      <div id="content"><h1>Module: Phronomy::WorkflowContext
   
   
   
@@ -80,7 +80,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/graph/state.rb
+    <dd>lib/phronomy/workflow_context.rb
 </dd>
   </dl>
   
@@ -88,8 +88,11 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Module for defining graph state.
-Include in a class and use the field DSL to declare state fields.</p>
+    <p>Module for defining workflow context (the data that travels through a workflow).
+Include in a class and use the field DSL to declare context fields.</p>
+<p>In StateChart terminology this is the &quot;extended state&quot; or &quot;context&quot; —
+data associated with the current execution that does not affect transitions
+directly, as opposed to the current phase (which is the machine's state).</p>
 <p>Field update policies:</p>
 <pre class="code ruby"><code class="ruby">:replace (default) -- overwrites with the new value
 :append            -- appends to an Array
@@ -103,8 +106,8 @@ Include in a class and use the field DSL to declare state fields.</p>
     <h4 class="tag_title">Examples:</h4>
     
       
-      <pre class="example code"><code><span class='kw'>class</span> <span class='const'>MyState</span>
-  <span class='id identifier rubyid_include'>include</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Graph.html" title="Phronomy::Graph (module)">Graph</a></span></span><span class='op'>::</span><span class='const'>State</span>
+      <pre class="example code"><code><span class='kw'>class</span> <span class='const'>ScanContext</span>
+  <span class='id identifier rubyid_include'>include</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>WorkflowContext</span>
   <span class='id identifier rubyid_field'>field</span> <span class='symbol'>:messages</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='symbol'>:append</span><span class='comma'>,</span> <span class='label'>default:</span> <span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='lbracket'>[</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
   <span class='id identifier rubyid_field'>field</span> <span class='symbol'>:query</span><span class='comma'>,</span>    <span class='label'>type:</span> <span class='symbol'>:replace</span>
   <span class='id identifier rubyid_field'>field</span> <span class='symbol'>:metadata</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='symbol'>:merge</span><span class='comma'>,</span>   <span class='label'>default:</span> <span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='lbrace'>{</span><span class='rbrace'>}</span> <span class='rbrace'>}</span>
@@ -117,7 +120,7 @@ Include in a class and use the field DSL to declare state fields.</p>
 <p class="children">
   
     
-      <strong class="modules">Modules:</strong> <span class='object_link'><a href="State/ClassMethods.html" title="Phronomy::Graph::State::ClassMethods (module)">ClassMethods</a></span>
+      <strong class="modules">Modules:</strong> <span class='object_link'><a href="WorkflowContext/ClassMethods.html" title="Phronomy::WorkflowContext::ClassMethods (module)">ClassMethods</a></span>
     
   
     
@@ -129,60 +132,6 @@ Include in a class and use the field DSL to declare state fields.</p>
 
   <h2>Instance Attribute Summary <small><a href="#" class="summary_toggle">collapse</a></small></h2>
   <ul class="summary">
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#current_nodes-instance_method" title="#current_nodes (instance method)">#<strong>current_nodes</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-      <span class="note title readonly">readonly</span>
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Internal graph metadata accessors (not user-defined fields).</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#halted_before-instance_method" title="#halted_before (instance method)">#<strong>halted_before</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-      <span class="note title readonly">readonly</span>
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Internal graph metadata accessors (not user-defined fields).</p></div></span>
-  
-</li>
-
     
       <li class="public ">
   <span class="summary_signature">
@@ -206,7 +155,7 @@ Include in a class and use the field DSL to declare state fields.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Internal graph metadata accessors (not user-defined fields).</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Internal workflow metadata accessors (not user-defined fields).</p></div></span>
   
 </li>
 
@@ -259,6 +208,28 @@ Include in a class and use the field DSL to declare state fields.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#halted%3F-instance_method" title="#halted? (instance method)">#<strong>halted?</strong>  &#x21d2; Boolean </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns true if the workflow is paused mid-execution (not yet completed).</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(**attrs)  &#x21d2; Object </a>
     
 
@@ -295,7 +266,7 @@ Include in a class and use the field DSL to declare state fields.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Immutably updates state fields.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Immutably updates context fields.</p></div></span>
   
 </li>
 
@@ -303,7 +274,7 @@ Include in a class and use the field DSL to declare state fields.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#set_graph_metadata-instance_method" title="#set_graph_metadata (instance method)">#<strong>set_graph_metadata</strong>(thread_id: nil, current_nodes: [], halted_before: false)  &#x21d2; Object </a>
+      <a href="#phase-instance_method" title="#phase (instance method)">#<strong>phase</strong>  &#x21d2; Symbol </a>
     
 
     
@@ -317,7 +288,29 @@ Include in a class and use the field DSL to declare state fields.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Sets internal graph metadata.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the current execution phase of the workflow.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#set_graph_metadata-instance_method" title="#set_graph_metadata (instance method)">#<strong>set_graph_metadata</strong>(thread_id: nil, phase: nil)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Sets internal workflow metadata.</p></div></span>
   
 </li>
 
@@ -339,7 +332,7 @@ Include in a class and use the field DSL to declare state fields.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Converts user-defined fields to a Hash (excludes internal graph metadata).</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Converts user-defined fields to a Hash (excludes internal workflow metadata).</p></div></span>
   
 </li>
 
@@ -355,91 +348,7 @@ Include in a class and use the field DSL to declare state fields.</p>
       
       <span id=""></span>
       <div class="method_details first">
-  <h3 class="signature first" id="current_nodes-instance_method">
-  
-    #<strong>current_nodes</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Internal graph metadata accessors (not user-defined fields).
-These are preserved through merge but excluded from to_h.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-43
-44
-45</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/graph/state.rb', line 43</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_current_nodes'>current_nodes</span>
-  <span class='ivar'>@current_nodes</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id=""></span>
-      <div class="method_details ">
-  <h3 class="signature " id="halted_before-instance_method">
-  
-    #<strong>halted_before</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Internal graph metadata accessors (not user-defined fields).
-These are preserved through merge but excluded from to_h.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-43
-44
-45</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/graph/state.rb', line 43</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_halted_before'>halted_before</span>
-  <span class='ivar'>@halted_before</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id=""></span>
-      <div class="method_details ">
-  <h3 class="signature " id="thread_id-instance_method">
+  <h3 class="signature first" id="thread_id-instance_method">
   
     #<strong>thread_id</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
   
@@ -449,7 +358,7 @@ These are preserved through merge but excluded from to_h.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Internal graph metadata accessors (not user-defined fields).
+    <p>Internal workflow metadata accessors (not user-defined fields).
 These are preserved through merge but excluded from to_h.</p>
 
   </div>
@@ -463,12 +372,12 @@ These are preserved through merge but excluded from to_h.</p>
       <pre class="lines">
 
 
-43
-44
-45</pre>
+46
+47
+48</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/graph/state.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 46</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
   <span class='ivar'>@thread_id</span>
@@ -500,16 +409,16 @@ These are preserved through merge but excluded from to_h.</p>
       <pre class="lines">
 
 
-21
-22
-23
-24</pre>
+24
+25
+26
+27</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/graph/state.rb', line 21</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 24</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_included'>included</span><span class='lparen'>(</span><span class='id identifier rubyid_base'>base</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_base'>base</span><span class='period'>.</span><span class='id identifier rubyid_extend'>extend</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="State/ClassMethods.html" title="Phronomy::Graph::State::ClassMethods (module)">ClassMethods</a></span></span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_base'>base</span><span class='period'>.</span><span class='id identifier rubyid_extend'>extend</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="WorkflowContext/ClassMethods.html" title="Phronomy::WorkflowContext::ClassMethods (module)">ClassMethods</a></span></span><span class='rparen'>)</span>
   <span class='id identifier rubyid_base'>base</span><span class='period'>.</span><span class='id identifier rubyid_instance_variable_set'>instance_variable_set</span><span class='lparen'>(</span><span class='symbol'>:@fields</span><span class='comma'>,</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -524,7 +433,59 @@ These are preserved through merge but excluded from to_h.</p>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="initialize-instance_method">
+  <h3 class="signature first" id="halted?-instance_method">
+  
+    #<strong>halted?</strong>  &#x21d2; <tt>Boolean</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns true if the workflow is paused mid-execution (not yet completed).</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+60
+61
+62</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 60</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_halted?'>halted?</span>
+  <span class='id identifier rubyid_phase'>phase</span> <span class='op'>!=</span> <span class='symbol'>:__end__</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="initialize-instance_method">
   
     #<strong>initialize</strong>(**attrs)  &#x21d2; <tt>Object</tt> 
   
@@ -538,18 +499,17 @@ These are preserved through merge but excluded from to_h.</p>
       <pre class="lines">
 
 
-56
-57
-58
-59
-60
-61
-62
-63
-64</pre>
+73
+74
+75
+76
+77
+78
+79
+80</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/graph/state.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 73</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_attrs'>attrs</span><span class='rparen'>)</span>
   <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='op'>|</span>
@@ -557,8 +517,7 @@ These are preserved through merge but excluded from to_h.</p>
     <span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:&quot;#{</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'>=</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_attrs'>attrs</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_default'>default</span><span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
   <span class='ivar'>@thread_id</span> <span class='op'>=</span> <span class='kw'>nil</span>
-  <span class='ivar'>@current_nodes</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
-  <span class='ivar'>@halted_before</span> <span class='op'>=</span> <span class='kw'>false</span>
+  <span class='ivar'>@phase</span> <span class='op'>=</span> <span class='symbol'>:__end__</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -576,8 +535,8 @@ These are preserved through merge but excluded from to_h.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Immutably updates state fields. Returns a new instance with the applied changes.
-Internal graph metadata (thread_id, current_nodes, halted_before) is preserved.</p>
+    <p>Immutably updates context fields. Returns a new instance with the applied changes.
+Internal workflow metadata (thread_id, phase) is preserved.</p>
 
   </div>
 </div>
@@ -612,7 +571,7 @@ Internal graph metadata (thread_id, current_nodes, halted_before) is preserved.<
       
       
         &mdash;
-        <div class='inline'><p>new state instance</p></div>
+        <div class='inline'><p>new context instance</p></div>
       
     </li>
   
@@ -624,22 +583,6 @@ Internal graph metadata (thread_id, current_nodes, halted_before) is preserved.<
       <pre class="lines">
 
 
-70
-71
-72
-73
-74
-75
-76
-77
-78
-79
-80
-81
-82
-83
-84
-85
 86
 87
 88
@@ -648,10 +591,25 @@ Internal graph metadata (thread_id, current_nodes, halted_before) is preserved.<
 91
 92
 93
-94</pre>
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/graph/state.rb', line 70</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 86</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='id identifier rubyid_updates'>updates</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_new_attrs'>new_attrs</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
@@ -670,13 +628,68 @@ Internal graph metadata (thread_id, current_nodes, halted_before) is preserved.<
       <span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
-  <span class='id identifier rubyid_new_state'>new_state</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_new_attrs'>new_attrs</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_new_state'>new_state</span><span class='period'>.</span><span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span>
+  <span class='id identifier rubyid_new_context'>new_context</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_new_attrs'>new_attrs</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_new_context'>new_context</span><span class='period'>.</span><span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span>
     <span class='label'>thread_id:</span> <span class='ivar'>@thread_id</span><span class='comma'>,</span>
-    <span class='label'>current_nodes:</span> <span class='ivar'>@current_nodes</span><span class='comma'>,</span>
-    <span class='label'>halted_before:</span> <span class='ivar'>@halted_before</span>
+    <span class='label'>phase:</span> <span class='ivar'>@phase</span>
   <span class='rparen'>)</span>
-  <span class='id identifier rubyid_new_state'>new_state</span>
+  <span class='id identifier rubyid_new_context'>new_context</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="phase-instance_method">
+  
+    #<strong>phase</strong>  &#x21d2; <tt>Symbol</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the current execution phase of the workflow.
+Encoding:</p>
+<pre class="code ruby"><code class="ruby">:__end__           — workflow completed (or not yet started)
+:awaiting_&lt;name&gt;   — halted at a wait_state(:awaiting_&lt;name&gt;) declaration
+:&lt;node&gt;            — resuming at &lt;node&gt; (workflow paused before its execution)</code></pre>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Symbol</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+54
+55
+56</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 54</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_phase'>phase</span>
+  <span class='ivar'>@phase</span> <span class='op'>||</span> <span class='symbol'>:__end__</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -686,7 +699,7 @@ Internal graph metadata (thread_id, current_nodes, halted_before) is preserved.<
       <div class="method_details ">
   <h3 class="signature " id="set_graph_metadata-instance_method">
   
-    #<strong>set_graph_metadata</strong>(thread_id: nil, current_nodes: [], halted_before: false)  &#x21d2; <tt>Object</tt> 
+    #<strong>set_graph_metadata</strong>(thread_id: nil, phase: nil)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -694,7 +707,7 @@ Internal graph metadata (thread_id, current_nodes, halted_before) is preserved.<
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Sets internal graph metadata. Returns self.</p>
+    <p>Sets internal workflow metadata. Returns self.</p>
 
   </div>
 </div>
@@ -717,26 +730,13 @@ Internal graph metadata (thread_id, current_nodes, halted_before) is preserved.<
   
     <li>
       
-        <span class='name'>current_nodes</span>
+        <span class='name'>phase</span>
       
       
-        <span class='type'>(<tt>Array&lt;Symbol&gt;</tt>)</span>
+        <span class='type'>(<tt>Symbol</tt>, <tt>nil</tt>)</span>
       
       
-        <em class="default">(defaults to: <tt>[]</tt>)</em>
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>halted_before</span>
-      
-      
-        <span class='type'>(<tt>Boolean</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>false</tt>)</em>
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
       
       
     </li>
@@ -750,20 +750,18 @@ Internal graph metadata (thread_id, current_nodes, halted_before) is preserved.<
       <pre class="lines">
 
 
-49
-50
-51
-52
-53
-54</pre>
+67
+68
+69
+70
+71</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/graph/state.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 67</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>current_nodes:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>halted_before:</span> <span class='kw'>false</span><span class='rparen'>)</span>
-  <span class='ivar'>@thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
-  <span class='ivar'>@current_nodes</span> <span class='op'>=</span> <span class='id identifier rubyid_current_nodes'>current_nodes</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
-  <span class='ivar'>@halted_before</span> <span class='op'>=</span> <span class='id identifier rubyid_halted_before'>halted_before</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>phase:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='ivar'>@thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='kw'>unless</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
+  <span class='ivar'>@phase</span> <span class='op'>=</span> <span class='id identifier rubyid_phase'>phase</span> <span class='kw'>unless</span> <span class='id identifier rubyid_phase'>phase</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -782,7 +780,7 @@ Internal graph metadata (thread_id, current_nodes, halted_before) is preserved.<
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Converts user-defined fields to a Hash (excludes internal graph metadata).</p>
+    <p>Converts user-defined fields to a Hash (excludes internal workflow metadata).</p>
 
   </div>
 </div>
@@ -808,14 +806,14 @@ Internal graph metadata (thread_id, current_nodes, halted_before) is preserved.<
       <pre class="lines">
 
 
-98
-99
-100
-101
-102</pre>
+113
+114
+115
+116
+117</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/graph/state.rb', line 98</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 113</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_to_h'>to_h</span>
   <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span><span class='period'>.</span><span class='id identifier rubyid_each_with_object'>each_with_object</span><span class='lparen'>(</span><span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_h'>h</span><span class='op'>|</span>
@@ -832,7 +830,7 @@ Internal graph metadata (thread_id, current_nodes, halted_before) is preserved.<
 </div>
 
       <div id="footer">
-  Generated on Mon May 11 22:18:23 2026 by
+  Generated on Wed May 13 13:36:33 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

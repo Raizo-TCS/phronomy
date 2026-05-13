@@ -49,7 +49,7 @@ cannot be delegated to the LLM must be enforced by phronomy or the application l
 | Layer | Responsibility | Status |
 |---|---|---|
 | LLM | Basic harmful-content avoidance (RLHF) | Model-dependent, not guaranteed |
-| **phronomy** | Intervention points, iteration limits, approval gates | ✅ `interrupt_before/after`, `requires_approval`, `max_iterations` — see `lib/phronomy/graph/compiled_graph.rb`, `lib/phronomy/agent/base.rb` |
+| **phronomy** | Intervention points, iteration limits, approval gates | ✅ `wait_state`/`send_event`, `requires_approval`, `max_iterations` — see `lib/phronomy/workflow.rb`, `lib/phronomy/agent/base.rb` |
 | **phronomy** | Built-in guardrails (PII, prompt injection) | ❌ Not implemented — **planned (Feature A)** |
 | Application | Concrete guardrail logic, approval workflows | Application responsibility |
 
@@ -82,7 +82,7 @@ cannot be delegated to the LLM must be enforced by phronomy or the application l
 | Layer | Responsibility | Status |
 |---|---|---|
 | LLM | Chain-of-thought generation | Prompt-dependent |
-| **phronomy** | Processing step recording via Graph and Tracing | ✅ Partial — `StateGraph`, `Tracing` |
+| **phronomy** | Processing step recording via Graph and Tracing | ✅ Partial — `Workflow`/`WorkflowRunner`, `Tracing` |
 | Application | Explanation UI, CoT prompt design | Application responsibility |
 
 **Planned work:** None in this iteration.
@@ -184,8 +184,8 @@ attributed to users or sessions, which is a requirement for accountability under
 NIST AI RMF 3.4.
 
 **Design:**
-- `Agent::Base#invoke` and `CompiledGraph#invoke` already accept `config: {}` — see
-  `lib/phronomy/agent/base.rb:367` and `lib/phronomy/graph/compiled_graph.rb`.
+- `Agent::Base#invoke` and `WorkflowRunner#invoke` already accept `config: {}` — see
+  `lib/phronomy/agent/base.rb` and `lib/phronomy/graph/workflow_runner.rb`.
 - Add two new optional keys to `config:`:
   - `user_id:` (String | nil) — caller identity
   - `session_id:` (String | nil) — session / request identity

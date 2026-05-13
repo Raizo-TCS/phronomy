@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>
+  File: CHANGELOG
+  
+    &mdash; Documentation by YARD 0.9.43
+  
+</title>
+
+  <link rel="stylesheet" href="css/style.css" type="text/css">
+
+  <link rel="stylesheet" href="css/common.css" type="text/css">
+
+<script type="text/javascript">
+  pathId = "CHANGELOG";
+  relpath = '';
+</script>
+
+
+  <script type="text/javascript" charset="utf-8" src="js/jquery.js"></script>
+
+  <script type="text/javascript" charset="utf-8" src="js/app.js"></script>
+
+
+  </head>
+  <body>
+    <div id="main_progress" aria-hidden="true"></div>
+
+    <div class="nav_wrap">
+      <iframe id="nav" src="file_list.html?1"></iframe>
+      <div id="resizer"></div>
+    </div>
+
+    <div id="main" tabindex="-1">
+      <div id="header">
+        <div id="menu">
+  
+    <a href="_index.html">Index</a> &raquo; 
+    <span class="title">File: CHANGELOG</span>
+  
+</div>
+
+        <div id="search">
+  
+    <a class="full_list_link" id="class_list_link"
+        href="class_list.html">
+
+        <svg width="24" height="24">
+          <rect x="0" y="4" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="12" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="20" width="24" height="4" rx="1" ry="1"></rect>
+        </svg>
+    </a>
+  
+</div>
+        <div class="clear"></div>
+      </div>
+
+      <div id="content"><div id='filecontents'><h1 id="Changelog">Changelog</h1>
+<p>All notable changes to this project will be documented in this file.</p>
+<p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
+and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
+<hr />
+<h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Added">Added</h3>
+<ul>
+<li><strong><code>Phronomy::Graph::Context</code></strong> module — canonical module for defining workflow
+context classes (replaces the removed <code>Phronomy::Graph::State</code>).</li>
+<li><strong><code>Phronomy::Graph.register_context_class</code></strong> — registers context classes for
+deserialization from external stores (Redis, DB).</li>
+<li><strong><code>Phronomy::Workflow.define</code></strong> DSL — primary high-level API for declaring
+stateful workflows (<code>state</code>, <code>wait_state</code>, <code>event</code>, <code>after</code>, <code>initial</code>).</li>
+<li><strong><code>Phronomy::Graph::WorkflowRunner</code></strong> — state-machine execution engine backing
+the Workflow DSL. Replaces the removed <code>CompiledGraph</code>.</li>
+<li><strong><code>app.send_event(event, config:)</code></strong> — event-driven resume for workflows halted
+at a <code>wait_state</code>.</li>
+<li><strong><code>state.halted?</code></strong> — returns <code>true</code> when the workflow is paused at a <code>wait_state</code>.</li>
+<li><strong><code>state.phase</code></strong> — single source of truth for execution state.</li>
+</ul>
+<h3 id="Removed">Removed</h3>
+<ul>
+<li><code>Phronomy::Graph::StateGraph</code> / <code>CompiledGraph</code> — use <code>Phronomy::Workflow.define</code>.</li>
+<li><code>Phronomy::Graph::State</code> — use <code>Phronomy::Graph::Context</code>.</li>
+<li><code>Phronomy::Graph.register_state_class</code> — use <code>register_context_class</code>.</li>
+<li><code>state.current_nodes</code> / <code>state.halted_before</code> — use <code>state.phase</code> / <code>state.halted?</code>.</li>
+<li><code>compiled.interrupt_before</code> / <code>compiled.interrupt_after</code> — use <code>wait_state</code> + <code>event</code>.</li>
+<li><code>compiled.resume</code> — use <code>app.send_event</code>.</li>
+</ul>
+<hr />
+<h2 id="_0_2_0____2026_05_13">[0.2.0] - 2026-05-13</h2>
+<h3 id="Added">Added</h3>
+<ul>
+<li><code>Phronomy::Graph::WorkflowRunner</code> — state_machines-based execution engine
+(introduced as the internal successor to <code>CompiledGraph</code>).</li>
+<li><code>state.phase</code> — single source of truth for graph execution state (replaces
+<code>current_nodes</code> + <code>halted_before</code> dual attributes).</li>
+<li><code>state.halted?</code> — returns <code>true</code> when the graph is paused.</li>
+<li><code>CompiledGraph#add_wait_state</code> — declared a named wait state that halts
+automatically when reached (later superseded by <code>wait_state</code> DSL in <code>Workflow.define</code>).</li>
+<li><code>CompiledGraph#send_event(state:, event:, input: nil)</code> — event-driven resume API
+(later superseded by <code>app.send_event</code>).</li>
+</ul>
+<h3 id="Removed">Removed</h3>
+<ul>
+<li><code>ParallelNode</code> and <code>add_parallel_node</code> DSL. Use <code>Thread.new</code> or
+<code>Concurrent::Future</code> at the application level instead.</li>
+<li><code>Phronomy::Graph::TimeoutError</code> (was only used by <code>ParallelNode</code>).</li>
+</ul></div></div>
+
+      <div id="footer">
+  Generated on Wed May 13 13:36:33 2026 by
+  <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.9.43 (ruby-3.3.11).
+</div>
+
+    </div>
+  </body>
+</html>

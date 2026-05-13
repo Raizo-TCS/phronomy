@@ -106,8 +106,8 @@
   <div class="discussion">
     <p>Abstract base class for state persistence backends.
 Subclasses must implement save, load, and clear.</p>
-<p>The state object passed to save must include Phronomy::Graph::State
-and have a non-nil thread_id (set automatically by CompiledGraph#invoke).</p>
+<p>The state object passed to save must include Phronomy::WorkflowContext
+and have a non-nil thread_id (set automatically by WorkflowRunner#invoke).</p>
 
   </div>
 </div>
@@ -401,7 +401,7 @@ and have a non-nil thread_id (set automatically by CompiledGraph#invoke).</p>
       
       
         &mdash;
-        <div class='inline'><p>object including Phronomy::Graph::State</p></div>
+        <div class='inline'><p>object including Phronomy::WorkflowContext</p></div>
       
     </li>
   
@@ -460,7 +460,7 @@ and have a non-nil thread_id (set automatically by CompiledGraph#invoke).</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 11 22:18:24 2026 by
+  Generated on Wed May 13 13:36:34 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
