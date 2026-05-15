@@ -1015,4 +1015,59 @@ module IntegrationFactors
   def self.reset_state_store
     Phronomy.configure { |c| c.default_state_store = nil }
   end
+
+  # ---------------------------------------------------------------------------
+  # Group 29 — File State Store helpers
+  # ---------------------------------------------------------------------------
+
+  # Returns a new Phronomy::StateStore::File instance.
+  #
+  # @param dir_type [String] "default" or "custom"
+  # @param custom_dir [String, nil] path used when dir_type == "custom"
+  # @return [Phronomy::StateStore::File]
+  def self.file_store(dir_type, custom_dir: nil)
+    case dir_type
+    when "default"
+      Phronomy::StateStore::File.new
+    when "custom"
+      raise ArgumentError, "custom_dir is required when dir_type is 'custom'" unless custom_dir
+      Phronomy::StateStore::File.new(dir: custom_dir)
+    else
+      raise ArgumentError, "Unknown file_store dir_type: #{dir_type}"
+    end
+  end
+
+  # Returns a thread_id string for the given thread_id_type.
+  #
+  # @param thread_id_type [String] "simple" or "special_chars"
+  # @param base [String] base identifier (appended to make it unique per test)
+  # @return [String]
+  def self.file_store_thread_id(thread_id_type, base: "t1")
+    case thread_id_type
+    when "simple"
+      "thread-#{base}"
+    when "special_chars"
+      "user@host/#{base}"
+    else
+      raise ArgumentError, "Unknown file_store_thread_id_type: #{thread_id_type}"
+    end
+  end
+
+  # Builds a two-step Workflow with a wait_state, backed by the given store.
+  # node_a appends ":a" to value; node_b appends ":b".
+  #
+  # @param state_class [Class] includes Phronomy::WorkflowContext
+  # @param store [Phronomy::StateStore::Base]
+  # @return [Phronomy::WorkflowRunner]
+  def self.file_store_workflow(state_class, store:)
+    Phronomy::Workflow.define(state_class, state_store: store) do
+      initial :node_a
+      state :node_a, action: ->(s) { s.merge(value: "#{s.value}:a") }
+      wait_state :awaiting_node_b
+      state :node_b, action: ->(s) { s.merge(value: "#{s.value}:b") }
+      after :node_a, to: :awaiting_node_b
+      after :node_b, to: :__finish__
+      event :resume, from: :awaiting_node_b, to: :node_b
+    end
+  end
 end

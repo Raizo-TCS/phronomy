@@ -379,3 +379,150 @@ RSpec.describe "Workflow and StateStore::ActiveRecord: true cross-process wait a
     script_file&.unlink
   end
 end
+
+RSpec.describe Phronomy::StateStore::File do
+  subject(:store) { described_class.new(dir: tmpdir) }
+
+  let(:tmpdir) { Dir.mktmpdir("phronomy_file_store_spec_") }
+
+  after { FileUtils.rm_rf(tmpdir) }
+
+  describe "#initialize" do
+    it "creates the directory if it does not exist" do
+      new_dir = ::File.join(tmpdir, "nested", "subdir")
+      described_class.new(dir: new_dir)
+      expect(::File.directory?(new_dir)).to be(true)
+    end
+
+    it "exposes the resolved directory via #directory" do
+      expect(store.directory).to eq(::File.expand_path(tmpdir))
+    end
+  end
+
+  describe "#save / #load" do
+    it "saves and retrieves state by thread_id" do
+      state = make_state(value: 42, thread_id: "t1")
+      store.save(state)
+      loaded = store.load("t1")
+      expect(loaded.value).to eq(42)
+    end
+
+    it "preserves thread_id in loaded state" do
+      state = make_state(value: 1, thread_id: "mythread")
+      store.save(state)
+      expect(store.load("mythread").thread_id).to eq("mythread")
+    end
+
+    it "preserves phase in loaded state" do
+      state = make_state(value: 1, thread_id: "t1", phase: :awaiting_send)
+      store.save(state)
+      loaded = store.load("t1")
+      expect(loaded.phase).to eq(:awaiting_send)
+      expect(loaded.halted?).to be(true)
+    end
+
+    it "save returns self for chaining" do
+      expect(store.save(make_state(value: 1, thread_id: "t1"))).to be(store)
+    end
+
+    it "returns nil for unknown thread_id" do
+      expect(store.load("unknown")).to be_nil
+    end
+
+    it "manages multiple threads independently" do
+      store.save(make_state(value: 1, thread_id: "t1"))
+      store.save(make_state(value: 2, thread_id: "t2"))
+      expect(store.load("t1").value).to eq(1)
+      expect(store.load("t2").value).to eq(2)
+    end
+
+    it "overwrites an existing state on re-save" do
+      store.save(make_state(value: 1, thread_id: "t1"))
+      store.save(make_state(value: 99, thread_id: "t1"))
+      expect(store.load("t1").value).to eq(99)
+    end
+
+    it "writes a JSON file named after the thread_id" do
+      store.save(make_state(value: 5, thread_id: "mythread"))
+      expect(::File.exist?(::File.join(tmpdir, "mythread.json"))).to be(true)
+    end
+  end
+
+  describe "#clear" do
+    it "removes the state for the given thread_id" do
+      store.save(make_state(value: 1, thread_id: "t1"))
+      store.clear("t1")
+      expect(store.load("t1")).to be_nil
+    end
+
+    it "clear returns self for chaining" do
+      store.save(make_state(value: 1, thread_id: "t1"))
+      expect(store.clear("t1")).to be(store)
+    end
+
+    it "is a no-op when the thread_id does not exist" do
+      expect { store.clear("nonexistent") }.not_to raise_error
+    end
+
+    it "does not affect other threads" do
+      store.save(make_state(value: 1, thread_id: "t1"))
+      store.save(make_state(value: 2, thread_id: "t2"))
+      store.clear("t1")
+      expect(store.load("t2").value).to eq(2)
+    end
+  end
+
+  describe "#clear_all" do
+    it "removes all state files" do
+      store.save(make_state(value: 1, thread_id: "t1"))
+      store.save(make_state(value: 2, thread_id: "t2"))
+      store.clear_all
+      expect(store.load("t1")).to be_nil
+      expect(store.load("t2")).to be_nil
+    end
+
+    it "returns self for chaining" do
+      expect(store.clear_all).to be(store)
+    end
+  end
+
+  describe "thread_id sanitisation" do
+    it "replaces path-traversal characters so the file stays within dir" do
+      state = make_state(value: 7, thread_id: "../../../etc/passwd")
+      store.save(state)
+      # The sanitised filename may start with a dot, so use FNM_DOTMATCH.
+      # The file must be inside tmpdir, not escaped via ../
+      saved_files = ::Dir.glob(::File.join(tmpdir, "*.json"), ::File::FNM_DOTMATCH)
+      expect(saved_files.length).to eq(1)
+      expect(saved_files.first).to start_with(::File.expand_path(tmpdir))
+    end
+
+    it "can round-trip a thread_id with special characters" do
+      state = make_state(value: 3, thread_id: "user@example.com/session:1")
+      store.save(state)
+      loaded = store.load("user@example.com/session:1")
+      expect(loaded.value).to eq(3)
+    end
+  end
+
+  describe "Workflow integration" do
+    it "persists and resumes across separate WorkflowRunner instances" do
+      workflow = Phronomy::Workflow.define(StoreTestState, state_store: store) do
+        initial :step1
+        state :step1, action: ->(s) { s.merge(value: s.value + 10) }
+        wait_state :awaiting_step2
+        state :step2, action: ->(s) { s.merge(value: s.value + 1) }
+        after :step1, to: :awaiting_step2
+        after :step2, to: :__finish__
+        event :resume, from: :awaiting_step2, to: :step2
+      end
+
+      halted = workflow.invoke({value: 0})
+      expect(halted.halted?).to be(true)
+
+      final = workflow.send_event(state: halted, event: :resume)
+      expect(final.value).to eq(11)
+      expect(final.halted?).to be(false)
+    end
+  end
+end
