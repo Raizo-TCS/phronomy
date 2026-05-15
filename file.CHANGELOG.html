@@ -64,6 +64,44 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
+<h2 id="_0_2_1____Unreleased">[0.2.1] — Unreleased</h2>
+<h3 id="Changed">Changed</h3>
+<ul>
+<li>
+<strong><code>WorkflowRunner</code> — state_machines fully drives execution</strong> (architecture overhaul).
+Previously <code>state_machines</code> was used only for post-hoc transition validation;
+the next-node was calculated by Phronomy internally (<code>resolve_next_node</code>).
+As of 0.3.0, all state transition decisions — including guard evaluation for
+routing events — are delegated entirely to <code>state_machines</code>.
+<ul>
+<li><code>PhaseTracker</code> now exposes <code>attr_accessor :context</code> so guard lambdas can
+access the <code>WorkflowContext</code> via <code>m.context</code>.</li>
+<li>Guard bridge pattern: <code>if: -&gt;(m) { guard_proc.call(m.context) }</code>.</li>
+<li>Three event types registered per workflow:
+<ol>
+<li><code>advance_&lt;from&gt;</code> — unconditional after-transitions</li>
+<li><code>&lt;routing_event&gt;</code> — guarded branching from action states (name is the
+event name used in the DSL, e.g. <code>:route</code>, <code>:route_review</code>)</li>
+<li><code>&lt;external_event&gt;</code> — human-in-the-loop triggers from wait states</li>
+</ol>
+</li>
+<li>Invalid transitions now raise <code>ArgumentError</code> instead of logging warnings.</li>
+</ul>
+</li>
+<li><strong><code>WorkflowRunner</code> initializer signature changed</strong> — <code>edges:</code>,
+<code>conditional_edges:</code>, and <code>wait_states:</code> replaced by <code>after_transitions:</code>,
+<code>route_transitions:</code>, <code>external_events:</code>, and <code>wait_state_names:</code>.
+This is an <strong>internal-only</strong> change; the public <code>Phronomy::Workflow.define</code> DSL
+is unchanged.</li>
+</ul>
+<h3 id="Removed__internal_">Removed (internal)</h3>
+<ul>
+<li><code>WorkflowRunner#resolve_next_node</code> — logic moved to state_machines</li>
+<li><code>WorkflowRunner#advance_phase</code> — replaced by <code>fire_event!</code></li>
+<li><code>Workflow::Builder#build_edges</code>, <code>#build_conditional_edges</code>,
+<code>#build_wait_states</code> — replaced by unified event classification in <code>build</code></li>
+</ul>
+<hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
 <h3 id="Added">Added</h3>
 <ul>
@@ -111,7 +149,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Wed May 13 13:38:54 2026 by
+  Generated on Fri May 15 03:20:27 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
