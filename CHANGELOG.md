@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.1] — Unreleased
+
+### Changed
+
+- **`WorkflowRunner` — state_machines fully drives execution** (architecture overhaul).
+  Previously `state_machines` was used only for post-hoc transition validation;
+  the next-node was calculated by Phronomy internally (`resolve_next_node`).
+  As of 0.3.0, all state transition decisions — including guard evaluation for
+  routing events — are delegated entirely to `state_machines`.
+  - `PhaseTracker` now exposes `attr_accessor :context` so guard lambdas can
+    access the `WorkflowContext` via `m.context`.
+  - Guard bridge pattern: `if: ->(m) { guard_proc.call(m.context) }`.
+  - Three event types registered per workflow:
+    1. `advance_<from>` — unconditional after-transitions
+    2. `<routing_event>` — guarded branching from action states (name is the
+       event name used in the DSL, e.g. `:route`, `:route_review`)
+    3. `<external_event>` — human-in-the-loop triggers from wait states
+  - Invalid transitions now raise `ArgumentError` instead of logging warnings.
+- **`WorkflowRunner` initializer signature changed** — `edges:`,
+  `conditional_edges:`, and `wait_states:` replaced by `after_transitions:`,
+  `route_transitions:`, `external_events:`, and `wait_state_names:`.
+  This is an **internal-only** change; the public `Phronomy::Workflow.define` DSL
+  is unchanged.
+
+### Removed (internal)
+
+- `WorkflowRunner#resolve_next_node` — logic moved to state_machines
+- `WorkflowRunner#advance_phase` — replaced by `fire_event!`
+- `Workflow::Builder#build_edges`, `#build_conditional_edges`,
+  `#build_wait_states` — replaced by unified event classification in `build`
+
+---
+
 ## [Unreleased]
 
 ### Added

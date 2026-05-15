@@ -170,111 +170,48 @@ module Phronomy
       # Builds and returns a Phronomy::Workflow backed by a WorkflowRunner.
       def build
         nodes = @states.dup
-        edges = build_edges
-        conditional_edges = build_conditional_edges
-        wait_states = build_wait_states
+
+        # After-transitions: { from => to }
+        # Unconditional transitions that fire automatically after an action state completes.
+        after_transitions = @after_transitions.each_with_object({}) do |t, h|
+          h[t[:from]] = t[:to]
+        end
+
+        # Route transitions: { from => {event_name:, entries: [{guard:, to:}, ...]} }
+        # Events declared from action states (not wait states) fire automatically
+        # after the action completes. The event name is used to register the
+        # state_machines event and may be any symbol (e.g. :route, :route_review).
+        # Declaration order is preserved so guarded entries appear before fallbacks.
+        route_transitions = {}
+
+        # External events: { event_name => [{from:, to:, guard:}, ...] }
+        # Events declared from wait states, triggered by human input (e.g. :approve).
+        external_events = {}
+
+        @event_transitions.each do |t|
+          if @wait_state_names.include?(t[:from])
+            # Source is a wait state → external event
+            external_events[t[:name]] ||= []
+            external_events[t[:name]] << {from: t[:from], to: t[:to], guard: t[:guard]}
+          else
+            # Source is an action state → routing event (auto-fires after action)
+            # The event name is taken from the first declaration for each from-state.
+            route_transitions[t[:from]] ||= {event_name: t[:name], entries: []}
+            route_transitions[t[:from]][:entries] << {guard: t[:guard], to: t[:to]}
+          end
+        end
 
         runner = Phronomy::WorkflowRunner.new(
           state_class: @context_class,
           nodes: nodes,
-          edges: edges,
-          conditional_edges: conditional_edges,
+          after_transitions: after_transitions,
+          route_transitions: route_transitions,
+          external_events: external_events,
           entry_point: @initial || nodes.keys.first,
-          wait_states: wait_states
+          wait_state_names: @wait_state_names
         )
 
         Workflow.new(runner)
-      end
-
-      private
-
-      # Converts @after_transitions and non-guarded @event_transitions into
-      # the edges hash expected by WorkflowRunner: { from => [{to:, condition:}] }
-      #
-      # Event transitions whose from-node also has guarded transitions are omitted
-      # here; they are handled inside build_conditional_edges as a fallback.
-      def build_edges
-        edges = {}
-
-        # After-transitions (unconditional edges fired after action completes)
-        @after_transitions.each do |t|
-          edges[t[:from]] ||= []
-          edges[t[:from]] << {to: t[:to], condition: nil}
-        end
-
-        # Collect from-nodes that already have at least one guarded event
-        from_with_guards = @event_transitions.select { |t| t[:guard] }.map { |t| t[:from] }.to_set
-
-        # Unconditional event transitions are plain edges ONLY when no guarded
-        # event exists from the same source node.  When guards are present the
-        # unguarded transition acts as a fallback and is wired inside
-        # build_conditional_edges instead.
-        @event_transitions.reject { |t| t[:guard] }.each do |t|
-          next if from_with_guards.include?(t[:from])
-          edges[t[:from]] ||= []
-          edges[t[:from]] << {to: t[:to], condition: nil}
-        end
-
-        edges
-      end
-
-      # Converts guarded event transitions into the conditional_edges hash:
-      # { from => { condition: Proc, mapping: nil } }
-      #
-      # Multiple guarded transitions from the same source are combined into a
-      # single routing proc.  An unguarded transition from the same source is
-      # used as an automatic fallback when all guards fail.
-      def build_conditional_edges
-        conditional_edges = {}
-
-        guarded = @event_transitions.select { |t| t[:guard] }
-        guarded.group_by { |t| t[:from] }.each do |from, transitions|
-          # Unguarded fallback for this from-node (may be nil)
-          fallback = @event_transitions.find { |t| t[:from] == from && t[:guard].nil? }
-
-          routing = lambda do |state|
-            matched = transitions.find { |t| t[:guard].call(state) }
-            next matched[:to] if matched
-            fallback&.fetch(:to)
-          end
-          conditional_edges[from] = {condition: routing, mapping: nil}
-        end
-
-        conditional_edges
-      end
-
-      # Converts wait_state declarations plus event-driven transitions *to*
-      # wait states into the wait_states hash:
-      # { wait_state_name => { resume_event: Symbol, resume_to: Symbol } }
-      #
-      # For each wait state, we look for the first event declared as
-      # `event :X, from: :wait_state_name, to: :Y` and use that as the
-      # resume_event / resume_to pair. If multiple events exist for the same
-      # wait state, subsequent ones are registered as additional named events.
-      def build_wait_states
-        wait_states = {}
-
-        @wait_state_names.each do |ws|
-          # Find events that originate from this wait state
-          outgoing = @event_transitions.select { |t| t[:from] == ws }
-          primary = outgoing.first
-
-          wait_states[ws] = {
-            resume_event: primary&.fetch(:name),
-            resume_to: primary&.fetch(:to)
-          }
-
-          # Additional events from the same wait state are also registered so
-          # that send_event(:other_event) works for branching wait states.
-          outgoing.drop(1).each do |t|
-            wait_states[:"#{ws}__#{t[:name]}"] = {
-              resume_event: t[:name],
-              resume_to: t[:to]
-            }
-          end
-        end
-
-        wait_states
       end
     end
   end

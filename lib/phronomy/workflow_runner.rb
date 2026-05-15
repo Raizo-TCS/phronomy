@@ -8,35 +8,51 @@ module Phronomy
   # Manages node execution, phase transitions, halt/resume, and wait states.
   # Instantiated by Phronomy::Workflow and used internally.
   #
-  # Wait states (registered via wait_states:) are virtual nodes
-  # that automatically halt execution when reached. They can be resumed with
-  # either #resume (generic) or #send_event (event-typed).
+  # == Design principle
   #
-  # Internally, a state_machines-based PhaseTracker class is generated at
-  # initialization time. The tracker validates phase transitions during
-  # execution; invalid transitions are logged as warnings without halting.
+  # State transitions are driven entirely by state_machines. The PhaseTracker
+  # holds a reference to the current WorkflowContext via +attr_accessor :context+,
+  # and guard lambdas evaluate +m.context+ (the WorkflowContext) rather than
+  # the PhaseTracker itself. This ensures that "what happens next" is always
+  # determined by the declared state machine topology, never by Phronomy internals.
+  #
+  # == Three transition categories registered in PhaseTracker
+  #
+  #   1. advance_<from>  — automatic, unconditional after-transitions
+  #                        fired when an action state's action completes
+  #                        (declared with +after :foo, to: :bar+)
+  #
+  #   2. route           — a single event that carries all guarded transitions
+  #                        (declared with +event :route, from: :foo, guard: ..., to: :bar+)
+  #                        Guards are evaluated in declaration order; first match wins.
+  #                        An unguarded fallback, if declared, is evaluated last.
+  #
+  #   3. <event_name>    — external events triggered by human input, originating
+  #                        from wait states
+  #                        (declared with +event :approve, from: :awaiting, to: :run+)
   class WorkflowRunner
     include Phronomy::Runnable
 
     # Sentinel value for the terminal state of a workflow.
     FINISH = :__end__
 
-    def initialize(state_class:, nodes:, edges:, conditional_edges:, entry_point:,
-      before_callbacks: {}, after_callbacks: {}, wait_states: {}, state_store: nil)
+    def initialize(state_class:, nodes:, after_transitions:, route_transitions:,
+      external_events:, entry_point:, wait_state_names: [],
+      before_callbacks: {}, after_callbacks: {}, state_store: nil)
       @state_class = state_class
       @nodes = nodes
-      @edges = edges
-      @conditional_edges = conditional_edges
+      @after_transitions = after_transitions  # { from => to }
+      @route_transitions = route_transitions  # { from => [{guard:, to:}, ...] }
+      @external_events = external_events    # { name => [{from:, to:, guard:}, ...] }
       @entry_point = entry_point
+      @wait_state_names = wait_state_names
       @before_callbacks = before_callbacks.dup
       @after_callbacks = after_callbacks.dup
-      # { wait_state_name => { resume_event: Symbol, resume_to: Symbol } }
-      @wait_states = wait_states.dup
       @state_store_override = state_store
       @phase_machine_class = build_phase_machine_class
     end
 
-    # Executes the workflow from the entry point.
+    # Executes the workflow from the initial state.
     # @param input [Hash] initial context field values
     # @param config [Hash] { thread_id:, recursion_limit:, user_id:, session_id: }
     # @return [Object] final context (includes Phronomy::WorkflowContext)
@@ -55,9 +71,7 @@ module Phronomy
       end
     end
 
-    # Generic resume. Routes based on the current phase encoding.
-    # Equivalent to +send_event(state:, event: :resume, input:)+.
-    #
+    # Generic resume. Equivalent to +send_event(state:, event: :resume, input:)+.
     # @param state [Object] halted context
     # @param input [Hash, nil] optional field updates to merge before resuming
     # @return [Object] final context
@@ -67,14 +81,11 @@ module Phronomy
 
     # Fires a named event to advance a halted workflow.
     #
-    # The special event +:resume+ is accepted for all halt types:
-    # - Named wait state → resumes at +resume_to+ node
-    #
-    # Any other event name must match the +resume_event:+ declared in
-    # the wait_states configuration.
+    # The special event +:resume+ selects the first external event registered
+    # for the current wait state and fires it.
     #
     # @param state [Object] halted context
-    # @param event [Symbol] +:resume+ for generic resumption, or a named event
+    # @param event [Symbol] named event or +:resume+ for generic resumption
     # @param input [Hash, nil] optional field updates to merge before resuming
     # @return [Object] final context
     def send_event(state:, event:, input: nil)
@@ -82,21 +93,30 @@ module Phronomy
       event = event.to_sym
       current_phase = state.phase
 
-      if event == :resume
-        # Named wait state: use resume_to
-        if @wait_states.key?(current_phase)
-          return run_graph(state, from_node: @wait_states[current_phase][:resume_to])
+      tracker = new_phase_machine(current_phase)
+      tracker.context = state
+
+      ev_to_fire = if event == :resume
+        # Find the first external event that can originate from the current wait state.
+        name, = @external_events.find { |_, ts| ts.any? { |t| t[:from] == current_phase } }
+        unless name
+          raise ArgumentError,
+            "No external event registered for wait state #{current_phase.inspect}"
         end
-        raise ArgumentError, "State has no wait state registered for phase #{current_phase.inspect}"
+        name
+      else
+        unless @external_events.key?(event)
+          raise ArgumentError,
+            "Unknown event #{event.inspect}. Valid events: #{@external_events.keys.inspect}"
+        end
+        event
       end
 
-      # Named event lookup
-      _, wait_cfg = @wait_states.find { |_, c| c[:resume_event] == event }
-      unless wait_cfg
-        valid = @wait_states.values.filter_map { |c| c[:resume_event] }.uniq
-        raise ArgumentError, "Unknown event #{event.inspect}. Valid events: #{valid.inspect}"
-      end
-      run_graph(state, from_node: wait_cfg[:resume_to])
+      fire_event!(tracker, ev_to_fire, current_phase)
+
+      next_phase = tracker.phase.to_sym
+      next_node = (next_phase == :__end__) ? FINISH : next_phase
+      run_graph(state, from_node: next_node)
     end
 
     # Streaming execution. Yields { node: Symbol, state: Object } after each node completes.
@@ -121,6 +141,7 @@ module Phronomy
     def run_graph(state, from_node: nil, recursion_limit: 25, &event_block)
       current_node = from_node || @entry_point
       tracker = new_phase_machine(current_node)
+      tracker.context = state
       step = 0
 
       while current_node && current_node != FINISH
@@ -129,15 +150,15 @@ module Phronomy
             "Recursion limit (#{recursion_limit}) exceeded"
         end
 
-        # Auto-halt at wait states.
-        if @wait_states.key?(current_node)
+        # Auto-halt at wait states: save context and return to caller.
+        if @wait_state_names.include?(current_node)
           state.set_graph_metadata(thread_id: state.thread_id, phase: current_node)
           state_store&.save(state)
           return state
         end
 
         node_fn = @nodes[current_node]
-        raise ArgumentError, "Node #{current_node} is not defined" unless node_fn
+        raise ArgumentError, "Node #{current_node.inspect} is not defined" unless node_fn
 
         result = node_fn.call(state)
         state = case result
@@ -146,14 +167,29 @@ module Phronomy
         when nil then state
         else
           raise ArgumentError,
-            "Node #{current_node} returned #{result.class}; expected Hash, #{@state_class}, or nil"
+            "Node #{current_node} returned #{result.class}; " \
+            "expected Hash, #{@state_class}, or nil"
         end
+
+        # Update tracker so guards see the freshest context.
+        tracker.context = state
 
         event_block&.call({node: current_node, state: state})
 
-        next_n = resolve_next_node(current_node, state)
-        advance_phase(tracker, current_node, next_n || FINISH)
-        current_node = next_n
+        # Delegate transition decision to state_machines.
+        if @after_transitions.key?(current_node)
+          fire_event!(tracker, :"advance_#{current_node}", current_node)
+        elsif @route_transitions.key?(current_node)
+          ev_name = @route_transitions[current_node][:event_name]
+          fire_event!(tracker, ev_name, current_node)
+        end
+        # Nodes with no declared outgoing transition are treated as terminal:
+        # next_phase == current_node triggers the FINISH assignment below.
+
+        next_phase = tracker.phase.to_sym
+        # When next_phase == current_node: no transition fired (terminal node) → end.
+        # When next_phase == :__end__ (== FINISH): route led to finish → exit loop.
+        current_node = (next_phase == current_node) ? FINISH : next_phase
 
         step += 1
       end
@@ -163,100 +199,87 @@ module Phronomy
       state
     end
 
-    def resolve_next_node(current, state)
-      if (cond = @conditional_edges[current])
-        result = cond[:condition].call(state)
-        if cond[:mapping]
-          unless cond[:mapping].key?(result)
-            raise ArgumentError,
-              "Conditional edge from #{current.inspect} returned #{result.inspect}, " \
-              "which is not present in the mapping (#{cond[:mapping].keys.inspect})"
-          end
-          return cond[:mapping][result]
-        end
-        return result
-      end
+    # Fires +event_name+ on +tracker+, raising a descriptive error if no
+    # transition matches. state_machines event methods return false when no
+    # transition can be taken (invalid state or all guards fail).
+    def fire_event!(tracker, event_name, from_node)
+      return if tracker.send(event_name)
 
-      edges = @edges[current]
-      return nil unless edges&.any?
-
-      matched = edges.find { |edge| edge[:condition].nil? || edge[:condition].call(state) }
-      matched&.fetch(:to)
+      raise ArgumentError,
+        "Transition from #{from_node.inspect} via event #{event_name.inspect} failed. " \
+        "Ensure at least one guard matches or add a fallback (no-guard) transition."
     end
 
-    # Builds a state_machines-based PhaseTracker class encoding the workflow topology.
-    # Returns nil if the build fails (execution continues without phase validation).
+    # Builds the PhaseTracker class backed by state_machines.
+    #
+    # Three event types are registered:
+    #   advance_<from>  — unconditional after-transitions
+    #   route           — all guarded routing transitions (one event, multiple transitions)
+    #   <external_name> — external events originating from wait states
+    #
+    # Guard lambdas bridge the PhaseTracker and WorkflowContext via +m.context+.
     def build_phase_machine_class
       entry = @entry_point
-      nodes = @nodes.keys
-      ws_names = @wait_states.keys
-
-      # Collect all valid (from, to) pairs; use a Hash to deduplicate.
-      trans = {}
-
-      @edges.each do |from, edge_list|
-        edge_list.each do |edge|
-          to = (edge[:to] == FINISH) ? :__end__ : edge[:to]
-          trans[[from, to]] = true
-        end
-      end
-
-      @conditional_edges.each do |from, cfg|
-        targets = cfg[:mapping] ? cfg[:mapping].values : (nodes + ws_names + [:__end__])
-        targets.each do |to|
-          t = (to == FINISH) ? :__end__ : to
-          trans[[from, t]] = true
-        end
-      end
-
-      # Any node can be terminal (no outgoing edge = implicit advance to :__end__).
-      nodes.each { |n| trans[[n, :__end__]] = true }
-
-      all_states = (nodes + ws_names + [:__end__]).uniq
-      trans_pairs = trans.keys
+      all_states = (@nodes.keys + @wait_state_names + [:__end__]).uniq
+      after_trans = @after_transitions   # { from => to }
+      route_trans = @route_transitions   # { from => [{guard:, to:}, ...] }
+      ext_events = @external_events     # { name => [{from:, to:, guard:}, ...] }
 
       Class.new do
+        # Holds the current WorkflowContext so guards can read it.
+        attr_accessor :context
+
         state_machine :phase, initial: entry do
           all_states.each { |s| state s }
-          trans_pairs.each do |from, to|
-            event :"advance_#{from}_to_#{to}" do
+
+          # 1. After-transitions: unconditional, fire on action completion.
+          after_trans.each do |from, to|
+            event :"advance_#{from}" do
               transition from => to
+            end
+          end
+
+          # 2. Route events: one named event per from-state (name may vary).
+          #    Declaration order is preserved; guards first, unguarded fallback last.
+          route_trans.each do |from, routing|
+            event routing[:event_name] do
+              routing[:entries].each do |t|
+                if t[:guard]
+                  guard_proc = t[:guard]
+                  transition from => t[:to], :if => ->(m) { guard_proc.call(m.context) }
+                else
+                  transition from => t[:to]
+                end
+              end
+            end
+          end
+
+          # 3. External events: human-in-the-loop triggers from wait states.
+          ext_events.each do |ev_name, transitions|
+            event ev_name do
+              transitions.each do |t|
+                if t[:guard]
+                  guard_proc = t[:guard]
+                  transition t[:from] => t[:to], :if => ->(m) { guard_proc.call(m.context) }
+                else
+                  transition t[:from] => t[:to]
+                end
+              end
             end
           end
         end
       end
     rescue => e
-      warn "[Phronomy] Could not build phase machine: #{e.message}"
-      nil
+      raise ArgumentError, "Failed to build phase machine: #{e.message}"
     end
 
-    # Creates a PhaseTracker instance initialised to +from_node+.
+    # Creates a PhaseTracker instance initialized to +from_node+.
     def new_phase_machine(from_node)
-      return nil unless @phase_machine_class && from_node
-
       machine = @phase_machine_class.new
+      # Override the initial state set by state_machine's initializer so we can
+      # resume from an arbitrary node (e.g. after a wait state).
       machine.instance_variable_set(:@phase, from_node.to_s)
       machine
-    rescue => e
-      warn "[Phronomy] Phase machine init failed: #{e.message}"
-      nil
-    end
-
-    # Fires a transition event on the tracker from +from+ to +to+.
-    # Logs a warning if the transition is not declared; does not raise.
-    def advance_phase(tracker, from, to)
-      return unless tracker && from
-
-      to_sym = case to
-      when nil, FINISH then :__end__
-      else to
-      end
-      event_name = :"advance_#{from}_to_#{to_sym}"
-      unless tracker.fire_events(event_name)
-        warn "[Phronomy] Unexpected phase transition #{from.inspect} → #{to_sym.inspect}"
-      end
-    rescue => e
-      warn "[Phronomy] Phase tracker error (#{from}→#{to}): #{e.message}"
     end
   end
 end
