@@ -20,14 +20,6 @@ RSpec.describe Phronomy::Configuration do
       expect(config.default_embedding_model).to be_nil
     end
 
-    it "defaults default_state_store to nil" do
-      expect(config.default_state_store).to be_nil
-    end
-
-    it "defaults default_memory to nil" do
-      expect(config.default_memory).to be_nil
-    end
-
     it "defaults tracer to a NullTracer" do
       expect(config.tracer).to be_a(Phronomy::Tracing::NullTracer)
     end
@@ -48,12 +40,6 @@ RSpec.describe Phronomy::Configuration do
     it "changes recursion_limit" do
       config.recursion_limit = 50
       expect(config.recursion_limit).to eq(50)
-    end
-
-    it "sets a StateStore" do
-      store = Phronomy::StateStore::InMemory.new
-      config.default_state_store = store
-      expect(config.default_state_store).to be(store)
     end
   end
 end

@@ -18,18 +18,11 @@ module Phronomy
           # Run input guardrails before any LLM interaction.
           run_input_guardrails!(input)
 
-          memory = config[:memory]
-          thread_id = config[:thread_id]
+          config[:thread_id]
           max_iter = self.class.max_iterations
 
-          # Seed with persisted messages when memory is provided.
-          initial_messages = if memory && thread_id
-            load_from_memory(memory, thread_id: thread_id, query: extract_message(input))
-          else
-            []
-          end
-
-          messages = initial_messages.dup
+          # Seed with app-managed conversation history when provided.
+          messages = Array(config[:messages]).dup
           user_asked = false
           total_usage = Phronomy::TokenUsage.zero
           iterations_exhausted = true
@@ -45,12 +38,8 @@ module Phronomy
             end
           end
 
-          save_to_memory(memory, thread_id: thread_id, messages: messages) if memory && thread_id
-
-          # Fall back to the last message that carries non-nil content. This
+          # Fall back to the last message
           # guards against the case where the final message is a tool-call or
-          # tool-result message (content == nil) when max_iterations is
-          # exhausted before the model produces a text reply.
           output = messages.reverse.find { |m| m.content && !m.content.empty? }&.content
 
           # Run output guardrails before returning to the caller.
@@ -80,17 +69,10 @@ module Phronomy
         trace("agent.invoke", input: input, **caller_meta) do |_span|
           run_input_guardrails!(input)
 
-          memory = config[:memory]
-          thread_id = config[:thread_id]
+          config[:thread_id]
           max_iter = self.class.max_iterations
 
-          initial_messages = if memory && thread_id
-            load_from_memory(memory, thread_id: thread_id, query: extract_message(input))
-          else
-            []
-          end
-
-          messages = initial_messages.dup
+          messages = Array(config[:messages]).dup
           user_asked = false
           total_usage = Phronomy::TokenUsage.zero
           iterations_exhausted = true
@@ -105,8 +87,6 @@ module Phronomy
               break
             end
           end
-
-          save_to_memory(memory, thread_id: thread_id, messages: messages) if memory && thread_id
 
           # Fall back to the last message that carries non-nil content (same as
           # the non-streaming path above).
@@ -154,8 +134,18 @@ module Phronomy
         chat = build_chat
         messages.each { |m| chat.add_message(m) }
 
-        chat.before_tool_call { |tc| block.call(StreamEvent.new(type: :tool_call, payload: {tool_call: tc})) }
-        chat.after_tool_result { |tr| block.call(StreamEvent.new(type: :tool_result, payload: {tool_result: tr})) }
+        current_tool_call = nil
+        chat.on_tool_call do |tc|
+          current_tool_call = tc
+          block.call(StreamEvent.new(type: :tool_call, payload: {tool_call: tc}))
+        end
+        chat.on_tool_result do |tr|
+          block.call(StreamEvent.new(type: :tool_result, payload: {
+            tool_call_id: current_tool_call&.id,
+            tool_name: current_tool_call&.name,
+            tool_result: tr
+          }))
+        end
 
         # Run before_completion hooks before each LLM call in the streaming loop.
         run_before_completion_hooks!(chat, config)

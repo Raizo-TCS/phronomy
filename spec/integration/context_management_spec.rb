@@ -139,14 +139,6 @@ RSpec.describe "Group: Context Management", :integration do
   # on_trim removes the first message; trigger fires but returns false.
   # --------------------------------------------------------------------------
   describe "TC-007: single static source, cold cache, on_trim removes first message" do
-    let(:memory) do
-      Phronomy::Memory::ConversationManager.new(
-        storage: Phronomy::Memory::Storage::InMemory.new,
-        retrieval: Phronomy::Memory::Retrieval::Recent.new(k: 10)
-      )
-    end
-    let(:thread) { "tc-007-#{SecureRandom.hex(4)}" }
-
     it "trims the first message and still returns a valid output" do
       agent = IntegrationFactors.context_agent(
         static_knowledge_label: "single",
@@ -154,11 +146,10 @@ RSpec.describe "Group: Context Management", :integration do
         on_trigger_label: "false"
       ).new
 
-      agent.invoke("Remember: my favourite color is red. Just say 'Got it.'",
-        config: {memory: memory, thread_id: thread})
+      first = agent.invoke("Remember: my favourite color is red. Just say 'Got it.'")
 
       result = agent.invoke("Say 'still working'.",
-        config: {memory: memory, thread_id: thread})
+        config: {messages: first[:messages]})
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end
@@ -169,14 +160,6 @@ RSpec.describe "Group: Context Management", :integration do
   # Multi static sources, cold cache; trigger fires and compact runs.
   # --------------------------------------------------------------------------
   describe "TC-008: multi static sources, cold cache, trigger=true, compact=summarise_range" do
-    let(:memory) do
-      Phronomy::Memory::ConversationManager.new(
-        storage: Phronomy::Memory::Storage::InMemory.new,
-        retrieval: Phronomy::Memory::Retrieval::Recent.new(k: 10)
-      )
-    end
-    let(:thread) { "tc-008-#{SecureRandom.hex(4)}" }
-
     it "performs compaction without raising and returns a non-empty output" do
       agent = IntegrationFactors.context_agent(
         static_knowledge_label: "multi",
@@ -184,10 +167,9 @@ RSpec.describe "Group: Context Management", :integration do
         on_compact_label: "summarise_range"
       ).new
 
-      agent.invoke("Say 'first message'.",
-        config: {memory: memory, thread_id: thread})
+      first = agent.invoke("Say 'first message'.")
       result = agent.invoke("Say 'after compaction'.",
-        config: {memory: memory, thread_id: thread})
+        config: {messages: first[:messages]})
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end
@@ -276,24 +258,15 @@ RSpec.describe "Group: Context Management", :integration do
   # present but no trigger, so compact never runs.
   # --------------------------------------------------------------------------
   describe "TC-014: no static knowledge, on_trim removes first message, compact without trigger" do
-    let(:memory) do
-      Phronomy::Memory::ConversationManager.new(
-        storage: Phronomy::Memory::Storage::InMemory.new,
-        retrieval: Phronomy::Memory::Retrieval::Recent.new(k: 10)
-      )
-    end
-    let(:thread) { "tc-014-#{SecureRandom.hex(4)}" }
-
     it "trims first message, skips compact (no trigger), and returns a valid output" do
       agent = IntegrationFactors.context_agent(
         on_trim_label: "remove_some",
         on_compact_label: "summarise_range"
       ).new
 
-      agent.invoke("Say 'hello'.",
-        config: {memory: memory, thread_id: thread})
+      first = agent.invoke("Say 'hello'.")
       result = agent.invoke("Say 'goodbye'.",
-        config: {memory: memory, thread_id: thread})
+        config: {messages: first[:messages]})
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end

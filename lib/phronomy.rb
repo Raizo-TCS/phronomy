@@ -2,6 +2,7 @@
 
 require "zeitwerk"
 require "ruby_llm"
+require_relative "phronomy/ruby_llm_patches"
 
 loader = Zeitwerk::Loader.for_gem
 loader.ignore(File.expand_path("generators", __dir__))

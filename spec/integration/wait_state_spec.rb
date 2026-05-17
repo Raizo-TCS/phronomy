@@ -15,13 +15,10 @@ RSpec.describe "Group 28: Workflow Wait State / Phase", :integration do
     field :value, type: :replace, default: ""
   end
 
+  # StateStore was removed in v0.3.0. This helper is kept as a no-op so that
+  # test bodies do not need to be restructured.
   def with_in_memory_store
-    store = Phronomy::StateStore::InMemory.new
-    old = Phronomy.configuration.default_state_store
-    Phronomy.configure { |c| c.default_state_store = store }
-    yield store
-  ensure
-    Phronomy.configure { |c| c.default_state_store = old }
+    yield nil
   end
 
   # Builds a Workflow: node_a -> wait_state(:awaiting_node_b) -> node_b -> finish.

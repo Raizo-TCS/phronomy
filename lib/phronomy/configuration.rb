@@ -16,20 +16,6 @@ module Phronomy
     # Default embedding model name
     attr_accessor :default_embedding_model
 
-    # Default StateStore instance (nil = no persistence)
-    attr_accessor :default_state_store
-
-    # Default Memory instance
-    attr_accessor :default_memory
-
-    # When true, all memory backends write asynchronously via ActiveJob by default.
-    # Individual instances can still override with their own async: option.
-    # Requires ActiveJob to be available.
-    attr_accessor :memory_async
-
-    # ActiveJob queue name used for async memory writes (default: :default)
-    attr_accessor :memory_job_queue
-
     # Tracer instance
     attr_accessor :tracer
 
@@ -50,8 +36,6 @@ module Phronomy
     def initialize
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new
-      @memory_async = false
-      @memory_job_queue = :default
       @trace_pii = true
     end
   end
