@@ -64,6 +64,41 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
+<h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Changed">Changed</h3>
+<ul>
+<li><strong><code>PIIPatternDetector</code> — <code>:my_number</code> replaced by <code>:ssn</code></strong> ([#77]): The built-in PII
+detector now checks for US Social Security Numbers (<code>\b\d{3}-\d{2}-\d{4}\b</code>) instead
+of Japanese My Numbers. The JIS X 0076 check-digit validation and <code>my_number_valid?</code>
+helper have been removed. Category key renamed from <code>:my_number</code> to <code>:ssn</code>.</li>
+<li><strong><code>PIIPatternDetector</code> — phone pattern updated to international format</strong> ([#77]):
+The <code>:phone</code> pattern now matches 3-digit area code + 3–4-digit exchange + 4-digit
+subscriber number with optional E.164 country-code prefix
+(<code>(?:\+\d{1,3}[.\- ]?)?\(?\d{3}\)?[.\- ]?\d{3,4}[.\- ]?\d{4}\b</code>),
+replacing the previous Japan-specific pattern.</li>
+</ul>
+<h3 id="Fixed">Fixed</h3>
+<ul>
+<li><strong><code>README</code> — stale Memory API examples</strong> ([#76]): All references to the
+non-existent <code>WindowMemory</code>, <code>ActiveRecordMemory</code>, <code>SemanticMemory</code> classes and
+<code>load_messages</code> / <code>memory_compression</code> API have been replaced with the correct
+<code>ConversationManager</code>-based API.</li>
+<li><strong><code>README</code> — <code>PIIPatternDetector</code> comment</strong> ([#77]): Inline comment updated to
+<code># Detect SSNs, credit cards, emails, and phone numbers</code>.</li>
+<li><strong><code>README</code> — Configuration block markdown</strong> ([#80]): The <code>max_actors</code> Note block
+was incorrectly placed inside the Ruby code fence; moved outside so it renders
+as a blockquote.</li>
+<li><strong><code>README</code> — <code>Guardrails</code> stability label</strong> ([#76]): Changed from <code>Stable</code> to <code>Beta</code>
+to reflect that the built-in detector patterns may evolve.</li>
+<li><strong><code>CHANGELOG</code> — stale entries</strong> ([#78]): Removed the orphaned <code>[Unreleased]</code> section
+describing a never-released API, and replaced a forward <code>&quot;As of 0.3.0&quot;</code> reference
+with future-tense wording.</li>
+<li><strong><code>McpTool</code> — YARD class comment</strong> ([#79]): Updated to document both the
+<code>stdio://</code> and <code>http://</code>/<code>https://</code> transport schemes.</li>
+<li><strong><code>README</code> — <code>max_actors</code> configuration reference</strong> ([#80]): Added <code>c.max_actors</code>
+example and LRU eviction note to the Configuration section.</li>
+</ul>
+<hr />
 <h2 id="_0_2_2____2026_05_17">[0.2.2] - 2026-05-17</h2>
 <h3 id="Fixed">Fixed</h3>
 <ul>
@@ -160,7 +195,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sun May 17 04:37:10 2026 by
+  Generated on Sun May 17 04:58:54 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
