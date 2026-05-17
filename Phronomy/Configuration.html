@@ -258,6 +258,31 @@ Configure via the Phronomy.configure block.</p>
       <li class="public ">
   <span class="summary_signature">
     
+      <a href="#max_actors-instance_method" title="#max_actors (instance method)">#<strong>max_actors</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Maximum number of Actors that <span class='object_link'><a href="ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span> may hold simultaneously.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#memory_async-instance_method" title="#memory_async (instance method)">#<strong>memory_async</strong>  &#x21d2; Object </a>
     
 
@@ -448,16 +473,17 @@ Configure via the Phronomy.configure block.</p>
       <pre class="lines">
 
 
-50
-51
-52
-53
-54
-55
-56</pre>
+57
+58
+59
+60
+61
+62
+63
+64</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 50</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 57</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@recursion_limit</span> <span class='op'>=</span> <span class='int'>25</span>
@@ -465,6 +491,7 @@ Configure via the Phronomy.configure block.</p>
   <span class='ivar'>@memory_async</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@memory_job_queue</span> <span class='op'>=</span> <span class='symbol'>:default</span>
   <span class='ivar'>@trace_pii</span> <span class='op'>=</span> <span class='kw'>true</span>
+  <span class='ivar'>@max_actors</span> <span class='op'>=</span> <span class='kw'>nil</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -678,6 +705,51 @@ of params to merge, or nil to pass through unchanged.</p>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_default_state_store'>default_state_store</span>
   <span class='ivar'>@default_state_store</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="max_actors=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="max_actors-instance_method">
+  
+    #<strong>max_actors</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Maximum number of Actors that <span class='object_link'><a href="ThreadActorRegistry.html" title="Phronomy::ThreadActorRegistry (module)">ThreadActorRegistry</a></span> may hold simultaneously.
+When the registry is full, the least-recently-used Actor is stopped and
+evicted before a new one is created.
+Defaults to <code>nil</code> (no limit).  Set to a positive integer for long-running
+server processes that handle many distinct conversation threads.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+55
+56
+57</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 55</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_max_actors'>max_actors</span>
+  <span class='ivar'>@max_actors</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -899,7 +971,7 @@ the tracing backend (OTel, Langfuse, etc.).</p>
 </div>
 
       <div id="footer">
-  Generated on Fri May 15 12:20:03 2026 by
+  Generated on Sun May 17 04:00:09 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

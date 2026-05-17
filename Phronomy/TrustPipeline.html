@@ -371,21 +371,21 @@ When nil (default), input is embedded as-is for backward compatibility.</p></div
       <pre class="lines">
 
 
-83
-84
-85
-86
-87
 88
 89
 90
 91
 92
 93
-94</pre>
+94
+95
+96
+97
+98
+99</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 83</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 88</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>draft_agent:</span><span class='comma'>,</span> <span class='label'>review_agent:</span><span class='comma'>,</span>
   <span class='label'>confidence_threshold:</span> <span class='const'><span class='object_link'><a href="#DEFAULT_CONFIDENCE_THRESHOLD-constant" title="Phronomy::TrustPipeline::DEFAULT_CONFIDENCE_THRESHOLD (constant)">DEFAULT_CONFIDENCE_THRESHOLD</a></span></span><span class='comma'>,</span>
@@ -482,11 +482,6 @@ When nil (default), input is embedded as-is for backward compatibility.</p></div
       <pre class="lines">
 
 
-101
-102
-103
-104
-105
 106
 107
 108
@@ -494,10 +489,15 @@ When nil (default), input is embedded as-is for backward compatibility.</p></div
 110
 111
 112
-113</pre>
+113
+114
+115
+116
+117
+118</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 101</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 106</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_app'>app</span> <span class='op'>=</span> <span class='id identifier rubyid_compiled_graph'>compiled_graph</span>
@@ -522,7 +522,7 @@ When nil (default), input is embedded as-is for backward compatibility.</p></div
 </div>
 
       <div id="footer">
-  Generated on Fri May 15 12:20:03 2026 by
+  Generated on Sun May 17 04:00:09 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

@@ -63,25 +63,89 @@
 <p><strong>Phronomy</strong> is a Ruby AI agent framework inspired by open-source AI agent frameworks.<br />
 It provides composable building blocks — Workflows, Agents, and Memory — all powered by <a href="https://github.com/crmne/ruby_llm">RubyLLM</a> for LLM abstraction.</p>
 <h2 id="Features">Features</h2>
-<ul>
-<li><strong>Workflow</strong> — Build stateful, branching agent workflows with wait_state/send_event support</li>
-<li><strong>Workflow Parallel Node</strong> — Execute independent workflow branches concurrently using application-level Ruby threads</li>
-<li><strong>Agent</strong> — ReAct-style tool-calling agents with memory and guardrails</li>
-<li><strong>Before-Completion Hook</strong> — Three-tier (global / class / instance) LLM parameter injection before each chat request</li>
-<li><strong>Memory</strong> — Window, summary, ActiveRecord-backed, semantic, and composite conversation memory</li>
-<li><strong>Memory Compression</strong> — Automatic summarisation and tool-output pruning to stay within token limits</li>
-<li><strong>Context Management</strong> — Token budget calculation, estimation, and pruning for any model</li>
-<li><strong>Knowledge/RAG</strong> — Static, entity, and vector-backed retrieval sources with pluggable loaders, splitters, and vector stores</li>
-<li><strong>Multi-agent</strong> — Agent-as-Tool pattern (sub-agents wrapped as <code>Tool::Base</code>) and hub-and-spoke handoff routing via <code>Agent::Runner</code></li>
-<li><strong>TrustPipeline</strong> — Citation tracking, self-review loop, and confidence gate for trustworthy outputs</li>
-<li><strong>Guardrails</strong> — Validate inputs and outputs before/after LLM calls; built-in PII and prompt-injection detectors</li>
-<li><strong>Output Parser</strong> — JSON and Struct-mapped parsers for structured LLM responses</li>
-<li><strong>Eval Framework</strong> — Dataset-driven evaluation with ExactMatch, Includes, and LLM-as-a-Judge scorers</li>
-<li><strong>Tracing</strong> — Pluggable span-based observability (NullTracer, LangfuseTracer, OpenTelemetryTracer)</li>
-<li><strong>StateStore</strong> — Persist graph state to memory, ActiveRecord, or Redis (with optional AES-256-GCM encryption)</li>
-<li><strong>MCP Tool</strong> — Integrate Model Context Protocol (MCP) servers as native tools</li>
-<li><strong>Rails integration</strong> — <code>AgentJob</code>, <code>acts_as_phronomy_message</code> mixin, and Rails generators</li>
-</ul>
+<blockquote>
+<p><strong>Stability labels</strong>: <code>Stable</code> — production-ready, semver-protected API.
+<code>Beta</code> — functional but the API may change in a minor release.
+<code>Experimental</code> — subject to breaking changes without notice.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Stability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Workflow</strong> — Stateful, branching workflows with wait_state/send_event</td>
+<td>Stable</td>
+</tr>
+<tr>
+<td><strong>Workflow Parallel Node</strong> — Concurrent branches via application-level threads</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong>Agent</strong> — ReAct-style tool-calling agents with memory and guardrails</td>
+<td>Stable</td>
+</tr>
+<tr>
+<td><strong>Before-Completion Hook</strong> — Three-tier LLM parameter injection</td>
+<td>Stable</td>
+</tr>
+<tr>
+<td><strong>Memory</strong> — Window, summary, ActiveRecord-backed, semantic, and composite memory</td>
+<td>Stable</td>
+</tr>
+<tr>
+<td><strong>Memory Compression</strong> — Automatic summarisation and tool-output pruning</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong>Context Management</strong> — Token budget calculation, estimation, and pruning</td>
+<td>Stable</td>
+</tr>
+<tr>
+<td><strong>Knowledge/RAG</strong> — Retrieval sources with pluggable loaders, splitters, and vector stores</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong>Multi-agent</strong> — Agent-as-Tool pattern and hub-and-spoke handoff routing</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong>TrustPipeline</strong> — Self-review loop and confidence gate (citations are LLM-self-reported)</td>
+<td>Experimental</td>
+</tr>
+<tr>
+<td><strong>Guardrails</strong> — Input/output validation; built-in PII and prompt-injection detectors</td>
+<td>Stable</td>
+</tr>
+<tr>
+<td><strong>Output Parser</strong> — JSON and Struct-mapped parsers for structured LLM responses</td>
+<td>Stable</td>
+</tr>
+<tr>
+<td><strong>Eval Framework</strong> — Dataset-driven evaluation with multiple scorer types</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong>Tracing</strong> — Pluggable span-based observability</td>
+<td>Stable</td>
+</tr>
+<tr>
+<td><strong>StateStore</strong> — Persist graph state to memory, ActiveRecord, Redis, or file system</td>
+<td>Stable</td>
+</tr>
+<tr>
+<td><strong>MCP Tool</strong> — Model Context Protocol server integration</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong>Rails integration</strong> — <code>AgentJob</code>, <code>acts_as_phronomy_message</code>, and generators</td>
+<td>Beta</td>
+</tr>
+</tbody>
+</table>
 <h2 id="Installation">Installation</h2>
 <p>Add to your Gemfile:</p>
 <pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_gem'>gem</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>phronomy</span><span class='tstring_end'>&quot;</span></span>
@@ -142,8 +206,8 @@ It provides composable building blocks — Workflows, Agents, and Memory — all
 <span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Halted: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_halted?'>halted?</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>   <span class='comment'># =&gt; true
 </span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Draft: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_draft'>draft</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
 
-<span class='comment'># Resume after human approval
-</span><span class='id identifier rubyid_final'>final</span> <span class='op'>=</span> <span class='id identifier rubyid_app'>app</span><span class='period'>.</span><span class='id identifier rubyid_send_event'>send_event</span><span class='lparen'>(</span><span class='symbol'>:approve</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span> <span class='label'>thread_id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>doc-1</span><span class='tstring_end'>&quot;</span></span> <span class='rbrace'>}</span><span class='rparen'>)</span>
+<span class='comment'># Resume after human approval — pass the halted state and the event name
+</span><span class='id identifier rubyid_final'>final</span> <span class='op'>=</span> <span class='id identifier rubyid_app'>app</span><span class='period'>.</span><span class='id identifier rubyid_send_event'>send_event</span><span class='lparen'>(</span><span class='label'>state:</span> <span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>event:</span> <span class='symbol'>:approve</span><span class='rparen'>)</span>
 <span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Approved: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_final'>final</span><span class='period'>.</span><span class='id identifier rubyid_approved'>approved</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>  <span class='comment'># =&gt; true
 </span></code></pre>
 <h3 id="Multi_Agent___Agent_as_Tool_pattern">Multi-Agent — Agent-as-Tool pattern</h3>
@@ -570,7 +634,7 @@ silently skipped.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Fri May 15 12:20:02 2026 by
+  Generated on Sun May 17 04:00:08 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

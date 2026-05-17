@@ -142,7 +142,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>[excerpt:, ...].</p></div></span>
+    <span class="summary_desc"><div class='inline'><p><strong>WARNING</strong>: These citations are extracted from the LLM's own response via the ReviewAgent and are <strong>not</strong> verified against any external knowledge base, document store, or URL.</p></div></span>
   
 </li>
 
@@ -307,7 +307,10 @@
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns [excerpt:, ...].</p>
+    <p><strong>WARNING</strong>: These citations are extracted from the LLM's own response via
+the ReviewAgent and are <strong>not</strong> verified against any external knowledge base,
+document store, or URL.  Do not treat them as authoritative without
+independent verification.</p>
 
   </div>
 </div>
@@ -336,13 +339,13 @@
       <pre class="lines">
 
 
-51
-52
-53
-54</pre>
+56
+57
+58
+59</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 51</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 56</span>
 
 <span class='const'><span class='object_link'><a href="" title="Phronomy::TrustPipeline::Result (class)">Result</a></span></span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='symbol'>:output</span><span class='comma'>,</span> <span class='symbol'>:confidence</span><span class='comma'>,</span> <span class='symbol'>:citations</span><span class='comma'>,</span> <span class='symbol'>:iterations</span><span class='comma'>,</span> <span class='symbol'>:review_notes</span><span class='comma'>,</span> <span class='symbol'>:trusted</span><span class='comma'>,</span> <span class='label'>keyword_init:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
   <span class='comment'># @return [Boolean] true when confidence &gt;= threshold
@@ -395,13 +398,13 @@
       <pre class="lines">
 
 
-51
-52
-53
-54</pre>
+56
+57
+58
+59</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 51</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 56</span>
 
 <span class='const'><span class='object_link'><a href="" title="Phronomy::TrustPipeline::Result (class)">Result</a></span></span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='symbol'>:output</span><span class='comma'>,</span> <span class='symbol'>:confidence</span><span class='comma'>,</span> <span class='symbol'>:citations</span><span class='comma'>,</span> <span class='symbol'>:iterations</span><span class='comma'>,</span> <span class='symbol'>:review_notes</span><span class='comma'>,</span> <span class='symbol'>:trusted</span><span class='comma'>,</span> <span class='label'>keyword_init:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
   <span class='comment'># @return [Boolean] true when confidence &gt;= threshold
@@ -454,13 +457,13 @@
       <pre class="lines">
 
 
-51
-52
-53
-54</pre>
+56
+57
+58
+59</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 51</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 56</span>
 
 <span class='const'><span class='object_link'><a href="" title="Phronomy::TrustPipeline::Result (class)">Result</a></span></span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='symbol'>:output</span><span class='comma'>,</span> <span class='symbol'>:confidence</span><span class='comma'>,</span> <span class='symbol'>:citations</span><span class='comma'>,</span> <span class='symbol'>:iterations</span><span class='comma'>,</span> <span class='symbol'>:review_notes</span><span class='comma'>,</span> <span class='symbol'>:trusted</span><span class='comma'>,</span> <span class='label'>keyword_init:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
   <span class='comment'># @return [Boolean] true when confidence &gt;= threshold
@@ -513,13 +516,13 @@
       <pre class="lines">
 
 
-51
-52
-53
-54</pre>
+56
+57
+58
+59</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 51</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 56</span>
 
 <span class='const'><span class='object_link'><a href="" title="Phronomy::TrustPipeline::Result (class)">Result</a></span></span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='symbol'>:output</span><span class='comma'>,</span> <span class='symbol'>:confidence</span><span class='comma'>,</span> <span class='symbol'>:citations</span><span class='comma'>,</span> <span class='symbol'>:iterations</span><span class='comma'>,</span> <span class='symbol'>:review_notes</span><span class='comma'>,</span> <span class='symbol'>:trusted</span><span class='comma'>,</span> <span class='label'>keyword_init:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
   <span class='comment'># @return [Boolean] true when confidence &gt;= threshold
@@ -572,13 +575,13 @@
       <pre class="lines">
 
 
-51
-52
-53
-54</pre>
+56
+57
+58
+59</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 51</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 56</span>
 
 <span class='const'><span class='object_link'><a href="" title="Phronomy::TrustPipeline::Result (class)">Result</a></span></span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='symbol'>:output</span><span class='comma'>,</span> <span class='symbol'>:confidence</span><span class='comma'>,</span> <span class='symbol'>:citations</span><span class='comma'>,</span> <span class='symbol'>:iterations</span><span class='comma'>,</span> <span class='symbol'>:review_notes</span><span class='comma'>,</span> <span class='symbol'>:trusted</span><span class='comma'>,</span> <span class='label'>keyword_init:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
   <span class='comment'># @return [Boolean] true when confidence &gt;= threshold
@@ -635,13 +638,13 @@
       <pre class="lines">
 
 
-51
-52
-53
-54</pre>
+56
+57
+58
+59</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 51</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 56</span>
 
 <span class='const'><span class='object_link'><a href="" title="Phronomy::TrustPipeline::Result (class)">Result</a></span></span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='symbol'>:output</span><span class='comma'>,</span> <span class='symbol'>:confidence</span><span class='comma'>,</span> <span class='symbol'>:citations</span><span class='comma'>,</span> <span class='symbol'>:iterations</span><span class='comma'>,</span> <span class='symbol'>:review_notes</span><span class='comma'>,</span> <span class='symbol'>:trusted</span><span class='comma'>,</span> <span class='label'>keyword_init:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
   <span class='comment'># @return [Boolean] true when confidence &gt;= threshold
@@ -658,7 +661,7 @@
 </div>
 
       <div id="footer">
-  Generated on Fri May 15 12:20:03 2026 by
+  Generated on Sun May 17 04:00:09 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

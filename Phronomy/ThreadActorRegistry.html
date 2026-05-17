@@ -127,6 +127,28 @@ conversation are serialised automatically.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#actor_count-class_method" title="actor_count (class method)">.<strong>actor_count</strong>  &#x21d2; Integer </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the current number of registered Actors.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#clear_all-class_method" title="clear_all (class method)">.<strong>clear_all</strong>  &#x21d2; Object </a>
     
 
@@ -223,7 +245,59 @@ conversation are serialised automatically.</p>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="clear_all-class_method">
+  <h3 class="signature first" id="actor_count-class_method">
+  
+    .<strong>actor_count</strong>  &#x21d2; <tt>Integer</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the current number of registered Actors.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+45
+46
+47</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/thread_actor_registry.rb', line 45</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_actor_count'>actor_count</span>
+  <span class='ivar'>@registry_actor</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span> <span class='lbrace'>{</span> <span class='ivar'>@actors</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="clear_all-class_method">
   
     .<strong>clear_all</strong>  &#x21d2; <tt>Object</tt> 
   
@@ -247,13 +321,13 @@ Intended for test teardown and process shutdown.</p>
       <pre class="lines">
 
 
-38
-39
-40
-41</pre>
+59
+60
+61
+62</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/thread_actor_registry.rb', line 38</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/thread_actor_registry.rb', line 59</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear_all'>clear_all</span>
   <span class='id identifier rubyid_actors'>actors</span> <span class='op'>=</span> <span class='ivar'>@registry_actor</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span> <span class='lbrace'>{</span> <span class='ivar'>@actors</span><span class='period'>.</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_tap'>tap</span> <span class='lbrace'>{</span> <span class='ivar'>@actors</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span>
@@ -302,12 +376,12 @@ A snapshot is taken so the registry cannot change while callers iterate.</p>
       <pre class="lines">
 
 
-47
-48
-49</pre>
+68
+69
+70</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/thread_actor_registry.rb', line 47</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/thread_actor_registry.rb', line 68</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_each_actor'>each_actor</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@registry_actor</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span> <span class='lbrace'>{</span> <span class='ivar'>@actors</span><span class='period'>.</span><span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
@@ -329,6 +403,9 @@ A snapshot is taken so the registry cannot change while callers iterate.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Returns (or lazily creates) the <span class='object_link'><a href="Actor.html" title="Phronomy::Actor (class)">Actor</a></span> for <code>thread_id</code>.</p>
+<p>When <code>Phronomy.configuration.max_actors</code> is set, the registry evicts the
+least-recently-used Actor (by stopping it) before inserting a new one.
+Accessing an existing Actor moves it to the most-recently-used position.</p>
 
   </div>
 </div>
@@ -369,15 +446,35 @@ A snapshot is taken so the registry cannot change while callers iterate.</p>
       <pre class="lines">
 
 
-24
-25
-26</pre>
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/thread_actor_registry.rb', line 24</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/thread_actor_registry.rb', line 28</span>
 
 <span class='kw'>def</span> <span class='kw'>for</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-  <span class='ivar'>@registry_actor</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span> <span class='lbrace'>{</span> <span class='ivar'>@actors</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="Actor.html" title="Phronomy::Actor (class)">Actor</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Actor.html#initialize-instance_method" title="Phronomy::Actor#initialize (method)">new</a></span></span> <span class='rbrace'>}</span>
+  <span class='ivar'>@registry_actor</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span> <span class='kw'>do</span>
+    <span class='kw'>if</span> <span class='ivar'>@actors</span><span class='period'>.</span><span class='id identifier rubyid_key?'>key?</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+      <span class='comment'># LRU touch: move to end (most-recently used)
+</span>      <span class='id identifier rubyid_actor'>actor</span> <span class='op'>=</span> <span class='ivar'>@actors</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+      <span class='ivar'>@actors</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_actor'>actor</span>
+    <span class='kw'>else</span>
+      <span class='id identifier rubyid_evict_lru_if_needed!'>evict_lru_if_needed!</span>
+      <span class='ivar'>@actors</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Actor.html" title="Phronomy::Actor (class)">Actor</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Actor.html#initialize-instance_method" title="Phronomy::Actor#initialize (method)">new</a></span></span>
+    <span class='kw'>end</span>
+    <span class='ivar'>@actors</span><span class='lbracket'>[</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbracket'>]</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -424,12 +521,12 @@ registry.  The next call to <span class='object_link'><a href="#for-class_method
       <pre class="lines">
 
 
-32
-33
-34</pre>
+53
+54
+55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/thread_actor_registry.rb', line 32</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/thread_actor_registry.rb', line 53</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stop'>stop</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
   <span class='ivar'>@registry_actor</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span> <span class='lbrace'>{</span> <span class='ivar'>@actors</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='op'>&amp;.</span><span class='id identifier rubyid_stop'>stop</span>
@@ -444,7 +541,7 @@ registry.  The next call to <span class='object_link'><a href="#for-class_method
 </div>
 
       <div id="footer">
-  Generated on Fri May 15 12:20:02 2026 by
+  Generated on Sun May 17 04:00:08 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
