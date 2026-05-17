@@ -460,7 +460,7 @@ module Phronomy
       # @return [Hash] +{ output: String, suspended: false, messages: Array, usage: Phronomy::TokenUsage }+
       # @raise [Phronomy::GuardrailError] when an output guardrail rejects the value
       def resume(checkpoint, approved:, config: {})
-        thread_id = checkpoint.thread_id
+        checkpoint.thread_id
 
         # Build a fresh chat with all tools registered.
         chat = build_chat

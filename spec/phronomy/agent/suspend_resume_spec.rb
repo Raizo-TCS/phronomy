@@ -401,6 +401,5 @@ RSpec.describe "Agent::Base suspend/resume" do
         agent.resume(checkpoint, approved: false)
       end
     end
-
   end
 end

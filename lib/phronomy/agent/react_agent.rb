@@ -18,7 +18,7 @@ module Phronomy
           # Run input guardrails before any LLM interaction.
           run_input_guardrails!(input)
 
-          thread_id = config[:thread_id]
+          config[:thread_id]
           max_iter = self.class.max_iterations
 
           # Seed with app-managed conversation history when provided.
@@ -69,7 +69,7 @@ module Phronomy
         trace("agent.invoke", input: input, **caller_meta) do |_span|
           run_input_guardrails!(input)
 
-          thread_id = config[:thread_id]
+          config[:thread_id]
           max_iter = self.class.max_iterations
 
           messages = Array(config[:messages]).dup
