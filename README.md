@@ -21,7 +21,7 @@ It provides composable building blocks — Workflows, Agents, and Memory — all
 | **Knowledge/RAG** — Retrieval sources with pluggable loaders, splitters, and vector stores | Beta |
 | **Multi-agent** — Agent-as-Tool pattern and hub-and-spoke handoff routing | Beta |
 | **TrustPipeline** — Self-review loop and confidence gate (citations are LLM-self-reported) | Experimental |
-| **Guardrails** — Input/output validation; built-in PII and prompt-injection detectors | Stable |
+| **Guardrails** — Input/output validation; built-in PII and prompt-injection detectors | Beta |
 | **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses | Stable |
 | **Eval Framework** — Dataset-driven evaluation with multiple scorer types | Beta |
 | **Tracing** — Pluggable span-based observability | Stable |
@@ -372,13 +372,13 @@ Phronomy.configure do |c|
   c.before_completion   = nil                                  # optional; global hook lambda
   c.max_actors          = 100  # recommended for Rails / long-running server processes
 end
+```
 
 > **Note:** `max_actors` bounds the number of live `ThreadActorRegistry` actors.
 > The least-recently-used actor is stopped when the limit is reached.
 > For brief windows around eviction, two actors for the same `thread_id` may be active
 > simultaneously if the evicted actor has not finished draining its queue.
 > Set this value conservatively for long-running processes to avoid unbounded thread growth.
-```
 
 ## Context Management
 

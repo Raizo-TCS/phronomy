@@ -42,9 +42,10 @@ module Phronomy
             pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/,
             label: "email address"
           },
-          # Phone number: starts with 0, groups of 2-5 / 1-4 / 4 digits.
+          # Phone number: 3-digit area code, 3-4-digit exchange, 4-digit subscriber;
+          # optional E.164 country-code prefix (e.g. +1, +44).
           phone: {
-            pattern: /\b0\d{1,4}[- ]?\d{1,4}[- ]?\d{4}\b/,
+            pattern: /(?:\+\d{1,3}[.\- ]?)?\(?\d{3}\)?[.\- ]?\d{3,4}[.\- ]?\d{4}\b/,
             label: "phone number"
           }
         }.freeze

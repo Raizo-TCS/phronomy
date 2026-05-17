@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- **`PIIPatternDetector` — `:my_number` replaced by `:ssn`** ([#77]): The built-in PII
+  detector now checks for US Social Security Numbers (`\b\d{3}-\d{2}-\d{4}\b`) instead
+  of Japanese My Numbers. The JIS X 0076 check-digit validation and `my_number_valid?`
+  helper have been removed. Category key renamed from `:my_number` to `:ssn`.
+- **`PIIPatternDetector` — phone pattern updated to international format** ([#77]):
+  The `:phone` pattern now matches 3-digit area code + 3–4-digit exchange + 4-digit
+  subscriber number with optional E.164 country-code prefix
+  (`(?:\+\d{1,3}[.\- ]?)?\(?\d{3}\)?[.\- ]?\d{3,4}[.\- ]?\d{4}\b`),
+  replacing the previous Japan-specific pattern.
+
+### Fixed
+
+- **`README` — stale Memory API examples** ([#76]): All references to the
+  non-existent `WindowMemory`, `ActiveRecordMemory`, `SemanticMemory` classes and
+  `load_messages` / `memory_compression` API have been replaced with the correct
+  `ConversationManager`-based API.
+- **`README` — `PIIPatternDetector` comment** ([#77]): Inline comment updated to
+  `# Detect SSNs, credit cards, emails, and phone numbers`.
+- **`README` — Configuration block markdown** ([#80]): The `max_actors` Note block
+  was incorrectly placed inside the Ruby code fence; moved outside so it renders
+  as a blockquote.
+- **`README` — `Guardrails` stability label** ([#76]): Changed from `Stable` to `Beta`
+  to reflect that the built-in detector patterns may evolve.
+- **`CHANGELOG` — stale entries** ([#78]): Removed the orphaned `[Unreleased]` section
+  describing a never-released API, and replaced a forward `"As of 0.3.0"` reference
+  with future-tense wording.
+- **`McpTool` — YARD class comment** ([#79]): Updated to document both the
+  `stdio://` and `http://`/`https://` transport schemes.
+- **`README` — `max_actors` configuration reference** ([#80]): Added `c.max_actors`
+  example and LRU eviction note to the Configuration section.
+
+---
+
 ## [0.2.2] - 2026-05-17
 
 ### Fixed

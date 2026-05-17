@@ -110,10 +110,10 @@ Detects common PII patterns in the input string via regex (no LLM call).
 
 | Key | Pattern | Description |
 |-----|---------|-------------|
-| `:my_number` | 12-digit groups (4-4-4) | Japanese My Number |
+| `:ssn` | `\d{3}-\d{2}-\d{4}` (hyphens required) | US Social Security Number |
 | `:credit_card` | 16 digits optionally space/hyphen separated | Credit/debit card |
 | `:email` | RFC 5322 simplified | Email address |
-| `:phone` | Japanese phone number format | Domestic phone number |
+| `:phone` | 3-digit area code + 3–4-digit exchange + 4-digit subscriber; optional E.164 prefix | Phone number |
 
 ```ruby
 # All categories (default)

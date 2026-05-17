@@ -72,18 +72,18 @@ RSpec.describe Phronomy::Guardrail::Builtin::PIIPatternDetector do
   end
 
   describe "#check — phone" do
-    it "raises for a Japanese landline (no separator)" do
-      expect { detector.run!("call 0312345678") }
+    it "raises for a 10-digit number with hyphens" do
+      expect { detector.run!("call 555-123-4567") }
         .to raise_error(Phronomy::GuardrailError, /phone number/)
     end
 
-    it "raises for a mobile number with hyphens" do
-      expect { detector.run!("090-1234-5678") }
+    it "raises for a number with parenthesised area code" do
+      expect { detector.run!("reach me at (555) 123-4567") }
         .to raise_error(Phronomy::GuardrailError, /phone number/)
     end
 
-    it "raises for a freephone number with spaces" do
-      expect { detector.run!("0120 123 4567") }
+    it "raises for an international number with E.164 country code" do
+      expect { detector.run!("+1 555 123 4567") }
         .to raise_error(Phronomy::GuardrailError, /phone number/)
     end
   end
