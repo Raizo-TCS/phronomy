@@ -5,23 +5,29 @@ It provides composable building blocks — Workflows, Agents, and Memory — all
 
 ## Features
 
-- **Workflow** — Build stateful, branching agent workflows with wait_state/send_event support
-- **Workflow Parallel Node** — Execute independent workflow branches concurrently using application-level Ruby threads
-- **Agent** — ReAct-style tool-calling agents with memory and guardrails
-- **Before-Completion Hook** — Three-tier (global / class / instance) LLM parameter injection before each chat request
-- **Memory** — Window, summary, ActiveRecord-backed, semantic, and composite conversation memory
-- **Memory Compression** — Automatic summarisation and tool-output pruning to stay within token limits
-- **Context Management** — Token budget calculation, estimation, and pruning for any model
-- **Knowledge/RAG** — Static, entity, and vector-backed retrieval sources with pluggable loaders, splitters, and vector stores
-- **Multi-agent** — Agent-as-Tool pattern (sub-agents wrapped as `Tool::Base`) and hub-and-spoke handoff routing via `Agent::Runner`
-- **TrustPipeline** — Citation tracking, self-review loop, and confidence gate for trustworthy outputs
-- **Guardrails** — Validate inputs and outputs before/after LLM calls; built-in PII and prompt-injection detectors
-- **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses
-- **Eval Framework** — Dataset-driven evaluation with ExactMatch, Includes, and LLM-as-a-Judge scorers
-- **Tracing** — Pluggable span-based observability (NullTracer, LangfuseTracer, OpenTelemetryTracer)
-- **StateStore** — Persist graph state to memory, ActiveRecord, or Redis (with optional AES-256-GCM encryption)
-- **MCP Tool** — Integrate Model Context Protocol (MCP) servers as native tools
-- **Rails integration** — `AgentJob`, `acts_as_phronomy_message` mixin, and Rails generators
+> **Stability labels**: `Stable` — production-ready, semver-protected API.
+> `Beta` — functional but the API may change in a minor release.
+> `Experimental` — subject to breaking changes without notice.
+
+| Feature | Stability |
+|---|---|
+| **Workflow** — Stateful, branching workflows with wait_state/send_event | Stable |
+| **Workflow Parallel Node** — Concurrent branches via application-level threads | Beta |
+| **Agent** — ReAct-style tool-calling agents with memory and guardrails | Stable |
+| **Before-Completion Hook** — Three-tier LLM parameter injection | Stable |
+| **Memory** — Window, summary, ActiveRecord-backed, semantic, and composite memory | Stable |
+| **Memory Compression** — Automatic summarisation and tool-output pruning | Beta |
+| **Context Management** — Token budget calculation, estimation, and pruning | Stable |
+| **Knowledge/RAG** — Retrieval sources with pluggable loaders, splitters, and vector stores | Beta |
+| **Multi-agent** — Agent-as-Tool pattern and hub-and-spoke handoff routing | Beta |
+| **TrustPipeline** — Self-review loop and confidence gate (citations are LLM-self-reported) | Experimental |
+| **Guardrails** — Input/output validation; built-in PII and prompt-injection detectors | Stable |
+| **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses | Stable |
+| **Eval Framework** — Dataset-driven evaluation with multiple scorer types | Beta |
+| **Tracing** — Pluggable span-based observability | Stable |
+| **StateStore** — Persist graph state to memory, ActiveRecord, Redis, or file system | Stable |
+| **MCP Tool** — Model Context Protocol server integration | Beta |
+| **Rails integration** — `AgentJob`, `acts_as_phronomy_message`, and generators | Beta |
 
 ## Installation
 
@@ -100,8 +106,8 @@ state = app.invoke({ draft: "" }, config: { thread_id: "doc-1" })
 puts "Halted: #{state.halted?}"   # => true
 puts "Draft: #{state.draft}"
 
-# Resume after human approval
-final = app.send_event(:approve, config: { thread_id: "doc-1" })
+# Resume after human approval — pass the halted state and the event name
+final = app.send_event(state: state, event: :approve)
 puts "Approved: #{final.approved}"  # => true
 ```
 

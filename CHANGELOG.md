@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.2] - 2026-05-17
+
+### Fixed
+
+- **`Tool::Base` type validation — strict mode** ([#73]): Removed string-coercion
+  pass-through for `:integer`, `:number`/`:float`, and `:boolean` parameters.
+  A `String` value such as `"42"` now correctly raises a type error regardless
+  of the `on_schema_error` mode. Fixes silent data corruption where the raw
+  string was forwarded to `execute` instead of the expected numeric/boolean type.
+- **`README` — correct `send_event` API example** ([#69]): Fixed code sample that
+  called `app.send_event(:approve, config: { thread_id: ... })` (positional args)
+  which raises `ArgumentError` at runtime. Corrected to
+  `app.send_event(state: state, event: :approve)`.
+- **`phronomy.gemspec` — exclude `vendor/` from gem package** ([#70]): `vendor/bundle`
+  (~3 500 files, ~14 MB) was included in released gems. Added `"vendor/"` to the
+  file reject list.
+
+### Added
+
+- **`Phronomy::Configuration#max_actors`** ([#72]): New optional attribute
+  (default `nil` = unlimited, backward-compatible). When set, `ThreadActorRegistry`
+  enforces an LRU eviction policy: the least-recently-used actor is stopped and
+  removed before a new one is created, preventing unbounded thread growth in
+  long-running processes.
+- **`README` — feature stability table** ([#71]): Features section now uses a
+  table with Stable / Beta / Experimental labels so users can assess maturity at
+  a glance.
+- **`TrustPipeline::Result#citations` — unverified-source warning** ([#74]):
+  YARD documentation now explicitly states that citations are extracted from the
+  LLM's own output and have not been verified against any external source.
+
+### CI
+
+- **Ruby 3.4 added to CI matrix** ([#75]): Aligns test coverage with the gemspec
+  requirement (`>= 3.2.0`) and verifies compatibility with the current stable
+  Ruby release.
+
+[#69]: https://github.com/Raizo-TCS/phronomy/issues/69
+[#70]: https://github.com/Raizo-TCS/phronomy/issues/70
+[#71]: https://github.com/Raizo-TCS/phronomy/issues/71
+[#72]: https://github.com/Raizo-TCS/phronomy/issues/72
+[#73]: https://github.com/Raizo-TCS/phronomy/issues/73
+[#74]: https://github.com/Raizo-TCS/phronomy/issues/74
+[#75]: https://github.com/Raizo-TCS/phronomy/issues/75
+
+---
+
 ## [0.2.1] — Unreleased
 
 ### Changed

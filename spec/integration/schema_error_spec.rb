@@ -46,12 +46,14 @@ RSpec.describe "on_schema_error integration", :integration do
   end
 
   context "TC-004 — return_error × coercible" do
-    # A numeric string like "7" satisfies the :integer type check in return_error
-    # mode (the regex /\A-?\d+\z/ matches), so the tool executes normally.
-    it "executes normally because numeric string passes the integer type check" do
+    # In strict :return_error mode, a numeric string like "7" does NOT satisfy
+    # the :integer type check — only a Ruby Integer passes.  The tool returns
+    # a schema error string.
+    it "returns a schema error because numeric string is rejected in strict mode" do
       tool = IntegrationFactors.schema_error_tool("return_error").new
       result = tool.call(coercible_args)
-      expect(result).to eq("ok: count=7 mode=slow")
+      expect(result).to be_a(String)
+      expect(result).to start_with("Schema validation failed:")
     end
   end
 
@@ -93,12 +95,11 @@ RSpec.describe "on_schema_error integration", :integration do
   end
 
   context "TC-009 — raise × coercible" do
-    # A numeric string like "7" satisfies the :integer type check, so no error
-    # is raised even in :raise mode.
-    it "executes normally because numeric string passes the integer type check" do
+    # In strict :raise mode, a numeric string like "7" does NOT satisfy the
+    # :integer type check — ToolError is raised.
+    it "raises ToolError because numeric string is rejected in strict mode" do
       tool = IntegrationFactors.schema_error_tool("raise").new
-      expect { tool.call(coercible_args) }.not_to raise_error
-      expect(tool.call(coercible_args)).to eq("ok: count=7 mode=slow")
+      expect { tool.call(coercible_args) }.to raise_error(Phronomy::ToolError, /schema error/)
     end
   end
 

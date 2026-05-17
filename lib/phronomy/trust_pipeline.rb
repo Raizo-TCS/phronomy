@@ -42,6 +42,11 @@ module Phronomy
     #   @return [Float] combined confidence score (0.0–1.0)
     # @!attribute [r] citations
     #   @return [Array<Hash>] [{source:, excerpt:}, ...]
+    #
+    #   **WARNING**: These citations are extracted from the LLM's own response via
+    #   the ReviewAgent and are **not** verified against any external knowledge base,
+    #   document store, or URL.  Do not treat them as authoritative without
+    #   independent verification.
     # @!attribute [r] iterations
     #   @return [Integer] number of draft-review cycles executed
     # @!attribute [r] review_notes

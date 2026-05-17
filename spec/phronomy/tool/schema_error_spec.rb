@@ -107,10 +107,12 @@ RSpec.describe "Tool::Base on_schema_error" do
         expect(result).to eq("count=3 label=ok")
       end
 
-      it "also accepts numeric strings as integers (pass-through)" do
-        # Numeric string "3" satisfies the integer type check
+      it "rejects numeric strings as integers in :return_error mode" do
+        # In strict :return_error mode, "3" (String) does not satisfy :integer.
+        # Use :coerce mode if string-to-integer coercion is desired.
         result = SchemaErrorDefaultTool.new.call({"count" => "3", "label" => "ok"})
-        expect(result).to eq("count=3 label=ok")
+        expect(result).to be_a(String)
+        expect(result).to start_with("Schema validation failed:")
       end
     end
 

@@ -327,9 +327,9 @@ module Phronomy
 
         ok = case declared_type.to_sym
         when :string then value.is_a?(String)
-        when :integer then value.is_a?(Integer) || (value.is_a?(String) && value.match?(/\A-?\d+\z/))
-        when :number, :float then value.is_a?(Numeric) || (value.is_a?(String) && value.match?(/\A-?\d+(\.\d+)?\z/))
-        when :boolean then [true, false, "true", "false"].include?(value)
+        when :integer then value.is_a?(Integer)
+        when :number, :float then value.is_a?(Numeric)
+        when :boolean then [true, false].include?(value)
         when :array then value.is_a?(Array)
         when :object then value.is_a?(Hash)
         else true # unknown types pass through

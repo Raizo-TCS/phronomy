@@ -19,10 +19,31 @@ module Phronomy
     class << self
       # Returns (or lazily creates) the {Actor} for +thread_id+.
       #
+      # When +Phronomy.configuration.max_actors+ is set, the registry evicts the
+      # least-recently-used Actor (by stopping it) before inserting a new one.
+      # Accessing an existing Actor moves it to the most-recently-used position.
+      #
       # @param thread_id [String]
       # @return [Phronomy::Actor]
       def for(thread_id)
-        @registry_actor.call { @actors[thread_id] ||= Actor.new }
+        @registry_actor.call do
+          if @actors.key?(thread_id)
+            # LRU touch: move to end (most-recently used)
+            actor = @actors.delete(thread_id)
+            @actors[thread_id] = actor
+          else
+            evict_lru_if_needed!
+            @actors[thread_id] = Actor.new
+          end
+          @actors[thread_id]
+        end
+      end
+
+      # Returns the current number of registered Actors.
+      #
+      # @return [Integer]
+      def actor_count
+        @registry_actor.call { @actors.size }
       end
 
       # Gracefully stops the Actor for +thread_id+ and removes it from the
@@ -46,6 +67,18 @@ module Phronomy
       # @yield [Phronomy::Actor]
       def each_actor(&block)
         @registry_actor.call { @actors.values.dup }.each(&block)
+      end
+
+      private
+
+      # Evicts the least-recently-used Actor when the registry is at capacity.
+      # Must be called from within @registry_actor.call { } to be thread-safe.
+      def evict_lru_if_needed!
+        max = Phronomy.configuration.max_actors
+        return unless max && @actors.size >= max
+
+        _lru_id, lru_actor = @actors.shift
+        lru_actor.stop
       end
     end
   end

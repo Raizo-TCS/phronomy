@@ -145,7 +145,7 @@ RSpec.describe Phronomy::Tool::Base do
     end
 
     it "passes all arguments including optional ones to execute" do
-      result = multi_param_tool_class.new.call({"city" => "Paris", "country" => "FR", "limit" => "5"})
+      result = multi_param_tool_class.new.call({"city" => "Paris", "country" => "FR", "limit" => 5})
       expect(result).to eq("Paris, FR (limit: 5)")
     end
   end
@@ -389,6 +389,39 @@ RSpec.describe Phronomy::Tool::Base do
     it "returns a schema error message when coercion fails" do
       result = coerce_tool.call({"count" => "not-a-number"})
       expect(result).to include("Schema validation failed")
+    end
+  end
+
+  # Regression for Finding 5 — :return_error mode silently accepts string integers
+  # (Issue #<tbd>): When on_schema_error is :return_error (default), passing "42"
+  # for an :integer parameter passes type_error? validation because the regex
+  # /\A-?\d+\z/ matches, but the value is stored as a String and forwarded to
+  # execute unchanged.  The execute method therefore receives "42" (String) instead
+  # of 42 (Integer), which may cause unexpected behaviour in typed operations.
+  describe "return_error mode type coercion (Finding 5)" do
+    let(:int_tool) do
+      Class.new(described_class) do
+        description "Integer tool"
+        # default: on_schema_error :return_error
+        param :count, type: :integer, desc: "Count"
+
+        def execute(count:)
+          # Return the Ruby class of the received value so the spec can assert it.
+          count.class.name
+        end
+      end.new
+    end
+
+    # This spec will FAIL until Finding 5 is fixed.
+    # Expected: passing "42" for an :integer param under :return_error mode should
+    # either (a) return a schema error or (b) coerce to Integer.
+    # Current (buggy) behaviour: "42" passes validation and execute receives String.
+    it "does not silently pass a string '42' as a valid :integer in :return_error mode" do
+      result = int_tool.call({"count" => "42"})
+      # After the fix, this should either be a schema error string OR return "Integer".
+      # Currently it returns "String", which is wrong.
+      expect(result).not_to eq("String"),
+        "execute received a String instead of Integer — :return_error mode must reject '42' or coerce it"
     end
   end
 end
