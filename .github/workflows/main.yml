@@ -36,3 +36,38 @@ jobs:
         run: bundle exec rake
       - name: Run all integration tests (stub-based, no LM Studio required)
         run: bundle exec rspec --tag integration --format progress
+
+  deprecated-api-check:
+    runs-on: ubuntu-latest
+    name: Lint — deprecated API names
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Check README for deprecated API names
+        run: |
+          banned=(ThreadActorRegistry max_actors memory_compression WindowMemory load_messages _run_in_thread_actor)
+          found=0
+          for pattern in "${banned[@]}"; do
+            if grep -qn "$pattern" README.md; then
+              echo "FAIL: deprecated name '$pattern' found in README.md:"
+              grep -n "$pattern" README.md
+              found=1
+            fi
+          done
+          exit $found
+
+  readme-syntax:
+    runs-on: ubuntu-latest
+    name: Lint — README Ruby syntax
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: false
+      - name: Syntax-check Ruby code blocks in README
+        run: ruby scripts/check_readme_ruby.rb

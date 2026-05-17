@@ -370,15 +370,8 @@ Phronomy.configure do |c|
   c.tracer              = Phronomy::Tracing::NullTracer.new
   c.default_state_store = Phronomy::StateStore::InMemory.new  # optional
   c.before_completion   = nil                                  # optional; global hook lambda
-  c.max_actors          = 100  # recommended for Rails / long-running server processes
 end
 ```
-
-> **Note:** `max_actors` bounds the number of live `ThreadActorRegistry` actors.
-> The least-recently-used actor is stopped when the limit is reached.
-> For brief windows around eviction, two actors for the same `thread_id` may be active
-> simultaneously if the evicted actor has not finished draining its queue.
-> Set this value conservatively for long-running processes to avoid unbounded thread growth.
 
 ## Context Management
 
@@ -493,13 +486,6 @@ summary = Phronomy::Memory::Compression::Summary.new(
   keep:             10,             # always preserve the N most recent messages
   summarizer_model: "gpt-4o-mini"
 )
-
-Phronomy.configure do |c|
-  c.memory_compression = [pruner, summary]   # applied in order: pruner first, then summary
-end
-```
-
-Replace the `Phronomy.configure` block above with a `ConversationManager` `compression:` argument:
 
 ```ruby
 # Summary compression (calls an LLM when history exceeds max_tokens):
