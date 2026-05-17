@@ -94,7 +94,6 @@ module Phronomy
       @threshold = confidence_threshold.to_f
       @max_iterations = max_iterations.to_i
       @input_delimiter = input_delimiter
-      @actor = Phronomy::Actor.new
       @compiled_graph = nil
     end
 
@@ -125,7 +124,7 @@ module Phronomy
 
     # Returns the compiled workflow, building and caching it on first call.
     def compiled_graph
-      @actor.call { @compiled_graph ||= build_workflow }
+      @compiled_graph ||= build_workflow
     end
 
     def build_workflow

@@ -3,19 +3,20 @@
 module Phronomy
   module Memory
     module Storage
-      # In-process storage for conversation messages backed by per-thread-id
-      # {Phronomy::Actor} instances from {Phronomy::ThreadActorRegistry}.
-      # Messages are lost when the process exits.
+      # In-process storage for conversation messages.
+      # Data is held in an instance-level Hash keyed by +thread_id+.
+      # Not thread-safe for concurrent writes to the same +thread_id+.
+      # For production use prefer a persistent backend such as
+      # {Phronomy::Memory::Storage::ActiveRecord}.
       #
       # @example
       #   storage = Phronomy::Memory::Storage::InMemory.new
       #   manager = Phronomy::Memory::ConversationManager.new(storage: storage, ...)
       class InMemory < Base
-        # Thread-local key for per-thread-id storage data (namespaced by store
-        # instance object_id to support multiple independent InMemory stores).
-        THREAD_DATA_KEY = :phronomy_storage_in_memory_data
-
         def initialize
+          @data = {}
+          @mutexes = {}
+          @registry_mutex = Mutex.new
         end
 
         # -----------------------------------------------------------------------
@@ -25,21 +26,18 @@ module Phronomy
         # @param thread_id [String]
         # @return [Array]
         def load(thread_id:)
-          Phronomy::ThreadActorRegistry.for(thread_id).call { (thread_data.store || []).dup }
+          (thread_data_for(thread_id).store || []).dup
         end
 
         # @param thread_id [String]
         # @param messages  [Array]
         def save(thread_id:, messages:)
-          Phronomy::ThreadActorRegistry.for(thread_id).call { thread_data.store = messages.dup }
+          thread_data_for(thread_id).store = messages.dup
         end
 
         # @param thread_id [String]
         def clear(thread_id:)
-          store_id = object_id
-          Phronomy::ThreadActorRegistry.for(thread_id).call do
-            (Thread.current[THREAD_DATA_KEY] ||= {}).delete(store_id)
-          end
+          @data.delete(thread_id)
         end
 
         # -----------------------------------------------------------------------
@@ -52,42 +50,38 @@ module Phronomy
         # @param recorded_at  [Time, nil] timestamp for test overrides; defaults to +Time.now+
         def append_raw(thread_id:, messages:, starting_seq:, recorded_at: nil)
           now = recorded_at || Time.now
-          Phronomy::ThreadActorRegistry.for(thread_id).call do
-            data = thread_data
-            messages.each_with_index do |msg, i|
-              seq = starting_seq + i
-              data.raw_messages << {seq: seq, message: msg, recorded_at: now}
-              data.hwm = [data.hwm, seq].max
-            end
+          data = thread_data_for(thread_id)
+          messages.each_with_index do |msg, i|
+            seq = starting_seq + i
+            data.raw_messages << {seq: seq, message: msg, recorded_at: now}
+            data.hwm = [data.hwm, seq].max
           end
         end
 
         # @param thread_id [String]
         # @return [Integer]
         def next_seq(thread_id:)
-          Phronomy::ThreadActorRegistry.for(thread_id).call { thread_data.hwm + 1 }
+          thread_data_for(thread_id).hwm + 1
         end
 
-        # Routes +block+ through the per-thread-id {Phronomy::Actor}, serialising
-        # all operations for the same thread.  Reentrant calls (the block itself
-        # calling storage methods that also route through the Actor) are safe
-        # because {Phronomy::Actor#call} detects the same-thread case and executes
-        # inline.
+        # Serializes operations for the given +thread_id+ using a per-thread-id Mutex.
+        # Prevents concurrent compaction attempts from producing overlapping records.
         #
         # @param thread_id [String]
-        def with_thread_lock(thread_id:, &block)
-          Phronomy::ThreadActorRegistry.for(thread_id).call(&block)
+        def with_thread_lock(thread_id:)
+          mutex = @registry_mutex.synchronize { @mutexes[thread_id] ||= Mutex.new }
+          mutex.synchronize { yield }
         end
 
         # @param thread_id [String]
         # @return [Array<Hash>]
         def load_raw(thread_id:)
-          Phronomy::ThreadActorRegistry.for(thread_id).call { thread_data.raw_messages.dup }
+          thread_data_for(thread_id).raw_messages.dup
         end
 
         # @param thread_id [String]
         def clear_raw(thread_id:)
-          Phronomy::ThreadActorRegistry.for(thread_id).call { thread_data.raw_messages.clear }
+          thread_data_for(thread_id).raw_messages.clear
         end
 
         # -----------------------------------------------------------------------
@@ -99,20 +93,18 @@ module Phronomy
         # @param end_seq      [Integer]
         # @param summary_text [String]
         def save_compaction(thread_id:, start_seq:, end_seq:, summary_text:)
-          Phronomy::ThreadActorRegistry.for(thread_id).call do
-            thread_data.compactions << {start_seq: start_seq, end_seq: end_seq, summary_text: summary_text}
-          end
+          thread_data_for(thread_id).compactions << {start_seq: start_seq, end_seq: end_seq, summary_text: summary_text}
         end
 
         # @param thread_id [String]
         # @return [Array<Hash>]
         def load_compactions(thread_id:)
-          Phronomy::ThreadActorRegistry.for(thread_id).call { thread_data.compactions.dup }
+          thread_data_for(thread_id).compactions.dup
         end
 
         # @param thread_id [String]
         def clear_compactions(thread_id:)
-          Phronomy::ThreadActorRegistry.for(thread_id).call { thread_data.compactions.clear }
+          thread_data_for(thread_id).compactions.clear
         end
 
         # Remove raw messages recorded before +older_than+ for this thread.
@@ -120,19 +112,14 @@ module Phronomy
         # @param thread_id  [String]
         # @param older_than [Time]
         def purge_older_than(thread_id:, older_than:)
-          Phronomy::ThreadActorRegistry.for(thread_id).call do
-            thread_data.raw_messages.reject! { |entry| entry[:recorded_at] && entry[:recorded_at] < older_than }
-          end
+          thread_data_for(thread_id).raw_messages.reject! { |entry| entry[:recorded_at] && entry[:recorded_at] < older_than }
         end
 
         private
 
-        # Returns (or lazily initialises) the {ThreadData} for the current Actor
-        # thread and this storage instance.  Must only be called from within a
-        # {Phronomy::ThreadActorRegistry.for} block so that +Thread.current+ is
-        # the correct Actor thread.
-        def thread_data
-          (Thread.current[THREAD_DATA_KEY] ||= {})[object_id] ||= ThreadData.new
+        # Returns (or lazily initialises) the {ThreadData} for +thread_id+.
+        def thread_data_for(thread_id)
+          @data[thread_id] ||= ThreadData.new
         end
 
         # Value object holding all per-thread-id storage state.

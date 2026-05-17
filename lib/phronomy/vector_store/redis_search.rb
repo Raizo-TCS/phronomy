@@ -38,7 +38,7 @@ module Phronomy
         @index_name = index_name
         @dimension = dimension
         @index_created = false
-        @actor = Phronomy::Actor.new
+        @mutex = Mutex.new
       end
 
       # @param id        [String]
@@ -80,7 +80,7 @@ module Phronomy
       end
 
       def clear
-        @actor.call do
+        @mutex.synchronize do
           begin
             @redis.call("FT.DROPINDEX", @index_name, "DD")
           rescue => e
@@ -94,8 +94,8 @@ module Phronomy
       private
 
       def ensure_index!(dim)
-        @actor.call do
-          next if @index_created
+        @mutex.synchronize do
+          return if @index_created
 
           @dimension ||= dim
           begin

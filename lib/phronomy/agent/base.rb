@@ -412,8 +412,7 @@ module Phronomy
       #   result = MyAgent.new.invoke("What is Ruby?")
       #   puts result[:output]
       def invoke(input, config: {})
-        thread_id = config[:thread_id]
-        _run_in_thread_actor(thread_id) { _invoke_impl(input, config: config) }
+        _invoke_impl(input, config: config)
       end
 
       # Streaming version of #invoke. Yields {Phronomy::Agent::StreamEvent} objects
@@ -433,8 +432,7 @@ module Phronomy
       def stream(input, config: {}, &block)
         return invoke(input, config: config) unless block
 
-        thread_id = config[:thread_id]
-        _run_in_thread_actor(thread_id) { _stream_impl(input, config: config, &block) }
+        _stream_impl(input, config: config, &block)
       rescue => e
         block&.call(StreamEvent.new(type: :error, payload: {error: e}))
         raise
@@ -585,14 +583,6 @@ module Phronomy
           block.call(StreamEvent.new(type: :done, payload: result))
           [result, usage]
         end
-      end
-
-      # Runs +block+ inside the {Phronomy::ThreadActorRegistry} Actor for
-      # +thread_id+. When +thread_id+ is nil the block executes on the calling thread.
-      def _run_in_thread_actor(thread_id, &block)
-        return block.call unless thread_id
-
-        Phronomy::ThreadActorRegistry.for(thread_id).call(&block)
       end
 
       # Performs a single (non-retried) invocation. Extracted so that #invoke can

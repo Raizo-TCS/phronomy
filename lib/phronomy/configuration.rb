@@ -47,20 +47,12 @@ module Phronomy
     # the tracing backend (OTel, Langfuse, etc.).
     attr_accessor :trace_pii
 
-    # Maximum number of Actors that {ThreadActorRegistry} may hold simultaneously.
-    # When the registry is full, the least-recently-used Actor is stopped and
-    # evicted before a new one is created.
-    # Defaults to +nil+ (no limit).  Set to a positive integer for long-running
-    # server processes that handle many distinct conversation threads.
-    attr_accessor :max_actors
-
     def initialize
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new
       @memory_async = false
       @memory_job_queue = :default
       @trace_pii = true
-      @max_actors = nil
     end
   end
 end

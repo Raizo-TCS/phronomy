@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **`Phronomy::Actor` and `Phronomy::ThreadActorRegistry` deleted**: The Active
+  Object pattern implementation (`actor.rb`, `thread_actor_registry.rb`) has been
+  removed. It provided synchronous blocking only (no true async) and was
+  architecturally inconsistent with the `WorkflowRunner` halt/resume model. All
+  thread coordination now uses plain `Mutex` where needed.
+- **`Phronomy.configuration.max_actors` removed**: The configuration option is no
+  longer meaningful without `ThreadActorRegistry`.
+
+### Changed
+
+- **`Agent::Base#invoke` and `#stream`** no longer route execution through a
+  per-thread Actor. Both methods now call `_invoke_impl` / `_stream_impl` directly
+  on the calling thread.
+- **`Memory::Storage::InMemory`** now stores all thread data in an instance-level
+  `Hash` instead of `Thread.current` thread-local storage. The class-level
+  `THREAD_DATA_KEY` constant has been removed. `with_thread_lock` uses a
+  per-thread-id `Mutex` to preserve concurrent-compaction safety (issue #44).
+- **`StateStore::InMemory`** now stores state in an instance-level `Hash`.
+  The `THREAD_DATA_KEY` constant has been removed.
+- **`VectorStore::RedisSearch`** uses a `Mutex` for `ensure_index!` and `clear`
+  instead of an Actor, preserving the thread-safety invariant on `@index_created`.
+- **`Tool::McpTool::StdioTransport`**, **`Tracing::LangfuseTracer`**,
+  **`TrustPipeline`**, and **`Memory::Retrieval::Semantic`** no longer hold a
+  dedicated Actor instance. All operations execute directly on the calling thread.
+
 ### Changed
 
 - **`PIIPatternDetector` — `:my_number` replaced by `:ssn`** ([#77]): The built-in PII
