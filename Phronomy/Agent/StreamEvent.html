@@ -110,7 +110,8 @@
 <p>type values:</p>
 <pre class="code ruby"><code class="ruby">:token       — a content delta from the LLM (payload: { content: String })
 :tool_call   — the LLM requested a tool call (payload: { tool_call: Object })
-:tool_result — a tool finished executing (payload: { tool_result: Object })
+:tool_result — a tool finished executing (payload: { tool_call_id: String, tool_name: String,
+                                                    tool_result: Object })
 :done        — the agent finished (payload: { output: String, messages: Array,
                                              usage: TokenUsage })
 :error       — an unrecoverable error occurred (payload: { error: Exception })</code></pre>
@@ -233,12 +234,12 @@
       <pre class="lines">
 
 
-14
 15
-16</pre>
+16
+17</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent.rb', line 14</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent.rb', line 15</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_payload'>payload</span>
   <span class='ivar'>@payload</span>
@@ -290,12 +291,12 @@
       <pre class="lines">
 
 
-14
 15
-16</pre>
+16
+17</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent.rb', line 14</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent.rb', line 15</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_type'>type</span>
   <span class='ivar'>@type</span>
@@ -311,7 +312,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sun May 17 11:34:39 2026 by
+  Generated on Sun May 17 17:59:42 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

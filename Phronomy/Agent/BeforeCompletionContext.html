@@ -120,7 +120,7 @@ Hooks may inspect these and return a Hash of params to merge into the LLM reques
       
       <pre class="example code"><code><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="../../Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_cfg'>cfg</span><span class='op'>|</span>
   <span class='id identifier rubyid_cfg'>cfg</span><span class='period'>.</span><span class='id identifier rubyid_before_completion'>before_completion</span> <span class='op'>=</span> <span class='id identifier rubyid_lambda'>lambda</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_ctx'>ctx</span><span class='op'>|</span>
-    <span class='const'><span class='object_link'><a href="../Rails.html" title="Phronomy::Rails (module)">Rails</a></span></span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span><span class='period'>.</span><span class='id identifier rubyid_info'>info</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>LLM request: model=</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_params'>params</span><span class='lbracket'>[</span><span class='symbol'>:model</span><span class='rbracket'>]</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='const'>Rails</span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span><span class='period'>.</span><span class='id identifier rubyid_info'>info</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>LLM request: model=</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_params'>params</span><span class='lbracket'>[</span><span class='symbol'>:model</span><span class='rbracket'>]</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
     <span class='lbrace'>{</span> <span class='label'>temperature:</span> <span class='float'>0.2</span> <span class='rbrace'>}</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></code></pre>
@@ -613,7 +613,7 @@ Read-only; return a Hash from the hook to merge overrides.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 17 11:34:41 2026 by
+  Generated on Sun May 17 17:59:44 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

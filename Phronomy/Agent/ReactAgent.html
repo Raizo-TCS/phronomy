@@ -272,6 +272,17 @@ Yields <span class='object_link'><a href="StreamEvent.html" title="Phronomy::Age
       <pre class="lines">
 
 
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
 73
 74
 75
@@ -302,30 +313,10 @@ Yields <span class='object_link'><a href="StreamEvent.html" title="Phronomy::Age
 100
 101
 102
-103
-104
-105
-106
-107
-108
-109
-110
-111
-112
-113
-114
-115
-116
-117
-118
-119
-120
-121
-122
-123</pre>
+103</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/react_agent.rb', line 73</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/react_agent.rb', line 62</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
@@ -337,17 +328,10 @@ Yields <span class='object_link'><a href="StreamEvent.html" title="Phronomy::Age
   <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent.invoke</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_caller_meta'>caller_meta</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid__span'>_span</span><span class='op'>|</span>
     <span class='id identifier rubyid_run_input_guardrails!'>run_input_guardrails!</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
 
-    <span class='id identifier rubyid_memory'>memory</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:memory</span><span class='rbracket'>]</span>
-    <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:thread_id</span><span class='rbracket'>]</span>
+    <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:thread_id</span><span class='rbracket'>]</span>
     <span class='id identifier rubyid_max_iter'>max_iter</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_max_iterations'>max_iterations</span>
 
-    <span class='id identifier rubyid_initial_messages'>initial_messages</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_memory'>memory</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
-      <span class='id identifier rubyid_load_from_memory'>load_from_memory</span><span class='lparen'>(</span><span class='id identifier rubyid_memory'>memory</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>query:</span> <span class='id identifier rubyid_extract_message'>extract_message</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span><span class='rparen'>)</span>
-    <span class='kw'>else</span>
-      <span class='lbracket'>[</span><span class='rbracket'>]</span>
-    <span class='kw'>end</span>
-
-    <span class='id identifier rubyid_messages'>messages</span> <span class='op'>=</span> <span class='id identifier rubyid_initial_messages'>initial_messages</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
+    <span class='id identifier rubyid_messages'>messages</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:messages</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
     <span class='id identifier rubyid_user_asked'>user_asked</span> <span class='op'>=</span> <span class='kw'>false</span>
     <span class='id identifier rubyid_total_usage'>total_usage</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../TokenUsage.html" title="Phronomy::TokenUsage (class)">TokenUsage</a></span></span><span class='period'>.</span><span class='id identifier rubyid_zero'><span class='object_link'><a href="../TokenUsage.html#zero-class_method" title="Phronomy::TokenUsage.zero (method)">zero</a></span></span>
     <span class='id identifier rubyid_iterations_exhausted'>iterations_exhausted</span> <span class='op'>=</span> <span class='kw'>true</span>
@@ -362,8 +346,6 @@ Yields <span class='object_link'><a href="StreamEvent.html" title="Phronomy::Age
         <span class='kw'>break</span>
       <span class='kw'>end</span>
     <span class='kw'>end</span>
-
-    <span class='id identifier rubyid_save_to_memory'>save_to_memory</span><span class='lparen'>(</span><span class='id identifier rubyid_memory'>memory</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_memory'>memory</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
 
     <span class='comment'># Fall back to the last message that carries non-nil content (same as
 </span>    <span class='comment'># the non-streaming path above).
@@ -388,7 +370,7 @@ Yields <span class='object_link'><a href="StreamEvent.html" title="Phronomy::Age
 </div>
 
       <div id="footer">
-  Generated on Sun May 17 11:34:40 2026 by
+  Generated on Sun May 17 17:59:44 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

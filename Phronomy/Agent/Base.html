@@ -2921,14 +2921,14 @@ Called by Runner during construction when routes are configured.</p>
       <pre class="lines">
 
 
-524
-525
-526
-527
-528</pre>
+520
+521
+522
+523
+524</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 524</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 520</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_input_guardrail'>add_input_guardrail</span><span class='lparen'>(</span><span class='id identifier rubyid_guardrail'>guardrail</span><span class='rparen'>)</span>
   <span class='ivar'>@input_guardrails</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -2979,14 +2979,14 @@ Called by Runner during construction when routes are configured.</p>
       <pre class="lines">
 
 
-532
-533
-534
-535
-536</pre>
+528
+529
+530
+531
+532</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 532</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 528</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_output_guardrail'>add_output_guardrail</span><span class='lparen'>(</span><span class='id identifier rubyid_guardrail'>guardrail</span><span class='rparen'>)</span>
   <span class='ivar'>@output_guardrails</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -3026,12 +3026,12 @@ Called by Runner during construction when routes are configured.</p>
       <pre class="lines">
 
 
-540
-541
-542</pre>
+536
+537
+538</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 540</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 536</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_context_version_cache'>context_version_cache</span>
   <span class='lparen'>(</span><span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='lbracket'>[</span><span class='symbol'>:phronomy_context_version_caches</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='lbracket'>[</span><span class='id identifier rubyid_object_id'>object_id</span><span class='rbracket'>]</span>
@@ -3111,7 +3111,7 @@ variables consumed by the configured instructions template.</p></div>
       
         &mdash;
         <div class='inline'><p>runtime options:
-<code>:memory</code>     (<span class='object_link'><a href="../Memory/ConversationManager.html" title="Phronomy::Memory::ConversationManager (class)">Memory::ConversationManager</a></span>) — memory backend
+<code>:messages</code>   (Array<a href="RubyLLM::Message">RubyLLM::Message</a>)  — conversation history from a previous invocation
 <code>:thread_id</code>  (+String+)                 — conversation thread identifier
 <code>:user_id</code>    (+String+, optional)        — caller identity forwarded to the tracer
 <code>:session_id</code> (+String+, optional)        — session identity forwarded to the tracer</p></div>
@@ -3232,13 +3232,13 @@ obtaining an approval decision from the user or an external system.</p>
       <pre class="lines">
 
 
-517
-518
-519
-520</pre>
+513
+514
+515
+516</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 517</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 513</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_approval_required'>on_approval_required</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@approval_handler</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -3392,17 +3392,13 @@ to inject a denial message and let the LLM handle it gracefully</p></div>
 493
 494
 495
-496
-497
-498
-499
-500</pre>
+496</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 462</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='id identifier rubyid_checkpoint'>checkpoint</span><span class='comma'>,</span> <span class='label'>approved:</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_checkpoint'>checkpoint</span><span class='period'>.</span><span class='id identifier rubyid_thread_id'>thread_id</span>
+  <span class='id identifier rubyid_checkpoint'>checkpoint</span><span class='period'>.</span><span class='id identifier rubyid_thread_id'>thread_id</span>
 
   <span class='comment'># Build a fresh chat with all tools registered.
 </span>  <span class='id identifier rubyid_chat'>chat</span> <span class='op'>=</span> <span class='id identifier rubyid_build_chat'>build_chat</span>
@@ -3428,10 +3424,6 @@ to inject a denial message and let the LLM handle it gracefully</p></div>
 
   <span class='comment'># Continue the React loop.
 </span>  <span class='id identifier rubyid_response'>response</span> <span class='op'>=</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_complete'>complete</span>
-
-  <span class='comment'># Persist updated conversation to memory when configured.
-</span>  <span class='id identifier rubyid_memory'>memory</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:memory</span><span class='rbracket'>]</span>
-  <span class='id identifier rubyid_save_to_memory'>save_to_memory</span><span class='lparen'>(</span><span class='id identifier rubyid_memory'>memory</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_memory'>memory</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
 
   <span class='id identifier rubyid_output'>output</span> <span class='op'>=</span> <span class='id identifier rubyid_response'>response</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span>
   <span class='id identifier rubyid_usage'>usage</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../TokenUsage.html" title="Phronomy::TokenUsage (class)">TokenUsage</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_tokens'><span class='object_link'><a href="../TokenUsage.html#from_tokens-class_method" title="Phronomy::TokenUsage.from_tokens (method)">from_tokens</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_response'>response</span><span class='period'>.</span><span class='id identifier rubyid_tokens'>tokens</span><span class='rparen'>)</span>
@@ -3569,7 +3561,7 @@ as they are produced by the underlying LLM.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 17 11:34:39 2026 by
+  Generated on Sun May 17 17:59:43 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

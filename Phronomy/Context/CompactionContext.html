@@ -836,7 +836,7 @@ reflects the replacement.</p>
   <span class='kw'>end</span>
 
   <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@message_elements</span><span class='lbracket'>[</span><span class='lparen'>(</span><span class='id identifier rubyid_last_idx'>last_idx</span> <span class='op'>+</span> <span class='int'>1</span><span class='rparen'>)</span><span class='op'>..</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_e'>e</span><span class='op'>|</span> <span class='id identifier rubyid_e'>e</span><span class='lbracket'>[</span><span class='symbol'>:message</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
-  <span class='id identifier rubyid_summary_msg'>summary_msg</span> <span class='op'>=</span> <span class='const'>RubyLLM</span><span class='op'>::</span><span class='const'>Message</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>role:</span> <span class='symbol'>:system</span><span class='comma'>,</span> <span class='label'>content:</span> <span class='id identifier rubyid_summary_text'>summary_text</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_summary_msg'>summary_msg</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../RubyLLM.html" title="RubyLLM (module)">RubyLLM</a></span></span><span class='op'>::</span><span class='const'>Message</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>role:</span> <span class='symbol'>:system</span><span class='comma'>,</span> <span class='label'>content:</span> <span class='id identifier rubyid_summary_text'>summary_text</span><span class='rparen'>)</span>
   <span class='ivar'>@result_messages</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='id identifier rubyid_summary_msg'>summary_msg</span><span class='rbracket'>]</span> <span class='op'>+</span> <span class='id identifier rubyid_remaining'>remaining</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -849,7 +849,7 @@ reflects the replacement.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 17 11:34:41 2026 by
+  Generated on Sun May 17 17:59:44 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

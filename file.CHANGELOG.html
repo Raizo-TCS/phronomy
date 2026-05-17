@@ -64,9 +64,26 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
-<h2 id="_Unreleased_">[Unreleased]</h2>
+<h2 id="_0_3_0____2026_05_18">[0.3.0] - 2026-05-18</h2>
 <h3 id="Removed">Removed</h3>
 <ul>
+<li><strong><code>Phronomy::Memory</code> module fully removed</strong>: <code>ConversationManager</code>, all
+<code>Storage</code> backends (InMemory, ActiveRecord), all <code>Retrieval</code> strategies
+(Recent, Semantic, Composite), and all <code>Compression</code> helpers (ToolOutputPruner,
+Summary) have been deleted. Conversation history is now the responsibility of
+the calling application — pass prior messages via <code>config[:messages]</code>
+(<code>Array&lt;RubyLLM::Message&gt;</code>) and receive the updated array in <code>result[:messages]</code>.</li>
+<li><strong><code>Phronomy::StateStore</code> module fully removed</strong>: <code>InMemory</code>, <code>ActiveRecord</code>,
+<code>Redis</code>, and <code>FileSystem</code> state-store backends have been deleted. The Workflow
+halted-state object is now returned directly from <code>invoke</code> and <code>send_event</code>
+and must be stored by the caller if resumption is needed.</li>
+<li><strong><code>Phronomy::Configuration#default_state_store</code> removed</strong>: No longer meaningful
+without a built-in state store.</li>
+<li><strong><code>Phronomy::Configuration#default_memory</code> / <code>#memory_async</code> / <code>#memory_job_queue</code> removed</strong>:
+No longer meaningful without the Memory module.</li>
+<li><strong>Rails integration removed</strong>: <code>Railtie</code> initializers for <code>AgentJob</code> and
+<code>acts_as_phronomy_message</code> no longer load. The <code>rails/</code> and <code>active_record/</code>
+directories have been deleted.</li>
 <li><strong><code>Phronomy::Actor</code> and <code>Phronomy::ThreadActorRegistry</code> deleted</strong>: The Active
 Object pattern implementation (<code>actor.rb</code>, <code>thread_actor_registry.rb</code>) has been
 removed. It provided synchronous blocking only (no true async) and was
@@ -91,9 +108,6 @@ instead of an Actor, preserving the thread-safety invariant on <code>@index_crea
 <li><strong><code>Tool::McpTool::StdioTransport</code></strong>, <strong><code>Tracing::LangfuseTracer</code></strong>,
 <strong><code>TrustPipeline</code></strong>, and <strong><code>Memory::Retrieval::Semantic</code></strong> no longer hold a
 dedicated Actor instance. All operations execute directly on the calling thread.</li>
-</ul>
-<h3 id="Changed">Changed</h3>
-<ul>
 <li><strong><code>PIIPatternDetector</code> — <code>:my_number</code> replaced by <code>:ssn</code></strong> ([#77]): The built-in PII
 detector now checks for US Social Security Numbers (<code>\b\d{3}-\d{2}-\d{4}\b</code>) instead
 of Japanese My Numbers. The JIS X 0076 check-digit validation and <code>my_number_valid?</code>
@@ -106,6 +120,14 @@ replacing the previous Japan-specific pattern.</li>
 </ul>
 <h3 id="Fixed">Fixed</h3>
 <ul>
+<li><strong><code>RubyLLM::Providers::OpenAI#handle_error_chunk</code> — <code>NoMethodError</code> on single-line SSE error chunks</strong>:
+Some models (e.g. Qwen running via LM Studio) return SSE error events as a
+single line (<code>data: {...}</code>) without a preceding <code>event:</code> line. The upstream
+implementation called <code>chunk.split(&quot;\n&quot;)[1].delete_prefix(...)</code>, which raised
+<code>NoMethodError: undefined method 'delete_prefix' for nil</code> when the second
+element was absent. A monkey-patch in <code>lib/phronomy/ruby_llm_patches.rb</code> guards
+against this by returning an empty string when the split result has fewer than
+two elements.</li>
 <li><strong><code>README</code> — stale Memory API examples</strong> ([#76]): All references to the
 non-existent <code>WindowMemory</code>, <code>ActiveRecordMemory</code>, <code>SemanticMemory</code> classes and
 <code>load_messages</code> / <code>memory_compression</code> API have been replaced with the correct
@@ -222,7 +244,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sun May 17 11:34:38 2026 by
+  Generated on Sun May 17 17:59:42 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
