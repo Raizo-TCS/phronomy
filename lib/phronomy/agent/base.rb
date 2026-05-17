@@ -406,10 +406,18 @@ module Phronomy
       #   +:thread_id+  (+String+)                 — conversation thread identifier
       #   +:user_id+    (+String+, optional)        — caller identity forwarded to the tracer
       #   +:session_id+ (+String+, optional)        — session identity forwarded to the tracer
-      # @return [Hash] +{ output: String, messages: Array, usage: Phronomy::TokenUsage }+
+      # @return [Hash] +{ output: String, messages: Array, usage: Phronomy::TokenUsage }+,
+      #   or +{ output: nil, suspended: true, checkpoint: Phronomy::Agent::Checkpoint,
+      #   messages: Array }+ when the invocation was suspended awaiting tool approval.
       # @raise [Phronomy::GuardrailError] when an input or output guardrail rejects the value
-      # @example
+      # @example Normal invocation
       #   result = MyAgent.new.invoke("What is Ruby?")
+      #   puts result[:output]
+      # @example Suspend / resume flow
+      #   result = agent.invoke("Perform task X")
+      #   if result[:suspended]
+      #     result = agent.resume(result[:checkpoint], approved: true)
+      #   end
       #   puts result[:output]
       def invoke(input, config: {})
         _invoke_impl(input, config: config)
@@ -438,16 +446,71 @@ module Phronomy
         raise
       end
 
+      # Resumes a previously suspended invocation from a {Phronomy::Agent::Checkpoint}.
+      #
+      # This method reconstructs the conversation state captured at suspension
+      # time, injects the tool result (executed or denied), and continues the
+      # LLM loop until it produces a final answer.
+      #
+      # @param checkpoint [Phronomy::Agent::Checkpoint] the checkpoint returned by
+      #   the suspended #invoke call
+      # @param approved   [Boolean] +true+ to execute the pending tool; +false+
+      #   to inject a denial message and let the LLM handle it gracefully
+      # @param config     [Hash] same runtime options as #invoke
+      # @return [Hash] +{ output: String, suspended: false, messages: Array, usage: Phronomy::TokenUsage }+
+      # @raise [Phronomy::GuardrailError] when an output guardrail rejects the value
+      def resume(checkpoint, approved:, config: {})
+        thread_id = checkpoint.thread_id
+
+        # Build a fresh chat with all tools registered.
+        chat = build_chat
+
+        # Restore the full conversation (system + history + user + assistant).
+        checkpoint.messages.each { |msg| chat.messages << msg }
+
+        # Determine the tool result: execute it or inject a denial string.
+        tool_result =
+          if approved
+            tool_instance = chat.tools[checkpoint.pending_tool_name.to_sym]
+            tool_instance ? tool_instance.call(checkpoint.pending_tool_args) : "Tool not found."
+          else
+            "Tool execution denied."
+          end
+
+        # Inject the tool result so the LLM can continue.
+        chat.add_message(
+          role: :tool,
+          content: tool_result.to_s,
+          tool_call_id: checkpoint.pending_tool_call_id
+        )
+
+        # Continue the React loop.
+        response = chat.complete
+
+        # Persist updated conversation to memory when configured.
+        memory = config[:memory]
+        save_to_memory(memory, thread_id: thread_id, messages: chat.messages) if memory && thread_id
+
+        output = response.content
+        usage = Phronomy::TokenUsage.from_tokens(response.tokens)
+
+        run_output_guardrails!(output)
+
+        {output: output, suspended: false, messages: chat.messages, usage: usage}
+      end
+
       # Registers a callback that is invoked before executing any tool that has
       # +requires_approval true+ set. The block receives the tool name (String)
       # and the arguments Hash, and must return a truthy value to allow execution.
       # Returning a falsy value causes the tool to return a denial message instead
       # of executing.
       #
-      # When no handler is registered, tools with +requires_approval+ execute
-      # without interruption (backward-compatible behaviour).
+      # When no handler is registered and a tool with +requires_approval+ is
+      # called, #invoke returns a suspended result hash containing a
+      # {Phronomy::Agent::Checkpoint}.  Call #resume to continue execution after
+      # obtaining an approval decision from the user or an external system.
       #
-      # @example
+      # @example Synchronous handler
       #   agent = MyAgent.new
       #   agent.on_approval_required { |tool_name, args| prompt_user(tool_name, args) }
       # @return [self]
@@ -661,7 +724,23 @@ module Phronomy
           # Run before_completion hooks (global → class → instance) before the LLM call.
           run_before_completion_hooks!(chat, config)
 
-          response = chat.ask(user_message)
+          # Register suspension hook for approval-required tools (no-op when a
+          # synchronous on_approval_required handler is already registered).
+          _register_suspension_hook!(chat)
+
+          begin
+            response = chat.ask(user_message)
+          rescue SuspendSignal => signal
+            checkpoint = Checkpoint.new(
+              thread_id: thread_id,
+              messages: chat.messages.dup,
+              pending_tool_name: signal.tool_name,
+              pending_tool_args: signal.args,
+              pending_tool_call_id: signal.tool_call_id
+            )
+            suspended_result = {output: nil, suspended: true, checkpoint: checkpoint, messages: chat.messages}
+            next [suspended_result, nil]
+          end
 
           # Persist the updated conversation to memory.
           save_to_memory(memory, thread_id: thread_id, messages: chat.messages) if memory && thread_id
@@ -905,6 +984,31 @@ module Phronomy
 
       def run_output_guardrails!(output)
         (@output_guardrails || []).each { |g| g.run!(output) }
+      end
+
+      # Registers an on_tool_call hook on the chat object that raises SuspendSignal
+      # when an approval-required tool is about to be executed and no synchronous
+      # on_approval_required handler has been registered.
+      #
+      # Does nothing when:
+      #   - a synchronous handler is already registered (@approval_handler is set), or
+      #   - none of the agent's tools have requires_approval set.
+      #
+      # @param chat [RubyLLM::Chat]
+      def _register_suspension_hook!(chat)
+        return if @approval_handler
+        return if self.class.tools.none? { |tc| tc.requires_approval }
+
+        chat.on_tool_call do |tool_call|
+          tool_instance = chat.tools[tool_call.name.to_sym]
+          if tool_instance&.requires_approval
+            raise SuspendSignal.new(
+              tool_name: tool_call.name,
+              args: tool_call.arguments,
+              tool_call_id: tool_call.id
+            )
+          end
+        end
       end
 
       # Builds the final tool class to register with the chat.

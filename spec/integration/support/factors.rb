@@ -1070,4 +1070,61 @@ module IntegrationFactors
       event :resume, from: :awaiting_node_b, to: :node_b
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # GROUP 30 — APPROVAL RESUME helpers
+  # ---------------------------------------------------------------------------
+
+  # Model identifier used in all Group 30 agents.
+  LM_MODEL_30 = LM_STUDIO_MODEL
+
+  # Returns an anonymous approval-required tool class whose #execute returns a
+  # fixed string.  The tool is registered with requires_approval: true so that
+  # the suspension/resume path is exercised.
+  #
+  # @param result_value [String] value returned by the tool's execute method
+  # @return [Class]
+  def self.approval_tool(result_value: "approval_tool_result")
+    Class.new(Phronomy::Tool::Base) do
+      tool_name "approval_required_tool"
+      description "A tool that requires approval"
+      param :query, type: :string, desc: "Input for the tool"
+      requires_approval true
+
+      define_method(:execute) do |query:|
+        result_value
+      end
+    end
+  end
+
+  # Returns a second approval-required tool for multi-tool test scenarios.
+  #
+  # @param result_value [String] value returned by the tool's execute method
+  # @return [Class]
+  def self.second_approval_tool(result_value: "second_approval_tool_result")
+    Class.new(Phronomy::Tool::Base) do
+      tool_name "second_approval_required_tool"
+      description "A second tool that requires approval"
+      param :query, type: :string, desc: "Input for the tool"
+      requires_approval true
+
+      define_method(:execute) do |query:|
+        result_value
+      end
+    end
+  end
+
+  # Builds an anonymous Agent::Base subclass pre-configured with the given
+  # approval-required tool(s) for the suspend/resume path.
+  #
+  # @param tool_classes [Array<Class>] tool classes to register (must all have requires_approval: true)
+  # @return [Class]
+  def self.approval_resume_agent(*tool_classes)
+    Class.new(Phronomy::Agent::Base) do
+      model LM_MODEL_30
+      provider :openai
+      instructions "You are a helpful assistant. Use tools when asked."
+      tools(*tool_classes)
+    end
+  end
 end
