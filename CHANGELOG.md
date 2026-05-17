@@ -64,6 +64,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`RubyLLM::Providers::OpenAI#handle_error_chunk` — `NoMethodError` on single-line SSE error chunks**:
+  Some models (e.g. Qwen running via LM Studio) return SSE error events as a
+  single line (`data: {...}`) without a preceding `event:` line. The upstream
+  implementation called `chunk.split("\n")[1].delete_prefix(...)`, which raised
+  `NoMethodError: undefined method 'delete_prefix' for nil` when the second
+  element was absent. A monkey-patch in `lib/phronomy/ruby_llm_patches.rb` guards
+  against this by returning an empty string when the split result has fewer than
+  two elements.
 - **`README` — stale Memory API examples** ([#76]): All references to the
   non-existent `WindowMemory`, `ActiveRecordMemory`, `SemanticMemory` classes and
   `load_messages` / `memory_compression` API have been replaced with the correct
