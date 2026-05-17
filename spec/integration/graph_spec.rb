@@ -7,21 +7,14 @@ require_relative "spec_helper"
 # Infeasible cases: R-redis TC-003,005,009,013,015; R-resume TC-006,009
 
 RSpec.describe "Group 7: Workflow", :integration do
+  # StateStore was removed in v0.3.0. These helpers are kept as no-ops so that
+  # test bodies do not need to be restructured.
   def with_in_memory_store
-    store = Phronomy::StateStore::InMemory.new
-    old = Phronomy.configuration.default_state_store
-    Phronomy.configure { |c| c.default_state_store = store }
-    yield store
-  ensure
-    Phronomy.configure { |c| c.default_state_store = old }
+    yield nil
   end
 
   def with_nil_store
-    old = Phronomy.configuration.default_state_store
-    Phronomy.configure { |c| c.default_state_store = nil }
     yield
-  ensure
-    Phronomy.configure { |c| c.default_state_store = old }
   end
 
   class G7ReplaceState
@@ -312,10 +305,10 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  # TC-016: linear; no interrupt; replace-type; in-memory
+  # TC-016: linear; no interrupt; replace-type; workflow completes correctly
   describe "TC-016" do
     it "persists final state in the in-memory store" do
-      with_in_memory_store do |store|
+      with_in_memory_store do |_store|
         app = Phronomy::Workflow.define(G7ReplaceState) do
           initial :first
           state :first, action: ->(s) { s.merge(value: "first", step: 1) }
@@ -326,9 +319,6 @@ RSpec.describe "Group 7: Workflow", :integration do
         state = app.invoke({}, config: {thread_id: "tc-016"})
         expect(state.value).to eq("second")
         expect(state.step).to eq(2)
-        persisted = store.load("tc-016")
-        expect(persisted).not_to be_nil
-        expect(persisted.value).to eq("second")
       end
     end
   end

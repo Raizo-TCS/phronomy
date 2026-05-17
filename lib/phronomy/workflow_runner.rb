@@ -38,7 +38,7 @@ module Phronomy
 
     def initialize(state_class:, nodes:, after_transitions:, route_transitions:,
       external_events:, entry_point:, wait_state_names: [],
-      before_callbacks: {}, after_callbacks: {}, state_store: nil)
+      before_callbacks: {}, after_callbacks: {})
       @state_class = state_class
       @nodes = nodes
       @after_transitions = after_transitions  # { from => to }
@@ -48,7 +48,6 @@ module Phronomy
       @wait_state_names = wait_state_names
       @before_callbacks = before_callbacks.dup
       @after_callbacks = after_callbacks.dup
-      @state_store_override = state_store
       @phase_machine_class = build_phase_machine_class
     end
 
@@ -134,10 +133,6 @@ module Phronomy
 
     private
 
-    def state_store
-      @state_store_override || Phronomy.configuration.default_state_store
-    end
-
     def run_graph(state, from_node: nil, recursion_limit: 25, &event_block)
       current_node = from_node || @entry_point
       tracker = new_phase_machine(current_node)
@@ -153,7 +148,6 @@ module Phronomy
         # Auto-halt at wait states: save context and return to caller.
         if @wait_state_names.include?(current_node)
           state.set_graph_metadata(thread_id: state.thread_id, phase: current_node)
-          state_store&.save(state)
           return state
         end
 
@@ -195,7 +189,6 @@ module Phronomy
       end
 
       state.set_graph_metadata(thread_id: state.thread_id, phase: :__end__)
-      state_store&.save(state)
       state
     end
 

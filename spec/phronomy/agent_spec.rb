@@ -130,42 +130,17 @@ RSpec.describe Phronomy::Agent::Base do
       expect(results.size).to eq(2)
     end
 
-    context "with memory and thread_id in config" do
+    context "with messages in config" do
       let(:prev_msg) { double("PrevMessage", role: :user, content: "previous") }
-      let(:memory) do
-        mem = instance_double(Phronomy::Memory::ConversationManager)
-        allow(mem).to receive(:load).and_return([prev_msg])
-        allow(mem).to receive(:save)
-        mem
-      end
 
-      it "loads previous messages from memory before asking" do
-        agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
-        expect(memory).to have_received(:load).with(thread_id: "t1", query: "Hello")
-      end
-
-      it "injects the loaded message into the chat" do
-        agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
+      it "injects the provided messages into the chat" do
+        agent.invoke("Hello", config: {messages: [prev_msg]})
         expect(fake_chat.messages).to include(prev_msg)
       end
 
-      it "saves updated messages back to memory after invoke" do
-        agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
-        expect(memory).to have_received(:save).with(
-          thread_id: "t1",
-          messages: fake_chat.messages
-        )
-      end
-
-      it "skips memory when config has no thread_id" do
-        agent.invoke("Hello", config: {memory: memory})
-        expect(memory).not_to have_received(:load)
-        expect(memory).not_to have_received(:save)
-      end
-
-      it "skips memory when config has no memory" do
+      it "works without messages in config" do
         agent.invoke("Hello", config: {thread_id: "t1"})
-        # no error is raised — memory is simply not used
+        # no error is raised — empty history is used
       end
     end
 
@@ -214,15 +189,9 @@ RSpec.describe Phronomy::Agent::Base do
       end
 
       let(:prev_msg) { double("PrevMessage", role: :user, content: "previous") }
-      let(:memory) do
-        mem = instance_double(Phronomy::Memory::ConversationManager)
-        allow(mem).to receive(:load).and_return([prev_msg])
-        allow(mem).to receive(:save)
-        mem
-      end
 
       it "injects history messages into the chat via the Assembler" do
-        agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
+        agent.invoke("Hello", config: {messages: [prev_msg]})
         expect(fake_chat.messages).to include(prev_msg)
       end
     end
@@ -437,8 +406,8 @@ RSpec.describe Phronomy::Agent::ReactAgent do
     end
   end
 
-  describe "memory integration" do
-    class MemoryReactAgent < Phronomy::Agent::ReactAgent
+  describe "messages integration" do
+    class MessagesReactAgent < Phronomy::Agent::ReactAgent
       model "test-model"
     end
 
@@ -465,42 +434,20 @@ RSpec.describe Phronomy::Agent::ReactAgent do
       dbl
     end
 
-    let(:memory) do
-      mem = instance_double(Phronomy::Memory::ConversationManager)
-      allow(mem).to receive(:load).and_return([prev_msg])
-      allow(mem).to receive(:save)
-      mem
-    end
-
     before do
       allow(RubyLLM).to receive(:chat).and_return(mem_chat)
     end
 
-    subject(:agent) { MemoryReactAgent.new }
+    subject(:agent) { MessagesReactAgent.new }
 
-    it "loads previous messages from memory before invoking" do
-      agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
-      expect(memory).to have_received(:load).with(thread_id: "t1", query: "Hello")
-    end
-
-    it "injects the loaded message into the chat before asking" do
-      agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
-      # prev_msg was seeded → step called continue (messages.any?) → reply_msg added
+    it "injects provided messages into the chat before asking" do
+      agent.invoke("Hello", config: {messages: [prev_msg]})
       expect(mem_chat.messages).to include(prev_msg)
     end
 
-    it "saves final messages back to memory after completing" do
-      result = agent.invoke("Hello", config: {thread_id: "t1", memory: memory})
-      expect(memory).to have_received(:save).with(
-        thread_id: "t1",
-        messages: result[:messages]
-      )
-    end
-
-    it "skips memory when no thread_id is provided" do
-      agent.invoke("Hello", config: {memory: memory})
-      expect(memory).not_to have_received(:load)
-      expect(memory).not_to have_received(:save)
+    it "works without messages in config" do
+      agent.invoke("Hello", config: {})
+      expect(mem_chat.messages).not_to include(prev_msg)
     end
   end
 
@@ -557,8 +504,8 @@ RSpec.describe Phronomy::Agent::ReactAgent do
       allow(dbl).to receive(:messages).and_return([normal_msg])
       allow(dbl).to receive(:last_message).and_return(normal_msg)
       allow(dbl).to receive(:add_message)
-      allow(dbl).to receive(:before_tool_call)
-      allow(dbl).to receive(:after_tool_result)
+      allow(dbl).to receive(:on_tool_call)
+      allow(dbl).to receive(:on_tool_result)
       allow(dbl).to receive(:ask).and_return(normal_msg)
       dbl
     end
@@ -580,8 +527,8 @@ RSpec.describe Phronomy::Agent::ReactAgent do
       allow(stuck).to receive(:messages).and_return([always_msg])
       allow(stuck).to receive(:last_message).and_return(always_msg)
       allow(stuck).to receive(:add_message)
-      allow(stuck).to receive(:before_tool_call)
-      allow(stuck).to receive(:after_tool_result)
+      allow(stuck).to receive(:on_tool_call)
+      allow(stuck).to receive(:on_tool_result)
       allow(stuck).to receive(:ask).and_return(always_msg)
       allow(RubyLLM).to receive(:chat).and_return(stuck)
       result = ExhaustedStreamAgent.new.stream("Hello") { |_e| }

@@ -402,7 +402,7 @@ module Phronomy
       #   +:message+, +:query+, or +:user+ as the text key, plus any template
       #   variables consumed by the configured instructions template.
       # @param config [Hash] runtime options:
-      #   +:memory+     ({Phronomy::Memory::ConversationManager}) — memory backend
+      #   +:messages+   (Array<RubyLLM::Message>)  — conversation history from a previous invocation
       #   +:thread_id+  (+String+)                 — conversation thread identifier
       #   +:user_id+    (+String+, optional)        — caller identity forwarded to the tracer
       #   +:session_id+ (+String+, optional)        — session identity forwarded to the tracer
@@ -487,10 +487,6 @@ module Phronomy
         # Continue the React loop.
         response = chat.complete
 
-        # Persist updated conversation to memory when configured.
-        memory = config[:memory]
-        save_to_memory(memory, thread_id: thread_id, messages: chat.messages) if memory && thread_id
-
         output = response.content
         usage = Phronomy::TokenUsage.from_tokens(response.tokens)
 
@@ -571,7 +567,6 @@ module Phronomy
         trace("agent.invoke", input: input, **caller_meta) do |_span|
           run_input_guardrails!(input)
 
-          memory = config[:memory]
           thread_id = config[:thread_id]
 
           chat = build_chat
@@ -589,8 +584,8 @@ module Phronomy
             end
           end
 
-          if memory && thread_id
-            msgs = load_from_memory(memory, thread_id: thread_id, query: user_message)
+          msgs = Array(config[:messages])
+          unless msgs.empty?
             message_elements = build_message_elements(msgs)
 
             # Run on_trim: app may call ctx.remove(seqs) to drop messages this turn.
@@ -608,8 +603,7 @@ module Phronomy
                   compact_ctx = Context::CompactionContext.new(
                     message_elements: message_elements,
                     budget: budget,
-                    thread_id: thread_id,
-                    memory: memory
+                    thread_id: thread_id
                   )
                   compact_cb.call(compact_ctx)
                   message_elements = build_message_elements(compact_ctx.result_messages)
@@ -625,8 +619,18 @@ module Phronomy
           context[:messages].each { |msg| chat.messages << msg }
 
           # Wire per-event callbacks to yield StreamEvents.
-          chat.before_tool_call { |tool_call| block.call(StreamEvent.new(type: :tool_call, payload: {tool_call: tool_call})) }
-          chat.after_tool_result { |tool_result| block.call(StreamEvent.new(type: :tool_result, payload: {tool_result: tool_result})) }
+          current_tool_call = nil
+          chat.on_tool_call do |tool_call|
+            current_tool_call = tool_call
+            block.call(StreamEvent.new(type: :tool_call, payload: {tool_call: tool_call}))
+          end
+          chat.on_tool_result do |tool_result|
+            block.call(StreamEvent.new(type: :tool_result, payload: {
+              tool_call_id: current_tool_call&.id,
+              tool_name: current_tool_call&.name,
+              tool_result: tool_result
+            }))
+          end
 
           # Run before_completion hooks (global → class → instance) before the LLM call.
           run_before_completion_hooks!(chat, config)
@@ -634,8 +638,6 @@ module Phronomy
           response = chat.ask(user_message) do |chunk|
             block.call(StreamEvent.new(type: :token, payload: {content: chunk.content}))
           end
-
-          save_to_memory(memory, thread_id: thread_id, messages: chat.messages) if memory && thread_id
 
           output = response.content
           usage = Phronomy::TokenUsage.from_tokens(response.tokens)
@@ -659,15 +661,13 @@ module Phronomy
           # Run input guardrails before touching the LLM.
           run_input_guardrails!(input)
 
-          memory = config[:memory]
           thread_id = config[:thread_id]
           user_message = extract_message(input)
           chat = build_chat
           budget = build_token_budget
 
-          # Load conversation history from memory.
-          raw_messages = (memory && thread_id) ?
-            load_from_memory(memory, thread_id: thread_id, query: user_message) : []
+          # Load conversation history from config[:messages] (app-managed).
+          raw_messages = Array(config[:messages])
 
           # Assign synthetic 0-based seq numbers for use by trim/compaction callbacks.
           message_elements = build_message_elements(raw_messages)
@@ -689,8 +689,7 @@ module Phronomy
                 compact_ctx = Context::CompactionContext.new(
                   message_elements: message_elements,
                   budget: budget,
-                  thread_id: thread_id,
-                  memory: memory
+                  thread_id: thread_id
                 )
                 compact_cb.call(compact_ctx)
                 message_elements = build_message_elements(compact_ctx.result_messages)
@@ -741,9 +740,6 @@ module Phronomy
             suspended_result = {output: nil, suspended: true, checkpoint: checkpoint, messages: chat.messages}
             next [suspended_result, nil]
           end
-
-          # Persist the updated conversation to memory.
-          save_to_memory(memory, thread_id: thread_id, messages: chat.messages) if memory && thread_id
 
           output = response.content
           usage = Phronomy::TokenUsage.from_tokens(response.tokens)
@@ -901,23 +897,6 @@ module Phronomy
 
       # Load messages from a ConversationManager.
       #
-      # @param memory    [Memory::ConversationManager]
-      # @param thread_id [String]
-      # @param query     [String, nil]
-      # @return [Array]
-      def load_from_memory(memory, thread_id:, query: nil)
-        memory.load(thread_id: thread_id, query: query)
-      end
-
-      # Persist messages to a ConversationManager.
-      #
-      # @param memory    [Memory::ConversationManager]
-      # @param thread_id [String]
-      # @param messages  [Array]
-      def save_to_memory(memory, thread_id:, messages:)
-        memory.save(thread_id: thread_id, messages: messages)
-      end
-
       def build_chat
         opts = {}
         m = self.class.model

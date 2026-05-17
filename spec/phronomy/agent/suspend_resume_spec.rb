@@ -402,41 +402,5 @@ RSpec.describe "Agent::Base suspend/resume" do
       end
     end
 
-    context "memory persistence in resume" do
-      let(:memory) do
-        m = instance_double(Phronomy::Memory::ConversationManager)
-        allow(m).to receive(:save)
-        m
-      end
-
-      it "saves to memory when thread_id and memory are in config" do
-        chat_dbl = build_resume_chat(
-          tools_hash: {suspend_test: tool_instance},
-          response_content: "done"
-        )
-        allow(RubyLLM).to receive(:chat).and_return(chat_dbl)
-        allow(tool_instance).to receive(:call).and_return("r")
-        agent.resume(checkpoint, approved: true, config: {thread_id: "t1", memory: memory})
-        expect(memory).to have_received(:save).with(thread_id: "t1", messages: anything)
-      end
-
-      it "skips memory save when no thread_id is present" do
-        chat_dbl = build_resume_chat(
-          tools_hash: {suspend_test: tool_instance},
-          response_content: "done"
-        )
-        allow(RubyLLM).to receive(:chat).and_return(chat_dbl)
-        allow(tool_instance).to receive(:call).and_return("r")
-        no_thread_checkpoint = Phronomy::Agent::Checkpoint.new(
-          thread_id: nil,
-          messages: [msg_user],
-          pending_tool_name: "suspend_test",
-          pending_tool_args: {"value" => "v"},
-          pending_tool_call_id: "c1"
-        )
-        agent.resume(no_thread_checkpoint, approved: true, config: {memory: memory})
-        expect(memory).not_to have_received(:save)
-      end
-    end
   end
 end

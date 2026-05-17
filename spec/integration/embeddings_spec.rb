@@ -112,50 +112,18 @@ RSpec.describe "Group 14: Embeddings abstraction + VectorStore backends", :integ
   # TC-008 (PASS) — stub + assume=false + embeddings_kw + in_memory   [NO LLM]
   # Verifies the full Retrieval::Semantic workflow with a stub adapter and InMemory store.
   # ---------------------------------------------------------------------------
+  # TC-008 — Memory module removed in v0.3.0; tests are preserved as pending.
   describe "TC-008: stub adapter; assume=false; embeddings_kw; in_memory" do
-    let(:adapter) { IntegrationFactors.embeddings_adapter("stub") }
-    let(:store) { IntegrationFactors.vector_store("in_memory") }
-    let(:memory) do
-      Phronomy::Memory::ConversationManager.new(
-        storage: Phronomy::Memory::Storage::InMemory.new,
-        retrieval: Phronomy::Memory::Retrieval::Semantic.new(embeddings: adapter, store: store, k: 3)
-      )
-    end
-
     it "save and load with query return the semantically closest message" do
-      msg_a = make_message("aaaa")
-      msg_b = make_message("xyz")
-      memory.save(thread_id: "t1", messages: [msg_a, msg_b])
-
-      results = memory.load(thread_id: "t1", query: "aaaa")
-      expect(results).not_to be_empty
-      expect(results.first.content.to_s).to eq("aaaa")
+      skip "Memory::ConversationManager removed in v0.3.0"
     end
 
     it "load without query returns k most recent messages" do
-      msgs = (1..5).map { |i| make_message("msg #{i}") }
-      memory.save(thread_id: "t2", messages: msgs)
-
-      results = memory.load(thread_id: "t2")
-      expect(results.size).to eq(3)
-      expect(results.last.content.to_s).to eq("msg 5")
+      skip "Memory::ConversationManager removed in v0.3.0"
     end
 
     it "clear removes messages for the given thread and keeps other threads intact" do
-      mem_t3 = Phronomy::Memory::ConversationManager.new(
-        storage: Phronomy::Memory::Storage::InMemory.new,
-        retrieval: Phronomy::Memory::Retrieval::Semantic.new(embeddings: adapter, k: 3)
-      )
-      mem_t4 = Phronomy::Memory::ConversationManager.new(
-        storage: Phronomy::Memory::Storage::InMemory.new,
-        retrieval: Phronomy::Memory::Retrieval::Semantic.new(embeddings: adapter, k: 3)
-      )
-      mem_t3.save(thread_id: "t3", messages: [make_message("thread-a message")])
-      mem_t4.save(thread_id: "t4", messages: [make_message("thread-b message")])
-      mem_t3.clear(thread_id: "t3")
-
-      expect(mem_t3.load(thread_id: "t3")).to be_empty
-      expect(mem_t4.load(thread_id: "t4")).not_to be_empty
+      skip "Memory::ConversationManager removed in v0.3.0"
     end
   end
 
@@ -219,20 +187,7 @@ RSpec.describe "Group 14: Embeddings abstraction + VectorStore backends", :integ
     end
 
     it "Retrieval::Semantic retrieves the semantically relevant message via semantic search" do
-      LLMStub.activate_with_embeddings(vectors: [V_CAT3, V_STOCK2, V_FELINE])
-      memory = Phronomy::Memory::ConversationManager.new(
-        storage: Phronomy::Memory::Storage::InMemory.new,
-        retrieval: Phronomy::Memory::Retrieval::Semantic.new(embeddings: adapter, k: 5)
-      )
-      msg_cat = make_message("The cat climbed the tree")
-      msg_stock = make_message("Stock prices rose sharply")
-      memory.save(thread_id: "t5", messages: [msg_cat, msg_stock])
-
-      results = memory.load(thread_id: "t5", query: "feline climbing")
-      expect(results).not_to be_empty
-      expect(results.map { |m| m.content.to_s }).to include("The cat climbed the tree")
-    ensure
-      LLMStub.deactivate
+      skip "Memory::ConversationManager removed in v0.3.0"
     end
   end
 

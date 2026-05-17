@@ -53,11 +53,10 @@ module Phronomy
 
     # Defines a new Workflow.
     # @param context_class [Class] class that includes Phronomy::WorkflowContext
-    # @param state_store [Object, nil] optional state store override (passed to WorkflowRunner)
     # @yield block evaluated in DSL context
     # @return [Phronomy::Workflow] compiled and ready-to-run workflow instance
-    def self.define(context_class, state_store: nil, &block)
-      builder = Builder.new(context_class, state_store: state_store)
+    def self.define(context_class, &block)
+      builder = Builder.new(context_class)
       builder.instance_eval(&block)
       builder.build
     end
@@ -110,9 +109,8 @@ module Phronomy
     class Builder
       FINISH = Phronomy::WorkflowRunner::FINISH
 
-      def initialize(context_class, state_store: nil)
+      def initialize(context_class)
         @context_class = context_class
-        @state_store = state_store
         @initial = nil
         # { node_name => callable }
         @states = {}
@@ -210,8 +208,7 @@ module Phronomy
           route_transitions: route_transitions,
           external_events: external_events,
           entry_point: @initial || nodes.keys.first,
-          wait_state_names: @wait_state_names,
-          state_store: @state_store
+          wait_state_names: @wait_state_names
         )
 
         Workflow.new(runner)

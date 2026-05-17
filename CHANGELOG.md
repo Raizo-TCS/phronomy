@@ -7,10 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [0.3.0] - 2026-05-18
 
 ### Removed
 
+- **`Phronomy::Memory` module fully removed**: `ConversationManager`, all
+  `Storage` backends (InMemory, ActiveRecord), all `Retrieval` strategies
+  (Recent, Semantic, Composite), and all `Compression` helpers (ToolOutputPruner,
+  Summary) have been deleted. Conversation history is now the responsibility of
+  the calling application — pass prior messages via `config[:messages]`
+  (`Array<RubyLLM::Message>`) and receive the updated array in `result[:messages]`.
+- **`Phronomy::StateStore` module fully removed**: `InMemory`, `ActiveRecord`,
+  `Redis`, and `FileSystem` state-store backends have been deleted. The Workflow
+  halted-state object is now returned directly from `invoke` and `send_event`
+  and must be stored by the caller if resumption is needed.
+- **`Phronomy::Configuration#default_state_store` removed**: No longer meaningful
+  without a built-in state store.
+- **`Phronomy::Configuration#default_memory` / `#memory_async` / `#memory_job_queue` removed**:
+  No longer meaningful without the Memory module.
+- **Rails integration removed**: `Railtie` initializers for `AgentJob` and
+  `acts_as_phronomy_message` no longer load. The `rails/` and `active_record/`
+  directories have been deleted.
 - **`Phronomy::Actor` and `Phronomy::ThreadActorRegistry` deleted**: The Active
   Object pattern implementation (`actor.rb`, `thread_actor_registry.rb`) has been
   removed. It provided synchronous blocking only (no true async) and was
@@ -35,9 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`Tool::McpTool::StdioTransport`**, **`Tracing::LangfuseTracer`**,
   **`TrustPipeline`**, and **`Memory::Retrieval::Semantic`** no longer hold a
   dedicated Actor instance. All operations execute directly on the calling thread.
-
-### Changed
-
 - **`PIIPatternDetector` — `:my_number` replaced by `:ssn`** ([#77]): The built-in PII
   detector now checks for US Social Security Numbers (`\b\d{3}-\d{2}-\d{4}\b`) instead
   of Japanese My Numbers. The JIS X 0076 check-digit validation and `my_number_valid?`
