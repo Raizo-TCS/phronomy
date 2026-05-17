@@ -61,8 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`WorkflowRunner` — state_machines fully drives execution** (architecture overhaul).
   Previously `state_machines` was used only for post-hoc transition validation;
   the next-node was calculated by Phronomy internally (`resolve_next_node`).
-  As of 0.3.0, all state transition decisions — including guard evaluation for
-  routing events — are delegated entirely to `state_machines`.
+  After this change, all state transition decisions — including guard evaluation for
+  routing events — will be delegated entirely to `state_machines`.
   - `PhaseTracker` now exposes `attr_accessor :context` so guard lambdas can
     access the `WorkflowContext` via `m.context`.
   - Guard bridge pattern: `if: ->(m) { guard_proc.call(m.context) }`.
@@ -84,34 +84,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `WorkflowRunner#advance_phase` — replaced by `fire_event!`
 - `Workflow::Builder#build_edges`, `#build_conditional_edges`,
   `#build_wait_states` — replaced by unified event classification in `build`
-
----
-
-## [Unreleased]
-
-### Added
-
-- **`Phronomy::Graph::Context`** module — canonical module for defining workflow
-  context classes (replaces the removed `Phronomy::Graph::State`).
-- **`Phronomy::Graph.register_context_class`** — registers context classes for
-  deserialization from external stores (Redis, DB).
-- **`Phronomy::Workflow.define`** DSL — primary high-level API for declaring
-  stateful workflows (`state`, `wait_state`, `event`, `after`, `initial`).
-- **`Phronomy::Graph::WorkflowRunner`** — state-machine execution engine backing
-  the Workflow DSL. Replaces the removed `CompiledGraph`.
-- **`app.send_event(event, config:)`** — event-driven resume for workflows halted
-  at a `wait_state`.
-- **`state.halted?`** — returns `true` when the workflow is paused at a `wait_state`.
-- **`state.phase`** — single source of truth for execution state.
-
-### Removed
-
-- `Phronomy::Graph::StateGraph` / `CompiledGraph` — use `Phronomy::Workflow.define`.
-- `Phronomy::Graph::State` — use `Phronomy::Graph::Context`.
-- `Phronomy::Graph.register_state_class` — use `register_context_class`.
-- `state.current_nodes` / `state.halted_before` — use `state.phase` / `state.halted?`.
-- `compiled.interrupt_before` / `compiled.interrupt_after` — use `wait_state` + `event`.
-- `compiled.resume` — use `app.send_event`.
 
 ---
 

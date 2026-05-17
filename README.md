@@ -160,7 +160,7 @@ agent.add_input_guardrail(NoSensitiveDataGuardrail.new)
 ### Built-in Guardrails — PII and prompt injection detection
 
 ```ruby
-# Detect credit cards, SSNs, emails, and phone numbers automatically
+# Detect SSNs, credit cards, emails, and phone numbers
 agent.add_input_guardrail(Phronomy::Guardrail::Builtin::PIIPatternDetector.new)
 
 # Block common prompt-injection attempts
@@ -369,9 +369,15 @@ Phronomy.configure do |c|
   c.recursion_limit     = 25
   c.tracer              = Phronomy::Tracing::NullTracer.new
   c.default_state_store = Phronomy::StateStore::InMemory.new  # optional
-  c.memory_compression  = []                                   # optional; Array of compressors
   c.before_completion   = nil                                  # optional; global hook lambda
+  c.max_actors          = 100  # recommended for Rails / long-running server processes
 end
+
+> **Note:** `max_actors` bounds the number of live `ThreadActorRegistry` actors.
+> The least-recently-used actor is stopped when the limit is reached.
+> For brief windows around eviction, two actors for the same `thread_id` may be active
+> simultaneously if the evicted actor has not finished draining its queue.
+> Set this value conservatively for long-running processes to avoid unbounded thread growth.
 ```
 
 ## Context Management
@@ -404,19 +410,24 @@ budget = Phronomy::Context::TokenBudget.new(
 
 ### Budget-aware Memory
 
-Pass a budget to `load_messages` and only the newest messages that fit are returned:
+Use `ConversationManager` with `Retrieval::Recent` to keep only the most recent messages
+when loading conversation history:
 
 ```ruby
-memory = Phronomy::Memory::WindowMemory.new
-messages = memory.load_messages(thread_id: "t1", token_budget: budget)
+manager = Phronomy::Memory::ConversationManager.new(
+  storage:   Phronomy::Memory::Storage::InMemory.new,
+  retrieval: Phronomy::Memory::Retrieval::Recent.new(k: 20)
+)
 ```
 
-`ActiveRecordMemory` also accepts `pruner:` to truncate oversized tool results:
+For Rails applications with persistent history, use the ActiveRecord storage backend with
+optional `ToolOutputPruner` compression to truncate oversized tool results before saving:
 
 ```ruby
-memory = Phronomy::Memory::ActiveRecordMemory.new(
-  model_class: PhronomyMessage,
-  pruner: Phronomy::Memory::Compression::ToolOutputPruner.new(max_chars: 4000)
+manager = Phronomy::Memory::ConversationManager.new(
+  storage:     Phronomy::Memory::Storage::ActiveRecord.new(model_class: PhronomyMessage),
+  retrieval:   Phronomy::Memory::Retrieval::Recent.new(k: 20),
+  compression: Phronomy::Memory::Compression::ToolOutputPruner.new(max_chars: 4000)
 )
 ```
 
@@ -431,19 +442,23 @@ end
 ```
 
 `Agent::Base#invoke` builds a `TokenBudget` automatically and passes it to
-`memory.load_messages`.  When the model is not in the registry the budget is
+`memory.load`.  When the model is not in the registry the budget is
 silently skipped.
 
-### SemanticMemory
+### Semantic Retrieval
 
-Embedding-based retrieval of relevant past messages:
+Embedding-based retrieval of relevant past messages using `ConversationManager` with a
+`Retrieval::Semantic` strategy:
 
 ```ruby
-semantic = Phronomy::Memory::SemanticMemory.new(
-  embedding_model: "text-embedding-3-small",
-  k: 10
+manager = Phronomy::Memory::ConversationManager.new(
+  storage:   Phronomy::Memory::Storage::InMemory.new,
+  retrieval: Phronomy::Memory::Retrieval::Semantic.new(
+               embedding_model: "text-embedding-3-small",
+               k: 10
+             )
 )
-messages = semantic.load_messages(thread_id: "t1", query: "user's current question")
+messages = manager.load(thread_id: "t1", query: "user's current question")
 ```
 
 ### Composite retrieval
@@ -482,6 +497,24 @@ summary = Phronomy::Memory::Compression::Summary.new(
 Phronomy.configure do |c|
   c.memory_compression = [pruner, summary]   # applied in order: pruner first, then summary
 end
+```
+
+Replace the `Phronomy.configure` block above with a `ConversationManager` `compression:` argument:
+
+```ruby
+# Summary compression (calls an LLM when history exceeds max_tokens):
+manager = Phronomy::Memory::ConversationManager.new(
+  storage:     Phronomy::Memory::Storage::InMemory.new,
+  retrieval:   Phronomy::Memory::Retrieval::Recent.new(k: 10),
+  compression: summary
+)
+
+# ToolOutputPruner alone for cheap, LLM-free compression:
+manager = Phronomy::Memory::ConversationManager.new(
+  storage:     Phronomy::Memory::Storage::InMemory.new,
+  retrieval:   Phronomy::Memory::Retrieval::Recent.new(k: 10),
+  compression: pruner
+)
 ```
 
 

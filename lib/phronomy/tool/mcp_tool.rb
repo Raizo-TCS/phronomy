@@ -11,10 +11,11 @@ module Phronomy
     # A Phronomy::Tool::Base subclass that wraps a tool exposed by an external
     # MCP (Model Context Protocol) server.
     #
-    # Currently supports the **stdio** transport only: the MCP server is launched
-    # as a child process and communicates via newline-delimited JSON-RPC on stdin/stdout.
-    #
-    # HTTP/SSE transport support can be added later by subclassing Transport.
+    # Supports two transport schemes:
+    # - <b>"stdio://\<command\>"</b> — spawns a child process that communicates via
+    #   newline-delimited JSON-RPC on stdin/stdout.
+    # - <b>"http://\<url\>"</b> / <b>"https://\<url\>"</b> — connects to a running
+    #   HTTP/SSE MCP server using +net/http+.
     #
     # @example
     #   web_search = Phronomy::Tool::McpTool.from_server(
@@ -31,6 +32,7 @@ module Phronomy
         # @param server_uri [String] URI of the MCP server.
         #   Supported schemes:
         #   - "stdio://<command>"  — spawn a child process
+        #   - "http://<url>" / "https://<url>" — connect to an HTTP/SSE server
         # @param tool_name [String] the tool name as registered in the MCP server
         # @return [McpTool] a configured subclass instance ready for use with an Agent
         def from_server(server_uri, tool_name:)
