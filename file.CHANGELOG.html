@@ -65,6 +65,33 @@
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Removed">Removed</h3>
+<ul>
+<li><strong><code>Phronomy::Actor</code> and <code>Phronomy::ThreadActorRegistry</code> deleted</strong>: The Active
+Object pattern implementation (<code>actor.rb</code>, <code>thread_actor_registry.rb</code>) has been
+removed. It provided synchronous blocking only (no true async) and was
+architecturally inconsistent with the <code>WorkflowRunner</code> halt/resume model. All
+thread coordination now uses plain <code>Mutex</code> where needed.</li>
+<li><strong><code>Phronomy.configuration.max_actors</code> removed</strong>: The configuration option is no
+longer meaningful without <code>ThreadActorRegistry</code>.</li>
+</ul>
+<h3 id="Changed">Changed</h3>
+<ul>
+<li><strong><code>Agent::Base#invoke</code> and <code>#stream</code></strong> no longer route execution through a
+per-thread Actor. Both methods now call <code>_invoke_impl</code> / <code>_stream_impl</code> directly
+on the calling thread.</li>
+<li><strong><code>Memory::Storage::InMemory</code></strong> now stores all thread data in an instance-level
+<code>Hash</code> instead of <code>Thread.current</code> thread-local storage. The class-level
+<code>THREAD_DATA_KEY</code> constant has been removed. <code>with_thread_lock</code> uses a
+per-thread-id <code>Mutex</code> to preserve concurrent-compaction safety (issue #44).</li>
+<li><strong><code>StateStore::InMemory</code></strong> now stores state in an instance-level <code>Hash</code>.
+The <code>THREAD_DATA_KEY</code> constant has been removed.</li>
+<li><strong><code>VectorStore::RedisSearch</code></strong> uses a <code>Mutex</code> for <code>ensure_index!</code> and <code>clear</code>
+instead of an Actor, preserving the thread-safety invariant on <code>@index_created</code>.</li>
+<li><strong><code>Tool::McpTool::StdioTransport</code></strong>, <strong><code>Tracing::LangfuseTracer</code></strong>,
+<strong><code>TrustPipeline</code></strong>, and <strong><code>Memory::Retrieval::Semantic</code></strong> no longer hold a
+dedicated Actor instance. All operations execute directly on the calling thread.</li>
+</ul>
 <h3 id="Changed">Changed</h3>
 <ul>
 <li><strong><code>PIIPatternDetector</code> — <code>:my_number</code> replaced by <code>:ssn</code></strong> ([#77]): The built-in PII
@@ -195,7 +222,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sun May 17 05:07:19 2026 by
+  Generated on Sun May 17 09:08:45 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

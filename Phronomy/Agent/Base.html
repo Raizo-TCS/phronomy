@@ -2899,14 +2899,14 @@ Called by Runner during construction when routes are configured.</p>
       <pre class="lines">
 
 
+461
+462
 463
 464
-465
-466
-467</pre>
+465</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 463</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 461</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_input_guardrail'>add_input_guardrail</span><span class='lparen'>(</span><span class='id identifier rubyid_guardrail'>guardrail</span><span class='rparen'>)</span>
   <span class='ivar'>@input_guardrails</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -2957,14 +2957,14 @@ Called by Runner during construction when routes are configured.</p>
       <pre class="lines">
 
 
+469
+470
 471
 472
-473
-474
-475</pre>
+473</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 471</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 469</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_output_guardrail'>add_output_guardrail</span><span class='lparen'>(</span><span class='id identifier rubyid_guardrail'>guardrail</span><span class='rparen'>)</span>
   <span class='ivar'>@output_guardrails</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -3004,12 +3004,12 @@ Called by Runner during construction when routes are configured.</p>
       <pre class="lines">
 
 
-479
-480
-481</pre>
+477
+478
+479</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 479</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 477</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_context_version_cache'>context_version_cache</span>
   <span class='lparen'>(</span><span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='lbracket'>[</span><span class='symbol'>:phronomy_context_version_caches</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='lbracket'>[</span><span class='id identifier rubyid_object_id'>object_id</span><span class='rbracket'>]</span>
@@ -3128,15 +3128,13 @@ variables consumed by the configured instructions template.</p></div>
 
 414
 415
-416
-417</pre>
+416</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 414</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:thread_id</span><span class='rbracket'>]</span>
-  <span class='id identifier rubyid__run_in_thread_actor'>_run_in_thread_actor</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid__invoke_impl'>_invoke_impl</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+  <span class='id identifier rubyid__invoke_impl'>_invoke_impl</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -3195,13 +3193,13 @@ without interruption (backward-compatible behaviour).</p>
       <pre class="lines">
 
 
+454
+455
 456
-457
-458
-459</pre>
+457</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 456</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 454</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_approval_required'>on_approval_required</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@approval_handler</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -3306,24 +3304,22 @@ as they are produced by the underlying LLM.</p>
       <pre class="lines">
 
 
+432
 433
 434
 435
 436
 437
 438
-439
-440
-441</pre>
+439</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 433</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 432</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
 
-  <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:thread_id</span><span class='rbracket'>]</span>
-  <span class='id identifier rubyid__run_in_thread_actor'>_run_in_thread_actor</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid__stream_impl'>_stream_impl</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+  <span class='id identifier rubyid__stream_impl'>_stream_impl</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
   <span class='id identifier rubyid_block'>block</span><span class='op'>&amp;.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="StreamEvent.html" title="Phronomy::Agent::StreamEvent (class)">StreamEvent</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>type:</span> <span class='symbol'>:error</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='lbrace'>{</span><span class='label'>error:</span> <span class='id identifier rubyid_e'>e</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span>
@@ -3338,7 +3334,7 @@ as they are produced by the underlying LLM.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 17 05:07:19 2026 by
+  Generated on Sun May 17 09:08:46 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
