@@ -9,9 +9,9 @@ Gem::Specification.new do |spec|
   spec.email = ["raizo.tcs@gmail.com"]
 
   spec.summary = "Ruby AI Agent Framework for composable, stateful AI agent workflows"
-  spec.description = "Phronomy provides Agent, Workflow, Memory, Tool, Guardrail, " \
-                     "RAG, and Multi-agent capabilities for building AI agents " \
-                     "in Ruby and Rails. Powered by RubyLLM for LLM abstraction."
+  spec.description = "Phronomy provides Agent, Workflow, Tool, Guardrail, " \
+                     "RAG, and Multi-agent capabilities for building AI agents in Ruby. " \
+                     "Powered by RubyLLM for LLM abstraction."
   spec.homepage = "https://github.com/Raizo-TCS/phronomy"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2.0"
