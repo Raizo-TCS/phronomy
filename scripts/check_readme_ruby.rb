@@ -7,8 +7,8 @@ require "tempfile"
 require "open3"
 
 readme_path = File.expand_path("../README.md", __dir__)
-readme      = File.read(readme_path)
-blocks      = readme.scan(/^```ruby\n(.*?)^```/m).map.with_index(1) { |(code), i| [i, code] }
+readme = File.read(readme_path)
+blocks = readme.scan(/^```ruby\n(.*?)^```/m).map.with_index(1) { |(code), i| [i, code] }
 
 puts "Checking #{blocks.size} Ruby code blocks in README.md..."
 
