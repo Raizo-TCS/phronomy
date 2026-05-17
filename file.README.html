@@ -422,16 +422,8 @@ It provides composable building blocks — Workflows, Agents, and Memory — all
   <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_tracer'>tracer</span>              <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tracing.html" title="Phronomy::Tracing (module)">Tracing</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tracing/NullTracer.html" title="Phronomy::Tracing::NullTracer (class)">NullTracer</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_default_state_store'>default_state_store</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/StateStore.html" title="Phronomy::StateStore (module)">StateStore</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/StateStore/InMemory.html" title="Phronomy::StateStore::InMemory (class)">InMemory</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/StateStore/InMemory.html#initialize-instance_method" title="Phronomy::StateStore::InMemory#initialize (method)">new</a></span></span>  <span class='comment'># optional
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_before_completion'>before_completion</span>   <span class='op'>=</span> <span class='kw'>nil</span>                                  <span class='comment'># optional; global hook lambda
-</span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_max_actors'>max_actors</span>          <span class='op'>=</span> <span class='int'>100</span>  <span class='comment'># recommended for Rails / long-running server processes
 </span><span class='kw'>end</span>
 </code></pre>
-<blockquote>
-<p><strong>Note:</strong> <code>max_actors</code> bounds the number of live <code>ThreadActorRegistry</code> actors.
-The least-recently-used actor is stopped when the limit is reached.
-For brief windows around eviction, two actors for the same <code>thread_id</code> may be active
-simultaneously if the evicted actor has not finished draining its queue.
-Set this value conservatively for long-running processes to avoid unbounded thread growth.</p>
-</blockquote>
 <h2 id="Context_Management">Context Management</h2>
 <p>Phronomy includes a context window management layer so agents automatically
 stay within the token limits of the underlying model.</p>
@@ -505,34 +497,30 @@ silently skipped.</p>
 </code></pre>
 <h3 id="Memory_Compression">Memory Compression</h3>
 <p>Automatically shrink conversation history before it reaches the LLM.</p>
-<pre class="code ruby"><code class="ruby"><span class='comment'># Truncate oversized tool outputs (no LLM call, cheap)
-</span><span class='id identifier rubyid_pruner'>pruner</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory/Compression.html" title="Phronomy::Memory::Compression (module)">Compression</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory/Compression/ToolOutputPruner.html" title="Phronomy::Memory::Compression::ToolOutputPruner (class)">ToolOutputPruner</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Memory/Compression/ToolOutputPruner.html#initialize-instance_method" title="Phronomy::Memory::Compression::ToolOutputPruner#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>max_chars:</span> <span class='int'>4000</span><span class='rparen'>)</span>
+<pre class="code ruby"><code class="ruby"># Truncate oversized tool outputs (no LLM call, cheap)
+pruner = Phronomy::Memory::Compression::ToolOutputPruner.new(max_chars: 4000)
 
-<span class='comment'># Summarise old messages when history exceeds max_tokens (calls summarizer_model)
-</span><span class='id identifier rubyid_summary'>summary</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory/Compression.html" title="Phronomy::Memory::Compression (module)">Compression</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory/Compression/Summary.html" title="Phronomy::Memory::Compression::Summary (class)">Summary</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Memory/Compression/Summary.html#initialize-instance_method" title="Phronomy::Memory::Compression::Summary#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-  <span class='label'>max_tokens:</span>       <span class='int'>4000</span><span class='comma'>,</span>
-  <span class='label'>keep:</span>             <span class='int'>10</span><span class='comma'>,</span>             <span class='comment'># always preserve the N most recent messages
-</span>  <span class='label'>summarizer_model:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>gpt-4o-mini</span><span class='tstring_end'>&quot;</span></span>
-<span class='rparen'>)</span>
+# Summarise old messages when history exceeds max_tokens (calls summarizer_model)
+summary = Phronomy::Memory::Compression::Summary.new(
+  max_tokens:       4000,
+  keep:             10,             # always preserve the N most recent messages
+  summarizer_model: &quot;gpt-4o-mini&quot;
+)
 
-<span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span>
-  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_memory_compression'>memory_compression</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='id identifier rubyid_pruner'>pruner</span><span class='comma'>,</span> <span class='id identifier rubyid_summary'>summary</span><span class='rbracket'>]</span>   <span class='comment'># applied in order: pruner first, then summary
-</span><span class='kw'>end</span>
-</code></pre>
-<p>Replace the <code>Phronomy.configure</code> block above with a <code>ConversationManager</code> <code>compression:</code> argument:</p>
-<pre class="code ruby"><code class="ruby"><span class='comment'># Summary compression (calls an LLM when history exceeds max_tokens):
-</span><span class='id identifier rubyid_manager'>manager</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory/ConversationManager.html" title="Phronomy::Memory::ConversationManager (class)">ConversationManager</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Memory/ConversationManager.html#initialize-instance_method" title="Phronomy::Memory::ConversationManager#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-  <span class='label'>storage:</span>     <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory/Storage.html" title="Phronomy::Memory::Storage (module)">Storage</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory/Storage/InMemory.html" title="Phronomy::Memory::Storage::InMemory (class)">InMemory</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Memory/Storage/InMemory.html#initialize-instance_method" title="Phronomy::Memory::Storage::InMemory#initialize (method)">new</a></span></span><span class='comma'>,</span>
-  <span class='label'>retrieval:</span>   <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory/Retrieval.html" title="Phronomy::Memory::Retrieval (module)">Retrieval</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory/Retrieval/Recent.html" title="Phronomy::Memory::Retrieval::Recent (class)">Recent</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Memory/Retrieval/Recent.html#initialize-instance_method" title="Phronomy::Memory::Retrieval::Recent#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>k:</span> <span class='int'>10</span><span class='rparen'>)</span><span class='comma'>,</span>
-  <span class='label'>compression:</span> <span class='id identifier rubyid_summary'>summary</span>
-<span class='rparen'>)</span>
+```ruby
+# Summary compression (calls an LLM when history exceeds max_tokens):
+manager = Phronomy::Memory::ConversationManager.new(
+  storage:     Phronomy::Memory::Storage::InMemory.new,
+  retrieval:   Phronomy::Memory::Retrieval::Recent.new(k: 10),
+  compression: summary
+)
 
-<span class='comment'># ToolOutputPruner alone for cheap, LLM-free compression:
-</span><span class='id identifier rubyid_manager'>manager</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory/ConversationManager.html" title="Phronomy::Memory::ConversationManager (class)">ConversationManager</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Memory/ConversationManager.html#initialize-instance_method" title="Phronomy::Memory::ConversationManager#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-  <span class='label'>storage:</span>     <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory/Storage.html" title="Phronomy::Memory::Storage (module)">Storage</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory/Storage/InMemory.html" title="Phronomy::Memory::Storage::InMemory (class)">InMemory</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Memory/Storage/InMemory.html#initialize-instance_method" title="Phronomy::Memory::Storage::InMemory#initialize (method)">new</a></span></span><span class='comma'>,</span>
-  <span class='label'>retrieval:</span>   <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory.html" title="Phronomy::Memory (module)">Memory</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory/Retrieval.html" title="Phronomy::Memory::Retrieval (module)">Retrieval</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Memory/Retrieval/Recent.html" title="Phronomy::Memory::Retrieval::Recent (class)">Recent</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Memory/Retrieval/Recent.html#initialize-instance_method" title="Phronomy::Memory::Retrieval::Recent#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>k:</span> <span class='int'>10</span><span class='rparen'>)</span><span class='comma'>,</span>
-  <span class='label'>compression:</span> <span class='id identifier rubyid_pruner'>pruner</span>
-<span class='rparen'>)</span>
+# ToolOutputPruner alone for cheap, LLM-free compression:
+manager = Phronomy::Memory::ConversationManager.new(
+  storage:     Phronomy::Memory::Storage::InMemory.new,
+  retrieval:   Phronomy::Memory::Retrieval::Recent.new(k: 10),
+  compression: pruner
+)
 </code></pre>
 <h2 id="Examples">Examples</h2>
 <p>Runnable examples covering all major features are available in the
@@ -665,7 +653,7 @@ silently skipped.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sun May 17 09:49:49 2026 by
+  Generated on Sun May 17 11:31:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
