@@ -110,9 +110,13 @@
   <div class="discussion">
     <p>A Phronomy::Tool::Base subclass that wraps a tool exposed by an external
 MCP (Model Context Protocol) server.</p>
-<p>Currently supports the <strong>stdio</strong> transport only: the MCP server is launched
-as a child process and communicates via newline-delimited JSON-RPC on stdin/stdout.</p>
-<p>HTTP/SSE transport support can be added later by subclassing Transport.</p>
+<p>Supports two transport schemes:</p>
+<ul>
+<li><b>&quot;stdio://&lt;command&gt;&quot;</b> — spawns a child process that communicates via
+newline-delimited JSON-RPC on stdin/stdout.</li>
+<li><b>&quot;<a href="http://&lt;url&gt;&amp;quot;</b>">http://&lt;url&gt;&amp;quot;</b></a> / <b>&quot;<a href="https://&lt;url&gt;&amp;quot;</b>">https://&lt;url&gt;&amp;quot;</b></a> — connects to a running
+HTTP/SSE MCP server using <code>net/http</code>.</li>
+</ul>
 
   </div>
 </div>
@@ -236,6 +240,7 @@ tool definition identified by <code>tool_name</code>.</p>
 Supported schemes:</p>
 <ul>
 <li>&quot;stdio://<command>&quot;  — spawn a child process</li>
+<li>&quot;<a href="http://<url>&amp;quot">http://<url>&amp;quot</a>; / &quot;<a href="https://<url>&amp;quot">https://<url>&amp;quot</a>; — connect to an HTTP/SSE server</li>
 </ul></div>
       
     </li>
@@ -279,14 +284,14 @@ Supported schemes:</p>
       <pre class="lines">
 
 
-36
-37
 38
 39
-40</pre>
+40
+41
+42</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 36</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 38</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_from_server'>from_server</span><span class='lparen'>(</span><span class='id identifier rubyid_server_uri'>server_uri</span><span class='comma'>,</span> <span class='label'>tool_name:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_transport'>transport</span> <span class='op'>=</span> <span class='id identifier rubyid_build_transport'>build_transport</span><span class='lparen'>(</span><span class='id identifier rubyid_server_uri'>server_uri</span><span class='rparen'>)</span>
@@ -303,7 +308,7 @@ Supported schemes:</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 17 04:00:09 2026 by
+  Generated on Sun May 17 04:37:11 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

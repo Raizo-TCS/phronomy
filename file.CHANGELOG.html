@@ -108,8 +108,8 @@ Ruby release.</li>
 <strong><code>WorkflowRunner</code> — state_machines fully drives execution</strong> (architecture overhaul).
 Previously <code>state_machines</code> was used only for post-hoc transition validation;
 the next-node was calculated by Phronomy internally (<code>resolve_next_node</code>).
-As of 0.3.0, all state transition decisions — including guard evaluation for
-routing events — are delegated entirely to <code>state_machines</code>.
+After this change, all state transition decisions — including guard evaluation for
+routing events — will be delegated entirely to <code>state_machines</code>.
 <ul>
 <li><code>PhaseTracker</code> now exposes <code>attr_accessor :context</code> so guard lambdas can
 access the <code>WorkflowContext</code> via <code>m.context</code>.</li>
@@ -139,32 +139,6 @@ is unchanged.</li>
 <code>#build_wait_states</code> — replaced by unified event classification in <code>build</code></li>
 </ul>
 <hr />
-<h2 id="_Unreleased_">[Unreleased]</h2>
-<h3 id="Added">Added</h3>
-<ul>
-<li><strong><code>Phronomy::Graph::Context</code></strong> module — canonical module for defining workflow
-context classes (replaces the removed <code>Phronomy::Graph::State</code>).</li>
-<li><strong><code>Phronomy::Graph.register_context_class</code></strong> — registers context classes for
-deserialization from external stores (Redis, DB).</li>
-<li><strong><code>Phronomy::Workflow.define</code></strong> DSL — primary high-level API for declaring
-stateful workflows (<code>state</code>, <code>wait_state</code>, <code>event</code>, <code>after</code>, <code>initial</code>).</li>
-<li><strong><code>Phronomy::Graph::WorkflowRunner</code></strong> — state-machine execution engine backing
-the Workflow DSL. Replaces the removed <code>CompiledGraph</code>.</li>
-<li><strong><code>app.send_event(event, config:)</code></strong> — event-driven resume for workflows halted
-at a <code>wait_state</code>.</li>
-<li><strong><code>state.halted?</code></strong> — returns <code>true</code> when the workflow is paused at a <code>wait_state</code>.</li>
-<li><strong><code>state.phase</code></strong> — single source of truth for execution state.</li>
-</ul>
-<h3 id="Removed">Removed</h3>
-<ul>
-<li><code>Phronomy::Graph::StateGraph</code> / <code>CompiledGraph</code> — use <code>Phronomy::Workflow.define</code>.</li>
-<li><code>Phronomy::Graph::State</code> — use <code>Phronomy::Graph::Context</code>.</li>
-<li><code>Phronomy::Graph.register_state_class</code> — use <code>register_context_class</code>.</li>
-<li><code>state.current_nodes</code> / <code>state.halted_before</code> — use <code>state.phase</code> / <code>state.halted?</code>.</li>
-<li><code>compiled.interrupt_before</code> / <code>compiled.interrupt_after</code> — use <code>wait_state</code> + <code>event</code>.</li>
-<li><code>compiled.resume</code> — use <code>app.send_event</code>.</li>
-</ul>
-<hr />
 <h2 id="_0_2_0____2026_05_13">[0.2.0] - 2026-05-13</h2>
 <h3 id="Added">Added</h3>
 <ul>
@@ -186,7 +160,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sun May 17 04:00:08 2026 by
+  Generated on Sun May 17 04:37:10 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
