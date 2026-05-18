@@ -27,6 +27,23 @@ module Phronomy
 
   class HandoffError < Error; end
 
+  # Raised by {Phronomy::GeneratorVerifier#invoke} when +raise_if_untrusted: true+
+  # and the pipeline's combined confidence score falls below the configured threshold.
+  #
+  # @example
+  #   rescue Phronomy::LowConfidenceError => e
+  #     puts e.result.confidence   # => e.g. 0.45
+  #     puts e.result.output       # best-effort answer despite low confidence
+  class LowConfidenceError < Error
+    # @return [Phronomy::GeneratorVerifier::Result] the untrusted result
+    attr_reader :result
+
+    def initialize(result)
+      @result = result
+      super("Answer confidence #{result.confidence} is below the required threshold")
+    end
+  end
+
   class GuardrailError < Error
     attr_reader :guardrail
 

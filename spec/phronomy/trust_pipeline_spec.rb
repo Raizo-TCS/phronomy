@@ -3,6 +3,10 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::TrustPipeline do
+  # Suppress the deprecation warning emitted by TrustPipeline.new so that
+  # these backward-compatibility tests do not pollute the test output.
+  before { allow_any_instance_of(described_class).to receive(:warn) }
+
   # Helper: stub agent class that bypasses real LLM invocation.
   def stub_agent(output_json)
     Class.new(Phronomy::Agent::Base) do
@@ -211,6 +215,21 @@ RSpec.describe Phronomy::TrustPipeline do
         iterations: 2, review_notes: [], trusted: false
       )
       expect(r.trusted?).to be false
+    end
+  end
+
+  describe "deprecation" do
+    it "emits a deprecation warning when instantiated" do
+      expect_any_instance_of(described_class).to receive(:warn)
+        .with(/deprecated/i)
+      described_class.new(
+        draft_agent: stub_agent(good_draft_json),
+        review_agent: stub_agent(approval_json)
+      )
+    end
+
+    it "is a subclass of Phronomy::GeneratorVerifier" do
+      expect(described_class.ancestors).to include(Phronomy::GeneratorVerifier)
     end
   end
 end

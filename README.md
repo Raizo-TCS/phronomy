@@ -18,7 +18,9 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **Context Management** — Token budget calculation, estimation, and pruning | Stable |
 | **Knowledge/RAG** — Retrieval sources with pluggable loaders, splitters, and vector stores | Beta |
 | **Multi-agent** — Agent-as-Tool pattern and hub-and-spoke handoff routing | Beta |
-| **TrustPipeline** — Self-review loop and confidence gate (citations are LLM-self-reported) | Experimental |
+| **GeneratorVerifier** — Generator-Verifier loop with injectable prompt builders/parsers | Beta |
+| **Agent::Orchestrator** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
+| **TrustPipeline** *(deprecated — use GeneratorVerifier)* — Backward-compat wrapper | Deprecated |
 | **Guardrails** — Input/output validation; built-in PII and prompt-injection detectors | Beta |
 | **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses | Stable |
 | **Eval Framework** — Dataset-driven evaluation with multiple scorer types | Beta |
@@ -225,6 +227,95 @@ end
 ```
 
 Hooks are called in order — global → class → instance — and deep-merged.
+
+### GeneratorVerifier — Generator-Verifier loop with custom prompt builders
+
+```ruby
+pipeline = Phronomy::GeneratorVerifier.new(
+  draft_agent:  PolicyDraftAgent,
+  review_agent: PolicyReviewAgent,
+
+  # Full control over the LLM dialogue — supply your own prompts.
+  draft_prompt_builder: ->(input, feedback) {
+    base = "Answer precisely: #{input}"
+    feedback ? "#{base}\n\nPrevious feedback: #{feedback}" : base
+  },
+  review_prompt_builder: ->(input, draft, citations) {
+    "Is this draft accurate? Draft: #{draft}"
+  },
+
+  confidence_threshold: 0.7,
+  max_iterations:       3,
+  raise_if_untrusted:   false   # set true to raise LowConfidenceError
+)
+
+result = pipeline.invoke("What is the refund policy?")
+puts result.output      # final answer
+puts result.trusted?    # true when confidence >= 0.7
+puts result.confidence  # Float 0.0–1.0
+result.citations.each { |c| puts "#{c[:source]}: #{c[:excerpt]}" }
+```
+
+Optionally inject a custom result parser to decode non-JSON LLM output:
+
+```ruby
+pipeline = Phronomy::GeneratorVerifier.new(
+  ...,
+  draft_result_parser:  ->(text) { my_custom_draft_parser(text) },
+  review_result_parser: ->(text) { my_custom_review_parser(text) }
+)
+```
+
+Raise on low confidence:
+
+```ruby
+begin
+  result = pipeline.invoke("question")
+rescue Phronomy::LowConfidenceError => e
+  puts "Untrusted (confidence #{e.result.confidence}): #{e.result.output}"
+end
+```
+
+> **Note:** `Phronomy::TrustPipeline` still works but is deprecated. Migrate to
+> `GeneratorVerifier` with explicit `draft_prompt_builder:` and
+> `review_prompt_builder:` arguments.
+
+### Agent::Orchestrator — Parallel subagent dispatch
+
+```ruby
+class ResearchOrchestrator < Phronomy::Agent::Orchestrator
+  model "gpt-4o"
+  instructions "Coordinate research tasks by dispatching to specialised agents."
+
+  # Each subagent is automatically exposed as an LLM-callable tool.
+  subagent :searcher,   SearchAgent
+  subagent :summarizer, SummaryAgent, on_error: :skip
+end
+
+result = ResearchOrchestrator.new.invoke("Research the latest AI news.")
+```
+
+Programmatic parallel dispatch (no LLM loop):
+
+```ruby
+class MyOrchestrator < Phronomy::Agent::Orchestrator
+  model "gpt-4o"
+  instructions "Orchestrate."
+
+  def run(query)
+    # Heterogeneous agents in parallel
+    results = dispatch_parallel(
+      {agent: SearchAgent,   input: "topic A"},
+      {agent: AnalysisAgent, input: query}
+    )
+
+    # Fan-out — same agent, multiple inputs
+    translations = fan_out(agent: TranslationAgent, inputs: %w[Hello World])
+
+    results.map { |r| r[:output] }.join("\n")
+  end
+end
+```
 
 ### TrustPipeline — Trustworthy outputs with citations and review
 
