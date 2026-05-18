@@ -21,6 +21,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **GeneratorVerifier** — Generator-Verifier loop with injectable prompt builders/parsers | Beta |
 | **Agent::Orchestrator** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
 | **Agent::TeamCoordinator** — Agent teams pattern: LLM coordinator + persistent worker pool with task queue | Beta |
+| **Agent::SharedState** — Shared state pattern: peer researchers collaborate via a shared KnowledgeStore | Experimental |
 | **Guardrails** — Input/output validation; built-in PII and prompt-injection detectors | Beta |
 | **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses | Stable |
 | **Eval Framework** — Dataset-driven evaluation with multiple scorer types | Beta |
