@@ -20,7 +20,6 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **Multi-agent** — Agent-as-Tool pattern and hub-and-spoke handoff routing | Beta |
 | **GeneratorVerifier** — Generator-Verifier loop with injectable prompt builders/parsers | Beta |
 | **Agent::Orchestrator** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
-| **TrustPipeline** *(deprecated — use GeneratorVerifier)* — Backward-compat wrapper | Deprecated |
 | **Guardrails** — Input/output validation; built-in PII and prompt-injection detectors | Beta |
 | **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses | Stable |
 | **Eval Framework** — Dataset-driven evaluation with multiple scorer types | Beta |
@@ -276,10 +275,6 @@ rescue Phronomy::LowConfidenceError => e
 end
 ```
 
-> **Note:** `Phronomy::TrustPipeline` still works but is deprecated. Migrate to
-> `GeneratorVerifier` with explicit `draft_prompt_builder:` and
-> `review_prompt_builder:` arguments.
-
 ### Agent::Orchestrator — Parallel subagent dispatch
 
 ```ruby
@@ -314,26 +309,6 @@ class MyOrchestrator < Phronomy::Agent::Orchestrator
 
     results.map { |r| r[:output] }.join("\n")
   end
-end
-```
-
-### TrustPipeline — Trustworthy outputs with citations and review
-
-```ruby
-pipeline = Phronomy::TrustPipeline.new(
-  draft_agent:          PolicyDraftAgent,
-  review_agent:         PolicyReviewAgent,
-  confidence_threshold: 0.7,
-  max_iterations:       3
-)
-
-result = pipeline.invoke("What is the refund policy?")
-puts result.output             # final answer
-puts result.trusted?           # true when confidence >= 0.7
-puts result.confidence         # Float 0.0–1.0
-
-result.citations.each do |c|
-  puts "#{c[:source]}: #{c[:excerpt]}"
 end
 ```
 
@@ -523,7 +498,7 @@ bundle exec ruby NN_example_name/run.rb
 | 16 | `16_before_completion_hook/` | Global/class/instance before_completion hooks |
 | 17 | `17_multi_agent_handoff/` | Hub-and-spoke agent routing via Runner |
 | 18 | `18_rails_agent_job/` | Rails app with AgentJob + ActionCable streaming |
-| 19 | `19_trust_pipeline/` | Trustworthy output via Citation Tracking + Self-Review + Confidence Gate |
+| 19 | `19_trust_pipeline/` | Generator-Verifier pattern with citation tracking, self-review loop and confidence gate |
 
 ## Development
 

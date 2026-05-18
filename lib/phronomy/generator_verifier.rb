@@ -4,8 +4,8 @@ module Phronomy
   # Implements the Generator-Verifier pattern: a generator agent produces an
   # answer while a verifier agent evaluates its quality.
   #
-  # Unlike {TrustPipeline}, all prompt construction and result parsing are
-  # provided by the caller, giving full control over the LLM dialogue.
+  # All prompt construction and result parsing are provided by the caller,
+  # giving full control over the LLM dialogue.
   # The generator and verifier agents are configurable, and the pipeline
   # retries until confidence passes the threshold or max iterations are reached.
   #
