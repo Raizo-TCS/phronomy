@@ -67,6 +67,16 @@ module Phronomy
           value ? @coordinator_instructions = value : @coordinator_instructions
         end
 
+        # Sets the LLM provider for the coordinator agent.
+        # Required when using a custom +BASE_URL+ (e.g. LM Studio, Ollama, vLLM)
+        # so that RubyLLM does not attempt to resolve an unknown model name.
+        # Pass the same value as +LLMConfig::PROVIDER+ in your examples.
+        #
+        # @param value [Symbol, nil]
+        def coordinator_provider(value = nil)
+          value ? @coordinator_provider = value : @coordinator_provider
+        end
+
         # Configures the worker pool.
         #
         # @param size     [Integer] number of persistent worker instances
@@ -104,6 +114,8 @@ module Phronomy
         def _coordinator_model = @coordinator_model
         # @!visibility private
         def _coordinator_instructions = @coordinator_instructions
+        # @!visibility private
+        def _coordinator_provider = @coordinator_provider
         # @!visibility private
         def _pool_size = @pool_size || 1
         # @!visibility private
@@ -223,11 +235,13 @@ module Phronomy
       def build_coordinator_agent(task_queue)
         coordinator_model_val = self.class._coordinator_model
         coordinator_instructions_val = self.class._coordinator_instructions
+        coordinator_provider_val = self.class._coordinator_provider
         enqueue_tool = build_enqueue_tool(task_queue)
         finalize_tool = build_finalize_tool(task_queue)
 
         coordinator_class = Class.new(Phronomy::Agent::Base) do
           model coordinator_model_val
+          provider coordinator_provider_val if coordinator_provider_val
           instructions coordinator_instructions_val
           tools enqueue_tool, finalize_tool
         end
