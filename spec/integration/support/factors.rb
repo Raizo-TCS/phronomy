@@ -1127,4 +1127,114 @@ module IntegrationFactors
       tools(*tool_classes)
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # GROUP 31 — SHARED STATE helpers
+  # ---------------------------------------------------------------------------
+
+  LM_MODEL_31 = LM_STUDIO_MODEL
+
+  # Returns an anonymous Phronomy::Agent::Base subclass suitable for use as a
+  # SharedState researcher.  The class has no tools of its own; SharedState
+  # injects write_finding and read_store automatically.
+  #
+  # @return [Class]
+  def self.ss_researcher_class
+    Class.new(Phronomy::Agent::Base) do
+      model LM_MODEL_31
+      provider :openai
+      instructions "You are a research assistant."
+    end
+  end
+
+  # Builds a SharedState team class configured according to the given factor
+  # labels.
+  #
+  # @param termination [Symbol] :max_cycles | :terminate_when | :timeout
+  # @param instruction [Symbol] :present | :absent
+  # @param coordination [Symbol] :custom | :default
+  # @param aggregate [Symbol] :with_block | :none
+  # @return [Class<Phronomy::Agent::SharedState>]
+  def self.ss_team_class(termination:, instruction:, coordination:, aggregate:, researcher:)
+    instr_text = (instruction == :present) ? "Focus only on security aspects." : nil
+
+    Class.new(Phronomy::Agent::SharedState) do
+      case termination
+      when :max_cycles
+        max_cycles 2
+      when :terminate_when
+        max_cycles 100
+        terminate_when { |store| store.size > 0 }
+      when :timeout
+        timeout 0
+        max_cycles 100
+      end
+
+      if coordination == :custom
+        coordination "CUSTOM COORDINATION GUIDE: Share all findings."
+      end
+
+      if instr_text
+        member researcher, instruction: instr_text
+      else
+        member researcher
+      end
+
+      if aggregate == :with_block
+        aggregate { |store| store.read_all.map { |f| f[:content] }.join(" | ") }
+      end
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # GROUP 32 — TEAM COORDINATOR helpers
+  # ---------------------------------------------------------------------------
+
+  LM_MODEL_32 = LM_STUDIO_MODEL
+
+  # Returns an anonymous worker Agent::Base subclass for TeamCoordinator tests.
+  # The worker simply echoes back the task description as its output.
+  # To simulate a failure, pass failing: true.
+  #
+  # @param failing [Boolean] when true, invoke raises RuntimeError
+  # @return [Class]
+  def self.tc_worker_class(failing: false)
+    Class.new(Phronomy::Agent::Base) do
+      model LM_MODEL_32
+      provider :openai
+      instructions "You are a worker agent."
+
+      if failing
+        define_method(:invoke) do |input, config: {}|
+          raise "worker_error"
+        end
+      end
+    end
+  end
+
+  # Builds a TeamCoordinator class configured according to the given factor
+  # labels.
+  #
+  # @param pool_size [Symbol] :single | :multi
+  # @param on_error [Symbol] :raise | :skip
+  # @param aggregate [Symbol] :with_block | :none
+  # @param worker [Class] worker agent class to use in the pool
+  # @return [Class<Phronomy::Agent::TeamCoordinator>]
+  def self.tc_team_class(pool_size:, on_error:, aggregate:, worker:)
+    size = (pool_size == :single) ? 1 : 2
+    err = on_error
+
+    Class.new(Phronomy::Agent::TeamCoordinator) do
+      coordinator_model LM_MODEL_32
+      coordinator_provider :openai
+      coordinator_instructions "You are a task coordinator. Use enqueue_task to " \
+        "add tasks, then call finalize when done."
+
+      pool size: size, agent: worker, on_error: err
+
+      if aggregate == :with_block
+        aggregate { |assignments| assignments.map { |a| a[:result] }.compact.join(" | ") }
+      end
+    end
+  end
 end
