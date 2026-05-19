@@ -4,30 +4,40 @@ module Phronomy
   module Agent
     # Implements the "Shared state" coordination pattern (Anthropic blog, Pattern 5).
     #
-    # Multiple peer researcher agents collaborate through a shared {KnowledgeStore}.
+    # Multiple peer agents collaborate through a shared {KnowledgeStore}.
     # There is no central coordinator. Each agent reads the store, acts on what it
     # finds, and writes new findings back. Later agents in a cycle immediately see
     # findings written by earlier agents in the same cycle.
     #
-    # Two tools are automatically injected into every researcher agent at runtime:
+    # Two tools are automatically injected into every member agent at runtime:
     # - +read_store+    — returns all current findings as a JSON string
     # - +write_finding+ — appends a Hash finding to the store
     #
-    # @example Basic usage
-    #   class ResearchTeam < Phronomy::Agent::SharedState
-    #     researchers LiteratureAgent, IndustryAgent, PatentAgent
+    # Use +member+ to register agents and optionally provide per-agent coordination
+    # instructions. Use +coordination+ to define the team-level protocol that all
+    # members receive instead of the built-in default guide.
+    #
+    # @example Basic usage with per-agent instructions
+    #   class CodeReviewTeam < Phronomy::Agent::SharedState
+    #     member StructureAnalyst
+    #     member SecurityAuditor, instruction: "Focus on authentication and injection risks."
+    #     member QualityReviewer,  instruction: "Flag methods longer than 10 lines."
     #     max_cycles  3
     #     aggregate   { |store| { findings: store.read_all, total: store.size } }
     #   end
     #
-    #   result = ResearchTeam.new.invoke("Trends in quantum computing")
-    #   # => { output: { findings: [...], total: N }, cycles: 2, terminated_by: :max_cycles }
+    #   result = CodeReviewTeam.new.invoke("Review the files in ./src")
+    #   # => { output: { findings: [...], total: N }, cycles: 3, terminated_by: :max_cycles }
     #
-    # @example With convergence check
+    # @example With custom team-level coordination protocol
     #   class ResearchTeam < Phronomy::Agent::SharedState
-    #     researchers LiteratureAgent, IndustryAgent
+    #     coordination <<~TEXT
+    #       Shared store tools: read_store (no params), write_finding(content:).
+    #       Workflow: read first, then write one finding per insight.
+    #     TEXT
+    #     member LiteratureAgent
+    #     member IndustryAgent
     #     max_cycles  10
-    #     timeout     120
     #     terminate_when { |store| store.size >= 20 }
     #   end
     class SharedState
@@ -67,12 +77,33 @@ module Phronomy
       end
 
       class << self
-        # Declares the researcher agent classes that will collaborate via the store.
-        # Agents are invoked sequentially within each cycle in declaration order.
+        # Registers a member agent class that will collaborate via the shared store.
+        # Members are invoked sequentially within each cycle in declaration order.
+        #
+        # @param klass [Class] an Agent::Base subclass
+        # @param instruction [String, nil] optional per-agent coordination instruction
+        #   appended to the team coordination text in this agent's prompt
+        def member(klass, instruction: nil)
+          @members ||= []
+          @members << {klass: klass, instruction: instruction}
+        end
+
+        # Backward-compatible alias. Registers each class as a member without a
+        # per-agent instruction. Prefer {.member} for new code.
         #
         # @param classes [Array<Class>] Agent::Base subclasses
         def researchers(*classes)
-          @researchers = classes.flatten
+          classes.flatten.each { |klass| member(klass) }
+        end
+
+        # Defines the team-level coordination protocol text injected into every
+        # member's prompt. When omitted the built-in default guide is used, which
+        # explains +read_store+ / +write_finding+ usage and enforces the standard
+        # workflow. Override this when you need a different protocol or tone.
+        #
+        # @param text [String, nil] the coordination instructions
+        def coordination(text = nil)
+          text ? @coordination = text : @coordination
         end
 
         # Sets the maximum number of cycles to run.
@@ -108,7 +139,11 @@ module Phronomy
         end
 
         # @!visibility private
-        def _researchers = Array(@researchers)
+        def _members = Array(@members)
+        # @!visibility private — derives class list from _members for backward compat
+        def _researchers = _members.map { |m| m[:klass] }
+        # @!visibility private
+        def _coordination = @coordination
         # @!visibility private
         def _max_cycles = @max_cycles
         # @!visibility private
@@ -137,8 +172,8 @@ module Phronomy
         cycle_limit = max_cycles || Float::INFINITY
 
         (1..cycle_limit).each do |cycle|
-          self.class._researchers.each do |researcher_class|
-            invoke_researcher(researcher_class, store, cycle, input)
+          self.class._members.each do |member_config|
+            invoke_researcher(member_config[:klass], store, cycle, input, member_config[:instruction])
           end
           completed_cycles = cycle
 
@@ -172,14 +207,16 @@ module Phronomy
           "max_cycles or timeout must be configured before invoking SharedState"
       end
 
-      # Invokes a single researcher agent for one cycle.
-      # Builds an anonymous subclass of the researcher with +read_store+ and
-      # +write_finding+ tools injected, then calls +invoke+ with a prompt that
-      # includes the current store contents.
-      def invoke_researcher(researcher_class, store, cycle, original_input)
+      # Invokes a single member agent for one cycle.
+      # Builds an anonymous subclass with +read_store+ and +write_finding+ injected,
+      # then calls +invoke+ with a prompt that includes the coordination guide,
+      # any per-agent instruction, and the current store contents.
+      def invoke_researcher(researcher_class, store, cycle, original_input, per_agent_instruction = nil)
         instrumented = build_instrumented_researcher(researcher_class, store, cycle)
         extra_tools = researcher_class.tools
-        prompt = build_prompt(original_input, store, cycle, extra_tools: extra_tools)
+        prompt = build_prompt(original_input, store, cycle,
+          extra_tools: extra_tools,
+          per_agent_instruction: per_agent_instruction)
         instrumented.new.invoke(prompt)
       end
 
@@ -213,12 +250,35 @@ module Phronomy
         Class.new(researcher_class) { tools(*parent_tools, read_tool, write_tool) }
       end
 
-      # Builds the invocation prompt for a researcher agent.
-      # Always prepends a standard tool-usage guide so that researchers know they
-      # must call +read_store+ then +write_finding+, without requiring the user to
-      # encode this workflow in each agent's instructions. Subsequent cycles also
-      # include the current store contents so agents can build on prior findings.
-      def build_prompt(original_input, store, cycle, extra_tools: [])
+      # Builds the invocation prompt for a member agent.
+      # Uses the team-level coordination text when defined via {.coordination},
+      # otherwise falls back to the built-in default guide. Appends any per-agent
+      # instruction after the coordination text. Subsequent cycles also include
+      # the current store contents so agents can build on prior findings.
+      def build_prompt(original_input, store, cycle, extra_tools: [], per_agent_instruction: nil)
+        guide = self.class._coordination || default_coordination_guide(extra_tools)
+
+        prompt_parts = [guide]
+        if per_agent_instruction
+          prompt_parts << "\nYour specific focus for this session: #{per_agent_instruction}"
+        end
+        header = prompt_parts.join
+
+        base = "#{header}\n\nTask: #{original_input}"
+        return base if store.size == 0
+
+        findings_text = store.read_all
+          .map { |f| "- [#{f[:agent]} / cycle #{f[:cycle]}] #{f[:content]}" }
+          .join("\n")
+
+        "#{header}\n\nTask: #{original_input}\n\nFindings so far:\n#{findings_text}"
+      end
+
+      # Builds the default tool-usage guide for member agents.
+      # Describes +read_store+ / +write_finding+ and the required workflow.
+      # When extra_tools are present, lists their names so the agent knows
+      # what additional tools are available.
+      def default_coordination_guide(extra_tools)
         extra_line = if extra_tools.any?
           tool_names = extra_tools.map { |t| t.respond_to?(:tool_name) ? t.tool_name : t.name.to_s }.join(", ")
           "  You also have access to additional tools (#{tool_names}) — use them to gather information before writing findings.\n"
@@ -226,7 +286,7 @@ module Phronomy
           ""
         end
 
-        tool_guide = <<~TEXT.chomp
+        <<~TEXT.chomp
           You have access to a shared knowledge store via two tools:
             read_store     — returns all current findings as JSON (no parameters)
             write_finding  — records one finding to the store (param: content)
@@ -235,15 +295,6 @@ module Phronomy
           If you have no new insights to contribute, call write_finding exactly once with: "No new findings in this cycle."
           Do not output plain text — every insight must be submitted via write_finding.
         TEXT
-
-        base = "#{tool_guide}\n\nResearch topic: #{original_input}"
-        return base if store.size == 0
-
-        findings_text = store.read_all
-          .map { |f| "- [#{f[:agent]} / cycle #{f[:cycle]}] #{f[:content]}" }
-          .join("\n")
-
-        "#{tool_guide}\n\n#{original_input}\n\nFindings so far:\n#{findings_text}"
       end
     end
   end

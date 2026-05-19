@@ -13,11 +13,9 @@ RSpec.describe Phronomy::Agent::SharedState do
       define_singleton_method(:name) { name }
 
       define_method(:invoke) do |input, config: {}|
-        if findings_block
-          findings_block.call(input).each do |content|
-            write_finding_tool = self.class.instance_variable_get(:@_injected_write_tool)
-            write_finding_tool&.new&.public_send(:execute, content: content)
-          end
+        findings_block&.call(input)&.each do |content|
+          write_finding_tool = self.class.instance_variable_get(:@_injected_write_tool)
+          write_finding_tool&.new&.public_send(:execute, content: content)
         end
         {output: "done", messages: []}
       end
@@ -42,7 +40,7 @@ RSpec.describe Phronomy::Agent::SharedState do
 
   describe "DSL" do
     describe ".researchers" do
-      it "stores and reads back researcher classes" do
+      it "stores and reads back researcher classes via _researchers" do
         r1 = stub_researcher_with_tools(name: "R1")
         r2 = stub_researcher_with_tools(name: "R2")
         klass = Class.new(described_class) { researchers r1, r2 }
@@ -52,6 +50,58 @@ RSpec.describe Phronomy::Agent::SharedState do
       it "returns empty array when not configured" do
         klass = Class.new(described_class)
         expect(klass._researchers).to eq([])
+      end
+    end
+
+    describe ".member" do
+      it "registers a member class without instruction" do
+        r = stub_researcher_with_tools(name: "R1")
+        klass = Class.new(described_class) { member r }
+        expect(klass._members).to eq([{klass: r, instruction: nil}])
+      end
+
+      it "registers a member class with per-agent instruction" do
+        r = stub_researcher_with_tools(name: "R1")
+        klass = Class.new(described_class) { member r, instruction: "Focus on security." }
+        expect(klass._members).to eq([{klass: r, instruction: "Focus on security."}])
+      end
+
+      it "accumulates multiple members in declaration order" do
+        r1 = stub_researcher_with_tools(name: "R1")
+        r2 = stub_researcher_with_tools(name: "R2")
+        klass = Class.new(described_class) do
+          member r1
+          member r2, instruction: "Extra focus."
+        end
+        expect(klass._members.map { |m| m[:klass] }).to eq([r1, r2])
+        expect(klass._members[1][:instruction]).to eq("Extra focus.")
+      end
+
+      it "makes _researchers return the classes in declaration order" do
+        r1 = stub_researcher_with_tools(name: "R1")
+        r2 = stub_researcher_with_tools(name: "R2")
+        klass = Class.new(described_class) do
+          member r1
+          member r2
+        end
+        expect(klass._researchers).to eq([r1, r2])
+      end
+
+      it "returns empty array from _members when not configured" do
+        klass = Class.new(described_class)
+        expect(klass._members).to eq([])
+      end
+    end
+
+    describe ".coordination" do
+      it "stores and reads back the coordination text" do
+        klass = Class.new(described_class) { coordination "Custom team protocol." }
+        expect(klass._coordination).to eq("Custom team protocol.")
+      end
+
+      it "returns nil when not configured" do
+        klass = Class.new(described_class)
+        expect(klass._coordination).to be_nil
       end
     end
 
@@ -222,11 +272,17 @@ RSpec.describe Phronomy::Agent::SharedState do
       call_log = []
       r1 = Class.new(Phronomy::Agent::Base) do
         define_singleton_method(:name) { "R1" }
-        define_method(:invoke) { |_i, config: {}| call_log << :r1; {output: "ok", messages: []} }
+        define_method(:invoke) { |_i, config: {}|
+          call_log << :r1
+          {output: "ok", messages: []}
+        }
       end
       r2 = Class.new(Phronomy::Agent::Base) do
         define_singleton_method(:name) { "R2" }
-        define_method(:invoke) { |_i, config: {}| call_log << :r2; {output: "ok", messages: []} }
+        define_method(:invoke) { |_i, config: {}|
+          call_log << :r2
+          {output: "ok", messages: []}
+        }
       end
       klass = Class.new(described_class) do
         researchers r1, r2
@@ -264,7 +320,11 @@ RSpec.describe Phronomy::Agent::SharedState do
     it "terminates early on timeout" do
       call_count = 0
       r = Class.new(Phronomy::Agent::Base) do
-        define_method(:invoke) { |_i, config: {}| call_count += 1; sleep(0.05); {output: "ok", messages: []} }
+        define_method(:invoke) { |_i, config: {}|
+          call_count += 1
+          sleep(0.05)
+          {output: "ok", messages: []}
+        }
       end
       klass = Class.new(described_class) do
         researchers r
@@ -349,6 +409,68 @@ RSpec.describe Phronomy::Agent::SharedState do
       result = klass.new.invoke("q")
       expect(result[:output]).to eq([])
     end
+
+    it "appends per-agent instruction to the prompt when member has instruction:" do
+      received_input = nil
+      r = Class.new(Phronomy::Agent::Base) do
+        define_method(:invoke) do |input, config: {}|
+          received_input = input
+          {output: "ok", messages: []}
+        end
+      end
+      klass = Class.new(described_class) { max_cycles 1 }
+      klass.member(r, instruction: "Only check for SQL injection.")
+      klass.new.invoke("review this code")
+      expect(received_input).to include("Only check for SQL injection.")
+    end
+
+    it "does not append instruction text when member has no instruction" do
+      received_input = nil
+      r = Class.new(Phronomy::Agent::Base) do
+        define_method(:invoke) do |input, config: {}|
+          received_input = input
+          {output: "ok", messages: []}
+        end
+      end
+      klass = Class.new(described_class) { max_cycles 1 }
+      klass.member(r)
+      klass.new.invoke("task")
+      expect(received_input).not_to include("Your specific focus")
+    end
+
+    it "uses team coordination text when defined, replacing the default guide" do
+      received_input = nil
+      r = Class.new(Phronomy::Agent::Base) do
+        define_method(:invoke) do |input, config: {}|
+          received_input = input
+          {output: "ok", messages: []}
+        end
+      end
+      klass = Class.new(described_class) do
+        coordination "Custom team protocol."
+        max_cycles 1
+      end
+      klass.member(r)
+      klass.new.invoke("task")
+      expect(received_input).to include("Custom team protocol.")
+      expect(received_input).not_to include("Required workflow: first call read_store")
+    end
+
+    it "uses the default coordination guide when coordination is not configured" do
+      received_input = nil
+      r = Class.new(Phronomy::Agent::Base) do
+        define_method(:invoke) do |input, config: {}|
+          received_input = input
+          {output: "ok", messages: []}
+        end
+      end
+      klass = Class.new(described_class) { max_cycles 1 }
+      klass.member(r)
+      klass.new.invoke("task")
+      expect(received_input).to include("Required workflow")
+      expect(received_input).to include("read_store")
+      expect(received_input).to include("write_finding")
+    end
   end
 
   # ---------------------------------------------------------------------------
@@ -382,7 +504,7 @@ RSpec.describe Phronomy::Agent::SharedState do
       klass = Class.new(described_class) do
         max_cycles 1
       end
-      instance = klass.new
+      klass.new
 
       # Access the store via the aggregate block
       r = Class.new(Phronomy::Agent::Base) do
@@ -395,7 +517,10 @@ RSpec.describe Phronomy::Agent::SharedState do
 
       klass_with_r = Class.new(described_class) do
         max_cycles 1
-        aggregate { |store| store_ref = store; store.read_all }
+        aggregate { |store|
+          store_ref = store
+          store.read_all
+        }
       end
       klass_with_r.researchers(r)
       klass_with_r.new.invoke("q")
