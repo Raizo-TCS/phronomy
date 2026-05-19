@@ -261,7 +261,7 @@ Optionally inject a custom result parser to decode non-JSON LLM output:
 
 ```ruby
 pipeline = Phronomy::GeneratorVerifier.new(
-  ...,
+  # ... (required params as shown above)
   draft_result_parser:  ->(text) { my_custom_draft_parser(text) },
   review_result_parser: ->(text) { my_custom_review_parser(text) }
 )
