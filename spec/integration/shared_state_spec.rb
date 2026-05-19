@@ -319,4 +319,53 @@ RSpec.describe "Group 31: SharedState", :integration do
       expect(user_turn["content"]).to match(/write_finding/i)
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Pattern 5 requirement: Cross-agent information flow
+  #
+  # The shared-state pattern requires that later agents in a cycle immediately
+  # see findings written by earlier agents in the same cycle (see
+  # https://claude.com/blog/multi-agent-coordination-patterns, Pattern 5).
+  #
+  # Two distinct researcher classes are registered as members. Agent A runs
+  # first in cycle 1 and writes a finding. Agent B runs second in the same
+  # cycle; its LLM prompt must already contain Agent A's finding because
+  # SharedState passes store.read_all into build_prompt when store.size > 0.
+  # ---------------------------------------------------------------------------
+  describe "Pattern 5 requirement: cross-agent information flow" do
+    let(:researcher_a) { IntegrationFactors.ss_researcher_class }
+    let(:researcher_b) { IntegrationFactors.ss_researcher_class }
+    let(:team_class) do
+      ra = researcher_a
+      rb = researcher_b
+      Class.new(Phronomy::Agent::SharedState) do
+        max_cycles 1
+        member ra
+        member rb
+      end
+    end
+
+    before do
+      # Cycle 1 has two researchers. Agent A is call indices 0-1; Agent B is
+      # call indices 2-3. Each does: tool_call(write_finding) → text "OK".
+      @llm = LLMStub.activate(responses: [
+        LLMStub.tool_call_response("write_finding", {content: "Finding from Agent A"}),
+        "OK",
+        LLMStub.tool_call_response("write_finding", {content: "Finding from Agent B"}),
+        "OK"
+      ])
+    end
+
+    it "Agent B's LLM prompt contains Agent A's finding from the same cycle" do
+      team_class.new.invoke("Cross-agent visibility test")
+      # LLM call index 2 is Agent B's first call within cycle 1.
+      user_turn = @llm.messages_for(2).find { |m| m["role"] == "user" }
+      expect(user_turn["content"]).to include("Finding from Agent A")
+    end
+
+    it "both agents write to the store (2 findings recorded)" do
+      result = team_class.new.invoke("Cross-agent visibility test")
+      expect(result[:output].size).to eq(2)
+    end
+  end
 end

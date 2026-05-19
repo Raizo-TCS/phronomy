@@ -292,4 +292,57 @@ RSpec.describe "Group 32: TeamCoordinator", :integration do
       expect(@llm.calls.size).to eq(6)
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Pattern 3 requirement: Worker context accumulation (worker persistence)
+  #
+  # The agent-teams pattern requires that "teammates stay alive across many
+  # assignments, accumulating context and domain specialization" (see
+  # https://claude.com/blog/multi-agent-coordination-patterns, Pattern 3).
+  #
+  # TeamCoordinator implements this by storing each WorkerState's :messages and
+  # passing them back via config[:messages] on every successive invoke call.
+  # This test verifies that the second task invocation receives the accumulated
+  # message history from the first task.
+  # ---------------------------------------------------------------------------
+  describe "Pattern 3 requirement: worker context accumulation across tasks" do
+    let(:worker_class) { IntegrationFactors.tc_worker_class }
+    let(:team_class) do
+      IntegrationFactors.tc_team_class(
+        pool_size: :single,
+        on_error: :raise,
+        aggregate: :none,
+        worker: worker_class
+      )
+    end
+
+    before do
+      # 2 enqueue + finalize + coordinator text + 2 worker tasks = 6 LLM calls.
+      @llm = LLMStub.activate(responses: [
+        enqueue_call("Task A"),
+        enqueue_call("Task B"),
+        finalize_call,
+        "Coordinator done.",
+        "Result A",
+        "Result B"
+      ])
+    end
+
+    it "the second worker LLM call receives messages accumulated from the first task" do
+      team_class.new.invoke("Process tasks")
+      # Call index 4: Worker processes Task A (config[:messages] is empty).
+      # Call index 5: Worker processes Task B (config[:messages] holds Task A's history).
+      first_task_msg_count = @llm.messages_for(4).size
+      second_task_msg_count = @llm.messages_for(5).size
+      expect(second_task_msg_count).to be > first_task_msg_count
+    end
+
+    it "the accumulated messages include the first task's user and assistant turns" do
+      team_class.new.invoke("Process tasks")
+      second_task_messages = @llm.messages_for(5)
+      roles = second_task_messages.map { |m| m["role"] }
+      expect(roles).to include("user")
+      expect(roles).to include("assistant")
+    end
+  end
 end

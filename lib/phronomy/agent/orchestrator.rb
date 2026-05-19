@@ -3,6 +3,10 @@
 module Phronomy
   module Agent
     # Base class for orchestrator agents that coordinate multiple subagents.
+    # Implements the Orchestrator-Subagent multi-agent coordination pattern
+    # (Anthropic blog, Pattern 2).
+    #
+    # @see https://claude.com/blog/multi-agent-coordination-patterns
     #
     # Extends {Phronomy::Agent::Base} with:
     # - A +subagent+ class-level DSL for declarative subagent registration. Each

@@ -1237,4 +1237,107 @@ module IntegrationFactors
       end
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # GROUP 33 — GENERATOR VERIFIER helpers
+  # ---------------------------------------------------------------------------
+
+  LM_MODEL_33 = LM_STUDIO_MODEL
+
+  # Returns an anonymous Agent::Base subclass whose LLM call is stubbed by
+  # WebMock; suitable for use as draft_agent or review_agent in GeneratorVerifier
+  # integration tests.
+  #
+  # @return [Class<Phronomy::Agent::Base>]
+  def self.gv_agent_class
+    Class.new(Phronomy::Agent::Base) do
+      model LM_MODEL_33
+      provider :openai
+    end
+  end
+
+  # Builds a GeneratorVerifier pipeline with the given factor labels.
+  #
+  # @param approval_outcome [Symbol] :approved | :rejected
+  # @param iteration_limit  [Symbol] :one | :three
+  # @param raise_policy     [Symbol] :raise | :no_raise
+  # @return [Phronomy::GeneratorVerifier]
+  def self.gv_pipeline(approval_outcome:, iteration_limit:, raise_policy:)
+    draft_agent = gv_agent_class
+    review_agent = gv_agent_class
+    max_iter = (iteration_limit == :one) ? 1 : 3
+    raise_flag = (raise_policy == :raise)
+
+    Phronomy::GeneratorVerifier.new(
+      draft_agent: draft_agent,
+      review_agent: review_agent,
+      draft_prompt_builder: lambda { |input, feedback|
+        base = "Draft question: #{input}"
+        feedback ? "#{base}\nPrevious review feedback: #{feedback}" : base
+      },
+      review_prompt_builder: ->(input, _draft, _citations) { "Review draft for: #{input}" },
+      confidence_threshold: 0.7,
+      max_iterations: max_iter,
+      raise_if_untrusted: raise_flag
+    )
+  end
+
+  # Returns a WebMock-compatible draft response JSON for a given confidence.
+  # @param confidence [Float]
+  # @return [String]
+  def self.gv_draft_response(confidence: 0.9)
+    JSON.generate(
+      answer: "The answer is 42.",
+      confidence: confidence,
+      citations: [{source: "policy.md", excerpt: "Key fact."}]
+    )
+  end
+
+  # Returns a WebMock-compatible review response JSON.
+  # @param approved [Boolean]
+  # @return [String]
+  def self.gv_review_response(approved: true)
+    score = approved ? 0.85 : 0.3
+    feedback = approved ? "" : "Missing citation for claim X."
+    JSON.generate(approved: approved, score: score, feedback: feedback)
+  end
+
+  # ---------------------------------------------------------------------------
+  # GROUP 34 — ORCHESTRATOR helpers
+  # ---------------------------------------------------------------------------
+
+  LM_MODEL_34 = LM_STUDIO_MODEL
+
+  # Returns an anonymous Agent::Base subclass suitable as an Orchestrator
+  # subagent.  Its LLM response is provided via WebMock stubs.
+  #
+  # @return [Class<Phronomy::Agent::Base>]
+  def self.orch_subagent_class
+    Class.new(Phronomy::Agent::Base) do
+      model LM_MODEL_34
+      provider :openai
+      instructions "You are a specialist subagent."
+    end
+  end
+
+  # Builds an Orchestrator class with the given factors.
+  # Only used for the :declarative delegation mode.
+  #
+  # @param subagent_count [Symbol] :single | :multiple
+  # @param on_error       [Symbol] :raise | :skip
+  # @return [Class<Phronomy::Agent::Orchestrator>]
+  def self.orch_declarative_class(subagent_count:, on_error:)
+    sa1 = orch_subagent_class
+    sa2 = orch_subagent_class
+    err = on_error
+
+    Class.new(Phronomy::Agent::Orchestrator) do
+      model LM_MODEL_34
+      provider :openai
+      instructions "You are an orchestrator. Use dispatch_to tools to delegate."
+
+      subagent :worker_a, sa1, on_error: err
+      subagent :worker_b, sa2, on_error: err if subagent_count == :multiple
+    end
+  end
 end

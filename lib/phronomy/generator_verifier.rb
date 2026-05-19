@@ -1,8 +1,11 @@
 # frozen_string_literal: true
 
 module Phronomy
-  # Implements the Generator-Verifier pattern: a generator agent produces an
+  # Implements the Generator-Verifier multi-agent coordination pattern
+  # (Anthropic blog, Pattern 1): a generator agent produces an
   # answer while a verifier agent evaluates its quality.
+  #
+  # @see https://claude.com/blog/multi-agent-coordination-patterns
   #
   # All prompt construction and result parsing are provided by the caller,
   # giving full control over the LLM dialogue.

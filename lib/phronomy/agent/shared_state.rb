@@ -4,6 +4,8 @@ module Phronomy
   module Agent
     # Implements the "Shared state" coordination pattern (Anthropic blog, Pattern 5).
     #
+    # @see https://claude.com/blog/multi-agent-coordination-patterns
+    #
     # Multiple peer agents collaborate through a shared {KnowledgeStore}.
     # There is no central coordinator. Each agent reads the store, acts on what it
     # finds, and writes new findings back. Later agents in a cycle immediately see

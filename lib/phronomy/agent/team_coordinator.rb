@@ -4,6 +4,8 @@ module Phronomy
   module Agent
     # Implements the "Agent teams" coordination pattern (Anthropic blog, Pattern 3).
     #
+    # @see https://claude.com/blog/multi-agent-coordination-patterns
+    #
     # A coordinator LLM agent decomposes work into tasks and enqueues them
     # dynamically via built-in tools. A fixed pool of worker agents claims tasks
     # from the shared queue, carrying forward their conversation history across
