@@ -22,6 +22,11 @@ module Phronomy
       # @return [String, nil] the thread_id from the invocation config
       attr_reader :thread_id
 
+      # @return [String, Hash] the original input passed to #invoke; stored so
+      #   that #resume can re-apply dynamic system instructions (e.g. Proc or
+      #   PromptTemplate-based instructions that depend on the input value).
+      attr_reader :original_input
+
       # @return [Array<RubyLLM::Message>] conversation messages up to and including
       #   the assistant message that requested the pending tool call
       attr_reader :messages
@@ -36,13 +41,15 @@ module Phronomy
       #   inject the tool result message on resume)
       attr_reader :pending_tool_call_id
 
-      # @param thread_id           [String, nil]
-      # @param messages            [Array<RubyLLM::Message>]
-      # @param pending_tool_name   [String]
-      # @param pending_tool_args   [Hash]
+      # @param thread_id            [String, nil]
+      # @param original_input       [String, Hash] the input passed to the original #invoke call
+      # @param messages             [Array<RubyLLM::Message>]
+      # @param pending_tool_name    [String]
+      # @param pending_tool_args    [Hash]
       # @param pending_tool_call_id [String]
-      def initialize(thread_id:, messages:, pending_tool_name:, pending_tool_args:, pending_tool_call_id:)
+      def initialize(thread_id:, original_input:, messages:, pending_tool_name:, pending_tool_args:, pending_tool_call_id:)
         @thread_id = thread_id
+        @original_input = original_input
         @messages = messages.dup.freeze
         @pending_tool_name = pending_tool_name
         @pending_tool_args = pending_tool_args

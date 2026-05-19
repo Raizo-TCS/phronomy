@@ -1205,7 +1205,7 @@ module IntegrationFactors
       instructions "You are a worker agent."
 
       if failing
-        define_method(:invoke) do |input, config: {}|
+        define_method(:invoke) do |input, messages: [], thread_id: nil, config: {}|
           raise "worker_error"
         end
       end

@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 require "digest"
+require_relative "concerns/retryable"
+require_relative "concerns/guardrailable"
+require_relative "concerns/before_completion"
+require_relative "concerns/suspendable"
 
 module Phronomy
   module Agent
@@ -27,6 +31,10 @@ module Phronomy
     #   end
     class Base
       include Phronomy::Runnable
+      include Concerns::Retryable
+      include Concerns::Guardrailable
+      include Concerns::BeforeCompletion
+      include Concerns::Suspendable
 
       class << self
         # Sets or reads the LLM model identifier for this agent.
@@ -164,35 +172,6 @@ module Phronomy
             @max_iterations || 10
           end
         end
-
-        # Configures a retry policy that wraps the full #invoke call.
-        # GuardrailError is never retried regardless of this setting.
-        #
-        # @param times [Integer] maximum retry attempts (default: 0)
-        # @param wait  [Symbol, Numeric] :exponential, :linear, or a fixed Float
-        # @param base  [Float]  base wait time in seconds (default: 1.0)
-        #
-        # @example
-        #   class MyAgent < Phronomy::Agent::Base
-        #     retry_policy times: 2, wait: :exponential, base: 1.0
-        #   end
-        def retry_policy(times: 0, wait: 0, base: 1.0)
-          @_retry_policy = {times: times, wait: wait, base: base}
-        end
-
-        # Returns the configured retry policy, or nil when none is set.
-        # @return [Hash, nil]
-        attr_reader :_retry_policy
-
-        # Injectable sleep callable for testing (shared with Tool::Base pattern).
-        # @return [#call]
-        def _sleep_proc
-          @_sleep_proc || method(:sleep)
-        end
-
-        # Overrides the sleep callable used between retries.
-        # @param proc [#call]
-        attr_writer :_sleep_proc
 
         # Registers one or more static knowledge sources on the agent class.
         # Static sources are fetched once per agent instance and their content
@@ -352,36 +331,7 @@ module Phronomy
             @context_overhead = val.to_i
           end
         end
-
-        # Sets or reads the class-level before_completion hook.
-        # The hook is called before every LLM request for instances of this class.
-        # Receives a {Phronomy::Agent::BeforeCompletionContext}; must return a Hash
-        # of params to merge into the LLM call, or nil to pass through unchanged.
-        #
-        # @param callable [#call, nil] lambda/proc to register, or nil to clear
-        # @return [#call, nil]
-        # @example
-        #   class MyAgent < Phronomy::Agent::Base
-        #     before_completion ->(ctx) { { temperature: 0.2 } }
-        #   end
-        def before_completion(callable = nil)
-          if callable.nil? && !block_given?
-            @before_completion
-          else
-            @before_completion = callable
-          end
-        end
-
-        # @return [#call, nil]
-        def _before_completion
-          @before_completion
-        end
       end
-
-      # Instance-level before_completion hook. When set, takes precedence over
-      # the class-level hook for this specific agent instance only.
-      # @return [#call, nil]
-      attr_accessor :before_completion
 
       # Registers an anonymous handoff tool class on this agent instance.
       # Called by Runner during construction when routes are configured.
@@ -403,14 +353,18 @@ module Phronomy
       # Applies the retry policy configured via {.retry_policy} when transient
       # errors occur. {Phronomy::GuardrailError} is never retried.
       #
-      # @param input  [String, Hash] the user message; a Hash may supply
+      # @param input     [String, Hash] the user message; a Hash may supply
       #   +:message+, +:query+, or +:user+ as the text key, plus any template
       #   variables consumed by the configured instructions template.
-      # @param config [Hash] runtime options:
-      #   +:messages+   (Array<RubyLLM::Message>)  — conversation history from a previous invocation
-      #   +:thread_id+  (+String+)                 — conversation thread identifier
-      #   +:user_id+    (+String+, optional)        — caller identity forwarded to the tracer
-      #   +:session_id+ (+String+, optional)        — session identity forwarded to the tracer
+      # @param messages  [Array<RubyLLM::Message>] conversation history from a
+      #   previous invocation. The application owns and persists this array;
+      #   pass it on every turn to maintain multi-turn context.
+      # @param thread_id [String, nil] conversation thread identifier, forwarded
+      #   to the compaction context when on_compact is configured.
+      # @param config    [Hash] additional runtime options:
+      #   +:knowledge_sources+ (Array) — dynamic knowledge sources for this turn
+      #   +:user_id+    (+String+, optional) — caller identity forwarded to the tracer
+      #   +:session_id+ (+String+, optional) — session identity forwarded to the tracer
       # @return [Hash] +{ output: String, messages: Array, usage: Phronomy::TokenUsage }+,
       #   or +{ output: nil, suspended: true, checkpoint: Phronomy::Agent::Checkpoint,
       #   messages: Array }+ when the invocation was suspended awaiting tool approval.
@@ -418,14 +372,17 @@ module Phronomy
       # @example Normal invocation
       #   result = MyAgent.new.invoke("What is Ruby?")
       #   puts result[:output]
+      # @example Multi-turn conversation
+      #   result1 = agent.invoke("Hi, I'm Alice.")
+      #   result2 = agent.invoke("What's my name?", messages: result1[:messages])
       # @example Suspend / resume flow
       #   result = agent.invoke("Perform task X")
       #   if result[:suspended]
       #     result = agent.resume(result[:checkpoint], approved: true)
       #   end
       #   puts result[:output]
-      def invoke(input, config: {})
-        _invoke_impl(input, config: config)
+      def invoke(input, messages: [], thread_id: nil, config: {})
+        _invoke_impl(input, messages: messages, thread_id: thread_id, config: config)
       end
 
       # Streaming version of #invoke. Yields {Phronomy::Agent::StreamEvent} objects
@@ -438,102 +395,19 @@ module Phronomy
       #   :done        — final event carrying output, messages, and usage
       #   :error       — if an unrecoverable error occurs
       #
-      # @param input  [String, Hash] same as #invoke
-      # @param config [Hash]        same as #invoke
+      # @param input     [String, Hash] same as #invoke
+      # @param messages  [Array<RubyLLM::Message>] same as #invoke
+      # @param thread_id [String, nil] same as #invoke
+      # @param config    [Hash]        same as #invoke
       # @yield [Phronomy::Agent::StreamEvent]
       # @return [Hash] { output:, messages:, usage: } — same as #invoke
-      def stream(input, config: {}, &block)
-        return invoke(input, config: config) unless block
+      def stream(input, messages: [], thread_id: nil, config: {}, &block)
+        return invoke(input, messages: messages, thread_id: thread_id, config: config) unless block
 
-        _stream_impl(input, config: config, &block)
+        _stream_impl(input, messages: messages, thread_id: thread_id, config: config, &block)
       rescue => e
         block&.call(StreamEvent.new(type: :error, payload: {error: e}))
         raise
-      end
-
-      # Resumes a previously suspended invocation from a {Phronomy::Agent::Checkpoint}.
-      #
-      # This method reconstructs the conversation state captured at suspension
-      # time, injects the tool result (executed or denied), and continues the
-      # LLM loop until it produces a final answer.
-      #
-      # @param checkpoint [Phronomy::Agent::Checkpoint] the checkpoint returned by
-      #   the suspended #invoke call
-      # @param approved   [Boolean] +true+ to execute the pending tool; +false+
-      #   to inject a denial message and let the LLM handle it gracefully
-      # @param config     [Hash] same runtime options as #invoke
-      # @return [Hash] +{ output: String, suspended: false, messages: Array, usage: Phronomy::TokenUsage }+
-      # @raise [Phronomy::GuardrailError] when an output guardrail rejects the value
-      def resume(checkpoint, approved:, config: {})
-        checkpoint.thread_id
-
-        # Build a fresh chat with all tools registered.
-        chat = build_chat
-
-        # Restore the full conversation (system + history + user + assistant).
-        checkpoint.messages.each { |msg| chat.messages << msg }
-
-        # Determine the tool result: execute it or inject a denial string.
-        tool_result =
-          if approved
-            tool_instance = chat.tools[checkpoint.pending_tool_name.to_sym]
-            tool_instance ? tool_instance.call(checkpoint.pending_tool_args) : "Tool not found."
-          else
-            "Tool execution denied."
-          end
-
-        # Inject the tool result so the LLM can continue.
-        chat.add_message(
-          role: :tool,
-          content: tool_result.to_s,
-          tool_call_id: checkpoint.pending_tool_call_id
-        )
-
-        # Continue the React loop.
-        response = chat.complete
-
-        output = response.content
-        usage = Phronomy::TokenUsage.from_tokens(response.tokens)
-
-        run_output_guardrails!(output)
-
-        {output: output, suspended: false, messages: chat.messages, usage: usage}
-      end
-
-      # Registers a callback that is invoked before executing any tool that has
-      # +requires_approval true+ set. The block receives the tool name (String)
-      # and the arguments Hash, and must return a truthy value to allow execution.
-      # Returning a falsy value causes the tool to return a denial message instead
-      # of executing.
-      #
-      # When no handler is registered and a tool with +requires_approval+ is
-      # called, #invoke returns a suspended result hash containing a
-      # {Phronomy::Agent::Checkpoint}.  Call #resume to continue execution after
-      # obtaining an approval decision from the user or an external system.
-      #
-      # @example Synchronous handler
-      #   agent = MyAgent.new
-      #   agent.on_approval_required { |tool_name, args| prompt_user(tool_name, args) }
-      # @return [self]
-      def on_approval_required(&block)
-        @approval_handler = block
-        self
-      end
-
-      # Attach a guardrail that validates input before every #invoke call.
-      # @param guardrail [Phronomy::Guardrail::InputGuardrail]
-      def add_input_guardrail(guardrail)
-        @input_guardrails ||= []
-        @input_guardrails << guardrail
-        self
-      end
-
-      # Attach a guardrail that validates output before it is returned.
-      # @param guardrail [Phronomy::Guardrail::OutputGuardrail]
-      def add_output_guardrail(guardrail)
-        @output_guardrails ||= []
-        @output_guardrails << guardrail
-        self
       end
 
       # Returns the {Context::ContextVersionCache} for the current thread.
@@ -544,27 +418,8 @@ module Phronomy
 
       private
 
-      # Retry loop for #invoke. Separated so that ReactAgent can override #invoke_once.
-      def _invoke_impl(input, config: {})
-        policy = self.class._retry_policy
-        attempt = 0
-        begin
-          invoke_once(input, config: config)
-        rescue Phronomy::GuardrailError
-          raise
-        rescue
-          if policy && attempt < policy[:times]
-            wait = compute_agent_retry_wait(policy[:wait], policy[:base], attempt)
-            self.class._sleep_proc.call(wait) if wait > 0
-            attempt += 1
-            retry
-          end
-          raise
-        end
-      end
-
       # Streaming implementation for #stream.
-      def _stream_impl(input, config: {}, &block)
+      def _stream_impl(input, messages: [], thread_id: nil, config: {}, &block)
         caller_meta = {}
         caller_meta[:user_id] = config[:user_id] if config[:user_id]
         caller_meta[:session_id] = config[:session_id] if config[:session_id]
@@ -572,54 +427,12 @@ module Phronomy
         trace("agent.invoke", input: input, **caller_meta) do |_span|
           run_input_guardrails!(input)
 
-          thread_id = config[:thread_id]
-
           chat = build_chat
           user_message = extract_message(input)
-          budget = build_token_budget
 
-          # Assemble context via Assembler (same as invoke_once).
-          assembler = Context::Assembler.new(budget: budget)
-          system_msg = build_instructions(input)
-          assembler.add_instruction(system_msg) if system_msg
-
-          Array(config[:knowledge_sources]).each do |ks|
-            ks.fetch(query: user_message).each do |chunk|
-              assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
-            end
-          end
-
-          msgs = Array(config[:messages])
-          unless msgs.empty?
-            message_elements = build_message_elements(msgs)
-
-            # Run on_trim: app may call ctx.remove(seqs) to drop messages this turn.
-            if (trim_cb = self.class._on_trim_callback)
-              trim_ctx = Context::TrimContext.new(message_elements: message_elements, budget: budget)
-              trim_cb.call(trim_ctx)
-              message_elements = trim_ctx.message_elements
-            end
-
-            # Run on_compaction_trigger → on_compact pipeline before calling the LLM.
-            if (trigger_cb = self.class._on_compaction_trigger_callback)
-              trigger_ctx = Context::TriggerContext.new(message_elements: message_elements, budget: budget)
-              if trigger_cb.call(trigger_ctx)
-                if (compact_cb = self.class._on_compact_callback)
-                  compact_ctx = Context::CompactionContext.new(
-                    message_elements: message_elements,
-                    budget: budget,
-                    thread_id: thread_id
-                  )
-                  compact_cb.call(compact_ctx)
-                  message_elements = build_message_elements(compact_ctx.result_messages)
-                end
-              end
-            end
-
-            assembler.add_messages(message_elements.map { |e| e[:message] })
-          end
-
-          context = assembler.build
+          # Assemble context (system prompt + history). Override #build_context to
+          # inject custom context editing logic at the Agent subclass level.
+          context = build_context(input, messages: messages, thread_id: thread_id, config: config)
           apply_instructions(chat, context[:system]) if context[:system]
           context[:messages].each { |msg| chat.messages << msg }
 
@@ -655,9 +468,79 @@ module Phronomy
         end
       end
 
+      # Assembles the LLM context (system prompt + conversation messages)
+      # for a single invocation. Subclasses may override this method to
+      # inject custom context editing logic without having to override
+      # the full #invoke_once pipeline.
+      #
+      # @param input     [String, Hash] the user's input for this turn
+      # @param messages  [Array<RubyLLM::Message>] raw conversation history
+      # @param thread_id [String, nil] conversation thread identifier
+      # @param config    [Hash] the invocation config (see #invoke)
+      # @return [Hash] { system: String|nil, messages: Array }
+      def build_context(input, messages: [], thread_id: nil, config: {})
+        history = prepare_history(messages: messages, thread_id: thread_id, config: config)
+        budget = build_token_budget
+        system_text = build_cached_system_text(input)
+        user_message = extract_message(input)
+
+        assembler = Context::Assembler.new(budget: budget)
+        assembler.add_instruction(system_text) if system_text
+
+        Array(config[:knowledge_sources]).each do |ks|
+          ks.fetch(query: user_message).each do |chunk|
+            assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
+          end
+        end
+
+        assembler.add_messages(history)
+        assembler.build
+      end
+      protected :build_context
+
+      # Runs the on_trim / on_compaction_trigger / on_compact pipeline on the
+      # supplied message array and returns the final Array of message objects
+      # ready to pass to the Assembler.
+      #
+      # Override this method in a subclass to customize how conversation
+      # history is filtered or compressed before context assembly.
+      #
+      # @param messages  [Array<RubyLLM::Message>] raw conversation history
+      # @param thread_id [String, nil] conversation thread identifier
+      # @param config    [Hash] additional invocation options
+      # @return [Array] filtered and/or compacted message objects
+      def prepare_history(messages: [], thread_id: nil, config: {})
+        budget = build_token_budget
+        elements = build_message_elements(Array(messages))
+
+        if (trim_cb = self.class._on_trim_callback)
+          trim_ctx = Context::TrimContext.new(message_elements: elements, budget: budget)
+          trim_cb.call(trim_ctx)
+          elements = trim_ctx.message_elements
+        end
+
+        if (trigger_cb = self.class._on_compaction_trigger_callback)
+          trigger_ctx = Context::TriggerContext.new(message_elements: elements, budget: budget)
+          if trigger_cb.call(trigger_ctx)
+            if (compact_cb = self.class._on_compact_callback)
+              compact_ctx = Context::CompactionContext.new(
+                message_elements: elements,
+                budget: budget,
+                thread_id: thread_id
+              )
+              compact_cb.call(compact_ctx)
+              elements = build_message_elements(compact_ctx.result_messages)
+            end
+          end
+        end
+
+        elements.map { |e| e[:message] }
+      end
+      protected :prepare_history
+
       # Performs a single (non-retried) invocation. Extracted so that #invoke can
       # wrap it in a retry loop without duplicating the LLM interaction logic.
-      def invoke_once(input, config: {})
+      def invoke_once(input, messages: [], thread_id: nil, config: {})
         caller_meta = {}
         caller_meta[:user_id] = config[:user_id] if config[:user_id]
         caller_meta[:session_id] = config[:session_id] if config[:session_id]
@@ -666,62 +549,12 @@ module Phronomy
           # Run input guardrails before touching the LLM.
           run_input_guardrails!(input)
 
-          thread_id = config[:thread_id]
           user_message = extract_message(input)
           chat = build_chat
-          budget = build_token_budget
 
-          # Load conversation history from config[:messages] (app-managed).
-          raw_messages = Array(config[:messages])
-
-          # Assign synthetic 0-based seq numbers for use by trim/compaction callbacks.
-          message_elements = build_message_elements(raw_messages)
-
-          # Run on_trim: app may call ctx.remove(seqs) to drop messages this turn.
-          if (trim_cb = self.class._on_trim_callback)
-            trim_ctx = Context::TrimContext.new(message_elements: message_elements, budget: budget)
-            trim_cb.call(trim_ctx)
-            message_elements = trim_ctx.message_elements
-          end
-
-          # Run on_compaction_trigger → on_compact pipeline before calling the LLM.
-          if (trigger_cb = self.class._on_compaction_trigger_callback)
-            trigger_ctx = Context::TriggerContext.new(
-              message_elements: message_elements, budget: budget
-            )
-            if trigger_cb.call(trigger_ctx)
-              if (compact_cb = self.class._on_compact_callback)
-                compact_ctx = Context::CompactionContext.new(
-                  message_elements: message_elements,
-                  budget: budget,
-                  thread_id: thread_id
-                )
-                compact_cb.call(compact_ctx)
-                message_elements = build_message_elements(compact_ctx.result_messages)
-              end
-            end
-          end
-
-          # Build the system prompt via the fingerprint-keyed ContextVersionCache.
-          # Static knowledge is fetched and concatenated once; the result is reused
-          # on subsequent calls as long as the fingerprint remains valid.
-          system_text = build_cached_system_text(input)
-
-          # Assemble context regions 1 (Instruction+Static Knowledge) + 3 (Dynamic Knowledge)
-          # + 4 (Conversation).
-          assembler = Context::Assembler.new(budget: budget)
-          assembler.add_instruction(system_text) if system_text
-
-          # Dynamic knowledge from config[:knowledge_sources] (backward compatible).
-          Array(config[:knowledge_sources]).each do |ks|
-            ks.fetch(query: user_message).each do |chunk|
-              assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
-            end
-          end
-
-          assembler.add_messages(message_elements.map { |e| e[:message] })
-
-          context = assembler.build
+          # Assemble context (system prompt + history). Override #build_context to
+          # inject custom context editing logic at the Agent subclass level.
+          context = build_context(input, messages: messages, thread_id: thread_id, config: config)
           apply_instructions(chat, context[:system]) if context[:system]
           context[:messages].each { |msg| chat.messages << msg }
 
@@ -737,6 +570,7 @@ module Phronomy
           rescue SuspendSignal => signal
             checkpoint = Checkpoint.new(
               thread_id: thread_id,
+              original_input: input,
               messages: chat.messages.dup,
               pending_tool_name: signal.tool_name,
               pending_tool_args: signal.args,
@@ -754,77 +588,6 @@ module Phronomy
 
           result = {output: output, messages: chat.messages, usage: usage}
           [result, usage]
-        end
-      end
-
-      # Computes the agent-level retry wait duration.
-      # @param strategy [Symbol, Numeric]
-      # @param base     [Float]
-      # @param attempt  [Integer]
-      # @return [Float]
-      def compute_agent_retry_wait(strategy, base, attempt)
-        case strategy
-        when :exponential
-          (2**attempt) * base
-        when :linear
-          (attempt + 1) * base
-        when Numeric
-          strategy.to_f
-        else
-          base.to_f
-        end
-      end
-
-      # Collects and runs all registered before_completion hooks in order
-      # (global → class → instance) and applies the merged params to the chat.
-      #
-      # @param chat   [RubyLLM::Chat] the assembled chat object
-      # @param config [Hash] the invocation config hash
-      # @return [Hash] the merged params applied to the chat
-      def run_before_completion_hooks!(chat, config)
-        hooks = [
-          Phronomy.configuration.before_completion,
-          self.class._before_completion,
-          @before_completion
-        ].compact
-
-        return {} if hooks.empty?
-
-        ctx = BeforeCompletionContext.new(
-          agent: self,
-          messages: chat.messages,
-          config: config,
-          params: {}
-        )
-
-        merged = {}
-        hooks.each do |hook|
-          result = hook.call(ctx)
-          merged.merge!(result) if result.is_a?(Hash)
-        end
-
-        apply_before_completion_params!(chat, merged)
-        merged
-      end
-
-      # Applies a merged param hash returned by before_completion hooks to
-      # the chat object using the appropriate RubyLLM::Chat API methods.
-      # When overriding the model, reuses the agent's configured provider and
-      # assume_exists setting so that local/namespaced models continue to work.
-      #
-      # @param chat   [RubyLLM::Chat]
-      # @param params [Hash]
-      def apply_before_completion_params!(chat, params)
-        params.each do |key, value|
-          case key
-          when :model
-            prov = self.class.provider
-            chat.with_model(value, provider: prov, assume_exists: !prov.nil?)
-          when :temperature
-            chat.with_temperature(value)
-          else
-            chat.with_params(key => value)
-          end
         end
       end
 
@@ -959,39 +722,6 @@ module Phronomy
         when String then input
         when Hash then input[:message] || input[:query] || input[:user] || input.to_s
         else input.to_s
-        end
-      end
-
-      def run_input_guardrails!(input)
-        (@input_guardrails || []).each { |g| g.run!(input) }
-      end
-
-      def run_output_guardrails!(output)
-        (@output_guardrails || []).each { |g| g.run!(output) }
-      end
-
-      # Registers an on_tool_call hook on the chat object that raises SuspendSignal
-      # when an approval-required tool is about to be executed and no synchronous
-      # on_approval_required handler has been registered.
-      #
-      # Does nothing when:
-      #   - a synchronous handler is already registered (@approval_handler is set), or
-      #   - none of the agent's tools have requires_approval set.
-      #
-      # @param chat [RubyLLM::Chat]
-      def _register_suspension_hook!(chat)
-        return if @approval_handler
-        return if self.class.tools.none? { |tc| tc.requires_approval }
-
-        chat.on_tool_call do |tool_call|
-          tool_instance = chat.tools[tool_call.name.to_sym]
-          if tool_instance&.requires_approval
-            raise SuspendSignal.new(
-              tool_name: tool_call.name,
-              args: tool_call.arguments,
-              tool_call_id: tool_call.id
-            )
-          end
         end
       end
 

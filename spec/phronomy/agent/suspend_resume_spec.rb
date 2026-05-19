@@ -63,6 +63,7 @@ RSpec.describe Phronomy::Agent::Checkpoint do
   let(:checkpoint) do
     described_class.new(
       thread_id: "t1",
+      original_input: "hi",
       messages: [msg],
       pending_tool_name: "my_tool",
       pending_tool_args: {"x" => 1},
@@ -82,7 +83,7 @@ RSpec.describe Phronomy::Agent::Checkpoint do
   it "does not share the original messages array" do
     original = [msg]
     cp = described_class.new(
-      thread_id: nil, messages: original,
+      thread_id: nil, original_input: "", messages: original,
       pending_tool_name: "t", pending_tool_args: {}, pending_tool_call_id: "c"
     )
     original << double("extra")
@@ -274,6 +275,7 @@ RSpec.describe "Agent::Base suspend/resume" do
     let(:checkpoint) do
       Phronomy::Agent::Checkpoint.new(
         thread_id: "t1",
+        original_input: "hi",
         messages: [msg_user, msg_assistant],
         pending_tool_name: "suspend_test",
         pending_tool_args: {"value" => "test_val"},

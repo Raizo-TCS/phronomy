@@ -396,18 +396,19 @@ search_tool = Phronomy::Tool::McpTool.from_server(
 
 ### Conversation History — passing prior messages
 
-Phronomy does not manage conversation history internally. Instead, the application owns the
-message array and passes it in via `config[:messages]`:
+Phronomy does not manage conversation history internally. The application owns the
+message array and passes it in via the `messages:` keyword argument:
 
 ```ruby
 # First turn
-result1 = MyAgent.new.invoke("Hello! I'm Alice.", config: { thread_id: "session-1" })
+result1 = MyAgent.new.invoke("Hello! I'm Alice.", thread_id: "session-1")
 prior_messages = result1[:messages]   # Array<RubyLLM::Message>
 
 # Second turn — pass prior messages so the agent has context
 result2 = MyAgent.new.invoke(
   "What is my name?",
-  config: { messages: prior_messages, thread_id: "session-1" }
+  messages: prior_messages,
+  thread_id: "session-1"
 )
 puts result2[:output]   # => "Your name is Alice."
 ```
