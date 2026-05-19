@@ -64,6 +64,43 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
+<h2 id="_0_4_0____2026_05_19">[0.4.0] - 2026-05-19</h2>
+<h3 id="Removed">Removed</h3>
+<ul>
+<li><strong><code>Phronomy::TrustPipeline</code> removed</strong>: The <code>TrustPipeline</code> class and its inner
+<code>TrustResult</code> value object have been deleted. Use <code>Phronomy::GeneratorVerifier</code>
+instead, which provides the same generator-verifier pattern with a cleaner,
+fully injectable API.</li>
+</ul>
+<h3 id="Added">Added</h3>
+<ul>
+<li><strong><code>Phronomy::GeneratorVerifier</code></strong> — Generator-Verifier coordination loop
+(Anthropic blog, Pattern 1). Wraps a generator agent and a verifier agent with
+fully injectable prompt builders, response parsers, a configurable iteration
+limit, and an approval-outcome raise policy.</li>
+<li><strong><code>Phronomy::Agent::Orchestrator</code></strong> — Base class for orchestrator agents
+(Anthropic blog, Pattern 2). Extends <code>Agent::Base</code> with a <code>subagent</code> DSL for
+declarative subagent registration as LLM-callable tools, plus <code>dispatch_parallel</code>
+and <code>fan_out</code> for programmatic parallel invocation.</li>
+<li><strong><code>Phronomy::Agent::TeamCoordinator</code></strong> — Agent teams coordination pattern
+(Anthropic blog, Pattern 3). An LLM-powered coordinator with a shared task
+queue and a pool of worker agents that carry conversation history across task
+assignments. Adds <code>coordinator_provider</code> DSL for independent LLM routing.</li>
+<li><strong><code>Phronomy::Agent::SharedState</code></strong> — Shared-state coordination pattern
+(Anthropic blog, Pattern 5). Peer agents collaborate via a <code>KnowledgeStore</code>;
+the <code>member</code> DSL registers agents with per-agent instructions; <code>coordination</code>
+sets the team protocol; <code>build_prompt</code> injects a tool-usage guide automatically.</li>
+<li><strong><code>Phronomy::LowConfidenceError</code></strong> — Exception raised by <code>GeneratorVerifier</code>
+when <code>raise_policy: :raise</code> and verification fails after exhausting the
+iteration limit.</li>
+</ul>
+<h3 id="Changed">Changed</h3>
+<ul>
+<li><strong><code>Phronomy::Graph::StateGraph</code> event system refactored</strong>: Per-node <code>advance</code>
+events replaced with a unified <code>node_completed</code> event queue, reducing
+event-handler registration overhead and simplifying listener registration.</li>
+</ul>
+<hr />
 <h2 id="_0_3_0____2026_05_18">[0.3.0] - 2026-05-18</h2>
 <h3 id="Removed">Removed</h3>
 <ul>
@@ -244,7 +281,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sun May 17 18:13:29 2026 by
+  Generated on Tue May 19 13:33:53 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

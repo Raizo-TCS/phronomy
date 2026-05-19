@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>
+  Class: Phronomy::Agent::TeamCoordinator
+  
+    &mdash; Documentation by YARD 0.9.43
+  
+</title>
+
+  <link rel="stylesheet" href="../../css/style.css" type="text/css">
+
+  <link rel="stylesheet" href="../../css/common.css" type="text/css">
+
+<script type="text/javascript">
+  pathId = "Phronomy::Agent::TeamCoordinator";
+  relpath = '../../';
+</script>
+
+
+  <script type="text/javascript" charset="utf-8" src="../../js/jquery.js"></script>
+
+  <script type="text/javascript" charset="utf-8" src="../../js/app.js"></script>
+
+
+  </head>
+  <body>
+    <div id="main_progress" aria-hidden="true"></div>
+
+    <div class="nav_wrap">
+      <iframe id="nav" src="../../class_list.html?1"></iframe>
+      <div id="resizer"></div>
+    </div>
+
+    <div id="main" tabindex="-1">
+      <div id="header">
+        <div id="menu">
+  
+    <a href="../../_index.html">Index (T)</a> &raquo;
+    <span class='title'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span>
+     &raquo; 
+    <span class="title">TeamCoordinator</span>
+  
+</div>
+
+        <div id="search">
+  
+    <a class="full_list_link" id="class_list_link"
+        href="../../class_list.html">
+
+        <svg width="24" height="24">
+          <rect x="0" y="4" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="12" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="20" width="24" height="4" rx="1" ry="1"></rect>
+        </svg>
+    </a>
+  
+</div>
+        <div class="clear"></div>
+      </div>
+
+      <div id="content"><h1>Class: Phronomy::Agent::TeamCoordinator
+  
+  
+  
+</h1>
+<div class="box_info">
+  
+  <dl>
+    <dt>Inherits:</dt>
+    <dd>
+      <span class="inheritName">Object</span>
+      
+        <ul class="fullTree">
+          <li>Object</li>
+          
+            <li class="next">Phronomy::Agent::TeamCoordinator</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+    </dd>
+  </dl>
+  
+
+  
+  
+  
+  
+  
+
+  
+
+  
+  <dl>
+    <dt>Defined in:</dt>
+    <dd>lib/phronomy/agent/team_coordinator.rb
+</dd>
+  </dl>
+  
+</div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>Implements the &quot;Agent teams&quot; coordination pattern (Anthropic blog, Pattern 3).</p>
+<p>A coordinator LLM agent decomposes work into tasks and enqueues them
+dynamically via built-in tools. A fixed pool of worker agents claims tasks
+from the shared queue, carrying forward their conversation history across
+assignments to accumulate domain context over time.</p>
+<p>The coordinator is an <span class='object_link'><a href="Base.html" title="Phronomy::Agent::Base (class)">Base</a></span> subclass that has two built-in tools:</p>
+<ul>
+<li><code>enqueue_task</code> — adds a task description to the queue</li>
+<li><code>finalize</code>     — signals that all tasks have been enqueued</li>
+</ul>
+<p>Worker persistence is implemented by passing each worker's accumulated
+<code>messages</code> array back via <code>config[:messages]</code> on every subsequent <code>invoke</code>
+call, so the LLM retains context across multiple task assignments.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="examples">
+    <h4 class="tag_title">Examples:</h4>
+    
+      
+        <h5 class="example_title"><div class='inline'><p>Basic usage</p></div></h5>
+      
+      <pre class="example code"><code><span class='kw'>class</span> <span class='const'>MigrationTeam</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'>TeamCoordinator</span>
+  <span class='id identifier rubyid_coordinator_model'>coordinator_model</span>        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>claude-3-5-sonnet-20241022</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_coordinator_instructions'>coordinator_instructions</span> <span class='heredoc_beg'>&lt;&lt;~INST</span>
+<span class='tstring_content'>    Analyze the request and enqueue one migration task per service.
+</span><span class='tstring_content'>    Call enqueue_task for each service, then call finalize.
+</span><span class='heredoc_end'>  INST
+</span>
+  <span class='id identifier rubyid_pool'>pool</span> <span class='label'>size:</span> <span class='int'>3</span><span class='comma'>,</span> <span class='label'>agent:</span> <span class='const'>MigrationAgent</span>
+
+  <span class='id identifier rubyid_aggregate'>aggregate</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_assignments'>assignments</span><span class='op'>|</span>
+    <span class='lbrace'>{</span> <span class='label'>reports:</span> <span class='id identifier rubyid_assignments'>assignments</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_a'>a</span><span class='op'>|</span> <span class='lbrace'>{</span> <span class='label'>task:</span> <span class='id identifier rubyid_a'>a</span><span class='lbracket'>[</span><span class='symbol'>:task</span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='symbol'>:description</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>result:</span> <span class='id identifier rubyid_a'>a</span><span class='lbracket'>[</span><span class='symbol'>:result</span><span class='rbracket'>]</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span>
+
+<span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'>MigrationTeam</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Migrate all services to Rails 8</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span></code></pre>
+    
+  </div>
+
+
+  <p class="tag_title">See Also:</p>
+  <ul class="see">
+    
+      <li><a href="https://claude.com/blog/multi-agent-coordination-patterns" target="_parent" title="https://claude.com/blog/multi-agent-coordination-patterns">https://claude.com/blog/multi-agent-coordination-patterns</a></li>
+    
+  </ul>
+
+</div>
+
+
+
+
+
+
+  
+    <h2>
+      Class Method Summary
+      <small><a href="#" class="summary_toggle">collapse</a></small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#aggregate-class_method" title="aggregate (class method)">.<strong>aggregate</strong> {|Array&lt;Hash&gt;| ... } &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Defines how task assignments are merged into the final return value.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#coordinator_instructions-class_method" title="coordinator_instructions (class method)">.<strong>coordinator_instructions</strong>(value = nil)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Sets the system instructions for the coordinator agent.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#coordinator_model-class_method" title="coordinator_model (class method)">.<strong>coordinator_model</strong>(value = nil)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Sets the LLM model for the coordinator agent.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#coordinator_provider-class_method" title="coordinator_provider (class method)">.<strong>coordinator_provider</strong>(value = nil)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Sets the LLM provider for the coordinator agent.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#pool-class_method" title="pool (class method)">.<strong>pool</strong>(size:, agent:, on_error: :raise)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Configures the worker pool.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#schedule-class_method" title="schedule (class method)">.<strong>schedule</strong> {|Array&lt;WorkerState&gt;| ... } &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Customises the worker selection algorithm.</p></div></span>
+  
+</li>
+
+      
+    </ul>
+    
+  
+    <h2>
+      Instance Method Summary
+      <small><a href="#" class="summary_toggle">collapse</a></small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#invoke-instance_method" title="#invoke (instance method)">#<strong>invoke</strong>(team_input, config: {})  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Runs the full team coordination: coordinator generates tasks, workers process them sequentially, and the aggregate block merges the results.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#stream-instance_method" title="#stream (instance method)">#<strong>stream</strong>(team_input, config: {}) {|Hash| ... } &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Streaming version of <code>invoke</code>.</p></div></span>
+  
+</li>
+
+      
+    </ul>
+    
+  
+
+
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="aggregate-class_method">
+  
+    .<strong>aggregate</strong> {|Array&lt;Hash&gt;| ... } &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Defines how task assignments are merged into the final return value.
+The block receives an Array of assignment Hashes:</p>
+<pre class="code ruby"><code class="ruby"><span class='lbrace'>{</span> <span class='label'>task:</span> <span class='const'>Hash</span><span class='comma'>,</span> <span class='label'>result:</span> <span class='const'>String</span><span class='op'>|</span><span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>worker:</span> <span class='const'>Integer</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='const'>Exception</span><span class='op'>|</span><span class='kw'>nil</span> <span class='rbrace'>}</span>
+</code></pre>
+<p>When omitted, the raw assignments array is returned.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Yields:</p>
+<ul class="yield">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Array&lt;Hash&gt;</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>all completed (and skipped) task assignments</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+111
+112
+113</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 111</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_aggregate'>aggregate</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='ivar'>@aggregator</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="coordinator_instructions-class_method">
+  
+    .<strong>coordinator_instructions</strong>(value = nil)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Sets the system instructions for the coordinator agent.
+The prompt should direct the LLM to call <code>enqueue_task</code> for each task
+and then call <code>finalize</code> when all tasks are enqueued.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>value</span>
+      
+      
+        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+68
+69
+70</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 68</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_coordinator_instructions'>coordinator_instructions</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_value'>value</span> <span class='op'>?</span> <span class='ivar'>@coordinator_instructions</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span> <span class='op'>:</span> <span class='ivar'>@coordinator_instructions</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="coordinator_model-class_method">
+  
+    .<strong>coordinator_model</strong>(value = nil)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Sets the LLM model for the coordinator agent.
+Falls back to <code>Phronomy.configuration.default_model</code> when not set.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>value</span>
+      
+      
+        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+59
+60
+61</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 59</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_coordinator_model'>coordinator_model</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_value'>value</span> <span class='op'>?</span> <span class='ivar'>@coordinator_model</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span> <span class='op'>:</span> <span class='ivar'>@coordinator_model</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="coordinator_provider-class_method">
+  
+    .<strong>coordinator_provider</strong>(value = nil)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Sets the LLM provider for the coordinator agent.
+Required when using a custom <code>BASE_URL</code> (e.g. LM Studio, Ollama, vLLM)
+so that RubyLLM does not attempt to resolve an unknown model name.
+Pass the same value as <code>LLMConfig::PROVIDER</code> in your examples.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>value</span>
+      
+      
+        <span class='type'>(<tt>Symbol</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+78
+79
+80</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 78</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_coordinator_provider'>coordinator_provider</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_value'>value</span> <span class='op'>?</span> <span class='ivar'>@coordinator_provider</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span> <span class='op'>:</span> <span class='ivar'>@coordinator_provider</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="pool-class_method">
+  
+    .<strong>pool</strong>(size:, agent:, on_error: :raise)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Configures the worker pool.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>size</span>
+      
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>number of persistent worker instances</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>agent</span>
+      
+      
+        <span class='type'>(<tt>Class</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>Agent::Base subclass used for all workers</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>on_error</span>
+      
+      
+        <span class='type'>(<tt>Symbol</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>:raise</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p><code>:raise</code> (default) propagates worker exceptions;
+<code>:skip</code> records the failure and continues with remaining tasks</p></div>
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+88
+89
+90
+91
+92</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 88</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_pool'>pool</span><span class='lparen'>(</span><span class='label'>size:</span><span class='comma'>,</span> <span class='label'>agent:</span><span class='comma'>,</span> <span class='label'>on_error:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span>
+  <span class='ivar'>@pool_size</span> <span class='op'>=</span> <span class='const'>Integer</span><span class='lparen'>(</span><span class='id identifier rubyid_size'>size</span><span class='rparen'>)</span>
+  <span class='ivar'>@worker_agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span>
+  <span class='ivar'>@on_error</span> <span class='op'>=</span> <span class='id identifier rubyid_on_error'>on_error</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="schedule-class_method">
+  
+    .<strong>schedule</strong> {|Array&lt;WorkerState&gt;| ... } &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Customises the worker selection algorithm.
+The block receives an Array of available WorkerState objects and must
+return the one to assign the next task to.
+Default: worker with the fewest accumulated messages (round-robin-like).</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Yields:</p>
+<ul class="yield">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Array&lt;<span class='object_link'>WorkerState</span>&gt;</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>available workers</p></div>
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Yield Returns:</p>
+<ul class="yieldreturn">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'>WorkerState</span></tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>the chosen worker</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+101
+102
+103</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 101</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_schedule'>schedule</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='ivar'>@scheduler</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="invoke-instance_method">
+  
+    #<strong>invoke</strong>(team_input, config: {})  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Runs the full team coordination: coordinator generates tasks, workers
+process them sequentially, and the aggregate block merges the results.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>team_input</span>
+      
+      
+        <span class='type'>(<tt>String</tt>, <tt>Hash</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>the high-level objective given to the coordinator</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>config</span>
+      
+      
+        <span class='type'>(<tt>Hash</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>{}</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>reserved for future use</p></div>
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Object</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>the return value of the aggregate block, or the raw assignments Array</p></div>
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>when <code>pool :agent</code> has not been configured</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+140
+141
+142
+143
+144
+145
+146
+147</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 140</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_team_input'>team_input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>pool :agent must be configured before invoking</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__worker_agent'>_worker_agent</span>
+
+  <span class='id identifier rubyid_task_queue'>task_queue</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+  <span class='id identifier rubyid_run_coordinator'>run_coordinator</span><span class='lparen'>(</span><span class='id identifier rubyid_team_input'>team_input</span><span class='comma'>,</span> <span class='id identifier rubyid_task_queue'>task_queue</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_assignments'>assignments</span> <span class='op'>=</span> <span class='id identifier rubyid_run_workers'>run_workers</span><span class='lparen'>(</span><span class='id identifier rubyid_task_queue'>task_queue</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_finalize_result'>finalize_result</span><span class='lparen'>(</span><span class='id identifier rubyid_assignments'>assignments</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="stream-instance_method">
+  
+    #<strong>stream</strong>(team_input, config: {}) {|Hash| ... } &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Streaming version of <code>invoke</code>. Yields a Hash event for each completed or
+failed task assignment.</p>
+<p>Yielded Hash keys:</p>
+<pre class="code ruby"><code class="ruby">:type   — +:task_completed+ or +:task_failed+
+:worker — worker index (Integer)
+:task   — the task Hash from the queue ({ id:, description:, metadata:, enqueued_at: })
+:result — output string, or +nil+ on failure
+:error  — Exception, or +nil+ on success</code></pre>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>team_input</span>
+      
+      
+        <span class='type'>(<tt>String</tt>, <tt>Hash</tt>)</span>
+      
+      
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>config</span>
+      
+      
+        <span class='type'>(<tt>Hash</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>{}</tt>)</em>
+      
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Yields:</p>
+<ul class="yield">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Hash</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>one event per completed/failed task</p></div>
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Object</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>same as <code>invoke</code></p></div>
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>when <code>pool :agent</code> has not been configured</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 164</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_team_input'>team_input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_team_input'>team_input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
+
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>pool :agent must be configured before invoking</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__worker_agent'>_worker_agent</span>
+
+  <span class='id identifier rubyid_task_queue'>task_queue</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+  <span class='id identifier rubyid_run_coordinator'>run_coordinator</span><span class='lparen'>(</span><span class='id identifier rubyid_team_input'>team_input</span><span class='comma'>,</span> <span class='id identifier rubyid_task_queue'>task_queue</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_assignments'>assignments</span> <span class='op'>=</span> <span class='id identifier rubyid_run_workers'>run_workers</span><span class='lparen'>(</span><span class='id identifier rubyid_task_queue'>task_queue</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_finalize_result'>finalize_result</span><span class='lparen'>(</span><span class='id identifier rubyid_assignments'>assignments</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+
+      <div id="footer">
+  Generated on Tue May 19 13:33:55 2026 by
+  <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.9.43 (ruby-3.3.11).
+</div>
+
+    </div>
+  </body>
+</html>

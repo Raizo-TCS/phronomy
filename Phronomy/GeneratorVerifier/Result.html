@@ -4,7 +4,7 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-  Class: Phronomy::TrustPipeline::Result
+  Class: Phronomy::GeneratorVerifier::Result
   
     &mdash; Documentation by YARD 0.9.43
   
@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="../../css/common.css" type="text/css">
 
 <script type="text/javascript">
-  pathId = "Phronomy::TrustPipeline::Result";
+  pathId = "Phronomy::GeneratorVerifier::Result";
   relpath = '../../';
 </script>
 
@@ -39,7 +39,7 @@
         <div id="menu">
   
     <a href="../../_index.html">Index (R)</a> &raquo;
-    <span class='title'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../TrustPipeline.html" title="Phronomy::TrustPipeline (class)">TrustPipeline</a></span></span>
+    <span class='title'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../GeneratorVerifier.html" title="Phronomy::GeneratorVerifier (class)">GeneratorVerifier</a></span></span>
      &raquo; 
     <span class="title">Result</span>
   
@@ -61,7 +61,7 @@
         <div class="clear"></div>
       </div>
 
-      <div id="content"><h1>Class: Phronomy::TrustPipeline::Result
+      <div id="content"><h1>Class: Phronomy::GeneratorVerifier::Result
   
   
   
@@ -78,7 +78,7 @@
           
             <li class="next">Struct</li>
           
-            <li class="next">Phronomy::TrustPipeline::Result</li>
+            <li class="next">Phronomy::GeneratorVerifier::Result</li>
           
         </ul>
         <a href="#" class="inheritanceTree">show all</a>
@@ -98,7 +98,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/trust_pipeline.rb
+    <dd>lib/phronomy/generator_verifier.rb
 </dd>
   </dl>
   
@@ -106,7 +106,7 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Immutable value object returned by <span class='object_link'><a href="../TrustPipeline.html#invoke-instance_method" title="Phronomy::TrustPipeline#invoke (method)">#invoke</a></span>.</p>
+    <p>Immutable value object returned by <span class='object_link'><a href="../GeneratorVerifier.html#invoke-instance_method" title="Phronomy::GeneratorVerifier#invoke (method)">#invoke</a></span>.</p>
 
   </div>
 </div>
@@ -142,7 +142,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p><strong>WARNING</strong>: These citations are extracted from the LLM's own response via the ReviewAgent and are <strong>not</strong> verified against any external knowledge base, document store, or URL.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p><strong>WARNING</strong>: These citations are extracted from the LLM's own response and are <strong>not</strong> verified against any external knowledge base or URL.</p></div></span>
   
 </li>
 
@@ -307,10 +307,9 @@
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p><strong>WARNING</strong>: These citations are extracted from the LLM's own response via
-the ReviewAgent and are <strong>not</strong> verified against any external knowledge base,
-document store, or URL.  Do not treat them as authoritative without
-independent verification.</p>
+    <p><strong>WARNING</strong>: These citations are extracted from the LLM's own response
+and are <strong>not</strong> verified against any external knowledge base or URL.
+Do not treat them as authoritative without independent verification.</p>
 
   </div>
 </div>
@@ -339,15 +338,21 @@ independent verification.</p>
       <pre class="lines">
 
 
-56
-57
-58
-59</pre>
+68
+69
+70
+71
+72
+73
+74</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/generator_verifier.rb', line 68</span>
 
-<span class='const'><span class='object_link'><a href="" title="Phronomy::TrustPipeline::Result (class)">Result</a></span></span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='symbol'>:output</span><span class='comma'>,</span> <span class='symbol'>:confidence</span><span class='comma'>,</span> <span class='symbol'>:citations</span><span class='comma'>,</span> <span class='symbol'>:iterations</span><span class='comma'>,</span> <span class='symbol'>:review_notes</span><span class='comma'>,</span> <span class='symbol'>:trusted</span><span class='comma'>,</span> <span class='label'>keyword_init:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
+<span class='const'><span class='object_link'><a href="" title="Phronomy::GeneratorVerifier::Result (class)">Result</a></span></span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
+  <span class='symbol'>:output</span><span class='comma'>,</span> <span class='symbol'>:confidence</span><span class='comma'>,</span> <span class='symbol'>:citations</span><span class='comma'>,</span> <span class='symbol'>:iterations</span><span class='comma'>,</span> <span class='symbol'>:review_notes</span><span class='comma'>,</span> <span class='symbol'>:trusted</span><span class='comma'>,</span>
+  <span class='label'>keyword_init:</span> <span class='kw'>true</span>
+<span class='rparen'>)</span> <span class='kw'>do</span>
   <span class='comment'># @return [Boolean] true when confidence &gt;= threshold
 </span>  <span class='id identifier rubyid_alias_method'>alias_method</span> <span class='symbol'>:trusted?</span><span class='comma'>,</span> <span class='symbol'>:trusted</span>
 <span class='kw'>end</span></pre>
@@ -398,15 +403,21 @@ independent verification.</p>
       <pre class="lines">
 
 
-56
-57
-58
-59</pre>
+68
+69
+70
+71
+72
+73
+74</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/generator_verifier.rb', line 68</span>
 
-<span class='const'><span class='object_link'><a href="" title="Phronomy::TrustPipeline::Result (class)">Result</a></span></span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='symbol'>:output</span><span class='comma'>,</span> <span class='symbol'>:confidence</span><span class='comma'>,</span> <span class='symbol'>:citations</span><span class='comma'>,</span> <span class='symbol'>:iterations</span><span class='comma'>,</span> <span class='symbol'>:review_notes</span><span class='comma'>,</span> <span class='symbol'>:trusted</span><span class='comma'>,</span> <span class='label'>keyword_init:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
+<span class='const'><span class='object_link'><a href="" title="Phronomy::GeneratorVerifier::Result (class)">Result</a></span></span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
+  <span class='symbol'>:output</span><span class='comma'>,</span> <span class='symbol'>:confidence</span><span class='comma'>,</span> <span class='symbol'>:citations</span><span class='comma'>,</span> <span class='symbol'>:iterations</span><span class='comma'>,</span> <span class='symbol'>:review_notes</span><span class='comma'>,</span> <span class='symbol'>:trusted</span><span class='comma'>,</span>
+  <span class='label'>keyword_init:</span> <span class='kw'>true</span>
+<span class='rparen'>)</span> <span class='kw'>do</span>
   <span class='comment'># @return [Boolean] true when confidence &gt;= threshold
 </span>  <span class='id identifier rubyid_alias_method'>alias_method</span> <span class='symbol'>:trusted?</span><span class='comma'>,</span> <span class='symbol'>:trusted</span>
 <span class='kw'>end</span></pre>
@@ -457,15 +468,21 @@ independent verification.</p>
       <pre class="lines">
 
 
-56
-57
-58
-59</pre>
+68
+69
+70
+71
+72
+73
+74</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/generator_verifier.rb', line 68</span>
 
-<span class='const'><span class='object_link'><a href="" title="Phronomy::TrustPipeline::Result (class)">Result</a></span></span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='symbol'>:output</span><span class='comma'>,</span> <span class='symbol'>:confidence</span><span class='comma'>,</span> <span class='symbol'>:citations</span><span class='comma'>,</span> <span class='symbol'>:iterations</span><span class='comma'>,</span> <span class='symbol'>:review_notes</span><span class='comma'>,</span> <span class='symbol'>:trusted</span><span class='comma'>,</span> <span class='label'>keyword_init:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
+<span class='const'><span class='object_link'><a href="" title="Phronomy::GeneratorVerifier::Result (class)">Result</a></span></span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
+  <span class='symbol'>:output</span><span class='comma'>,</span> <span class='symbol'>:confidence</span><span class='comma'>,</span> <span class='symbol'>:citations</span><span class='comma'>,</span> <span class='symbol'>:iterations</span><span class='comma'>,</span> <span class='symbol'>:review_notes</span><span class='comma'>,</span> <span class='symbol'>:trusted</span><span class='comma'>,</span>
+  <span class='label'>keyword_init:</span> <span class='kw'>true</span>
+<span class='rparen'>)</span> <span class='kw'>do</span>
   <span class='comment'># @return [Boolean] true when confidence &gt;= threshold
 </span>  <span class='id identifier rubyid_alias_method'>alias_method</span> <span class='symbol'>:trusted?</span><span class='comma'>,</span> <span class='symbol'>:trusted</span>
 <span class='kw'>end</span></pre>
@@ -516,15 +533,21 @@ independent verification.</p>
       <pre class="lines">
 
 
-56
-57
-58
-59</pre>
+68
+69
+70
+71
+72
+73
+74</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/generator_verifier.rb', line 68</span>
 
-<span class='const'><span class='object_link'><a href="" title="Phronomy::TrustPipeline::Result (class)">Result</a></span></span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='symbol'>:output</span><span class='comma'>,</span> <span class='symbol'>:confidence</span><span class='comma'>,</span> <span class='symbol'>:citations</span><span class='comma'>,</span> <span class='symbol'>:iterations</span><span class='comma'>,</span> <span class='symbol'>:review_notes</span><span class='comma'>,</span> <span class='symbol'>:trusted</span><span class='comma'>,</span> <span class='label'>keyword_init:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
+<span class='const'><span class='object_link'><a href="" title="Phronomy::GeneratorVerifier::Result (class)">Result</a></span></span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
+  <span class='symbol'>:output</span><span class='comma'>,</span> <span class='symbol'>:confidence</span><span class='comma'>,</span> <span class='symbol'>:citations</span><span class='comma'>,</span> <span class='symbol'>:iterations</span><span class='comma'>,</span> <span class='symbol'>:review_notes</span><span class='comma'>,</span> <span class='symbol'>:trusted</span><span class='comma'>,</span>
+  <span class='label'>keyword_init:</span> <span class='kw'>true</span>
+<span class='rparen'>)</span> <span class='kw'>do</span>
   <span class='comment'># @return [Boolean] true when confidence &gt;= threshold
 </span>  <span class='id identifier rubyid_alias_method'>alias_method</span> <span class='symbol'>:trusted?</span><span class='comma'>,</span> <span class='symbol'>:trusted</span>
 <span class='kw'>end</span></pre>
@@ -575,15 +598,21 @@ independent verification.</p>
       <pre class="lines">
 
 
-56
-57
-58
-59</pre>
+68
+69
+70
+71
+72
+73
+74</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/generator_verifier.rb', line 68</span>
 
-<span class='const'><span class='object_link'><a href="" title="Phronomy::TrustPipeline::Result (class)">Result</a></span></span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='symbol'>:output</span><span class='comma'>,</span> <span class='symbol'>:confidence</span><span class='comma'>,</span> <span class='symbol'>:citations</span><span class='comma'>,</span> <span class='symbol'>:iterations</span><span class='comma'>,</span> <span class='symbol'>:review_notes</span><span class='comma'>,</span> <span class='symbol'>:trusted</span><span class='comma'>,</span> <span class='label'>keyword_init:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
+<span class='const'><span class='object_link'><a href="" title="Phronomy::GeneratorVerifier::Result (class)">Result</a></span></span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
+  <span class='symbol'>:output</span><span class='comma'>,</span> <span class='symbol'>:confidence</span><span class='comma'>,</span> <span class='symbol'>:citations</span><span class='comma'>,</span> <span class='symbol'>:iterations</span><span class='comma'>,</span> <span class='symbol'>:review_notes</span><span class='comma'>,</span> <span class='symbol'>:trusted</span><span class='comma'>,</span>
+  <span class='label'>keyword_init:</span> <span class='kw'>true</span>
+<span class='rparen'>)</span> <span class='kw'>do</span>
   <span class='comment'># @return [Boolean] true when confidence &gt;= threshold
 </span>  <span class='id identifier rubyid_alias_method'>alias_method</span> <span class='symbol'>:trusted?</span><span class='comma'>,</span> <span class='symbol'>:trusted</span>
 <span class='kw'>end</span></pre>
@@ -638,15 +667,21 @@ independent verification.</p>
       <pre class="lines">
 
 
-56
-57
-58
-59</pre>
+68
+69
+70
+71
+72
+73
+74</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/trust_pipeline.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/generator_verifier.rb', line 68</span>
 
-<span class='const'><span class='object_link'><a href="" title="Phronomy::TrustPipeline::Result (class)">Result</a></span></span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='symbol'>:output</span><span class='comma'>,</span> <span class='symbol'>:confidence</span><span class='comma'>,</span> <span class='symbol'>:citations</span><span class='comma'>,</span> <span class='symbol'>:iterations</span><span class='comma'>,</span> <span class='symbol'>:review_notes</span><span class='comma'>,</span> <span class='symbol'>:trusted</span><span class='comma'>,</span> <span class='label'>keyword_init:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
+<span class='const'><span class='object_link'><a href="" title="Phronomy::GeneratorVerifier::Result (class)">Result</a></span></span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
+  <span class='symbol'>:output</span><span class='comma'>,</span> <span class='symbol'>:confidence</span><span class='comma'>,</span> <span class='symbol'>:citations</span><span class='comma'>,</span> <span class='symbol'>:iterations</span><span class='comma'>,</span> <span class='symbol'>:review_notes</span><span class='comma'>,</span> <span class='symbol'>:trusted</span><span class='comma'>,</span>
+  <span class='label'>keyword_init:</span> <span class='kw'>true</span>
+<span class='rparen'>)</span> <span class='kw'>do</span>
   <span class='comment'># @return [Boolean] true when confidence &gt;= threshold
 </span>  <span class='id identifier rubyid_alias_method'>alias_method</span> <span class='symbol'>:trusted?</span><span class='comma'>,</span> <span class='symbol'>:trusted</span>
 <span class='kw'>end</span></pre>
@@ -661,7 +696,7 @@ independent verification.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 17 18:13:30 2026 by
+  Generated on Tue May 19 13:33:55 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

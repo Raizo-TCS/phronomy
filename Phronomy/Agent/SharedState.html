@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>
+  Class: Phronomy::Agent::SharedState
+  
+    &mdash; Documentation by YARD 0.9.43
+  
+</title>
+
+  <link rel="stylesheet" href="../../css/style.css" type="text/css">
+
+  <link rel="stylesheet" href="../../css/common.css" type="text/css">
+
+<script type="text/javascript">
+  pathId = "Phronomy::Agent::SharedState";
+  relpath = '../../';
+</script>
+
+
+  <script type="text/javascript" charset="utf-8" src="../../js/jquery.js"></script>
+
+  <script type="text/javascript" charset="utf-8" src="../../js/app.js"></script>
+
+
+  </head>
+  <body>
+    <div id="main_progress" aria-hidden="true"></div>
+
+    <div class="nav_wrap">
+      <iframe id="nav" src="../../class_list.html?1"></iframe>
+      <div id="resizer"></div>
+    </div>
+
+    <div id="main" tabindex="-1">
+      <div id="header">
+        <div id="menu">
+  
+    <a href="../../_index.html">Index (S)</a> &raquo;
+    <span class='title'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span>
+     &raquo; 
+    <span class="title">SharedState</span>
+  
+</div>
+
+        <div id="search">
+  
+    <a class="full_list_link" id="class_list_link"
+        href="../../class_list.html">
+
+        <svg width="24" height="24">
+          <rect x="0" y="4" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="12" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="20" width="24" height="4" rx="1" ry="1"></rect>
+        </svg>
+    </a>
+  
+</div>
+        <div class="clear"></div>
+      </div>
+
+      <div id="content"><h1>Class: Phronomy::Agent::SharedState
+  
+  
+  
+</h1>
+<div class="box_info">
+  
+  <dl>
+    <dt>Inherits:</dt>
+    <dd>
+      <span class="inheritName">Object</span>
+      
+        <ul class="fullTree">
+          <li>Object</li>
+          
+            <li class="next">Phronomy::Agent::SharedState</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+    </dd>
+  </dl>
+  
+
+  
+  
+  
+  
+  
+
+  
+
+  
+  <dl>
+    <dt>Defined in:</dt>
+    <dd>lib/phronomy/agent/shared_state.rb
+</dd>
+  </dl>
+  
+</div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>Implements the &quot;Shared state&quot; coordination pattern (Anthropic blog, Pattern 5).</p>
+<p>Multiple peer agents collaborate through a shared <span class='object_link'><a href="SharedState/KnowledgeStore.html" title="Phronomy::Agent::SharedState::KnowledgeStore (class)">KnowledgeStore</a></span>.
+There is no central coordinator. Each agent reads the store, acts on what it
+finds, and writes new findings back. Later agents in a cycle immediately see
+findings written by earlier agents in the same cycle.</p>
+<p>Two tools are automatically injected into every member agent at runtime:</p>
+<ul>
+<li><code>read_store</code>    — returns all current findings as a JSON string</li>
+<li><code>write_finding</code> — appends a Hash finding to the store</li>
+</ul>
+<p>Use <code>member</code> to register agents and optionally provide per-agent coordination
+instructions. Use <code>coordination</code> to define the team-level protocol that all
+members receive instead of the built-in default guide.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="examples">
+    <h4 class="tag_title">Examples:</h4>
+    
+      
+        <h5 class="example_title"><div class='inline'><p>Basic usage with per-agent instructions</p></div></h5>
+      
+      <pre class="example code"><code><span class='kw'>class</span> <span class='const'>CodeReviewTeam</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'>SharedState</span>
+  <span class='id identifier rubyid_member'>member</span> <span class='const'>StructureAnalyst</span>
+  <span class='id identifier rubyid_member'>member</span> <span class='const'>SecurityAuditor</span><span class='comma'>,</span> <span class='label'>instruction:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Focus on authentication and injection risks.</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_member'>member</span> <span class='const'>QualityReviewer</span><span class='comma'>,</span>  <span class='label'>instruction:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Flag methods longer than 10 lines.</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_max_cycles'>max_cycles</span>  <span class='int'>3</span>
+  <span class='id identifier rubyid_aggregate'>aggregate</span>   <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_store'>store</span><span class='op'>|</span> <span class='lbrace'>{</span> <span class='label'>findings:</span> <span class='id identifier rubyid_store'>store</span><span class='period'>.</span><span class='id identifier rubyid_read_all'>read_all</span><span class='comma'>,</span> <span class='label'>total:</span> <span class='id identifier rubyid_store'>store</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span>
+
+<span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'>CodeReviewTeam</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Review the files in ./src</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+<span class='comment'># =&gt; { output: { findings: [...], total: N }, cycles: 3, terminated_by: :max_cycles }</span></code></pre>
+    
+      
+        <h5 class="example_title"><div class='inline'><p>With custom team-level coordination protocol</p></div></h5>
+      
+      <pre class="example code"><code><span class='kw'>class</span> <span class='const'>ResearchTeam</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'>SharedState</span>
+  <span class='id identifier rubyid_coordination'>coordination</span> <span class='heredoc_beg'>&lt;&lt;~TEXT</span>
+<span class='tstring_content'>    Shared store tools: read_store (no params), write_finding(content:).
+</span><span class='tstring_content'>    Workflow: read first, then write one finding per insight.
+</span><span class='heredoc_end'>  TEXT
+</span>  <span class='id identifier rubyid_member'>member</span> <span class='const'>LiteratureAgent</span>
+  <span class='id identifier rubyid_member'>member</span> <span class='const'>IndustryAgent</span>
+  <span class='id identifier rubyid_max_cycles'>max_cycles</span>  <span class='int'>10</span>
+  <span class='id identifier rubyid_terminate_when'>terminate_when</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_store'>store</span><span class='op'>|</span> <span class='id identifier rubyid_store'>store</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span> <span class='op'>&gt;=</span> <span class='int'>20</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></code></pre>
+    
+  </div>
+
+
+  <p class="tag_title">See Also:</p>
+  <ul class="see">
+    
+      <li><a href="https://claude.com/blog/multi-agent-coordination-patterns" target="_parent" title="https://claude.com/blog/multi-agent-coordination-patterns">https://claude.com/blog/multi-agent-coordination-patterns</a></li>
+    
+  </ul>
+
+</div><h2>Defined Under Namespace</h2>
+<p class="children">
+  
+    
+  
+    
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="SharedState/KnowledgeStore.html" title="Phronomy::Agent::SharedState::KnowledgeStore (class)">KnowledgeStore</a></span>
+    
+  
+</p>
+
+
+
+
+
+
+
+  
+    <h2>
+      Class Method Summary
+      <small><a href="#" class="summary_toggle">collapse</a></small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#aggregate-class_method" title="aggregate (class method)">.<strong>aggregate</strong> {|KnowledgeStore| ... } &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Defines how the final store is converted into the <code>:output</code> of the result.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#coordination-class_method" title="coordination (class method)">.<strong>coordination</strong>(text = nil)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Defines the team-level coordination protocol text injected into every member's prompt.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#max_cycles-class_method" title="max_cycles (class method)">.<strong>max_cycles</strong>(value = nil)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Sets the maximum number of cycles to run.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#member-class_method" title="member (class method)">.<strong>member</strong>(klass, instruction: nil)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Registers a member agent class that will collaborate via the shared store.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#researchers-class_method" title="researchers (class method)">.<strong>researchers</strong>(*classes)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Backward-compatible alias.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#terminate_when-class_method" title="terminate_when (class method)">.<strong>terminate_when</strong> {|KnowledgeStore| ... } &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Registers an optional convergence block.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#timeout-class_method" title="timeout (class method)">.<strong>timeout</strong>(value = nil)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Sets the maximum wall-clock seconds for the entire invocation.</p></div></span>
+  
+</li>
+
+      
+    </ul>
+    
+  
+    <h2>
+      Instance Method Summary
+      <small><a href="#" class="summary_toggle">collapse</a></small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#invoke-instance_method" title="#invoke (instance method)">#<strong>invoke</strong>(input, config: {})  &#x21d2; Hash </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Runs the shared-state coordination loop.</p></div></span>
+  
+</li>
+
+      
+    </ul>
+    
+  
+
+
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="aggregate-class_method">
+  
+    .<strong>aggregate</strong> {|KnowledgeStore| ... } &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Defines how the final store is converted into the <code>:output</code> of the result.
+When omitted, <code>store.read_all</code> is used as-is.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Yields:</p>
+<ul class="yield">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="SharedState/KnowledgeStore.html" title="Phronomy::Agent::SharedState::KnowledgeStore (class)">KnowledgeStore</a></span></tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>receives the final store; return value becomes <code>:output</code></p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+139
+140
+141</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 139</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_aggregate'>aggregate</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_block'>block</span> <span class='op'>?</span> <span class='ivar'>@aggregator</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span> <span class='op'>:</span> <span class='ivar'>@aggregator</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="coordination-class_method">
+  
+    .<strong>coordination</strong>(text = nil)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Defines the team-level coordination protocol text injected into every
+member's prompt. When omitted the built-in default guide is used, which
+explains <code>read_store</code> / <code>write_finding</code> usage and enforces the standard
+workflow. Override this when you need a different protocol or tone.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>text</span>
+      
+      
+        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>the coordination instructions</p></div>
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+107
+108
+109</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 107</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_coordination'>coordination</span><span class='lparen'>(</span><span class='id identifier rubyid_text'>text</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_text'>text</span> <span class='op'>?</span> <span class='ivar'>@coordination</span> <span class='op'>=</span> <span class='id identifier rubyid_text'>text</span> <span class='op'>:</span> <span class='ivar'>@coordination</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="max_cycles-class_method">
+  
+    .<strong>max_cycles</strong>(value = nil)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Sets the maximum number of cycles to run.
+At least one of <code>max_cycles</code> or <code>timeout</code> must be configured.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>value</span>
+      
+      
+        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+115
+116
+117</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 115</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_max_cycles'>max_cycles</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_value'>value</span> <span class='op'>?</span> <span class='ivar'>@max_cycles</span> <span class='op'>=</span> <span class='const'>Integer</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='ivar'>@max_cycles</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="member-class_method">
+  
+    .<strong>member</strong>(klass, instruction: nil)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Registers a member agent class that will collaborate via the shared store.
+Members are invoked sequentially within each cycle in declaration order.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>klass</span>
+      
+      
+        <span class='type'>(<tt>Class</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>an Agent::Base subclass</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>instruction</span>
+      
+      
+        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>optional per-agent coordination instruction
+appended to the team coordination text in this agent's prompt</p></div>
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+88
+89
+90
+91</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 88</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_member'>member</span><span class='lparen'>(</span><span class='id identifier rubyid_klass'>klass</span><span class='comma'>,</span> <span class='label'>instruction:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='ivar'>@members</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+  <span class='ivar'>@members</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span><span class='label'>klass:</span> <span class='id identifier rubyid_klass'>klass</span><span class='comma'>,</span> <span class='label'>instruction:</span> <span class='id identifier rubyid_instruction'>instruction</span><span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="researchers-class_method">
+  
+    .<strong>researchers</strong>(*classes)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Backward-compatible alias. Registers each class as a member without a
+per-agent instruction. Prefer <span class='object_link'><a href="#member-class_method" title="Phronomy::Agent::SharedState.member (method)">member</a></span> for new code.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>classes</span>
+      
+      
+        <span class='type'>(<tt>Array&lt;Class&gt;</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>Agent::Base subclasses</p></div>
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+97
+98
+99</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 97</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_researchers'>researchers</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_classes'>classes</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_classes'>classes</span><span class='period'>.</span><span class='id identifier rubyid_flatten'>flatten</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_klass'>klass</span><span class='op'>|</span> <span class='id identifier rubyid_member'>member</span><span class='lparen'>(</span><span class='id identifier rubyid_klass'>klass</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="terminate_when-class_method">
+  
+    .<strong>terminate_when</strong> {|KnowledgeStore| ... } &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Registers an optional convergence block. Evaluated after each completed
+cycle; when it returns <code>true</code> the loop terminates early.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Yields:</p>
+<ul class="yield">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="SharedState/KnowledgeStore.html" title="Phronomy::Agent::SharedState::KnowledgeStore (class)">KnowledgeStore</a></span></tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>receives the store; return <code>true</code> to stop</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+131
+132
+133</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 131</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_terminate_when'>terminate_when</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_block'>block</span> <span class='op'>?</span> <span class='ivar'>@terminate_when</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span> <span class='op'>:</span> <span class='ivar'>@terminate_when</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="timeout-class_method">
+  
+    .<strong>timeout</strong>(value = nil)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Sets the maximum wall-clock seconds for the entire invocation.
+At least one of <code>max_cycles</code> or <code>timeout</code> must be configured.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>value</span>
+      
+      
+        <span class='type'>(<tt>Numeric</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+123
+124
+125</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 123</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_value'>value</span> <span class='op'>?</span> <span class='ivar'>@timeout</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span> <span class='op'>:</span> <span class='ivar'>@timeout</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="invoke-instance_method">
+  
+    #<strong>invoke</strong>(input, config: {})  &#x21d2; <tt>Hash</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Runs the shared-state coordination loop.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>input</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>the seed question or task description</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>config</span>
+      
+      
+        <span class='type'>(<tt>Hash</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>{}</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>reserved for future use</p></div>
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Hash</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p><code>:output</code>, <code>:cycles</code>, <code>:terminated_by</code></p></div>
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>when neither <code>max_cycles</code> nor <code>timeout</code> is configured</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 165</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_validate_termination!'>validate_termination!</span>
+
+  <span class='id identifier rubyid_store'>store</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="SharedState/KnowledgeStore.html" title="Phronomy::Agent::SharedState::KnowledgeStore (class)">KnowledgeStore</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="SharedState/KnowledgeStore.html#initialize-instance_method" title="Phronomy::Agent::SharedState::KnowledgeStore#initialize (method)">new</a></span></span>
+  <span class='id identifier rubyid_max_cycles'>max_cycles</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__max_cycles'>_max_cycles</span>
+  <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__timeout'>_timeout</span> <span class='op'>?</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span> <span class='op'>+</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__timeout'>_timeout</span> <span class='op'>:</span> <span class='kw'>nil</span>
+  <span class='id identifier rubyid_terminated_by'>terminated_by</span> <span class='op'>=</span> <span class='symbol'>:max_cycles</span>
+  <span class='id identifier rubyid_completed_cycles'>completed_cycles</span> <span class='op'>=</span> <span class='int'>0</span>
+
+  <span class='id identifier rubyid_cycle_limit'>cycle_limit</span> <span class='op'>=</span> <span class='id identifier rubyid_max_cycles'>max_cycles</span> <span class='op'>||</span> <span class='const'>Float</span><span class='op'>::</span><span class='const'>INFINITY</span>
+
+  <span class='lparen'>(</span><span class='int'>1</span><span class='op'>..</span><span class='id identifier rubyid_cycle_limit'>cycle_limit</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_cycle'>cycle</span><span class='op'>|</span>
+    <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__members'>_members</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_member_config'>member_config</span><span class='op'>|</span>
+      <span class='id identifier rubyid_invoke_researcher'>invoke_researcher</span><span class='lparen'>(</span><span class='id identifier rubyid_member_config'>member_config</span><span class='lbracket'>[</span><span class='symbol'>:klass</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='id identifier rubyid_store'>store</span><span class='comma'>,</span> <span class='id identifier rubyid_cycle'>cycle</span><span class='comma'>,</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='id identifier rubyid_member_config'>member_config</span><span class='lbracket'>[</span><span class='symbol'>:instruction</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+    <span class='id identifier rubyid_completed_cycles'>completed_cycles</span> <span class='op'>=</span> <span class='id identifier rubyid_cycle'>cycle</span>
+
+    <span class='kw'>if</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__terminate_when'>_terminate_when</span><span class='op'>&amp;.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_store'>store</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_terminated_by'>terminated_by</span> <span class='op'>=</span> <span class='symbol'>:terminate_when</span>
+      <span class='kw'>break</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>if</span> <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>&amp;&amp;</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span> <span class='op'>&gt;=</span> <span class='id identifier rubyid_deadline'>deadline</span>
+      <span class='id identifier rubyid_terminated_by'>terminated_by</span> <span class='op'>=</span> <span class='symbol'>:timeout</span>
+      <span class='kw'>break</span>
+    <span class='kw'>end</span>
+
+    <span class='id identifier rubyid_terminated_by'>terminated_by</span> <span class='op'>=</span> <span class='symbol'>:max_cycles</span>
+  <span class='kw'>end</span>
+
+  <span class='id identifier rubyid_output'>output</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__aggregator'>_aggregator</span>
+    <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__aggregator'>_aggregator</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_store'>store</span><span class='rparen'>)</span>
+  <span class='kw'>else</span>
+    <span class='id identifier rubyid_store'>store</span><span class='period'>.</span><span class='id identifier rubyid_read_all'>read_all</span>
+  <span class='kw'>end</span>
+
+  <span class='lbrace'>{</span><span class='label'>output:</span> <span class='id identifier rubyid_output'>output</span><span class='comma'>,</span> <span class='label'>cycles:</span> <span class='id identifier rubyid_completed_cycles'>completed_cycles</span><span class='comma'>,</span> <span class='label'>terminated_by:</span> <span class='id identifier rubyid_terminated_by'>terminated_by</span><span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+
+      <div id="footer">
+  Generated on Tue May 19 13:33:55 2026 by
+  <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.9.43 (ruby-3.3.11).
+</div>
+
+    </div>
+  </body>
+</html>
