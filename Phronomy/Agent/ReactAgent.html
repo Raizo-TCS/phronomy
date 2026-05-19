@@ -122,8 +122,8 @@ Repeats the LLM &lt;-&gt; Tool loop until no more tool calls are made.</p>
 
   <h2>Instance Attribute Summary</h2>
   
-  <h3 class="inherited">Attributes inherited from <span class='object_link'><a href="Base.html" title="Phronomy::Agent::Base (class)">Base</a></span></h3>
-  <p class="inherited"><span class='object_link'><a href="Base.html#before_completion-instance_method" title="Phronomy::Agent::Base#before_completion (method)">#before_completion</a></span></p>
+  <h3 class="inherited">Attributes included from <span class='object_link'><a href="Concerns/BeforeCompletion.html" title="Phronomy::Agent::Concerns::BeforeCompletion (module)">Concerns::BeforeCompletion</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="Concerns/BeforeCompletion.html#before_completion-instance_method" title="Phronomy::Agent::Concerns::BeforeCompletion#before_completion (method)">#before_completion</a></span></p>
 
 
   
@@ -137,7 +137,7 @@ Repeats the LLM &lt;-&gt; Tool loop until no more tool calls are made.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#stream-instance_method" title="#stream (instance method)">#<strong>stream</strong>(input, config: {}) {|Phronomy::Agent::StreamEvent| ... } &#x21d2; Hash </a>
+      <a href="#stream-instance_method" title="#stream (instance method)">#<strong>stream</strong>(input, messages: [], thread_id: nil, config: {}) {|Phronomy::Agent::StreamEvent| ... } &#x21d2; Hash </a>
     
 
     
@@ -171,7 +171,55 @@ Repeats the LLM &lt;-&gt; Tool loop until no more tool calls are made.</p>
   
   
   <h3 class="inherited">Methods inherited from <span class='object_link'><a href="Base.html" title="Phronomy::Agent::Base (class)">Base</a></span></h3>
-  <p class="inherited"><span class='object_link'><a href="Base.html#_add_handoff_tool-instance_method" title="Phronomy::Agent::Base#_add_handoff_tool (method)">#_add_handoff_tool</a></span>, <span class='object_link'><a href="Base.html#_before_completion-class_method" title="Phronomy::Agent::Base._before_completion (method)">_before_completion</a></span>, <span class='object_link'><a href="Base.html#_handoff_tools-instance_method" title="Phronomy::Agent::Base#_handoff_tools (method)">#_handoff_tools</a></span>, <span class='object_link'><a href="Base.html#_on_compact_callback-class_method" title="Phronomy::Agent::Base._on_compact_callback (method)">_on_compact_callback</a></span>, <span class='object_link'><a href="Base.html#_on_compaction_trigger_callback-class_method" title="Phronomy::Agent::Base._on_compaction_trigger_callback (method)">_on_compaction_trigger_callback</a></span>, <span class='object_link'><a href="Base.html#_on_trim_callback-class_method" title="Phronomy::Agent::Base._on_trim_callback (method)">_on_trim_callback</a></span>, <span class='object_link'><a href="Base.html#add_input_guardrail-instance_method" title="Phronomy::Agent::Base#add_input_guardrail (method)">#add_input_guardrail</a></span>, <span class='object_link'><a href="Base.html#add_output_guardrail-instance_method" title="Phronomy::Agent::Base#add_output_guardrail (method)">#add_output_guardrail</a></span>, <span class='object_link'><a href="Base.html#before_completion-class_method" title="Phronomy::Agent::Base.before_completion (method)">before_completion</a></span>, <span class='object_link'><a href="Base.html#cache_instructions-class_method" title="Phronomy::Agent::Base.cache_instructions (method)">cache_instructions</a></span>, <span class='object_link'><a href="Base.html#context_overhead-class_method" title="Phronomy::Agent::Base.context_overhead (method)">context_overhead</a></span>, <span class='object_link'><a href="Base.html#context_version_cache-instance_method" title="Phronomy::Agent::Base#context_version_cache (method)">#context_version_cache</a></span>, <span class='object_link'><a href="Base.html#context_window-class_method" title="Phronomy::Agent::Base.context_window (method)">context_window</a></span>, <span class='object_link'><a href="Base.html#instructions-class_method" title="Phronomy::Agent::Base.instructions (method)">instructions</a></span>, <span class='object_link'><a href="Base.html#invoke-instance_method" title="Phronomy::Agent::Base#invoke (method)">#invoke</a></span>, <span class='object_link'><a href="Base.html#max_iterations-class_method" title="Phronomy::Agent::Base.max_iterations (method)">max_iterations</a></span>, <span class='object_link'><a href="Base.html#max_output_tokens-class_method" title="Phronomy::Agent::Base.max_output_tokens (method)">max_output_tokens</a></span>, <span class='object_link'><a href="Base.html#model-class_method" title="Phronomy::Agent::Base.model (method)">model</a></span>, <span class='object_link'><a href="Base.html#on_approval_required-instance_method" title="Phronomy::Agent::Base#on_approval_required (method)">#on_approval_required</a></span>, <span class='object_link'><a href="Base.html#on_compact-class_method" title="Phronomy::Agent::Base.on_compact (method)">on_compact</a></span>, <span class='object_link'><a href="Base.html#on_compaction_trigger-class_method" title="Phronomy::Agent::Base.on_compaction_trigger (method)">on_compaction_trigger</a></span>, <span class='object_link'><a href="Base.html#on_trim-class_method" title="Phronomy::Agent::Base.on_trim (method)">on_trim</a></span>, <span class='object_link'><a href="Base.html#provider-class_method" title="Phronomy::Agent::Base.provider (method)">provider</a></span>, <span class='object_link'><a href="Base.html#resume-instance_method" title="Phronomy::Agent::Base#resume (method)">#resume</a></span>, <span class='object_link'><a href="Base.html#retry_policy-class_method" title="Phronomy::Agent::Base.retry_policy (method)">retry_policy</a></span>, <span class='object_link'><a href="Base.html#static_knowledge-class_method" title="Phronomy::Agent::Base.static_knowledge (method)">static_knowledge</a></span>, <span class='object_link'><a href="Base.html#static_knowledge_sources-class_method" title="Phronomy::Agent::Base.static_knowledge_sources (method)">static_knowledge_sources</a></span>, <span class='object_link'><a href="Base.html#temperature-class_method" title="Phronomy::Agent::Base.temperature (method)">temperature</a></span>, <span class='object_link'><a href="Base.html#tool_aliases-class_method" title="Phronomy::Agent::Base.tool_aliases (method)">tool_aliases</a></span>, <span class='object_link'><a href="Base.html#tools-class_method" title="Phronomy::Agent::Base.tools (method)">tools</a></span></p>
+  <p class="inherited"><span class='object_link'><a href="Base.html#_add_handoff_tool-instance_method" title="Phronomy::Agent::Base#_add_handoff_tool (method)">#_add_handoff_tool</a></span>, <span class='object_link'><a href="Base.html#_handoff_tools-instance_method" title="Phronomy::Agent::Base#_handoff_tools (method)">#_handoff_tools</a></span>, <span class='object_link'><a href="Base.html#_on_compact_callback-class_method" title="Phronomy::Agent::Base._on_compact_callback (method)">_on_compact_callback</a></span>, <span class='object_link'><a href="Base.html#_on_compaction_trigger_callback-class_method" title="Phronomy::Agent::Base._on_compaction_trigger_callback (method)">_on_compaction_trigger_callback</a></span>, <span class='object_link'><a href="Base.html#_on_trim_callback-class_method" title="Phronomy::Agent::Base._on_trim_callback (method)">_on_trim_callback</a></span>, <span class='object_link'><a href="Base.html#cache_instructions-class_method" title="Phronomy::Agent::Base.cache_instructions (method)">cache_instructions</a></span>, <span class='object_link'><a href="Base.html#context_overhead-class_method" title="Phronomy::Agent::Base.context_overhead (method)">context_overhead</a></span>, <span class='object_link'><a href="Base.html#context_version_cache-instance_method" title="Phronomy::Agent::Base#context_version_cache (method)">#context_version_cache</a></span>, <span class='object_link'><a href="Base.html#context_window-class_method" title="Phronomy::Agent::Base.context_window (method)">context_window</a></span>, <span class='object_link'><a href="Base.html#instructions-class_method" title="Phronomy::Agent::Base.instructions (method)">instructions</a></span>, <span class='object_link'><a href="Base.html#invoke-instance_method" title="Phronomy::Agent::Base#invoke (method)">#invoke</a></span>, <span class='object_link'><a href="Base.html#max_iterations-class_method" title="Phronomy::Agent::Base.max_iterations (method)">max_iterations</a></span>, <span class='object_link'><a href="Base.html#max_output_tokens-class_method" title="Phronomy::Agent::Base.max_output_tokens (method)">max_output_tokens</a></span>, <span class='object_link'><a href="Base.html#model-class_method" title="Phronomy::Agent::Base.model (method)">model</a></span>, <span class='object_link'><a href="Base.html#on_compact-class_method" title="Phronomy::Agent::Base.on_compact (method)">on_compact</a></span>, <span class='object_link'><a href="Base.html#on_compaction_trigger-class_method" title="Phronomy::Agent::Base.on_compaction_trigger (method)">on_compaction_trigger</a></span>, <span class='object_link'><a href="Base.html#on_trim-class_method" title="Phronomy::Agent::Base.on_trim (method)">on_trim</a></span>, <span class='object_link'><a href="Base.html#provider-class_method" title="Phronomy::Agent::Base.provider (method)">provider</a></span>, <span class='object_link'><a href="Base.html#static_knowledge-class_method" title="Phronomy::Agent::Base.static_knowledge (method)">static_knowledge</a></span>, <span class='object_link'><a href="Base.html#static_knowledge_sources-class_method" title="Phronomy::Agent::Base.static_knowledge_sources (method)">static_knowledge_sources</a></span>, <span class='object_link'><a href="Base.html#temperature-class_method" title="Phronomy::Agent::Base.temperature (method)">temperature</a></span>, <span class='object_link'><a href="Base.html#tool_aliases-class_method" title="Phronomy::Agent::Base.tool_aliases (method)">tool_aliases</a></span>, <span class='object_link'><a href="Base.html#tools-class_method" title="Phronomy::Agent::Base.tools (method)">tools</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="Concerns/Suspendable.html" title="Phronomy::Agent::Concerns::Suspendable (module)">Concerns::Suspendable</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="Concerns/Suspendable.html#on_approval_required-instance_method" title="Phronomy::Agent::Concerns::Suspendable#on_approval_required (method)">#on_approval_required</a></span>, <span class='object_link'><a href="Concerns/Suspendable.html#resume-instance_method" title="Phronomy::Agent::Concerns::Suspendable#resume (method)">#resume</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="Concerns/BeforeCompletion.html" title="Phronomy::Agent::Concerns::BeforeCompletion (module)">Concerns::BeforeCompletion</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="Concerns/BeforeCompletion.html#included-class_method" title="Phronomy::Agent::Concerns::BeforeCompletion.included (method)">included</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="Concerns/Guardrailable.html" title="Phronomy::Agent::Concerns::Guardrailable (module)">Concerns::Guardrailable</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="Concerns/Guardrailable.html#add_input_guardrail-instance_method" title="Phronomy::Agent::Concerns::Guardrailable#add_input_guardrail (method)">#add_input_guardrail</a></span>, <span class='object_link'><a href="Concerns/Guardrailable.html#add_output_guardrail-instance_method" title="Phronomy::Agent::Concerns::Guardrailable#add_output_guardrail (method)">#add_output_guardrail</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="Concerns/Retryable.html" title="Phronomy::Agent::Concerns::Retryable (module)">Concerns::Retryable</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="Concerns/Retryable.html#included-class_method" title="Phronomy::Agent::Concerns::Retryable.included (method)">included</a></span></p>
 
   
   
@@ -193,7 +241,7 @@ Repeats the LLM &lt;-&gt; Tool loop until no more tool calls are made.</p>
       <div class="method_details first">
   <h3 class="signature first" id="stream-instance_method">
   
-    #<strong>stream</strong>(input, config: {}) {|Phronomy::Agent::StreamEvent| ... } &#x21d2; <tt>Hash</tt> 
+    #<strong>stream</strong>(input, messages: [], thread_id: nil, config: {}) {|Phronomy::Agent::StreamEvent| ... } &#x21d2; <tt>Hash</tt> 
   
 
   
@@ -218,6 +266,38 @@ Yields <span class='object_link'><a href="StreamEvent.html" title="Phronomy::Age
         <span class='type'>(<tt>String</tt>, <tt>Hash</tt>)</span>
       
       
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>messages</span>
+      
+      
+        <span class='type'>(<tt>Array&lt;RubyLLM::Message&gt;</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>[]</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>same as #invoke</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>thread_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>same as #invoke</p></div>
       
     </li>
   
@@ -272,7 +352,6 @@ Yields <span class='object_link'><a href="StreamEvent.html" title="Phronomy::Age
       <pre class="lines">
 
 
-62
 63
 64
 65
@@ -316,10 +395,10 @@ Yields <span class='object_link'><a href="StreamEvent.html" title="Phronomy::Age
 103</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/react_agent.rb', line 62</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/react_agent.rb', line 63</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='kw'>return</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
 
   <span class='id identifier rubyid_caller_meta'>caller_meta</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
   <span class='id identifier rubyid_caller_meta'>caller_meta</span><span class='lbracket'>[</span><span class='symbol'>:user_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:user_id</span><span class='rbracket'>]</span> <span class='kw'>if</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:user_id</span><span class='rbracket'>]</span>
@@ -328,16 +407,15 @@ Yields <span class='object_link'><a href="StreamEvent.html" title="Phronomy::Age
   <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent.invoke</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_caller_meta'>caller_meta</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid__span'>_span</span><span class='op'>|</span>
     <span class='id identifier rubyid_run_input_guardrails!'>run_input_guardrails!</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
 
-    <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:thread_id</span><span class='rbracket'>]</span>
     <span class='id identifier rubyid_max_iter'>max_iter</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_max_iterations'>max_iterations</span>
 
-    <span class='id identifier rubyid_messages'>messages</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:messages</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
+    <span class='id identifier rubyid_messages'>messages</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
     <span class='id identifier rubyid_user_asked'>user_asked</span> <span class='op'>=</span> <span class='kw'>false</span>
     <span class='id identifier rubyid_total_usage'>total_usage</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../TokenUsage.html" title="Phronomy::TokenUsage (class)">TokenUsage</a></span></span><span class='period'>.</span><span class='id identifier rubyid_zero'><span class='object_link'><a href="../TokenUsage.html#zero-class_method" title="Phronomy::TokenUsage.zero (method)">zero</a></span></span>
     <span class='id identifier rubyid_iterations_exhausted'>iterations_exhausted</span> <span class='op'>=</span> <span class='kw'>true</span>
 
     <span class='id identifier rubyid_max_iter'>max_iter</span><span class='period'>.</span><span class='id identifier rubyid_times'>times</span> <span class='kw'>do</span>
-      <span class='id identifier rubyid_response'>response</span> <span class='op'>=</span> <span class='id identifier rubyid_stream_step'>stream_step</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>user_asked:</span> <span class='id identifier rubyid_user_asked'>user_asked</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_response'>response</span> <span class='op'>=</span> <span class='id identifier rubyid_stream_step'>stream_step</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>user_asked:</span> <span class='id identifier rubyid_user_asked'>user_asked</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
       <span class='id identifier rubyid_user_asked'>user_asked</span> <span class='op'>=</span> <span class='kw'>true</span>
       <span class='id identifier rubyid_messages'>messages</span> <span class='op'>=</span> <span class='id identifier rubyid_response'>response</span><span class='lbracket'>[</span><span class='symbol'>:messages</span><span class='rbracket'>]</span>
       <span class='id identifier rubyid_total_usage'>total_usage</span> <span class='op'>+=</span> <span class='id identifier rubyid_response'>response</span><span class='lbracket'>[</span><span class='symbol'>:usage</span><span class='rbracket'>]</span>
@@ -370,7 +448,7 @@ Yields <span class='object_link'><a href="StreamEvent.html" title="Phronomy::Age
 </div>
 
       <div id="footer">
-  Generated on Tue May 19 13:33:55 2026 by
+  Generated on Tue May 19 16:47:50 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

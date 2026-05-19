@@ -64,6 +64,51 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
+<h2 id="_0_5_0____2026_05_20">[0.5.0] - 2026-05-20</h2>
+<h3 id="Breaking_Changes">Breaking Changes</h3>
+<ul>
+<li>
+<p><strong><code>Agent::Base#invoke</code> and <code>#stream</code> — <code>messages</code> and <code>thread_id</code> promoted to
+top-level keyword arguments</strong>:
+Previously these values were passed inside the <code>config:</code> hash. They are now
+explicit keyword arguments. The <code>config:</code> hash retains other runtime options
+such as <code>:knowledge_sources</code>, <code>:user_id</code>, and <code>:session_id</code>.</p>
+<p><strong>Before (v0.4.x)</strong>:</p>
+<pre class="code ruby"><code class="ruby">agent.invoke(input, config: { messages: prior_msgs, thread_id: &quot;t1&quot; })
+agent.stream(input, config: { messages: prior_msgs, thread_id: &quot;t1&quot; }) { |e| ... }
+</code></pre>
+<p><strong>After (v0.5.0)</strong>:</p>
+<pre class="code ruby"><code class="ruby">agent.invoke(input, messages: prior_msgs, thread_id: &quot;t1&quot;)
+agent.stream(input, messages: prior_msgs, thread_id: &quot;t1&quot;) { |e| ... }
+</code></pre>
+<p>Applications that only pass <code>:knowledge_sources</code>, <code>:user_id</code>, or <code>:session_id</code>
+in <code>config:</code> require no changes.</p>
+</li>
+<li>
+<p><strong><code>Agent::Checkpoint#initialize</code> — <code>original_input:</code> is now a required keyword
+argument</strong>: Applications that construct <code>Checkpoint</code> instances directly must
+add <code>original_input: input</code>. Checkpoints produced by <code>#invoke</code> already include
+this field automatically.</p>
+</li>
+</ul>
+<h3 id="Fixed">Fixed</h3>
+<ul>
+<li>
+<p><strong><code>ReactAgent#step</code> — system instructions were never applied</strong>: The first
+iteration of the ReAct loop now calls <code>build_context</code> to assemble the system
+prompt and history, matching the behaviour of <code>Agent::Base</code>. Subsequent
+iterations re-apply instructions via <code>build_cached_system_text</code> before calling
+<code>chat.complete</code>. Previously, all iterations silently omitted the system prompt.</p>
+</li>
+<li>
+<p><strong><code>Agent::Base#resume</code> — system instructions were not re-applied after
+suspension</strong>: Resuming from a <code>Checkpoint</code> now calls <code>build_cached_system_text</code>
+using the original input stored in the checkpoint, so the LLM receives the
+correct system prompt when the conversation continues. Previously, the LLM was
+called without any system instructions on resume.</p>
+</li>
+</ul>
+<hr />
 <h2 id="_0_4_0____2026_05_19">[0.4.0] - 2026-05-19</h2>
 <h3 id="Removed">Removed</h3>
 <ul>
@@ -281,7 +326,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Tue May 19 13:33:53 2026 by
+  Generated on Tue May 19 16:47:49 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

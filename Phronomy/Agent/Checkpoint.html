@@ -168,6 +168,33 @@ obtaining an approval decision from the user or an external system.</p>
       <li class="public ">
   <span class="summary_signature">
     
+      <a href="#original_input-instance_method" title="#original_input (instance method)">#<strong>original_input</strong>  &#x21d2; String, Hash </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>The original input passed to #invoke; stored so that #resume can re-apply dynamic system instructions (e.g. Proc or PromptTemplate-based instructions that depend on the input value).</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#pending_tool_args-instance_method" title="#pending_tool_args (instance method)">#<strong>pending_tool_args</strong>  &#x21d2; Hash </a>
     
 
@@ -289,7 +316,7 @@ obtaining an approval decision from the user or an external system.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(thread_id:, messages:, pending_tool_name:, pending_tool_args:, pending_tool_call_id:)  &#x21d2; Checkpoint </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(thread_id:, original_input:, messages:, pending_tool_name:, pending_tool_args:, pending_tool_call_id:)  &#x21d2; Checkpoint </a>
     
 
     
@@ -320,7 +347,7 @@ obtaining an approval decision from the user or an external system.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(thread_id:, messages:, pending_tool_name:, pending_tool_args:, pending_tool_call_id:)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Agent::Checkpoint (class)">Checkpoint</a></span></tt> 
+    #<strong>initialize</strong>(thread_id:, original_input:, messages:, pending_tool_name:, pending_tool_args:, pending_tool_call_id:)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Agent::Checkpoint (class)">Checkpoint</a></span></tt> 
   
 
   
@@ -344,6 +371,20 @@ obtaining an approval decision from the user or an external system.</p>
         <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
       
       
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>original_input</span>
+      
+      
+        <span class='type'>(<tt>String</tt>, <tt>Hash</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>the input passed to the original #invoke call</p></div>
       
     </li>
   
@@ -400,19 +441,21 @@ obtaining an approval decision from the user or an external system.</p>
       <pre class="lines">
 
 
-44
-45
-46
-47
-48
-49
-50</pre>
+50
+51
+52
+53
+54
+55
+56
+57</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/checkpoint.rb', line 44</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/checkpoint.rb', line 50</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='comma'>,</span> <span class='label'>pending_tool_name:</span><span class='comma'>,</span> <span class='label'>pending_tool_args:</span><span class='comma'>,</span> <span class='label'>pending_tool_call_id:</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>original_input:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='comma'>,</span> <span class='label'>pending_tool_name:</span><span class='comma'>,</span> <span class='label'>pending_tool_args:</span><span class='comma'>,</span> <span class='label'>pending_tool_call_id:</span><span class='rparen'>)</span>
   <span class='ivar'>@thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
+  <span class='ivar'>@original_input</span> <span class='op'>=</span> <span class='id identifier rubyid_original_input'>original_input</span>
   <span class='ivar'>@messages</span> <span class='op'>=</span> <span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
   <span class='ivar'>@pending_tool_name</span> <span class='op'>=</span> <span class='id identifier rubyid_pending_tool_name'>pending_tool_name</span>
   <span class='ivar'>@pending_tool_args</span> <span class='op'>=</span> <span class='id identifier rubyid_pending_tool_args'>pending_tool_args</span>
@@ -472,15 +515,76 @@ the assistant message that requested the pending tool call</p></div>
       <pre class="lines">
 
 
-27
-28
-29</pre>
+32
+33
+34</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/checkpoint.rb', line 27</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/checkpoint.rb', line 32</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_messages'>messages</span>
   <span class='ivar'>@messages</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="original_input-instance_method">
+  
+    #<strong>original_input</strong>  &#x21d2; <tt>String</tt>, <tt>Hash</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the original input passed to #invoke; stored so
+that #resume can re-apply dynamic system instructions (e.g. Proc or
+PromptTemplate-based instructions that depend on the input value).</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>String</tt>, <tt>Hash</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>the original input passed to #invoke; stored so
+that #resume can re-apply dynamic system instructions (e.g. Proc or
+PromptTemplate-based instructions that depend on the input value).</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+28
+29
+30</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/checkpoint.rb', line 28</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_original_input'>original_input</span>
+  <span class='ivar'>@original_input</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -529,12 +633,12 @@ the assistant message that requested the pending tool call</p></div>
       <pre class="lines">
 
 
-33
-34
-35</pre>
+38
+39
+40</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/checkpoint.rb', line 33</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/checkpoint.rb', line 38</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pending_tool_args'>pending_tool_args</span>
   <span class='ivar'>@pending_tool_args</span>
@@ -588,12 +692,12 @@ inject the tool result message on resume)</p></div>
       <pre class="lines">
 
 
-37
-38
-39</pre>
+42
+43
+44</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/checkpoint.rb', line 37</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/checkpoint.rb', line 42</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pending_tool_call_id'>pending_tool_call_id</span>
   <span class='ivar'>@pending_tool_call_id</span>
@@ -645,12 +749,12 @@ inject the tool result message on resume)</p></div>
       <pre class="lines">
 
 
-30
-31
-32</pre>
+35
+36
+37</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/checkpoint.rb', line 30</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/checkpoint.rb', line 35</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pending_tool_name'>pending_tool_name</span>
   <span class='ivar'>@pending_tool_name</span>
@@ -723,7 +827,7 @@ inject the tool result message on resume)</p></div>
 </div>
 
       <div id="footer">
-  Generated on Tue May 19 13:33:54 2026 by
+  Generated on Tue May 19 16:47:50 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
