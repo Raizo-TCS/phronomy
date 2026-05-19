@@ -212,16 +212,27 @@ module Phronomy
       end
 
       # Builds the invocation prompt for a researcher agent.
-      # Cycle 1 uses the raw input; subsequent cycles prepend a summary of the
-      # current store so the agent can build on prior findings.
+      # Always prepends a standard tool-usage guide so that researchers know they
+      # must call +read_store+ then +write_finding+, without requiring the user to
+      # encode this workflow in each agent's instructions. Subsequent cycles also
+      # include the current store contents so agents can build on prior findings.
       def build_prompt(original_input, store, cycle)
-        return original_input if cycle == 1 || store.size == 0
+        tool_guide = <<~TEXT.chomp
+          You have access to a shared knowledge store via two tools:
+            read_store     — returns all current findings as JSON (no parameters)
+            write_finding  — records one finding to the store (param: content)
+          Required workflow: first call read_store, then call write_finding for each new insight.
+          Do not output plain text — every insight must be submitted via write_finding.
+        TEXT
+
+        base = "#{tool_guide}\n\nResearch topic: #{original_input}"
+        return base if store.size == 0
 
         findings_text = store.read_all
           .map { |f| "- [#{f[:agent]} / cycle #{f[:cycle]}] #{f[:content]}" }
           .join("\n")
 
-        "#{original_input}\n\nFindings so far:\n#{findings_text}"
+        "#{tool_guide}\n\n#{original_input}\n\nFindings so far:\n#{findings_text}"
       end
     end
   end

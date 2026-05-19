@@ -288,6 +288,25 @@ RSpec.describe Phronomy::Agent::SharedState do
       expect(result[:terminated_by]).to eq(:max_cycles)
     end
 
+    it "always includes the tool-usage guide in the prompt" do
+      received_inputs = []
+      r = Class.new(Phronomy::Agent::Base) do
+        define_method(:invoke) do |input, config: {}|
+          received_inputs << input
+          {output: "ok", messages: []}
+        end
+      end
+      klass = Class.new(described_class) do
+        researchers r
+        max_cycles 1
+      end
+      klass.new.invoke("initial question")
+
+      expect(received_inputs.first).to include("read_store")
+      expect(received_inputs.first).to include("write_finding")
+      expect(received_inputs.first).to include("initial question")
+    end
+
     it "passes prior store contents in the prompt for later cycles" do
       received_inputs = []
       r = Class.new(Phronomy::Agent::Base) do
