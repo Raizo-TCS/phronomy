@@ -130,7 +130,7 @@ module Phronomy
 
         store = KnowledgeStore.new
         max_cycles = self.class._max_cycles
-        deadline   = self.class._timeout ? Time.now + self.class._timeout : nil
+        deadline = self.class._timeout ? Time.now + self.class._timeout : nil
         terminated_by = :max_cycles
         completed_cycles = 0
 
@@ -178,7 +178,8 @@ module Phronomy
       # includes the current store contents.
       def invoke_researcher(researcher_class, store, cycle, original_input)
         instrumented = build_instrumented_researcher(researcher_class, store, cycle)
-        prompt = build_prompt(original_input, store, cycle)
+        extra_tools = researcher_class.tools
+        prompt = build_prompt(original_input, store, cycle, extra_tools: extra_tools)
         instrumented.new.invoke(prompt)
       end
 
@@ -208,7 +209,8 @@ module Phronomy
           end
         end
 
-        Class.new(researcher_class) { tools read_tool, write_tool }
+        parent_tools = researcher_class.tools
+        Class.new(researcher_class) { tools(*parent_tools, read_tool, write_tool) }
       end
 
       # Builds the invocation prompt for a researcher agent.
@@ -216,12 +218,21 @@ module Phronomy
       # must call +read_store+ then +write_finding+, without requiring the user to
       # encode this workflow in each agent's instructions. Subsequent cycles also
       # include the current store contents so agents can build on prior findings.
-      def build_prompt(original_input, store, cycle)
+      def build_prompt(original_input, store, cycle, extra_tools: [])
+        extra_line = if extra_tools.any?
+          tool_names = extra_tools.map { |t| t.respond_to?(:tool_name) ? t.tool_name : t.name.to_s }.join(", ")
+          "  You also have access to additional tools (#{tool_names}) — use them to gather information before writing findings.\n"
+        else
+          ""
+        end
+
         tool_guide = <<~TEXT.chomp
           You have access to a shared knowledge store via two tools:
             read_store     — returns all current findings as JSON (no parameters)
             write_finding  — records one finding to the store (param: content)
-          Required workflow: first call read_store, then call write_finding for each new insight.
+          #{extra_line}Required workflow: first call read_store, then call write_finding once per insight.
+          Each call to write_finding must contain exactly one unique insight — do not call it twice with the same content.
+          If you have no new insights to contribute, call write_finding exactly once with: "No new findings in this cycle."
           Do not output plain text — every insight must be submitted via write_finding.
         TEXT
 
