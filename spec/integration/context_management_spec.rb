@@ -149,7 +149,7 @@ RSpec.describe "Group: Context Management", :integration do
       first = agent.invoke("Remember: my favourite color is red. Just say 'Got it.'")
 
       result = agent.invoke("Say 'still working'.",
-        config: {messages: first[:messages]})
+        messages: first[:messages])
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end
@@ -169,7 +169,7 @@ RSpec.describe "Group: Context Management", :integration do
 
       first = agent.invoke("Say 'first message'.")
       result = agent.invoke("Say 'after compaction'.",
-        config: {messages: first[:messages]})
+        messages: first[:messages])
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end
@@ -266,7 +266,7 @@ RSpec.describe "Group: Context Management", :integration do
 
       first = agent.invoke("Say 'hello'.")
       result = agent.invoke("Say 'goodbye'.",
-        config: {messages: first[:messages]})
+        messages: first[:messages])
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end

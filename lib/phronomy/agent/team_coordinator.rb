@@ -16,8 +16,8 @@ module Phronomy
     # - +finalize+     — signals that all tasks have been enqueued
     #
     # Worker persistence is implemented by passing each worker's accumulated
-    # +messages+ array back via +config[:messages]+ on every subsequent +invoke+
-    # call, so the LLM retains context across multiple task assignments.
+    # +messages+ array back as a top-level +messages:+ argument on every subsequent
+    # +invoke+ call, so the LLM retains context across multiple task assignments.
     #
     # @example Basic usage
     #   class MigrationTeam < Phronomy::Agent::TeamCoordinator
@@ -38,7 +38,7 @@ module Phronomy
     class TeamCoordinator
       # Holds per-worker context between task invocations.
       # Worker persistence is implemented by carrying +messages+ forward on each
-      # successive +agent#invoke+ call via +config[:messages]+.
+      # successive +agent#invoke+ call as the top-level +messages:+ argument..
       WorkerState = Struct.new(
         :index,    # Integer — 0-based worker index
         :agent,    # Agent::Base instance
@@ -201,7 +201,7 @@ module Phronomy
           worker = scheduler ? scheduler.call(available) : default_scheduler(available)
 
           begin
-            result = worker.agent.invoke(task[:description], config: {messages: worker.messages})
+            result = worker.agent.invoke(task[:description], messages: worker.messages)
             worker.messages = result[:messages]
             worker.status = :available
             entry = {task: task, result: result[:output], worker: worker.index, error: nil}

@@ -44,12 +44,17 @@ module Phronomy
         # @return [Hash] +{ output: String, suspended: false, messages: Array, usage: Phronomy::TokenUsage }+
         # @raise [Phronomy::GuardrailError] when an output guardrail rejects the value
         def resume(checkpoint, approved:, config: {})
-          checkpoint.thread_id
-
           # Build a fresh chat with all tools registered.
           chat = build_chat
 
-          # Restore the full conversation (system + history + user + assistant).
+          # Re-apply system instructions so the LLM has the same persona/context
+          # as the original invocation. build_cached_system_text is memoised, so
+          # a Proc- or PromptTemplate-based instructions block is re-evaluated
+          # against the original input rather than using a stale cached value.
+          system_text = build_cached_system_text(checkpoint.original_input)
+          apply_instructions(chat, system_text) if system_text
+
+          # Restore the full conversation (history + user + assistant with tool call).
           checkpoint.messages.each { |msg| chat.messages << msg }
 
           # Determine the tool result: execute it or inject a denial string.

@@ -7,8 +7,8 @@ RSpec.describe Phronomy::Agent::TeamCoordinator do
   # and returns the output string. When omitted, returns "ok".
   def stub_worker(&response_block)
     Class.new(Phronomy::Agent::Base) do
-      define_method(:invoke) do |input, config: {}|
-        msgs_in = Array(config[:messages])
+      define_method(:invoke) do |input, messages: [], thread_id: nil, config: {}|
+        msgs_in = Array(messages)
         output = response_block ? response_block.call(input, msgs_in) : "ok"
         new_msgs = msgs_in + [{role: "user", content: input}, {role: "assistant", content: output}]
         {output: output, messages: new_msgs}
@@ -177,7 +177,7 @@ RSpec.describe Phronomy::Agent::TeamCoordinator do
     context "error handling" do
       it "re-raises worker exceptions by default (on_error: :raise)" do
         failing = Class.new(Phronomy::Agent::Base) do
-          define_method(:invoke) { |_input, config: {}| raise "worker exploded" }
+          define_method(:invoke) { |_input, messages: [], thread_id: nil, config: {}| raise "worker exploded" }
         end
         klass = Class.new(described_class) { pool size: 1, agent: failing }
         team = klass.new
@@ -188,7 +188,7 @@ RSpec.describe Phronomy::Agent::TeamCoordinator do
 
       it "records failures and continues remaining tasks when on_error: :skip" do
         mixed = Class.new(Phronomy::Agent::Base) do
-          define_method(:invoke) do |input, config: {}|
+          define_method(:invoke) do |input, messages: [], thread_id: nil, config: {}|
             raise "boom" if input == "T1"
             {output: "ok:#{input}", messages: []}
           end
@@ -230,7 +230,7 @@ RSpec.describe Phronomy::Agent::TeamCoordinator do
 
     it "yields :task_failed events when on_error: :skip" do
       failing = Class.new(Phronomy::Agent::Base) do
-        define_method(:invoke) { |_input, config: {}| raise "fail" }
+        define_method(:invoke) { |_input, messages: [], thread_id: nil, config: {}| raise "fail" }
       end
       klass = Class.new(described_class) { pool size: 1, agent: failing, on_error: :skip }
       team = klass.new

@@ -47,11 +47,11 @@ module Phronomy
         private
 
         # Retry loop for #invoke. Separated so that ReactAgent can override #invoke_once.
-        def _invoke_impl(input, config: {})
+        def _invoke_impl(input, messages: [], thread_id: nil, config: {})
           policy = self.class._retry_policy
           attempt = 0
           begin
-            invoke_once(input, config: config)
+            invoke_once(input, messages: messages, thread_id: thread_id, config: config)
           rescue Phronomy::GuardrailError
             raise
           rescue

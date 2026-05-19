@@ -353,14 +353,18 @@ module Phronomy
       # Applies the retry policy configured via {.retry_policy} when transient
       # errors occur. {Phronomy::GuardrailError} is never retried.
       #
-      # @param input  [String, Hash] the user message; a Hash may supply
+      # @param input     [String, Hash] the user message; a Hash may supply
       #   +:message+, +:query+, or +:user+ as the text key, plus any template
       #   variables consumed by the configured instructions template.
-      # @param config [Hash] runtime options:
-      #   +:messages+   (Array<RubyLLM::Message>)  — conversation history from a previous invocation
-      #   +:thread_id+  (+String+)                 — conversation thread identifier
-      #   +:user_id+    (+String+, optional)        — caller identity forwarded to the tracer
-      #   +:session_id+ (+String+, optional)        — session identity forwarded to the tracer
+      # @param messages  [Array<RubyLLM::Message>] conversation history from a
+      #   previous invocation. The application owns and persists this array;
+      #   pass it on every turn to maintain multi-turn context.
+      # @param thread_id [String, nil] conversation thread identifier, forwarded
+      #   to the compaction context when on_compact is configured.
+      # @param config    [Hash] additional runtime options:
+      #   +:knowledge_sources+ (Array) — dynamic knowledge sources for this turn
+      #   +:user_id+    (+String+, optional) — caller identity forwarded to the tracer
+      #   +:session_id+ (+String+, optional) — session identity forwarded to the tracer
       # @return [Hash] +{ output: String, messages: Array, usage: Phronomy::TokenUsage }+,
       #   or +{ output: nil, suspended: true, checkpoint: Phronomy::Agent::Checkpoint,
       #   messages: Array }+ when the invocation was suspended awaiting tool approval.
@@ -368,14 +372,17 @@ module Phronomy
       # @example Normal invocation
       #   result = MyAgent.new.invoke("What is Ruby?")
       #   puts result[:output]
+      # @example Multi-turn conversation
+      #   result1 = agent.invoke("Hi, I'm Alice.")
+      #   result2 = agent.invoke("What's my name?", messages: result1[:messages])
       # @example Suspend / resume flow
       #   result = agent.invoke("Perform task X")
       #   if result[:suspended]
       #     result = agent.resume(result[:checkpoint], approved: true)
       #   end
       #   puts result[:output]
-      def invoke(input, config: {})
-        _invoke_impl(input, config: config)
+      def invoke(input, messages: [], thread_id: nil, config: {})
+        _invoke_impl(input, messages: messages, thread_id: thread_id, config: config)
       end
 
       # Streaming version of #invoke. Yields {Phronomy::Agent::StreamEvent} objects
@@ -388,14 +395,16 @@ module Phronomy
       #   :done        — final event carrying output, messages, and usage
       #   :error       — if an unrecoverable error occurs
       #
-      # @param input  [String, Hash] same as #invoke
-      # @param config [Hash]        same as #invoke
+      # @param input     [String, Hash] same as #invoke
+      # @param messages  [Array<RubyLLM::Message>] same as #invoke
+      # @param thread_id [String, nil] same as #invoke
+      # @param config    [Hash]        same as #invoke
       # @yield [Phronomy::Agent::StreamEvent]
       # @return [Hash] { output:, messages:, usage: } — same as #invoke
-      def stream(input, config: {}, &block)
-        return invoke(input, config: config) unless block
+      def stream(input, messages: [], thread_id: nil, config: {}, &block)
+        return invoke(input, messages: messages, thread_id: thread_id, config: config) unless block
 
-        _stream_impl(input, config: config, &block)
+        _stream_impl(input, messages: messages, thread_id: thread_id, config: config, &block)
       rescue => e
         block&.call(StreamEvent.new(type: :error, payload: {error: e}))
         raise
@@ -410,7 +419,7 @@ module Phronomy
       private
 
       # Streaming implementation for #stream.
-      def _stream_impl(input, config: {}, &block)
+      def _stream_impl(input, messages: [], thread_id: nil, config: {}, &block)
         caller_meta = {}
         caller_meta[:user_id] = config[:user_id] if config[:user_id]
         caller_meta[:session_id] = config[:session_id] if config[:session_id]
@@ -423,7 +432,7 @@ module Phronomy
 
           # Assemble context (system prompt + history). Override #build_context to
           # inject custom context editing logic at the Agent subclass level.
-          context = build_context(input, config: config)
+          context = build_context(input, messages: messages, thread_id: thread_id, config: config)
           apply_instructions(chat, context[:system]) if context[:system]
           context[:messages].each { |msg| chat.messages << msg }
 
@@ -464,11 +473,13 @@ module Phronomy
       # inject custom context editing logic without having to override
       # the full #invoke_once pipeline.
       #
-      # @param input  [String, Hash] the user's input for this turn
-      # @param config [Hash] the invocation config (see #invoke)
+      # @param input     [String, Hash] the user's input for this turn
+      # @param messages  [Array<RubyLLM::Message>] raw conversation history
+      # @param thread_id [String, nil] conversation thread identifier
+      # @param config    [Hash] the invocation config (see #invoke)
       # @return [Hash] { system: String|nil, messages: Array }
-      def build_context(input, config: {})
-        messages = prepare_history(config)
+      def build_context(input, messages: [], thread_id: nil, config: {})
+        history = prepare_history(messages: messages, thread_id: thread_id, config: config)
         budget = build_token_budget
         system_text = build_cached_system_text(input)
         user_message = extract_message(input)
@@ -482,24 +493,25 @@ module Phronomy
           end
         end
 
-        assembler.add_messages(messages)
+        assembler.add_messages(history)
         assembler.build
       end
       protected :build_context
 
-      # Loads app-managed conversation history from config[:messages] and
-      # runs the on_trim / on_compaction_trigger / on_compact pipeline.
-      # Returns the final Array of message objects ready to pass to the Assembler.
+      # Runs the on_trim / on_compaction_trigger / on_compact pipeline on the
+      # supplied message array and returns the final Array of message objects
+      # ready to pass to the Assembler.
       #
       # Override this method in a subclass to customize how conversation
       # history is filtered or compressed before context assembly.
       #
-      # @param config [Hash] the invocation config hash
+      # @param messages  [Array<RubyLLM::Message>] raw conversation history
+      # @param thread_id [String, nil] conversation thread identifier
+      # @param config    [Hash] additional invocation options
       # @return [Array] filtered and/or compacted message objects
-      def prepare_history(config)
-        thread_id = config[:thread_id]
+      def prepare_history(messages: [], thread_id: nil, config: {})
         budget = build_token_budget
-        elements = build_message_elements(Array(config[:messages]))
+        elements = build_message_elements(Array(messages))
 
         if (trim_cb = self.class._on_trim_callback)
           trim_ctx = Context::TrimContext.new(message_elements: elements, budget: budget)
@@ -528,7 +540,7 @@ module Phronomy
 
       # Performs a single (non-retried) invocation. Extracted so that #invoke can
       # wrap it in a retry loop without duplicating the LLM interaction logic.
-      def invoke_once(input, config: {})
+      def invoke_once(input, messages: [], thread_id: nil, config: {})
         caller_meta = {}
         caller_meta[:user_id] = config[:user_id] if config[:user_id]
         caller_meta[:session_id] = config[:session_id] if config[:session_id]
@@ -537,13 +549,12 @@ module Phronomy
           # Run input guardrails before touching the LLM.
           run_input_guardrails!(input)
 
-          thread_id = config[:thread_id]
           user_message = extract_message(input)
           chat = build_chat
 
           # Assemble context (system prompt + history). Override #build_context to
           # inject custom context editing logic at the Agent subclass level.
-          context = build_context(input, config: config)
+          context = build_context(input, messages: messages, thread_id: thread_id, config: config)
           apply_instructions(chat, context[:system]) if context[:system]
           context[:messages].each { |msg| chat.messages << msg }
 
@@ -559,6 +570,7 @@ module Phronomy
           rescue SuspendSignal => signal
             checkpoint = Checkpoint.new(
               thread_id: thread_id,
+              original_input: input,
               messages: chat.messages.dup,
               pending_tool_name: signal.tool_name,
               pending_tool_args: signal.args,

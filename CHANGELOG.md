@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0] - 2026-05-20
+
+### Breaking Changes
+
+- **`Agent::Base#invoke` and `#stream` — `messages` and `thread_id` promoted to
+  top-level keyword arguments**:
+  Previously these values were passed inside the `config:` hash. They are now
+  explicit keyword arguments. The `config:` hash retains other runtime options
+  such as `:knowledge_sources`, `:user_id`, and `:session_id`.
+
+  **Before (v0.4.x)**:
+  ```ruby
+  agent.invoke(input, config: { messages: prior_msgs, thread_id: "t1" })
+  agent.stream(input, config: { messages: prior_msgs, thread_id: "t1" }) { |e| ... }
+  ```
+  **After (v0.5.0)**:
+  ```ruby
+  agent.invoke(input, messages: prior_msgs, thread_id: "t1")
+  agent.stream(input, messages: prior_msgs, thread_id: "t1") { |e| ... }
+  ```
+  Applications that only pass `:knowledge_sources`, `:user_id`, or `:session_id`
+  in `config:` require no changes.
+
+- **`Agent::Checkpoint#initialize` — `original_input:` is now a required keyword
+  argument**: Applications that construct `Checkpoint` instances directly must
+  add `original_input: input`. Checkpoints produced by `#invoke` already include
+  this field automatically.
+
+### Fixed
+
+- **`ReactAgent#step` — system instructions were never applied**: The first
+  iteration of the ReAct loop now calls `build_context` to assemble the system
+  prompt and history, matching the behaviour of `Agent::Base`. Subsequent
+  iterations re-apply instructions via `build_cached_system_text` before calling
+  `chat.complete`. Previously, all iterations silently omitted the system prompt.
+
+- **`Agent::Base#resume` — system instructions were not re-applied after
+  suspension**: Resuming from a `Checkpoint` now calls `build_cached_system_text`
+  using the original input stored in the checkpoint, so the LLM receives the
+  correct system prompt when the conversation continues. Previously, the LLM was
+  called without any system instructions on resume.
+
+---
+
 ## [0.4.0] - 2026-05-19
 
 ### Removed

@@ -9,7 +9,7 @@ module Phronomy
 
       # Performs a single (non-retried) ReAct invocation.
       # Overrides Base#invoke_once so that Base#invoke's retry loop is inherited.
-      def invoke_once(input, config: {})
+      def invoke_once(input, messages: [], thread_id: nil, config: {})
         caller_meta = {}
         caller_meta[:user_id] = config[:user_id] if config[:user_id]
         caller_meta[:session_id] = config[:session_id] if config[:session_id]
@@ -18,17 +18,16 @@ module Phronomy
           # Run input guardrails before any LLM interaction.
           run_input_guardrails!(input)
 
-          config[:thread_id]
           max_iter = self.class.max_iterations
 
           # Seed with app-managed conversation history when provided.
-          messages = Array(config[:messages]).dup
+          messages = Array(messages).dup
           user_asked = false
           total_usage = Phronomy::TokenUsage.zero
           iterations_exhausted = true
 
           max_iter.times do
-            response = step(messages, input, user_asked: user_asked, config: config)
+            response = step(messages, input, user_asked: user_asked, thread_id: thread_id, config: config)
             user_asked = true
             messages = response[:messages]
             total_usage += response[:usage]
@@ -55,12 +54,14 @@ module Phronomy
       # Streaming version of #invoke for the ReAct loop.
       # Yields {Phronomy::Agent::StreamEvent} events while the LLM-tool loop runs.
       #
-      # @param input  [String, Hash]
-      # @param config [Hash]
+      # @param input     [String, Hash]
+      # @param messages  [Array<RubyLLM::Message>] same as #invoke
+      # @param thread_id [String, nil]              same as #invoke
+      # @param config    [Hash]
       # @yield [Phronomy::Agent::StreamEvent]
       # @return [Hash] { output:, messages:, usage: }
-      def stream(input, config: {}, &block)
-        return invoke(input, config: config) unless block
+      def stream(input, messages: [], thread_id: nil, config: {}, &block)
+        return invoke(input, messages: messages, thread_id: thread_id, config: config) unless block
 
         caller_meta = {}
         caller_meta[:user_id] = config[:user_id] if config[:user_id]
@@ -69,16 +70,15 @@ module Phronomy
         trace("agent.invoke", input: input, **caller_meta) do |_span|
           run_input_guardrails!(input)
 
-          config[:thread_id]
           max_iter = self.class.max_iterations
 
-          messages = Array(config[:messages]).dup
+          messages = Array(messages).dup
           user_asked = false
           total_usage = Phronomy::TokenUsage.zero
           iterations_exhausted = true
 
           max_iter.times do
-            response = stream_step(messages, input, user_asked: user_asked, config: config, &block)
+            response = stream_step(messages, input, user_asked: user_asked, thread_id: thread_id, config: config, &block)
             user_asked = true
             messages = response[:messages]
             total_usage += response[:usage]
@@ -104,11 +104,23 @@ module Phronomy
 
       private
 
-      def step(messages, initial_input, user_asked: false, config: {})
+      def step(messages, initial_input, user_asked: false, thread_id: nil, config: {})
         chat = build_chat
 
-        # Inject any existing history (from previous loop iterations or loaded memory).
-        messages.each { |m| chat.add_message(m) }
+        if user_asked
+          # Subsequent loop iteration — messages already contains the full conversation
+          # (including the user's original input from the first step); apply system
+          # instructions and replay the accumulated history, then let the LLM continue.
+          system_text = build_cached_system_text(initial_input)
+          apply_instructions(chat, system_text) if system_text
+          messages.each { |m| chat.add_message(m) }
+        else
+          # First iteration — assemble context (system + history) via build_context so
+          # that trimming, compaction, and knowledge sources are applied consistently.
+          context = build_context(initial_input, messages: messages, thread_id: thread_id, config: config)
+          apply_instructions(chat, context[:system]) if context[:system]
+          context[:messages].each { |m| chat.messages << m }
+        end
 
         # Run before_completion hooks before each LLM call in the ReAct loop.
         run_before_completion_hooks!(chat, config)
@@ -130,9 +142,18 @@ module Phronomy
 
       # Streaming variant of #step.  Yields :token / :tool_call / :tool_result events
       # via the block while the LLM call is in progress.
-      def stream_step(messages, initial_input, user_asked: false, config: {}, &block)
+      def stream_step(messages, initial_input, user_asked: false, thread_id: nil, config: {}, &block)
         chat = build_chat
-        messages.each { |m| chat.add_message(m) }
+
+        if user_asked
+          system_text = build_cached_system_text(initial_input)
+          apply_instructions(chat, system_text) if system_text
+          messages.each { |m| chat.add_message(m) }
+        else
+          context = build_context(initial_input, messages: messages, thread_id: thread_id, config: config)
+          apply_instructions(chat, context[:system]) if context[:system]
+          context[:messages].each { |m| chat.messages << m }
+        end
 
         current_tool_call = nil
         chat.on_tool_call do |tc|

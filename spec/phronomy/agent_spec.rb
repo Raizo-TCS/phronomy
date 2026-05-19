@@ -194,12 +194,12 @@ RSpec.describe Phronomy::Agent::Base do
       let(:prev_msg) { double("PrevMessage", role: :user, content: "previous") }
 
       it "injects the provided messages into the chat" do
-        agent.invoke("Hello", config: {messages: [prev_msg]})
+        agent.invoke("Hello", messages: [prev_msg])
         expect(fake_chat.messages).to include(prev_msg)
       end
 
       it "works without messages in config" do
-        agent.invoke("Hello", config: {thread_id: "t1"})
+        agent.invoke("Hello", thread_id: "t1")
         # no error is raised — empty history is used
       end
     end
@@ -251,7 +251,7 @@ RSpec.describe Phronomy::Agent::Base do
       let(:prev_msg) { double("PrevMessage", role: :user, content: "previous") }
 
       it "injects history messages into the chat via the Assembler" do
-        agent.invoke("Hello", config: {messages: [prev_msg]})
+        agent.invoke("Hello", messages: [prev_msg])
         expect(fake_chat.messages).to include(prev_msg)
       end
     end
@@ -501,7 +501,7 @@ RSpec.describe Phronomy::Agent::ReactAgent do
     subject(:agent) { MessagesReactAgent.new }
 
     it "injects provided messages into the chat before asking" do
-      agent.invoke("Hello", config: {messages: [prev_msg]})
+      agent.invoke("Hello", messages: [prev_msg])
       expect(mem_chat.messages).to include(prev_msg)
     end
 
