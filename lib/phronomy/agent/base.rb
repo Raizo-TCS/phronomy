@@ -66,7 +66,8 @@ module Phronomy
           if text || block_given?
             @instructions = text || block
           else
-            @instructions
+            return @instructions if instance_variable_defined?(:@instructions)
+            superclass.respond_to?(:instructions) ? superclass.instructions : nil
           end
         end
 
@@ -88,7 +89,10 @@ module Phronomy
         #   )
         def tools(*args)
           if args.empty?
-            return @tools || []
+            if instance_variable_defined?(:@tools)
+              return @tools
+            end
+            return superclass.respond_to?(:tools) ? superclass.tools : []
           end
 
           if args.length == 1 && args.first.is_a?(Hash)
@@ -122,7 +126,8 @@ module Phronomy
           if name
             @provider = name
           else
-            @provider
+            return @provider if instance_variable_defined?(:@provider)
+            superclass.respond_to?(:provider) ? superclass.provider : nil
           end
         end
 

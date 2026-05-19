@@ -1127,4 +1127,217 @@ module IntegrationFactors
       tools(*tool_classes)
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # GROUP 31 — SHARED STATE helpers
+  # ---------------------------------------------------------------------------
+
+  LM_MODEL_31 = LM_STUDIO_MODEL
+
+  # Returns an anonymous Phronomy::Agent::Base subclass suitable for use as a
+  # SharedState researcher.  The class has no tools of its own; SharedState
+  # injects write_finding and read_store automatically.
+  #
+  # @return [Class]
+  def self.ss_researcher_class
+    Class.new(Phronomy::Agent::Base) do
+      model LM_MODEL_31
+      provider :openai
+      instructions "You are a research assistant."
+    end
+  end
+
+  # Builds a SharedState team class configured according to the given factor
+  # labels.
+  #
+  # @param termination [Symbol] :max_cycles | :terminate_when | :timeout
+  # @param instruction [Symbol] :present | :absent
+  # @param coordination [Symbol] :custom | :default
+  # @param aggregate [Symbol] :with_block | :none
+  # @return [Class<Phronomy::Agent::SharedState>]
+  def self.ss_team_class(termination:, instruction:, coordination:, aggregate:, researcher:)
+    instr_text = (instruction == :present) ? "Focus only on security aspects." : nil
+
+    Class.new(Phronomy::Agent::SharedState) do
+      case termination
+      when :max_cycles
+        max_cycles 2
+      when :terminate_when
+        max_cycles 100
+        terminate_when { |store| store.size > 0 }
+      when :timeout
+        timeout 0
+        max_cycles 100
+      end
+
+      if coordination == :custom
+        coordination "CUSTOM COORDINATION GUIDE: Share all findings."
+      end
+
+      if instr_text
+        member researcher, instruction: instr_text
+      else
+        member researcher
+      end
+
+      if aggregate == :with_block
+        aggregate { |store| store.read_all.map { |f| f[:content] }.join(" | ") }
+      end
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # GROUP 32 — TEAM COORDINATOR helpers
+  # ---------------------------------------------------------------------------
+
+  LM_MODEL_32 = LM_STUDIO_MODEL
+
+  # Returns an anonymous worker Agent::Base subclass for TeamCoordinator tests.
+  # The worker simply echoes back the task description as its output.
+  # To simulate a failure, pass failing: true.
+  #
+  # @param failing [Boolean] when true, invoke raises RuntimeError
+  # @return [Class]
+  def self.tc_worker_class(failing: false)
+    Class.new(Phronomy::Agent::Base) do
+      model LM_MODEL_32
+      provider :openai
+      instructions "You are a worker agent."
+
+      if failing
+        define_method(:invoke) do |input, config: {}|
+          raise "worker_error"
+        end
+      end
+    end
+  end
+
+  # Builds a TeamCoordinator class configured according to the given factor
+  # labels.
+  #
+  # @param pool_size [Symbol] :single | :multi
+  # @param on_error [Symbol] :raise | :skip
+  # @param aggregate [Symbol] :with_block | :none
+  # @param worker [Class] worker agent class to use in the pool
+  # @return [Class<Phronomy::Agent::TeamCoordinator>]
+  def self.tc_team_class(pool_size:, on_error:, aggregate:, worker:)
+    size = (pool_size == :single) ? 1 : 2
+    err = on_error
+
+    Class.new(Phronomy::Agent::TeamCoordinator) do
+      coordinator_model LM_MODEL_32
+      coordinator_provider :openai
+      coordinator_instructions "You are a task coordinator. Use enqueue_task to " \
+        "add tasks, then call finalize when done."
+
+      pool size: size, agent: worker, on_error: err
+
+      if aggregate == :with_block
+        aggregate { |assignments| assignments.map { |a| a[:result] }.compact.join(" | ") }
+      end
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # GROUP 33 — GENERATOR VERIFIER helpers
+  # ---------------------------------------------------------------------------
+
+  LM_MODEL_33 = LM_STUDIO_MODEL
+
+  # Returns an anonymous Agent::Base subclass whose LLM call is stubbed by
+  # WebMock; suitable for use as draft_agent or review_agent in GeneratorVerifier
+  # integration tests.
+  #
+  # @return [Class<Phronomy::Agent::Base>]
+  def self.gv_agent_class
+    Class.new(Phronomy::Agent::Base) do
+      model LM_MODEL_33
+      provider :openai
+    end
+  end
+
+  # Builds a GeneratorVerifier pipeline with the given factor labels.
+  #
+  # @param approval_outcome [Symbol] :approved | :rejected
+  # @param iteration_limit  [Symbol] :one | :three
+  # @param raise_policy     [Symbol] :raise | :no_raise
+  # @return [Phronomy::GeneratorVerifier]
+  def self.gv_pipeline(approval_outcome:, iteration_limit:, raise_policy:)
+    draft_agent = gv_agent_class
+    review_agent = gv_agent_class
+    max_iter = (iteration_limit == :one) ? 1 : 3
+    raise_flag = (raise_policy == :raise)
+
+    Phronomy::GeneratorVerifier.new(
+      draft_agent: draft_agent,
+      review_agent: review_agent,
+      draft_prompt_builder: lambda { |input, feedback|
+        base = "Draft question: #{input}"
+        feedback ? "#{base}\nPrevious review feedback: #{feedback}" : base
+      },
+      review_prompt_builder: ->(input, _draft, _citations) { "Review draft for: #{input}" },
+      confidence_threshold: 0.7,
+      max_iterations: max_iter,
+      raise_if_untrusted: raise_flag
+    )
+  end
+
+  # Returns a WebMock-compatible draft response JSON for a given confidence.
+  # @param confidence [Float]
+  # @return [String]
+  def self.gv_draft_response(confidence: 0.9)
+    JSON.generate(
+      answer: "The answer is 42.",
+      confidence: confidence,
+      citations: [{source: "policy.md", excerpt: "Key fact."}]
+    )
+  end
+
+  # Returns a WebMock-compatible review response JSON.
+  # @param approved [Boolean]
+  # @return [String]
+  def self.gv_review_response(approved: true)
+    score = approved ? 0.85 : 0.3
+    feedback = approved ? "" : "Missing citation for claim X."
+    JSON.generate(approved: approved, score: score, feedback: feedback)
+  end
+
+  # ---------------------------------------------------------------------------
+  # GROUP 34 — ORCHESTRATOR helpers
+  # ---------------------------------------------------------------------------
+
+  LM_MODEL_34 = LM_STUDIO_MODEL
+
+  # Returns an anonymous Agent::Base subclass suitable as an Orchestrator
+  # subagent.  Its LLM response is provided via WebMock stubs.
+  #
+  # @return [Class<Phronomy::Agent::Base>]
+  def self.orch_subagent_class
+    Class.new(Phronomy::Agent::Base) do
+      model LM_MODEL_34
+      provider :openai
+      instructions "You are a specialist subagent."
+    end
+  end
+
+  # Builds an Orchestrator class with the given factors.
+  # Only used for the :declarative delegation mode.
+  #
+  # @param subagent_count [Symbol] :single | :multiple
+  # @param on_error       [Symbol] :raise | :skip
+  # @return [Class<Phronomy::Agent::Orchestrator>]
+  def self.orch_declarative_class(subagent_count:, on_error:)
+    sa1 = orch_subagent_class
+    sa2 = orch_subagent_class
+    err = on_error
+
+    Class.new(Phronomy::Agent::Orchestrator) do
+      model LM_MODEL_34
+      provider :openai
+      instructions "You are an orchestrator. Use dispatch_to tools to delegate."
+
+      subagent :worker_a, sa1, on_error: err
+      subagent :worker_b, sa2, on_error: err if subagent_count == :multiple
+    end
+  end
 end

@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0] - 2026-05-19
+
+### Removed
+
+- **`Phronomy::TrustPipeline` removed**: The `TrustPipeline` class and its inner
+  `TrustResult` value object have been deleted. Use `Phronomy::GeneratorVerifier`
+  instead, which provides the same generator-verifier pattern with a cleaner,
+  fully injectable API.
+
+### Added
+
+- **`Phronomy::GeneratorVerifier`** — Generator-Verifier coordination loop
+  (Anthropic blog, Pattern 1). Wraps a generator agent and a verifier agent with
+  fully injectable prompt builders, response parsers, a configurable iteration
+  limit, and an approval-outcome raise policy.
+- **`Phronomy::Agent::Orchestrator`** — Base class for orchestrator agents
+  (Anthropic blog, Pattern 2). Extends `Agent::Base` with a `subagent` DSL for
+  declarative subagent registration as LLM-callable tools, plus `dispatch_parallel`
+  and `fan_out` for programmatic parallel invocation.
+- **`Phronomy::Agent::TeamCoordinator`** — Agent teams coordination pattern
+  (Anthropic blog, Pattern 3). An LLM-powered coordinator with a shared task
+  queue and a pool of worker agents that carry conversation history across task
+  assignments. Adds `coordinator_provider` DSL for independent LLM routing.
+- **`Phronomy::Agent::SharedState`** — Shared-state coordination pattern
+  (Anthropic blog, Pattern 5). Peer agents collaborate via a `KnowledgeStore`;
+  the `member` DSL registers agents with per-agent instructions; `coordination`
+  sets the team protocol; `build_prompt` injects a tool-usage guide automatically.
+- **`Phronomy::LowConfidenceError`** — Exception raised by `GeneratorVerifier`
+  when `raise_policy: :raise` and verification fails after exhausting the
+  iteration limit.
+
+### Changed
+
+- **`Phronomy::Graph::StateGraph` event system refactored**: Per-node `advance`
+  events replaced with a unified `node_completed` event queue, reducing
+  event-handler registration overhead and simplifying listener registration.
+
+---
+
 ## [0.3.0] - 2026-05-18
 
 ### Removed

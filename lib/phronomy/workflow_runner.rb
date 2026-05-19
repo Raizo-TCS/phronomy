@@ -137,20 +137,42 @@ module Phronomy
       current_node = from_node || @entry_point
       tracker = new_phase_machine(current_node)
       tracker.context = state
+      # Event queue: decouple node execution from transition firing.
+      # Events are enqueued after a node completes and processed at the top
+      # of the next iteration so that guards always see the freshest context.
+      event_queue = []
       step = 0
 
-      while current_node && current_node != FINISH
-        if step >= recursion_limit
-          raise Phronomy::RecursionLimitError,
-            "Recursion limit (#{recursion_limit}) exceeded"
+      loop do
+        break if current_node == FINISH
+
+        # -- Process next pending event -----------------------------------------
+        # Dequeue one event and fire it against the state machine. Guards are
+        # evaluated here (at fire time) so they see the context written by the
+        # node that enqueued the event.
+        if (event = event_queue.shift)
+          if step >= recursion_limit
+            raise Phronomy::RecursionLimitError,
+              "Recursion limit (#{recursion_limit}) exceeded"
+          end
+
+          fire_event!(tracker, event, current_node)
+          next_phase = tracker.phase.to_sym
+          # When next_phase == current_node no transition matched → terminal node.
+          current_node = (next_phase == current_node) ? FINISH : next_phase
+          step += 1
+          next
         end
 
-        # Auto-halt at wait states: save context and return to caller.
+        # -- Queue empty: check for halt -----------------------------------------
+        # Auto-halt at wait states: persist phase in context and return to caller.
+        # The caller resumes via send_event, which starts a fresh run_graph call.
         if @wait_state_names.include?(current_node)
           state.set_graph_metadata(thread_id: state.thread_id, phase: current_node)
           return state
         end
 
+        # -- Execute node action ------------------------------------------------
         node_fn = @nodes[current_node]
         raise ArgumentError, "Node #{current_node.inspect} is not defined" unless node_fn
 
@@ -165,27 +187,22 @@ module Phronomy
             "expected Hash, #{@state_class}, or nil"
         end
 
-        # Update tracker so guards see the freshest context.
+        # Update tracker so guards see the freshest context when the event fires.
         tracker.context = state
 
         event_block&.call({node: current_node, state: state})
 
-        # Delegate transition decision to state_machines.
+        # -- Enqueue transition event -------------------------------------------
+        # node_completed: generic event for all after-transitions (unconditional).
+        # route event:    user-named event carrying guarded conditional branches.
+        # No enqueue:     terminal node — next iteration exits via FINISH check.
         if @after_transitions.key?(current_node)
-          fire_event!(tracker, :"advance_#{current_node}", current_node)
+          event_queue << :node_completed
         elsif @route_transitions.key?(current_node)
-          ev_name = @route_transitions[current_node][:event_name]
-          fire_event!(tracker, ev_name, current_node)
+          event_queue << @route_transitions[current_node][:event_name]
+        else
+          current_node = FINISH
         end
-        # Nodes with no declared outgoing transition are treated as terminal:
-        # next_phase == current_node triggers the FINISH assignment below.
-
-        next_phase = tracker.phase.to_sym
-        # When next_phase == current_node: no transition fired (terminal node) → end.
-        # When next_phase == :__end__ (== FINISH): route led to finish → exit loop.
-        current_node = (next_phase == current_node) ? FINISH : next_phase
-
-        step += 1
       end
 
       state.set_graph_metadata(thread_id: state.thread_id, phase: :__end__)
@@ -225,9 +242,11 @@ module Phronomy
         state_machine :phase, initial: entry do
           all_states.each { |s| state s }
 
-          # 1. After-transitions: unconditional, fire on action completion.
-          after_trans.each do |from, to|
-            event :"advance_#{from}" do
+          # 1. After-transitions: one generic :node_completed event covers all
+          #    unconditional transitions. This keeps event names independent of
+          #    source state names and matches standard state machine semantics.
+          event :node_completed do
+            after_trans.each do |from, to|
               transition from => to
             end
           end
