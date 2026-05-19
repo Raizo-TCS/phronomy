@@ -66,6 +66,66 @@ RSpec.describe Phronomy::Agent::Base do
       expect(NoModelAgent.model).to eq("fallback-model")
       Phronomy.reset_configuration!
     end
+
+    describe "DSL inheritance via Class.new (anonymous subclass)" do
+      let(:tool_a) {
+        Class.new(Phronomy::Tool::Base) {
+          tool_name "tool_a"
+          def execute = "a"
+        }
+      }
+
+      let(:parent) do
+        t = tool_a
+        Class.new(Phronomy::Agent::Base) do
+          model "parent-model"
+          provider :openai
+          instructions "Parent instructions."
+          tools t
+        end
+      end
+
+      it "inherits instructions when subclass does not override" do
+        child = Class.new(parent)
+        expect(child.instructions).to eq("Parent instructions.")
+      end
+
+      it "inherits provider when subclass does not override" do
+        child = Class.new(parent)
+        expect(child.provider).to eq(:openai)
+      end
+
+      it "inherits tools when subclass does not override" do
+        child = Class.new(parent)
+        expect(child.tools).to eq(parent.tools)
+      end
+
+      it "uses the subclass instructions when explicitly overridden" do
+        child = Class.new(parent) { instructions "Child instructions." }
+        expect(child.instructions).to eq("Child instructions.")
+        expect(parent.instructions).to eq("Parent instructions.")
+      end
+
+      it "uses the subclass provider when explicitly overridden" do
+        child = Class.new(parent) { provider :anthropic }
+        expect(child.provider).to eq(:anthropic)
+        expect(parent.provider).to eq(:openai)
+      end
+
+      it "uses the subclass tools when explicitly overridden" do
+        tool_b = Class.new(Phronomy::Tool::Base) {
+          tool_name "tool_b"
+          def execute = "b"
+        }
+        child = Class.new(parent) { tools tool_b }
+        expect(child.tools).to eq([tool_b])
+        expect(parent.tools).to eq([tool_a])
+      end
+
+      it "returns nil instructions at the Base level (terminates chain)" do
+        expect(Phronomy::Agent::Base.instructions).to be_nil
+      end
+    end
   end
 
   describe "#invoke" do
