@@ -122,14 +122,14 @@ RSpec.describe Phronomy::Agent::Orchestrator do
 
     describe "on_error: :skip (Issue #99)" do
       it "returns nil for failed tasks instead of raising" do
-        good  = stub_agent("ok")
-        bad   = Class.new(Phronomy::Agent::Base) do
+        good = stub_agent("ok")
+        bad = Class.new(Phronomy::Agent::Base) do
           define_method(:invoke) { |*| raise "boom" }
         end
 
         results = orchestrator.dispatch_parallel(
           {agent: good, input: "a"},
-          {agent: bad,  input: "b"},
+          {agent: bad, input: "b"},
           {agent: good, input: "c"},
           on_error: :skip
         )
@@ -142,10 +142,15 @@ RSpec.describe Phronomy::Agent::Orchestrator do
 
     describe "on_error: :raise semantics (Issue #99)" do
       it "runs all tasks before re-raising (fail-last, not fail-fast)" do
-        run_count = Concurrent::AtomicFixnum.new(0) rescue (require "concurrent-ruby"; Concurrent::AtomicFixnum.new(0))
+        begin
+          Concurrent::AtomicFixnum.new(0)
+        rescue
+          (require "concurrent-ruby"
+           Concurrent::AtomicFixnum.new(0))
+        end
 
         # Use a mutex-protected counter instead if concurrent-ruby is unavailable
-        mutex   = Mutex.new
+        mutex = Mutex.new
         counter = 0
 
         counting_agent = Class.new(Phronomy::Agent::Base) do
@@ -161,7 +166,7 @@ RSpec.describe Phronomy::Agent::Orchestrator do
         expect {
           orchestrator.dispatch_parallel(
             {agent: counting_agent, input: "1"},
-            {agent: failing_agent,  input: "2"},
+            {agent: failing_agent, input: "2"},
             {agent: counting_agent, input: "3"},
             on_error: :raise
           )
@@ -176,11 +181,11 @@ RSpec.describe Phronomy::Agent::Orchestrator do
         error_0 = RuntimeError.new("error from task 0")
         error_2 = RuntimeError.new("error from task 2")
 
-        failing_first  = Class.new(Phronomy::Agent::Base) do
+        failing_first = Class.new(Phronomy::Agent::Base) do
           error_0_ref = error_0
           define_method(:invoke) { |*| raise error_0_ref }
         end
-        failing_third  = Class.new(Phronomy::Agent::Base) do
+        failing_third = Class.new(Phronomy::Agent::Base) do
           error_2_ref = error_2
           define_method(:invoke) { |*| raise error_2_ref }
         end
@@ -189,7 +194,7 @@ RSpec.describe Phronomy::Agent::Orchestrator do
         expect {
           orchestrator.dispatch_parallel(
             {agent: failing_first, input: "0"},
-            {agent: good,          input: "1"},
+            {agent: good, input: "1"},
             {agent: failing_third, input: "2"},
             on_error: :raise
           )
@@ -215,7 +220,7 @@ RSpec.describe Phronomy::Agent::Orchestrator do
 
       it "returns correct results when max_concurrency exceeds task count" do
         agents = 3.times.map { |i| stub_agent("r#{i}") }
-        tasks  = agents.each_with_index.map { |a, i| {agent: a, input: i.to_s} }
+        tasks = agents.each_with_index.map { |a, i| {agent: a, input: i.to_s} }
 
         results = orchestrator.dispatch_parallel(*tasks, max_concurrency: 10)
 

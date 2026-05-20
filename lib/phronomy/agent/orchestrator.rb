@@ -110,7 +110,7 @@ module Phronomy
         unless [:raise, :skip].include?(on_error)
           raise ArgumentError, "unknown on_error: #{on_error.inspect}"
         end
-        unless max_concurrency.nil? || (max_concurrency.is_a?(Integer) && max_concurrency.positive?)
+        if max_concurrency && !(max_concurrency.is_a?(Integer) && max_concurrency.positive?)
           raise ArgumentError, "max_concurrency must be a positive Integer"
         end
 
@@ -153,8 +153,8 @@ module Phronomy
       def bounded_map(tasks, max_concurrency:, on_error:)
         return [] if tasks.empty?
 
-        results      = Array.new(tasks.length)
-        errors       = Array.new(tasks.length)
+        results = Array.new(tasks.length)
+        errors = Array.new(tasks.length)
         errors_mutex = Mutex.new
 
         queue = Queue.new
