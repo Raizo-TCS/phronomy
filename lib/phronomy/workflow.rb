@@ -8,7 +8,7 @@ module Phronomy
   #
   # Defines agent workflows in terms of *states* and *events* backed by
   # Phronomy::WorkflowRunner. This is the primary high-level API
-  # for graph-based execution in phronomy.
+  # for workflow-based execution in phronomy.
   #
   # == Basic usage
   #
@@ -91,7 +91,7 @@ module Phronomy
       @runner.send_event(state: state, event: event, input: input)
     end
 
-    # Streaming execution. Yields { node: Symbol, state: Object } after each node.
+    # Streaming execution. Yields { state: Symbol, context: Object } after each state action.
     # @param input [Hash]
     # @param config [Hash]
     # @yield [Hash]
@@ -112,7 +112,7 @@ module Phronomy
       def initialize(context_class)
         @context_class = context_class
         @initial = nil
-        # { node_name => callable }
+        # { state_name => callable }
         @states = {}
         # Array of { from:, to: } — auto-transitions after a state action
         @after_transitions = []
@@ -169,7 +169,7 @@ module Phronomy
 
       # Builds and returns a Phronomy::Workflow backed by a WorkflowRunner.
       def build
-        nodes = @states.dup
+        state_actions = @states.dup
 
         # After-transitions: { from => to }
         # Unconditional transitions that fire automatically after an action state completes.
@@ -203,11 +203,11 @@ module Phronomy
 
         runner = Phronomy::WorkflowRunner.new(
           state_class: @context_class,
-          nodes: nodes,
+          state_actions: state_actions,
           after_transitions: after_transitions,
           route_transitions: route_transitions,
           external_events: external_events,
-          entry_point: @initial || nodes.keys.first,
+          entry_point: @initial || state_actions.keys.first,
           wait_state_names: @wait_state_names
         )
 

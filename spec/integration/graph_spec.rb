@@ -59,7 +59,7 @@ RSpec.describe "Group 7: Workflow", :integration do
 
   # TC-001: linear; no interrupt; replace-type; stateless
   describe "TC-001" do
-    it "executes both nodes in order" do
+    it "executes both states in order" do
       with_nil_store do
         app = Phronomy::Workflow.define(G7ReplaceState) do
           initial :node_a
@@ -94,7 +94,7 @@ RSpec.describe "Group 7: Workflow", :integration do
         expect(state.phase).to eq(:pause_before_second)
         expect(state.log).to include("first")
         expect(state.log).not_to include("second")
-        expect(events.map { |e| e[:node] }).to eq([:first])
+        expect(events.map { |e| e[:state] }).to eq([:first])
         final = app.resume(state: state)
         expect(final.log).to include("second")
         expect(final.halted?).to be(false)
@@ -188,7 +188,7 @@ RSpec.describe "Group 7: Workflow", :integration do
         expect(state.halted?).to be(true)
         expect(state.log).to include("entry")
         expect(state.log).to include("branch_a")
-        expect(events.map { |e| e[:node] }).to include(:entry, :branch_a)
+        expect(events.map { |e| e[:state] }).to include(:entry, :branch_a)
       end
     end
   end
@@ -199,7 +199,7 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  # TC-010: multi-node; recursion_limit=1 -> RecursionLimitError; stateless
+  # TC-010: multi-state; recursion_limit=1 -> RecursionLimitError; stateless
   describe "TC-010" do
     it "raises RecursionLimitError" do
       with_nil_store do
@@ -219,7 +219,7 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  # TC-011: multi-node; wait_state halt; resume with input; replace-type; proc default; in-memory; stream
+  # TC-011: multi-state; wait_state halt; resume with input; replace-type; proc default; in-memory; stream
   describe "TC-011" do
     it "halts at wait state after n2, then resumes with new input" do
       with_in_memory_store do
@@ -239,7 +239,7 @@ RSpec.describe "Group 7: Workflow", :integration do
         expect(state.halted?).to be(true)
         expect(state.phase).to eq(:pause_before_n3)
         expect(state.value).to eq("n2")
-        expect(events.map { |e| e[:node] }).to eq([:n1, :n2])
+        expect(events.map { |e| e[:state] }).to eq([:n1, :n2])
         final = app.resume(state: state, input: {value: "injected"})
         expect(final.value).to eq("n3-injected")
         expect(final.halted?).to be(false)
@@ -247,7 +247,7 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  # TC-012: multi-node; wait_state halt; resume without input; replace-type; stateless
+  # TC-012: multi-state; wait_state halt; resume without input; replace-type; stateless
   describe "TC-012" do
     it "halts at wait state after p2 and resumes to completion" do
       with_nil_store do
@@ -278,9 +278,9 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  # TC-014: multi-node; no interrupt; proc-default; large recursion_limit; stateless
+  # TC-014: multi-state; no interrupt; proc-default; large recursion_limit; stateless
   describe "TC-014" do
-    it "executes all three nodes" do
+    it "executes all three states" do
       with_nil_store do
         app = Phronomy::Workflow.define(G7ProcDefaultState) do
           initial :a

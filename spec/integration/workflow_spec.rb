@@ -8,7 +8,7 @@ require_relative "spec_helper"
 # Feasible cases: 8
 # Infeasible cases: 0
 #
-# No LLM calls are required; all nodes perform pure data transformations.
+# No LLM calls are required; all states perform pure data transformations.
 
 RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
   # ---------------------------------------------------------------------------

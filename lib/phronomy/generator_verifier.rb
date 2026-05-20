@@ -133,7 +133,7 @@ module Phronomy
       @threshold = confidence_threshold.to_f
       @max_iterations = max_iterations.to_i
       @raise_if_untrusted = raise_if_untrusted
-      @compiled_graph = nil
+      @compiled_workflow = nil
     end
 
     # Run the generator-verifier pipeline.
@@ -144,7 +144,7 @@ module Phronomy
     # @raise [Phronomy::LowConfidenceError] when +raise_if_untrusted:+ is +true+
     #   and the result does not meet the confidence threshold
     def invoke(input, config: {})
-      app = compiled_graph
+      app = compiled_workflow
       state = app.invoke({input: input}, config: config)
       confidence = combined_confidence(state)
       trusted = confidence >= @threshold
@@ -166,8 +166,8 @@ module Phronomy
       [(state.self_score || 0.0).to_f, (state.review_score || 0.0).to_f].min
     end
 
-    def compiled_graph
-      @compiled_graph ||= build_workflow
+    def compiled_workflow
+      @compiled_workflow ||= build_workflow
     end
 
     def build_workflow

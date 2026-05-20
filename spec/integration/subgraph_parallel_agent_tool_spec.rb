@@ -50,7 +50,7 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
   # ---------------------------------------------------------------------------
   # TC-001: flat workflow (no subgraph, no parallel) — baseline
   # ---------------------------------------------------------------------------
-  it "TC-001: flat linear workflow executes all nodes in order" do
+  it "TC-001: flat linear workflow executes all states in order" do
     app = Phronomy::Workflow.define(G13BaseState) do
       initial :a
       state :a, action: ->(s) { s.merge(value: "a", step: s.step + 1) }

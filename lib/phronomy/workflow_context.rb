@@ -49,7 +49,7 @@ module Phronomy
     # Encoding:
     #   :__end__           — workflow completed (or not yet started)
     #   :awaiting_<name>   — halted at a wait_state(:awaiting_<name>) declaration
-    #   :<node>            — resuming at <node> (workflow paused before its execution)
+    #   :<state>           — resuming at <state> (workflow paused before its execution)
     # @return [Symbol]
     def phase
       @phase || :__end__

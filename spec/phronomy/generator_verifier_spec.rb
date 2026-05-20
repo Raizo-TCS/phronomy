@@ -206,16 +206,16 @@ RSpec.describe Phronomy::GeneratorVerifier do
     end
   end
 
-  describe "compiled_graph caching" do
+  describe "compiled_workflow caching" do
     subject(:pipeline) do
       build_pipeline(draft_agent: good_draft, review_agent: approve)
     end
 
     it "returns the same compiled graph object on repeated invocations" do
       pipeline.invoke("question one")
-      graph_first = pipeline.send(:compiled_graph)
+      graph_first = pipeline.send(:compiled_workflow)
       pipeline.invoke("question two")
-      graph_second = pipeline.send(:compiled_graph)
+      graph_second = pipeline.send(:compiled_workflow)
       expect(graph_first).to equal(graph_second)
     end
   end

@@ -5,7 +5,7 @@ require "state_machines"
 
 module Phronomy
   # Execution engine for compiled workflows.
-  # Manages node execution, phase transitions, halt/resume, and wait states.
+  # Manages state action execution, phase transitions, halt/resume, and wait states.
   # Instantiated by Phronomy::Workflow and used internally.
   #
   # == Design principle
@@ -36,11 +36,11 @@ module Phronomy
     # Sentinel value for the terminal state of a workflow.
     FINISH = :__end__
 
-    def initialize(state_class:, nodes:, after_transitions:, route_transitions:,
+    def initialize(state_class:, state_actions:, after_transitions:, route_transitions:,
       external_events:, entry_point:, wait_state_names: [],
       before_callbacks: {}, after_callbacks: {})
       @state_class = state_class
-      @nodes = nodes
+      @state_actions = state_actions
       @after_transitions = after_transitions  # { from => to }
       @route_transitions = route_transitions  # { from => [{guard:, to:}, ...] }
       @external_events = external_events    # { name => [{from:, to:, guard:}, ...] }
@@ -60,7 +60,7 @@ module Phronomy
       caller_meta[:user_id] = config[:user_id] if config[:user_id]
       caller_meta[:session_id] = config[:session_id] if config[:session_id]
 
-      trace("graph.invoke", input: input.inspect, **caller_meta) do |_span|
+      trace("workflow.invoke", input: input.inspect, **caller_meta) do |_span|
         thread_id = config[:thread_id] || SecureRandom.uuid
         recursion_limit = config.fetch(:recursion_limit, Phronomy.configuration.recursion_limit)
         state = @state_class.new(**input)
@@ -114,11 +114,11 @@ module Phronomy
       fire_event!(tracker, ev_to_fire, current_phase)
 
       next_phase = tracker.phase.to_sym
-      next_node = (next_phase == :__end__) ? FINISH : next_phase
-      run_graph(state, from_node: next_node)
+      next_state = (next_phase == :__end__) ? FINISH : next_phase
+      run_graph(state, from_state: next_state)
     end
 
-    # Streaming execution. Yields { node: Symbol, state: Object } after each node completes.
+    # Streaming execution. Yields { state: Symbol, context: Object } after each state action completes.
     # @param input [Hash]
     # @param config [Hash]
     # @yield [Hash]
@@ -133,33 +133,33 @@ module Phronomy
 
     private
 
-    def run_graph(state, from_node: nil, recursion_limit: 25, &event_block)
-      current_node = from_node || @entry_point
-      tracker = new_phase_machine(current_node)
-      tracker.context = state
-      # Event queue: decouple node execution from transition firing.
-      # Events are enqueued after a node completes and processed at the top
+    def run_graph(ctx, from_state: nil, recursion_limit: 25, &event_block)
+      current_state = from_state || @entry_point
+      tracker = new_phase_machine(current_state)
+      tracker.context = ctx
+      # Event queue: decouple state action execution from transition firing.
+      # Events are enqueued after a state action completes and processed at the top
       # of the next iteration so that guards always see the freshest context.
       event_queue = []
       step = 0
 
       loop do
-        break if current_node == FINISH
+        break if current_state == FINISH
 
         # -- Process next pending event -----------------------------------------
         # Dequeue one event and fire it against the state machine. Guards are
         # evaluated here (at fire time) so they see the context written by the
-        # node that enqueued the event.
+        # state action that enqueued the event.
         if (event = event_queue.shift)
           if step >= recursion_limit
             raise Phronomy::RecursionLimitError,
               "Recursion limit (#{recursion_limit}) exceeded"
           end
 
-          fire_event!(tracker, event, current_node)
+          fire_event!(tracker, event, current_state)
           next_phase = tracker.phase.to_sym
-          # When next_phase == current_node no transition matched → terminal node.
-          current_node = (next_phase == current_node) ? FINISH : next_phase
+          # When next_phase == current_state no transition matched → terminal state.
+          current_state = (next_phase == current_state) ? FINISH : next_phase
           step += 1
           next
         end
@@ -167,56 +167,56 @@ module Phronomy
         # -- Queue empty: check for halt -----------------------------------------
         # Auto-halt at wait states: persist phase in context and return to caller.
         # The caller resumes via send_event, which starts a fresh run_graph call.
-        if @wait_state_names.include?(current_node)
-          state.set_graph_metadata(thread_id: state.thread_id, phase: current_node)
-          return state
+        if @wait_state_names.include?(current_state)
+          ctx.set_graph_metadata(thread_id: ctx.thread_id, phase: current_state)
+          return ctx
         end
 
-        # -- Execute node action ------------------------------------------------
-        node_fn = @nodes[current_node]
-        raise ArgumentError, "Node #{current_node.inspect} is not defined" unless node_fn
+        # -- Execute state action -----------------------------------------------
+        state_action = @state_actions[current_state]
+        raise ArgumentError, "State #{current_state.inspect} is not defined" unless state_action
 
-        result = node_fn.call(state)
-        state = case result
-        when Hash then state.merge(result)
+        result = state_action.call(ctx)
+        ctx = case result
+        when Hash then ctx.merge(result)
         when @state_class then result
-        when nil then state
+        when nil then ctx
         else
           raise ArgumentError,
-            "Node #{current_node} returned #{result.class}; " \
+            "State #{current_state} returned #{result.class}; " \
             "expected Hash, #{@state_class}, or nil"
         end
 
         # Update tracker so guards see the freshest context when the event fires.
-        tracker.context = state
+        tracker.context = ctx
 
-        event_block&.call({node: current_node, state: state})
+        event_block&.call({state: current_state, context: ctx})
 
         # -- Enqueue transition event -------------------------------------------
-        # node_completed: generic event for all after-transitions (unconditional).
-        # route event:    user-named event carrying guarded conditional branches.
-        # No enqueue:     terminal node — next iteration exits via FINISH check.
-        if @after_transitions.key?(current_node)
-          event_queue << :node_completed
-        elsif @route_transitions.key?(current_node)
-          event_queue << @route_transitions[current_node][:event_name]
+        # state_completed: generic event for all after-transitions (unconditional).
+        # route event:     user-named event carrying guarded conditional branches.
+        # No enqueue:      terminal state — next iteration exits via FINISH check.
+        if @after_transitions.key?(current_state)
+          event_queue << :state_completed
+        elsif @route_transitions.key?(current_state)
+          event_queue << @route_transitions[current_state][:event_name]
         else
-          current_node = FINISH
+          current_state = FINISH
         end
       end
 
-      state.set_graph_metadata(thread_id: state.thread_id, phase: :__end__)
-      state
+      ctx.set_graph_metadata(thread_id: ctx.thread_id, phase: :__end__)
+      ctx
     end
 
     # Fires +event_name+ on +tracker+, raising a descriptive error if no
     # transition matches. state_machines event methods return false when no
     # transition can be taken (invalid state or all guards fail).
-    def fire_event!(tracker, event_name, from_node)
+    def fire_event!(tracker, event_name, from_state)
       return if tracker.send(event_name)
 
       raise ArgumentError,
-        "Transition from #{from_node.inspect} via event #{event_name.inspect} failed. " \
+        "Transition from #{from_state.inspect} via event #{event_name.inspect} failed. " \
         "Ensure at least one guard matches or add a fallback (no-guard) transition."
     end
 
@@ -230,7 +230,7 @@ module Phronomy
     # Guard lambdas bridge the PhaseTracker and WorkflowContext via +m.context+.
     def build_phase_machine_class
       entry = @entry_point
-      all_states = (@nodes.keys + @wait_state_names + [:__end__]).uniq
+      all_states = (@state_actions.keys + @wait_state_names + [:__end__]).uniq
       after_trans = @after_transitions   # { from => to }
       route_trans = @route_transitions   # { from => [{guard:, to:}, ...] }
       ext_events = @external_events     # { name => [{from:, to:, guard:}, ...] }
@@ -242,10 +242,10 @@ module Phronomy
         state_machine :phase, initial: entry do
           all_states.each { |s| state s }
 
-          # 1. After-transitions: one generic :node_completed event covers all
+          # 1. After-transitions: one generic :state_completed event covers all
           #    unconditional transitions. This keeps event names independent of
           #    source state names and matches standard state machine semantics.
-          event :node_completed do
+          event :state_completed do
             after_trans.each do |from, to|
               transition from => to
             end
@@ -285,12 +285,12 @@ module Phronomy
       raise ArgumentError, "Failed to build phase machine: #{e.message}"
     end
 
-    # Creates a PhaseTracker instance initialized to +from_node+.
-    def new_phase_machine(from_node)
+    # Creates a PhaseTracker instance initialized to +from_state+.
+    def new_phase_machine(from_state)
       machine = @phase_machine_class.new
       # Override the initial state set by state_machine's initializer so we can
-      # resume from an arbitrary node (e.g. after a wait state).
-      machine.instance_variable_set(:@phase, from_node.to_s)
+      # resume from an arbitrary state (e.g. after a wait state).
+      machine.instance_variable_set(:@phase, from_state.to_s)
       machine
     end
   end
