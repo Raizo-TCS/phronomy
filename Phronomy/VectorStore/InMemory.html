@@ -187,7 +187,7 @@ the message count is small enough that a linear scan is fast enough.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>  &#x21d2; InMemory </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(dimension: nil)  &#x21d2; InMemory </a>
     
 
     
@@ -291,7 +291,7 @@ the message count is small enough that a linear scan is fast enough.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::VectorStore::InMemory (class)">InMemory</a></span></tt> 
+    #<strong>initialize</strong>(dimension: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::VectorStore::InMemory (class)">InMemory</a></span></tt> 
   
 
   
@@ -304,7 +304,30 @@ the message count is small enough that a linear scan is fast enough.</p>
   </div>
 </div>
 <div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
   
+    <li>
+      
+        <span class='name'>dimension</span>
+      
+      
+        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>expected embedding dimension.
+When nil, the dimension is inferred from the first call to #add.
+For multi-threaded use, pass dimension: explicitly; concurrent first
+adds are not guaranteed to be race-free.</p></div>
+      
+    </li>
+  
+</ul>
+
 
 </div><table class="source_code">
   <tr>
@@ -312,15 +335,17 @@ the message count is small enough that a linear scan is fast enough.</p>
       <pre class="lines">
 
 
-15
-16
-17</pre>
+19
+20
+21
+22</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 15</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 19</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>dimension:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@documents</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+  <span class='ivar'>@expected_dimension</span> <span class='op'>=</span> <span class='id identifier rubyid_dimension'>dimension</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -397,15 +422,21 @@ the message count is small enough that a linear scan is fast enough.</p>
       <pre class="lines">
 
 
-22
-23
-24
-25</pre>
+27
+28
+29
+30
+31
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 22</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 27</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='label'>id:</span><span class='comma'>,</span> <span class='label'>embedding:</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+  <span class='comment'># Establish expected dimension on first add, then validate.
+</span>  <span class='ivar'>@expected_dimension</span> <span class='op'>||=</span> <span class='id identifier rubyid_embedding'>embedding</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
+  <span class='id identifier rubyid_validate_embedding_dimension!'>validate_embedding_dimension!</span><span class='lparen'>(</span><span class='id identifier rubyid_embedding'>embedding</span><span class='comma'>,</span> <span class='ivar'>@expected_dimension</span><span class='rparen'>)</span>
   <span class='ivar'>@documents</span><span class='lbracket'>[</span><span class='id identifier rubyid_id'>id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='label'>embedding:</span> <span class='id identifier rubyid_embedding'>embedding</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='rbrace'>}</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
@@ -429,13 +460,13 @@ the message count is small enough that a linear scan is fast enough.</p>
       <pre class="lines">
 
 
-49
-50
-51
-52</pre>
+59
+60
+61
+62</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 59</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span>
   <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span>
@@ -461,13 +492,13 @@ the message count is small enough that a linear scan is fast enough.</p>
       <pre class="lines">
 
 
-44
-45
-46
-47</pre>
+54
+55
+56
+57</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 44</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 54</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remove'>remove</span><span class='lparen'>(</span><span class='label'>id:</span><span class='rparen'>)</span>
   <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
@@ -546,24 +577,28 @@ the message count is small enough that a linear scan is fast enough.</p>
       <pre class="lines">
 
 
-30
-31
-32
-33
-34
-35
-36
-37
 38
 39
 40
 41
-42</pre>
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 30</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 38</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_search'>search</span><span class='lparen'>(</span><span class='label'>query_embedding:</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='int'>5</span><span class='rparen'>)</span>
+  <span class='comment'># search never establishes dimension; validate only when dimension is known.
+</span>  <span class='id identifier rubyid_validate_embedding_dimension!'>validate_embedding_dimension!</span><span class='lparen'>(</span><span class='id identifier rubyid_query_embedding'>query_embedding</span><span class='comma'>,</span> <span class='ivar'>@expected_dimension</span><span class='rparen'>)</span>
   <span class='comment'># Take an atomic snapshot before iterating.  Hash#dup is a C-level
 </span>  <span class='comment'># call that completes without releasing the GVL, so it is atomic with
 </span>  <span class='comment'># respect to any other Ruby thread.  Iterating the copy instead of
@@ -621,12 +656,12 @@ the message count is small enough that a linear scan is fast enough.</p>
       <pre class="lines">
 
 
-55
-56
-57</pre>
+65
+66
+67</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 55</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 65</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_size'>size</span>
   <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
@@ -641,7 +676,7 @@ the message count is small enough that a linear scan is fast enough.</p>
 </div>
 
       <div id="footer">
-  Generated on Wed May 20 05:42:32 2026 by
+  Generated on Wed May 20 09:16:14 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
