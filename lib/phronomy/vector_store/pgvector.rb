@@ -18,8 +18,11 @@ module Phronomy
     #   store.add(id: "doc1", embedding: [0.1, 0.9], metadata: {text: "hello"})
     #   results = store.search(query_embedding: [0.1, 0.8], k: 5)
     class Pgvector < Base
-      # @param model_class [Class] ActiveRecord model with id/embedding/metadata columns
-      def initialize(model_class:)
+      # @param model_class [Class]        ActiveRecord model with id/embedding/metadata columns
+      # @param dimension   [Integer, nil] expected embedding dimension for Phronomy-side
+      #   pre-validation.  When nil, dimension enforcement is delegated to the
+      #   database schema; no pre-validation is performed by Phronomy.
+      def initialize(model_class:, dimension: nil)
         begin
           require "pgvector"
         rescue LoadError
@@ -28,12 +31,14 @@ module Phronomy
             "Add `gem 'pgvector'` to your Gemfile."
         end
         @model_class = model_class
+        @dimension = dimension
       end
 
       # @param id        [String]
       # @param embedding [Array<Float>]
       # @param metadata  [Hash]
       def add(id:, embedding:, metadata: {})
+        validate_embedding_dimension!(embedding, @dimension)
         @model_class.upsert(
           {id: id, embedding: safe_vector(embedding), metadata: metadata.to_json},
           unique_by: :id
@@ -45,6 +50,7 @@ module Phronomy
       # @param k               [Integer]
       # @return [Array<Hash>] sorted by descending similarity score
       def search(query_embedding:, k: 5)
+        validate_embedding_dimension!(query_embedding, @dimension)
         vec = safe_vector_literal(query_embedding)
         k_safe = Integer(k)
         conn = @model_class.connection

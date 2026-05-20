@@ -134,4 +134,49 @@ RSpec.describe Phronomy::VectorStore::RedisSearch do
       expect(store.instance_variable_get(:@index_created)).to be(false)
     end
   end
+
+  # Regression tests for Issue #98: embedding dimension validation
+  describe "dimension validation (Issue #98)" do
+    context "when dimension: is specified (existing behaviour)" do
+      it "raises ArgumentError on add with wrong dimension" do
+        expect { store.add(id: "x", embedding: [1.0, 0.0, 0.5], metadata: {}) }
+          .to raise_error(ArgumentError, /dimension mismatch.*expected 2.*got 3/i)
+      end
+
+      it "raises ArgumentError on search with wrong dimension" do
+        stub_index_create
+        expect { store.search(query_embedding: [1.0, 0.0, 0.5]) }
+          .to raise_error(ArgumentError, /dimension mismatch.*expected 2.*got 3/i)
+      end
+    end
+
+    context "when dimension: is not specified" do
+      subject(:store_no_dim) { described_class.new(redis: redis, index_name: "test_idx") }
+
+      it "returns [] on search before first add (search never establishes dimension)" do
+        expect(store_no_dim.search(query_embedding: [1.0, 0.0])).to eq([])
+      end
+
+      it "search does not establish dimension" do
+        store_no_dim.search(query_embedding: [1.0, 0.0])
+        expect(store_no_dim.instance_variable_get(:@dimension)).to be_nil
+      end
+
+      it "infers dimension from first add and validates subsequent adds" do
+        stub_index_create
+        allow(redis).to receive(:call).with("HSET", any_args)
+        store_no_dim.add(id: "a", embedding: [1.0, 0.0], metadata: {})
+        expect { store_no_dim.add(id: "b", embedding: [1.0, 0.0, 0.5], metadata: {}) }
+          .to raise_error(ArgumentError, /dimension mismatch.*expected 2.*got 3/i)
+      end
+    end
+
+    context "clear behaviour" do
+      it "retains established dimension after clear" do
+        allow(redis).to receive(:call).with("FT.DROPINDEX", any_args).and_raise(RuntimeError, "Unknown Index name")
+        store.clear
+        expect(store.instance_variable_get(:@dimension)).to eq(2)
+      end
+    end
+  end
 end

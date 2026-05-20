@@ -119,4 +119,65 @@ RSpec.describe Phronomy::VectorStore::InMemory do
       expect { (writers + readers).each(&:join) }.not_to raise_error
     end
   end
+
+  # Regression tests for Issue #98: embedding dimension validation
+  describe "dimension validation (Issue #98)" do
+    context "when dimension: is specified in constructor" do
+      subject(:store) { described_class.new(dimension: 2) }
+
+      it "accepts add with matching dimension" do
+        expect { store.add(id: "a", embedding: [1.0, 0.0], metadata: {}) }.not_to raise_error
+      end
+
+      it "raises ArgumentError on add with wrong dimension" do
+        expect { store.add(id: "a", embedding: [1.0, 0.0, 0.5], metadata: {}) }
+          .to raise_error(ArgumentError, /dimension mismatch.*expected 2.*got 3/i)
+      end
+
+      it "accepts search with matching dimension" do
+        expect { store.search(query_embedding: [1.0, 0.0]) }.not_to raise_error
+      end
+
+      it "raises ArgumentError on search with wrong dimension" do
+        expect { store.search(query_embedding: [1.0, 0.0, 0.5]) }
+          .to raise_error(ArgumentError, /dimension mismatch.*expected 2.*got 3/i)
+      end
+    end
+
+    context "when dimension: is not specified" do
+      it "infers dimension from first add and validates subsequent adds" do
+        store.add(id: "a", embedding: [1.0, 0.0], metadata: {})
+        expect { store.add(id: "b", embedding: [0.0, 1.0], metadata: {}) }.not_to raise_error
+        expect { store.add(id: "c", embedding: [0.0, 1.0, 0.5], metadata: {}) }
+          .to raise_error(ArgumentError, /dimension mismatch.*expected 2.*got 3/i)
+      end
+
+      it "does not raise on search before first add (dimension unknown)" do
+        expect { store.search(query_embedding: [1.0, 0.0]) }.not_to raise_error
+        expect(store.search(query_embedding: [1.0, 0.0])).to eq([])
+      end
+
+      it "search does not establish dimension" do
+        store.search(query_embedding: [1.0, 0.0])
+        expect(store.instance_variable_get(:@expected_dimension)).to be_nil
+      end
+    end
+
+    context "clear behaviour" do
+      subject(:store) { described_class.new }
+
+      it "retains established dimension after clear" do
+        store.add(id: "a", embedding: [1.0, 0.0], metadata: {})
+        store.clear
+        expect(store.instance_variable_get(:@expected_dimension)).to eq(2)
+      end
+
+      it "rejects add with different dimension after clear" do
+        store.add(id: "a", embedding: [1.0, 0.0], metadata: {})
+        store.clear
+        expect { store.add(id: "b", embedding: [1.0, 0.0, 0.5], metadata: {}) }
+          .to raise_error(ArgumentError, /dimension mismatch/i)
+      end
+    end
+  end
 end

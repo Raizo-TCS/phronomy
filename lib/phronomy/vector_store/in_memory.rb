@@ -12,14 +12,22 @@ module Phronomy
     #   store.add(id: "1", embedding: [0.1, 0.9], metadata: { message: msg })
     #   results = store.search(query_embedding: [0.1, 0.8], k: 3)
     class InMemory < Base
-      def initialize
+      # @param dimension [Integer, nil] expected embedding dimension.
+      #   When nil, the dimension is inferred from the first call to #add.
+      #   For multi-threaded use, pass dimension: explicitly; concurrent first
+      #   adds are not guaranteed to be race-free.
+      def initialize(dimension: nil)
         @documents = {}
+        @expected_dimension = dimension
       end
 
       # @param id        [String]
       # @param embedding [Array<Float>]
       # @param metadata  [Hash]
       def add(id:, embedding:, metadata: {})
+        # Establish expected dimension on first add, then validate.
+        @expected_dimension ||= embedding.size
+        validate_embedding_dimension!(embedding, @expected_dimension)
         @documents[id] = {embedding: embedding, metadata: metadata}
         self
       end
@@ -28,6 +36,8 @@ module Phronomy
       # @param k               [Integer]
       # @return [Array<Hash>] sorted by descending score
       def search(query_embedding:, k: 5)
+        # search never establishes dimension; validate only when dimension is known.
+        validate_embedding_dimension!(query_embedding, @expected_dimension)
         # Take an atomic snapshot before iterating.  Hash#dup is a C-level
         # call that completes without releasing the GVL, so it is atomic with
         # respect to any other Ruby thread.  Iterating the copy instead of

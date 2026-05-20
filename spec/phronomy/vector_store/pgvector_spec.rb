@@ -86,4 +86,33 @@ RSpec.describe Phronomy::VectorStore::Pgvector do
         .to raise_error(LoadError, /pgvector gem/)
     end
   end
+
+  # Regression tests for Issue #98: embedding dimension validation
+  describe "dimension validation (Issue #98)" do
+    context "when dimension: is specified" do
+      subject(:store) { described_class.new(model_class: model_class, dimension: 2) }
+
+      it "raises ArgumentError on add with wrong dimension" do
+        expect { store.add(id: "a", embedding: [1.0, 0.0, 0.5], metadata: {}) }
+          .to raise_error(ArgumentError, /dimension mismatch.*expected 2.*got 3/i)
+      end
+
+      it "raises ArgumentError on search with wrong dimension" do
+        expect { store.search(query_embedding: [1.0, 0.0, 0.5]) }
+          .to raise_error(ArgumentError, /dimension mismatch.*expected 2.*got 3/i)
+      end
+
+      it "accepts add with matching dimension" do
+        allow(model_class).to receive(:upsert)
+        expect { store.add(id: "a", embedding: [1.0, 0.0], metadata: {}) }.not_to raise_error
+      end
+    end
+
+    context "when dimension: is not specified" do
+      it "does not raise on add or search regardless of embedding size" do
+        allow(model_class).to receive(:upsert)
+        expect { store.add(id: "a", embedding: [1.0, 0.0, 0.5], metadata: {}) }.not_to raise_error
+      end
+    end
+  end
 end

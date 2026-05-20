@@ -45,7 +45,11 @@ module Phronomy
       # @param embedding [Array<Float>]
       # @param metadata  [Hash]
       def add(id:, embedding:, metadata: {})
-        ensure_index!(embedding.length)
+        # Establish expected dimension on first add (not race-free for concurrent
+        # first adds), then validate, then create/reuse the index.
+        @dimension ||= embedding.size
+        validate_embedding_dimension!(embedding, @dimension)
+        ensure_index!(@dimension)
         @redis.call(
           "HSET", "#{DOC_PREFIX}#{id}",
           "embedding", pack_vector(embedding),
@@ -58,7 +62,12 @@ module Phronomy
       # @param k               [Integer]
       # @return [Array<Hash>] sorted by descending similarity score
       def search(query_embedding:, k: 5)
-        ensure_index!(query_embedding.length)
+        # search never establishes dimension.  If dimension is unknown and the
+        # index has not been created yet, there are no documents to return.
+        return [] if @dimension.nil? && !@index_created
+
+        validate_embedding_dimension!(query_embedding, @dimension)
+        ensure_index!(@dimension)
         k_safe = Integer(k)
         blob = pack_vector(query_embedding)
 
