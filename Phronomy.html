@@ -112,45 +112,13 @@
         <dt id="VERSION-constant" class="">VERSION =
           
         </dt>
-        <dd><pre class="code"><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>0.5.1</span><span class='tstring_end'>&quot;</span></span></pre></dd>
+        <dd><pre class="code"><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>0.5.2</span><span class='tstring_end'>&quot;</span></span></pre></dd>
       
     </dl>
   
 
 
 
-
-  <h2>Class Attribute Summary <small><a href="#" class="summary_toggle">collapse</a></small></h2>
-  <ul class="summary">
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#workflow_context_registry-class_method" title="workflow_context_registry (class method)">.<strong>workflow_context_registry</strong>  &#x21d2; Hash{String =&gt; Class}<sup>?</sup> </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-      <span class="note title readonly">readonly</span>
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the current registry Hash, or nil when no class has been registered.</p></div></span>
-  
-</li>
-
-    
-  </ul>
 
 
 
@@ -210,28 +178,6 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#register_workflow_context-class_method" title="register_workflow_context (class method)">.<strong>register_workflow_context</strong>(*classes)  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Register one or more WorkflowContext classes that are allowed to be deserialized by StateStore backends.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#reset_configuration!-class_method" title="reset_configuration! (class method)">.<strong>reset_configuration!</strong>  &#x21d2; Object </a>
     
 
@@ -251,91 +197,10 @@
 </li>
 
       
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#reset_workflow_context_registry!-class_method" title="reset_workflow_context_registry! (class method)">.<strong>reset_workflow_context_registry!</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Clears the registry.</p></div></span>
-  
-</li>
-
-      
     </ul>
     
   
 
-
-  <div id="class_attr_details" class="attr_details">
-    <h2>Class Attribute Details</h2>
-    
-      
-      <span id=""></span>
-      <div class="method_details first">
-  <h3 class="signature first" id="workflow_context_registry-class_method">
-  
-    .<strong>workflow_context_registry</strong>  &#x21d2; <tt>Hash{String =&gt; Class}</tt><sup>?</sup>  <span class="extras">(readonly)</span>
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the current registry Hash, or nil when no class has been registered.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Hash{String =&gt; Class}</tt>, <tt>nil</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-82
-83
-84</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 82</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_workflow_context_registry'>workflow_context_registry</span>
-  <span class='ivar'>@workflow_context_registry</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-  </div>
 
 
   <div id="class_method_details" class="method_details_list">
@@ -357,12 +222,12 @@
       <pre class="lines">
 
 
-89
-90
-91</pre>
+54
+55
+56</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 89</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 54</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_configuration'>configuration</span>
   <span class='ivar'>@configuration</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="Phronomy/Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Configuration.html#initialize-instance_method" title="Phronomy::Configuration#initialize (method)">new</a></span></span>
@@ -409,96 +274,15 @@
       <pre class="lines">
 
 
-93
-94
-95</pre>
+58
+59
+60</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 93</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 58</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_configure'>configure</span>
   <span class='kw'>yield</span> <span class='id identifier rubyid_configuration'>configuration</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="register_workflow_context-class_method">
-  
-    .<strong>register_workflow_context</strong>(*classes)  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Register one or more WorkflowContext classes that are allowed to be
-deserialized by StateStore backends. When at least one class is registered,
-only registered classes will be accepted by
-<code>StateStore::Base#safe_state_class</code>.</p>
-<p>Call this once at application startup (e.g. in a Rails initializer).</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-  <div class="examples">
-    <h4 class="tag_title">Examples:</h4>
-    
-      
-      <pre class="example code"><code><span class='const'><span class='object_link'><a href="" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_register_workflow_context'>register_workflow_context</span><span class='lparen'>(</span><span class='const'>ScanContext</span><span class='comma'>,</span> <span class='const'>OtherContext</span><span class='rparen'>)</span></code></pre>
-    
-  </div>
-<p class="tag_title">Parameters:</p>
-<ul class="param">
-  
-    <li>
-      
-        <span class='name'>classes</span>
-      
-      
-        <span class='type'>(<tt>Array&lt;Class&gt;</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>classes including Phronomy::WorkflowContext</p></div>
-      
-    </li>
-  
-</ul>
-
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-70
-71
-72
-73
-74
-75
-76
-77
-78</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 70</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_register_workflow_context'>register_workflow_context</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_classes'>classes</span><span class='rparen'>)</span>
-  <span class='ivar'>@registry_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
-    <span class='ivar'>@workflow_context_registry</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
-    <span class='id identifier rubyid_classes'>classes</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_klass'>klass</span><span class='op'>|</span>
-      <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_klass'>klass</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'> is not a Class</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_klass'>klass</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Class</span><span class='rparen'>)</span>
-      <span class='ivar'>@workflow_context_registry</span><span class='lbracket'>[</span><span class='id identifier rubyid_klass'>klass</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_klass'>klass</span>
-    <span class='kw'>end</span>
-  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -529,54 +313,15 @@ only registered classes will be accepted by
       <pre class="lines">
 
 
-98
-99
-100</pre>
+63
+64
+65</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 98</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 63</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_reset_configuration!'>reset_configuration!</span>
   <span class='ivar'>@configuration</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy/Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Configuration.html#initialize-instance_method" title="Phronomy::Configuration#initialize (method)">new</a></span></span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="reset_workflow_context_registry!-class_method">
-  
-    .<strong>reset_workflow_context_registry!</strong>  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Clears the registry. Primarily used in tests.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-85
-86
-87</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 85</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_reset_workflow_context_registry!'>reset_workflow_context_registry!</span>
-  <span class='ivar'>@registry_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@workflow_context_registry</span> <span class='op'>=</span> <span class='kw'>nil</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -588,7 +333,7 @@ only registered classes will be accepted by
 </div>
 
       <div id="footer">
-  Generated on Wed May 20 04:46:35 2026 by
+  Generated on Wed May 20 05:14:52 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

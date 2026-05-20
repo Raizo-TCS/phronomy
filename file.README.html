@@ -438,6 +438,10 @@ application level.</p>
   <span class='label'>tool_name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>web_search</span><span class='tstring_end'>&quot;</span></span>
 <span class='rparen'>)</span>
 </code></pre>
+<p>Call <code>close</code> when the tool is no longer needed to shut down the underlying
+child process (stdio transport) or release the HTTP connection:</p>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_search_tool'>search_tool</span><span class='period'>.</span><span class='id identifier rubyid_close'>close</span>
+</code></pre>
 <h3 id="Conversation_History___passing_prior_messages">Conversation History — passing prior messages</h3>
 <p>Phronomy does not manage conversation history internally. The application owns the
 message array and passes it in via the <code>messages:</code> keyword argument:</p>
@@ -635,7 +639,7 @@ that require additional infrastructure (a running Rails server, database, etc.):
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Wed May 20 04:46:35 2026 by
+  Generated on Wed May 20 05:14:52 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

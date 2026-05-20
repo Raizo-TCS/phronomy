@@ -64,6 +64,41 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
+<h2 id="_0_5_2____2026_05_20">[0.5.2] - 2026-05-20</h2>
+<h3 id="Bug_Fixes">Bug Fixes</h3>
+<ul>
+<li><strong>CHANGELOG correction for v0.5.1 MCP fix</strong> (#90): The v0.5.1 entry
+incorrectly stated that a <code>Mutex</code> was added to <code>StdioTransport#rpc_call</code>.
+The actual fix was per-instance transport ownership (each <code>McpTool</code> instance
+creates its own transport in <code>initialize</code>). Corrected the description.</li>
+</ul>
+<h3 id="Enhancements">Enhancements</h3>
+<ul>
+<li><strong>Add <code>McpTool#close</code></strong> (#92): Tool instances now expose a <code>close</code> method
+that shuts down the underlying stdio child process (<code>StdioTransport</code>) or
+releases the HTTP connection (<code>HttpTransport</code>). This gives callers a
+deterministic way to clean up resources instead of relying on GC.</li>
+</ul>
+<h3 id="Maintenance">Maintenance</h3>
+<ul>
+<li>
+<p><strong>Archive stale Rails integration design doc</strong> (#91): Added an archived
+notice to <code>spec/design/17_rails_integration.md</code> clarifying that Rails
+integration was removed in v0.3.0–v0.5.1 and the document is for
+historical reference only.</p>
+</li>
+<li>
+<p><strong>Remove zombie <code>register_workflow_context</code> API</strong> (#93): The
+<code>Phronomy.register_workflow_context</code>, <code>workflow_context_registry</code>, and
+<code>reset_workflow_context_registry!</code> methods (along with the backing
+<code>@workflow_context_registry</code> and <code>@registry_mutex</code> module-level variables)
+were removed from <code>lib/phronomy.rb</code>. These existed to support the
+<code>StateStore</code> deserialization guard, which was removed in a prior release.
+The API had no remaining callers in the codebase and was not listed in
+the README stability table.</p>
+</li>
+</ul>
+<hr />
 <h2 id="_0_5_1____2026_05_21">[0.5.1] - 2026-05-21</h2>
 <h3 id="Bug_Fixes">Bug Fixes</h3>
 <ul>
@@ -75,10 +110,14 @@ referenced <code>Phronomy::ActiveRecord::ActsAs</code> which no longer exists, c
 <code>lib/phronomy.rb</code>.</p>
 </li>
 <li>
-<p><strong>Fix thread-safety of <code>StdioTransport#rpc_call</code></strong> (#86): Concurrent calls
-to the same <code>McpTool</code> instance could interleave JSON-RPC writes and reads,
-corrupting request/response pairing. A <code>Mutex</code> is now held around each
-write+read cycle. Also adds the missing <code>require &quot;securerandom&quot;</code>.</p>
+<p><strong>Fix MCP transport ownership</strong> (#86): <code>McpTool</code> no longer stores a shared
+transport at class level. <code>from_server</code> now uses a short-lived transport only
+to fetch tool metadata and calls <code>close</code> immediately after. Each tool instance
+creates its own <code>StdioTransport</code> or <code>HttpTransport</code> in <code>initialize</code>, so
+concurrent callers (e.g. via <code>Orchestrator#dispatch_parallel</code>) never share
+stdio streams. No <code>Mutex</code> is needed. Also adds missing
+<code>require &quot;securerandom&quot;</code> and a no-op <code>HttpTransport#close</code> for interface
+consistency.</p>
 </li>
 </ul>
 <h3 id="Documentation">Documentation</h3>
@@ -360,7 +399,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Wed May 20 04:46:35 2026 by
+  Generated on Wed May 20 05:14:52 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
