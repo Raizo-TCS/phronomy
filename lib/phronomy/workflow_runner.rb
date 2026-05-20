@@ -65,7 +65,7 @@ module Phronomy
         recursion_limit = config.fetch(:recursion_limit, Phronomy.configuration.recursion_limit)
         state = @state_class.new(**input)
         state.set_graph_metadata(thread_id: thread_id)
-        result = run_graph(state, recursion_limit: recursion_limit)
+        result = run_workflow(state, recursion_limit: recursion_limit)
         [result, nil]
       end
     end
@@ -115,7 +115,7 @@ module Phronomy
 
       next_phase = tracker.phase.to_sym
       next_state = (next_phase == :__end__) ? FINISH : next_phase
-      run_graph(state, from_state: next_state)
+      run_workflow(state, from_state: next_state)
     end
 
     # Streaming execution. Yields { state: Symbol, context: Object } after each state action completes.
@@ -128,12 +128,12 @@ module Phronomy
       recursion_limit = config.fetch(:recursion_limit, Phronomy.configuration.recursion_limit)
       state = @state_class.new(**input)
       state.set_graph_metadata(thread_id: thread_id)
-      run_graph(state, recursion_limit: recursion_limit, &block)
+      run_workflow(state, recursion_limit: recursion_limit, &block)
     end
 
     private
 
-    def run_graph(ctx, from_state: nil, recursion_limit: 25, &event_block)
+    def run_workflow(ctx, from_state: nil, recursion_limit: 25, &event_block)
       current_state = from_state || @entry_point
       tracker = new_phase_machine(current_state)
       tracker.context = ctx
@@ -166,7 +166,7 @@ module Phronomy
 
         # -- Queue empty: check for halt -----------------------------------------
         # Auto-halt at wait states: persist phase in context and return to caller.
-        # The caller resumes via send_event, which starts a fresh run_graph call.
+        # The caller resumes via send_event, which starts a fresh run_workflow call.
         if @wait_state_names.include?(current_state)
           ctx.set_graph_metadata(thread_id: ctx.thread_id, phase: current_state)
           return ctx
