@@ -28,7 +28,13 @@ module Phronomy
       # @param k               [Integer]
       # @return [Array<Hash>] sorted by descending score
       def search(query_embedding:, k: 5)
-        results = @documents.map do |id, doc|
+        # Take an atomic snapshot before iterating.  Hash#dup is a C-level
+        # call that completes without releasing the GVL, so it is atomic with
+        # respect to any other Ruby thread.  Iterating the copy instead of
+        # @documents directly prevents "can't add a new key into hash during
+        # iteration" when a concurrent thread calls #add.
+        snapshot = @documents.dup
+        results = snapshot.map do |id, doc|
           score = cosine_similarity(query_embedding, doc[:embedding])
           {id: id, score: score, metadata: doc[:metadata]}
         end
