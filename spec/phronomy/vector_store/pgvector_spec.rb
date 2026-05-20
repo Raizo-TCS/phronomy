@@ -109,7 +109,7 @@ RSpec.describe Phronomy::VectorStore::Pgvector do
     end
 
     context "when dimension: is not specified" do
-      it "does not raise on add or search regardless of embedding size" do
+      it "does not raise on add regardless of embedding size" do
         allow(model_class).to receive(:upsert)
         expect { store.add(id: "a", embedding: [1.0, 0.0, 0.5], metadata: {}) }.not_to raise_error
       end

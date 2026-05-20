@@ -25,7 +25,11 @@ module Phronomy
 
       # @param redis      [Redis]          configured Redis client
       # @param index_name [String]         RediSearch index name
-      # @param dimension  [Integer, nil]   vector dimension; auto-detected on first add
+      # @param dimension  [Integer, nil]   vector dimension; auto-detected on first add.
+      #   When connecting to an **existing** RediSearch index, you MUST pass
+      #   dimension: explicitly.  Without it, a freshly constructed instance
+      #   treats the index as uninitialized until #add is called, and #search
+      #   silently returns [] in the meantime.
       def initialize(redis:, index_name: "phronomy_vectors", dimension: nil)
         begin
           require "redis"
