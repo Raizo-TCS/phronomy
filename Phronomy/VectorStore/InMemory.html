@@ -429,13 +429,13 @@ the message count is small enough that a linear scan is fast enough.</p>
       <pre class="lines">
 
 
-43
-44
-45
-46</pre>
+49
+50
+51
+52</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 49</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span>
   <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span>
@@ -461,13 +461,13 @@ the message count is small enough that a linear scan is fast enough.</p>
       <pre class="lines">
 
 
-38
-39
-40
-41</pre>
+44
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 38</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 44</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remove'>remove</span><span class='lparen'>(</span><span class='label'>id:</span><span class='rparen'>)</span>
   <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
@@ -552,13 +552,25 @@ the message count is small enough that a linear scan is fast enough.</p>
 33
 34
 35
-36</pre>
+36
+37
+38
+39
+40
+41
+42</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 30</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_search'>search</span><span class='lparen'>(</span><span class='label'>query_embedding:</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='int'>5</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_results'>results</span> <span class='op'>=</span> <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_id'>id</span><span class='comma'>,</span> <span class='id identifier rubyid_doc'>doc</span><span class='op'>|</span>
+  <span class='comment'># Take an atomic snapshot before iterating.  Hash#dup is a C-level
+</span>  <span class='comment'># call that completes without releasing the GVL, so it is atomic with
+</span>  <span class='comment'># respect to any other Ruby thread.  Iterating the copy instead of
+</span>  <span class='comment'># @documents directly prevents &quot;can&#39;t add a new key into hash during
+</span>  <span class='comment'># iteration&quot; when a concurrent thread calls #add.
+</span>  <span class='id identifier rubyid_snapshot'>snapshot</span> <span class='op'>=</span> <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
+  <span class='id identifier rubyid_results'>results</span> <span class='op'>=</span> <span class='id identifier rubyid_snapshot'>snapshot</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_id'>id</span><span class='comma'>,</span> <span class='id identifier rubyid_doc'>doc</span><span class='op'>|</span>
     <span class='id identifier rubyid_score'>score</span> <span class='op'>=</span> <span class='id identifier rubyid_cosine_similarity'>cosine_similarity</span><span class='lparen'>(</span><span class='id identifier rubyid_query_embedding'>query_embedding</span><span class='comma'>,</span> <span class='id identifier rubyid_doc'>doc</span><span class='lbracket'>[</span><span class='symbol'>:embedding</span><span class='rbracket'>]</span><span class='rparen'>)</span>
     <span class='lbrace'>{</span><span class='label'>id:</span> <span class='id identifier rubyid_id'>id</span><span class='comma'>,</span> <span class='label'>score:</span> <span class='id identifier rubyid_score'>score</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='id identifier rubyid_doc'>doc</span><span class='lbracket'>[</span><span class='symbol'>:metadata</span><span class='rbracket'>]</span><span class='rbrace'>}</span>
   <span class='kw'>end</span>
@@ -609,12 +621,12 @@ the message count is small enough that a linear scan is fast enough.</p>
       <pre class="lines">
 
 
-49
-50
-51</pre>
+55
+56
+57</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 55</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_size'>size</span>
   <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
@@ -629,7 +641,7 @@ the message count is small enough that a linear scan is fast enough.</p>
 </div>
 
       <div id="footer">
-  Generated on Wed May 20 05:36:02 2026 by
+  Generated on Wed May 20 05:42:32 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
