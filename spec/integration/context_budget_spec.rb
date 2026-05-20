@@ -9,7 +9,7 @@ require_relative "spec_helper"
 #                   agent_context_overhead
 # Feasible cases: 13 (5 infeasible: R-tiktoken — tiktoken_ruby not installed)
 #
-# These tests exercise TokenBudget, TokenEstimator, and Context::Builder directly
+# These tests exercise TokenBudget, TokenEstimator, and Context::Assembler directly
 # without invoking an LLM (no LM Studio dependency).
 # The :integration tag is kept for consistency.
 
@@ -43,11 +43,11 @@ RSpec.describe "Group 3: Context / Budget", :integration do
       expect(budget.effective_input_limit).to be > 0
     end
 
-    it "Builder keeps all short messages within budget" do
+    it "Assembler keeps all short messages within budget" do
       budget = Phronomy::Context::TokenBudget.new(model: "openai/gpt-oss-20b")
-      builder = Phronomy::Context::Builder.new(budget: budget)
-      builder.add_messages(short_messages(3))
-      result = builder.build
+      assembler = Phronomy::Context::Assembler.new(budget: budget)
+      assembler.add_messages(short_messages(3))
+      result = assembler.build
       expect(result[:messages].length).to eq(3)
     end
   end
@@ -83,9 +83,9 @@ RSpec.describe "Group 3: Context / Budget", :integration do
       # Each fat message has 2001+ words → token cost >> 70
       # Short messages: ~5 words each → fits several
       messages = 20.times.map { |i| Message.new("user", "word#{i} hello world ok great") }
-      builder = Phronomy::Context::Builder.new(budget: budget)
-      builder.add_messages(messages)
-      result = builder.build
+      assembler = Phronomy::Context::Assembler.new(budget: budget)
+      assembler.add_messages(messages)
+      result = assembler.build
       # Should keep some but not all messages (70 tokens / 5 per message = 14 max)
       expect(result[:messages].length).to be < 20
       expect(result[:messages].length).to be >= 1
@@ -99,16 +99,16 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   # TC-005: explicit budget; heuristic tokenizer; none_fit → all messages pruned
   # ---------------------------------------------------------------------------
   describe "TC-005: explicit budget; heuristic tokenizer; none_fit — all messages pruned" do
-    it "Builder returns empty messages when budget is exhausted by system prompt" do
+    it "Assembler returns empty messages when budget is exhausted" do
       # context_window=100, max_output=50 → effective_input_limit=50
-      # System prompt alone is 60+ chars ≈ 15 tokens; fat messages are 500+ tokens each
+      # Fat messages are 500+ tokens each
       budget = Phronomy::Context::TokenBudget.new(
         context_window: 100,
         max_output_tokens: 50
       )
-      builder = Phronomy::Context::Builder.new(budget: budget)
-      builder.add_messages(fat_messages(3))
-      result = builder.build
+      assembler = Phronomy::Context::Assembler.new(budget: budget)
+      assembler.add_messages(fat_messages(3))
+      result = assembler.build
       expect(result[:messages]).to be_empty
     end
   end
@@ -135,9 +135,9 @@ RSpec.describe "Group 3: Context / Budget", :integration do
 
       # Each message has 8 words → 8 tokens; 100 / 8 = 12 messages max
       messages = 20.times.map { |i| Message.new("user", "a b c d e f g #{i}") }
-      builder = Phronomy::Context::Builder.new(budget: budget)
-      builder.add_messages(messages)
-      result = builder.build
+      assembler = Phronomy::Context::Assembler.new(budget: budget)
+      assembler.add_messages(messages)
+      result = assembler.build
       expect(result[:messages].length).to be < 20
       expect(result[:messages].length).to be >= 1
     end
@@ -165,9 +165,9 @@ RSpec.describe "Group 3: Context / Budget", :integration do
       )
       expect(budget.effective_input_limit).to eq(9500)
 
-      builder = Phronomy::Context::Builder.new(budget: budget)
-      builder.add_messages(short_messages(3))
-      result = builder.build
+      assembler = Phronomy::Context::Assembler.new(budget: budget)
+      assembler.add_messages(short_messages(3))
+      result = assembler.build
       expect(result[:messages].length).to eq(3)
     end
   end
@@ -244,15 +244,15 @@ RSpec.describe "Group 3: Context / Budget", :integration do
       expect(budget.effective_input_limit).to eq(0)
     end
 
-    it "Builder returns empty messages when effective_input_limit is 0" do
+    it "Assembler returns empty messages when effective_input_limit is 0" do
       budget = Phronomy::Context::TokenBudget.new(
         model: "openai/gpt-oss-20b",
         max_output_tokens: 512,
         overhead: 200_000
       )
-      builder = Phronomy::Context::Builder.new(budget: budget)
-      builder.add_messages(short_messages(3))
-      result = builder.build
+      assembler = Phronomy::Context::Assembler.new(budget: budget)
+      assembler.add_messages(short_messages(3))
+      result = assembler.build
       expect(result[:messages]).to be_empty
     end
   end
@@ -276,14 +276,14 @@ RSpec.describe "Group 3: Context / Budget", :integration do
       expect(budget_small.effective_input_limit).to be > budget_large.effective_input_limit
     end
 
-    it "Builder keeps all short messages when effective_input_limit is large" do
+    it "Assembler keeps all short messages when effective_input_limit is large" do
       budget = Phronomy::Context::TokenBudget.new(
         model: "openai/gpt-oss-20b",
         max_output_tokens: 128
       )
-      builder = Phronomy::Context::Builder.new(budget: budget)
-      builder.add_messages(short_messages(3))
-      result = builder.build
+      assembler = Phronomy::Context::Assembler.new(budget: budget)
+      assembler.add_messages(short_messages(3))
+      result = assembler.build
       expect(result[:messages].length).to eq(3)
     end
   end
@@ -300,9 +300,9 @@ RSpec.describe "Group 3: Context / Budget", :integration do
       )
       expect(budget.effective_input_limit).to eq(0)
 
-      builder = Phronomy::Context::Builder.new(budget: budget)
-      builder.add_messages(short_messages(5))
-      result = builder.build
+      assembler = Phronomy::Context::Assembler.new(budget: budget)
+      assembler.add_messages(short_messages(5))
+      result = assembler.build
       expect(result[:messages]).to be_empty
     end
   end
@@ -331,9 +331,9 @@ RSpec.describe "Group 3: Context / Budget", :integration do
         max_output_tokens: 0,
         overhead: 40_000
       )
-      builder = Phronomy::Context::Builder.new(budget: budget)
-      builder.add_messages(short_messages(3))
-      result = builder.build
+      assembler = Phronomy::Context::Assembler.new(budget: budget)
+      assembler.add_messages(short_messages(3))
+      result = assembler.build
       expect(result[:messages].length).to eq(3)
     end
   end

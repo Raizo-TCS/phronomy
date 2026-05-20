@@ -7,7 +7,6 @@ module Phronomy
   # Sub-modules are auto-loaded by Zeitwerk:
   #   Phronomy::Context::TokenEstimator
   #   Phronomy::Context::TokenBudget
-  #   Phronomy::Context::Builder
   module Context
   end
 end
