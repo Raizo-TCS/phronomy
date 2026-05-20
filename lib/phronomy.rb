@@ -5,7 +5,6 @@ require "ruby_llm"
 require_relative "phronomy/ruby_llm_patches"
 
 loader = Zeitwerk::Loader.for_gem
-loader.ignore(File.expand_path("generators", __dir__))
 # Teach Zeitwerk that "llm" maps to "LLM" so that file names such as
 # ruby_llm_embeddings.rb resolve to RubyLLMEmbeddings (not RubyLlmEmbeddings).
 loader.inflector.inflect("ruby_llm_embeddings" => "RubyLLMEmbeddings")
@@ -13,8 +12,6 @@ loader.setup
 
 require_relative "phronomy/version"
 require_relative "phronomy/token_usage"
-
-require "phronomy/railtie" if defined?(Rails::Railtie)
 
 module Phronomy
   # Exception hierarchy

@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.1] - 2026-05-21
+
+### Bug Fixes
+
+- **Remove broken Rails generator and Railtie** (#85): The generator template
+  referenced `Phronomy::ActiveRecord::ActsAs` which no longer exists, causing
+  `rails generate phronomy:install` to produce broken model files. Removed
+  `lib/generators/`, `lib/phronomy/railtie.rb`, and all references in
+  `lib/phronomy.rb`.
+
+- **Fix thread-safety of `StdioTransport#rpc_call`** (#86): Concurrent calls
+  to the same `McpTool` instance could interleave JSON-RPC writes and reads,
+  corrupting request/response pairing. A `Mutex` is now held around each
+  write+read cycle. Also adds the missing `require "securerandom"`.
+
+### Documentation
+
+- **README corrections** (#87): Remove stale Rails generator installation
+  instructions. Clarify that `TeamCoordinator` worker state is local to a
+  single `invoke` call (not persistent across calls). Annotate app-level
+  examples (`09_rails_chat`, `15_rails_secure_chat`, `18_rails_agent_job`,
+  `19_trust_pipeline`) as requiring external infrastructure. Add scope note
+  to `Agent::Orchestrator` section.
+
+### Maintenance
+
+- **Add version guard to `ruby_llm_patches.rb`** (#88): The monkey-patch for
+  the upstream `handle_error_chunk` bug (ruby_llm <= 1.15.0) is now
+  gated behind a `Gem::Version` check so upgrading ruby_llm will
+  automatically disable the override.
+
+---
+
 ## [0.5.0] - 2026-05-20
 
 ### Breaking Changes

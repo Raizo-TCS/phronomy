@@ -25,6 +25,7 @@ RSpec.describe Phronomy::Tool::McpTool do
             ]
           )
           allow(t).to receive(:call_tool).with("search_web", {query: "Ruby"}).and_return(["result"])
+          allow(t).to receive(:close)
         end
       end
 
@@ -236,6 +237,7 @@ RSpec.describe Phronomy::Tool::McpTool do
             parameters: [{name: "q", type: "string", description: "Query"}]
           )
           allow(t).to receive(:call_tool).with("search", {q: "Ruby"}).and_return("result")
+          allow(t).to receive(:close)
         end
       end
 

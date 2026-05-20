@@ -20,7 +20,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **Multi-agent** — Agent-as-Tool pattern and hub-and-spoke handoff routing | Beta |
 | **GeneratorVerifier** — Generator-Verifier loop with injectable prompt builders/parsers | Beta |
 | **Agent::Orchestrator** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
-| **Agent::TeamCoordinator** — Agent teams pattern: LLM coordinator + persistent worker pool with task queue | Beta |
+| **Agent::TeamCoordinator** — Agent teams pattern: LLM coordinator + stateful worker pool with task queue (worker-local message history per run) | Beta |
 | **Agent::SharedState** — Shared state pattern: peer agents collaborate via a shared KnowledgeStore; `member` DSL with per-agent instructions and `coordination` team protocol | Experimental |
 | **Guardrails** — Input/output validation; built-in PII and prompt-injection detectors | Beta |
 | **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses | Stable |
@@ -41,14 +41,6 @@ Then run:
 ```bash
 bundle install
 ```
-
-For Rails apps, run the install generator after bundling:
-
-```bash
-rails generate phronomy:install
-```
-
-This creates a configuration initializer.
 
 ## Quick Start
 
@@ -279,6 +271,11 @@ end
 
 ### Agent::Orchestrator — Parallel subagent dispatch
 
+> **Note:** `dispatch_parallel` and `fan_out` use plain Ruby threads and are
+> intended for small-scale fan-out (a handful of subagents). For large-scale
+> parallel dispatch, manage concurrency (thread pools, rate limiting) at the
+> application level.
+
 ```ruby
 class ResearchOrchestrator < Phronomy::Agent::Orchestrator
   model "gpt-4o"
@@ -491,15 +488,21 @@ bundle exec ruby NN_example_name/run.rb
 | 06 | `06_guardrails/` | Input/output guardrails |
 | 07 | `07_tracing/` | Custom observability with Langfuse tracer |
 | 08 | `08_mcp_tool/` | MCP tool integration |
-| 09 | `09_rails_chat/` | Rails chat app with ActionCable streaming |
 | 10 | `10_context_management/` | Token budget and context pruning |
 | 11 | `11_agent_streaming/` | Streaming agent responses |
 | 12 | `12_prompt_template/` | Advanced prompt templates |
 | 13 | `13_mcp_http_tool/` | HTTP-based MCP tool server |
 | 14 | `14_code_review/` | Automated code review agent |
-| 15 | `15_rails_secure_chat/` | Rails chat with PII guardrails |
 | 16 | `16_before_completion_hook/` | Global/class/instance before_completion hooks |
 | 17 | `17_multi_agent_handoff/` | Hub-and-spoke agent routing via Runner |
+
+The following examples are **app-level demos** (Rails apps or advanced pipelines)
+that require additional infrastructure (a running Rails server, database, etc.):
+
+| # | Directory | What it demonstrates |
+|---|-----------|----------------------|
+| 09 | `09_rails_chat/` | Rails chat app with ActionCable streaming |
+| 15 | `15_rails_secure_chat/` | Rails chat with PII guardrails |
 | 18 | `18_rails_agent_job/` | Rails app with AgentJob + ActionCable streaming |
 | 19 | `19_trust_pipeline/` | Generator-Verifier pattern with citation tracking, self-review loop and confidence gate |
 
