@@ -1340,4 +1340,94 @@ module IntegrationFactors
       subagent :worker_b, sa2, on_error: err if subagent_count == :multiple
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # GROUP 35 — VECTOR STORE DIMENSION VALIDATION helpers (#98)
+  # ---------------------------------------------------------------------------
+
+  # Returns a fresh InMemory store with the given dimension initialisation.
+  #
+  # @param label [String] "explicit" | "inferred"
+  # @return [Phronomy::VectorStore::InMemory]
+  def self.vs_store(label)
+    case label
+    when "explicit" then Phronomy::VectorStore::InMemory.new(dimension: 2)
+    when "inferred" then Phronomy::VectorStore::InMemory.new
+    else raise ArgumentError, "Unknown vs_dimension_init label: #{label}"
+    end
+  end
+
+  # Returns an embedding whose size matches or mismatches the reference dimension (2).
+  #
+  # @param label [String] "match" | "mismatch"
+  # @return [Array<Float>]
+  def self.vs_embedding(label)
+    case label
+    when "match" then [0.6, 0.8]
+    when "mismatch" then [0.6, 0.8, 0.0]
+    else raise ArgumentError, "Unknown vs_size_match label: #{label}"
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # GROUP 36 — BOUNDED DISPATCH_PARALLEL helpers (#99)
+  # ---------------------------------------------------------------------------
+
+  # Returns the max_concurrency value for the given label.
+  #
+  # @param label      [String]  "nil" | "one" | "gt_tasks"
+  # @param task_count [Integer] number of tasks (used for "gt_tasks")
+  # @return [Integer, nil]
+  def self.bp_max_concurrency(label, task_count: 3)
+    case label
+    when "nil" then nil
+    when "one" then 1
+    when "gt_tasks" then task_count + 5
+    else raise ArgumentError, "Unknown bp_max_concurrency label: #{label}"
+    end
+  end
+
+  # Returns an array of task hashes for dispatch_parallel, mixed succeed/fail
+  # according to the given outcome label.
+  #
+  # @param label [String] "all_succeed" | "some_fail" | "all_fail"
+  # @return [Array<Hash>]
+  def self.bp_tasks(label)
+    good = Class.new(Phronomy::Agent::Base) do
+      define_method(:invoke) { |input, config: {}| {output: "ok:#{input}", messages: []} }
+    end
+    bad = Class.new(Phronomy::Agent::Base) do
+      define_method(:invoke) { |*| raise "task_error" }
+    end
+
+    case label
+    when "all_succeed"
+      [
+        {agent: good, input: "t0"},
+        {agent: good, input: "t1"},
+        {agent: good, input: "t2"}
+      ]
+    when "some_fail"
+      [
+        {agent: good, input: "t0"},
+        {agent: bad, input: "t1"},
+        {agent: good, input: "t2"}
+      ]
+    when "all_fail"
+      [
+        {agent: bad, input: "t0"},
+        {agent: bad, input: "t1"},
+        {agent: bad, input: "t2"}
+      ]
+    else
+      raise ArgumentError, "Unknown bp_task_outcome label: #{label}"
+    end
+  end
+
+  # Returns a minimal Orchestrator subclass for dispatch_parallel / fan_out tests.
+  #
+  # @return [Class<Phronomy::Agent::Orchestrator>]
+  def self.bp_orchestrator_class
+    Class.new(Phronomy::Agent::Orchestrator)
+  end
 end
