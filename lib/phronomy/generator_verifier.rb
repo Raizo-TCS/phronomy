@@ -184,31 +184,31 @@ module Phronomy
       Phronomy::Workflow.define(PipelineState) do
         initial :draft
 
-        state :draft, action: ->(state) {
+        state :draft
+        state :review
+        state :finalize
+
+        entry :draft, ->(state) {
           feedback = state.review_notes.last
           prompt = dpb.call(state.input, feedback)
           result = draft_agent.invoke(prompt)
           parsed = drp.call(result[:output])
-          state.merge(
-            draft: parsed[:answer].to_s,
-            self_score: pipeline.__send__(:clamp, parsed[:confidence]),
-            citations: pipeline.__send__(:normalize_citations, parsed[:citations]),
-            iteration: state.iteration + 1
-          )
+          state.draft = parsed[:answer].to_s
+          state.self_score = pipeline.__send__(:clamp, parsed[:confidence])
+          state.citations = pipeline.__send__(:normalize_citations, parsed[:citations])
+          state.iteration = state.iteration + 1
         }
 
-        state :review, action: ->(state) {
+        entry :review, ->(state) {
           prompt = rpb.call(state.input, state.draft, state.citations)
           result = review_agent.invoke(prompt)
           parsed = rrp.call(result[:output])
-          state.merge(
-            review_score: pipeline.__send__(:clamp, parsed[:score]),
-            approved: parsed[:approved] == true,
-            review_notes: parsed[:feedback].to_s
-          )
+          state.review_score = pipeline.__send__(:clamp, parsed[:score])
+          state.approved = parsed[:approved] == true
+          state.review_notes << parsed[:feedback].to_s
         }
 
-        state :finalize, action: ->(state) { state.merge(output: state.draft) }
+        entry :finalize, ->(state) { state.output = state.draft }
 
         after :draft, to: :review
         after :finalize, to: :__finish__

@@ -15,8 +15,11 @@ module Phronomy
   #   app = Phronomy::Workflow.define(MyContext) do
   #     initial :fetch
   #
-  #     state :fetch,   action: FETCH_NODE
-  #     state :process, action: PROCESS_NODE
+  #     state :fetch
+  #     state :process
+  #
+  #     entry :fetch,   FETCH_NODE
+  #     entry :process, PROCESS_NODE
   #
   #     after :fetch,   to: :process
   #     after :process, to: :__finish__
@@ -29,9 +32,12 @@ module Phronomy
   #   app = Phronomy::Workflow.define(MyContext) do
   #     initial :propose
   #
-  #     state :propose, action: PROPOSE_NODE
+  #     state :propose
   #     wait_state :awaiting_approval
-  #     state :execute, action: EXECUTE_NODE
+  #     state :execute
+  #
+  #     entry :propose, PROPOSE_NODE
+  #     entry :execute, EXECUTE_NODE
   #
   #     after :propose, to: :awaiting_approval
   #     after :execute, to: :__finish__
@@ -112,8 +118,12 @@ module Phronomy
       def initialize(context_class)
         @context_class = context_class
         @initial = nil
-        # { state_name => callable }
-        @states = {}
+        # Ordered list of declared state names (action states only, not wait states).
+        @declared_states = []
+        # { state_name => callable } — entry actions registered via entry()
+        @entry_actions = {}
+        # { state_name => callable } — exit actions registered via exit()
+        @exit_actions = {}
         # Array of { from:, to: } — auto-transitions after a state action
         @after_transitions = []
         # Array of { name:, from:, to:, guard: } — event-driven transitions
@@ -132,14 +142,32 @@ module Phronomy
 
       # Declares an action state.
       # @param name [Symbol] state name
-      # @param action [#call, nil] callable invoked when entering the state.
-      #   If nil, the state is treated as a no-op pass-through.
-      def state(name, action: nil)
-        @states[name] = action || ->(s) { s }
+      def state(name)
+        @declared_states << name
+      end
+
+      # Declares an entry action for a state.
+      # The callable is invoked when the workflow enters +name+.
+      # It receives the current context and should mutate it in place.
+      # Return value is ignored.
+      # @param name [Symbol] state name
+      # @param callable [#call] receives context, mutates it in place
+      def entry(name, callable)
+        @entry_actions[name] = callable
+      end
+
+      # Declares an exit action for a state.
+      # The callable is invoked when the workflow leaves +name+.
+      # It receives the current context and should mutate it in place.
+      # Return value is ignored.
+      # @param name [Symbol] state name
+      # @param callable [#call] receives context, mutates it in place
+      def exit(name, callable)
+        @exit_actions[name] = callable
       end
 
       # Declares a wait state that automatically halts execution when reached.
-      # No action is registered; the workflow pauses here until an event resumes it.
+      # No entry action is registered; the workflow pauses here until an event resumes it.
       # @param name [Symbol] wait state name (conventionally :awaiting_something)
       def wait_state(name)
         @wait_state_names << name
@@ -169,7 +197,8 @@ module Phronomy
 
       # Builds and returns a Phronomy::Workflow backed by a WorkflowRunner.
       def build
-        state_actions = @states.dup
+        entry_actions = @entry_actions.dup
+        exit_actions = @exit_actions.dup
 
         # After-transitions: { from => to }
         # Unconditional transitions that fire automatically after an action state completes.
@@ -203,11 +232,13 @@ module Phronomy
 
         runner = Phronomy::WorkflowRunner.new(
           state_class: @context_class,
-          state_actions: state_actions,
+          entry_actions: entry_actions,
+          exit_actions: exit_actions,
+          declared_states: @declared_states.dup,
           after_transitions: after_transitions,
           route_transitions: route_transitions,
           external_events: external_events,
-          entry_point: @initial || state_actions.keys.first,
+          entry_point: @initial || @declared_states.first,
           wait_state_names: @wait_state_names
         )
 

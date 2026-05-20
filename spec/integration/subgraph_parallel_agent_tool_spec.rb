@@ -27,8 +27,10 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
   def linear_subworkflow
     Phronomy::Workflow.define(G13SubState) do
       initial :s1
-      state :s1, action: ->(s) { s.merge(value: "#{s.value}_s1", step: s.step + 1) }
-      state :s2, action: ->(s) { s.merge(value: "#{s.value}_s2", step: s.step + 1) }
+      state :s1
+      state :s2
+      entry :s1, ->(s) { s.value = "#{s.value}_s1"; s.step += 1 }
+      entry :s2, ->(s) { s.value = "#{s.value}_s2"; s.step += 1 }
       after :s1, to: :s2
       after :s2, to: :__finish__
     end
@@ -37,9 +39,11 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
   def branching_subworkflow
     Phronomy::Workflow.define(G13SubState) do
       initial :router
-      state :router, action: ->(s) { s }
-      state :high, action: ->(s) { s.merge(value: "high_#{s.value}", step: s.step + 1) }
-      state :low, action: ->(s) { s.merge(value: "low_#{s.value}", step: s.step + 1) }
+      state :router
+      state :high
+      state :low
+      entry :high, ->(s) { s.value = "high_#{s.value}"; s.step += 1 }
+      entry :low, ->(s) { s.value = "low_#{s.value}"; s.step += 1 }
       after :high, to: :__finish__
       after :low, to: :__finish__
       event :route, from: :router, guard: ->(s) { s.value.to_s.start_with?("h") }, to: :high
@@ -53,8 +57,10 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
   it "TC-001: flat linear workflow executes all states in order" do
     app = Phronomy::Workflow.define(G13BaseState) do
       initial :a
-      state :a, action: ->(s) { s.merge(value: "a", step: s.step + 1) }
-      state :b, action: ->(s) { s.merge(value: "#{s.value}_b", step: s.step + 1) }
+      state :a
+      state :b
+      entry :a, ->(s) { s.value = "a"; s.step += 1 }
+      entry :b, ->(s) { s.value = "#{s.value}_b"; s.step += 1 }
       after :a, to: :b
       after :b, to: :__finish__
     end
@@ -70,12 +76,16 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
     sub = linear_subworkflow
     app = Phronomy::Workflow.define(G13BaseState) do
       initial :before
-      state :before, action: ->(s) { s.merge(value: "init", step: 0) }
-      state :nested, action: ->(s) {
+      state :before
+      state :nested
+      state :after
+      entry :before, ->(s) { s.value = "init"; s.step = 0 }
+      entry :nested, ->(s) {
         result = sub.invoke({value: s.value, step: s.step})
-        s.merge(value: result.value, step: result.step)
+        s.value = result.value
+        s.step = result.step
       }
-      state :after, action: ->(s) { s.merge(value: "#{s.value}_after") }
+      entry :after, ->(s) { s.value = "#{s.value}_after" }
       after :before, to: :nested
       after :nested, to: :after
       after :after, to: :__finish__
@@ -92,9 +102,10 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
     sub = branching_subworkflow
     app = Phronomy::Workflow.define(G13BaseState) do
       initial :nested
-      state :nested, action: ->(s) {
+      state :nested
+      entry :nested, ->(s) {
         result = sub.invoke({value: "high_input", step: 0})
-        s.merge(value: result.value)
+        s.value = result.value
       }
       after :nested, to: :__finish__
     end

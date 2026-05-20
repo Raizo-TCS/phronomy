@@ -25,9 +25,11 @@ RSpec.describe "Group 28: Workflow Wait State / Phase", :integration do
   def build_wait_state_workflow(resume_event: :proceed)
     Phronomy::Workflow.define(WaitStateTestContext) do
       initial :node_a
-      state :node_a, action: ->(s) { s.merge(value: "#{s.value}:a") }
+      state :node_a
       wait_state :awaiting_node_b
-      state :node_b, action: ->(s) { s.merge(value: "#{s.value}:b") }
+      state :node_b
+      entry :node_a, ->(s) { s.value = "#{s.value}:a" }
+      entry :node_b, ->(s) { s.value = "#{s.value}:b" }
       after :node_a, to: :awaiting_node_b
       after :node_b, to: :__finish__
       event resume_event, from: :awaiting_node_b, to: :node_b

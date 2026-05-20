@@ -5,7 +5,7 @@ require "state_machines"
 
 module Phronomy
   # Execution engine for compiled workflows.
-  # Manages state action execution, phase transitions, halt/resume, and wait states.
+  # Manages state entry/exit action execution, phase transitions, halt/resume, and wait states.
   # Instantiated by Phronomy::Workflow and used internally.
   #
   # == Design principle
@@ -16,10 +16,18 @@ module Phronomy
   # the PhaseTracker itself. This ensures that "what happens next" is always
   # determined by the declared state machine topology, never by Phronomy internals.
   #
+  # Entry and exit actions are registered as state_machines +after_transition to:+
+  # and +before_transition from:+ callbacks respectively. The WorkflowContext is
+  # mutable; actions receive it and modify fields in place.
+  #
+  # The sole exception is the initial state: state_machines does not fire transition
+  # callbacks on initialization, so the entry action for the entry point is invoked
+  # directly by WorkflowRunner before the main execution loop begins.
+  #
   # == Three transition categories registered in PhaseTracker
   #
   #   1. advance_<from>  — automatic, unconditional after-transitions
-  #                        fired when an action state's action completes
+  #                        fired when an action state's entry action completes
   #                        (declared with +after :foo, to: :bar+)
   #
   #   2. route           — a single event that carries all guarded transitions
@@ -36,18 +44,18 @@ module Phronomy
     # Sentinel value for the terminal state of a workflow.
     FINISH = :__end__
 
-    def initialize(state_class:, state_actions:, after_transitions:, route_transitions:,
-      external_events:, entry_point:, wait_state_names: [],
-      before_callbacks: {}, after_callbacks: {})
+    def initialize(state_class:, entry_actions:, exit_actions: {}, declared_states:,
+      after_transitions:, route_transitions:,
+      external_events:, entry_point:, wait_state_names: [])
       @state_class = state_class
-      @state_actions = state_actions
+      @entry_actions = entry_actions   # { state_name => callable } — registered as after_transition callbacks
+      @exit_actions = exit_actions     # { state_name => callable } — registered as before_transition callbacks
+      @declared_states = declared_states
       @after_transitions = after_transitions  # { from => to }
       @route_transitions = route_transitions  # { from => [{guard:, to:}, ...] }
       @external_events = external_events    # { name => [{from:, to:, guard:}, ...] }
       @entry_point = entry_point
       @wait_state_names = wait_state_names
-      @before_callbacks = before_callbacks.dup
-      @after_callbacks = after_callbacks.dup
       @phase_machine_class = build_phase_machine_class
     end
 
@@ -92,9 +100,6 @@ module Phronomy
       event = event.to_sym
       current_phase = state.phase
 
-      tracker = new_phase_machine(current_phase)
-      tracker.context = state
-
       ev_to_fire = if event == :resume
         # Find the first external event that can originate from the current wait state.
         name, = @external_events.find { |_, ts| ts.any? { |t| t[:from] == current_phase } }
@@ -111,11 +116,7 @@ module Phronomy
         event
       end
 
-      fire_event!(tracker, ev_to_fire, current_phase)
-
-      next_phase = tracker.phase.to_sym
-      next_state = (next_phase == :__end__) ? FINISH : next_phase
-      run_workflow(state, from_state: next_state)
+      run_workflow(state, resume_event: ev_to_fire, resume_phase: current_phase)
     end
 
     # Streaming execution. Yields { state: Symbol, context: Object } after each state action completes.
@@ -133,12 +134,30 @@ module Phronomy
 
     private
 
-    def run_workflow(ctx, from_state: nil, recursion_limit: 25, &event_block)
-      current_state = from_state || @entry_point
-      tracker = new_phase_machine(current_state)
-      tracker.context = ctx
-      # Event queue: decouple state action execution from transition firing.
-      # Events are enqueued after a state action completes and processed at the top
+    def run_workflow(ctx, resume_event: nil, resume_phase: nil, recursion_limit: 25, &event_block)
+      if resume_event
+        # -- Resume from a wait state -------------------------------------------
+        # Fire the external event on a tracker positioned at the wait state.
+        # state_machines will invoke before_transition (exit) and after_transition
+        # (entry) callbacks as part of the transition, so both actions fire here.
+        current_state = resume_phase
+        tracker = new_phase_machine(current_state)
+        tracker.context = ctx
+        fire_event!(tracker, resume_event, current_state)
+        next_phase = tracker.phase.to_sym
+        current_state = (next_phase == current_state) ? FINISH : next_phase
+      else
+        # -- Fresh start --------------------------------------------------------
+        current_state = @entry_point
+        tracker = new_phase_machine(current_state)
+        tracker.context = ctx
+        # state_machines only fires after_transition callbacks on transitions.
+        # The entry point has no prior transition, so we invoke its entry action directly.
+        @entry_actions[current_state]&.call(ctx)
+      end
+
+      # Event queue: decouple action execution from transition firing.
+      # Events are enqueued after visiting a state and processed at the top
       # of the next iteration so that guards always see the freshest context.
       event_queue = []
       step = 0
@@ -148,8 +167,7 @@ module Phronomy
 
         # -- Process next pending event -----------------------------------------
         # Dequeue one event and fire it against the state machine. Guards are
-        # evaluated here (at fire time) so they see the context written by the
-        # state action that enqueued the event.
+        # evaluated here (at fire time). Entry/exit callbacks fire inside fire_event!.
         if (event = event_queue.shift)
           if step >= recursion_limit
             raise Phronomy::RecursionLimitError,
@@ -166,33 +184,23 @@ module Phronomy
 
         # -- Queue empty: check for halt -----------------------------------------
         # Auto-halt at wait states: persist phase in context and return to caller.
-        # The caller resumes via send_event, which starts a fresh run_workflow call.
+        # The caller resumes via send_event.
         if @wait_state_names.include?(current_state)
           ctx.set_graph_metadata(thread_id: ctx.thread_id, phase: current_state)
           return ctx
         end
 
-        # -- Execute state action -----------------------------------------------
-        state_action = @state_actions[current_state]
-        raise ArgumentError, "State #{current_state.inspect} is not defined" unless state_action
-
-        result = state_action.call(ctx)
-        ctx = case result
-        when Hash then ctx.merge(result)
-        when @state_class then result
-        when nil then ctx
-        else
-          raise ArgumentError,
-            "State #{current_state} returned #{result.class}; " \
-            "expected Hash, #{@state_class}, or nil"
+        # -- Validate state is known --------------------------------------------
+        unless @declared_states.include?(current_state)
+          raise ArgumentError, "State #{current_state.inspect} is not defined"
         end
 
-        # Update tracker so guards see the freshest context when the event fires.
-        tracker.context = ctx
-
+        # -- Emit stream event and enqueue transition ---------------------------
+        # Entry action for current_state has already been invoked (either by the
+        # initial manual call above, or by the after_transition callback fired
+        # inside fire_event! on the previous iteration).
         event_block&.call({state: current_state, context: ctx})
 
-        # -- Enqueue transition event -------------------------------------------
         # state_completed: generic event for all after-transitions (unconditional).
         # route event:     user-named event carrying guarded conditional branches.
         # No enqueue:      terminal state — next iteration exits via FINISH check.
@@ -222,21 +230,25 @@ module Phronomy
 
     # Builds the PhaseTracker class backed by state_machines.
     #
-    # Three event types are registered:
-    #   advance_<from>  — unconditional after-transitions
-    #   route           — all guarded routing transitions (one event, multiple transitions)
-    #   <external_name> — external events originating from wait states
+    # Five event/callback types are registered:
+    #   state_completed     — unconditional after-transitions
+    #   route               — all guarded routing transitions (one event, multiple transitions)
+    #   <external_name>     — external events originating from wait states
+    #   after_transition to — entry callbacks (invoked when entering a state)
+    #   before_transition from — exit callbacks (invoked when leaving a state)
     #
     # Guard lambdas bridge the PhaseTracker and WorkflowContext via +m.context+.
     def build_phase_machine_class
       entry = @entry_point
-      all_states = (@state_actions.keys + @wait_state_names + [:__end__]).uniq
+      all_states = (@declared_states + @wait_state_names + [:__end__]).uniq
       after_trans = @after_transitions   # { from => to }
       route_trans = @route_transitions   # { from => [{guard:, to:}, ...] }
       ext_events = @external_events     # { name => [{from:, to:, guard:}, ...] }
+      entry_acts = @entry_actions       # { state_name => callable }
+      exit_acts = @exit_actions         # { state_name => callable }
 
       Class.new do
-        # Holds the current WorkflowContext so guards can read it.
+        # Holds the current WorkflowContext so guards and callbacks can read it.
         attr_accessor :context
 
         state_machine :phase, initial: entry do
@@ -277,6 +289,22 @@ module Phronomy
                   transition t[:from] => t[:to]
                 end
               end
+            end
+          end
+
+          # 4. Entry callbacks: fire after_transition into each state.
+          #    Registered for every state that has a declared entry action.
+          entry_acts.each do |state_name, callable|
+            after_transition to: state_name do |machine|
+              callable.call(machine.context)
+            end
+          end
+
+          # 5. Exit callbacks: fire before_transition out of each state.
+          #    Registered for every state that has a declared exit action.
+          exit_acts.each do |state_name, callable|
+            before_transition from: state_name do |machine|
+              callable.call(machine.context)
             end
           end
         end

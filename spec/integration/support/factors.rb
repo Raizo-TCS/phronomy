@@ -981,9 +981,11 @@ module IntegrationFactors
 
     Phronomy::Workflow.define(state_class) do
       initial :node_a
-      state :node_a, action: ->(s) { s.merge(value: "#{s.value}:a") }
+      state :node_a
       wait_state :awaiting_node_b
-      state :node_b, action: ->(s) { s.merge(value: "#{s.value}:b") }
+      state :node_b
+      entry :node_a, ->(s) { s.value = "#{s.value}:a" }
+      entry :node_b, ->(s) { s.value = "#{s.value}:b" }
       after :node_a, to: :awaiting_node_b
       after :node_b, to: :__finish__
       event :resume, from: :awaiting_node_b, to: :node_b
@@ -1002,9 +1004,11 @@ module IntegrationFactors
 
     Phronomy::Workflow.define(state_class) do
       initial :node_a
-      state :node_a, action: ->(s) { s.merge(value: "#{s.value}:a") }
+      state :node_a
       wait_state :awaiting_node_b
-      state :node_b, action: ->(s) { s.merge(value: "#{s.value}:b") }
+      state :node_b
+      entry :node_a, ->(s) { s.value = "#{s.value}:a" }
+      entry :node_b, ->(s) { s.value = "#{s.value}:b" }
       after :node_a, to: :awaiting_node_b
       after :node_b, to: :__finish__
       event resume_event, from: :awaiting_node_b, to: :node_b
@@ -1062,9 +1066,11 @@ module IntegrationFactors
   def self.file_store_workflow(state_class, store:)
     Phronomy::Workflow.define(state_class, state_store: store) do
       initial :node_a
-      state :node_a, action: ->(s) { s.merge(value: "#{s.value}:a") }
+      state :node_a
       wait_state :awaiting_node_b
-      state :node_b, action: ->(s) { s.merge(value: "#{s.value}:b") }
+      state :node_b
+      entry :node_a, ->(s) { s.value = "#{s.value}:a" }
+      entry :node_b, ->(s) { s.value = "#{s.value}:b" }
       after :node_a, to: :awaiting_node_b
       after :node_b, to: :__finish__
       event :resume, from: :awaiting_node_b, to: :node_b
