@@ -64,6 +64,26 @@ RSpec.describe Phronomy::Tool::McpTool do
         expect(transport_double).to have_received(:close).at_least(:once)
       end
     end
+
+    context "when fetch_tool raises" do
+      let(:failing_transport) do
+        instance_double(Phronomy::Tool::McpTool::StdioTransport).tap do |t|
+          allow(t).to receive(:fetch_tool).and_raise(ArgumentError, "tool not found")
+          allow(t).to receive(:close)
+        end
+      end
+
+      before do
+        allow(Phronomy::Tool::McpTool::StdioTransport).to receive(:new).and_return(failing_transport)
+      end
+
+      it "still closes the short-lived transport via ensure" do
+        expect {
+          described_class.from_server("stdio://./mcp-server", tool_name: "missing")
+        }.to raise_error(ArgumentError, /tool not found/)
+        expect(failing_transport).to have_received(:close).once
+      end
+    end
   end
 
   describe Phronomy::Tool::McpTool::StdioTransport do

@@ -41,8 +41,11 @@ module Phronomy
           # then close it.  Each McpTool instance creates its own transport
           # so that concurrent callers never share IO streams.
           transport = build_transport(server_uri)
-          tool_def = transport.fetch_tool(tool_name)
-          transport.close
+          begin
+            tool_def = transport.fetch_tool(tool_name)
+          ensure
+            transport.close
+          end
           build_tool_class(tool_name, server_uri, tool_def).new
         end
 
@@ -84,7 +87,9 @@ module Phronomy
 
           # Allow callers to deterministically shut down the underlying child
           # process (stdio) or release the HTTP connection.  For HttpTransport
-          # this is a no-op.  Calling execute after close raises an error.
+          # this is a no-op.  After close, calling execute will reopen the
+          # transport automatically (stdio restarts the child process; HTTP
+          # opens a fresh connection per call).
           klass.define_method(:close) do
             @mcp_transport.close
           end

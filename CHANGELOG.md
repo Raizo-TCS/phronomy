@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.3] - 2026-05-20
+
+### Bug Fixes
+
+- **Ensure `from_server` closes transport on error** (#95): The short-lived
+  transport created inside `McpTool.from_server` is now wrapped in
+  `begin/ensure`, so the underlying child process (stdio) is always
+  terminated even when `fetch_tool` raises.
+- **Correct `McpTool#close` documentation** (#94): The comment previously
+  stated that calling `execute` after `close` raises an error; in practice
+  the transport reopens automatically. The comment now reflects actual
+  behaviour.
+
+### Documentation
+
+- **Fix CHANGELOG date for v0.5.1** (#96): The v0.5.1 entry had an
+  incorrect date of 2026-05-21; corrected to 2026-05-20.
+
+---
+
 ## [0.5.2] - 2026-05-20
 
 ### Bug Fixes
@@ -41,7 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.5.1] - 2026-05-21
+## [0.5.1] - 2026-05-20
 
 ### Bug Fixes
 
