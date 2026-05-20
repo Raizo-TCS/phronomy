@@ -88,31 +88,112 @@ module Phronomy
       # threads. Each task is a Hash describing one agent invocation.
       #
       # Results are returned in the same order as the input +tasks+ array.
-      # If any thread raises an exception, the exception is re-raised in the
-      # calling thread after all threads have completed (via +Thread#value+).
+      # Concurrency is bounded by +max_concurrency+; when nil all tasks run at
+      # once (original behaviour).
       #
-      # @param tasks [Array<Hash>]
-      # @option task [Class]  :agent  agent class to invoke (required)
-      # @option task [String] :input  input string for the agent (required)
-      # @option task [Hash]   :config forwarded to +agent#invoke+ (default: +{}+)
-      # @return [Array<Hash>] agent results in the same order as +tasks+
-      def dispatch_parallel(*tasks)
-        threads = tasks.map do |task|
-          Thread.new do
-            task[:agent].new.invoke(task[:input], config: task.fetch(:config, {}))
-          end
+      # Error semantics are controlled by +on_error+:
+      # - +:raise+ (default) — every task runs to completion; the first
+      #   exception in input order is then re-raised in the calling thread.
+      # - +:skip+            — failed tasks return +nil+; no exception is raised.
+      #
+      # @param tasks           [Array<Hash>]
+      # @option task [Class]   :agent  agent class to invoke (required)
+      # @option task [String]  :input  input string for the agent (required)
+      # @option task [Hash]    :config forwarded to +agent#invoke+ (default: +{}+)
+      # @param max_concurrency [Integer, nil] maximum number of concurrent threads;
+      #   nil means no limit (all tasks run simultaneously)
+      # @param on_error        [Symbol] +:raise+ or +:skip+
+      # @return [Array<Hash, nil>] agent results in the same order as +tasks+
+      # @raise [ArgumentError] if +on_error+ is not +:raise+ or +:skip+
+      # @raise [ArgumentError] if +max_concurrency+ is not a positive Integer or nil
+      def dispatch_parallel(*tasks, max_concurrency: nil, on_error: :raise)
+        unless [:raise, :skip].include?(on_error)
+          raise ArgumentError, "unknown on_error: #{on_error.inspect}"
         end
-        threads.map(&:value)
+        unless max_concurrency.nil? || (max_concurrency.is_a?(Integer) && max_concurrency.positive?)
+          raise ArgumentError, "max_concurrency must be a positive Integer"
+        end
+
+        bounded_map(tasks, max_concurrency: max_concurrency, on_error: on_error)
       end
 
       # Runs the same agent against multiple inputs in parallel (fan-out pattern).
       #
-      # @param agent  [Class]         agent class to invoke for every input
-      # @param inputs [Array<String>] list of input strings
-      # @param config [Hash]          forwarded to every +agent#invoke+ call
-      # @return [Array<Hash>] results in the same order as +inputs+
-      def fan_out(agent:, inputs:, config: {})
-        dispatch_parallel(*inputs.map { |input| {agent: agent, input: input, config: config} })
+      # Accepts the same +max_concurrency:+ and +on_error:+ keyword arguments as
+      # {#dispatch_parallel} and forwards them unchanged.
+      #
+      # @param agent           [Class]         agent class to invoke for every input
+      # @param inputs          [Array<String>] list of input strings
+      # @param config          [Hash]          forwarded to every +agent#invoke+ call
+      # @param max_concurrency [Integer, nil]  forwarded to {#dispatch_parallel}
+      # @param on_error        [Symbol]        forwarded to {#dispatch_parallel}
+      # @return [Array<Hash, nil>] results in the same order as +inputs+
+      def fan_out(agent:, inputs:, config: {}, max_concurrency: nil, on_error: :raise)
+        dispatch_parallel(
+          *inputs.map { |input| {agent: agent, input: input, config: config} },
+          max_concurrency: max_concurrency,
+          on_error: on_error
+        )
+      end
+
+      private
+
+      # Worker-pool implementation shared by {#dispatch_parallel} and {#fan_out}.
+      #
+      # Uses a +Queue+ as a work-stealing mechanism: each worker thread pops a
+      # task, executes it, and loops until the queue is empty.  The number of
+      # workers is +min(max_concurrency, tasks.length)+, capped at the task count
+      # so we never spin up idle threads.
+      #
+      # +errors+ is indexed by task position so that the first error in *input*
+      # order is deterministically re-raised when +on_error: :raise+ is used.
+      # A +Mutex+ guards concurrent writes to +errors+ even though Array element
+      # assignment at different indices is safe in MRI; this keeps the code
+      # correct across alternative Ruby runtimes.
+      def bounded_map(tasks, max_concurrency:, on_error:)
+        return [] if tasks.empty?
+
+        results      = Array.new(tasks.length)
+        errors       = Array.new(tasks.length)
+        errors_mutex = Mutex.new
+
+        queue = Queue.new
+        tasks.each_with_index { |task, i| queue << [i, task] }
+
+        worker_count = [max_concurrency || tasks.length, tasks.length].min
+
+        workers = worker_count.times.map do
+          Thread.new do
+            loop do
+              i, task = begin
+                queue.pop(true)
+              rescue ThreadError
+                break # queue is empty; this worker is done
+              end
+
+              begin
+                results[i] = task[:agent].new.invoke(
+                  task[:input],
+                  config: task.fetch(:config, {})
+                )
+              rescue => e
+                case on_error
+                when :skip
+                  results[i] = nil
+                else
+                  errors_mutex.synchronize { errors[i] = e }
+                end
+              end
+            end
+          end
+        end
+
+        workers.each(&:join)
+
+        first_error = errors.compact.first
+        raise first_error if first_error
+
+        results
       end
     end
   end

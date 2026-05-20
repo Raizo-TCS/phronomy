@@ -92,6 +92,140 @@ RSpec.describe Phronomy::Agent::Orchestrator do
         orchestrator.dispatch_parallel({agent: failing_agent, input: "test"})
       }.to raise_error(RuntimeError, "subagent exploded")
     end
+
+    # Regression tests for Issue #99: max_concurrency and on_error
+    describe "argument validation (Issue #99)" do
+      it "raises ArgumentError for unknown on_error value" do
+        expect {
+          orchestrator.dispatch_parallel({agent: stub_agent("x"), input: "t"}, on_error: :ignore)
+        }.to raise_error(ArgumentError, /unknown on_error/)
+      end
+
+      it "raises ArgumentError when max_concurrency is zero" do
+        expect {
+          orchestrator.dispatch_parallel({agent: stub_agent("x"), input: "t"}, max_concurrency: 0)
+        }.to raise_error(ArgumentError, /max_concurrency must be a positive Integer/)
+      end
+
+      it "raises ArgumentError when max_concurrency is negative" do
+        expect {
+          orchestrator.dispatch_parallel({agent: stub_agent("x"), input: "t"}, max_concurrency: -1)
+        }.to raise_error(ArgumentError, /max_concurrency must be a positive Integer/)
+      end
+
+      it "raises ArgumentError when max_concurrency is a string" do
+        expect {
+          orchestrator.dispatch_parallel({agent: stub_agent("x"), input: "t"}, max_concurrency: "2")
+        }.to raise_error(ArgumentError, /max_concurrency must be a positive Integer/)
+      end
+    end
+
+    describe "on_error: :skip (Issue #99)" do
+      it "returns nil for failed tasks instead of raising" do
+        good  = stub_agent("ok")
+        bad   = Class.new(Phronomy::Agent::Base) do
+          define_method(:invoke) { |*| raise "boom" }
+        end
+
+        results = orchestrator.dispatch_parallel(
+          {agent: good, input: "a"},
+          {agent: bad,  input: "b"},
+          {agent: good, input: "c"},
+          on_error: :skip
+        )
+
+        expect(results[0][:output]).to eq("ok")
+        expect(results[1]).to be_nil
+        expect(results[2][:output]).to eq("ok")
+      end
+    end
+
+    describe "on_error: :raise semantics (Issue #99)" do
+      it "runs all tasks before re-raising (fail-last, not fail-fast)" do
+        run_count = Concurrent::AtomicFixnum.new(0) rescue (require "concurrent-ruby"; Concurrent::AtomicFixnum.new(0))
+
+        # Use a mutex-protected counter instead if concurrent-ruby is unavailable
+        mutex   = Mutex.new
+        counter = 0
+
+        counting_agent = Class.new(Phronomy::Agent::Base) do
+          define_method(:invoke) do |_input, config: {}|
+            mutex.synchronize { counter += 1 }
+            {output: "counted", messages: []}
+          end
+        end
+        failing_agent = Class.new(Phronomy::Agent::Base) do
+          define_method(:invoke) { |*| raise "task failed" }
+        end
+
+        expect {
+          orchestrator.dispatch_parallel(
+            {agent: counting_agent, input: "1"},
+            {agent: failing_agent,  input: "2"},
+            {agent: counting_agent, input: "3"},
+            on_error: :raise
+          )
+        }.to raise_error(RuntimeError, "task failed")
+
+        # Both counting tasks must have run despite the failure in task 2
+        expect(counter).to eq(2)
+      end
+
+      it "re-raises the first error in input order, not the fastest failure" do
+        # Task 0 and task 2 both fail; task 0 is first in input order
+        error_0 = RuntimeError.new("error from task 0")
+        error_2 = RuntimeError.new("error from task 2")
+
+        failing_first  = Class.new(Phronomy::Agent::Base) do
+          error_0_ref = error_0
+          define_method(:invoke) { |*| raise error_0_ref }
+        end
+        failing_third  = Class.new(Phronomy::Agent::Base) do
+          error_2_ref = error_2
+          define_method(:invoke) { |*| raise error_2_ref }
+        end
+        good = stub_agent("ok")
+
+        expect {
+          orchestrator.dispatch_parallel(
+            {agent: failing_first, input: "0"},
+            {agent: good,          input: "1"},
+            {agent: failing_third, input: "2"},
+            on_error: :raise
+          )
+        }.to raise_error(error_0)
+      end
+    end
+
+    describe "max_concurrency (Issue #99)" do
+      it "returns correct results when max_concurrency: 1 (serial execution)" do
+        agent_a = stub_agent("a")
+        agent_b = stub_agent("b")
+        agent_c = stub_agent("c")
+
+        results = orchestrator.dispatch_parallel(
+          {agent: agent_a, input: "x"},
+          {agent: agent_b, input: "y"},
+          {agent: agent_c, input: "z"},
+          max_concurrency: 1
+        )
+
+        expect(results.map { |r| r[:output] }).to eq(%w[a b c])
+      end
+
+      it "returns correct results when max_concurrency exceeds task count" do
+        agents = 3.times.map { |i| stub_agent("r#{i}") }
+        tasks  = agents.each_with_index.map { |a, i| {agent: a, input: i.to_s} }
+
+        results = orchestrator.dispatch_parallel(*tasks, max_concurrency: 10)
+
+        expect(results.map { |r| r[:output] }).to eq(%w[r0 r1 r2])
+      end
+
+      it "returns [] for empty task list" do
+        expect(orchestrator.dispatch_parallel).to eq([])
+      end
+    end
   end
 
   describe "#fan_out" do
@@ -119,6 +253,28 @@ RSpec.describe Phronomy::Agent::Orchestrator do
       orchestrator.fan_out(agent: agent_class, inputs: %w[x y], config: {thread_id: "t2"})
 
       expect(configs_received).to all(eq({thread_id: "t2"}))
+    end
+
+    it "forwards max_concurrency: to dispatch_parallel (Issue #99)" do
+      results = orchestrator.fan_out(
+        agent: stub_agent("ok"),
+        inputs: %w[a b c],
+        max_concurrency: 1
+      )
+      expect(results.map { |r| r[:output] }).to eq(%w[ok ok ok])
+    end
+
+    it "forwards on_error: :skip to dispatch_parallel (Issue #99)" do
+      bad = Class.new(Phronomy::Agent::Base) do
+        define_method(:invoke) { |*| raise "oops" }
+      end
+
+      results = orchestrator.fan_out(
+        agent: bad,
+        inputs: %w[a b],
+        on_error: :skip
+      )
+      expect(results).to eq([nil, nil])
     end
   end
 
