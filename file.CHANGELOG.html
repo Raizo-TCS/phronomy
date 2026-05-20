@@ -64,6 +64,24 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
+<h2 id="_0_5_3____2026_05_20">[0.5.3] - 2026-05-20</h2>
+<h3 id="Bug_Fixes">Bug Fixes</h3>
+<ul>
+<li><strong>Ensure <code>from_server</code> closes transport on error</strong> (#95): The short-lived
+transport created inside <code>McpTool.from_server</code> is now wrapped in
+<code>begin/ensure</code>, so the underlying child process (stdio) is always
+terminated even when <code>fetch_tool</code> raises.</li>
+<li><strong>Correct <code>McpTool#close</code> documentation</strong> (#94): The comment previously
+stated that calling <code>execute</code> after <code>close</code> raises an error; in practice
+the transport reopens automatically. The comment now reflects actual
+behaviour.</li>
+</ul>
+<h3 id="Documentation">Documentation</h3>
+<ul>
+<li><strong>Fix CHANGELOG date for v0.5.1</strong> (#96): The v0.5.1 entry had an
+incorrect date of 2026-05-21; corrected to 2026-05-20.</li>
+</ul>
+<hr />
 <h2 id="_0_5_2____2026_05_20">[0.5.2] - 2026-05-20</h2>
 <h3 id="Bug_Fixes">Bug Fixes</h3>
 <ul>
@@ -99,7 +117,7 @@ the README stability table.</p>
 </li>
 </ul>
 <hr />
-<h2 id="_0_5_1____2026_05_21">[0.5.1] - 2026-05-21</h2>
+<h2 id="_0_5_1____2026_05_20">[0.5.1] - 2026-05-20</h2>
 <h3 id="Bug_Fixes">Bug Fixes</h3>
 <ul>
 <li>
@@ -399,7 +417,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Wed May 20 05:14:52 2026 by
+  Generated on Wed May 20 05:36:00 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
