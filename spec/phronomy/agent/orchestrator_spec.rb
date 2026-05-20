@@ -118,6 +118,18 @@ RSpec.describe Phronomy::Agent::Orchestrator do
           orchestrator.dispatch_parallel({agent: stub_agent("x"), input: "t"}, max_concurrency: "2")
         }.to raise_error(ArgumentError, /max_concurrency must be a positive Integer/)
       end
+
+      it "raises ArgumentError when max_concurrency is a float" do
+        expect {
+          orchestrator.dispatch_parallel({agent: stub_agent("x"), input: "t"}, max_concurrency: 1.5)
+        }.to raise_error(ArgumentError, /max_concurrency must be a positive Integer/)
+      end
+
+      it "raises ArgumentError when max_concurrency is true" do
+        expect {
+          orchestrator.dispatch_parallel({agent: stub_agent("x"), input: "t"}, max_concurrency: true)
+        }.to raise_error(ArgumentError, /max_concurrency must be a positive Integer/)
+      end
     end
 
     describe "on_error: :skip (Issue #99)" do
@@ -142,14 +154,6 @@ RSpec.describe Phronomy::Agent::Orchestrator do
 
     describe "on_error: :raise semantics (Issue #99)" do
       it "runs all tasks before re-raising (fail-last, not fail-fast)" do
-        begin
-          Concurrent::AtomicFixnum.new(0)
-        rescue
-          (require "concurrent-ruby"
-           Concurrent::AtomicFixnum.new(0))
-        end
-
-        # Use a mutex-protected counter instead if concurrent-ruby is unavailable
         mutex = Mutex.new
         counter = 0
 
