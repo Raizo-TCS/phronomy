@@ -64,6 +64,35 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
+<h2 id="_0_5_4____2026_05_20">[0.5.4] - 2026-05-20</h2>
+<h3 id="New_Features">New Features</h3>
+<ul>
+<li>
+<p><strong>VectorStore embedding dimension validation</strong> (#98): All three vector store
+implementations (<code>InMemory</code>, <code>RedisSearch</code>, <code>Pgvector</code>) now validate that every
+embedding passed to <code>add</code> and <code>search</code> matches the expected dimension.
+Dimension is inferred automatically from the first <code>add</code> call; alternatively
+it can be set explicitly via <code>initialize(dimension: N)</code>. A mismatch raises
+<code>ArgumentError</code> with a descriptive message. The <code>search</code> method never
+establishes the dimension — it only validates when a dimension is already
+known. <code>clear</code> retains the established dimension (schema property).</p>
+</li>
+<li>
+<p><strong><code>dispatch_parallel</code> / <code>fan_out</code> concurrency controls</strong> (#99): Two new
+keyword arguments are now accepted by both methods.</p>
+<ul>
+<li><code>max_concurrency: nil</code> (default) or a positive <code>Integer</code> — caps the number
+of worker threads. <code>nil</code> means one thread per task (previous behaviour).</li>
+<li><code>on_error: :raise</code> (default) or <code>:skip</code> — controls failure handling.
+<code>:raise</code> runs all tasks to completion then re-raises the first error in
+input order (fail-last, not fail-fast). <code>:skip</code> fills failed slots with
+<code>nil</code> and never raises.
+The underlying implementation uses a <code>Queue</code>-based bounded worker pool
+(<code>bounded_map</code>) for predictable resource usage.</li>
+</ul>
+</li>
+</ul>
+<hr />
 <h2 id="_0_5_3____2026_05_20">[0.5.3] - 2026-05-20</h2>
 <h3 id="Bug_Fixes">Bug Fixes</h3>
 <ul>
@@ -417,7 +446,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Wed May 20 10:04:26 2026 by
+  Generated on Wed May 20 10:11:45 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

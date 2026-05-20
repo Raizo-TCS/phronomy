@@ -339,10 +339,11 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 </code></pre>
 <h3 id="Agent__Orchestrator___Parallel_subagent_dispatch">Agent::Orchestrator — Parallel subagent dispatch</h3>
 <blockquote>
-<p><strong>Note:</strong> <code>dispatch_parallel</code> and <code>fan_out</code> use plain Ruby threads and are
-intended for small-scale fan-out (a handful of subagents). For large-scale
-parallel dispatch, manage concurrency (thread pools, rate limiting) at the
-application level.</p>
+<p><strong>Note:</strong> <code>dispatch_parallel</code> and <code>fan_out</code> use plain Ruby threads. Use
+<code>max_concurrency:</code> to cap the number of concurrent workers and <code>on_error:</code>
+to control failure handling (<code>:raise</code> re-raises the first error after all
+tasks complete; <code>:skip</code> fills failed slots with <code>nil</code>). For very large
+fan-outs consider additional rate-limiting at the application level.</p>
 </blockquote>
 <pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>ResearchOrchestrator</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Orchestrator.html" title="Phronomy::Agent::Orchestrator (class)">Orchestrator</a></span></span>
   <span class='id identifier rubyid_model'>model</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>gpt-4o</span><span class='tstring_end'>&quot;</span></span>
@@ -361,16 +362,22 @@ application level.</p>
   <span class='id identifier rubyid_instructions'>instructions</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Orchestrate.</span><span class='tstring_end'>&quot;</span></span>
 
   <span class='kw'>def</span> <span class='id identifier rubyid_run'>run</span><span class='lparen'>(</span><span class='id identifier rubyid_query'>query</span><span class='rparen'>)</span>
-    <span class='comment'># Heterogeneous agents in parallel
+    <span class='comment'># Heterogeneous agents in parallel (cap at 4 threads; skip failures)
 </span>    <span class='id identifier rubyid_results'>results</span> <span class='op'>=</span> <span class='id identifier rubyid_dispatch_parallel'>dispatch_parallel</span><span class='lparen'>(</span>
       <span class='lbrace'>{</span><span class='label'>agent:</span> <span class='const'>SearchAgent</span><span class='comma'>,</span>   <span class='label'>input:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>topic A</span><span class='tstring_end'>&quot;</span></span><span class='rbrace'>}</span><span class='comma'>,</span>
-      <span class='lbrace'>{</span><span class='label'>agent:</span> <span class='const'>AnalysisAgent</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_query'>query</span><span class='rbrace'>}</span>
+      <span class='lbrace'>{</span><span class='label'>agent:</span> <span class='const'>AnalysisAgent</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_query'>query</span><span class='rbrace'>}</span><span class='comma'>,</span>
+      <span class='label'>max_concurrency:</span> <span class='int'>4</span><span class='comma'>,</span>
+      <span class='label'>on_error:</span> <span class='symbol'>:skip</span>
     <span class='rparen'>)</span>
 
     <span class='comment'># Fan-out — same agent, multiple inputs
-</span>    <span class='id identifier rubyid_translations'>translations</span> <span class='op'>=</span> <span class='id identifier rubyid_fan_out'>fan_out</span><span class='lparen'>(</span><span class='label'>agent:</span> <span class='const'>TranslationAgent</span><span class='comma'>,</span> <span class='label'>inputs:</span> <span class='qwords_beg'>%w[</span><span class='tstring_content'>Hello</span><span class='words_sep'> </span><span class='tstring_content'>World</span><span class='tstring_end'>]</span></span><span class='rparen'>)</span>
+</span>    <span class='id identifier rubyid_translations'>translations</span> <span class='op'>=</span> <span class='id identifier rubyid_fan_out'>fan_out</span><span class='lparen'>(</span>
+      <span class='label'>agent:</span> <span class='const'>TranslationAgent</span><span class='comma'>,</span>
+      <span class='label'>inputs:</span> <span class='qwords_beg'>%w[</span><span class='tstring_content'>Hello</span><span class='words_sep'> </span><span class='tstring_content'>World</span><span class='tstring_end'>]</span></span><span class='comma'>,</span>
+      <span class='label'>max_concurrency:</span> <span class='int'>2</span>
+    <span class='rparen'>)</span>
 
-    <span class='id identifier rubyid_results'>results</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_r'>r</span><span class='op'>|</span> <span class='id identifier rubyid_r'>r</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>\n</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_results'>results</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_r'>r</span><span class='op'>|</span> <span class='id identifier rubyid_r'>r</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>\n</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span>
 </code></pre>
@@ -639,7 +646,7 @@ that require additional infrastructure (a running Rails server, database, etc.):
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Wed May 20 10:04:26 2026 by
+  Generated on Wed May 20 10:11:45 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
