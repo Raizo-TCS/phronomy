@@ -82,6 +82,13 @@ module Phronomy
             @mcp_transport.call_tool(tool_name, args)
           end
 
+          # Allow callers to deterministically shut down the underlying child
+          # process (stdio) or release the HTTP connection.  For HttpTransport
+          # this is a no-op.  Calling execute after close raises an error.
+          klass.define_method(:close) do
+            @mcp_transport.close
+          end
+
           klass
         end
       end

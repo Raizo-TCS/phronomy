@@ -1,5 +1,10 @@
 # Phronomy — Rails Integration
 
+> **Archived.** Rails integration (`Railtie`, `acts_as_phronomy_message`,
+> install generator, `AgentJob`) was removed in v0.3.0–v0.5.1. This document
+> no longer describes the current public API and is preserved for historical
+> reference only.
+
 ## 1. Overview
 
 `phronomy-rails` provides first-class Rails integration:

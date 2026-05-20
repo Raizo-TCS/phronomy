@@ -54,6 +54,15 @@ RSpec.describe Phronomy::Tool::McpTool do
         result = tool_instance.execute(query: "Ruby")
         expect(result).to eq(["result"])
       end
+
+      it "delegates #close to the instance transport" do
+        allow(transport_double).to receive(:close)
+        tool_instance.close
+        # transport_double backs both the short-lived from_server transport and
+        # the instance transport (StdioTransport.new always returns it in this
+        # context), so close is called at least once for the instance transport.
+        expect(transport_double).to have_received(:close).at_least(:once)
+      end
     end
   end
 

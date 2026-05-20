@@ -391,6 +391,13 @@ search_tool = Phronomy::Tool::McpTool.from_server(
 )
 ```
 
+Call `close` when the tool is no longer needed to shut down the underlying
+child process (stdio transport) or release the HTTP connection:
+
+```ruby
+search_tool.close
+```
+
 ### Conversation History — passing prior messages
 
 Phronomy does not manage conversation history internally. The application owns the

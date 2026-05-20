@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.2] - 2026-05-20
+
+### Bug Fixes
+
+- **CHANGELOG correction for v0.5.1 MCP fix** (#90): The v0.5.1 entry
+  incorrectly stated that a `Mutex` was added to `StdioTransport#rpc_call`.
+  The actual fix was per-instance transport ownership (each `McpTool` instance
+  creates its own transport in `initialize`). Corrected the description.
+
+### Enhancements
+
+- **Add `McpTool#close`** (#92): Tool instances now expose a `close` method
+  that shuts down the underlying stdio child process (`StdioTransport`) or
+  releases the HTTP connection (`HttpTransport`). This gives callers a
+  deterministic way to clean up resources instead of relying on GC.
+
+### Maintenance
+
+- **Archive stale Rails integration design doc** (#91): Added an archived
+  notice to `spec/design/17_rails_integration.md` clarifying that Rails
+  integration was removed in v0.3.0–v0.5.1 and the document is for
+  historical reference only.
+
+- **Remove zombie `register_workflow_context` API** (#93): The
+  `Phronomy.register_workflow_context`, `workflow_context_registry`, and
+  `reset_workflow_context_registry!` methods (along with the backing
+  `@workflow_context_registry` and `@registry_mutex` module-level variables)
+  were removed from `lib/phronomy.rb`. These existed to support the
+  `StateStore` deserialization guard, which was removed in a prior release.
+  The API had no remaining callers in the codebase and was not listed in
+  the README stability table.
+
+---
+
 ## [0.5.1] - 2026-05-21
 
 ### Bug Fixes
@@ -17,10 +51,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `lib/generators/`, `lib/phronomy/railtie.rb`, and all references in
   `lib/phronomy.rb`.
 
-- **Fix thread-safety of `StdioTransport#rpc_call`** (#86): Concurrent calls
-  to the same `McpTool` instance could interleave JSON-RPC writes and reads,
-  corrupting request/response pairing. A `Mutex` is now held around each
-  write+read cycle. Also adds the missing `require "securerandom"`.
+- **Fix MCP transport ownership** (#86): `McpTool` no longer stores a shared
+  transport at class level. `from_server` now uses a short-lived transport only
+  to fetch tool metadata and calls `close` immediately after. Each tool instance
+  creates its own `StdioTransport` or `HttpTransport` in `initialize`, so
+  concurrent callers (e.g. via `Orchestrator#dispatch_parallel`) never share
+  stdio streams. No `Mutex` is needed. Also adds missing
+  `require "securerandom"` and a no-op `HttpTransport#close` for interface
+  consistency.
 
 ### Documentation
 
