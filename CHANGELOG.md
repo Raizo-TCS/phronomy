@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.4] - 2026-05-20
+
+### New Features
+
+- **VectorStore embedding dimension validation** (#98): All three vector store
+  implementations (`InMemory`, `RedisSearch`, `Pgvector`) now validate that every
+  embedding passed to `add` and `search` matches the expected dimension.
+  Dimension is inferred automatically from the first `add` call; alternatively
+  it can be set explicitly via `initialize(dimension: N)`. A mismatch raises
+  `ArgumentError` with a descriptive message. The `search` method never
+  establishes the dimension — it only validates when a dimension is already
+  known. `clear` retains the established dimension (schema property).
+
+- **`dispatch_parallel` / `fan_out` concurrency controls** (#99): Two new
+  keyword arguments are now accepted by both methods.
+  - `max_concurrency: nil` (default) or a positive `Integer` — caps the number
+    of worker threads. `nil` means one thread per task (previous behaviour).
+  - `on_error: :raise` (default) or `:skip` — controls failure handling.
+    `:raise` runs all tasks to completion then re-raises the first error in
+    input order (fail-last, not fail-fast). `:skip` fills failed slots with
+    `nil` and never raises.
+  The underlying implementation uses a `Queue`-based bounded worker pool
+  (`bounded_map`) for predictable resource usage.
+
+---
+
 ## [0.5.3] - 2026-05-20
 
 ### Bug Fixes

@@ -271,10 +271,11 @@ end
 
 ### Agent::Orchestrator — Parallel subagent dispatch
 
-> **Note:** `dispatch_parallel` and `fan_out` use plain Ruby threads and are
-> intended for small-scale fan-out (a handful of subagents). For large-scale
-> parallel dispatch, manage concurrency (thread pools, rate limiting) at the
-> application level.
+> **Note:** `dispatch_parallel` and `fan_out` use plain Ruby threads. Use
+> `max_concurrency:` to cap the number of concurrent workers and `on_error:`
+> to control failure handling (`:raise` re-raises the first error after all
+> tasks complete; `:skip` fills failed slots with `nil`). For very large
+> fan-outs consider additional rate-limiting at the application level.
 
 ```ruby
 class ResearchOrchestrator < Phronomy::Agent::Orchestrator
@@ -297,16 +298,22 @@ class MyOrchestrator < Phronomy::Agent::Orchestrator
   instructions "Orchestrate."
 
   def run(query)
-    # Heterogeneous agents in parallel
+    # Heterogeneous agents in parallel (cap at 4 threads; skip failures)
     results = dispatch_parallel(
       {agent: SearchAgent,   input: "topic A"},
-      {agent: AnalysisAgent, input: query}
+      {agent: AnalysisAgent, input: query},
+      max_concurrency: 4,
+      on_error: :skip
     )
 
     # Fan-out — same agent, multiple inputs
-    translations = fan_out(agent: TranslationAgent, inputs: %w[Hello World])
+    translations = fan_out(
+      agent: TranslationAgent,
+      inputs: %w[Hello World],
+      max_concurrency: 2
+    )
 
-    results.map { |r| r[:output] }.join("\n")
+    results.compact.map { |r| r[:output] }.join("\n")
   end
 end
 ```
