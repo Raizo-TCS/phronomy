@@ -3,6 +3,7 @@
 require "json"
 require "net/http"
 require "open3"
+require "securerandom"
 require "shellwords"
 require "uri"
 
@@ -36,9 +37,13 @@ module Phronomy
         # @param tool_name [String] the tool name as registered in the MCP server
         # @return [McpTool] a configured subclass instance ready for use with an Agent
         def from_server(server_uri, tool_name:)
+          # Use a short-lived transport only to query the tool definition,
+          # then close it.  Each McpTool instance creates its own transport
+          # so that concurrent callers never share IO streams.
           transport = build_transport(server_uri)
           tool_def = transport.fetch_tool(tool_name)
-          build_tool_class(tool_name, tool_def, transport).new
+          transport.close
+          build_tool_class(tool_name, server_uri, tool_def).new
         end
 
         private
@@ -55,10 +60,10 @@ module Phronomy
           end
         end
 
-        def build_tool_class(tool_name, tool_def, transport)
+        def build_tool_class(tool_name, server_uri, tool_def)
           klass = Class.new(McpTool)
           klass.instance_variable_set(:@mcp_tool_name, tool_name)
-          klass.instance_variable_set(:@mcp_transport, transport)
+          klass.instance_variable_set(:@mcp_server_uri, server_uri)
 
           # Register description and params from the MCP tool definition.
           klass.description(tool_def[:description] || tool_name)
@@ -66,10 +71,15 @@ module Phronomy
             klass.param(p[:name].to_sym, type: p[:type]&.to_sym || :string, desc: p[:description].to_s)
           end
 
-          # Define #execute to forward the call to the MCP server.
+          # Each instance creates its own transport so concurrent agent threads
+          # never share IO streams, eliminating the need for synchronisation.
+          klass.define_method(:initialize) do
+            uri = self.class.instance_variable_get(:@mcp_server_uri)
+            @mcp_transport = self.class.send(:build_transport, uri)
+          end
+
           klass.define_method(:execute) do |**args|
-            self.class.instance_variable_get(:@mcp_transport)
-              .call_tool(tool_name, args)
+            @mcp_transport.call_tool(tool_name, args)
           end
 
           klass
@@ -108,7 +118,6 @@ module Phronomy
           wait_thr = @wait_thr
           @stderr_thread = nil
           @wait_thr = nil
-          # Join outside the lock to avoid blocking on slow joins.
           stderr_thread&.join(1)
           wait_thr&.join(5)
         end
@@ -206,6 +215,11 @@ module Phronomy
           @uri = URI.parse(base_url)
           @open_timeout = open_timeout
           @read_timeout = read_timeout
+        end
+
+        # HTTP connections are stateless; close is a no-op, defined so that
+        # both transport classes share the same interface as StdioTransport.
+        def close
         end
 
         # Retrieve the tool definition from the server using MCP `tools/list`.
