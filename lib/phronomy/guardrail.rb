@@ -5,4 +5,3 @@
 require_relative "guardrail/base"
 require_relative "guardrail/input_guardrail"
 require_relative "guardrail/output_guardrail"
-require_relative "guardrail/builtin"

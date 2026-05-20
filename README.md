@@ -22,7 +22,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **Agent::Orchestrator** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
 | **Agent::TeamCoordinator** — Agent teams pattern: LLM coordinator + stateful worker pool with task queue (worker-local message history per run) | Beta |
 | **Agent::SharedState** — Shared state pattern: peer agents collaborate via a shared KnowledgeStore; `member` DSL with per-agent instructions and `coordination` team protocol | Experimental |
-| **Guardrails** — Input/output validation; built-in PII and prompt-injection detectors | Beta |
+| **Guardrails** — Input/output validation with custom `InputGuardrail`/`OutputGuardrail` | Beta |
 | **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses | Stable |
 | **Eval Framework** — Dataset-driven evaluation with multiple scorer types | Beta |
 | **Tracing** — Pluggable span-based observability | Stable |
@@ -144,16 +144,6 @@ end
 
 agent = ResearchAgent.new
 agent.add_input_guardrail(NoSensitiveDataGuardrail.new)
-```
-
-### Built-in Guardrails — PII and prompt injection detection
-
-```ruby
-# Detect SSNs, credit cards, emails, and phone numbers
-agent.add_input_guardrail(Phronomy::Guardrail::Builtin::PIIPatternDetector.new)
-
-# Block common prompt-injection attempts
-agent.add_input_guardrail(Phronomy::Guardrail::Builtin::PromptInjectionDetector.new)
 ```
 
 ### Knowledge/RAG — Context injection and vector retrieval

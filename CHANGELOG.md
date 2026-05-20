@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Removed
+
+- **`Phronomy::Guardrail::Builtin` module removed**: `PromptInjectionDetector`
+  and `PIIPatternDetector` are opt-in pattern-matching helpers that encode
+  application-level policy decisions (which phrases to block, which PII
+  categories to detect, which languages to support). Shipping them as gem
+  defaults was misleading — their correct home is inside each application that
+  needs them. Reference implementations are now provided in example 06 of
+  `phronomy-examples`. Extend `Phronomy::Guardrail::InputGuardrail` directly to
+  create equivalent guardrails in your application.
+
+---
+
 ## [0.5.4] - 2026-05-20
 
 ### New Features
