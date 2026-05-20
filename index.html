@@ -121,7 +121,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 <td>Experimental</td>
 </tr>
 <tr>
-<td><strong>Guardrails</strong> — Input/output validation; built-in PII and prompt-injection detectors</td>
+<td><strong>Guardrails</strong> — Input/output validation with custom <code>InputGuardrail</code>/<code>OutputGuardrail</code></td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -238,13 +238,6 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 
 <span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='const'>ResearchAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
 <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_add_input_guardrail'>add_input_guardrail</span><span class='lparen'>(</span><span class='const'>NoSensitiveDataGuardrail</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='rparen'>)</span>
-</code></pre>
-<h3 id="Built_in_Guardrails___PII_and_prompt_injection_detection">Built-in Guardrails — PII and prompt injection detection</h3>
-<pre class="code ruby"><code class="ruby"><span class='comment'># Detect SSNs, credit cards, emails, and phone numbers
-</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_add_input_guardrail'>add_input_guardrail</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Guardrail.html" title="Phronomy::Guardrail (module)">Guardrail</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Guardrail/Builtin.html" title="Phronomy::Guardrail::Builtin (module)">Builtin</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Guardrail/Builtin/PIIPatternDetector.html" title="Phronomy::Guardrail::Builtin::PIIPatternDetector (class)">PIIPatternDetector</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Guardrail/Builtin/PIIPatternDetector.html#initialize-instance_method" title="Phronomy::Guardrail::Builtin::PIIPatternDetector#initialize (method)">new</a></span></span><span class='rparen'>)</span>
-
-<span class='comment'># Block common prompt-injection attempts
-</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_add_input_guardrail'>add_input_guardrail</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Guardrail.html" title="Phronomy::Guardrail (module)">Guardrail</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Guardrail/Builtin.html" title="Phronomy::Guardrail::Builtin (module)">Builtin</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Guardrail/Builtin/PromptInjectionDetector.html" title="Phronomy::Guardrail::Builtin::PromptInjectionDetector (class)">PromptInjectionDetector</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Guardrail/Builtin/PromptInjectionDetector.html#initialize-instance_method" title="Phronomy::Guardrail::Builtin::PromptInjectionDetector#initialize (method)">new</a></span></span><span class='rparen'>)</span>
 </code></pre>
 <h3 id="Knowledge_RAG___Context_injection_and_vector_retrieval">Knowledge/RAG — Context injection and vector retrieval</h3>
 <pre class="code ruby"><code class="ruby"><span class='comment'># Static knowledge (policy files, reference docs)
@@ -646,7 +639,7 @@ that require additional infrastructure (a running Rails server, database, etc.):
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Wed May 20 10:11:45 2026 by
+  Generated on Wed May 20 11:21:37 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

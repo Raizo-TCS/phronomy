@@ -64,6 +64,19 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
+<h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Removed">Removed</h3>
+<ul>
+<li><strong><code>Phronomy::Guardrail::Builtin</code> module removed</strong>: <code>PromptInjectionDetector</code>
+and <code>PIIPatternDetector</code> are opt-in pattern-matching helpers that encode
+application-level policy decisions (which phrases to block, which PII
+categories to detect, which languages to support). Shipping them as gem
+defaults was misleading — their correct home is inside each application that
+needs them. Reference implementations are now provided in example 06 of
+<code>phronomy-examples</code>. Extend <code>Phronomy::Guardrail::InputGuardrail</code> directly to
+create equivalent guardrails in your application.</li>
+</ul>
+<hr />
 <h2 id="_0_5_4____2026_05_20">[0.5.4] - 2026-05-20</h2>
 <h3 id="New_Features">New Features</h3>
 <ul>
@@ -446,7 +459,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Wed May 20 10:11:45 2026 by
+  Generated on Wed May 20 11:21:37 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
