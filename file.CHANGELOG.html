@@ -64,6 +64,40 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
+<h2 id="_0_5_1____2026_05_21">[0.5.1] - 2026-05-21</h2>
+<h3 id="Bug_Fixes">Bug Fixes</h3>
+<ul>
+<li>
+<p><strong>Remove broken Rails generator and Railtie</strong> (#85): The generator template
+referenced <code>Phronomy::ActiveRecord::ActsAs</code> which no longer exists, causing
+<code>rails generate phronomy:install</code> to produce broken model files. Removed
+<code>lib/generators/</code>, <code>lib/phronomy/railtie.rb</code>, and all references in
+<code>lib/phronomy.rb</code>.</p>
+</li>
+<li>
+<p><strong>Fix thread-safety of <code>StdioTransport#rpc_call</code></strong> (#86): Concurrent calls
+to the same <code>McpTool</code> instance could interleave JSON-RPC writes and reads,
+corrupting request/response pairing. A <code>Mutex</code> is now held around each
+write+read cycle. Also adds the missing <code>require &quot;securerandom&quot;</code>.</p>
+</li>
+</ul>
+<h3 id="Documentation">Documentation</h3>
+<ul>
+<li><strong>README corrections</strong> (#87): Remove stale Rails generator installation
+instructions. Clarify that <code>TeamCoordinator</code> worker state is local to a
+single <code>invoke</code> call (not persistent across calls). Annotate app-level
+examples (<code>09_rails_chat</code>, <code>15_rails_secure_chat</code>, <code>18_rails_agent_job</code>,
+<code>19_trust_pipeline</code>) as requiring external infrastructure. Add scope note
+to <code>Agent::Orchestrator</code> section.</li>
+</ul>
+<h3 id="Maintenance">Maintenance</h3>
+<ul>
+<li><strong>Add version guard to <code>ruby_llm_patches.rb</code></strong> (#88): The monkey-patch for
+the upstream <code>handle_error_chunk</code> bug (ruby_llm &lt;= 1.15.0) is now
+gated behind a <code>Gem::Version</code> check so upgrading ruby_llm will
+automatically disable the override.</li>
+</ul>
+<hr />
 <h2 id="_0_5_0____2026_05_20">[0.5.0] - 2026-05-20</h2>
 <h3 id="Breaking_Changes">Breaking Changes</h3>
 <ul>
@@ -326,7 +360,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Tue May 19 16:47:49 2026 by
+  Generated on Wed May 20 04:46:35 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
