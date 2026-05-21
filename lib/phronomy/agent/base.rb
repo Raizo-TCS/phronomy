@@ -418,19 +418,30 @@ module Phronomy
       # result hash +{ output:, messages:, usage: }+.  Declare an +on: :child_completed+
       # transition in your Workflow to advance to the next state.
       #
-      # @example
-      #   state :run_agent
+      # An optional block may be provided to write the result back into the parent
+      # WorkflowContext <b>before</b> the +:child_completed+ event is dispatched.
+      # +Thread::Queue+ provides the happens-before guarantee \u2014 no Mutex is needed.
+      #
+      # @example Without block (result available only as event payload)
       #   entry :run_agent, ->(ctx) { MyAgent.new.run_as_child(ctx.query, ctx: ctx) }
+      #   transition from: :run_agent, on: :child_completed, to: :process_result
+      #
+      # @example With block (writes result into context)
+      #   entry :run_agent, ->(ctx) {
+      #     MyAgent.new.run_as_child(ctx.query, ctx: ctx) { |r| ctx.answer = r[:output] }
+      #   }
       #   transition from: :run_agent, on: :child_completed, to: :process_result
       #
       # @param input     [String, Hash]  user input passed to the agent
       # @param ctx       [Object]        a WorkflowContext that responds to +#thread_id+
       # @param messages  [Array]         prior conversation history
       # @param config    [Hash]          invocation config (forwarded to +_invoke_impl+)
+      # @yield [Hash]  result hash +{ output:, messages:, usage: }+ — called from the
+      #                agent IO thread before +:child_completed+ is posted
       # @return [nil]  the caller must not wait on any return value;
       #                the result arrives as a +:child_completed+ event
       # @raise [Phronomy::Error] when EventLoop mode is not enabled
-      def run_as_child(input, ctx:, messages: [], config: {})
+      def run_as_child(input, ctx:, messages: [], config: {}, &result_writer)
         unless Phronomy.configuration.event_loop
           raise Phronomy::Error,
             "run_as_child requires EventLoop mode. " \
@@ -443,7 +454,8 @@ module Phronomy
           messages: messages,
           thread_id: "#{ctx.thread_id}_agent_#{SecureRandom.uuid}",
           config: config,
-          parent_id: ctx.thread_id
+          parent_id: ctx.thread_id,
+          result_writer: result_writer
         )
         Phronomy::EventLoop.instance.register(fsm)
         nil
