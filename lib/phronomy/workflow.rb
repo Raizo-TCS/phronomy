@@ -8,18 +8,21 @@ module Phronomy
   #
   # Defines agent workflows in terms of *states* and *events* backed by
   # Phronomy::WorkflowRunner. This is the primary high-level API
-  # for graph-based execution in phronomy.
+  # for workflow-based execution in phronomy.
   #
   # == Basic usage
   #
   #   app = Phronomy::Workflow.define(MyContext) do
   #     initial :fetch
   #
-  #     state :fetch,   action: FETCH_NODE
-  #     state :process, action: PROCESS_NODE
+  #     state :fetch
+  #     state :process
   #
-  #     after :fetch,   to: :process
-  #     after :process, to: :__finish__
+  #     entry :fetch,   FETCH_NODE
+  #     entry :process, PROCESS_NODE
+  #
+  #     transition from: :fetch,   to: :process
+  #     transition from: :process, to: :__finish__
   #   end
   #
   #   result = app.invoke({ url: "https://example.com" })
@@ -29,15 +32,18 @@ module Phronomy
   #   app = Phronomy::Workflow.define(MyContext) do
   #     initial :propose
   #
-  #     state :propose, action: PROPOSE_NODE
+  #     state :propose
   #     wait_state :awaiting_approval
-  #     state :execute, action: EXECUTE_NODE
+  #     state :execute
   #
-  #     after :propose, to: :awaiting_approval
-  #     after :execute, to: :__finish__
+  #     entry :propose, PROPOSE_NODE
+  #     entry :execute, EXECUTE_NODE
   #
-  #     event :approve, from: :awaiting_approval, to: :execute
-  #     event :reject,  from: :awaiting_approval, to: :propose
+  #     transition from: :propose, to: :awaiting_approval
+  #     transition from: :execute, to: :__finish__
+  #
+  #     transition from: :awaiting_approval, on: :approve, to: :execute
+  #     transition from: :awaiting_approval, on: :reject,  to: :propose
   #   end
   #
   #   halted = app.invoke({ ... })
@@ -45,8 +51,8 @@ module Phronomy
   #
   # == Conditional transitions
   #
-  #   event :route, from: :decide, guard: ->(s) { s.score > 5 }, to: :high
-  #   event :route, from: :decide, to: :low   # fallback (no guard)
+  #   transition from: :decide, guard: ->(s) { s.score > 5 }, to: :high
+  #   transition from: :decide, to: :low   # fallback (no guard)
   #
   class Workflow
     include Phronomy::Runnable
@@ -91,7 +97,7 @@ module Phronomy
       @runner.send_event(state: state, event: event, input: input)
     end
 
-    # Streaming execution. Yields { node: Symbol, state: Object } after each node.
+    # Streaming execution. Yields { state: Symbol, context: Object } after each state action.
     # @param input [Hash]
     # @param config [Hash]
     # @yield [Hash]
@@ -112,12 +118,14 @@ module Phronomy
       def initialize(context_class)
         @context_class = context_class
         @initial = nil
-        # { node_name => callable }
-        @states = {}
-        # Array of { from:, to: } — auto-transitions after a state action
-        @after_transitions = []
-        # Array of { name:, from:, to:, guard: } — event-driven transitions
-        @event_transitions = []
+        # Ordered list of declared state names (action states only, not wait states).
+        @declared_states = []
+        # { state_name => [callable, ...] } — entry actions registered via entry()
+        @entry_actions = {}
+        # { state_name => [callable, ...] } — exit actions registered via exit()
+        @exit_actions = {}
+        # Array of { from:, to:, guard:, on: } — all transitions in declaration order
+        @transitions = []
         # Set of wait state names
         @wait_state_names = []
       end
@@ -131,83 +139,87 @@ module Phronomy
       # rubocop:enable Style/TrivialAccessors
 
       # Declares an action state.
-      # @param name [Symbol] state name
-      # @param action [#call, nil] callable invoked when entering the state.
-      #   If nil, the state is treated as a no-op pass-through.
+      # @param name   [Symbol]   state name
+      # @param action [#call, nil] optional entry action shorthand.
+      #   +state :generate, action: MY_PROC+ is equivalent to
+      #   +state :generate; entry :generate, MY_PROC+.
       def state(name, action: nil)
-        @states[name] = action || ->(s) { s }
+        @declared_states << name
+        entry(name, action) if action
+      end
+
+      # Declares an entry action for a state.
+      # The callable is invoked when the workflow enters +name+.
+      # It receives the current context and should mutate it in place.
+      # Return value is ignored.
+      # Multiple calls for the same state are allowed; callables fire in declaration order.
+      # @param name [Symbol] state name
+      # @param callable [#call] receives context, mutates it in place
+      def entry(name, callable)
+        (@entry_actions[name] ||= []) << callable
+      end
+
+      # Declares an exit action for a state.
+      # The callable is invoked when the workflow leaves +name+.
+      # It receives the current context and should mutate it in place.
+      # Return value is ignored.
+      # Multiple calls for the same state are allowed; callables fire in declaration order.
+      # @param name [Symbol] state name
+      # @param callable [#call] receives context, mutates it in place
+      def exit(name, callable)
+        (@exit_actions[name] ||= []) << callable
       end
 
       # Declares a wait state that automatically halts execution when reached.
-      # No action is registered; the workflow pauses here until an event resumes it.
+      # No entry action is registered; the workflow pauses here until an event resumes it.
       # @param name [Symbol] wait state name (conventionally :awaiting_something)
       def wait_state(name)
         @wait_state_names << name
       end
 
-      # Declares an automatic transition that fires after a state's action completes.
-      # @param from [Symbol] source state name
-      # @param to [Symbol] destination state name or :__finish__
-      def after(from, to:)
-        dest = (to == :__finish__) ? FINISH : to
-        @after_transitions << {from: from, to: dest}
-      end
-
-      # Declares an event-driven transition.
-      # When +guard:+ is provided, the transition is taken only if the guard
-      # returns truthy for the current context. Multiple events with the same
-      # name and source are evaluated in declaration order; the first passing
-      # guard wins.
-      # @param name [Symbol] event name
-      # @param from [Symbol] source state where this event can be fired
+      # Declares a transition between states.
+      # Auto-fire transitions (no +on:+) fire automatically when an action state's
+      # action completes. External transitions (+on: :event_name+) are triggered
+      # manually via +send_event+.
+      # When +guard:+ is provided the transition is taken only if the guard returns
+      # truthy for the current context. Multiple transitions from the same source are
+      # evaluated in declaration order; the first passing guard wins.
+      # @param from [Symbol] source state
       # @param to [Symbol] destination state or :__finish__
       # @param guard [Proc, nil] optional guard — receives context, returns truthy/falsy
-      def event(name, from:, to:, guard: nil)
+      # @param on [Symbol, nil] named event for manual triggers (e.g. :approve)
+      def transition(from:, to:, guard: nil, on: nil)
         dest = (to == :__finish__) ? FINISH : to
-        @event_transitions << {name: name, from: from, to: dest, guard: guard}
+        @transitions << {from: from, to: dest, guard: guard, on: on}
       end
 
       # Builds and returns a Phronomy::Workflow backed by a WorkflowRunner.
       def build
-        nodes = @states.dup
+        entry_actions = @entry_actions.dup
+        exit_actions = @exit_actions.dup
 
-        # After-transitions: { from => to }
-        # Unconditional transitions that fire automatically after an action state completes.
-        after_transitions = @after_transitions.each_with_object({}) do |t, h|
-          h[t[:from]] = t[:to]
-        end
-
-        # Route transitions: { from => {event_name:, entries: [{guard:, to:}, ...]} }
-        # Events declared from action states (not wait states) fire automatically
-        # after the action completes. The event name is used to register the
-        # state_machines event and may be any symbol (e.g. :route, :route_review).
-        # Declaration order is preserved so guarded entries appear before fallbacks.
-        route_transitions = {}
-
-        # External events: { event_name => [{from:, to:, guard:}, ...] }
-        # Events declared from wait states, triggered by human input (e.g. :approve).
+        # Auto-fire transitions (no :on): fire automatically when action completes.
+        # External events (with :on): triggered manually via send_event.
+        auto_transitions = []
         external_events = {}
 
-        @event_transitions.each do |t|
-          if @wait_state_names.include?(t[:from])
-            # Source is a wait state → external event
-            external_events[t[:name]] ||= []
-            external_events[t[:name]] << {from: t[:from], to: t[:to], guard: t[:guard]}
+        @transitions.each do |t|
+          if t[:on]
+            external_events[t[:on]] ||= []
+            external_events[t[:on]] << {from: t[:from], to: t[:to], guard: t[:guard]}
           else
-            # Source is an action state → routing event (auto-fires after action)
-            # The event name is taken from the first declaration for each from-state.
-            route_transitions[t[:from]] ||= {event_name: t[:name], entries: []}
-            route_transitions[t[:from]][:entries] << {guard: t[:guard], to: t[:to]}
+            auto_transitions << {from: t[:from], to: t[:to], guard: t[:guard]}
           end
         end
 
         runner = Phronomy::WorkflowRunner.new(
           state_class: @context_class,
-          nodes: nodes,
-          after_transitions: after_transitions,
-          route_transitions: route_transitions,
+          entry_actions: entry_actions,
+          exit_actions: exit_actions,
+          declared_states: @declared_states.dup,
+          auto_transitions: auto_transitions,
           external_events: external_events,
-          entry_point: @initial || nodes.keys.first,
+          entry_point: @initial || @declared_states.first,
           wait_state_names: @wait_state_names
         )
 

@@ -27,36 +27,60 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
   def linear_subworkflow
     Phronomy::Workflow.define(G13SubState) do
       initial :s1
-      state :s1, action: ->(s) { s.merge(value: "#{s.value}_s1", step: s.step + 1) }
-      state :s2, action: ->(s) { s.merge(value: "#{s.value}_s2", step: s.step + 1) }
-      after :s1, to: :s2
-      after :s2, to: :__finish__
+      state :s1
+      state :s2
+      entry :s1, ->(s) {
+        s.value = "#{s.value}_s1"
+        s.step += 1
+      }
+      entry :s2, ->(s) {
+        s.value = "#{s.value}_s2"
+        s.step += 1
+      }
+      transition from: :s1, to: :s2
+      transition from: :s2, to: :__finish__
     end
   end
 
   def branching_subworkflow
     Phronomy::Workflow.define(G13SubState) do
       initial :router
-      state :router, action: ->(s) { s }
-      state :high, action: ->(s) { s.merge(value: "high_#{s.value}", step: s.step + 1) }
-      state :low, action: ->(s) { s.merge(value: "low_#{s.value}", step: s.step + 1) }
-      after :high, to: :__finish__
-      after :low, to: :__finish__
-      event :route, from: :router, guard: ->(s) { s.value.to_s.start_with?("h") }, to: :high
-      event :route, from: :router, to: :low
+      state :router
+      state :high
+      state :low
+      entry :high, ->(s) {
+        s.value = "high_#{s.value}"
+        s.step += 1
+      }
+      entry :low, ->(s) {
+        s.value = "low_#{s.value}"
+        s.step += 1
+      }
+      transition from: :high, to: :__finish__
+      transition from: :low, to: :__finish__
+      transition from: :router, guard: ->(s) { s.value.to_s.start_with?("h") }, to: :high
+      transition from: :router, to: :low
     end
   end
 
   # ---------------------------------------------------------------------------
   # TC-001: flat workflow (no subgraph, no parallel) — baseline
   # ---------------------------------------------------------------------------
-  it "TC-001: flat linear workflow executes all nodes in order" do
+  it "TC-001: flat linear workflow executes all states in order" do
     app = Phronomy::Workflow.define(G13BaseState) do
       initial :a
-      state :a, action: ->(s) { s.merge(value: "a", step: s.step + 1) }
-      state :b, action: ->(s) { s.merge(value: "#{s.value}_b", step: s.step + 1) }
-      after :a, to: :b
-      after :b, to: :__finish__
+      state :a
+      state :b
+      entry :a, ->(s) {
+        s.value = "a"
+        s.step += 1
+      }
+      entry :b, ->(s) {
+        s.value = "#{s.value}_b"
+        s.step += 1
+      }
+      transition from: :a, to: :b
+      transition from: :b, to: :__finish__
     end
     final = app.invoke({})
     expect(final.value).to eq("a_b")
@@ -70,15 +94,22 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
     sub = linear_subworkflow
     app = Phronomy::Workflow.define(G13BaseState) do
       initial :before
-      state :before, action: ->(s) { s.merge(value: "init", step: 0) }
-      state :nested, action: ->(s) {
-        result = sub.invoke({value: s.value, step: s.step})
-        s.merge(value: result.value, step: result.step)
+      state :before
+      state :nested
+      state :after
+      entry :before, ->(s) {
+        s.value = "init"
+        s.step = 0
       }
-      state :after, action: ->(s) { s.merge(value: "#{s.value}_after") }
-      after :before, to: :nested
-      after :nested, to: :after
-      after :after, to: :__finish__
+      entry :nested, ->(s) {
+        result = sub.invoke({value: s.value, step: s.step})
+        s.value = result.value
+        s.step = result.step
+      }
+      entry :after, ->(s) { s.value = "#{s.value}_after" }
+      transition from: :before, to: :nested
+      transition from: :nested, to: :after
+      transition from: :after, to: :__finish__
     end
     final = app.invoke({})
     expect(final.value).to eq("init_s1_s2_after")
@@ -92,11 +123,12 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
     sub = branching_subworkflow
     app = Phronomy::Workflow.define(G13BaseState) do
       initial :nested
-      state :nested, action: ->(s) {
+      state :nested
+      entry :nested, ->(s) {
         result = sub.invoke({value: "high_input", step: 0})
-        s.merge(value: result.value)
+        s.value = result.value
       }
-      after :nested, to: :__finish__
+      transition from: :nested, to: :__finish__
     end
     final = app.invoke({})
     expect(final.value).to start_with("high_")

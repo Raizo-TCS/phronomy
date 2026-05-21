@@ -93,7 +93,7 @@ RSpec.describe Phronomy::WorkflowContext do
       expect(h[:messages]).to eq(["x"])
     end
 
-    it "does not include internal graph metadata" do
+    it "does not include internal workflow metadata" do
       s = TestState.new(value: 1)
       s.set_graph_metadata(thread_id: "t1", phase: :awaiting_foo)
       expect(s.to_h.keys).not_to include(:thread_id, :phase)
@@ -158,7 +158,7 @@ RSpec.describe Phronomy::WorkflowContext do
     end
   end
 
-  describe "#merge preserves internal graph metadata" do
+  describe "#merge preserves internal workflow metadata" do
     it "carries thread_id and phase through merge" do
       s = TestState.new(value: 1)
       s.set_graph_metadata(thread_id: "t1", phase: :awaiting_send)

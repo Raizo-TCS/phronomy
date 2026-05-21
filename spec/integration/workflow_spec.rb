@@ -8,7 +8,7 @@ require_relative "spec_helper"
 # Feasible cases: 8
 # Infeasible cases: 0
 #
-# No LLM calls are required; all nodes perform pure data transformations.
+# No LLM calls are required; all states perform pure data transformations.
 
 RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
   # ---------------------------------------------------------------------------
@@ -40,15 +40,17 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
   # TC-001: linear workflow completes without halting
   it "TC-001: linear workflow — runs all states and reaches __end__" do
     with_in_memory_store do
-      step_a = ->(s) { s.merge(value: "#{s.value}:a") }
-      step_b = ->(s) { s.merge(value: "#{s.value}:b") }
+      step_a = ->(s) { s.value = "#{s.value}:a" }
+      step_b = ->(s) { s.value = "#{s.value}:b" }
 
       app = Phronomy::Workflow.define(WorkflowTestContext) do
         initial :step_a
-        state :step_a, action: step_a
-        state :step_b, action: step_b
-        after :step_a, to: :step_b
-        after :step_b, to: :__finish__
+        state :step_a
+        state :step_b
+        entry :step_a, step_a
+        entry :step_b, step_b
+        transition from: :step_a, to: :step_b
+        transition from: :step_b, to: :__finish__
       end
 
       result = app.invoke({value: "start"})
@@ -62,17 +64,19 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
   # TC-002: wait_state halts execution, phase is set correctly
   it "TC-002: wait_state — halts at the declared wait state" do
     with_in_memory_store do
-      propose = ->(s) { s.merge(value: "#{s.value}:proposed") }
-      execute = ->(s) { s.merge(value: "#{s.value}:executed") }
+      propose = ->(s) { s.value = "#{s.value}:proposed" }
+      execute = ->(s) { s.value = "#{s.value}:executed" }
 
       app = Phronomy::Workflow.define(WorkflowTestContext) do
         initial :propose
-        state :propose, action: propose
+        state :propose
         wait_state :awaiting_approval
-        state :execute, action: execute
-        after :propose, to: :awaiting_approval
-        after :execute, to: :__finish__
-        event :approve, from: :awaiting_approval, to: :execute
+        state :execute
+        entry :propose, propose
+        entry :execute, execute
+        transition from: :propose, to: :awaiting_approval
+        transition from: :execute, to: :__finish__
+        transition from: :awaiting_approval, on: :approve, to: :execute
       end
 
       halted = app.invoke({value: "x"})
@@ -86,17 +90,19 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
   # TC-003: send_event resumes from wait_state
   it "TC-003: send_event(:approve) resumes from wait_state and completes" do
     with_in_memory_store do
-      propose = ->(s) { s.merge(value: "#{s.value}:proposed") }
-      execute = ->(s) { s.merge(value: "#{s.value}:executed") }
+      propose = ->(s) { s.value = "#{s.value}:proposed" }
+      execute = ->(s) { s.value = "#{s.value}:executed" }
 
       app = Phronomy::Workflow.define(WorkflowTestContext) do
         initial :propose
-        state :propose, action: propose
+        state :propose
         wait_state :awaiting_approval
-        state :execute, action: execute
-        after :propose, to: :awaiting_approval
-        after :execute, to: :__finish__
-        event :approve, from: :awaiting_approval, to: :execute
+        state :execute
+        entry :propose, propose
+        entry :execute, execute
+        transition from: :propose, to: :awaiting_approval
+        transition from: :execute, to: :__finish__
+        transition from: :awaiting_approval, on: :approve, to: :execute
       end
 
       halted = app.invoke({value: "y"})
@@ -110,17 +116,19 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
   # TC-004: send_event(:resume) works as generic resume on wait_state
   it "TC-004: send_event(:resume) — generic resume on wait_state" do
     with_in_memory_store do
-      node_a = ->(s) { s.merge(value: "#{s.value}:a") }
-      node_b = ->(s) { s.merge(value: "#{s.value}:b") }
+      node_a = ->(s) { s.value = "#{s.value}:a" }
+      node_b = ->(s) { s.value = "#{s.value}:b" }
 
       app = Phronomy::Workflow.define(WorkflowTestContext) do
         initial :node_a
-        state :node_a, action: node_a
+        state :node_a
         wait_state :waiting
-        state :node_b, action: node_b
-        after :node_a, to: :waiting
-        after :node_b, to: :__finish__
-        event :proceed, from: :waiting, to: :node_b
+        state :node_b
+        entry :node_a, node_a
+        entry :node_b, node_b
+        transition from: :node_a, to: :waiting
+        transition from: :node_b, to: :__finish__
+        transition from: :waiting, on: :proceed, to: :node_b
       end
 
       halted = app.invoke({value: "z"})
@@ -136,16 +144,18 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
   # TC-005: resume() delegates to send_event(:resume)
   it "TC-005: resume() — delegates to send_event(:resume) on wait_state" do
     with_in_memory_store do
-      node = ->(s) { s.merge(value: "#{s.value}:done") }
+      node = ->(s) { s.value = "#{s.value}:done" }
 
       app = Phronomy::Workflow.define(WorkflowTestContext) do
         initial :work
-        state :work, action: node
+        state :work
         wait_state :paused
-        state :finish_step, action: ->(s) { s.merge(value: "#{s.value}:finish") }
-        after :work, to: :paused
-        after :finish_step, to: :__finish__
-        event :go, from: :paused, to: :finish_step
+        state :finish_step
+        entry :work, node
+        entry :finish_step, ->(s) { s.value = "#{s.value}:finish" }
+        transition from: :work, to: :paused
+        transition from: :finish_step, to: :__finish__
+        transition from: :paused, on: :go, to: :finish_step
       end
 
       halted = app.invoke({value: "r"})
@@ -159,21 +169,24 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
   # TC-006: event with guard — takes guarded branch when guard passes
   it "TC-006: event with guard — takes guarded branch when guard returns true" do
     with_in_memory_store do
-      decide = ->(s) { s.merge(value: "#{s.value}:decided") }
-      high = ->(s) { s.merge(path: "high") }
-      low = ->(s) { s.merge(path: "low") }
+      decide = ->(s) { s.value = "#{s.value}:decided" }
+      high = ->(s) { s.path << "high" }
+      low = ->(s) { s.path << "low" }
 
       app = Phronomy::Workflow.define(WorkflowTestContext) do
         initial :decide
-        state :decide, action: decide
-        state :high, action: high
-        state :low, action: low
-        after :high, to: :__finish__
-        after :low, to: :__finish__
+        state :decide
+        state :high
+        state :low
+        entry :decide, decide
+        entry :high, high
+        entry :low, low
+        transition from: :high, to: :__finish__
+        transition from: :low, to: :__finish__
         # Guarded: score > 5 → high
-        event :route, from: :decide, guard: ->(s) { s.score > 5 }, to: :high
+        transition from: :decide, guard: ->(s) { s.score > 5 }, to: :high
         # Fallback: no guard → low
-        event :route, from: :decide, to: :low
+        transition from: :decide, to: :low
       end
 
       # High path (score = 10)
@@ -189,14 +202,15 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
   # TC-007: send_event with input merges values before resuming
   it "TC-007: send_event with input — merges input into context before resuming" do
     with_in_memory_store do
-      step = ->(s) { s.merge(value: "#{s.value}:processed") }
+      step = ->(s) { s.value = "#{s.value}:processed" }
 
       app = Phronomy::Workflow.define(WorkflowTestContext) do
         initial :wait_node
         wait_state :wait_node
-        state :process, action: step
-        event :start, from: :wait_node, to: :process
-        after :process, to: :__finish__
+        state :process
+        entry :process, step
+        transition from: :wait_node, on: :start, to: :process
+        transition from: :process, to: :__finish__
       end
 
       halted = app.invoke({value: "original"})
@@ -215,19 +229,21 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
       call_count = 0
       propose = lambda do |s|
         call_count += 1
-        s.merge(value: "#{s.value}:p#{call_count}")
+        s.value = "#{s.value}:p#{call_count}"
       end
-      execute = ->(s) { s.merge(value: "#{s.value}:executed") }
+      execute = ->(s) { s.value = "#{s.value}:executed" }
 
       app = Phronomy::Workflow.define(WorkflowTestContext) do
         initial :propose
-        state :propose, action: propose
+        state :propose
         wait_state :awaiting_approval
-        state :execute, action: execute
-        after :propose, to: :awaiting_approval
-        after :execute, to: :__finish__
-        event :approve, from: :awaiting_approval, to: :execute
-        event :reject, from: :awaiting_approval, to: :propose
+        state :execute
+        entry :propose, propose
+        entry :execute, execute
+        transition from: :propose, to: :awaiting_approval
+        transition from: :execute, to: :__finish__
+        transition from: :awaiting_approval, on: :approve, to: :execute
+        transition from: :awaiting_approval, on: :reject, to: :propose
       end
 
       # First run → halts

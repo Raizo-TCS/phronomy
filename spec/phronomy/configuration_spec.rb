@@ -27,6 +27,10 @@ RSpec.describe Phronomy::Configuration do
     it "defaults trace_pii to true" do
       expect(config.trace_pii).to be true
     end
+
+    it "defaults event_loop to false" do
+      expect(config.event_loop).to be false
+    end
   end
 
   describe "reading and writing settings" do

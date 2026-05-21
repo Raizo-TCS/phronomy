@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "digest"
+require "securerandom"
 require_relative "concerns/retryable"
 require_relative "concerns/guardrailable"
 require_relative "concerns/before_completion"
@@ -382,7 +383,82 @@ module Phronomy
       #   end
       #   puts result[:output]
       def invoke(input, messages: [], thread_id: nil, config: {})
-        _invoke_impl(input, messages: messages, thread_id: thread_id, config: config)
+        if Phronomy.configuration.event_loop
+          # Protect against blocking the EventLoop thread itself.
+          if Thread.current[:phronomy_event_loop_thread]
+            raise Phronomy::Error,
+              "Cannot call Agent#invoke (EventLoop mode) from within an EventLoop " \
+              "entry action. Use agent.run_as_child(input, ctx: ctx) instead."
+          end
+
+          fsm = Agent::FSM.new(
+            agent: self,
+            input: input,
+            messages: messages,
+            thread_id: thread_id || SecureRandom.uuid,
+            config: config
+          )
+          completion_queue = Phronomy::EventLoop.instance.register(fsm)
+          result = completion_queue.pop
+          raise result if result.is_a?(Exception)
+          result
+        else
+          _invoke_impl(input, messages: messages, thread_id: thread_id, config: config)
+        end
+      end
+
+      # Registers this agent as a child {AgentFSM} inside the given Workflow context.
+      #
+      # Use this method from a Workflow entry action (running on the EventLoop thread)
+      # instead of {#invoke}, which would raise a deadlock error because +invoke+ blocks
+      # on a +Thread::Queue+ when EventLoop mode is active.
+      #
+      # The agent runs asynchronously in a background IO thread.  When it finishes, the
+      # parent {FSMSession} receives a +:child_completed+ event whose payload is the
+      # result hash +{ output:, messages:, usage: }+.  Declare an +on: :child_completed+
+      # transition in your Workflow to advance to the next state.
+      #
+      # An optional block may be provided to write the result back into the parent
+      # WorkflowContext <b>before</b> the +:child_completed+ event is dispatched.
+      # +Thread::Queue+ provides the happens-before guarantee \u2014 no Mutex is needed.
+      #
+      # @example Without block (result available only as event payload)
+      #   entry :run_agent, ->(ctx) { MyAgent.new.run_as_child(ctx.query, ctx: ctx) }
+      #   transition from: :run_agent, on: :child_completed, to: :process_result
+      #
+      # @example With block (writes result into context)
+      #   entry :run_agent, ->(ctx) {
+      #     MyAgent.new.run_as_child(ctx.query, ctx: ctx) { |r| ctx.answer = r[:output] }
+      #   }
+      #   transition from: :run_agent, on: :child_completed, to: :process_result
+      #
+      # @param input     [String, Hash]  user input passed to the agent
+      # @param ctx       [Object]        a WorkflowContext that responds to +#thread_id+
+      # @param messages  [Array]         prior conversation history
+      # @param config    [Hash]          invocation config (forwarded to +_invoke_impl+)
+      # @yield [Hash]  result hash +{ output:, messages:, usage: }+ — called from the
+      #                agent IO thread before +:child_completed+ is posted
+      # @return [nil]  the caller must not wait on any return value;
+      #                the result arrives as a +:child_completed+ event
+      # @raise [Phronomy::Error] when EventLoop mode is not enabled
+      def run_as_child(input, ctx:, messages: [], config: {}, &result_writer)
+        unless Phronomy.configuration.event_loop
+          raise Phronomy::Error,
+            "run_as_child requires EventLoop mode. " \
+            "Enable with: Phronomy.configure { |c| c.event_loop = true }"
+        end
+
+        fsm = Agent::FSM.new(
+          agent: self,
+          input: input,
+          messages: messages,
+          thread_id: "#{ctx.thread_id}_agent_#{SecureRandom.uuid}",
+          config: config,
+          parent_id: ctx.thread_id,
+          result_writer: result_writer
+        )
+        Phronomy::EventLoop.instance.enqueue_child(fsm)
+        nil
       end
 
       # Streaming version of #invoke. Yields {Phronomy::Agent::StreamEvent} objects
@@ -665,6 +741,15 @@ module Phronomy
 
       # Load messages from a ConversationManager.
       #
+      # Returns the chat class to instantiate for this invocation.
+      # When the +:phronomy_agent_parallel_tools+ thread-local flag is set
+      # (i.e. inside an {AgentFSM} IO thread), returns {ParallelToolChat} so
+      # that concurrent tool dispatch is enabled.  Falls back to +nil+ otherwise,
+      # signalling {#build_chat} to use the standard +RubyLLM.chat+ factory.
+      def build_chat_class
+        Thread.current[:phronomy_agent_parallel_tools] ? Agent::ParallelToolChat : nil
+      end
+
       def build_chat
         opts = {}
         m = self.class.model
@@ -675,7 +760,8 @@ module Phronomy
           opts[:assume_model_exists] = true
         end
         t = self.class.temperature
-        chat = RubyLLM.chat(**opts)
+        parallel_class = build_chat_class
+        chat = parallel_class ? parallel_class.new(**opts) : RubyLLM.chat(**opts)
         chat.with_temperature(t) if t
         self.class.tools.each do |tool_class|
           chat.with_tool(prepare_tool_class(tool_class))

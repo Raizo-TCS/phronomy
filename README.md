@@ -12,6 +12,8 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | Feature | Stability |
 |---|---|
 | **Workflow** — Stateful, branching workflows with wait_state/send_event | Stable |
+| **Workflow EventLoop Mode** — Opt-in event-driven execution: `Phronomy.configure { \|c\| c.event_loop = true }` | Experimental |
+| **Agent EventLoop Mode** — `Agent#invoke` (non-blocking via EventLoop), `Agent#run_as_child` (child-FSM pattern for Workflow integration), parallel tool dispatch via `ParallelToolChat` | Experimental |
 | **Workflow Parallel Node** — Concurrent branches via application-level threads | Beta |
 | **Agent** — ReAct-style tool-calling agents with guardrails and conversation history | Stable |
 | **Before-Completion Hook** — Three-tier LLM parameter injection | Stable |
@@ -83,11 +85,11 @@ app = Phronomy::Workflow.define(ReviewContext) do
   state     :review,   action: ->(s) { s.merge(feedback: Reviewer.call(s.draft)) }
   wait_state :awaiting_approval           # halts here for human decision
   state     :finalize, action: ->(s) { s.merge(approved: true) }
-  after :write,    to: :review
-  after :review,   to: :awaiting_approval
-  after :finalize, to: :__finish__
-  event :approve, from: :awaiting_approval, to: :finalize
-  event :reject,  from: :awaiting_approval, to: :write
+  transition from: :write,              to: :review
+  transition from: :review,             to: :awaiting_approval
+  transition from: :finalize,           to: :__finish__
+  transition from: :awaiting_approval,  on: :approve, to: :finalize
+  transition from: :awaiting_approval,  on: :reject,  to: :write
 end
 
 # First run — halts at :awaiting_approval
@@ -330,7 +332,7 @@ app = Phronomy::Workflow.define(EnrichContext) do
     threads.each { |t| t.join(10) }  # 10-second timeout
     s.merge(summary: results[:summary], tags: Array(results[:tags]))
   end
-  after :enrich, to: :__finish__
+  transition from: :enrich, to: :__finish__
 end
 
 state = app.invoke({}, config: { thread_id: "t1" })

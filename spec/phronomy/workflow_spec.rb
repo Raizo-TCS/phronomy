@@ -16,17 +16,19 @@ RSpec.describe Phronomy::Workflow do
   end
 
   def build_approval_workflow
-    propose = ->(s) { s.merge(value: "#{s.value}:proposed") }
-    execute = ->(s) { s.merge(value: "#{s.value}:executed") }
+    propose = ->(s) { s.value = "#{s.value}:proposed" }
+    execute = ->(s) { s.value = "#{s.value}:executed" }
 
     Phronomy::Workflow.define(WorkflowApiTestContext) do
       initial :propose
-      state :propose, action: propose
+      state :propose
       wait_state :awaiting_approval
-      state :execute, action: execute
-      after :propose, to: :awaiting_approval
-      after :execute, to: :__finish__
-      event :approve, from: :awaiting_approval, to: :execute
+      state :execute
+      entry :propose, propose
+      entry :execute, execute
+      transition from: :propose, to: :awaiting_approval
+      transition from: :execute, to: :__finish__
+      transition from: :awaiting_approval, on: :approve, to: :execute
     end
   end
 

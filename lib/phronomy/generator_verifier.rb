@@ -133,7 +133,7 @@ module Phronomy
       @threshold = confidence_threshold.to_f
       @max_iterations = max_iterations.to_i
       @raise_if_untrusted = raise_if_untrusted
-      @compiled_graph = nil
+      @compiled_workflow = nil
     end
 
     # Run the generator-verifier pipeline.
@@ -144,7 +144,7 @@ module Phronomy
     # @raise [Phronomy::LowConfidenceError] when +raise_if_untrusted:+ is +true+
     #   and the result does not meet the confidence threshold
     def invoke(input, config: {})
-      app = compiled_graph
+      app = compiled_workflow
       state = app.invoke({input: input}, config: config)
       confidence = combined_confidence(state)
       trusted = confidence >= @threshold
@@ -166,8 +166,8 @@ module Phronomy
       [(state.self_score || 0.0).to_f, (state.review_score || 0.0).to_f].min
     end
 
-    def compiled_graph
-      @compiled_graph ||= build_workflow
+    def compiled_workflow
+      @compiled_workflow ||= build_workflow
     end
 
     def build_workflow
@@ -184,42 +184,42 @@ module Phronomy
       Phronomy::Workflow.define(PipelineState) do
         initial :draft
 
-        state :draft, action: ->(state) {
+        state :draft
+        state :review
+        state :finalize
+
+        entry :draft, ->(state) {
           feedback = state.review_notes.last
           prompt = dpb.call(state.input, feedback)
           result = draft_agent.invoke(prompt)
           parsed = drp.call(result[:output])
-          state.merge(
-            draft: parsed[:answer].to_s,
-            self_score: pipeline.__send__(:clamp, parsed[:confidence]),
-            citations: pipeline.__send__(:normalize_citations, parsed[:citations]),
-            iteration: state.iteration + 1
-          )
+          state.draft = parsed[:answer].to_s
+          state.self_score = pipeline.__send__(:clamp, parsed[:confidence])
+          state.citations = pipeline.__send__(:normalize_citations, parsed[:citations])
+          state.iteration = state.iteration + 1
         }
 
-        state :review, action: ->(state) {
+        entry :review, ->(state) {
           prompt = rpb.call(state.input, state.draft, state.citations)
           result = review_agent.invoke(prompt)
           parsed = rrp.call(result[:output])
-          state.merge(
-            review_score: pipeline.__send__(:clamp, parsed[:score]),
-            approved: parsed[:approved] == true,
-            review_notes: parsed[:feedback].to_s
-          )
+          state.review_score = pipeline.__send__(:clamp, parsed[:score])
+          state.approved = parsed[:approved] == true
+          state.review_notes << parsed[:feedback].to_s
         }
 
-        state :finalize, action: ->(state) { state.merge(output: state.draft) }
+        entry :finalize, ->(state) { state.output = state.draft }
 
-        after :draft, to: :review
-        after :finalize, to: :__finish__
+        transition from: :draft, to: :review
+        transition from: :finalize, to: :__finish__
 
-        event :route_review, from: :review,
+        transition from: :review,
           guard: ->(state) {
             confidence = [state.self_score || 0.0, state.review_score || 0.0].min
             (confidence >= threshold && state.approved) || state.iteration >= max_iter
           },
           to: :finalize
-        event :route_review, from: :review, to: :draft
+        transition from: :review, to: :draft
       end
     end
 

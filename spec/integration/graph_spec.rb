@@ -59,14 +59,22 @@ RSpec.describe "Group 7: Workflow", :integration do
 
   # TC-001: linear; no interrupt; replace-type; stateless
   describe "TC-001" do
-    it "executes both nodes in order" do
+    it "executes both states in order" do
       with_nil_store do
         app = Phronomy::Workflow.define(G7ReplaceState) do
           initial :node_a
-          state :node_a, action: ->(s) { s.merge(value: "A", step: 1) }
-          state :node_b, action: ->(s) { s.merge(value: "#{s.value}B", step: 2) }
-          after :node_a, to: :node_b
-          after :node_b, to: :__finish__
+          state :node_a
+          state :node_b
+          entry :node_a, ->(s) {
+            s.value = "A"
+            s.step = 1
+          }
+          entry :node_b, ->(s) {
+            s.value = "#{s.value}B"
+            s.step = 2
+          }
+          transition from: :node_a, to: :node_b
+          transition from: :node_b, to: :__finish__
         end
         s = app.invoke({})
         expect(s.value).to eq("AB")
@@ -81,12 +89,14 @@ RSpec.describe "Group 7: Workflow", :integration do
       with_in_memory_store do
         app = Phronomy::Workflow.define(G7AppendState) do
           initial :first
-          state :first, action: ->(s) { s.merge(log: ["first"]) }
+          state :first
           wait_state :pause_before_second
-          state :second, action: ->(s) { s.merge(log: ["second"]) }
-          after :first, to: :pause_before_second
-          after :second, to: :__finish__
-          event :resume, from: :pause_before_second, to: :second
+          state :second
+          entry :first, ->(s) { s.log.concat(["first"]) }
+          entry :second, ->(s) { s.log.concat(["second"]) }
+          transition from: :first, to: :pause_before_second
+          transition from: :second, to: :__finish__
+          transition from: :pause_before_second, on: :resume, to: :second
         end
         events = []
         state = app.stream({}, config: {thread_id: "tc-002"}) { |e| events << e }
@@ -94,7 +104,7 @@ RSpec.describe "Group 7: Workflow", :integration do
         expect(state.phase).to eq(:pause_before_second)
         expect(state.log).to include("first")
         expect(state.log).not_to include("second")
-        expect(events.map { |e| e[:node] }).to eq([:first])
+        expect(events.map { |e| e[:state] }).to eq([:first])
         final = app.resume(state: state)
         expect(final.log).to include("second")
         expect(final.halted?).to be(false)
@@ -114,12 +124,20 @@ RSpec.describe "Group 7: Workflow", :integration do
       with_in_memory_store do
         app = Phronomy::Workflow.define(G7ReplaceState) do
           initial :start_node
-          state :start_node, action: ->(s) { s.merge(value: "started", step: 1) }
+          state :start_node
           wait_state :pause_after_start
-          state :end_node, action: ->(s) { s.merge(value: "done", step: 2) }
-          after :start_node, to: :pause_after_start
-          after :end_node, to: :__finish__
-          event :resume, from: :pause_after_start, to: :end_node
+          state :end_node
+          entry :start_node, ->(s) {
+            s.value = "started"
+            s.step = 1
+          }
+          entry :end_node, ->(s) {
+            s.value = "done"
+            s.step = 2
+          }
+          transition from: :start_node, to: :pause_after_start
+          transition from: :end_node, to: :__finish__
+          transition from: :pause_after_start, on: :resume, to: :end_node
         end
         state = app.invoke({}, config: {thread_id: "tc-004", recursion_limit: 50})
         expect(state.halted?).to be(true)
@@ -150,14 +168,17 @@ RSpec.describe "Group 7: Workflow", :integration do
       with_in_memory_store do
         app = Phronomy::Workflow.define(G7MergeState) do
           initial :router
-          state :router, action: ->(s) { s.merge(data: {routed: true, path: "high"}) }
-          state :high, action: ->(s) { s.merge(data: {result: "high_result"}) }
-          state :low, action: ->(s) { s.merge(data: {result: "low_result"}) }
+          state :router
+          state :high
+          state :low
           wait_state :pause_after_branch
-          after :high, to: :pause_after_branch
-          after :low, to: :pause_after_branch
-          event :route, from: :router, guard: ->(s) { s.data[:path] == "high" }, to: :high
-          event :route, from: :router, to: :low
+          entry :router, ->(s) { s.data.merge!(routed: true, path: "high") }
+          entry :high, ->(s) { s.data.merge!(result: "high_result") }
+          entry :low, ->(s) { s.data.merge!(result: "low_result") }
+          transition from: :high, to: :pause_after_branch
+          transition from: :low, to: :pause_after_branch
+          transition from: :router, guard: ->(s) { s.data[:path] == "high" }, to: :high
+          transition from: :router, to: :low
         end
         state = app.invoke({}, config: {thread_id: "tc-007"})
         expect(state.halted?).to be(true)
@@ -174,21 +195,24 @@ RSpec.describe "Group 7: Workflow", :integration do
       with_nil_store do
         app = Phronomy::Workflow.define(G7AppendState) do
           initial :entry
-          state :entry, action: ->(s) { s.merge(log: ["entry"]) }
-          state :branch_a, action: ->(s) { s.merge(log: ["branch_a"]) }
-          state :branch_b, action: ->(s) { s.merge(log: ["branch_b"]) }
+          state :entry
+          state :branch_a
+          state :branch_b
           wait_state :pause_after_branch
-          after :branch_a, to: :pause_after_branch
-          after :branch_b, to: :pause_after_branch
-          event :route, from: :entry, guard: ->(s) { s.log.include?("entry") }, to: :branch_a
-          event :route, from: :entry, to: :branch_b
+          entry :entry, ->(s) { s.log.concat(["entry"]) }
+          entry :branch_a, ->(s) { s.log.concat(["branch_a"]) }
+          entry :branch_b, ->(s) { s.log.concat(["branch_b"]) }
+          transition from: :branch_a, to: :pause_after_branch
+          transition from: :branch_b, to: :pause_after_branch
+          transition from: :entry, guard: ->(s) { s.log.include?("entry") }, to: :branch_a
+          transition from: :entry, to: :branch_b
         end
         events = []
         state = app.stream({}, config: {recursion_limit: 50}) { |e| events << e }
         expect(state.halted?).to be(true)
         expect(state.log).to include("entry")
         expect(state.log).to include("branch_a")
-        expect(events.map { |e| e[:node] }).to include(:entry, :branch_a)
+        expect(events.map { |e| e[:state] }).to include(:entry, :branch_a)
       end
     end
   end
@@ -199,18 +223,30 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  # TC-010: multi-node; recursion_limit=1 -> RecursionLimitError; stateless
+  # TC-010: multi-state; recursion_limit=1 -> RecursionLimitError; stateless
   describe "TC-010" do
     it "raises RecursionLimitError" do
       with_nil_store do
         app = Phronomy::Workflow.define(G7AppendScalarState) do
           initial :step1
-          state :step1, action: ->(s) { s.merge(log: ["step1"], count: 1) }
-          state :step2, action: ->(s) { s.merge(log: ["step2"], count: 2) }
-          state :step3, action: ->(s) { s.merge(log: ["step3"], count: 3) }
-          after :step1, to: :step2
-          after :step2, to: :step3
-          after :step3, to: :__finish__
+          state :step1
+          state :step2
+          state :step3
+          entry :step1, ->(s) {
+            s.log.concat(["step1"])
+            s.count = 1
+          }
+          entry :step2, ->(s) {
+            s.log.concat(["step2"])
+            s.count = 2
+          }
+          entry :step3, ->(s) {
+            s.log.concat(["step3"])
+            s.count = 3
+          }
+          transition from: :step1, to: :step2
+          transition from: :step2, to: :step3
+          transition from: :step3, to: :__finish__
         end
         expect {
           app.invoke({}, config: {recursion_limit: 1})
@@ -219,27 +255,39 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  # TC-011: multi-node; wait_state halt; resume with input; replace-type; proc default; in-memory; stream
+  # TC-011: multi-state; wait_state halt; resume with input; replace-type; proc default; in-memory; stream
   describe "TC-011" do
     it "halts at wait state after n2, then resumes with new input" do
       with_in_memory_store do
         app = Phronomy::Workflow.define(G7ProcDefaultState) do
           initial :n1
-          state :n1, action: ->(s) { s.merge(value: "n1", counter: s.counter + 1) }
-          state :n2, action: ->(s) { s.merge(value: "n2", counter: s.counter + 1) }
+          state :n1
+          state :n2
           wait_state :pause_before_n3
-          state :n3, action: ->(s) { s.merge(value: "n3-#{s.value}", counter: s.counter + 1) }
-          after :n1, to: :n2
-          after :n2, to: :pause_before_n3
-          after :n3, to: :__finish__
-          event :resume, from: :pause_before_n3, to: :n3
+          state :n3
+          entry :n1, ->(s) {
+            s.value = "n1"
+            s.counter += 1
+          }
+          entry :n2, ->(s) {
+            s.value = "n2"
+            s.counter += 1
+          }
+          entry :n3, ->(s) {
+            s.value = "n3-#{s.value}"
+            s.counter += 1
+          }
+          transition from: :n1, to: :n2
+          transition from: :n2, to: :pause_before_n3
+          transition from: :n3, to: :__finish__
+          transition from: :pause_before_n3, on: :resume, to: :n3
         end
         events = []
         state = app.stream({}, config: {thread_id: "tc-011"}) { |e| events << e }
         expect(state.halted?).to be(true)
         expect(state.phase).to eq(:pause_before_n3)
         expect(state.value).to eq("n2")
-        expect(events.map { |e| e[:node] }).to eq([:n1, :n2])
+        expect(events.map { |e| e[:state] }).to eq([:n1, :n2])
         final = app.resume(state: state, input: {value: "injected"})
         expect(final.value).to eq("n3-injected")
         expect(final.halted?).to be(false)
@@ -247,20 +295,32 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  # TC-012: multi-node; wait_state halt; resume without input; replace-type; stateless
+  # TC-012: multi-state; wait_state halt; resume without input; replace-type; stateless
   describe "TC-012" do
     it "halts at wait state after p2 and resumes to completion" do
       with_nil_store do
         app = Phronomy::Workflow.define(G7ReplaceState) do
           initial :p1
-          state :p1, action: ->(s) { s.merge(value: "p1", step: 1) }
-          state :p2, action: ->(s) { s.merge(value: "p2", step: 2) }
+          state :p1
+          state :p2
           wait_state :pause_before_p3
-          state :p3, action: ->(s) { s.merge(value: "p3", step: 3) }
-          after :p1, to: :p2
-          after :p2, to: :pause_before_p3
-          after :p3, to: :__finish__
-          event :resume, from: :pause_before_p3, to: :p3
+          state :p3
+          entry :p1, ->(s) {
+            s.value = "p1"
+            s.step = 1
+          }
+          entry :p2, ->(s) {
+            s.value = "p2"
+            s.step = 2
+          }
+          entry :p3, ->(s) {
+            s.value = "p3"
+            s.step = 3
+          }
+          transition from: :p1, to: :p2
+          transition from: :p2, to: :pause_before_p3
+          transition from: :p3, to: :__finish__
+          transition from: :pause_before_p3, on: :resume, to: :p3
         end
         state = app.invoke({})
         expect(state.halted?).to be(true)
@@ -278,18 +338,30 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  # TC-014: multi-node; no interrupt; proc-default; large recursion_limit; stateless
+  # TC-014: multi-state; no interrupt; proc-default; large recursion_limit; stateless
   describe "TC-014" do
-    it "executes all three nodes" do
+    it "executes all three states" do
       with_nil_store do
         app = Phronomy::Workflow.define(G7ProcDefaultState) do
           initial :a
-          state :a, action: ->(s) { s.merge(value: "a", counter: 1) }
-          state :b, action: ->(s) { s.merge(value: "#{s.value}b", counter: 2) }
-          state :c, action: ->(s) { s.merge(value: "#{s.value}c", counter: 3) }
-          after :a, to: :b
-          after :b, to: :c
-          after :c, to: :__finish__
+          state :a
+          state :b
+          state :c
+          entry :a, ->(s) {
+            s.value = "a"
+            s.counter = 1
+          }
+          entry :b, ->(s) {
+            s.value = "#{s.value}b"
+            s.counter = 2
+          }
+          entry :c, ->(s) {
+            s.value = "#{s.value}c"
+            s.counter = 3
+          }
+          transition from: :a, to: :b
+          transition from: :b, to: :c
+          transition from: :c, to: :__finish__
         end
         state = app.invoke({}, config: {recursion_limit: 100})
         expect(state.value).to eq("abc")
@@ -311,10 +383,18 @@ RSpec.describe "Group 7: Workflow", :integration do
       with_in_memory_store do |_store|
         app = Phronomy::Workflow.define(G7ReplaceState) do
           initial :first
-          state :first, action: ->(s) { s.merge(value: "first", step: 1) }
-          state :second, action: ->(s) { s.merge(value: "second", step: 2) }
-          after :first, to: :second
-          after :second, to: :__finish__
+          state :first
+          state :second
+          entry :first, ->(s) {
+            s.value = "first"
+            s.step = 1
+          }
+          entry :second, ->(s) {
+            s.value = "second"
+            s.step = 2
+          }
+          transition from: :first, to: :second
+          transition from: :second, to: :__finish__
         end
         state = app.invoke({}, config: {thread_id: "tc-016"})
         expect(state.value).to eq("second")
@@ -329,12 +409,20 @@ RSpec.describe "Group 7: Workflow", :integration do
       with_nil_store do
         app = Phronomy::Workflow.define(G7MergeScalarState) do
           initial :alpha
-          state :alpha, action: ->(s) { s.merge(data: {alpha: true}, label: "alpha") }
+          state :alpha
           wait_state :pause_before_beta
-          state :beta, action: ->(s) { s.merge(data: {beta: true}, label: "beta") }
-          after :alpha, to: :pause_before_beta
-          after :beta, to: :__finish__
-          event :resume, from: :pause_before_beta, to: :beta
+          state :beta
+          entry :alpha, ->(s) {
+            s.data[:alpha] = true
+            s.label = "alpha"
+          }
+          entry :beta, ->(s) {
+            s.data[:beta] = true
+            s.label = "beta"
+          }
+          transition from: :alpha, to: :pause_before_beta
+          transition from: :beta, to: :__finish__
+          transition from: :pause_before_beta, on: :resume, to: :beta
         end
         state = app.invoke({}, config: {recursion_limit: 50})
         expect(state.halted?).to be(true)
@@ -352,12 +440,14 @@ RSpec.describe "Group 7: Workflow", :integration do
       with_nil_store do
         app = Phronomy::Workflow.define(G7AppendState) do
           initial :x
-          state :x, action: ->(s) { s.merge(log: ["x"]) }
+          state :x
           wait_state :pause_before_y
-          state :y, action: ->(s) { s.merge(log: ["y"]) }
-          after :x, to: :pause_before_y
-          after :y, to: :__finish__
-          event :resume, from: :pause_before_y, to: :y
+          state :y
+          entry :x, ->(s) { s.log.concat(["x"]) }
+          entry :y, ->(s) { s.log.concat(["y"]) }
+          transition from: :x, to: :pause_before_y
+          transition from: :y, to: :__finish__
+          transition from: :pause_before_y, on: :resume, to: :y
         end
         state = app.invoke({})
         expect(state.halted?).to be(true)
@@ -376,12 +466,20 @@ RSpec.describe "Group 7: Workflow", :integration do
       with_nil_store do
         app = Phronomy::Workflow.define(G7ProcDefaultState) do
           initial :start
-          state :start, action: ->(s) { s.merge(value: "start", counter: 1) }
+          state :start
           wait_state :pause_before_finish_node
-          state :finish_node, action: ->(s) { s.merge(value: "finish", counter: 2) }
-          after :start, to: :pause_before_finish_node
-          after :finish_node, to: :__finish__
-          event :resume, from: :pause_before_finish_node, to: :finish_node
+          state :finish_node
+          entry :start, ->(s) {
+            s.value = "start"
+            s.counter = 1
+          }
+          entry :finish_node, ->(s) {
+            s.value = "finish"
+            s.counter = 2
+          }
+          transition from: :start, to: :pause_before_finish_node
+          transition from: :finish_node, to: :__finish__
+          transition from: :pause_before_finish_node, on: :resume, to: :finish_node
         end
         state = app.invoke({})
         expect(state.halted?).to be(true)
