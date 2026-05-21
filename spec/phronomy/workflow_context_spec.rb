@@ -167,4 +167,44 @@ RSpec.describe Phronomy::WorkflowContext do
       expect(s2.phase).to eq(:awaiting_send)
     end
   end
+
+  describe ".field mutable default guard (Issue #122)" do
+    it "raises ArgumentError when default is a bare Array" do
+      expect do
+        Class.new do
+          include Phronomy::WorkflowContext
+          field :tags, default: []
+        end
+      end.to raise_error(ArgumentError, /Mutable default.*tags.*Proc/)
+    end
+
+    it "raises ArgumentError when default is a bare Hash" do
+      expect do
+        Class.new do
+          include Phronomy::WorkflowContext
+          field :meta, default: {}
+        end
+      end.to raise_error(ArgumentError, /Mutable default.*meta.*Proc/)
+    end
+
+    it "accepts a Proc default that returns an Array" do
+      klass = Class.new do
+        include Phronomy::WorkflowContext
+        field :tags, default: -> { [] }
+      end
+      ctx1 = klass.new
+      ctx2 = klass.new
+      ctx1.tags << "urgent"
+      expect(ctx2.tags).to be_empty
+    end
+
+    it "accepts nil default without error" do
+      expect do
+        Class.new do
+          include Phronomy::WorkflowContext
+          field :value
+        end
+      end.not_to raise_error
+    end
+  end
 end

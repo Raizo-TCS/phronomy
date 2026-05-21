@@ -32,6 +32,13 @@ module Phronomy
       # @param type [Symbol] :replace / :append / :merge
       # @param default [Object, Proc, nil]
       def field(name, type: :replace, default: nil)
+        if default.is_a?(Array) || default.is_a?(Hash)
+          raise ArgumentError,
+            "Mutable default for field #{name.inspect} must be wrapped in a Proc " \
+            "to avoid shared state across instances. " \
+            "Use `default: -> { #{default.inspect} }` instead."
+        end
+
         @fields[name] = {type: type, default: default}
         attr_accessor name
       end
