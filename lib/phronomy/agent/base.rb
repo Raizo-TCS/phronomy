@@ -116,9 +116,16 @@ module Phronomy
         end
 
         # Returns the alias map registered via the hash form of .tools.
+        # Merges parent class aliases so subclasses inherit their parent's mappings.
+        # Subclass-specific aliases take precedence over parent aliases.
         # @return [Hash{Class => String}]
         def tool_aliases
-          @tool_aliases ||= {}
+          own = @tool_aliases || {}
+          if superclass.respond_to?(:tool_aliases)
+            superclass.tool_aliases.merge(own)
+          else
+            own
+          end
         end
 
         # Sets or reads the LLM provider for this agent.

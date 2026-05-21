@@ -773,3 +773,42 @@ RSpec.describe "Phronomy::Agent::Base invoke_timeout DSL (Issue #116)" do
     end
   end
 end
+
+RSpec.describe "Phronomy::Agent::Base tool_aliases inheritance (Issue #126)" do
+  let(:tool_a) { Class.new(Phronomy::Tool::Base) { description "a" } }
+  let(:tool_b) { Class.new(Phronomy::Tool::Base) { description "b" } }
+
+  it "returns an empty hash when no aliases are defined" do
+    klass = Class.new(Phronomy::Agent::Base)
+    expect(klass.tool_aliases).to eq({})
+  end
+
+  it "inherits parent aliases in a subclass" do
+    parent = Class.new(Phronomy::Agent::Base) do
+      # tool_alias is registered via the hash form of .tools
+    end
+    parent.instance_variable_set(:@tool_aliases, {"ToolA" => "search"})
+
+    child = Class.new(parent)
+    expect(child.tool_aliases).to include("ToolA" => "search")
+  end
+
+  it "subclass-specific aliases take precedence over parent aliases" do
+    parent = Class.new(Phronomy::Agent::Base)
+    parent.instance_variable_set(:@tool_aliases, {"ToolA" => "parent_name"})
+
+    child = Class.new(parent)
+    child.instance_variable_set(:@tool_aliases, {"ToolA" => "child_name"})
+
+    expect(child.tool_aliases["ToolA"]).to eq("child_name")
+    expect(parent.tool_aliases["ToolA"]).to eq("parent_name")
+  end
+
+  it "child aliases do not leak into the parent" do
+    parent = Class.new(Phronomy::Agent::Base)
+    child = Class.new(parent)
+    child.instance_variable_set(:@tool_aliases, {"ToolB" => "something"})
+
+    expect(parent.tool_aliases.key?("ToolB")).to be false
+  end
+end
