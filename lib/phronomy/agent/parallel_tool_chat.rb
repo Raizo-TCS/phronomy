@@ -50,14 +50,21 @@ module Phronomy
         end
 
         # Phase 2 — parallel tool execution.
-        thread_results = tool_calls.map do |tool_call|
-          Thread.new { {tool_call: tool_call, result: execute_tool(tool_call)} }
+        # Honour the per-agent concurrency cap (max_parallel_tools DSL).
+        # Tool calls are processed in batches of at most `max` threads;
+        # batches run sequentially so the total in-flight thread count never
+        # exceeds the limit.
+        max = Thread.current[:phronomy_max_parallel_tools] || 10
+        thread_results = tool_calls.each_slice(max).flat_map do |batch|
+          threads = batch.map do |tool_call|
+            Thread.new { {tool_call: tool_call, result: execute_tool(tool_call)} }
+          end
+          threads.map(&:value)
         end
-        results = thread_results.map(&:value)
 
         # Phase 3 — post-execution callbacks and message recording (sequential).
         halt_result = nil
-        results.each do |item|
+        thread_results.each do |item|
           result = item[:result]
           @on[:tool_result]&.call(result)
           tool_payload = result.is_a?(RubyLLM::Tool::Halt) ? result.content : result

@@ -174,6 +174,28 @@ module Phronomy
           end
         end
 
+        # Sets or reads the maximum number of tool calls executed concurrently
+        # when the LLM returns multiple tool calls in a single response
+        # (ParallelToolChat mode, active inside an AgentFSM IO thread).
+        #
+        # Defaults to 10. Set to 1 to force sequential execution.
+        # Inherited by subclasses; the most-specific definition wins.
+        #
+        # @param val [Integer, nil]
+        # @return [Integer]
+        # @example
+        #   class MyAgent < Phronomy::Agent::Base
+        #     max_parallel_tools 4
+        #   end
+        def max_parallel_tools(val = nil)
+          if val
+            @max_parallel_tools = val
+          else
+            @max_parallel_tools ||
+              (superclass.respond_to?(:max_parallel_tools) ? superclass.max_parallel_tools : 10)
+          end
+        end
+
         # Registers one or more static knowledge sources on the agent class.
         # Static sources are fetched once per agent instance and their content
         # is cached in ContextVersionCache keyed by a fingerprint of the

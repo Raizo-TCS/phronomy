@@ -131,6 +131,9 @@ module Phronomy
         Thread.new do
           # Enable parallel tool dispatch inside this IO thread.
           Thread.current[:phronomy_agent_parallel_tools] = true
+          # Forward the concurrency cap to ParallelToolChat.
+          Thread.current[:phronomy_max_parallel_tools] =
+            agent.class.respond_to?(:max_parallel_tools) ? agent.class.max_parallel_tools : 10
 
           begin
             result = agent.send(:_invoke_impl,
