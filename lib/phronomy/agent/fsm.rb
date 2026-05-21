@@ -157,6 +157,12 @@ module Phronomy
               Phronomy::Event.new(type: :finished, target_id: fsm_id, payload: result)
             )
           rescue => e
+            if parent_id
+              Phronomy::EventLoop.instance.post(
+                Phronomy::Event.new(type: :child_failed, target_id: parent_id, payload: e)
+              )
+            end
+
             Phronomy::EventLoop.instance.post(
               Phronomy::Event.new(type: :error, target_id: fsm_id, payload: e)
             )

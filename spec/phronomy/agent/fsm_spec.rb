@@ -192,6 +192,89 @@ RSpec.describe Phronomy::Agent::FSM do
           expect(err_ev.payload).to eq(error)
         end
       end
+
+      context "when parent_id is set" do
+        it "posts :child_failed to parent_id with the exception" do
+          error = RuntimeError.new("child boom")
+          agent = double("Agent")
+          allow(agent).to receive(:send).and_raise(error)
+
+          fsm = described_class.new(
+            agent: agent, input: "hi", thread_id: "child_t",
+            parent_id: "parent_t"
+          )
+
+          with_fake_loop do |fake|
+            fsm.start
+            sleep 0.2
+
+            fail_ev = fake.events.find { |e| e.type == :child_failed }
+            expect(fail_ev).not_to be_nil
+            expect(fail_ev.target_id).to eq("parent_t")
+            expect(fail_ev.payload).to eq(error)
+          end
+        end
+
+        it "still posts :error to the child fsm_id" do
+          error = RuntimeError.new("child boom")
+          agent = double("Agent")
+          allow(agent).to receive(:send).and_raise(error)
+
+          fsm = described_class.new(
+            agent: agent, input: "hi", thread_id: "child_t",
+            parent_id: "parent_t"
+          )
+
+          with_fake_loop do |fake|
+            fsm.start
+            sleep 0.2
+
+            err_ev = fake.events.find { |e| e.type == :error }
+            expect(err_ev).not_to be_nil
+            expect(err_ev.target_id).to eq("child_t")
+          end
+        end
+
+        it "posts :child_failed when result_writer raises" do
+          result = {output: "ok", messages: [], usage: nil}
+          agent = stub_agent(result: result)
+          error = RuntimeError.new("writer error")
+
+          fsm = described_class.new(
+            agent: agent, input: "hi", thread_id: "child_t",
+            parent_id: "parent_t",
+            result_writer: ->(_r) { raise error }
+          )
+
+          with_fake_loop do |fake|
+            fsm.start
+            sleep 0.2
+
+            fail_ev = fake.events.find { |e| e.type == :child_failed }
+            expect(fail_ev).not_to be_nil
+            expect(fail_ev.target_id).to eq("parent_t")
+            expect(fail_ev.payload).to eq(error)
+          end
+        end
+      end
+
+      context "when parent_id is nil" do
+        it "does not post :child_failed" do
+          error = RuntimeError.new("boom")
+          agent = double("Agent")
+          allow(agent).to receive(:send).and_raise(error)
+
+          fsm = described_class.new(agent: agent, input: "hi", thread_id: "t1")
+
+          with_fake_loop do |fake|
+            fsm.start
+            sleep 0.2
+
+            types = fake.events.map(&:type)
+            expect(types).not_to include(:child_failed)
+          end
+        end
+      end
     end
 
     it "sets the :phronomy_agent_parallel_tools thread-local flag inside the IO thread" do
