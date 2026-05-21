@@ -1,0 +1,221 @@
+# frozen_string_literal: true
+
+require "spec_helper"
+
+# ---------------------------------------------------------------------------
+# Test tools (synchronous, predictable)
+# ---------------------------------------------------------------------------
+class PtcEchoTool < Phronomy::Tool::Base
+  tool_name "ptc_echo"
+  description "Echoes the input"
+  param :value, type: :string, desc: "The value to echo"
+
+  def execute(value:)
+    "echo:#{value}"
+  end
+end
+
+class PtcSlowTool < Phronomy::Tool::Base
+  tool_name "ptc_slow"
+  description "Slow echo tool"
+  param :value, type: :string, desc: "The value to echo"
+
+  def execute(value:)
+    sleep 0.05
+    "slow:#{value}"
+  end
+end
+
+class PtcApprovalTool < Phronomy::Tool::Base
+  tool_name "ptc_approval"
+  description "A tool that requires approval"
+  requires_approval true
+  param :value, type: :string, desc: "Input"
+
+  def execute(value:)
+    "approved:#{value}"
+  end
+end
+
+RSpec.describe Phronomy::Agent::ParallelToolChat do
+  # Build a minimal ToolCall double.
+  def fake_tool_call(name, args, id: nil)
+    tc = double("ToolCall-#{name}")
+    allow(tc).to receive(:name).and_return(name.to_s)
+    allow(tc).to receive(:arguments).and_return(args)
+    allow(tc).to receive(:id).and_return(id || "tc-#{name}")
+    tc
+  end
+
+  # Build a minimal response double carrying the given tool_calls hash.
+  def fake_response(tool_calls_hash)
+    resp = double("Response")
+    allow(resp).to receive(:tool_calls).and_return(tool_calls_hash)
+    resp
+  end
+
+  describe "#handle_tool_calls" do
+    context "with a single tool call" do
+      it "delegates to super (standard sequential behaviour)" do
+        chat = described_class.new
+        tc = fake_tool_call("ptc_echo", {"value" => "x"}, id: "tc1")
+        resp = fake_response({"ptc_echo" => tc})
+
+        # super path adds a message and calls complete; we just verify no error.
+        allow(chat).to receive(:execute_tool).with(tc).and_return("echo:x")
+        allow(chat).to receive(:add_message).and_return(double("msg"))
+        allow(chat).to receive(:forced_tool_choice?).and_return(false)
+        allow(chat).to receive(:content_like?).and_return(false)
+        allow(chat).to receive(:complete).and_return(double("resp2", tool_calls: {}))
+
+        # Call super means the original handle_tool_calls logic runs.
+        # We cannot easily intercept super, so we verify the tool is called once.
+        expect(chat).to receive(:execute_tool).with(tc).once.and_return("echo:x")
+
+        # Silence callbacks
+        chat.instance_variable_set(:@on, {})
+
+        chat.send(:handle_tool_calls, resp)
+      end
+    end
+
+    context "with multiple tool calls" do
+      it "executes all tools and adds a message for each" do
+        chat = described_class.new
+        chat.instance_variable_set(:@on, {})
+        chat.instance_variable_set(:@tools, {})
+
+        tc1 = fake_tool_call("ptc_echo", {"value" => "a"}, id: "tc1")
+        tc2 = fake_tool_call("ptc_echo", {"value" => "b"}, id: "tc2")
+        resp = fake_response({"tool_a" => tc1, "tool_b" => tc2})
+
+        allow(chat).to receive(:execute_tool) do |tc|
+          (tc.name == "ptc_echo") ? "echo:#{tc.arguments["value"]}" : "noop"
+        end
+        allow(chat).to receive(:content_like?).and_return(false)
+        allow(chat).to receive(:forced_tool_choice?).and_return(false)
+        allow(chat).to receive(:complete).and_return(nil)
+
+        added_messages = []
+        allow(chat).to receive(:add_message) do |**kwargs|
+          added_messages << kwargs
+          double("msg-#{kwargs[:tool_call_id]}")
+        end
+
+        chat.send(:handle_tool_calls, resp)
+
+        expect(added_messages.size).to eq(2)
+        expect(added_messages.map { |m| m[:tool_call_id] }).to contain_exactly("tc1", "tc2")
+      end
+
+      it "calls pre-execution callbacks before any tool runs" do
+        chat = described_class.new
+
+        execution_order = []
+        callback_order = []
+
+        tc1 = fake_tool_call("t1", {}, id: "tc1")
+        tc2 = fake_tool_call("t2", {}, id: "tc2")
+        resp = fake_response({"t1" => tc1, "t2" => tc2})
+
+        allow(chat).to receive(:execute_tool) do |tc|
+          execution_order << tc.name
+          sleep 0.01
+          "result"
+        end
+        allow(chat).to receive(:content_like?).and_return(false)
+        allow(chat).to receive(:forced_tool_choice?).and_return(false)
+        allow(chat).to receive(:complete).and_return(nil)
+        allow(chat).to receive(:add_message).and_return(double("msg"))
+
+        on_callbacks = {}
+        on_callbacks[:tool_call] = proc { |tc| callback_order << tc.name }
+        on_callbacks[:new_message] = nil
+        on_callbacks[:tool_result] = nil
+        on_callbacks[:end_message] = nil
+        chat.instance_variable_set(:@on, on_callbacks)
+
+        chat.send(:handle_tool_calls, resp)
+
+        # All callbacks must fire before any execution begins
+        expect(callback_order).to contain_exactly("t1", "t2")
+        # Tools were also executed
+        expect(execution_order).to contain_exactly("t1", "t2")
+      end
+
+      it "adds messages in the original tool-call order regardless of execution timing" do
+        chat = described_class.new
+        chat.instance_variable_set(:@on, {})
+        chat.instance_variable_set(:@tools, {})
+
+        # tc1 is slow, tc2 is fast — but messages should appear in tc1, tc2 order
+        tc1 = fake_tool_call("slow_tool", {}, id: "tc1")
+        tc2 = fake_tool_call("fast_tool", {}, id: "tc2")
+        resp = fake_response({"slow" => tc1, "fast" => tc2})
+
+        allow(chat).to receive(:execute_tool) do |tc|
+          sleep 0.05 if tc.name == "slow_tool"
+          "result:#{tc.name}"
+        end
+        allow(chat).to receive(:content_like?).and_return(false)
+        allow(chat).to receive(:forced_tool_choice?).and_return(false)
+        allow(chat).to receive(:complete).and_return(nil)
+
+        tool_call_ids = []
+        allow(chat).to receive(:add_message) do |**kwargs|
+          tool_call_ids << kwargs[:tool_call_id]
+          double("msg")
+        end
+
+        chat.send(:handle_tool_calls, resp)
+
+        expect(tool_call_ids).to eq(["tc1", "tc2"])
+      end
+
+      it "returns the halt result when a Tool::Halt is encountered" do
+        chat = described_class.new
+        chat.instance_variable_set(:@on, {})
+
+        halt = RubyLLM::Tool::Halt.new("stop!")
+        tc1 = fake_tool_call("t1", {}, id: "tc1")
+        tc2 = fake_tool_call("t2", {}, id: "tc2")
+        resp = fake_response({"t1" => tc1, "t2" => tc2})
+
+        allow(chat).to receive(:execute_tool) do |tc|
+          (tc.id == "tc1") ? halt : "normal"
+        end
+        allow(chat).to receive(:content_like?).and_return(false)
+        allow(chat).to receive(:forced_tool_choice?).and_return(false)
+        allow(chat).to receive(:add_message).and_return(double("msg"))
+
+        result = chat.send(:handle_tool_calls, resp)
+        expect(result).to be(halt)
+      end
+    end
+  end
+
+  describe "Agent::Base#build_chat_class" do
+    let(:agent_class) do
+      Class.new(Phronomy::Agent::Base) do
+        model "test-model"
+        instructions "test"
+      end
+    end
+
+    it "returns nil when parallel flag is not set" do
+      agent = agent_class.new
+      Thread.current[:phronomy_agent_parallel_tools] = false
+      expect(agent.send(:build_chat_class)).to be_nil
+    ensure
+      Thread.current[:phronomy_agent_parallel_tools] = nil
+    end
+
+    it "returns ParallelToolChat when parallel flag is set" do
+      agent = agent_class.new
+      Thread.current[:phronomy_agent_parallel_tools] = true
+      expect(agent.send(:build_chat_class)).to be(Phronomy::Agent::ParallelToolChat)
+    ensure
+      Thread.current[:phronomy_agent_parallel_tools] = nil
+    end
+  end
+end

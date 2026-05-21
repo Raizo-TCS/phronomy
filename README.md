@@ -13,6 +13,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 |---|---|
 | **Workflow** — Stateful, branching workflows with wait_state/send_event | Stable |
 | **Workflow EventLoop Mode** — Opt-in event-driven execution: `Phronomy.configure { \|c\| c.event_loop = true }` | Experimental |
+| **Agent EventLoop Mode** — `Agent#invoke` (non-blocking via EventLoop), `Agent#run_as_child` (child-FSM pattern for Workflow integration), parallel tool dispatch via `ParallelToolChat` | Experimental |
 | **Workflow Parallel Node** — Concurrent branches via application-level threads | Beta |
 | **Agent** — ReAct-style tool-calling agents with guardrails and conversation history | Stable |
 | **Before-Completion Hook** — Three-tier LLM parameter injection | Stable |

@@ -10,6 +10,8 @@ loader = Zeitwerk::Loader.for_gem
 loader.inflector.inflect("ruby_llm_embeddings" => "RubyLLMEmbeddings")
 # FSMSession: Zeitwerk would infer "FsmSession" — override to "FSMSession".
 loader.inflector.inflect("fsm_session" => "FSMSession")
+# AgentFSM: Zeitwerk would infer "Fsm" — override to "FSM".
+loader.inflector.inflect("fsm" => "FSM")
 loader.setup
 
 require_relative "phronomy/version"
