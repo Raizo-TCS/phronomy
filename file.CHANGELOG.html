@@ -65,6 +65,15 @@
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Fixed">Fixed</h3>
+<ul>
+<li><strong><code>WorkflowContext</code> return value from entry actions is now adopted in EventLoop mode</strong> ([#107]):
+<code>FSMSession</code> previously discarded the <code>WorkflowContext</code> returned by entry action callables,
+causing <code>s.merge(...)</code> updates to be silently lost when <code>event_loop = true</code>. The context is
+now correctly propagated, bringing EventLoop semantics in line with the synchronous
+<code>WorkflowRunner</code>. Regression tests added in <code>spec/phronomy/fsm_session_spec.rb</code> (unit)
+and <code>spec/integration/workflow_spec.rb</code> (integration, both sync and EventLoop paths).</li>
+</ul>
 <hr />
 <h2 id="_0_6_0____2026_05_21">[0.6.0] - 2026-05-21</h2>
 <h3 id="Removed">Removed</h3>
@@ -461,7 +470,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Thu May 21 14:38:38 2026 by
+  Generated on Thu May 21 15:43:22 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
