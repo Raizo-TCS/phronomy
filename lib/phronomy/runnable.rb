@@ -25,13 +25,29 @@ module Phronomy
     # Yields a span; the block must return [result, usage] where usage is a
     # Phronomy::TokenUsage or nil. Returns only the result value.
     #
+    # When +trace_pii+ is disabled, both the input and the output (LLM response,
+    # tool result) are replaced with the literal string "[REDACTED]" before being
+    # forwarded to the tracing backend. The actual result is still returned to
+    # the caller — only the copy sent to the tracer is redacted.
+    #
     # @example
     #   trace("my_chain", input: input) { [invoke(input), nil] }
     def trace(name, input: nil, **meta, &block)
-      # Redact user input from spans when trace_pii is disabled to prevent
-      # accidental PII transmission to external tracing backends.
       traced_input = Phronomy.configuration.trace_pii ? input : "[REDACTED]"
-      Phronomy.configuration.tracer.trace(name, input: traced_input, **meta, &block)
+
+      if Phronomy.configuration.trace_pii
+        # PII recording is allowed: pass through unchanged.
+        Phronomy.configuration.tracer.trace(name, input: traced_input, **meta, &block)
+      else
+        # Redact both input (above) and output before forwarding to the tracer.
+        # Capture the real result so callers receive the unredacted value.
+        real_result = nil
+        Phronomy.configuration.tracer.trace(name, input: traced_input, **meta) do |span|
+          real_result, usage = block.call(span)
+          ["[REDACTED]", usage]
+        end
+        real_result
+      end
     end
   end
 end
