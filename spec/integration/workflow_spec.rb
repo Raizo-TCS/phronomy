@@ -347,4 +347,60 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
       expect(result.score).to eq(15) # 10 + 5, not 0 + 5
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # TC-merge-EL: EventLoop mode — entry action s.merge(...) return value adoption
+  # (Issue #111) Verifies that the FSMSession path (event_loop=true) adopts
+  # WorkflowContext returned by entry actions, matching synchronous runner semantics.
+  # ---------------------------------------------------------------------------
+
+  describe "TC-merge-EL: entry action s.merge(...) in EventLoop mode (Issue #111)" do
+    after do
+      Phronomy::EventLoop.reset!
+      Phronomy.reset_configuration!
+    end
+
+    # TC-merge-EL-01: fresh-start entry action returns s.merge(...) — EventLoop path
+    it "TC-merge-EL-01: fresh-start entry action returning s.merge(...) is adopted in EventLoop mode" do
+      Phronomy.configure { |c| c.event_loop = true }
+
+      app = Phronomy::Workflow.define(WorkflowTestContext) do
+        initial :step
+        state :step
+        entry :step, ->(s) { s.merge(value: "set-by-entry") }
+        transition from: :step, to: :__finish__
+      end
+
+      result = app.invoke({value: "original", score: 0})
+
+      expect(result.phase).to eq(:__end__)
+      expect(result.value).to eq("set-by-entry")
+    end
+
+    # TC-merge-EL-03: post-resume entry action returns s.merge(...) after send_event — EventLoop path
+    it "TC-merge-EL-03: post-resume entry action returning s.merge(...) is adopted after send_event in EventLoop mode" do
+      Phronomy.configure { |c| c.event_loop = true }
+
+      app = Phronomy::Workflow.define(WorkflowTestContext) do
+        initial :prepare
+        state :prepare
+        entry :prepare, ->(s) { s.merge(value: "prepared") }
+        wait_state :awaiting
+        state :finalize
+        entry :finalize, ->(s) { s.merge(score: 42) }
+        transition from: :prepare, to: :awaiting
+        transition from: :awaiting, on: :approve, to: :finalize
+        transition from: :finalize, to: :__finish__
+      end
+
+      halted = app.invoke({value: "original", score: 0})
+      expect(halted.halted?).to be(true)
+      expect(halted.value).to eq("prepared")
+
+      final = app.send_event(state: halted, event: :approve)
+
+      expect(final.phase).to eq(:__end__)
+      expect(final.score).to eq(42)
+    end
+  end
 end

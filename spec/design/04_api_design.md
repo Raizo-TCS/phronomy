@@ -15,7 +15,6 @@
 > - `config.default_state_store`, `config.default_memory` → not implemented
 > - `Phronomy::StateStore::*`, `Phronomy::Memory::WindowMemory` → not in gem
 > - `app.stream(input, config:) { |event| }` → not in current public API
-> - `Tool::Base` — `scope`, `on_error`, `requires_approval` → not implemented
 
 ## 1. Gem Entry Point
 

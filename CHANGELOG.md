@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`WorkflowContext` return value from entry actions is now adopted in EventLoop mode** ([#107]):
+  `FSMSession` previously discarded the `WorkflowContext` returned by entry action callables,
+  causing `s.merge(...)` updates to be silently lost when `event_loop = true`. The context is
+  now correctly propagated, bringing EventLoop semantics in line with the synchronous
+  `WorkflowRunner`. Regression tests added in `spec/phronomy/fsm_session_spec.rb` (unit)
+  and `spec/integration/workflow_spec.rb` (integration, both sync and EventLoop paths).
+
 ---
 
 ## [0.6.0] - 2026-05-21
