@@ -420,9 +420,6 @@ Collects state/event/transition declarations and produces a WorkflowRunner.</p>
       <pre class="lines">
 
 
-197
-198
-199
 200
 201
 202
@@ -450,10 +447,13 @@ Collects state/event/transition declarations and produces a WorkflowRunner.</p>
 224
 225
 226
-227</pre>
+227
+228
+229
+230</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 197</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 200</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_build'>build</span>
   <span class='id identifier rubyid_entry_actions'>entry_actions</span> <span class='op'>=</span> <span class='ivar'>@entry_actions</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
@@ -504,9 +504,13 @@ Collects state/event/transition declarations and produces a WorkflowRunner.</p>
   <div class="discussion">
     <p>Declares an entry action for a state.
 The callable is invoked when the workflow enters <code>name</code>.
-It receives the current context and should mutate it in place.
-Return value is ignored.
-Multiple calls for the same state are allowed; callables fire in declaration order.</p>
+It receives the current context. Two styles are supported:</p>
+<pre class="code ruby"><code class="ruby">- Mutation-in-place: mutate context fields directly (+s.field = value+);
+the return value is ignored.
+- Immutable update: return a new context via +s.merge(field: value)+;
+the returned context replaces the current one.
+</code></pre>
+<p>Multiple calls for the same state are allowed; callables fire in declaration order.</p>
 
   </div>
 </div>
@@ -538,7 +542,7 @@ Multiple calls for the same state are allowed; callables fire in declaration ord
       
       
         &mdash;
-        <div class='inline'><p>receives context, mutates it in place</p></div>
+        <div class='inline'><p>receives context; may return a new WorkflowContext</p></div>
       
     </li>
   
@@ -551,12 +555,12 @@ Multiple calls for the same state are allowed; callables fire in declaration ord
       <pre class="lines">
 
 
-158
-159
-160</pre>
+161
+162
+163</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 158</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 161</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_entry'>entry</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_callable'>callable</span><span class='rparen'>)</span>
   <span class='lparen'>(</span><span class='ivar'>@entry_actions</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_callable'>callable</span>
@@ -626,12 +630,12 @@ Multiple calls for the same state are allowed; callables fire in declaration ord
       <pre class="lines">
 
 
-169
-170
-171</pre>
+172
+173
+174</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 169</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 172</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_exit'>exit</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_callable'>callable</span><span class='rparen'>)</span>
   <span class='lparen'>(</span><span class='ivar'>@exit_actions</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_callable'>callable</span>
@@ -867,13 +871,13 @@ evaluated in declaration order; the first passing guard wins.</p>
       <pre class="lines">
 
 
-191
-192
-193
-194</pre>
+194
+195
+196
+197</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 191</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 194</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_transition'>transition</span><span class='lparen'>(</span><span class='label'>from:</span><span class='comma'>,</span> <span class='label'>to:</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_dest'>dest</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='id identifier rubyid_to'>to</span> <span class='op'>==</span> <span class='symbol'>:__finish__</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='const'><span class='object_link'><a href="#FINISH-constant" title="Phronomy::Workflow::Builder::FINISH (constant)">FINISH</a></span></span> <span class='op'>:</span> <span class='id identifier rubyid_to'>to</span>
@@ -927,12 +931,12 @@ No entry action is registered; the workflow pauses here until an event resumes i
       <pre class="lines">
 
 
-176
-177
-178</pre>
+179
+180
+181</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 176</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 179</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_wait_state'>wait_state</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
   <span class='ivar'>@wait_state_names</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_name'>name</span>
@@ -947,7 +951,7 @@ No entry action is registered; the workflow pauses here until an event resumes i
 </div>
 
       <div id="footer">
-  Generated on Thu May 21 13:52:18 2026 by
+  Generated on Thu May 21 14:34:36 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

@@ -624,16 +624,16 @@ Called for :state_completed and all user-defined external events.</p>
       <pre class="lines">
 
 
-102
-103
-104
-105
 106
 107
-108</pre>
+108
+109
+110
+111
+112</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/fsm_session.rb', line 102</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/fsm_session.rb', line 106</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_handle'>handle</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='kw'>if</span> <span class='ivar'>@done</span>
@@ -691,7 +691,11 @@ Called for :state_completed and all user-defined external events.</p>
 93
 94
 95
-96</pre>
+96
+97
+98
+99
+100</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/fsm_session.rb', line 76</span>
@@ -711,7 +715,11 @@ Called for :state_completed and all user-defined external events.</p>
 </span>    <span class='ivar'>@current_state</span> <span class='op'>=</span> <span class='ivar'>@entry_point</span>
     <span class='ivar'>@tracker</span> <span class='op'>=</span> <span class='id identifier rubyid_build_tracker'>build_tracker</span><span class='lparen'>(</span><span class='ivar'>@current_state</span><span class='rparen'>)</span>
     <span class='ivar'>@tracker</span><span class='period'>.</span><span class='id identifier rubyid_context'>context</span> <span class='op'>=</span> <span class='ivar'>@ctx</span>
-    <span class='lparen'>(</span><span class='ivar'>@entry_actions</span><span class='lbracket'>[</span><span class='ivar'>@current_state</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='ivar'>@ctx</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+    <span class='lparen'>(</span><span class='ivar'>@entry_actions</span><span class='lbracket'>[</span><span class='ivar'>@current_state</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span>
+      <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='ivar'>@ctx</span><span class='rparen'>)</span>
+      <span class='ivar'>@ctx</span> <span class='op'>=</span> <span class='id identifier rubyid_result'>result</span> <span class='kw'>if</span> <span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="WorkflowContext.html" title="Phronomy::WorkflowContext (module)">WorkflowContext</a></span></span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+    <span class='ivar'>@tracker</span><span class='period'>.</span><span class='id identifier rubyid_context'>context</span> <span class='op'>=</span> <span class='ivar'>@ctx</span>
     <span class='id identifier rubyid_advance_or_halt'>advance_or_halt</span>
   <span class='kw'>end</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
@@ -727,7 +735,7 @@ Called for :state_completed and all user-defined external events.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu May 21 13:52:18 2026 by
+  Generated on Thu May 21 14:34:36 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
