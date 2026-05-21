@@ -33,8 +33,8 @@ RSpec.describe Phronomy::EventLoop do
       state :prepare
       wait_state :awaiting
       state :confirm
-      entry :prepare,  ->(s) { s.value = "#{s.value}:prepared" }
-      entry :confirm,  ->(s) { s.value = "#{s.value}:confirmed" }
+      entry :prepare, ->(s) { s.value = "#{s.value}:prepared" }
+      entry :confirm, ->(s) { s.value = "#{s.value}:confirmed" }
       transition from: :prepare, to: :awaiting
       transition from: :awaiting, on: :approve, to: :confirm
       transition from: :confirm, to: :__finish__
@@ -44,6 +44,7 @@ RSpec.describe Phronomy::EventLoop do
   let(:ctx_class) do
     Class.new do
       include Phronomy::WorkflowContext
+
       field :value, type: :replace, default: 0
     end
   end
@@ -51,6 +52,7 @@ RSpec.describe Phronomy::EventLoop do
   let(:str_ctx_class) do
     Class.new do
       include Phronomy::WorkflowContext
+
       field :value, type: :replace, default: ""
     end
   end
@@ -78,7 +80,7 @@ RSpec.describe Phronomy::EventLoop do
     end
 
     it "stops the old background thread" do
-      el     = described_class.instance
+      el = described_class.instance
       thread = el.instance_variable_get(:@thread)
       described_class.reset!
       # Give the kill a moment to propagate
@@ -93,7 +95,7 @@ RSpec.describe Phronomy::EventLoop do
 
   describe "deadlock protection" do
     it "raises Phronomy::Error when register is called from the EventLoop thread" do
-      el    = described_class.instance
+      el = described_class.instance
       error = nil
 
       # Simulate calling register from within the EventLoop thread
@@ -118,7 +120,7 @@ RSpec.describe Phronomy::EventLoop do
   describe "linear workflow (no wait states)" do
     it "drives the workflow to completion and returns the final context" do
       Phronomy.configure { |c| c.event_loop = true }
-      app    = build_linear_app(ctx_class)
+      app = build_linear_app(ctx_class)
       result = app.invoke({value: 0})
 
       expect(result.value).to eq(1)
@@ -140,8 +142,8 @@ RSpec.describe Phronomy::EventLoop do
   describe "workflow with wait state (halt and resume)" do
     it "halts at the wait state and returns a halted context" do
       Phronomy.configure { |c| c.event_loop = true }
-      app     = build_approval_app(str_ctx_class)
-      halted  = app.invoke({value: "start"})
+      app = build_approval_app(str_ctx_class)
+      halted = app.invoke({value: "start"})
 
       expect(halted.phase).to eq(:awaiting)
       expect(halted.value).to eq("start:prepared")
@@ -149,9 +151,9 @@ RSpec.describe Phronomy::EventLoop do
 
     it "resumes after send_event and reaches :__end__" do
       Phronomy.configure { |c| c.event_loop = true }
-      app     = build_approval_app(str_ctx_class)
-      halted  = app.invoke({value: "start"})
-      final   = app.send_event(state: halted, event: :approve)
+      app = build_approval_app(str_ctx_class)
+      halted = app.invoke({value: "start"})
+      final = app.send_event(state: halted, event: :approve)
 
       expect(final.phase).to eq(:__end__)
       expect(final.value).to eq("start:prepared:confirmed")
@@ -167,7 +169,7 @@ RSpec.describe Phronomy::EventLoop do
       Phronomy::Workflow.define(ctx_class) do
         initial :boom
         state :boom
-        entry :boom, ->(_s) { raise RuntimeError, "deliberate error" }
+        entry :boom, ->(_s) { raise "deliberate error" }
         transition from: :boom, to: :__finish__
       end
     end
@@ -186,7 +188,7 @@ RSpec.describe Phronomy::EventLoop do
       end
 
       # Subsequent invocations on a different (linear) app must still succeed
-      app    = build_linear_app(ctx_class)
+      app = build_linear_app(ctx_class)
       result = app.invoke({value: 5})
       expect(result.value).to eq(6)
     end

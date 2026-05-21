@@ -65,8 +65,14 @@ RSpec.describe "Group 7: Workflow", :integration do
           initial :node_a
           state :node_a
           state :node_b
-          entry :node_a, ->(s) { s.value = "A"; s.step = 1 }
-          entry :node_b, ->(s) { s.value = "#{s.value}B"; s.step = 2 }
+          entry :node_a, ->(s) {
+            s.value = "A"
+            s.step = 1
+          }
+          entry :node_b, ->(s) {
+            s.value = "#{s.value}B"
+            s.step = 2
+          }
           transition from: :node_a, to: :node_b
           transition from: :node_b, to: :__finish__
         end
@@ -121,8 +127,14 @@ RSpec.describe "Group 7: Workflow", :integration do
           state :start_node
           wait_state :pause_after_start
           state :end_node
-          entry :start_node, ->(s) { s.value = "started"; s.step = 1 }
-          entry :end_node, ->(s) { s.value = "done"; s.step = 2 }
+          entry :start_node, ->(s) {
+            s.value = "started"
+            s.step = 1
+          }
+          entry :end_node, ->(s) {
+            s.value = "done"
+            s.step = 2
+          }
           transition from: :start_node, to: :pause_after_start
           transition from: :end_node, to: :__finish__
           transition from: :pause_after_start, on: :resume, to: :end_node
@@ -220,9 +232,18 @@ RSpec.describe "Group 7: Workflow", :integration do
           state :step1
           state :step2
           state :step3
-          entry :step1, ->(s) { s.log.concat(["step1"]); s.count = 1 }
-          entry :step2, ->(s) { s.log.concat(["step2"]); s.count = 2 }
-          entry :step3, ->(s) { s.log.concat(["step3"]); s.count = 3 }
+          entry :step1, ->(s) {
+            s.log.concat(["step1"])
+            s.count = 1
+          }
+          entry :step2, ->(s) {
+            s.log.concat(["step2"])
+            s.count = 2
+          }
+          entry :step3, ->(s) {
+            s.log.concat(["step3"])
+            s.count = 3
+          }
           transition from: :step1, to: :step2
           transition from: :step2, to: :step3
           transition from: :step3, to: :__finish__
@@ -244,9 +265,18 @@ RSpec.describe "Group 7: Workflow", :integration do
           state :n2
           wait_state :pause_before_n3
           state :n3
-          entry :n1, ->(s) { s.value = "n1"; s.counter += 1 }
-          entry :n2, ->(s) { s.value = "n2"; s.counter += 1 }
-          entry :n3, ->(s) { s.value = "n3-#{s.value}"; s.counter += 1 }
+          entry :n1, ->(s) {
+            s.value = "n1"
+            s.counter += 1
+          }
+          entry :n2, ->(s) {
+            s.value = "n2"
+            s.counter += 1
+          }
+          entry :n3, ->(s) {
+            s.value = "n3-#{s.value}"
+            s.counter += 1
+          }
           transition from: :n1, to: :n2
           transition from: :n2, to: :pause_before_n3
           transition from: :n3, to: :__finish__
@@ -275,9 +305,18 @@ RSpec.describe "Group 7: Workflow", :integration do
           state :p2
           wait_state :pause_before_p3
           state :p3
-          entry :p1, ->(s) { s.value = "p1"; s.step = 1 }
-          entry :p2, ->(s) { s.value = "p2"; s.step = 2 }
-          entry :p3, ->(s) { s.value = "p3"; s.step = 3 }
+          entry :p1, ->(s) {
+            s.value = "p1"
+            s.step = 1
+          }
+          entry :p2, ->(s) {
+            s.value = "p2"
+            s.step = 2
+          }
+          entry :p3, ->(s) {
+            s.value = "p3"
+            s.step = 3
+          }
           transition from: :p1, to: :p2
           transition from: :p2, to: :pause_before_p3
           transition from: :p3, to: :__finish__
@@ -308,9 +347,18 @@ RSpec.describe "Group 7: Workflow", :integration do
           state :a
           state :b
           state :c
-          entry :a, ->(s) { s.value = "a"; s.counter = 1 }
-          entry :b, ->(s) { s.value = "#{s.value}b"; s.counter = 2 }
-          entry :c, ->(s) { s.value = "#{s.value}c"; s.counter = 3 }
+          entry :a, ->(s) {
+            s.value = "a"
+            s.counter = 1
+          }
+          entry :b, ->(s) {
+            s.value = "#{s.value}b"
+            s.counter = 2
+          }
+          entry :c, ->(s) {
+            s.value = "#{s.value}c"
+            s.counter = 3
+          }
           transition from: :a, to: :b
           transition from: :b, to: :c
           transition from: :c, to: :__finish__
@@ -337,8 +385,14 @@ RSpec.describe "Group 7: Workflow", :integration do
           initial :first
           state :first
           state :second
-          entry :first, ->(s) { s.value = "first"; s.step = 1 }
-          entry :second, ->(s) { s.value = "second"; s.step = 2 }
+          entry :first, ->(s) {
+            s.value = "first"
+            s.step = 1
+          }
+          entry :second, ->(s) {
+            s.value = "second"
+            s.step = 2
+          }
           transition from: :first, to: :second
           transition from: :second, to: :__finish__
         end
@@ -358,8 +412,14 @@ RSpec.describe "Group 7: Workflow", :integration do
           state :alpha
           wait_state :pause_before_beta
           state :beta
-          entry :alpha, ->(s) { s.data.merge!(alpha: true); s.label = "alpha" }
-          entry :beta, ->(s) { s.data.merge!(beta: true); s.label = "beta" }
+          entry :alpha, ->(s) {
+            s.data[:alpha] = true
+            s.label = "alpha"
+          }
+          entry :beta, ->(s) {
+            s.data[:beta] = true
+            s.label = "beta"
+          }
           transition from: :alpha, to: :pause_before_beta
           transition from: :beta, to: :__finish__
           transition from: :pause_before_beta, on: :resume, to: :beta
@@ -409,8 +469,14 @@ RSpec.describe "Group 7: Workflow", :integration do
           state :start
           wait_state :pause_before_finish_node
           state :finish_node
-          entry :start, ->(s) { s.value = "start"; s.counter = 1 }
-          entry :finish_node, ->(s) { s.value = "finish"; s.counter = 2 }
+          entry :start, ->(s) {
+            s.value = "start"
+            s.counter = 1
+          }
+          entry :finish_node, ->(s) {
+            s.value = "finish"
+            s.counter = 2
+          }
           transition from: :start, to: :pause_before_finish_node
           transition from: :finish_node, to: :__finish__
           transition from: :pause_before_finish_node, on: :resume, to: :finish_node

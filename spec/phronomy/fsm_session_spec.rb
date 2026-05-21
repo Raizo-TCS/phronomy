@@ -45,6 +45,7 @@ RSpec.describe Phronomy::FSMSession do
   let(:ctx_class) do
     Class.new do
       include Phronomy::WorkflowContext
+
       field :value, type: :replace, default: 0
     end
   end
@@ -83,7 +84,7 @@ RSpec.describe Phronomy::FSMSession do
 
     it "posts :finished event with the final context after start" do
       runner = runner_from(app)
-      ctx    = ctx_class.new(value: 0)
+      ctx = ctx_class.new(value: 0)
       ctx.set_graph_metadata(thread_id: "t1")
 
       with_fake_loop do |fake|
@@ -132,7 +133,7 @@ RSpec.describe Phronomy::FSMSession do
 
     it "posts :halted with the context at the wait state" do
       runner = runner_from(app)
-      ctx    = ctx_class.new(value: 0)
+      ctx = ctx_class.new(value: 0)
       ctx.set_graph_metadata(thread_id: "t2")
 
       with_fake_loop do |fake|
@@ -174,7 +175,7 @@ RSpec.describe Phronomy::FSMSession do
     it "posts :finished after successfully firing the resume event" do
       runner = runner_from(app)
       # Simulate a context that has already passed through :prepare (value += 10).
-      ctx    = ctx_class.new(value: 10)
+      ctx = ctx_class.new(value: 10)
       ctx.set_graph_metadata(thread_id: "t3", phase: :awaiting)
 
       with_fake_loop do |fake|
@@ -214,7 +215,7 @@ RSpec.describe Phronomy::FSMSession do
 
     it "posts :error with a RecursionLimitError when the limit is reached" do
       runner = runner_from(cycling_app)
-      ctx    = ctx_class.new(value: 0)
+      ctx = ctx_class.new(value: 0)
       ctx.set_graph_metadata(thread_id: "t4")
 
       with_fake_loop do |fake|

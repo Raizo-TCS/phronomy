@@ -29,8 +29,14 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
       initial :s1
       state :s1
       state :s2
-      entry :s1, ->(s) { s.value = "#{s.value}_s1"; s.step += 1 }
-      entry :s2, ->(s) { s.value = "#{s.value}_s2"; s.step += 1 }
+      entry :s1, ->(s) {
+        s.value = "#{s.value}_s1"
+        s.step += 1
+      }
+      entry :s2, ->(s) {
+        s.value = "#{s.value}_s2"
+        s.step += 1
+      }
       transition from: :s1, to: :s2
       transition from: :s2, to: :__finish__
     end
@@ -42,8 +48,14 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
       state :router
       state :high
       state :low
-      entry :high, ->(s) { s.value = "high_#{s.value}"; s.step += 1 }
-      entry :low, ->(s) { s.value = "low_#{s.value}"; s.step += 1 }
+      entry :high, ->(s) {
+        s.value = "high_#{s.value}"
+        s.step += 1
+      }
+      entry :low, ->(s) {
+        s.value = "low_#{s.value}"
+        s.step += 1
+      }
       transition from: :high, to: :__finish__
       transition from: :low, to: :__finish__
       transition from: :router, guard: ->(s) { s.value.to_s.start_with?("h") }, to: :high
@@ -59,8 +71,14 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
       initial :a
       state :a
       state :b
-      entry :a, ->(s) { s.value = "a"; s.step += 1 }
-      entry :b, ->(s) { s.value = "#{s.value}_b"; s.step += 1 }
+      entry :a, ->(s) {
+        s.value = "a"
+        s.step += 1
+      }
+      entry :b, ->(s) {
+        s.value = "#{s.value}_b"
+        s.step += 1
+      }
       transition from: :a, to: :b
       transition from: :b, to: :__finish__
     end
@@ -79,7 +97,10 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
       state :before
       state :nested
       state :after
-      entry :before, ->(s) { s.value = "init"; s.step = 0 }
+      entry :before, ->(s) {
+        s.value = "init"
+        s.step = 0
+      }
       entry :nested, ->(s) {
         result = sub.invoke({value: s.value, step: s.step})
         s.value = result.value

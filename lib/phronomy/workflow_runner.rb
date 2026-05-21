@@ -41,9 +41,7 @@ module Phronomy
     # Sentinel value for the terminal state of a workflow.
     FINISH = :__end__
 
-    def initialize(state_class:, entry_actions:, exit_actions: {}, declared_states:,
-      auto_transitions:,
-      external_events:, entry_point:, wait_state_names: [])
+    def initialize(state_class:, entry_actions:, declared_states:, auto_transitions:, external_events:, entry_point:, exit_actions: {}, wait_state_names: [])
       @state_class = state_class
       @entry_actions = entry_actions   # { state_name => [callable, ...] }
       @declared_states = declared_states
@@ -143,18 +141,18 @@ module Phronomy
     # Builds an FSMSession for the given context. Used in EventLoop mode.
     def build_session_for(context:, recursion_limit:, resume_event: nil, resume_phase: nil)
       Phronomy::FSMSession.new(
-        id:                  context.thread_id,
-        context:             context,
-        entry_point:         @entry_point,
-        entry_actions:       @entry_actions,
-        auto_state_set:      @auto_state_set,
-        declared_states:     @declared_states,
-        wait_state_names:    @wait_state_names,
-        external_events:     @external_events,
+        id: context.thread_id,
+        context: context,
+        entry_point: @entry_point,
+        entry_actions: @entry_actions,
+        auto_state_set: @auto_state_set,
+        declared_states: @declared_states,
+        wait_state_names: @wait_state_names,
+        external_events: @external_events,
         phase_machine_class: @phase_machine_class,
-        recursion_limit:     recursion_limit,
-        resume_event:        resume_event,
-        resume_phase:        resume_phase
+        recursion_limit: recursion_limit,
+        resume_event: resume_event,
+        resume_phase: resume_phase
       )
     end
 

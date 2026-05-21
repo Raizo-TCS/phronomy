@@ -54,22 +54,22 @@ module Phronomy
     def initialize(id:, context:, entry_point:, entry_actions:, auto_state_set:,
       declared_states:, wait_state_names:, external_events:, phase_machine_class:,
       recursion_limit:, resume_event: nil, resume_phase: nil)
-      @id                  = id
-      @ctx                 = context
-      @entry_point         = entry_point
-      @entry_actions       = entry_actions
-      @auto_state_set      = auto_state_set
-      @declared_states     = declared_states
-      @wait_state_names    = wait_state_names
-      @external_events     = external_events
+      @id = id
+      @ctx = context
+      @entry_point = entry_point
+      @entry_actions = entry_actions
+      @auto_state_set = auto_state_set
+      @declared_states = declared_states
+      @wait_state_names = wait_state_names
+      @external_events = external_events
       @phase_machine_class = phase_machine_class
-      @recursion_limit     = recursion_limit
-      @resume_event        = resume_event
-      @resume_phase        = resume_phase
-      @step                = 0
-      @done                = false
-      @current_state       = nil
-      @tracker             = nil
+      @recursion_limit = recursion_limit
+      @resume_event = resume_event
+      @resume_phase = resume_phase
+      @step = 0
+      @done = false
+      @current_state = nil
+      @tracker = nil
     end
 
     # Begins workflow execution. Called by EventLoop on :start event.
@@ -79,14 +79,14 @@ module Phronomy
         # external event. state_machines fires before_transition (exit) and
         # after_transition (entry) callbacks, so both actions execute here.
         @current_state = @resume_phase
-        @tracker       = build_tracker(@current_state)
+        @tracker = build_tracker(@current_state)
         @tracker.context = @ctx
         fire_and_advance!(@resume_event)
       else
         # Fresh start: state_machines does not fire callbacks on initialization,
         # so we invoke the entry action for the initial state manually.
         @current_state = @entry_point
-        @tracker       = build_tracker(@current_state)
+        @tracker = build_tracker(@current_state)
         @tracker.context = @ctx
         (@entry_actions[@current_state] || []).each { |c| c.call(@ctx) }
         advance_or_halt
@@ -118,10 +118,10 @@ module Phronomy
       end
 
       fire_event!(@tracker, event_name, @current_state)
-      next_phase     = @tracker.phase.to_sym
+      next_phase = @tracker.phase.to_sym
       # When next_phase == @current_state, no transition matched → treat as terminal.
       @current_state = (next_phase == @current_state) ? FINISH : next_phase
-      @step         += 1
+      @step += 1
       advance_or_halt
     end
 
