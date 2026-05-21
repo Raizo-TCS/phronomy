@@ -36,7 +36,10 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
   # Shared WEBrick server setup (used by http:// test groups)
   # ---------------------------------------------------------------------------
   shared_context "with http mcp server" do |response_mode: :json_ok, tools_empty: false|
+    let(:mcp_request_headers) { [] }
+
     let(:mcp_server) do
+      observed_headers = mcp_request_headers
       server = WEBrick::HTTPServer.new(
         Port: 0,
         Logger: WEBrick::Log.new(IO::NULL, WEBrick::BasicLog::ERROR),
@@ -44,6 +47,10 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
       )
 
       server.mount_proc("/mcp") do |req, res|
+        observed_headers << {
+          "authorization" => req["authorization"],
+          "x-mcp-client" => req["x-mcp-client"]
+        }
         body = JSON.parse(req.body || "{}")
         method_name = body["method"]
         req_id = body["id"]
@@ -216,6 +223,25 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
         )
         expect(tool).to be_a(Phronomy::Tool::McpTool)
         expect(tool.class.description).to eq("Returns a greeting")
+      end
+    end
+
+    describe "TC-019: http + custom headers — from_server and execute keep auth headers" do
+      it "sends configured headers on tool discovery and tool execution requests" do
+        tool = Phronomy::Tool::McpTool.from_server(
+          "http://127.0.0.1:#{mcp_port}/mcp",
+          tool_name: "greet",
+          headers: {"Authorization" => "Bearer test-token", "X-MCP-Client" => "phronomy"}
+        )
+
+        expect(tool.execute(name: "Alice")).to be_a(String)
+        expect(mcp_request_headers.length).to eq(2)
+        expect(mcp_request_headers).to all(include(
+          "authorization" => "Bearer test-token",
+          "x-mcp-client" => "phronomy"
+        ))
+      ensure
+        tool&.close
       end
     end
 

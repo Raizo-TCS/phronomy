@@ -390,6 +390,17 @@ search_tool = Phronomy::Tool::McpTool.from_server(
 )
 ```
 
+HTTP MCP servers that require authentication can receive custom headers on
+every JSON-RPC request:
+
+```ruby
+search_tool = Phronomy::Tool::McpTool.from_server(
+  "https://mcp.example.com/mcp",
+  tool_name: "web_search",
+  headers: { "Authorization" => "Bearer #{ENV.fetch('MCP_API_KEY')}" }
+)
+```
+
 Call `close` when the tool is no longer needed to shut down the underlying
 child process (stdio transport) or release the HTTP connection:
 

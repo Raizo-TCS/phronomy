@@ -218,6 +218,33 @@ RSpec.describe Phronomy::Tool::McpTool do
     end
 
     describe "#call_tool" do
+      it "sends configured headers on JSON-RPC requests" do
+        transport = described_class.new(
+          "http://localhost:8080/mcp",
+          headers: {"Authorization" => "Bearer test-token", "X-MCP-Client" => "phronomy"}
+        )
+        body = JSON.generate(
+          jsonrpc: "2.0", id: 1,
+          result: {content: [{type: "text", text: "sunny"}]}
+        )
+        response = ok_response(body)
+        captured_request = nil
+
+        http_dbl = instance_double(Net::HTTP)
+        allow(Net::HTTP).to receive(:new).and_return(http_dbl)
+        allow(http_dbl).to receive(:use_ssl=)
+        allow(http_dbl).to receive(:open_timeout=)
+        allow(http_dbl).to receive(:read_timeout=)
+        allow(http_dbl).to receive(:request) do |request|
+          captured_request = request
+          response
+        end
+
+        expect(transport.call_tool("weather", {})).to eq("sunny")
+        expect(captured_request["Authorization"]).to eq("Bearer test-token")
+        expect(captured_request["X-MCP-Client"]).to eq("phronomy")
+      end
+
       it "extracts text from MCP content blocks" do
         body = JSON.generate(
           jsonrpc: "2.0", id: 1,

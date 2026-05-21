@@ -35,38 +35,40 @@ module Phronomy
         #   - "stdio://<command>"  — spawn a child process
         #   - "http://<url>" / "https://<url>" — connect to an HTTP/SSE server
         # @param tool_name [String] the tool name as registered in the MCP server
+        # @param headers [Hash] optional HTTP headers for http/https MCP transports
         # @return [McpTool] a configured subclass instance ready for use with an Agent
-        def from_server(server_uri, tool_name:)
+        def from_server(server_uri, tool_name:, headers: {})
           # Use a short-lived transport only to query the tool definition,
           # then close it.  Each McpTool instance creates its own transport
           # so that concurrent callers never share IO streams.
-          transport = build_transport(server_uri)
+          transport = build_transport(server_uri, headers: headers)
           begin
             tool_def = transport.fetch_tool(tool_name)
           ensure
             transport.close
           end
-          build_tool_class(tool_name, server_uri, tool_def).new
+          build_tool_class(tool_name, server_uri, tool_def, headers).new
         end
 
         private
 
-        def build_transport(uri)
+        def build_transport(uri, headers: {})
           scheme, path = uri.split("://", 2)
           case scheme
           when "stdio"
             StdioTransport.new(path)
           when "http", "https"
-            HttpTransport.new(uri)
+            HttpTransport.new(uri, headers: headers)
           else
             raise ArgumentError, "Unsupported MCP transport scheme: #{scheme.inspect}. Supported: 'stdio://', 'http://', 'https://'."
           end
         end
 
-        def build_tool_class(tool_name, server_uri, tool_def)
+        def build_tool_class(tool_name, server_uri, tool_def, headers)
           klass = Class.new(McpTool)
           klass.instance_variable_set(:@mcp_tool_name, tool_name)
           klass.instance_variable_set(:@mcp_server_uri, server_uri)
+          klass.instance_variable_set(:@mcp_headers, headers)
 
           # Register description and params from the MCP tool definition.
           klass.description(tool_def[:description] || tool_name)
@@ -78,7 +80,8 @@ module Phronomy
           # never share IO streams, eliminating the need for synchronisation.
           klass.define_method(:initialize) do
             uri = self.class.instance_variable_get(:@mcp_server_uri)
-            @mcp_transport = self.class.send(:build_transport, uri)
+            transport_headers = self.class.instance_variable_get(:@mcp_headers)
+            @mcp_transport = self.class.send(:build_transport, uri, headers: transport_headers)
           end
 
           klass.define_method(:execute) do |**args|
@@ -217,14 +220,17 @@ module Phronomy
       # @example
       #   tool = Phronomy::Tool::McpTool.from_server(
       #     "http://localhost:8080/mcp",
-      #     tool_name: "weather_lookup"
+      #     tool_name: "weather_lookup",
+      #     headers: { "Authorization" => "Bearer #{ENV.fetch('MCP_API_KEY')}" }
       #   )
       class HttpTransport
         # @param base_url     [String]  full URL of the MCP endpoint, e.g. "http://localhost:8080/mcp"
+        # @param headers      [Hash]    optional HTTP headers sent with every JSON-RPC request
         # @param open_timeout [Integer] TCP connection timeout in seconds (default: 5)
         # @param read_timeout [Integer] HTTP read timeout in seconds (default: 30)
-        def initialize(base_url, open_timeout: 5, read_timeout: 30)
+        def initialize(base_url, headers: {}, open_timeout: 5, read_timeout: 30)
           @uri = URI.parse(base_url)
+          @headers = headers || {}
           @open_timeout = open_timeout
           @read_timeout = read_timeout
         end
@@ -285,6 +291,11 @@ module Phronomy
           request = Net::HTTP::Post.new(path)
           request["Content-Type"] = "application/json"
           request["Accept"] = "application/json, text/event-stream"
+          @headers.each do |name, value|
+            next if value.nil?
+
+            request[name.to_s] = value.to_s
+          end
           request.body = payload
 
           http_response = http.request(request)
