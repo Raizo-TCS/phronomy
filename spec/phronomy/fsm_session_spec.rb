@@ -244,4 +244,81 @@ RSpec.describe Phronomy::FSMSession do
       end
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Regression test for Issue #107: FSMSession ignores the WorkflowContext
+  # returned by entry actions, so s.merge(...) style actions have no effect
+  # in EventLoop mode.
+  # ---------------------------------------------------------------------------
+  describe "entry action return value is adopted as new context (Issue #107)" do
+    let(:ctx_class_merge) do
+      Class.new do
+        include Phronomy::WorkflowContext
+
+        field :value, type: :replace, default: 0
+        field :tag, type: :replace, default: ""
+      end
+    end
+
+    it "reflects field updates when the fresh-start entry action returns s.merge(...)" do
+      app = Phronomy::Workflow.define(ctx_class_merge) do
+        initial :step
+        state :step, action: ->(s) { s.merge(value: 42) }
+        transition from: :step, to: :__finish__
+      end
+
+      runner = runner_from(app)
+      ctx = ctx_class_merge.new(value: 0, tag: "before")
+      ctx.set_graph_metadata(thread_id: "t-merge-fresh")
+
+      with_fake_loop do |fake|
+        session = runner.send(:build_session_for, context: ctx, recursion_limit: 25)
+        session.start
+
+        if fake.events.last.type == :state_completed
+          session.handle(Phronomy::Event.new(type: :state_completed, target_id: "t-merge-fresh", payload: nil))
+        end
+
+        finish_event = fake.events.find { |e| e.type == :finished }
+        expect(finish_event).not_to be_nil
+        # The action returned s.merge(value: 42); the finished payload must carry value: 42
+        expect(finish_event.payload.value).to eq(42)
+      end
+    end
+
+    it "reflects field updates when a transition-target entry action returns s.merge(...)" do
+      app = Phronomy::Workflow.define(ctx_class_merge) do
+        initial :first
+        state :first
+        entry :first, ->(_s) { nil } # no-op; does not return a WorkflowContext
+        transition from: :first, to: :second
+
+        state :second
+        entry :second, ->(s) { s.merge(tag: "updated") }
+        transition from: :second, to: :__finish__
+      end
+
+      runner = runner_from(app)
+      ctx = ctx_class_merge.new(value: 0, tag: "original")
+      ctx.set_graph_metadata(thread_id: "t-merge-trans")
+
+      with_fake_loop do |fake|
+        session = runner.send(:build_session_for, context: ctx, recursion_limit: 25)
+        session.start
+
+        # Drive the event loop manually. Use @done as the termination guard instead
+        # of object identity, because Event is a Data value object and two
+        # :state_completed events with the same fields compare equal via ==.
+        while (ev = fake.events.last) && ev.type == :state_completed
+          session.handle(Phronomy::Event.new(type: :state_completed, target_id: "t-merge-trans", payload: nil))
+          break if session.instance_variable_get(:@done)
+        end
+
+        finish_event = fake.events.find { |e| e.type == :finished }
+        expect(finish_event).not_to be_nil
+        # The second-state entry action returned s.merge(tag: "updated")
+        expect(finish_event.payload.tag).to eq("updated")
+      end
+    end
+  end
 end

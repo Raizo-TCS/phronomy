@@ -1,5 +1,22 @@
 # Phronomy — Public API Design
 
+> **ARCHIVED — Early Design Draft**
+>
+> This file reflects the intended API as of the initial design phase and has
+> not been updated to track the released implementation. Many examples below
+> use APIs that have been renamed, removed, or changed since this document
+> was written. For the current public API, see [README.md](../../README.md).
+>
+> Known divergences (non-exhaustive):
+> - `after :state, to: :next` DSL → current DSL: `transition from: :state, to: :next`
+> - `event :name, from:, to:` DSL → current DSL: `transition from:, on: :name, to:`
+> - `app.send_event(:event, config: { thread_id: })` → current: `app.send_event(state:, event:)`
+> - `Phronomy.chain(...)` / `Phronomy.workflow(...)` shortcut methods → removed
+> - `config.default_state_store`, `config.default_memory` → not implemented
+> - `Phronomy::StateStore::*`, `Phronomy::Memory::WindowMemory` → not in gem
+> - `app.stream(input, config:) { |event| }` → not in current public API
+> - `Tool::Base` — `scope`, `on_error`, `requires_approval` → not implemented
+
 ## 1. Gem Entry Point
 
 ```ruby
@@ -130,6 +147,11 @@ results = chain.batch([
 ---
 
 ## 4. Workflow API
+
+> **STALE DSL NOTE**: `after :state, to: :next` and `event :name, from:, to:`
+> shown below do not exist in the gem. Use `transition from:, to:` (auto-fire)
+> and `transition from:, on: :name, to:` (external event) instead.
+> `app.send_event(:event, config:)` should be `app.send_event(state:, event:)`.
 
 ```ruby
 # === Context definition ===
@@ -390,6 +412,11 @@ puts result[:output]
 ---
 
 ## 10. Rails Integration API
+
+> **STALE NOTE**: `config.default_state_store`, `config.default_memory`,
+> `acts_as_phronomy_thread`, and `agent.stream(...)` shown below are not
+> implemented in the current gem. See README.md for the Rails example that
+> ships with phronomy-examples.
 
 ```ruby
 # Gemfile

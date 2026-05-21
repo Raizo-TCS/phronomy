@@ -261,4 +261,91 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
       expect(final.value).to include(":executed")
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Regression specs for Issue #110: s.merge(...) style actions must be adopted
+  # ---------------------------------------------------------------------------
+
+  # TC-merge-01: fresh-start entry action returning s.merge() is adopted
+  it "TC-merge-01: fresh-start entry action returning s.merge(...) is adopted as new context" do
+    with_in_memory_store do
+      app = Phronomy::Workflow.define(WorkflowTestContext) do
+        initial :step
+        state :step
+        entry :step, ->(s) { s.merge(score: 99, value: "merged") }
+        transition from: :step, to: :__finish__
+      end
+
+      result = app.invoke({score: 0, value: "original"})
+
+      expect(result.phase).to eq(:__end__)
+      expect(result.score).to eq(99)
+      expect(result.value).to eq("merged")
+    end
+  end
+
+  # TC-merge-02: transition-target entry action returning s.merge() is adopted
+  it "TC-merge-02: transition-target entry action returning s.merge(...) is adopted" do
+    with_in_memory_store do
+      app = Phronomy::Workflow.define(WorkflowTestContext) do
+        initial :first
+        state :first
+        entry :first, ->(_s) { nil } # no-op: return value is not a WorkflowContext
+        state :second
+        entry :second, ->(s) { s.merge(score: s.score + 10) }
+        transition from: :first, to: :second
+        transition from: :second, to: :__finish__
+      end
+
+      result = app.invoke({score: 5})
+
+      expect(result.phase).to eq(:__end__)
+      expect(result.score).to eq(15)
+    end
+  end
+
+  # TC-merge-03: post-resume entry action returning s.merge() is adopted
+  it "TC-merge-03: post-resume entry action returning s.merge(...) is adopted after send_event" do
+    with_in_memory_store do
+      app = Phronomy::Workflow.define(WorkflowTestContext) do
+        initial :prepare
+        state :prepare
+        entry :prepare, ->(s) { s.merge(value: "prepared") }
+        wait_state :awaiting
+        state :finalize
+        entry :finalize, ->(s) { s.merge(score: 42) }
+        transition from: :prepare, to: :awaiting
+        transition from: :awaiting, on: :approve, to: :finalize
+        transition from: :finalize, to: :__finish__
+      end
+
+      halted = app.invoke({value: "original", score: 0})
+      expect(halted.halted?).to be(true)
+      expect(halted.value).to eq("prepared")
+
+      final = app.send_event(state: halted, event: :approve)
+
+      expect(final.phase).to eq(:__end__)
+      expect(final.score).to eq(42)
+    end
+  end
+
+  # TC-merge-04: chained entry actions — second action receives context returned by first
+  it "TC-merge-04: chained merge-style actions — second action receives context from first" do
+    with_in_memory_store do
+      app = Phronomy::Workflow.define(WorkflowTestContext) do
+        initial :step
+        state :step
+        entry :step, ->(s) { s.merge(score: 10) }
+        entry :step, ->(s) { s.merge(score: s.score + 5) } # must receive score: 10
+        transition from: :step, to: :__finish__
+      end
+
+      result = app.invoke({score: 0})
+
+      expect(result.phase).to eq(:__end__)
+      expect(result.score).to eq(15) # 10 + 5, not 0 + 5
+    end
+  end
 end
+

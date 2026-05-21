@@ -88,7 +88,11 @@ module Phronomy
         @current_state = @entry_point
         @tracker = build_tracker(@current_state)
         @tracker.context = @ctx
-        (@entry_actions[@current_state] || []).each { |c| c.call(@ctx) }
+        (@entry_actions[@current_state] || []).each do |c|
+          result = c.call(@ctx)
+          @ctx = result if result.is_a?(Phronomy::WorkflowContext)
+        end
+        @tracker.context = @ctx
         advance_or_halt
       end
     rescue => e
@@ -118,6 +122,7 @@ module Phronomy
       end
 
       fire_event!(@tracker, event_name, @current_state)
+      @ctx = @tracker.context
       next_phase = @tracker.phase.to_sym
       # When next_phase == @current_state, no transition matched → treat as terminal.
       @current_state = (next_phase == @current_state) ? FINISH : next_phase

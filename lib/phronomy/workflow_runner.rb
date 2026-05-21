@@ -17,8 +17,11 @@ module Phronomy
   # determined by the declared state machine topology, never by Phronomy internals.
   #
   # Entry and exit actions are registered as state_machines +after_transition to:+
-  # and +before_transition from:+ callbacks respectively. The WorkflowContext is
-  # mutable; actions receive it and modify fields in place.
+  # and +before_transition from:+ callbacks respectively. Entry actions may either
+  # mutate the context in place or return a new context (e.g. via +s.merge(...)+).
+  # When an entry action returns a Phronomy::WorkflowContext, that value replaces
+  # the current context; otherwise the return value is ignored.
+  # Exit actions are always mutation-in-place; their return value is ignored.
   #
   # The sole exception is the initial state: state_machines does not fire transition
   # callbacks on initialization, so the entry action for the entry point is invoked

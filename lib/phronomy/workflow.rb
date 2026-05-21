@@ -150,11 +150,14 @@ module Phronomy
 
       # Declares an entry action for a state.
       # The callable is invoked when the workflow enters +name+.
-      # It receives the current context and should mutate it in place.
-      # Return value is ignored.
+      # It receives the current context. Two styles are supported:
+      #   - Mutation-in-place: mutate context fields directly (+s.field = value+);
+      #     the return value is ignored.
+      #   - Immutable update: return a new context via +s.merge(field: value)+;
+      #     the returned context replaces the current one.
       # Multiple calls for the same state are allowed; callables fire in declaration order.
       # @param name [Symbol] state name
-      # @param callable [#call] receives context, mutates it in place
+      # @param callable [#call] receives context; may return a new WorkflowContext
       def entry(name, callable)
         (@entry_actions[name] ||= []) << callable
       end
