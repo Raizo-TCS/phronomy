@@ -23,6 +23,8 @@ module Phronomy
   class ParseError < Error; end
   class RecursionLimitError < Error; end
   class ToolError < Error; end
+  # Raised when an agent invocation exceeds the timeout set via +invoke_timeout+.
+  class TimeoutError < Error; end
 
   class ConfigurationError < Error; end
 

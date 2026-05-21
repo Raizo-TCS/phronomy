@@ -699,3 +699,77 @@ RSpec.describe "Phronomy::Agent::Base temperature DSL zero value (Issue #30 / ID
     expect(fake_chat).to have_received(:with_temperature).with(0)
   end
 end
+
+RSpec.describe "Phronomy::Agent::Base invoke_timeout DSL (Issue #116)" do
+  describe ".invoke_timeout" do
+    it "defaults to nil" do
+      klass = Class.new(Phronomy::Agent::Base) { model "test-model" }
+      expect(klass.invoke_timeout).to be_nil
+    end
+
+    it "stores the configured value" do
+      klass = Class.new(Phronomy::Agent::Base) do
+        model "test-model"
+        invoke_timeout 30
+      end
+      expect(klass.invoke_timeout).to eq(30)
+    end
+
+    it "is inherited by subclasses" do
+      parent = Class.new(Phronomy::Agent::Base) do
+        model "test-model"
+        invoke_timeout 60
+      end
+      child = Class.new(parent)
+      expect(child.invoke_timeout).to eq(60)
+    end
+
+    it "can be overridden in a subclass" do
+      parent = Class.new(Phronomy::Agent::Base) do
+        model "test-model"
+        invoke_timeout 60
+      end
+      child = Class.new(parent) { invoke_timeout 10 }
+      expect(child.invoke_timeout).to eq(10)
+      expect(parent.invoke_timeout).to eq(60)
+    end
+  end
+
+  describe "#invoke in EventLoop mode" do
+    around do |example|
+      Phronomy.configure { |c| c.event_loop = true }
+      Phronomy::EventLoop.instance.start
+      example.run
+    ensure
+      Phronomy::EventLoop.instance.stop
+      Phronomy.configure { |c| c.event_loop = false }
+    end
+
+    it "raises Phronomy::TimeoutError when the agent does not finish in time" do
+      klass = Class.new(Phronomy::Agent::Base) do
+        model "test-model"
+        invoke_timeout 0.1
+      end
+
+      # Stub _invoke_impl to block indefinitely
+      allow_any_instance_of(klass).to receive(:_invoke_impl) do
+        sleep 10
+      end
+
+      expect { klass.new.invoke("test") }.to raise_error(Phronomy::TimeoutError, /timed out/)
+    end
+
+    it "does not raise when the agent finishes within the timeout" do
+      klass = Class.new(Phronomy::Agent::Base) do
+        model "test-model"
+        invoke_timeout 5
+      end
+
+      allow_any_instance_of(klass).to receive(:_invoke_impl)
+        .and_return({output: "ok", messages: [], usage: nil})
+
+      result = klass.new.invoke("hi")
+      expect(result[:output]).to eq("ok")
+    end
+  end
+end

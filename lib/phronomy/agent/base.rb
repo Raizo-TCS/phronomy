@@ -2,6 +2,7 @@
 
 require "digest"
 require "securerandom"
+require "timeout"
 require_relative "concerns/retryable"
 require_relative "concerns/guardrailable"
 require_relative "concerns/before_completion"
@@ -193,6 +194,29 @@ module Phronomy
           else
             @max_parallel_tools ||
               (superclass.respond_to?(:max_parallel_tools) ? superclass.max_parallel_tools : 10)
+          end
+        end
+
+        # Sets or reads the per-invocation timeout (in seconds) for EventLoop-mode
+        # agent calls.  When set, +invoke+ raises {Phronomy::TimeoutError} if the
+        # agent does not finish within the given number of seconds.
+        #
+        # Has no effect when EventLoop mode is disabled (direct invoke path).
+        # Defaults to +nil+ (no timeout).
+        # Inherited by subclasses; the most-specific definition wins.
+        #
+        # @param val [Numeric, nil]
+        # @return [Numeric, nil]
+        # @example
+        #   class MyAgent < Phronomy::Agent::Base
+        #     invoke_timeout 30
+        #   end
+        def invoke_timeout(val = nil)
+          if val
+            @invoke_timeout = val
+          else
+            return @invoke_timeout if defined?(@invoke_timeout)
+            superclass.respond_to?(:invoke_timeout) ? superclass.invoke_timeout : nil
           end
         end
 
@@ -421,7 +445,17 @@ module Phronomy
             config: config
           )
           completion_queue = Phronomy::EventLoop.instance.register(fsm)
-          result = completion_queue.pop
+          timeout_sec = self.class.invoke_timeout
+          result = if timeout_sec
+            begin
+              Timeout.timeout(timeout_sec) { completion_queue.pop }
+            rescue Timeout::Error
+              raise Phronomy::TimeoutError,
+                "Agent #{self.class.name} invoke timed out after #{timeout_sec}s"
+            end
+          else
+            completion_queue.pop
+          end
           raise result if result.is_a?(Exception)
           result
         else
