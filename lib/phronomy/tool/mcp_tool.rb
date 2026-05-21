@@ -72,7 +72,10 @@ module Phronomy
           # Register description and params from the MCP tool definition.
           klass.description(tool_def[:description] || tool_name)
           (tool_def[:parameters] || []).each do |p|
-            klass.param(p[:name].to_sym, type: p[:type]&.to_sym || :string, desc: p[:description].to_s)
+            opts = {type: p[:type]&.to_sym || :string, desc: p[:description].to_s}
+            opts[:required] = p[:required] if p.key?(:required)
+            opts[:enum] = p[:enum] if p.key?(:enum)
+            klass.param(p[:name].to_sym, **opts)
           end
 
           # Each instance creates its own transport so concurrent agent threads
@@ -149,9 +152,10 @@ module Phronomy
           defn = tools.find { |t| t["name"] == tool_name }
           raise ArgumentError, "Tool #{tool_name.inspect} not found on MCP server #{@command.inspect}" unless defn
 
+          required_names = defn.dig("inputSchema", "required") || []
           {
             description: defn["description"],
-            parameters: parse_schema_params(defn.dig("inputSchema", "properties") || {})
+            parameters: parse_schema_params(defn.dig("inputSchema", "properties") || {}, required_names: required_names)
           }
         end
 
@@ -205,13 +209,16 @@ module Phronomy
             "MCP stdio server did not respond within #{@read_timeout} seconds"
         end
 
-        def parse_schema_params(properties)
+        def parse_schema_params(properties, required_names: [])
           properties.map do |name, schema|
-            {
+            param = {
               name: name.to_s,
               type: schema["type"] || "string",
-              description: schema["description"].to_s
+              description: schema["description"].to_s,
+              required: required_names.include?(name.to_s)
             }
+            param[:enum] = schema["enum"] if schema["enum"]
+            param
           end
         end
       end
@@ -252,9 +259,10 @@ module Phronomy
           defn = tools.find { |t| t["name"] == tool_name }
           raise ArgumentError, "Tool #{tool_name.inspect} not found on MCP server #{@uri}" unless defn
 
+          required_names = defn.dig("inputSchema", "required") || []
           {
             description: defn["description"],
-            parameters: parse_schema_params(defn.dig("inputSchema", "properties") || {})
+            parameters: parse_schema_params(defn.dig("inputSchema", "properties") || {}, required_names: required_names)
           }
         end
 
@@ -332,13 +340,16 @@ module Phronomy
           result || raise(Phronomy::ToolError, "No valid JSON-RPC response found in SSE stream")
         end
 
-        def parse_schema_params(properties)
+        def parse_schema_params(properties, required_names: [])
           properties.map do |name, schema|
-            {
+            param = {
               name: name.to_s,
               type: schema["type"] || "string",
-              description: schema["description"].to_s
+              description: schema["description"].to_s,
+              required: required_names.include?(name.to_s)
             }
+            param[:enum] = schema["enum"] if schema["enum"]
+            param
           end
         end
       end
