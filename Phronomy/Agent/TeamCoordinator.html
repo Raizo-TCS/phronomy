@@ -106,9 +106,12 @@
   <div class="discussion">
     <p>Implements the &quot;Agent teams&quot; coordination pattern (Anthropic blog, Pattern 3).</p>
 <p>A coordinator LLM agent decomposes work into tasks and enqueues them
-dynamically via built-in tools. A fixed pool of worker agents claims tasks
-from the shared queue, carrying forward their conversation history across
-assignments to accumulate domain context over time.</p>
+dynamically via built-in tools. A fixed set of worker agents processes tasks
+sequentially — one task per worker per turn — carrying forward their
+conversation history across assignments to accumulate domain context over time.</p>
+<p>Workers are selected in sequence (the worker with the fewest accumulated
+messages is chosen by default). Task dispatch is synchronous; there is no
+concurrent or parallel execution.</p>
 <p>The coordinator is an <span class='object_link'><a href="Base.html" title="Phronomy::Agent::Base (class)">Base</a></span> subclass that has two built-in tools:</p>
 <ul>
 <li><code>enqueue_task</code> — adds a task description to the queue</li>
@@ -274,7 +277,7 @@ assignments to accumulate domain context over time.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Configures the worker pool.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Configures the set of workers.</p></div></span>
   
 </li>
 
@@ -409,12 +412,12 @@ The block receives an Array of assignment Hashes:</p>
       <pre class="lines">
 
 
-111
-112
-113</pre>
+115
+116
+117</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 111</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 115</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_aggregate'>aggregate</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@aggregator</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -467,12 +470,12 @@ and then call <code>finalize</code> when all tasks are enqueued.</p>
       <pre class="lines">
 
 
-68
-69
-70</pre>
+72
+73
+74</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 68</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 72</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_coordinator_instructions'>coordinator_instructions</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>?</span> <span class='ivar'>@coordinator_instructions</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span> <span class='op'>:</span> <span class='ivar'>@coordinator_instructions</span>
@@ -524,12 +527,12 @@ Falls back to <code>Phronomy.configuration.default_model</code> when not set.</p
       <pre class="lines">
 
 
-59
-60
-61</pre>
+63
+64
+65</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 59</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 63</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_coordinator_model'>coordinator_model</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>?</span> <span class='ivar'>@coordinator_model</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span> <span class='op'>:</span> <span class='ivar'>@coordinator_model</span>
@@ -583,12 +586,12 @@ Pass the same value as <code>LLMConfig::PROVIDER</code> in your examples.</p>
       <pre class="lines">
 
 
-78
-79
-80</pre>
+82
+83
+84</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 78</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 82</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_coordinator_provider'>coordinator_provider</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>?</span> <span class='ivar'>@coordinator_provider</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span> <span class='op'>:</span> <span class='ivar'>@coordinator_provider</span>
@@ -609,7 +612,7 @@ Pass the same value as <code>LLMConfig::PROVIDER</code> in your examples.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Configures the worker pool.</p>
+    <p>Configures the set of workers.</p>
 
   </div>
 </div>
@@ -627,7 +630,7 @@ Pass the same value as <code>LLMConfig::PROVIDER</code> in your examples.</p>
       
       
         &mdash;
-        <div class='inline'><p>number of persistent worker instances</p></div>
+        <div class='inline'><p>number of persistent worker instances (tasks are assigned sequentially)</p></div>
       
     </li>
   
@@ -671,14 +674,14 @@ Pass the same value as <code>LLMConfig::PROVIDER</code> in your examples.</p>
       <pre class="lines">
 
 
-88
-89
-90
-91
-92</pre>
+92
+93
+94
+95
+96</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 88</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 92</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pool'>pool</span><span class='lparen'>(</span><span class='label'>size:</span><span class='comma'>,</span> <span class='label'>agent:</span><span class='comma'>,</span> <span class='label'>on_error:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span>
   <span class='ivar'>@pool_size</span> <span class='op'>=</span> <span class='const'>Integer</span><span class='lparen'>(</span><span class='id identifier rubyid_size'>size</span><span class='rparen'>)</span>
@@ -749,12 +752,12 @@ Default: worker with the fewest accumulated messages (round-robin-like).</p>
       <pre class="lines">
 
 
-101
-102
-103</pre>
+105
+106
+107</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 101</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 105</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_schedule'>schedule</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@scheduler</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -861,17 +864,17 @@ process them sequentially, and the aggregate block merges the results.</p>
       <pre class="lines">
 
 
-140
-141
-142
-143
 144
 145
 146
-147</pre>
+147
+148
+149
+150
+151</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 140</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 144</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_team_input'>team_input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>pool :agent must be configured before invoking</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid__worker_agent'>_worker_agent</span>
@@ -993,19 +996,19 @@ failed task assignment.</p>
       <pre class="lines">
 
 
-164
-165
-166
-167
 168
 169
 170
 171
 172
-173</pre>
+173
+174
+175
+176
+177</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 164</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/team_coordinator.rb', line 168</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_team_input'>team_input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_team_input'>team_input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
@@ -1027,7 +1030,7 @@ failed task assignment.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu May 21 12:14:35 2026 by
+  Generated on Thu May 21 13:52:20 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
