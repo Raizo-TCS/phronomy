@@ -5,6 +5,7 @@ require "net/http"
 require "open3"
 require "securerandom"
 require "shellwords"
+require "timeout"
 require "uri"
 
 module Phronomy
@@ -107,10 +108,15 @@ module Phronomy
       # so that session state (registered resources, tool context, etc.) is preserved
       # across multiple calls.
       class StdioTransport
-        def initialize(command)
+        # @param command      [String]  shell command to spawn the MCP server process
+        # @param read_timeout [Integer] seconds to wait for the server's JSON-RPC response
+        #   before raising {Phronomy::ToolError}. Mirrors the +read_timeout+ option on
+        #   {HttpTransport}. Defaults to 30 seconds.
+        def initialize(command, read_timeout: 30)
           # Split the command string into an argv array so that Open3 executes
           # it directly without going through the shell, preventing injection.
           @command = Shellwords.split(command)
+          @read_timeout = read_timeout
           @stdin = nil
           @stdout = nil
           @stderr = nil
@@ -191,9 +197,12 @@ module Phronomy
           ensure_started!
           payload = JSON.generate(jsonrpc: "2.0", id: SecureRandom.uuid, method: method, params: params)
           @stdin.puts(payload)
-          raw = @stdout.gets
+          raw = Timeout.timeout(@read_timeout) { @stdout.gets }
           raise Phronomy::ToolError, "MCP server closed the connection unexpectedly" if raw.nil?
           JSON.parse(raw)
+        rescue Timeout::Error
+          raise Phronomy::ToolError,
+            "MCP stdio server did not respond within #{@read_timeout} seconds"
         end
 
         def parse_schema_params(properties)
