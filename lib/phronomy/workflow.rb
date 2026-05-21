@@ -139,9 +139,13 @@ module Phronomy
       # rubocop:enable Style/TrivialAccessors
 
       # Declares an action state.
-      # @param name [Symbol] state name
-      def state(name)
+      # @param name   [Symbol]   state name
+      # @param action [#call, nil] optional entry action shorthand.
+      #   +state :generate, action: MY_PROC+ is equivalent to
+      #   +state :generate; entry :generate, MY_PROC+.
+      def state(name, action: nil)
         @declared_states << name
+        entry(name, action) if action
       end
 
       # Declares an entry action for a state.

@@ -69,7 +69,11 @@ module Phronomy
         recursion_limit = config.fetch(:recursion_limit, Phronomy.configuration.recursion_limit)
         state = @state_class.new(**input)
         state.set_graph_metadata(thread_id: thread_id)
-        result = run_workflow(state, recursion_limit: recursion_limit)
+        result = if Phronomy.configuration.event_loop
+          run_via_event_loop(state, recursion_limit: recursion_limit)
+        else
+          run_workflow(state, recursion_limit: recursion_limit)
+        end
         [result, nil]
       end
     end
@@ -112,7 +116,13 @@ module Phronomy
         event
       end
 
-      run_workflow(state, resume_event: ev_to_fire, resume_phase: current_phase)
+      if Phronomy.configuration.event_loop
+        run_via_event_loop(state,
+          recursion_limit: Phronomy.configuration.recursion_limit,
+          resume_event: ev_to_fire, resume_phase: current_phase)
+      else
+        run_workflow(state, resume_event: ev_to_fire, resume_phase: current_phase)
+      end
     end
 
     # Streaming execution. Yields { state: Symbol, context: Object } after each state action completes.
@@ -129,6 +139,38 @@ module Phronomy
     end
 
     private
+
+    # Builds an FSMSession for the given context. Used in EventLoop mode.
+    def build_session_for(context:, recursion_limit:, resume_event: nil, resume_phase: nil)
+      Phronomy::FSMSession.new(
+        id:                  context.thread_id,
+        context:             context,
+        entry_point:         @entry_point,
+        entry_actions:       @entry_actions,
+        auto_state_set:      @auto_state_set,
+        declared_states:     @declared_states,
+        wait_state_names:    @wait_state_names,
+        external_events:     @external_events,
+        phase_machine_class: @phase_machine_class,
+        recursion_limit:     recursion_limit,
+        resume_event:        resume_event,
+        resume_phase:        resume_phase
+      )
+    end
+
+    # Executes the workflow via the singleton EventLoop.
+    # Blocks the calling thread on a completion queue until the workflow
+    # finishes, halts at a wait state, or raises an error.
+    def run_via_event_loop(context, recursion_limit:, resume_event: nil, resume_phase: nil)
+      session = build_session_for(
+        context: context, recursion_limit: recursion_limit,
+        resume_event: resume_event, resume_phase: resume_phase
+      )
+      completion_queue = Phronomy::EventLoop.instance.register(session)
+      result = completion_queue.pop
+      raise result if result.is_a?(Exception)
+      result
+    end
 
     def run_workflow(ctx, resume_event: nil, resume_phase: nil, recursion_limit: 25, &event_block)
       if resume_event
