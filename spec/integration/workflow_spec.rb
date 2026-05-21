@@ -290,7 +290,7 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
       app = Phronomy::Workflow.define(WorkflowTestContext) do
         initial :first
         state :first
-        entry :first, ->(_s) { nil } # no-op: return value is not a WorkflowContext
+        entry :first, ->(_s) {} # no-op: return value is not a WorkflowContext
         state :second
         entry :second, ->(s) { s.merge(score: s.score + 10) }
         transition from: :first, to: :second
@@ -348,4 +348,3 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
     end
   end
 end
-

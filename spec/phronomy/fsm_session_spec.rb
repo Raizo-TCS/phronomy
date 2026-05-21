@@ -290,7 +290,7 @@ RSpec.describe Phronomy::FSMSession do
       app = Phronomy::Workflow.define(ctx_class_merge) do
         initial :first
         state :first
-        entry :first, ->(_s) { nil } # no-op; does not return a WorkflowContext
+        entry :first, ->(_s) {} # no-op; does not return a WorkflowContext
         transition from: :first, to: :second
 
         state :second
