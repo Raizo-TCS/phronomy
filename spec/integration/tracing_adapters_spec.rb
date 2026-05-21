@@ -107,7 +107,10 @@ RSpec.describe "Group 16: OpenTelemetry and Langfuse tracer adapters", :integrat
       .to_return(status: 200, body: "{}")
 
     tracer = IntegrationFactors.tracer("langfuse")
-    Phronomy.configure { |c| c.tracer = tracer }
+    Phronomy.configure { |c|
+      c.tracer = tracer
+      c.trace_pii = true
+    }
 
     runnable = Class.new { include Phronomy::Runnable }.new
     result = runnable.trace("lf_success_op", input: "query") { ["answer", usage] }

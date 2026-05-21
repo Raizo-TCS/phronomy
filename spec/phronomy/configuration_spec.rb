@@ -24,8 +24,8 @@ RSpec.describe Phronomy::Configuration do
       expect(config.tracer).to be_a(Phronomy::Tracing::NullTracer)
     end
 
-    it "defaults trace_pii to true" do
-      expect(config.trace_pii).to be true
+    it "defaults trace_pii to false" do
+      expect(config.trace_pii).to be false
     end
 
     it "defaults event_loop to false" do
@@ -71,5 +71,11 @@ RSpec.describe "Phronomy.configure" do
     Phronomy.configure { |c| c.default_model = "gpt-4o" }
     Phronomy.reset_configuration!
     expect(Phronomy.configuration.default_model).to be_nil
+  end
+
+  # Regression test for Issue #104: trace_pii defaults to true — PII is forwarded to tracers without explicit opt-in
+  it "defaults trace_pii to false for secure-by-default behaviour (Issue #104)" do
+    config = Phronomy::Configuration.new
+    expect(config.trace_pii).to be false
   end
 end

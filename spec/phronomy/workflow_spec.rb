@@ -68,4 +68,76 @@ RSpec.describe Phronomy::Workflow do
       expect(final.value).to eq("overridden:executed")
     end
   end
+
+  # Regression test for Issue #101: Workflow action return value (WorkflowContext#merge result) is silently discarded
+  describe "action return value is adopted as new context (Issue #101)" do
+    let(:ctx_class) do
+      Class.new do
+        include Phronomy::WorkflowContext
+
+        field :value, default: "initial"
+      end
+    end
+
+    it "reflects field updates when the action returns s.merge(...)" do
+      app = Phronomy::Workflow.define(ctx_class) do
+        initial :step_a
+        state :step_a, action: ->(s) { s.merge(value: "updated") }
+        transition from: :step_a, to: :__finish__
+      end
+
+      result = app.invoke({})
+      expect(result.value).to eq("updated")
+    end
+
+    it "chains merge-style actions across multiple states" do
+      append_ctx_class = Class.new do
+        include Phronomy::WorkflowContext
+
+        field :steps, type: :append, default: -> { [] }
+      end
+
+      app = Phronomy::Workflow.define(append_ctx_class) do
+        initial :first
+        state :first, action: ->(s) { s.merge(steps: "first") }
+        state :second, action: ->(s) { s.merge(steps: "second") }
+        transition from: :first, to: :second
+        transition from: :second, to: :__finish__
+      end
+
+      result = app.invoke({})
+      expect(result.steps).to eq(%w[first second])
+    end
+  end
+
+  # Spec gap for Issue #102: README Workflow examples are not covered by executable specs
+  describe "README Quick Start smoke test (Issue #102)" do
+    it "produces correct field values using the merge-based pattern shown in the README" do
+      pipeline_ctx = Class.new do
+        include Phronomy::WorkflowContext
+
+        field :draft, default: nil
+        field :feedback, default: nil
+        field :approved, default: false
+      end
+
+      writer = ->(s) { "draft:#{s.draft.inspect}" }
+      reviewer = ->(draft) { "review:#{draft}" }
+
+      app = Phronomy::Workflow.define(pipeline_ctx) do
+        initial :write
+        state :write, action: ->(s) { s.merge(draft: writer.call(s)) }
+        state :review, action: ->(s) { s.merge(feedback: reviewer.call(s.draft)) }
+        state :finalize, action: ->(s) { s.merge(approved: true) }
+        transition from: :write, to: :review
+        transition from: :review, to: :finalize
+        transition from: :finalize, to: :__finish__
+      end
+
+      result = app.invoke({})
+      expect(result.draft).to eq("draft:nil")
+      expect(result.feedback).to eq("review:draft:nil")
+      expect(result.approved).to eq(true)
+    end
+  end
 end

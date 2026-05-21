@@ -7,9 +7,13 @@ module Phronomy
     # @see https://claude.com/blog/multi-agent-coordination-patterns
     #
     # A coordinator LLM agent decomposes work into tasks and enqueues them
-    # dynamically via built-in tools. A fixed pool of worker agents claims tasks
-    # from the shared queue, carrying forward their conversation history across
-    # assignments to accumulate domain context over time.
+    # dynamically via built-in tools. A fixed set of worker agents processes tasks
+    # sequentially — one task per worker per turn — carrying forward their
+    # conversation history across assignments to accumulate domain context over time.
+    #
+    # Workers are selected in sequence (the worker with the fewest accumulated
+    # messages is chosen by default). Task dispatch is synchronous; there is no
+    # concurrent or parallel execution.
     #
     # The coordinator is an {Agent::Base} subclass that has two built-in tools:
     # - +enqueue_task+ — adds a task description to the queue
@@ -79,9 +83,9 @@ module Phronomy
           value ? @coordinator_provider = value : @coordinator_provider
         end
 
-        # Configures the worker pool.
+        # Configures the set of workers.
         #
-        # @param size     [Integer] number of persistent worker instances
+        # @param size     [Integer] number of persistent worker instances (tasks are assigned sequentially)
         # @param agent    [Class]   Agent::Base subclass used for all workers
         # @param on_error [Symbol]  +:raise+ (default) propagates worker exceptions;
         #                           +:skip+ records the failure and continues with remaining tasks

@@ -1,3 +1,0 @@
-class <%= chat_model_name %> < ApplicationRecord
-  <%= acts_as_chat_declaration %>
-end

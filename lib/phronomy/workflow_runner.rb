@@ -180,6 +180,7 @@ module Phronomy
         tracker = new_phase_machine(current_state)
         tracker.context = ctx
         fire_event!(tracker, resume_event, current_state)
+        ctx = tracker.context
         next_phase = tracker.phase.to_sym
         current_state = (next_phase == current_state) ? FINISH : next_phase
       else
@@ -189,7 +190,11 @@ module Phronomy
         tracker.context = ctx
         # state_machines only fires after_transition callbacks on transitions.
         # The entry point has no prior transition, so we invoke its entry actions directly.
-        @entry_actions[current_state]&.each { |c| c.call(ctx) }
+        @entry_actions[current_state]&.each do |c|
+          result = c.call(ctx)
+          ctx = result if result.is_a?(Phronomy::WorkflowContext)
+        end
+        tracker.context = ctx
       end
 
       # Event queue: decouple action execution from transition firing.
@@ -211,6 +216,7 @@ module Phronomy
           end
 
           fire_event!(tracker, event, current_state)
+          ctx = tracker.context
           next_phase = tracker.phase.to_sym
           # When next_phase == current_state no transition matched → terminal state.
           current_state = (next_phase == current_state) ? FINISH : next_phase
@@ -316,10 +322,13 @@ module Phronomy
           # Entry callbacks: fire after_transition into each state.
           #    Each callable is registered as a separate callback; state_machines
           #    accumulates them and fires in declaration order.
+          #    If the callable returns a WorkflowContext (e.g. via s.merge(...)),
+          #    the returned context replaces the current one on the tracker.
           entry_acts.each do |state_name, callables|
             callables.each do |callable|
               after_transition to: state_name do |machine|
-                callable.call(machine.context)
+                result = callable.call(machine.context)
+                machine.context = result if result.is_a?(Phronomy::WorkflowContext)
               end
             end
           end

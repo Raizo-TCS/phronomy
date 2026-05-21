@@ -22,7 +22,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **Multi-agent** — Agent-as-Tool pattern and hub-and-spoke handoff routing | Beta |
 | **GeneratorVerifier** — Generator-Verifier loop with injectable prompt builders/parsers | Beta |
 | **Agent::Orchestrator** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
-| **Agent::TeamCoordinator** — Agent teams pattern: LLM coordinator + stateful worker pool with task queue (worker-local message history per run) | Beta |
+| **Agent::TeamCoordinator** — Agent teams pattern: LLM coordinator + stateful workers with sequential task assignment (worker-local message history persisted across tasks) | Beta |
 | **Agent::SharedState** — Shared state pattern: peer agents collaborate via a shared KnowledgeStore; `member` DSL with per-agent instructions and `coordination` team protocol | Experimental |
 | **Guardrails** — Input/output validation with custom `InputGuardrail`/`OutputGuardrail` | Beta |
 | **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses | Stable |

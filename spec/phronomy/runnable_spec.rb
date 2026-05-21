@@ -92,8 +92,11 @@ RSpec.describe Phronomy::Runnable do
 
     after { Phronomy.reset_configuration! }
 
-    it "passes the real input to the tracer when trace_pii is true (default)" do
-      Phronomy.configure { |c| c.tracer = spy_tracer }
+    it "passes the real input to the tracer when trace_pii is true" do
+      Phronomy.configure { |c|
+        c.tracer = spy_tracer
+        c.trace_pii = true
+      }
       traceable_step.invoke("sensitive data")
       expect(recorded_calls.first[:input]).to eq("sensitive data")
     end

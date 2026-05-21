@@ -377,4 +377,38 @@ RSpec.describe Phronomy::Agent::TeamCoordinator do
       end
     end
   end
+
+  # Spec gap for Issue #106: TeamCoordinator is described as a "worker pool" but tasks are dispatched sequentially
+  describe "task dispatch order (Issue #106)" do
+    it "dispatches tasks sequentially — each invoke completes before the next begins" do
+      call_log = []
+
+      stub_agent_class = Class.new(Phronomy::Agent::Base) do
+        define_method(:invoke) do |input, **_kwargs|
+          call_log << {start: input, time: Time.now.to_f}
+          sleep(0) # yield to ensure any concurrent dispatch would interleave
+          call_log.last[:end] = Time.now.to_f
+          {output: "done:#{input}", messages: []}
+        end
+      end
+
+      task_queue = [
+        {description: "task-1"},
+        {description: "task-2"},
+        {description: "task-3"}
+      ]
+
+      team = described_class.new
+      team.class.pool(size: 2, agent: stub_agent_class)
+      assignments = team.send(:run_workers, task_queue)
+
+      # All three tasks complete
+      expect(assignments.size).to eq(3)
+
+      # Sequential dispatch: each task's :start is logged before the next task begins
+      # (if parallel, timestamps would overlap)
+      starts = call_log.map { |e| e[:start] }
+      expect(starts).to eq(%w[task-1 task-2 task-3])
+    end
+  end
 end

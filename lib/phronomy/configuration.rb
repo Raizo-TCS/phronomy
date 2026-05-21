@@ -41,7 +41,7 @@ module Phronomy
     def initialize
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new
-      @trace_pii = true
+      @trace_pii = false
       @event_loop = false
     end
   end
