@@ -457,7 +457,7 @@ module Phronomy
           parent_id: ctx.thread_id,
           result_writer: result_writer
         )
-        Phronomy::EventLoop.instance.register(fsm)
+        Phronomy::EventLoop.instance.enqueue_child(fsm)
         nil
       end
 

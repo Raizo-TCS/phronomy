@@ -36,8 +36,8 @@ module Phronomy
     end
 
     def initialize
-      @queue   = Thread::Queue.new  # global event queue (thread-safe; no Mutex needed)
-      @fsms    = {}                 # { id => FSMSession }     — EventLoop thread only
+      @queue = Thread::Queue.new  # global event queue (thread-safe; no Mutex needed)
+      @fsms = {}                 # { id => FSMSession }     — EventLoop thread only
       @waiting = {}                 # { id => completion_queue } — EventLoop thread only
     end
 
@@ -69,6 +69,21 @@ module Phronomy
       completion_queue
     end
 
+    # Enqueues an {AgentFSM} as a fire-and-forget child session.
+    #
+    # Unlike {#register}, this method:
+    # - Is safe to call from the EventLoop thread (entry actions).
+    # - Does NOT block — no completion queue is created.
+    # - Delegates `:finished`/`:error` cleanup to the EventLoop via posted events.
+    #
+    # @param agent_fsm [Phronomy::Agent::FSM]
+    # @return [nil]
+    def enqueue_child(agent_fsm)
+      @queue.push(Event.new(type: :start, target_id: agent_fsm.id,
+        payload: {session: agent_fsm, completion: nil}))
+      nil
+    end
+
     # Posts an event to the loop. Safe to call from any thread (including IO threads).
     #
     # @param event [Phronomy::Event]
@@ -80,7 +95,7 @@ module Phronomy
     # @return [self]
     def start
       @running = true
-      @thread  = Thread.new do
+      @thread = Thread.new do
         Thread.current[:phronomy_event_loop_thread] = true
         run_loop
       end
@@ -113,8 +128,10 @@ module Phronomy
         when :start
           # session and completion_queue arrive together in the payload so that
           # this thread is the sole writer of @fsms and @waiting.
-          @fsms[event.target_id]    = event.payload[:session]
-          @waiting[event.target_id] = event.payload[:completion]
+          # completion may be nil for fire-and-forget child sessions (AgentFSM).
+          @fsms[event.target_id] = event.payload[:session]
+          cq = event.payload[:completion]
+          @waiting[event.target_id] = cq if cq
           event.payload[:session].start
 
         else
