@@ -110,7 +110,7 @@
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
     <p>Execution engine for compiled workflows.
-Manages node execution, phase transitions, halt/resume, and wait states.
+Manages state entry/exit action execution, phase transitions, halt/resume, and wait states.
 Instantiated by Phronomy::Workflow and used internally.</p>
 <h2 id="Design_principle">Design principle</h2>
 <p>State transitions are driven entirely by state_machines. The PhaseTracker
@@ -118,19 +118,22 @@ holds a reference to the current WorkflowContext via <code>attr_accessor :contex
 and guard lambdas evaluate <code>m.context</code> (the WorkflowContext) rather than
 the PhaseTracker itself. This ensures that &quot;what happens next&quot; is always
 determined by the declared state machine topology, never by Phronomy internals.</p>
-<h2 id="Three_transition_categories_registered_in_PhaseTracker">Three transition categories registered in PhaseTracker</h2>
-<pre class="code ruby"><code class="ruby">1. advance_&lt;from&gt;  — automatic, unconditional after-transitions
-                   fired when an action state&#39;s action completes
-                   (declared with +after :foo, to: :bar+)
-
-2. route           — a single event that carries all guarded transitions
-                   (declared with +event :route, from: :foo, guard: ..., to: :bar+)
+<p>Entry and exit actions are registered as state_machines <code>after_transition to:</code>
+and <code>before_transition from:</code> callbacks respectively. The WorkflowContext is
+mutable; actions receive it and modify fields in place.</p>
+<p>The sole exception is the initial state: state_machines does not fire transition
+callbacks on initialization, so the entry action for the entry point is invoked
+directly by WorkflowRunner before the main execution loop begins.</p>
+<h2 id="Two_transition_categories_registered_in_PhaseTracker">Two transition categories registered in PhaseTracker</h2>
+<pre class="code ruby"><code class="ruby">1. state_completed  — all auto-fire transitions (with or without guards).
+                   Fired when an action state&#39;s action completes.
                    Guards are evaluated in declaration order; first match wins.
-                   An unguarded fallback, if declared, is evaluated last.
+                   (declared with +transition from: :foo, to: :bar+ or
+                    +transition from: :foo, guard: ..., to: :bar+)
 
-3. &lt;event_name&gt;    — external events triggered by human input, originating
+2. &lt;event_name&gt;    — external events triggered by human input, originating
                    from wait states
-                   (declared with +event :approve, from: :awaiting, to: :run+)</code></pre>
+                   (declared with +transition from: :awaiting, on: :approve, to: :run+)</code></pre>
 
   </div>
 </div>
@@ -180,7 +183,7 @@ determined by the declared state machine topology, never by Phronomy internals.<
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(state_class:, nodes:, after_transitions:, route_transitions:, external_events:, entry_point:, wait_state_names: [], before_callbacks: {}, after_callbacks: {})  &#x21d2; WorkflowRunner </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(state_class:, entry_actions:, declared_states:, auto_transitions:, external_events:, entry_point:, exit_actions: {}, wait_state_names: [])  &#x21d2; WorkflowRunner </a>
     
 
     
@@ -311,7 +314,7 @@ determined by the declared state machine topology, never by Phronomy internals.<
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(state_class:, nodes:, after_transitions:, route_transitions:, external_events:, entry_point:, wait_state_names: [], before_callbacks: {}, after_callbacks: {})  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::WorkflowRunner (class)">WorkflowRunner</a></span></tt> 
+    #<strong>initialize</strong>(state_class:, entry_actions:, declared_states:, auto_transitions:, external_events:, entry_point:, exit_actions: {}, wait_state_names: [])  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::WorkflowRunner (class)">WorkflowRunner</a></span></tt> 
   
 
   
@@ -332,11 +335,6 @@ determined by the declared state machine topology, never by Phronomy internals.<
       <pre class="lines">
 
 
-39
-40
-41
-42
-43
 44
 45
 46
@@ -345,24 +343,23 @@ determined by the declared state machine topology, never by Phronomy internals.<
 49
 50
 51
-52</pre>
+52
+53
+54</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 39</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 44</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>state_class:</span><span class='comma'>,</span> <span class='label'>nodes:</span><span class='comma'>,</span> <span class='label'>after_transitions:</span><span class='comma'>,</span> <span class='label'>route_transitions:</span><span class='comma'>,</span>
-  <span class='label'>external_events:</span><span class='comma'>,</span> <span class='label'>entry_point:</span><span class='comma'>,</span> <span class='label'>wait_state_names:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span>
-  <span class='label'>before_callbacks:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>after_callbacks:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>state_class:</span><span class='comma'>,</span> <span class='label'>entry_actions:</span><span class='comma'>,</span> <span class='label'>declared_states:</span><span class='comma'>,</span> <span class='label'>auto_transitions:</span><span class='comma'>,</span> <span class='label'>external_events:</span><span class='comma'>,</span> <span class='label'>entry_point:</span><span class='comma'>,</span> <span class='label'>exit_actions:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>wait_state_names:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span>
   <span class='ivar'>@state_class</span> <span class='op'>=</span> <span class='id identifier rubyid_state_class'>state_class</span>
-  <span class='ivar'>@nodes</span> <span class='op'>=</span> <span class='id identifier rubyid_nodes'>nodes</span>
-  <span class='ivar'>@after_transitions</span> <span class='op'>=</span> <span class='id identifier rubyid_after_transitions'>after_transitions</span>  <span class='comment'># { from =&gt; to }
-</span>  <span class='ivar'>@route_transitions</span> <span class='op'>=</span> <span class='id identifier rubyid_route_transitions'>route_transitions</span>  <span class='comment'># { from =&gt; [{guard:, to:}, ...] }
-</span>  <span class='ivar'>@external_events</span> <span class='op'>=</span> <span class='id identifier rubyid_external_events'>external_events</span>    <span class='comment'># { name =&gt; [{from:, to:, guard:}, ...] }
+  <span class='ivar'>@entry_actions</span> <span class='op'>=</span> <span class='id identifier rubyid_entry_actions'>entry_actions</span>   <span class='comment'># { state_name =&gt; [callable, ...] }
+</span>  <span class='ivar'>@declared_states</span> <span class='op'>=</span> <span class='id identifier rubyid_declared_states'>declared_states</span>
+  <span class='comment'># Lookup set: states with at least one auto-fire transition declared.
+</span>  <span class='ivar'>@auto_state_set</span> <span class='op'>=</span> <span class='id identifier rubyid_auto_transitions'>auto_transitions</span><span class='period'>.</span><span class='id identifier rubyid_each_with_object'>each_with_object</span><span class='lparen'>(</span><span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_t'>t</span><span class='comma'>,</span> <span class='id identifier rubyid_h'>h</span><span class='op'>|</span> <span class='id identifier rubyid_h'>h</span><span class='lbracket'>[</span><span class='id identifier rubyid_t'>t</span><span class='lbracket'>[</span><span class='symbol'>:from</span><span class='rbracket'>]</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='kw'>true</span> <span class='rbrace'>}</span>
+  <span class='ivar'>@external_events</span> <span class='op'>=</span> <span class='id identifier rubyid_external_events'>external_events</span>    <span class='comment'># { name =&gt; [{from:, to:, guard:}, ...] }
 </span>  <span class='ivar'>@entry_point</span> <span class='op'>=</span> <span class='id identifier rubyid_entry_point'>entry_point</span>
   <span class='ivar'>@wait_state_names</span> <span class='op'>=</span> <span class='id identifier rubyid_wait_state_names'>wait_state_names</span>
-  <span class='ivar'>@before_callbacks</span> <span class='op'>=</span> <span class='id identifier rubyid_before_callbacks'>before_callbacks</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
-  <span class='ivar'>@after_callbacks</span> <span class='op'>=</span> <span class='id identifier rubyid_after_callbacks'>after_callbacks</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
-  <span class='ivar'>@phase_machine_class</span> <span class='op'>=</span> <span class='id identifier rubyid_build_phase_machine_class'>build_phase_machine_class</span>
+  <span class='ivar'>@phase_machine_class</span> <span class='op'>=</span> <span class='id identifier rubyid_build_phase_machine_class'>build_phase_machine_class</span><span class='lparen'>(</span><span class='id identifier rubyid_auto_transitions'>auto_transitions</span><span class='comma'>,</span> <span class='id identifier rubyid_exit_actions'>exit_actions</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -450,8 +447,6 @@ determined by the declared state machine topology, never by Phronomy internals.<
       <pre class="lines">
 
 
-58
-59
 60
 61
 62
@@ -463,22 +458,32 @@ determined by the declared state machine topology, never by Phronomy internals.<
 68
 69
 70
-71</pre>
+71
+72
+73
+74
+75
+76
+77</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 58</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 60</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_caller_meta'>caller_meta</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
   <span class='id identifier rubyid_caller_meta'>caller_meta</span><span class='lbracket'>[</span><span class='symbol'>:user_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:user_id</span><span class='rbracket'>]</span> <span class='kw'>if</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:user_id</span><span class='rbracket'>]</span>
   <span class='id identifier rubyid_caller_meta'>caller_meta</span><span class='lbracket'>[</span><span class='symbol'>:session_id</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:session_id</span><span class='rbracket'>]</span> <span class='kw'>if</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:session_id</span><span class='rbracket'>]</span>
 
-  <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>graph.invoke</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_caller_meta'>caller_meta</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid__span'>_span</span><span class='op'>|</span>
+  <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>workflow.invoke</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_caller_meta'>caller_meta</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid__span'>_span</span><span class='op'>|</span>
     <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_uuid'>uuid</span>
     <span class='id identifier rubyid_recursion_limit'>recursion_limit</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:recursion_limit</span><span class='comma'>,</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_recursion_limit'>recursion_limit</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_state'>state</span> <span class='op'>=</span> <span class='ivar'>@state_class</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_run_graph'>run_graph</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>recursion_limit:</span> <span class='id identifier rubyid_recursion_limit'>recursion_limit</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span>
+      <span class='id identifier rubyid_run_via_event_loop'>run_via_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>recursion_limit:</span> <span class='id identifier rubyid_recursion_limit'>recursion_limit</span><span class='rparen'>)</span>
+    <span class='kw'>else</span>
+      <span class='id identifier rubyid_run_workflow'>run_workflow</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>recursion_limit:</span> <span class='id identifier rubyid_recursion_limit'>recursion_limit</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
     <span class='lbracket'>[</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='rbracket'>]</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
@@ -561,12 +566,12 @@ determined by the declared state machine topology, never by Phronomy internals.<
       <pre class="lines">
 
 
-77
-78
-79</pre>
+83
+84
+85</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 77</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 83</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='label'>state:</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_send_event'>send_event</span><span class='lparen'>(</span><span class='label'>state:</span> <span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>event:</span> <span class='symbol'>:resume</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
@@ -666,12 +671,6 @@ for the current wait state and fires it.</p>
       <pre class="lines">
 
 
-90
-91
-92
-93
-94
-95
 96
 97
 98
@@ -695,18 +694,20 @@ for the current wait state and fires it.</p>
 116
 117
 118
-119</pre>
+119
+120
+121
+122
+123
+124</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 90</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 96</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_send_event'>send_event</span><span class='lparen'>(</span><span class='label'>state:</span><span class='comma'>,</span> <span class='label'>event:</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_state'>state</span> <span class='op'>=</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_input'>input</span>
   <span class='id identifier rubyid_event'>event</span> <span class='op'>=</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span>
   <span class='id identifier rubyid_current_phase'>current_phase</span> <span class='op'>=</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_phase'>phase</span>
-
-  <span class='id identifier rubyid_tracker'>tracker</span> <span class='op'>=</span> <span class='id identifier rubyid_new_phase_machine'>new_phase_machine</span><span class='lparen'>(</span><span class='id identifier rubyid_current_phase'>current_phase</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_tracker'>tracker</span><span class='period'>.</span><span class='id identifier rubyid_context'>context</span> <span class='op'>=</span> <span class='id identifier rubyid_state'>state</span>
 
   <span class='id identifier rubyid_ev_to_fire'>ev_to_fire</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_event'>event</span> <span class='op'>==</span> <span class='symbol'>:resume</span>
     <span class='comment'># Find the first external event that can originate from the current wait state.
@@ -724,11 +725,13 @@ for the current wait state and fires it.</p>
     <span class='id identifier rubyid_event'>event</span>
   <span class='kw'>end</span>
 
-  <span class='id identifier rubyid_fire_event!'>fire_event!</span><span class='lparen'>(</span><span class='id identifier rubyid_tracker'>tracker</span><span class='comma'>,</span> <span class='id identifier rubyid_ev_to_fire'>ev_to_fire</span><span class='comma'>,</span> <span class='id identifier rubyid_current_phase'>current_phase</span><span class='rparen'>)</span>
-
-  <span class='id identifier rubyid_next_phase'>next_phase</span> <span class='op'>=</span> <span class='id identifier rubyid_tracker'>tracker</span><span class='period'>.</span><span class='id identifier rubyid_phase'>phase</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span>
-  <span class='id identifier rubyid_next_node'>next_node</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='id identifier rubyid_next_phase'>next_phase</span> <span class='op'>==</span> <span class='symbol'>:__end__</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='const'><span class='object_link'><a href="#FINISH-constant" title="Phronomy::WorkflowRunner::FINISH (constant)">FINISH</a></span></span> <span class='op'>:</span> <span class='id identifier rubyid_next_phase'>next_phase</span>
-  <span class='id identifier rubyid_run_graph'>run_graph</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>from_node:</span> <span class='id identifier rubyid_next_node'>next_node</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span>
+    <span class='id identifier rubyid_run_via_event_loop'>run_via_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='comma'>,</span>
+      <span class='label'>recursion_limit:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_recursion_limit'>recursion_limit</span><span class='comma'>,</span>
+      <span class='label'>resume_event:</span> <span class='id identifier rubyid_ev_to_fire'>ev_to_fire</span><span class='comma'>,</span> <span class='label'>resume_phase:</span> <span class='id identifier rubyid_current_phase'>current_phase</span><span class='rparen'>)</span>
+  <span class='kw'>else</span>
+    <span class='id identifier rubyid_run_workflow'>run_workflow</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>resume_event:</span> <span class='id identifier rubyid_ev_to_fire'>ev_to_fire</span><span class='comma'>,</span> <span class='label'>resume_phase:</span> <span class='id identifier rubyid_current_phase'>current_phase</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -746,7 +749,7 @@ for the current wait state and fires it.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Streaming execution. Yields { node: Symbol, state: Object } after each node completes.</p>
+    <p>Streaming execution. Yields { state: Symbol, context: Object } after each state action completes.</p>
 
   </div>
 </div>
@@ -816,23 +819,23 @@ for the current wait state and fires it.</p>
       <pre class="lines">
 
 
-126
-127
-128
-129
-130
 131
-132</pre>
+132
+133
+134
+135
+136
+137</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 126</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 131</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_uuid'>uuid</span>
   <span class='id identifier rubyid_recursion_limit'>recursion_limit</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:recursion_limit</span><span class='comma'>,</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_recursion_limit'>recursion_limit</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_state'>state</span> <span class='op'>=</span> <span class='ivar'>@state_class</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_run_graph'>run_graph</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>recursion_limit:</span> <span class='id identifier rubyid_recursion_limit'>recursion_limit</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_run_workflow'>run_workflow</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>recursion_limit:</span> <span class='id identifier rubyid_recursion_limit'>recursion_limit</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -844,7 +847,7 @@ for the current wait state and fires it.</p>
 </div>
 
       <div id="footer">
-  Generated on Wed May 20 11:36:12 2026 by
+  Generated on Thu May 21 12:13:14 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

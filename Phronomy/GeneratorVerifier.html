@@ -504,7 +504,7 @@ confidence threshold (default: false)</p></div>
   <span class='ivar'>@threshold</span> <span class='op'>=</span> <span class='id identifier rubyid_confidence_threshold'>confidence_threshold</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span>
   <span class='ivar'>@max_iterations</span> <span class='op'>=</span> <span class='id identifier rubyid_max_iterations'>max_iterations</span><span class='period'>.</span><span class='id identifier rubyid_to_i'>to_i</span>
   <span class='ivar'>@raise_if_untrusted</span> <span class='op'>=</span> <span class='id identifier rubyid_raise_if_untrusted'>raise_if_untrusted</span>
-  <span class='ivar'>@compiled_graph</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@compiled_workflow</span> <span class='op'>=</span> <span class='kw'>nil</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -627,7 +627,7 @@ and the result does not meet the confidence threshold</p></div>
       <pre class="code"><span class="info file"># File 'lib/phronomy/generator_verifier.rb', line 146</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_app'>app</span> <span class='op'>=</span> <span class='id identifier rubyid_compiled_graph'>compiled_graph</span>
+  <span class='id identifier rubyid_app'>app</span> <span class='op'>=</span> <span class='id identifier rubyid_compiled_workflow'>compiled_workflow</span>
   <span class='id identifier rubyid_state'>state</span> <span class='op'>=</span> <span class='id identifier rubyid_app'>app</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='lbrace'>{</span><span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_confidence'>confidence</span> <span class='op'>=</span> <span class='id identifier rubyid_combined_confidence'>combined_confidence</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_trusted'>trusted</span> <span class='op'>=</span> <span class='id identifier rubyid_confidence'>confidence</span> <span class='op'>&gt;=</span> <span class='ivar'>@threshold</span>
@@ -652,7 +652,7 @@ and the result does not meet the confidence threshold</p></div>
 </div>
 
       <div id="footer">
-  Generated on Wed May 20 11:36:12 2026 by
+  Generated on Thu May 21 12:13:14 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

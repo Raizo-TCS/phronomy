@@ -81,7 +81,7 @@
   <dl>
     <dt>Defined in:</dt>
     <dd>lib/phronomy.rb<span class="defines">,<br>
-  lib/phronomy/eval.rb,<br> lib/phronomy/tool.rb,<br> lib/phronomy/agent.rb,<br> lib/phronomy/loader.rb,<br> lib/phronomy/context.rb,<br> lib/phronomy/version.rb,<br> lib/phronomy/runnable.rb,<br> lib/phronomy/splitter.rb,<br> lib/phronomy/workflow.rb,<br> lib/phronomy/tool/base.rb,<br> lib/phronomy/agent/base.rb,<br> lib/phronomy/embeddings.rb,<br> lib/phronomy/eval/runner.rb,<br> lib/phronomy/eval/scorer.rb,<br> lib/phronomy/loader/base.rb,<br> lib/phronomy/token_usage.rb,<br> lib/phronomy/agent/runner.rb,<br> lib/phronomy/eval/dataset.rb,<br> lib/phronomy/eval/metrics.rb,<br> lib/phronomy/tracing/base.rb,<br> lib/phronomy/vector_store.rb,<br> lib/phronomy/agent/handoff.rb,<br> lib/phronomy/configuration.rb,<br> lib/phronomy/output_parser.rb,<br> lib/phronomy/splitter/base.rb,<br> lib/phronomy/tool/mcp_tool.rb,<br> lib/phronomy/eval/eval_case.rb,<br> lib/phronomy/guardrail/base.rb,<br> lib/phronomy/embeddings/base.rb,<br> lib/phronomy/eval/comparison.rb,<br> lib/phronomy/prompt_template.rb,<br> lib/phronomy/tool/agent_tool.rb,<br> lib/phronomy/workflow_runner.rb,<br> lib/phronomy/agent/checkpoint.rb,<br> lib/phronomy/eval/eval_result.rb,<br> lib/phronomy/eval/scorer/base.rb,<br> lib/phronomy/knowledge_source.rb,<br> lib/phronomy/workflow_context.rb,<br> lib/phronomy/agent/react_agent.rb,<br> lib/phronomy/context/assembler.rb,<br> lib/phronomy/loader/csv_loader.rb,<br> lib/phronomy/vector_store/base.rb,<br> lib/phronomy/agent/orchestrator.rb,<br> lib/phronomy/agent/shared_state.rb,<br> lib/phronomy/generator_verifier.rb,<br> lib/phronomy/output_parser/base.rb,<br> lib/phronomy/tracing/null_tracer.rb,<br> lib/phronomy/agent/suspend_signal.rb,<br> lib/phronomy/context/token_budget.rb,<br> lib/phronomy/context/trim_context.rb,<br> lib/phronomy/eval/scorer/llm_judge.rb,<br> lib/phronomy/knowledge_source/base.rb,<br> lib/phronomy/vector_store/pgvector.rb,<br> lib/phronomy/agent/team_coordinator.rb,<br> lib/phronomy/loader/markdown_loader.rb,<br> lib/phronomy/vector_store/in_memory.rb,<br> lib/phronomy/context/token_estimator.rb,<br> lib/phronomy/context/trigger_context.rb,<br> lib/phronomy/eval/scorer/exact_match.rb,<br> lib/phronomy/tracing/langfuse_tracer.rb,<br> lib/phronomy/agent/concerns/retryable.rb,<br> lib/phronomy/loader/plain_text_loader.rb,<br> lib/phronomy/guardrail/input_guardrail.rb,<br> lib/phronomy/output_parser/json_parser.rb,<br> lib/phronomy/vector_store/redis_search.rb,<br> lib/phronomy/agent/concerns/suspendable.rb,<br> lib/phronomy/context/compaction_context.rb,<br> lib/phronomy/guardrail/output_guardrail.rb,<br> lib/phronomy/eval/scorer/includes_scorer.rb,<br> lib/phronomy/splitter/recursive_splitter.rb,<br> lib/phronomy/agent/concerns/guardrailable.rb,<br> lib/phronomy/splitter/fixed_size_splitter.rb,<br> lib/phronomy/context/context_version_cache.rb,<br> lib/phronomy/tracing/open_telemetry_tracer.rb,<br> lib/phronomy/embeddings/ruby_llm_embeddings.rb,<br> lib/phronomy/knowledge_source/rag_knowledge.rb,<br> lib/phronomy/agent/before_completion_context.rb,<br> lib/phronomy/output_parser/structured_parser.rb,<br> lib/phronomy/agent/concerns/before_completion.rb,<br> lib/phronomy/knowledge_source/entity_knowledge.rb,<br> lib/phronomy/knowledge_source/static_knowledge.rb</span>
+  lib/phronomy/eval.rb,<br> lib/phronomy/tool.rb,<br> lib/phronomy/agent.rb,<br> lib/phronomy/event.rb,<br> lib/phronomy/loader.rb,<br> lib/phronomy/context.rb,<br> lib/phronomy/version.rb,<br> lib/phronomy/runnable.rb,<br> lib/phronomy/splitter.rb,<br> lib/phronomy/workflow.rb,<br> lib/phronomy/agent/fsm.rb,<br> lib/phronomy/tool/base.rb,<br> lib/phronomy/agent/base.rb,<br> lib/phronomy/embeddings.rb,<br> lib/phronomy/event_loop.rb,<br> lib/phronomy/eval/runner.rb,<br> lib/phronomy/eval/scorer.rb,<br> lib/phronomy/fsm_session.rb,<br> lib/phronomy/loader/base.rb,<br> lib/phronomy/token_usage.rb,<br> lib/phronomy/agent/runner.rb,<br> lib/phronomy/eval/dataset.rb,<br> lib/phronomy/eval/metrics.rb,<br> lib/phronomy/tracing/base.rb,<br> lib/phronomy/vector_store.rb,<br> lib/phronomy/agent/handoff.rb,<br> lib/phronomy/configuration.rb,<br> lib/phronomy/output_parser.rb,<br> lib/phronomy/splitter/base.rb,<br> lib/phronomy/tool/mcp_tool.rb,<br> lib/phronomy/eval/eval_case.rb,<br> lib/phronomy/guardrail/base.rb,<br> lib/phronomy/embeddings/base.rb,<br> lib/phronomy/eval/comparison.rb,<br> lib/phronomy/prompt_template.rb,<br> lib/phronomy/tool/agent_tool.rb,<br> lib/phronomy/workflow_runner.rb,<br> lib/phronomy/agent/checkpoint.rb,<br> lib/phronomy/eval/eval_result.rb,<br> lib/phronomy/eval/scorer/base.rb,<br> lib/phronomy/knowledge_source.rb,<br> lib/phronomy/workflow_context.rb,<br> lib/phronomy/agent/react_agent.rb,<br> lib/phronomy/context/assembler.rb,<br> lib/phronomy/loader/csv_loader.rb,<br> lib/phronomy/vector_store/base.rb,<br> lib/phronomy/agent/orchestrator.rb,<br> lib/phronomy/agent/shared_state.rb,<br> lib/phronomy/generator_verifier.rb,<br> lib/phronomy/output_parser/base.rb,<br> lib/phronomy/tracing/null_tracer.rb,<br> lib/phronomy/agent/suspend_signal.rb,<br> lib/phronomy/context/token_budget.rb,<br> lib/phronomy/context/trim_context.rb,<br> lib/phronomy/eval/scorer/llm_judge.rb,<br> lib/phronomy/knowledge_source/base.rb,<br> lib/phronomy/vector_store/pgvector.rb,<br> lib/phronomy/agent/team_coordinator.rb,<br> lib/phronomy/loader/markdown_loader.rb,<br> lib/phronomy/vector_store/in_memory.rb,<br> lib/phronomy/context/token_estimator.rb,<br> lib/phronomy/context/trigger_context.rb,<br> lib/phronomy/eval/scorer/exact_match.rb,<br> lib/phronomy/tracing/langfuse_tracer.rb,<br> lib/phronomy/agent/concerns/retryable.rb,<br> lib/phronomy/agent/parallel_tool_chat.rb,<br> lib/phronomy/loader/plain_text_loader.rb,<br> lib/phronomy/guardrail/input_guardrail.rb,<br> lib/phronomy/output_parser/json_parser.rb,<br> lib/phronomy/vector_store/redis_search.rb,<br> lib/phronomy/agent/concerns/suspendable.rb,<br> lib/phronomy/context/compaction_context.rb,<br> lib/phronomy/guardrail/output_guardrail.rb,<br> lib/phronomy/eval/scorer/includes_scorer.rb,<br> lib/phronomy/splitter/recursive_splitter.rb,<br> lib/phronomy/agent/concerns/guardrailable.rb,<br> lib/phronomy/splitter/fixed_size_splitter.rb,<br> lib/phronomy/context/context_version_cache.rb,<br> lib/phronomy/tracing/open_telemetry_tracer.rb,<br> lib/phronomy/embeddings/ruby_llm_embeddings.rb,<br> lib/phronomy/knowledge_source/rag_knowledge.rb,<br> lib/phronomy/agent/before_completion_context.rb,<br> lib/phronomy/output_parser/structured_parser.rb,<br> lib/phronomy/agent/concerns/before_completion.rb,<br> lib/phronomy/knowledge_source/entity_knowledge.rb,<br> lib/phronomy/knowledge_source/static_knowledge.rb</span>
 
 </dd>
   </dl>
@@ -96,7 +96,7 @@
     
   
     
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Phronomy/Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span>, <span class='object_link'><a href="Phronomy/ConfigurationError.html" title="Phronomy::ConfigurationError (class)">ConfigurationError</a></span>, <span class='object_link'><a href="Phronomy/Error.html" title="Phronomy::Error (class)">Error</a></span>, <span class='object_link'><a href="Phronomy/GeneratorVerifier.html" title="Phronomy::GeneratorVerifier (class)">GeneratorVerifier</a></span>, <span class='object_link'><a href="Phronomy/GuardrailError.html" title="Phronomy::GuardrailError (class)">GuardrailError</a></span>, <span class='object_link'><a href="Phronomy/HandoffError.html" title="Phronomy::HandoffError (class)">HandoffError</a></span>, <span class='object_link'><a href="Phronomy/LowConfidenceError.html" title="Phronomy::LowConfidenceError (class)">LowConfidenceError</a></span>, <span class='object_link'><a href="Phronomy/ParseError.html" title="Phronomy::ParseError (class)">ParseError</a></span>, <span class='object_link'><a href="Phronomy/PromptTemplate.html" title="Phronomy::PromptTemplate (class)">PromptTemplate</a></span>, <span class='object_link'><a href="Phronomy/RecursionLimitError.html" title="Phronomy::RecursionLimitError (class)">RecursionLimitError</a></span>, <span class='object_link'><a href="Phronomy/TokenUsage.html" title="Phronomy::TokenUsage (class)">TokenUsage</a></span>, <span class='object_link'><a href="Phronomy/ToolError.html" title="Phronomy::ToolError (class)">ToolError</a></span>, <span class='object_link'><a href="Phronomy/Workflow.html" title="Phronomy::Workflow (class)">Workflow</a></span>, <span class='object_link'><a href="Phronomy/WorkflowRunner.html" title="Phronomy::WorkflowRunner (class)">WorkflowRunner</a></span>
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Phronomy/Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span>, <span class='object_link'><a href="Phronomy/ConfigurationError.html" title="Phronomy::ConfigurationError (class)">ConfigurationError</a></span>, <span class='object_link'><a href="Phronomy/Error.html" title="Phronomy::Error (class)">Error</a></span>, <span class='object_link'><a href="Phronomy/Event.html" title="Phronomy::Event (class)">Event</a></span>, <span class='object_link'><a href="Phronomy/EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span>, <span class='object_link'><a href="Phronomy/FSMSession.html" title="Phronomy::FSMSession (class)">FSMSession</a></span>, <span class='object_link'><a href="Phronomy/GeneratorVerifier.html" title="Phronomy::GeneratorVerifier (class)">GeneratorVerifier</a></span>, <span class='object_link'><a href="Phronomy/GuardrailError.html" title="Phronomy::GuardrailError (class)">GuardrailError</a></span>, <span class='object_link'><a href="Phronomy/HandoffError.html" title="Phronomy::HandoffError (class)">HandoffError</a></span>, <span class='object_link'><a href="Phronomy/LowConfidenceError.html" title="Phronomy::LowConfidenceError (class)">LowConfidenceError</a></span>, <span class='object_link'><a href="Phronomy/ParseError.html" title="Phronomy::ParseError (class)">ParseError</a></span>, <span class='object_link'><a href="Phronomy/PromptTemplate.html" title="Phronomy::PromptTemplate (class)">PromptTemplate</a></span>, <span class='object_link'><a href="Phronomy/RecursionLimitError.html" title="Phronomy::RecursionLimitError (class)">RecursionLimitError</a></span>, <span class='object_link'><a href="Phronomy/TokenUsage.html" title="Phronomy::TokenUsage (class)">TokenUsage</a></span>, <span class='object_link'><a href="Phronomy/ToolError.html" title="Phronomy::ToolError (class)">ToolError</a></span>, <span class='object_link'><a href="Phronomy/Workflow.html" title="Phronomy::Workflow (class)">Workflow</a></span>, <span class='object_link'><a href="Phronomy/WorkflowRunner.html" title="Phronomy::WorkflowRunner (class)">WorkflowRunner</a></span>
     
   
 </p>
@@ -222,12 +222,12 @@
       <pre class="lines">
 
 
-54
-55
-56</pre>
+58
+59
+60</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 58</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_configuration'>configuration</span>
   <span class='ivar'>@configuration</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="Phronomy/Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Configuration.html#initialize-instance_method" title="Phronomy::Configuration#initialize (method)">new</a></span></span>
@@ -274,12 +274,12 @@
       <pre class="lines">
 
 
-58
-59
-60</pre>
+62
+63
+64</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 58</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 62</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_configure'>configure</span>
   <span class='kw'>yield</span> <span class='id identifier rubyid_configuration'>configuration</span>
@@ -313,12 +313,12 @@
       <pre class="lines">
 
 
-63
-64
-65</pre>
+67
+68
+69</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 63</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 67</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_reset_configuration!'>reset_configuration!</span>
   <span class='ivar'>@configuration</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy/Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Configuration.html#initialize-instance_method" title="Phronomy::Configuration#initialize (method)">new</a></span></span>
@@ -333,7 +333,7 @@
 </div>
 
       <div id="footer">
-  Generated on Wed May 20 11:36:11 2026 by
+  Generated on Thu May 21 12:13:13 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

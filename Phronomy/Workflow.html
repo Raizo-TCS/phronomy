@@ -112,16 +112,19 @@
     <p>StateChart-style workflow definition DSL.</p>
 <p>Defines agent workflows in terms of <em>states</em> and <em>events</em> backed by
 Phronomy::WorkflowRunner. This is the primary high-level API
-for graph-based execution in phronomy.</p>
+for workflow-based execution in phronomy.</p>
 <h2 id="Basic_usage">Basic usage</h2>
 <pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_app'>app</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>Workflow</span><span class='period'>.</span><span class='id identifier rubyid_define'><span class='object_link'><a href="#define-class_method" title="Phronomy::Workflow.define (method)">define</a></span></span><span class='lparen'>(</span><span class='const'>MyContext</span><span class='rparen'>)</span> <span class='kw'>do</span>
 <span class='id identifier rubyid_initial'>initial</span> <span class='symbol'>:fetch</span>
 
-<span class='id identifier rubyid_state'>state</span> <span class='symbol'>:fetch</span><span class='comma'>,</span>   <span class='label'>action:</span> <span class='const'>FETCH_NODE</span>
-<span class='id identifier rubyid_state'>state</span> <span class='symbol'>:process</span><span class='comma'>,</span> <span class='label'>action:</span> <span class='const'>PROCESS_NODE</span>
+<span class='id identifier rubyid_state'>state</span> <span class='symbol'>:fetch</span>
+<span class='id identifier rubyid_state'>state</span> <span class='symbol'>:process</span>
 
-<span class='id identifier rubyid_after'>after</span> <span class='symbol'>:fetch</span><span class='comma'>,</span>   <span class='label'>to:</span> <span class='symbol'>:process</span>
-<span class='id identifier rubyid_after'>after</span> <span class='symbol'>:process</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:__finish__</span>
+<span class='id identifier rubyid_entry'>entry</span> <span class='symbol'>:fetch</span><span class='comma'>,</span>   <span class='const'>FETCH_NODE</span>
+<span class='id identifier rubyid_entry'>entry</span> <span class='symbol'>:process</span><span class='comma'>,</span> <span class='const'>PROCESS_NODE</span>
+
+<span class='id identifier rubyid_transition'>transition</span> <span class='label'>from:</span> <span class='symbol'>:fetch</span><span class='comma'>,</span>   <span class='label'>to:</span> <span class='symbol'>:process</span>
+<span class='id identifier rubyid_transition'>transition</span> <span class='label'>from:</span> <span class='symbol'>:process</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:__finish__</span>
 <span class='kw'>end</span>
 
 <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_app'>app</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='lbrace'>{</span> <span class='label'>url:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>https://example.com</span><span class='tstring_end'>&quot;</span></span> <span class='rbrace'>}</span><span class='rparen'>)</span>
@@ -130,23 +133,26 @@ for graph-based execution in phronomy.</p>
 <pre class="code ruby"><code class="ruby">app = Phronomy::Workflow.define(MyContext) do
 initial :propose
 
-state :propose, action: PROPOSE_NODE
+state :propose
 wait_state :awaiting_approval
-state :execute, action: EXECUTE_NODE
+state :execute
 
-after :propose, to: :awaiting_approval
-after :execute, to: :__finish__
+entry :propose, PROPOSE_NODE
+entry :execute, EXECUTE_NODE
 
-event :approve, from: :awaiting_approval, to: :execute
-event :reject,  from: :awaiting_approval, to: :propose
+transition from: :propose, to: :awaiting_approval
+transition from: :execute, to: :__finish__
+
+transition from: :awaiting_approval, on: :approve, to: :execute
+transition from: :awaiting_approval, on: :reject,  to: :propose
 end
 
 halted = app.invoke({ ... })
 final  = app.send_event(state: halted, event: :approve)
 </code></pre>
 <h2 id="Conditional_transitions">Conditional transitions</h2>
-<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_event'>event</span> <span class='symbol'>:route</span><span class='comma'>,</span> <span class='label'>from:</span> <span class='symbol'>:decide</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_s'>s</span><span class='rparen'>)</span> <span class='tlambeg'>{</span> <span class='id identifier rubyid_s'>s</span><span class='period'>.</span><span class='id identifier rubyid_score'>score</span> <span class='op'>&gt;</span> <span class='int'>5</span> <span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:high</span>
-<span class='id identifier rubyid_event'>event</span> <span class='symbol'>:route</span><span class='comma'>,</span> <span class='label'>from:</span> <span class='symbol'>:decide</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:low</span>   <span class='comment'># fallback (no guard)</span></code></pre>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_transition'>transition</span> <span class='label'>from:</span> <span class='symbol'>:decide</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_s'>s</span><span class='rparen'>)</span> <span class='tlambeg'>{</span> <span class='id identifier rubyid_s'>s</span><span class='period'>.</span><span class='id identifier rubyid_score'>score</span> <span class='op'>&gt;</span> <span class='int'>5</span> <span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:high</span>
+<span class='id identifier rubyid_transition'>transition</span> <span class='label'>from:</span> <span class='symbol'>:decide</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:low</span>   <span class='comment'># fallback (no guard)</span></code></pre>
 
   </div>
 </div>
@@ -380,12 +386,12 @@ final  = app.send_event(state: halted, event: :approve)
       <pre class="lines">
 
 
-65
-66
-67</pre>
+71
+72
+73</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 65</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 71</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_runner'>runner</span><span class='rparen'>)</span>
   <span class='ivar'>@runner</span> <span class='op'>=</span> <span class='id identifier rubyid_runner'>runner</span>
@@ -476,14 +482,14 @@ final  = app.send_event(state: halted, event: :approve)
       <pre class="lines">
 
 
-58
-59
-60
-61
-62</pre>
+64
+65
+66
+67
+68</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 58</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 64</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_define'>define</span><span class='lparen'>(</span><span class='id identifier rubyid_context_class'>context_class</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_builder'>builder</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Workflow/Builder.html" title="Phronomy::Workflow::Builder (class)">Builder</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Workflow/Builder.html#initialize-instance_method" title="Phronomy::Workflow::Builder#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_context_class'>context_class</span><span class='rparen'>)</span>
@@ -575,12 +581,12 @@ final  = app.send_event(state: halted, event: :approve)
       <pre class="lines">
 
 
-73
-74
-75</pre>
+79
+80
+81</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 73</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 79</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='ivar'>@runner</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
@@ -664,12 +670,12 @@ final  = app.send_event(state: halted, event: :approve)
       <pre class="lines">
 
 
-81
-82
-83</pre>
+87
+88
+89</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 81</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 87</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='label'>state:</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@runner</span><span class='period'>.</span><span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='label'>state:</span> <span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
@@ -767,12 +773,12 @@ final  = app.send_event(state: halted, event: :approve)
       <pre class="lines">
 
 
-90
-91
-92</pre>
+96
+97
+98</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 90</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 96</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_send_event'>send_event</span><span class='lparen'>(</span><span class='label'>state:</span><span class='comma'>,</span> <span class='label'>event:</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@runner</span><span class='period'>.</span><span class='id identifier rubyid_send_event'>send_event</span><span class='lparen'>(</span><span class='label'>state:</span> <span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>event:</span> <span class='id identifier rubyid_event'>event</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
@@ -793,7 +799,7 @@ final  = app.send_event(state: halted, event: :approve)
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Streaming execution. Yields { node: Symbol, state: Object } after each node.</p>
+    <p>Streaming execution. Yields { state: Symbol, context: Object } after each state action.</p>
 
   </div>
 </div>
@@ -863,12 +869,12 @@ final  = app.send_event(state: halted, event: :approve)
       <pre class="lines">
 
 
-99
-100
-101</pre>
+105
+106
+107</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 99</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 105</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@runner</span><span class='period'>.</span><span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
@@ -883,7 +889,7 @@ final  = app.send_event(state: halted, event: :approve)
 </div>
 
       <div id="footer">
-  Generated on Wed May 20 11:36:11 2026 by
+  Generated on Thu May 21 12:13:13 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
