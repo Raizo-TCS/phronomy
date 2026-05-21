@@ -24,20 +24,17 @@ module Phronomy
   # callbacks on initialization, so the entry action for the entry point is invoked
   # directly by WorkflowRunner before the main execution loop begins.
   #
-  # == Three transition categories registered in PhaseTracker
+  # == Two transition categories registered in PhaseTracker
   #
-  #   1. advance_<from>  — automatic, unconditional after-transitions
-  #                        fired when an action state's entry action completes
-  #                        (declared with +after :foo, to: :bar+)
-  #
-  #   2. route           — a single event that carries all guarded transitions
-  #                        (declared with +event :route, from: :foo, guard: ..., to: :bar+)
+  #   1. state_completed  — all auto-fire transitions (with or without guards).
+  #                        Fired when an action state's action completes.
   #                        Guards are evaluated in declaration order; first match wins.
-  #                        An unguarded fallback, if declared, is evaluated last.
+  #                        (declared with +transition from: :foo, to: :bar+ or
+  #                         +transition from: :foo, guard: ..., to: :bar+)
   #
-  #   3. <event_name>    — external events triggered by human input, originating
+  #   2. <event_name>    — external events triggered by human input, originating
   #                        from wait states
-  #                        (declared with +event :approve, from: :awaiting, to: :run+)
+  #                        (declared with +transition from: :awaiting, on: :approve, to: :run+)
   class WorkflowRunner
     include Phronomy::Runnable
 
@@ -45,18 +42,17 @@ module Phronomy
     FINISH = :__end__
 
     def initialize(state_class:, entry_actions:, exit_actions: {}, declared_states:,
-      after_transitions:, route_transitions:,
+      auto_transitions:,
       external_events:, entry_point:, wait_state_names: [])
       @state_class = state_class
-      @entry_actions = entry_actions   # { state_name => callable } — registered as after_transition callbacks
-      @exit_actions = exit_actions     # { state_name => callable } — registered as before_transition callbacks
+      @entry_actions = entry_actions   # { state_name => [callable, ...] }
       @declared_states = declared_states
-      @after_transitions = after_transitions  # { from => to }
-      @route_transitions = route_transitions  # { from => [{guard:, to:}, ...] }
+      # Lookup set: states with at least one auto-fire transition declared.
+      @auto_state_set = auto_transitions.each_with_object({}) { |t, h| h[t[:from]] = true }
       @external_events = external_events    # { name => [{from:, to:, guard:}, ...] }
       @entry_point = entry_point
       @wait_state_names = wait_state_names
-      @phase_machine_class = build_phase_machine_class
+      @phase_machine_class = build_phase_machine_class(auto_transitions, exit_actions)
     end
 
     # Executes the workflow from the initial state.
@@ -152,8 +148,8 @@ module Phronomy
         tracker = new_phase_machine(current_state)
         tracker.context = ctx
         # state_machines only fires after_transition callbacks on transitions.
-        # The entry point has no prior transition, so we invoke its entry action directly.
-        @entry_actions[current_state]&.call(ctx)
+        # The entry point has no prior transition, so we invoke its entry actions directly.
+        @entry_actions[current_state]&.each { |c| c.call(ctx) }
       end
 
       # Event queue: decouple action execution from transition firing.
@@ -201,13 +197,10 @@ module Phronomy
         # inside fire_event! on the previous iteration).
         event_block&.call({state: current_state, context: ctx})
 
-        # state_completed: generic event for all after-transitions (unconditional).
-        # route event:     user-named event carrying guarded conditional branches.
+        # state_completed: unified event for all auto-fire transitions.
         # No enqueue:      terminal state — next iteration exits via FINISH check.
-        if @after_transitions.key?(current_state)
+        if @auto_state_set.key?(current_state)
           event_queue << :state_completed
-        elsif @route_transitions.key?(current_state)
-          event_queue << @route_transitions[current_state][:event_name]
         else
           current_state = FINISH
         end
@@ -230,22 +223,20 @@ module Phronomy
 
     # Builds the PhaseTracker class backed by state_machines.
     #
-    # Five event/callback types are registered:
-    #   state_completed     — unconditional after-transitions
-    #   route               — all guarded routing transitions (one event, multiple transitions)
-    #   <external_name>     — external events originating from wait states
-    #   after_transition to — entry callbacks (invoked when entering a state)
+    # Four event/callback types are registered:
+    #   state_completed       — all auto-fire transitions (guarded and unguarded)
+    #   <external_name>       — external events originating from wait states
+    #   after_transition to   — entry callbacks (invoked when entering a state)
     #   before_transition from — exit callbacks (invoked when leaving a state)
     #
     # Guard lambdas bridge the PhaseTracker and WorkflowContext via +m.context+.
-    def build_phase_machine_class
+    def build_phase_machine_class(auto_transitions, exit_actions)
       entry = @entry_point
       all_states = (@declared_states + @wait_state_names + [:__end__]).uniq
-      after_trans = @after_transitions   # { from => to }
-      route_trans = @route_transitions   # { from => [{guard:, to:}, ...] }
-      ext_events = @external_events     # { name => [{from:, to:, guard:}, ...] }
-      entry_acts = @entry_actions       # { state_name => callable }
-      exit_acts = @exit_actions         # { state_name => callable }
+      auto_trans = auto_transitions  # Array of { from:, to:, guard: }
+      ext_events = @external_events
+      entry_acts = @entry_actions
+      exit_acts = exit_actions
 
       Class.new do
         # Holds the current WorkflowContext so guards and callbacks can read it.
@@ -254,31 +245,21 @@ module Phronomy
         state_machine :phase, initial: entry do
           all_states.each { |s| state s }
 
-          # 1. After-transitions: one generic :state_completed event covers all
-          #    unconditional transitions. This keeps event names independent of
-          #    source state names and matches standard state machine semantics.
+          # Auto-fire transitions: all auto transitions unified under :state_completed.
+          # Includes unguarded (unconditional) and guarded (conditional) transitions.
+          # Declaration order is preserved; guards are evaluated before unguarded fallbacks.
           event :state_completed do
-            after_trans.each do |from, to|
-              transition from => to
-            end
-          end
-
-          # 2. Route events: one named event per from-state (name may vary).
-          #    Declaration order is preserved; guards first, unguarded fallback last.
-          route_trans.each do |from, routing|
-            event routing[:event_name] do
-              routing[:entries].each do |t|
-                if t[:guard]
-                  guard_proc = t[:guard]
-                  transition from => t[:to], :if => ->(m) { guard_proc.call(m.context) }
-                else
-                  transition from => t[:to]
-                end
+            auto_trans.each do |t|
+              if t[:guard]
+                guard_proc = t[:guard]
+                transition t[:from] => t[:to], :if => ->(m) { guard_proc.call(m.context) }
+              else
+                transition t[:from] => t[:to]
               end
             end
           end
 
-          # 3. External events: human-in-the-loop triggers from wait states.
+          # External events: human-in-the-loop triggers from wait states.
           ext_events.each do |ev_name, transitions|
             event ev_name do
               transitions.each do |t|
@@ -292,19 +273,25 @@ module Phronomy
             end
           end
 
-          # 4. Entry callbacks: fire after_transition into each state.
-          #    Registered for every state that has a declared entry action.
-          entry_acts.each do |state_name, callable|
-            after_transition to: state_name do |machine|
-              callable.call(machine.context)
+          # Entry callbacks: fire after_transition into each state.
+          #    Each callable is registered as a separate callback; state_machines
+          #    accumulates them and fires in declaration order.
+          entry_acts.each do |state_name, callables|
+            callables.each do |callable|
+              after_transition to: state_name do |machine|
+                callable.call(machine.context)
+              end
             end
           end
 
-          # 5. Exit callbacks: fire before_transition out of each state.
-          #    Registered for every state that has a declared exit action.
-          exit_acts.each do |state_name, callable|
-            before_transition from: state_name do |machine|
-              callable.call(machine.context)
+          # Exit callbacks: fire before_transition out of each state.
+          #    Each callable is registered as a separate callback; state_machines
+          #    accumulates them and fires in declaration order.
+          exit_acts.each do |state_name, callables|
+            callables.each do |callable|
+              before_transition from: state_name do |machine|
+                callable.call(machine.context)
+              end
             end
           end
         end

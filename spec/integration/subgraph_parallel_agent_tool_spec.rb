@@ -31,8 +31,8 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
       state :s2
       entry :s1, ->(s) { s.value = "#{s.value}_s1"; s.step += 1 }
       entry :s2, ->(s) { s.value = "#{s.value}_s2"; s.step += 1 }
-      after :s1, to: :s2
-      after :s2, to: :__finish__
+      transition from: :s1, to: :s2
+      transition from: :s2, to: :__finish__
     end
   end
 
@@ -44,10 +44,10 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
       state :low
       entry :high, ->(s) { s.value = "high_#{s.value}"; s.step += 1 }
       entry :low, ->(s) { s.value = "low_#{s.value}"; s.step += 1 }
-      after :high, to: :__finish__
-      after :low, to: :__finish__
-      event :route, from: :router, guard: ->(s) { s.value.to_s.start_with?("h") }, to: :high
-      event :route, from: :router, to: :low
+      transition from: :high, to: :__finish__
+      transition from: :low, to: :__finish__
+      transition from: :router, guard: ->(s) { s.value.to_s.start_with?("h") }, to: :high
+      transition from: :router, to: :low
     end
   end
 
@@ -61,8 +61,8 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
       state :b
       entry :a, ->(s) { s.value = "a"; s.step += 1 }
       entry :b, ->(s) { s.value = "#{s.value}_b"; s.step += 1 }
-      after :a, to: :b
-      after :b, to: :__finish__
+      transition from: :a, to: :b
+      transition from: :b, to: :__finish__
     end
     final = app.invoke({})
     expect(final.value).to eq("a_b")
@@ -86,9 +86,9 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
         s.step = result.step
       }
       entry :after, ->(s) { s.value = "#{s.value}_after" }
-      after :before, to: :nested
-      after :nested, to: :after
-      after :after, to: :__finish__
+      transition from: :before, to: :nested
+      transition from: :nested, to: :after
+      transition from: :after, to: :__finish__
     end
     final = app.invoke({})
     expect(final.value).to eq("init_s1_s2_after")
@@ -107,7 +107,7 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
         result = sub.invoke({value: "high_input", step: 0})
         s.value = result.value
       }
-      after :nested, to: :__finish__
+      transition from: :nested, to: :__finish__
     end
     final = app.invoke({})
     expect(final.value).to start_with("high_")

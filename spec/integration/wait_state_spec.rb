@@ -30,9 +30,9 @@ RSpec.describe "Group 28: Workflow Wait State / Phase", :integration do
       state :node_b
       entry :node_a, ->(s) { s.value = "#{s.value}:a" }
       entry :node_b, ->(s) { s.value = "#{s.value}:b" }
-      after :node_a, to: :awaiting_node_b
-      after :node_b, to: :__finish__
-      event resume_event, from: :awaiting_node_b, to: :node_b
+      transition from: :node_a, to: :awaiting_node_b
+      transition from: :node_b, to: :__finish__
+      transition from: :awaiting_node_b, on: resume_event, to: :node_b
     end
   end
 

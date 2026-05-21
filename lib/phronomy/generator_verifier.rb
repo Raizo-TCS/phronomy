@@ -210,16 +210,16 @@ module Phronomy
 
         entry :finalize, ->(state) { state.output = state.draft }
 
-        after :draft, to: :review
-        after :finalize, to: :__finish__
+        transition from: :draft, to: :review
+        transition from: :finalize, to: :__finish__
 
-        event :route_review, from: :review,
+        transition from: :review,
           guard: ->(state) {
             confidence = [state.self_score || 0.0, state.review_score || 0.0].min
             (confidence >= threshold && state.approved) || state.iteration >= max_iter
           },
           to: :finalize
-        event :route_review, from: :review, to: :draft
+        transition from: :review, to: :draft
       end
     end
 

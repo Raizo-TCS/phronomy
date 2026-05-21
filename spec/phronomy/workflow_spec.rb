@@ -26,9 +26,9 @@ RSpec.describe Phronomy::Workflow do
       state :execute
       entry :propose, propose
       entry :execute, execute
-      after :propose, to: :awaiting_approval
-      after :execute, to: :__finish__
-      event :approve, from: :awaiting_approval, to: :execute
+      transition from: :propose, to: :awaiting_approval
+      transition from: :execute, to: :__finish__
+      transition from: :awaiting_approval, on: :approve, to: :execute
     end
   end
 

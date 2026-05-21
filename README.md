@@ -83,11 +83,11 @@ app = Phronomy::Workflow.define(ReviewContext) do
   state     :review,   action: ->(s) { s.merge(feedback: Reviewer.call(s.draft)) }
   wait_state :awaiting_approval           # halts here for human decision
   state     :finalize, action: ->(s) { s.merge(approved: true) }
-  after :write,    to: :review
-  after :review,   to: :awaiting_approval
-  after :finalize, to: :__finish__
-  event :approve, from: :awaiting_approval, to: :finalize
-  event :reject,  from: :awaiting_approval, to: :write
+  transition from: :write,              to: :review
+  transition from: :review,             to: :awaiting_approval
+  transition from: :finalize,           to: :__finish__
+  transition from: :awaiting_approval,  on: :approve, to: :finalize
+  transition from: :awaiting_approval,  on: :reject,  to: :write
 end
 
 # First run — halts at :awaiting_approval
@@ -330,7 +330,7 @@ app = Phronomy::Workflow.define(EnrichContext) do
     threads.each { |t| t.join(10) }  # 10-second timeout
     s.merge(summary: results[:summary], tags: Array(results[:tags]))
   end
-  after :enrich, to: :__finish__
+  transition from: :enrich, to: :__finish__
 end
 
 state = app.invoke({}, config: { thread_id: "t1" })

@@ -49,8 +49,8 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
         state :step_b
         entry :step_a, step_a
         entry :step_b, step_b
-        after :step_a, to: :step_b
-        after :step_b, to: :__finish__
+        transition from: :step_a, to: :step_b
+        transition from: :step_b, to: :__finish__
       end
 
       result = app.invoke({value: "start"})
@@ -74,9 +74,9 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
         state :execute
         entry :propose, propose
         entry :execute, execute
-        after :propose, to: :awaiting_approval
-        after :execute, to: :__finish__
-        event :approve, from: :awaiting_approval, to: :execute
+        transition from: :propose, to: :awaiting_approval
+        transition from: :execute, to: :__finish__
+        transition from: :awaiting_approval, on: :approve, to: :execute
       end
 
       halted = app.invoke({value: "x"})
@@ -100,9 +100,9 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
         state :execute
         entry :propose, propose
         entry :execute, execute
-        after :propose, to: :awaiting_approval
-        after :execute, to: :__finish__
-        event :approve, from: :awaiting_approval, to: :execute
+        transition from: :propose, to: :awaiting_approval
+        transition from: :execute, to: :__finish__
+        transition from: :awaiting_approval, on: :approve, to: :execute
       end
 
       halted = app.invoke({value: "y"})
@@ -126,9 +126,9 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
         state :node_b
         entry :node_a, node_a
         entry :node_b, node_b
-        after :node_a, to: :waiting
-        after :node_b, to: :__finish__
-        event :proceed, from: :waiting, to: :node_b
+        transition from: :node_a, to: :waiting
+        transition from: :node_b, to: :__finish__
+        transition from: :waiting, on: :proceed, to: :node_b
       end
 
       halted = app.invoke({value: "z"})
@@ -153,9 +153,9 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
         state :finish_step
         entry :work, node
         entry :finish_step, ->(s) { s.value = "#{s.value}:finish" }
-        after :work, to: :paused
-        after :finish_step, to: :__finish__
-        event :go, from: :paused, to: :finish_step
+        transition from: :work, to: :paused
+        transition from: :finish_step, to: :__finish__
+        transition from: :paused, on: :go, to: :finish_step
       end
 
       halted = app.invoke({value: "r"})
@@ -181,12 +181,12 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
         entry :decide, decide
         entry :high, high
         entry :low, low
-        after :high, to: :__finish__
-        after :low, to: :__finish__
+        transition from: :high, to: :__finish__
+        transition from: :low, to: :__finish__
         # Guarded: score > 5 → high
-        event :route, from: :decide, guard: ->(s) { s.score > 5 }, to: :high
+        transition from: :decide, guard: ->(s) { s.score > 5 }, to: :high
         # Fallback: no guard → low
-        event :route, from: :decide, to: :low
+        transition from: :decide, to: :low
       end
 
       # High path (score = 10)
@@ -209,8 +209,8 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
         wait_state :wait_node
         state :process
         entry :process, step
-        event :start, from: :wait_node, to: :process
-        after :process, to: :__finish__
+        transition from: :wait_node, on: :start, to: :process
+        transition from: :process, to: :__finish__
       end
 
       halted = app.invoke({value: "original"})
@@ -240,10 +240,10 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
         state :execute
         entry :propose, propose
         entry :execute, execute
-        after :propose, to: :awaiting_approval
-        after :execute, to: :__finish__
-        event :approve, from: :awaiting_approval, to: :execute
-        event :reject, from: :awaiting_approval, to: :propose
+        transition from: :propose, to: :awaiting_approval
+        transition from: :execute, to: :__finish__
+        transition from: :awaiting_approval, on: :approve, to: :execute
+        transition from: :awaiting_approval, on: :reject, to: :propose
       end
 
       # First run → halts
