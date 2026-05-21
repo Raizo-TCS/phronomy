@@ -11,7 +11,7 @@ module Phronomy
   # Field update policies:
   #   :replace (default) -- overwrites with the new value
   #   :append            -- appends to an Array
-  #   :merge             -- deep-merges into a Hash
+  #   :merge             -- shallow-merges into a Hash (top-level keys are merged; nested objects are replaced)
   #
   # @example
   #   class ScanContext
