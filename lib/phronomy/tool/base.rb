@@ -39,16 +39,21 @@ module Phronomy
           @tool_name = value.to_s
         end
 
-        # Extends RubyLLM::Tool.param with an optional +enum:+ keyword.
-        # The enum values are stored separately and injected into the JSON Schema
-        # produced by #params_schema.
+        # Extends RubyLLM::Tool.param with optional +enum:+ and +properties:+ keywords.
+        # - +enum:+       restricts allowed values; injected into the JSON Schema.
+        # - +properties:+ declares nested fields for :object type params.  Each
+        #   entry is a Hash mapping field name (Symbol) to a spec Hash with keys:
+        #   :type (Symbol, default :string), :required (Boolean, default false),
+        #   and optionally :properties (for further nesting).
         #
         # @param name [Symbol] parameter name
-        # @param enum [Array, nil] allowed values; when given, added as "enum" in JSON Schema
+        # @param enum [Array, nil] allowed values
+        # @param properties [Hash, nil] nested schema for :object params
         # @param options [Hash] forwarded to RubyLLM::Tool.param
-        def param(name, enum: nil, **options)
+        def param(name, enum: nil, properties: nil, **options)
           super(name, **options)
           param_enums[name] = enum if enum
+          param_schemas[name] = normalize_nested_schema(properties) if properties
         end
 
         # Returns the enum constraints registered via .param.
@@ -56,6 +61,27 @@ module Phronomy
         def param_enums
           @param_enums ||= {}
         end
+
+        # Returns nested schema definitions registered via .param(properties: ...).
+        # @return [Hash{Symbol => Hash}]
+        def param_schemas
+          @param_schemas ||= {}
+        end
+
+        private
+
+        # Recursively normalises a properties hash so all keys are Symbols and
+        # each spec has a :type key.
+        def normalize_nested_schema(props)
+          props.transform_keys(&:to_sym).transform_values do |spec|
+            s = spec.transform_keys(&:to_sym)
+            s[:type] ||= :string
+            s[:properties] = normalize_nested_schema(s[:properties]) if s[:properties]
+            s
+          end
+        end
+
+        public
 
         # Sets the access scope for this tool (metadata; enforcement is the responsibility of
         # the Workflow/Guardrail layer).
@@ -194,7 +220,8 @@ module Phronomy
       rescue => e
         case self.class.on_error
         when :return_empty
-          []
+          warn "[Phronomy] Tool #{self.class.name} suppressed error (on_error: :return_empty): #{e.class}: #{e.message}"
+          "Tool error suppressed: #{e.message}"
         else
           raise Phronomy::ToolError, "#{self.class.name} execution failed: #{e.message}"
         end
@@ -304,6 +331,15 @@ module Phronomy
             return [nil, error] if error
           end
 
+          # Recursively validate nested object properties when declared.
+          if param.type.to_sym == :object
+            nested_schema = self.class.param_schemas[name]
+            if nested_schema
+              error = validate_nested_object(value, nested_schema, name.to_s)
+              return [nil, error] if error
+            end
+          end
+
           enum_vals = self.class.param_enums[name]
           if enum_vals && !enum_vals.map(&:to_s).include?(value.to_s)
             return [nil, "parameter '#{name}' must be one of: #{enum_vals.join(", ")} (got: #{value.inspect})"]
@@ -320,6 +356,36 @@ module Phronomy
         end
 
         [result, nil]
+      end
+
+      # Recursively validates +value+ (a Hash) against a +properties+ schema.
+      # Returns an error message string or nil.
+      #
+      # @param value      [Hash]            the object value to validate
+      # @param properties [Hash{Symbol=>Hash}] nested schema from param_schemas
+      # @param path       [String]          dot-separated field path for error messages
+      def validate_nested_object(value, properties, path)
+        return "field '#{path}' must be an object (Hash)" unless value.is_a?(Hash)
+
+        normalized = value.transform_keys(&:to_sym)
+        properties.each do |fname, spec|
+          field_path = "#{path}.#{fname}"
+          field_value = normalized[fname]
+
+          if field_value.nil?
+            return "nested required field '#{field_path}' is missing" if spec[:required]
+            next
+          end
+
+          error = type_error(field_value, spec[:type])
+          return "nested field '#{field_path}': #{error}" if error
+
+          next unless spec[:type].to_sym == :object && spec[:properties]
+
+          error = validate_nested_object(field_value, spec[:properties], field_path)
+          return error if error
+        end
+        nil
       end
 
       # Returns a type-error message string if +value+ does not match +declared_type+,

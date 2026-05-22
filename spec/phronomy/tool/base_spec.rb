@@ -98,8 +98,12 @@ RSpec.describe Phronomy::Tool::Base do
           end
         end
 
-        it "returns [] without raising an exception" do
-          expect(failing_tool.call({})).to eq([])
+        it "returns a descriptive error string without raising an exception (Issue #147)" do
+          expect(failing_tool.call({})).to match(/Tool error suppressed:.*went wrong/)
+        end
+
+        it "does not raise an exception" do
+          expect { failing_tool.call({}) }.not_to raise_error
         end
       end
     end
@@ -472,6 +476,79 @@ RSpec.describe Phronomy::Tool::Base do
 
       expect { strict_tool.call({"n" => "ok", "bad" => "x"}) }
         .to raise_error(Phronomy::ToolError, /unknown parameter/)
+    end
+  end
+
+  describe "nested schema validation (Issue #131)" do
+    let(:nested_tool_class) do
+      Class.new(described_class) do
+        description "nested tool"
+        on_schema_error :return_error
+        param :config, type: :object, desc: "config",
+          properties: {
+            timeout: {type: :integer, required: true},
+            retry:   {type: :boolean, required: false}
+          }
+
+        def execute(config:)
+          "ok: #{config.inspect}"
+        end
+      end
+    end
+
+    it "passes when nested required field is present with correct type" do
+      result = nested_tool_class.new.call({"config" => {"timeout" => 5, "retry" => true}})
+      expect(result).to match(/^ok:/)
+      expect(result).to include("5")
+    end
+
+    it "returns error when nested required field is missing (Issue #131)" do
+      result = nested_tool_class.new.call({"config" => {"retry" => false}})
+      expect(result).to match(/nested required field.*config\.timeout.*missing/i)
+    end
+
+    it "returns error when nested field has wrong type (Issue #131)" do
+      result = nested_tool_class.new.call({"config" => {"timeout" => "not-an-int"}})
+      expect(result).to match(/nested field.*config\.timeout/i)
+    end
+
+    it "raises ToolError when on_schema_error is :raise and nested type is wrong (Issue #131)" do
+      strict_nested = Class.new(described_class) do
+        description "strict nested"
+        on_schema_error :raise
+        param :opts, type: :object, desc: "opts",
+          properties: {count: {type: :integer, required: true}}
+
+        def execute(opts:)
+          "ok"
+        end
+      end.new
+
+      expect { strict_nested.call({"opts" => {"count" => "bad"}}) }
+        .to raise_error(Phronomy::ToolError, /nested field.*opts\.count/i)
+    end
+
+    it "validates deeply nested properties recursively (Issue #131)" do
+      deep_tool = Class.new(described_class) do
+        description "deep nested tool"
+        on_schema_error :return_error
+        param :root, type: :object, desc: "root",
+          properties: {
+            child: {
+              type: :object, required: true,
+              properties: {
+                leaf: {type: :string, required: true}
+              }
+            }
+          }
+
+        def execute(root:)
+          "ok"
+        end
+      end.new
+
+      result = deep_tool.call({"root" => {"child" => {"leaf" => 42}}})
+      expect(result).to match(/nested field.*root\.child\.leaf/i)
     end
   end
 end

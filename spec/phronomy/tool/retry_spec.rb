@@ -284,7 +284,7 @@ RSpec.describe "Tool::Base retry_on DSL" do
       end
       klass._sleep_proc = sleep_stub
       result = klass.new.call({})
-      expect(result).to eq([])
+      expect(result).to match(/Tool error suppressed:.*always/)
       # 1 initial + 2 retries = 3 total calls
       expect(call_count).to eq(3)
     end
