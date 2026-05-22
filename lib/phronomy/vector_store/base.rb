@@ -51,6 +51,17 @@ module Phronomy
         raise ArgumentError,
           "Embedding dimension mismatch: expected #{expected_dimension}, got #{actual}"
       end
+
+      # Validates that k is a positive integer.
+      # Accepts any value accepted by Integer() (e.g. "5"), but raises
+      # ArgumentError for non-integer strings, zero, and negative values.
+      def validate_k!(k)
+        int_k = Integer(k)
+        raise ArgumentError, "k must be a positive integer, got #{int_k}" unless int_k >= 1
+        int_k
+      rescue ArgumentError => e
+        raise ArgumentError, "k must be a positive integer: #{e.message}"
+      end
     end
   end
 end

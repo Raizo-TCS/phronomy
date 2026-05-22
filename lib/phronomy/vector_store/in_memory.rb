@@ -36,6 +36,7 @@ module Phronomy
       # @param k               [Integer]
       # @return [Array<Hash>] sorted by descending score
       def search(query_embedding:, k: 5)
+        k = validate_k!(k)
         # search never establishes dimension; validate only when dimension is known.
         validate_embedding_dimension!(query_embedding, @expected_dimension)
         # Take an atomic snapshot before iterating.  Hash#dup is a C-level

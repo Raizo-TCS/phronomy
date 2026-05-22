@@ -50,9 +50,9 @@ module Phronomy
       # @param k               [Integer]
       # @return [Array<Hash>] sorted by descending similarity score
       def search(query_embedding:, k: 5)
+        k_safe = validate_k!(k)
         validate_embedding_dimension!(query_embedding, @dimension)
         vec = safe_vector_literal(query_embedding)
-        k_safe = Integer(k)
         conn = @model_class.connection
         quoted_vec = "#{conn.quote(vec)}::vector"
 

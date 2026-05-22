@@ -179,5 +179,33 @@ RSpec.describe Phronomy::VectorStore::InMemory do
           .to raise_error(ArgumentError, /dimension mismatch/i)
       end
     end
+
+    context "k parameter validation" do
+      subject(:store) do
+        s = described_class.new
+        s.add(id: "a", embedding: [1.0, 0.0], metadata: {})
+        s
+      end
+
+      it "raises ArgumentError when k is 0" do
+        expect { store.search(query_embedding: [1.0, 0.0], k: 0) }
+          .to raise_error(ArgumentError, /positive integer/i)
+      end
+
+      it "raises ArgumentError when k is negative" do
+        expect { store.search(query_embedding: [1.0, 0.0], k: -3) }
+          .to raise_error(ArgumentError, /positive integer/i)
+      end
+
+      it "raises ArgumentError when k is a non-integer string" do
+        expect { store.search(query_embedding: [1.0, 0.0], k: "abc") }
+          .to raise_error(ArgumentError)
+      end
+
+      it "accepts a positive integer string for k" do
+        results = store.search(query_embedding: [1.0, 0.0], k: "2")
+        expect(results).to be_an(Array)
+      end
+    end
   end
 end

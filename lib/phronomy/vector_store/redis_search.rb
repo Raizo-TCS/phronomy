@@ -72,7 +72,7 @@ module Phronomy
 
         validate_embedding_dimension!(query_embedding, @dimension)
         ensure_index!(@dimension)
-        k_safe = Integer(k)
+        k_safe = validate_k!(k)
         blob = pack_vector(query_embedding)
 
         raw = @redis.call(
