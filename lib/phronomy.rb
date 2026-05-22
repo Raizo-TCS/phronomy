@@ -30,6 +30,26 @@ module Phronomy
 
   class HandoffError < Error; end
 
+  # Raised when a network or transport layer call fails (e.g. LLM API unreachable,
+  # MCP server connection refused). Distinguishable from application-level errors
+  # so callers can apply network-specific retry logic.
+  class TransportError < Error; end
+
+  # Raised when the LLM API returns a rate-limit response (HTTP 429 or equivalent).
+  # Callers should back off and retry after the indicated delay.
+  class RateLimitError < TransportError; end
+
+  # Raised when the LLM API rejects the request due to an invalid or revoked API key.
+  # Callers should not retry without fixing the credentials.
+  class AuthenticationError < TransportError; end
+
+  # Raised when the prompt exceeds the model's context window limit.
+  class ContextLengthError < Error; end
+
+  # Raised when a workflow or agent execution is explicitly cancelled.
+  # Separate from TimeoutError (deadline exceeded) — this is an intentional stop.
+  class CancellationError < Error; end
+
   # Raised by {Phronomy::GeneratorVerifier#invoke} when +raise_if_untrusted: true+
   # and the pipeline's combined confidence score falls below the configured threshold.
   #
@@ -65,7 +85,20 @@ module Phronomy
       yield configuration
     end
 
-    # Resets configuration; primarily used in tests.
+    # Resets the global Phronomy configuration to defaults.
+    #
+    # **Intended for test suites only.** Calling this in a production process
+    # will drop all runtime configuration (tracer, model, tokenizer, etc.)
+    # globally and immediately affect all subsequent agent and workflow calls.
+    #
+    # **Parallel test suites warning:** When tests run in parallel (e.g.
+    # `parallel_tests` or `parallel_rspec`), +reset_configuration!+ in one
+    # worker will clear configuration shared with other workers in the same
+    # process. Prefer process-isolation strategies (forked workers) over
+    # thread-based parallelism when using this method.
+    #
+    # Typical usage in a sequential test suite:
+    #   after { Phronomy.reset_configuration! }
     def reset_configuration!
       @configuration = Configuration.new
     end
