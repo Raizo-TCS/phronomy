@@ -233,6 +233,31 @@ Configure via the Phronomy.configure block.</p>
       <li class="public ">
   <span class="summary_signature">
     
+      <a href="#logger-instance_method" title="#logger (instance method)">#<strong>logger</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Optional logger for framework diagnostic messages (e.g. unreachable-state warnings).</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#recursion_limit-instance_method" title="#recursion_limit (instance method)">#<strong>recursion_limit</strong>  &#x21d2; Object </a>
     
 
@@ -373,15 +398,15 @@ Configure via the Phronomy.configure block.</p>
       <pre class="lines">
 
 
-41
-42
-43
-44
-45
-46</pre>
+48
+49
+50
+51
+52
+53</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 48</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@recursion_limit</span> <span class='op'>=</span> <span class='int'>25</span>
@@ -575,6 +600,57 @@ synchronous loop in the calling thread. Defaults to false (sync mode).</p>
 </div>
     
       
+      <span id="logger=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="logger-instance_method">
+  
+    #<strong>logger</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Optional logger for framework diagnostic messages (e.g. unreachable-state warnings).
+Must respond to <code>#warn(message)</code>.  When nil (default), messages are written to <code>$stderr</code>
+via <code>Kernel#warn</code>.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="examples">
+    <h4 class="tag_title">Examples:</h4>
+    
+      
+      <pre class="example code"><code><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="../Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span> <span class='op'>=</span> <span class='const'>Rails</span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span> <span class='rbrace'>}</span></code></pre>
+    
+  </div>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+46
+47
+48</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 46</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_logger'>logger</span>
+  <span class='ivar'>@logger</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
       <span id="recursion_limit=-instance_method"></span>
       <div class="method_details ">
   <h3 class="signature " id="recursion_limit-instance_method">
@@ -705,7 +781,7 @@ the tracing backend (OTel, Langfuse, etc.).</p>
 </div>
 
       <div id="footer">
-  Generated on Fri May 22 14:10:41 2026 by
+  Generated on Fri May 22 16:25:48 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

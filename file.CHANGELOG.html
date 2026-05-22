@@ -103,6 +103,18 @@ available: <code>TransportError</code> (MCP network-layer failure), <code>RateLi
 <code>AuthenticationError</code> (HTTP 401/403), <code>ContextLengthError</code> (model context window exceeded),
 and <code>CancellationError</code> (invoke cancelled, e.g. via <code>invoke_timeout</code>).</p>
 </li>
+<li>
+<p><strong><code>Agent::Base.static_knowledge_refresh!</code></strong> (#164): New class-level method that clears the
+cached <code>static_knowledge</code> chunks so the next <code>invoke</code> re-fetches from all registered
+sources. Essential for long-running processes (web servers, job workers) where knowledge
+sources may be updated at runtime without a process restart.</p>
+</li>
+<li>
+<p><strong><code>Phronomy::Configuration#logger</code></strong> (#158): New optional configuration attribute. Any
+object responding to <code>#warn</code> (e.g. <code>Rails.logger</code>) can be assigned. Framework diagnostic
+messages — starting with the unreachable-state warning from <code>Workflow.define</code> — are routed
+through this logger instead of writing directly to <code>$stderr</code> via <code>Kernel#warn</code>.</p>
+</li>
 </ul>
 <h3 id="Enhancements">Enhancements</h3>
 <ul>
@@ -121,6 +133,24 @@ obscure database error.</p>
 <p><strong><code>max_parallel_tools</code> DSL</strong>: Agents can cap the number of concurrent tool-call threads
 with <code>max_parallel_tools N</code> in the class body. Useful for rate-limiting external API calls.
 The default remains unlimited.</p>
+</li>
+<li>
+<p><strong><code>max_parallel_tools</code> and <code>invoke_timeout</code> DSL argument validation</strong> (#152): Both setters
+now raise <code>ArgumentError</code> at class-definition time if the supplied value is invalid
+(<code>max_parallel_tools</code> requires an <code>Integer &gt;= 1</code>; <code>invoke_timeout</code> requires a positive
+<code>Numeric</code>), surfacing configuration mistakes immediately.</p>
+</li>
+<li>
+<p><strong><code>on_error :suppress</code> — canonical alias for <code>:return_empty</code></strong> (#165): <code>:suppress</code> is the
+new preferred name for the error-suppression behaviour in <code>Tool::Base</code>. <code>:return_empty</code>
+continues to function but emits a deprecation warning and will be removed in a future major
+release. Migrate by replacing <code>on_error :return_empty</code> with <code>on_error :suppress</code>.</p>
+</li>
+<li>
+<p><strong>Tool nested object properties injected into JSON Schema</strong> (#162): <code>Tool::Base#params_schema</code>
+now recursively serialises nested <code>:object</code> param specs (including <code>enum</code> constraints and
+further nesting) into the JSON Schema <code>properties</code> structure forwarded to the LLM,
+enabling accurate structured argument generation for complex tool parameters.</p>
 </li>
 </ul>
 <h3 id="Fixed">Fixed</h3>
@@ -194,6 +224,35 @@ ignored. Both methods now raise <code>ArgumentError</code>, surfacing typos and 
 immediately.</p>
 </li>
 <li>
+<p><strong><code>WorkflowContext#merge</code> raises <code>ArgumentError</code> for unknown field keys</strong> (#154): An
+additional guard now covers updates via <code>#merge</code> (a complementary fix to #121). Typos in
+merge calls are surfaced immediately rather than being silently discarded.</p>
+</li>
+<li>
+<p><strong><code>WorkflowContext#deep_dup_value</code> rescues <code>TypeError</code> for non-dupable objects</strong> (#156):
+Objects that raise <code>TypeError</code> from <code>#dup</code> (e.g. <code>Method</code>, frozen <code>Proc</code>, <code>Integer</code>,
+<code>Symbol</code>) are now returned as-is instead of crashing.</p>
+</li>
+<li>
+<p><strong><code>Workflow.define</code> raises for undefined <code>from:</code> state in transitions</strong> (#157): Transitions
+that reference a <code>from:</code> state not declared in the DSL now raise <code>ArgumentError</code> at
+build time, complementing the existing check for undefined <code>to:</code> targets.</p>
+</li>
+<li>
+<p><strong><code>Workflow.define</code> unreachable-state warning routes through configured logger</strong> (#158):
+The diagnostic warning for unreachable states now uses <code>Phronomy.configuration.logger</code>
+when set, falling back to <code>Kernel#warn</code>. Previously the warning always went to <code>$stderr</code>.</p>
+</li>
+<li>
+<p><strong><code>require &quot;set&quot;</code> added to <code>workflow.rb</code></strong> (#159): Eliminates an implicit dependency on
+<code>Set</code> being pre-loaded by another gem.</p>
+</li>
+<li>
+<p><strong><code>Tool::Base#validate_nested_object</code> rejects undeclared extra keys</strong> (#166): Keys present
+in the LLM-supplied hash but absent from the tool's nested <code>param</code> schema now produce a
+validation error rather than being silently forwarded.</p>
+</li>
+<li>
 <p><strong><code>WorkflowContext#merge</code> deep-copies unchanged fields</strong> (#123): Fields absent from the
 <code>merge</code> argument were previously shared by reference with the original context, allowing
 one branch to mutate another branch's state. All fields are now independently copied.</p>
@@ -237,6 +296,20 @@ and <code>spec/integration/workflow_spec.rb</code> (integration, both sync and E
 </ul>
 <h3 id="Documentation">Documentation</h3>
 <ul>
+<li>
+<p><strong><code>trace_pii = false</code> description corrected</strong> (#153): The inline comment and README Note
+now correctly state that both the input and the output are redacted.</p>
+</li>
+<li>
+<p><strong><code>invoke_timeout</code> is a wait timeout, not cancellation</strong> (#163): YARD comment now
+explicitly documents that the background agent thread and in-flight LLM/tool calls are
+<strong>not</strong> interrupted when the timeout fires. Only the caller receives <code>TimeoutError</code>.</p>
+</li>
+<li>
+<p><strong><code>context_version_cache</code> thread-safety limitation documented</strong> (#161): A NOTE in the YARD
+comment explains that the per-instance cache is not thread-safe when the same agent
+instance is shared across threads.</p>
+</li>
 <li>
 <p><strong><code>trace_pii</code> option documented in README</strong>: The <code>trace_pii:</code> configuration key and its
 behaviour (default <code>false</code>, redacts input and output in trace records) is now described in
@@ -651,7 +724,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Fri May 22 14:10:40 2026 by
+  Generated on Fri May 22 16:25:47 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
