@@ -240,12 +240,25 @@ module Phronomy
         #   end
         def static_knowledge(*sources)
           @static_knowledge_sources = sources.flatten
+          # Invalidate the cached chunks so the new sources are fetched on
+          # the next call to static_knowledge_chunks.
+          @static_knowledge_chunks = nil
         end
 
         # Returns the registered static knowledge sources.
         # @return [Array<Phronomy::KnowledgeSource::Base>]
         def static_knowledge_sources
           @static_knowledge_sources || []
+        end
+
+        # Returns the fetched content from all static knowledge sources.
+        # Results are cached at the class level so that each source is fetched
+        # only once regardless of how many times the agent is invoked.
+        # @return [Array<Hash>]
+        def static_knowledge_chunks
+          @static_knowledge_chunks ||= static_knowledge_sources.flat_map { |ks|
+            ks.fetch(query: nil)
+          }
         end
 
         # Registers a callback that is invoked before every LLM call so the
@@ -785,9 +798,7 @@ module Phronomy
       def build_cached_system_text(input)
         instruction = build_instructions(input)
 
-        static_chunks = self.class.static_knowledge_sources.flat_map { |ks|
-          ks.fetch(query: nil)
-        }
+        static_chunks = self.class.static_knowledge_chunks
 
         fingerprint = Digest::SHA256.hexdigest(
           [instruction.to_s, *static_chunks.map { |c| c[:content] }].join("\0")

@@ -874,3 +874,68 @@ RSpec.describe "Agent thread-local context cache cleanup (issue #128)" do
     expect(cache.key?(agent2.object_id)).to be false
   end
 end
+
+RSpec.describe "Agent static_knowledge caching (issue #127)" do
+  # A fake knowledge source that counts how many times it has been fetched.
+  class CountingKnowledgeSource
+    attr_reader :fetch_count
+
+    def initialize(text)
+      @text = text
+      @fetch_count = 0
+    end
+
+    def fetch(query: nil)
+      @fetch_count += 1
+      [{content: @text, metadata: {}}]
+    end
+  end
+
+  let(:reply_tokens) { double("Tokens", input: 5, output: 5, cached: 0, cache_creation: 0) }
+  let(:reply_msg) do
+    double("Msg", role: :assistant, content: "answer", tool_calls: nil, tokens: reply_tokens)
+  end
+  let(:chat) do
+    dbl = double("Chat")
+    allow(dbl).to receive(:with_instructions).and_return(dbl)
+    allow(dbl).to receive(:with_tool).and_return(dbl)
+    allow(dbl).to receive(:messages).and_return([reply_msg])
+    allow(dbl).to receive(:ask).and_return(reply_msg)
+    dbl
+  end
+
+  before { allow(RubyLLM).to receive(:chat).and_return(chat) }
+
+  it "fetches each static knowledge source only once across multiple invocations" do
+    ks = CountingKnowledgeSource.new("policy text")
+
+    agent_class = Class.new(Phronomy::Agent::Base) do
+      model "test-model"
+    end
+    agent_class.static_knowledge(ks)
+
+    agent = agent_class.new
+    agent.invoke("question 1")
+    agent.invoke("question 2")
+    agent.invoke("question 3")
+
+    expect(ks.fetch_count).to eq(1)
+  end
+
+  it "re-fetches when static_knowledge DSL is called again (cache invalidated)" do
+    ks = CountingKnowledgeSource.new("v1 text")
+
+    agent_class = Class.new(Phronomy::Agent::Base) do
+      model "test-model"
+    end
+    agent_class.static_knowledge(ks)
+
+    agent_class.new.invoke("q1")
+    expect(ks.fetch_count).to eq(1)
+
+    # Re-declaring static_knowledge must invalidate the cache.
+    agent_class.static_knowledge(ks)
+    agent_class.new.invoke("q2")
+    expect(ks.fetch_count).to eq(2)
+  end
+end
