@@ -9,8 +9,12 @@ module Phronomy
     # any other class.
     #
     # Default approximation: ceil(char_count / 4).
-    # English text averages ~4 chars/token; Japanese text averages ~2 chars/token
-    # so this is a slight underestimate for Japanese.
+    # This heuristic is calibrated for ASCII/Latin text (~4 chars/token).
+    # For CJK languages (Chinese, Japanese, Korean) the actual token count is
+    # approximately 4× higher than the estimate because CJK characters are
+    # typically 1 token each in GPT-4/Claude tokenizers (~1 char/token vs the
+    # 4 char/token assumed here).  Use a tokenizer-backed callable via
+    # +.tokenizer=+ for accurate CJK token counting.
     #
     # Replace the built-in heuristic with any callable via .tokenizer=:
     #

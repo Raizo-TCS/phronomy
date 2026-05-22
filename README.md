@@ -478,6 +478,18 @@ end
 `Agent::Base#invoke` builds a `TokenBudget` automatically. When the model is not in the
 registry the budget is silently skipped.
 
+> **Note on CJK languages**: The default `TokenEstimator` uses a character-ratio heuristic
+> calibrated for ASCII/Latin text (4 chars/token). For Chinese, Japanese, and Korean text,
+> actual token counts are approximately **4× higher** than the estimate because CJK
+> characters are typically 1 token each. For accurate CJK token counting, supply a
+> tokenizer-backed callable:
+>
+> ```ruby
+> require "tiktoken_ruby"
+> enc = Tiktoken.encoding_for_model("gpt-4o")
+> Phronomy::Context::TokenEstimator.tokenizer = ->(text) { enc.encode(text).length }
+> ```
+
 
 ## Examples
 
