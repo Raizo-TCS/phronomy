@@ -62,7 +62,14 @@ module Phronomy
           param :input, type: :string, desc: "The task or question for the subagent"
 
           define_method(:execute) do |input:|
-            result = agent_class.new.invoke(input)
+            # Inherit the calling orchestrator's thread_id and config when
+            # available so that sub-agent spans and memory stay connected.
+            ctx = Thread.current[:phronomy_orchestrator_context] || {}
+            result = agent_class.new.invoke(
+              input,
+              thread_id: ctx[:thread_id],
+              config: ctx[:config] || {}
+            )
             result[:output]
           rescue
             raise if on_error == :raise
@@ -100,6 +107,7 @@ module Phronomy
       # @option task [Class]   :agent  agent class to invoke (required)
       # @option task [String]  :input  input string for the agent (required)
       # @option task [Hash]    :config forwarded to +agent#invoke+ (default: +{}+)
+      # @option task [String]  :thread_id forwarded to +agent#invoke+ (default: nil)
       # @param max_concurrency [Integer, nil] maximum number of concurrent threads;
       #   nil means no limit (all tasks run simultaneously)
       # @param on_error        [Symbol] +:raise+ or +:skip+
@@ -125,18 +133,46 @@ module Phronomy
       # @param agent           [Class]         agent class to invoke for every input
       # @param inputs          [Array<String>] list of input strings
       # @param config          [Hash]          forwarded to every +agent#invoke+ call
+      # @param thread_id       [String, nil]   forwarded to every +agent#invoke+ call
       # @param max_concurrency [Integer, nil]  forwarded to {#dispatch_parallel}
       # @param on_error        [Symbol]        forwarded to {#dispatch_parallel}
       # @return [Array<Hash, nil>] results in the same order as +inputs+
-      def fan_out(agent:, inputs:, config: {}, max_concurrency: nil, on_error: :raise)
+      def fan_out(agent:, inputs:, config: {}, thread_id: nil, max_concurrency: nil, on_error: :raise)
         dispatch_parallel(
-          *inputs.map { |input| {agent: agent, input: input, config: config} },
+          *inputs.map { |input| {agent: agent, input: input, config: config, thread_id: thread_id} },
           max_concurrency: max_concurrency,
           on_error: on_error
         )
       end
 
+      # Programmatically dispatches a single sub-agent from inside an orchestrator
+      # instance, inheriting the parent's +thread_id+ and +config+ by default.
+      #
+      # @param agent_class [Class]         subclass of {Phronomy::Agent::Base}
+      # @param input       [String]        task or question for the sub-agent
+      # @param config      [Hash, nil]     override config (falls back to parent's)
+      # @param thread_id   [String, nil]   override thread_id (falls back to parent's)
+      # @return [Hash]  the sub-agent's result hash (+:output+, +:messages+)
+      def subagent(agent_class, input, config: nil, thread_id: nil)
+        ctx = Thread.current[:phronomy_orchestrator_context] || {}
+        agent_class.new.invoke(
+          input,
+          config: config || ctx[:config] || {},
+          thread_id: thread_id || ctx[:thread_id]
+        )
+      end
+
       private
+
+      # Override invoke_once to expose the current thread_id and config via a
+      # thread-local so that DSL-registered subagent tools can inherit them.
+      def invoke_once(input, messages: [], thread_id: nil, config: {})
+        prev = Thread.current[:phronomy_orchestrator_context]
+        Thread.current[:phronomy_orchestrator_context] = {thread_id: thread_id, config: config}
+        super
+      ensure
+        Thread.current[:phronomy_orchestrator_context] = prev
+      end
 
       # Worker-pool implementation shared by {#dispatch_parallel} and {#fan_out}.
       #
@@ -174,7 +210,8 @@ module Phronomy
               begin
                 results[i] = task[:agent].new.invoke(
                   task[:input],
-                  config: task.fetch(:config, {})
+                  config: task.fetch(:config, {}),
+                  thread_id: task[:thread_id]
                 )
               rescue => e
                 case on_error

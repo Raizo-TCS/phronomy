@@ -6,7 +6,7 @@ RSpec.describe Phronomy::Agent::Orchestrator do
   # Stub agent that returns a fixed output string without calling a real LLM.
   def stub_agent(output_text)
     Class.new(Phronomy::Agent::Base) do
-      define_method(:invoke) do |_input, config: {}|
+      define_method(:invoke) do |_input, config: {}, thread_id: nil|
         {output: output_text, messages: []}
       end
     end
@@ -16,7 +16,7 @@ RSpec.describe Phronomy::Agent::Orchestrator do
   def capturing_agent
     received = []
     agent_class = Class.new(Phronomy::Agent::Base) do
-      define_method(:invoke) do |input, config: {}|
+      define_method(:invoke) do |input, config: {}, thread_id: nil|
         received << input
         {output: "echo:#{input}", messages: []}
       end
@@ -54,7 +54,7 @@ RSpec.describe Phronomy::Agent::Orchestrator do
     it "forwards the :config hash to agent#invoke" do
       configs_received = []
       agent_class = Class.new(Phronomy::Agent::Base) do
-        define_method(:invoke) do |input, config: {}|
+        define_method(:invoke) do |input, config: {}, thread_id: nil|
           configs_received << config
           {output: "ok", messages: []}
         end
@@ -70,7 +70,7 @@ RSpec.describe Phronomy::Agent::Orchestrator do
     it "uses an empty config hash when :config is omitted" do
       configs_received = []
       agent_class = Class.new(Phronomy::Agent::Base) do
-        define_method(:invoke) do |input, config: {}|
+        define_method(:invoke) do |input, config: {}, thread_id: nil|
           configs_received << config
           {output: "ok", messages: []}
         end
@@ -83,7 +83,7 @@ RSpec.describe Phronomy::Agent::Orchestrator do
 
     it "re-raises exceptions from subagents" do
       failing_agent = Class.new(Phronomy::Agent::Base) do
-        define_method(:invoke) do |_input, config: {}|
+        define_method(:invoke) do |_input, config: {}, thread_id: nil|
           raise "subagent exploded"
         end
       end
@@ -158,7 +158,7 @@ RSpec.describe Phronomy::Agent::Orchestrator do
         counter = 0
 
         counting_agent = Class.new(Phronomy::Agent::Base) do
-          define_method(:invoke) do |_input, config: {}|
+          define_method(:invoke) do |_input, config: {}, thread_id: nil|
             mutex.synchronize { counter += 1 }
             {output: "counted", messages: []}
           end
@@ -253,7 +253,7 @@ RSpec.describe Phronomy::Agent::Orchestrator do
     it "forwards config to every agent invocation" do
       configs_received = []
       agent_class = Class.new(Phronomy::Agent::Base) do
-        define_method(:invoke) do |_input, config: {}|
+        define_method(:invoke) do |_input, config: {}, thread_id: nil|
           configs_received << config
           {output: "ok", messages: []}
         end
@@ -378,6 +378,73 @@ RSpec.describe Phronomy::Agent::Orchestrator do
 
       expect(base_class.registered_subagents.keys).to include(:base_worker)
       expect(child_class.registered_subagents).to be_empty
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # config and thread_id propagation (issue #132)
+  # ---------------------------------------------------------------------------
+
+  describe "config and thread_id propagation (issue #132)" do
+    let(:orchestrator_class) { Class.new(described_class) }
+    subject(:orchestrator) { orchestrator_class.new }
+
+    it "#dispatch_parallel forwards thread_id to every sub-agent invocation" do
+      received_thread_ids = []
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        define_method(:invoke) do |_input, config: {}, thread_id: nil|
+          received_thread_ids << thread_id
+          {output: "ok", messages: []}
+        end
+      end
+
+      orchestrator.dispatch_parallel(
+        {agent: agent_class, input: "a", thread_id: "t-abc"},
+        {agent: agent_class, input: "b", thread_id: "t-abc"}
+      )
+
+      expect(received_thread_ids).to all(eq("t-abc"))
+    end
+
+    it "#fan_out forwards thread_id to every sub-agent invocation" do
+      received_thread_ids = []
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        define_method(:invoke) do |_input, config: {}, thread_id: nil|
+          received_thread_ids << thread_id
+          {output: "ok", messages: []}
+        end
+      end
+
+      orchestrator.fan_out(agent: agent_class, inputs: %w[x y z], thread_id: "t-xyz")
+
+      expect(received_thread_ids).to all(eq("t-xyz"))
+    end
+
+    it "#subagent instance method inherits thread_id from parent invoke context" do
+      received_thread_ids = []
+      sub_agent_class = Class.new(Phronomy::Agent::Base) do
+        define_method(:invoke) do |_input, config: {}, thread_id: nil|
+          received_thread_ids << thread_id
+          {output: "sub", messages: []}
+        end
+      end
+
+      sub_agent_ref = sub_agent_class
+
+      orch_class = Class.new(described_class) do
+        model "test-model"
+
+        define_method(:invoke_once) do |input, messages: [], thread_id: nil, config: {}|
+          subagent(sub_agent_ref, input, thread_id: thread_id, config: config)
+          {output: "done", messages: []}
+        end
+      end
+
+      # Call invoke_once directly (bypasses LLM stub requirements)
+      orch = orch_class.new
+      orch.send(:invoke_once, "hello", thread_id: "parent-thread")
+
+      expect(received_thread_ids).to eq(["parent-thread"])
     end
   end
 end
