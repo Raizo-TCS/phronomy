@@ -193,4 +193,24 @@ RSpec.describe Phronomy::EventLoop do
       expect(result.value).to eq(6)
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Unknown target_id warning
+  # ---------------------------------------------------------------------------
+
+  describe "unknown target_id warning" do
+    it "emits a warn message when an event has no registered handler" do
+      Phronomy.configure { |c| c.event_loop = true }
+      loop_instance = Phronomy::EventLoop.instance
+      unknown_event = Phronomy::Event.new(type: :custom, target_id: "nonexistent-id", payload: {})
+      warning_output = nil
+      allow(loop_instance).to receive(:warn) { |msg| warning_output = msg }
+      loop_instance.post(unknown_event)
+      # Give the event-loop thread a moment to process the event.
+      sleep 0.05
+      expect(warning_output).not_to be_nil
+      expect(warning_output).to include("nonexistent-id")
+      expect(warning_output).to include("custom")
+    end
+  end
 end

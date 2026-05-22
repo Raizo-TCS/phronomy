@@ -135,7 +135,15 @@ module Phronomy
           event.payload[:session].start
 
         else
-          @fsms[event.target_id]&.handle(event)
+          fsm = @fsms[event.target_id]
+          if fsm
+            fsm.handle(event)
+          else
+            # Warn when an event is dropped due to an unknown target_id so that
+            # mis-typed IDs and handler-deregistration races are visible.
+            warn "[Phronomy::EventLoop] Dropped event #{event.type.inspect} — " \
+                 "no handler for target_id #{event.target_id.inspect}"
+          end
         end
       end
     rescue => e
