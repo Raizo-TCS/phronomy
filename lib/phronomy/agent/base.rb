@@ -567,10 +567,14 @@ module Phronomy
         raise
       end
 
-      # Returns the {Context::ContextVersionCache} for the current thread.
+      # Returns the {Context::ContextVersionCache} built during the most recent
+      # {#invoke} call on this agent instance.  The thread-local cache entry is
+      # cleaned up in the +ensure+ block of {#invoke}, but a reference is kept
+      # in +@last_context_version_cache+ so callers can inspect it after invoke
+      # returns.
       # @api private
       def context_version_cache
-        (Thread.current[:phronomy_context_version_caches] ||= {})[object_id]
+        @last_context_version_cache
       end
 
       private
@@ -814,6 +818,11 @@ module Phronomy
           end
           cache.update(fingerprint: fingerprint, system_text: parts.compact.join("\n\n"))
         end
+
+        # Persist a reference on the instance so that context_version_cache
+        # remains accessible after invoke's ensure block cleans up the
+        # thread-local entry.
+        @last_context_version_cache = cache
 
         cache.system_text.empty? ? nil : cache.system_text
       end

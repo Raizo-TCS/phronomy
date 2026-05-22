@@ -22,7 +22,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
   def stub_agent_class(output)
     out = output
     Class.new(Phronomy::Agent::Base) do
-      define_method(:invoke) do |_input, config: {}|
+      define_method(:invoke) do |_input, config: {}, thread_id: nil|
         {output: out, messages: []}
       end
     end
@@ -31,7 +31,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
   # Failing stub agent (for on_error tests).
   def failing_agent_class
     Class.new(Phronomy::Agent::Base) do
-      define_method(:invoke) do |_input, config: {}|
+      define_method(:invoke) do |_input, config: {}, thread_id: nil|
         raise "subagent_failure"
       end
     end
@@ -132,7 +132,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
     it "forwards the input to the subagent" do
       received = []
       capture_class = Class.new(Phronomy::Agent::Base) do
-        define_method(:invoke) do |input, config: {}|
+        define_method(:invoke) do |input, config: {}, thread_id: nil|
           received << input
           {output: "ok", messages: []}
         end
@@ -204,7 +204,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
       received = []
       mutex = Mutex.new
       capture_class = Class.new(Phronomy::Agent::Base) do
-        define_method(:invoke) do |input, config: {}|
+        define_method(:invoke) do |input, config: {}, thread_id: nil|
           mutex.synchronize { received << input }
           {output: "echo:#{input}", messages: []}
         end
@@ -221,7 +221,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
       configs = []
       mutex = Mutex.new
       agent = Class.new(Phronomy::Agent::Base) do
-        define_method(:invoke) do |_input, config: {}|
+        define_method(:invoke) do |_input, config: {}, thread_id: nil|
           mutex.synchronize { configs << config }
           {output: "ok", messages: []}
         end

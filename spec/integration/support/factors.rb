@@ -1400,7 +1400,7 @@ module IntegrationFactors
   # @return [Array<Hash>]
   def self.bp_tasks(label)
     good = Class.new(Phronomy::Agent::Base) do
-      define_method(:invoke) { |input, config: {}| {output: "ok:#{input}", messages: []} }
+      define_method(:invoke) { |input, config: {}, thread_id: nil| {output: "ok:#{input}", messages: []} }
     end
     bad = Class.new(Phronomy::Agent::Base) do
       define_method(:invoke) { |*| raise "task_error" }
