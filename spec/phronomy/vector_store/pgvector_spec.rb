@@ -115,4 +115,48 @@ RSpec.describe Phronomy::VectorStore::Pgvector do
       end
     end
   end
+
+  # Regression tests for Issue #139: metadata parsing robustness
+  describe "metadata parsing robustness (Issue #139)" do
+    def make_row(metadata_val)
+      instance_double("VectorDocument", id: "doc1", score: 0.9, metadata: metadata_val)
+    end
+
+    def stub_search(store, rows)
+      rel = instance_double("ActiveRecord::Relation")
+      allow(model_class).to receive(:select).and_return(rel)
+      allow(rel).to receive(:order).and_return(rel)
+      allow(rel).to receive(:limit).and_return(rows)
+    end
+
+    it "returns {} for a NULL metadata column (nil)" do
+      stub_search(store, [make_row(nil)])
+      result = store.search(query_embedding: [1.0, 0.0])
+      expect(result.first[:metadata]).to eq({})
+    end
+
+    it "returns {} for an empty string metadata column" do
+      stub_search(store, [make_row("")])
+      result = store.search(query_embedding: [1.0, 0.0])
+      expect(result.first[:metadata]).to eq({})
+    end
+
+    it "handles an already-parsed Hash (some pg configurations)" do
+      stub_search(store, [make_row({"label" => "A"})])
+      result = store.search(query_embedding: [1.0, 0.0])
+      expect(result.first[:metadata]).to eq({label: "A"})
+    end
+
+    it "parses a valid JSON string with symbolized keys" do
+      stub_search(store, [make_row('{"key":"val"}')])
+      result = store.search(query_embedding: [1.0, 0.0])
+      expect(result.first[:metadata]).to eq({key: "val"})
+    end
+
+    it "returns {} for invalid JSON without raising" do
+      stub_search(store, [make_row("{not_valid}")])
+      result = store.search(query_embedding: [1.0, 0.0])
+      expect(result.first[:metadata]).to eq({})
+    end
+  end
 end

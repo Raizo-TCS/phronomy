@@ -64,7 +64,7 @@ module Phronomy
             {
               id: r.id.to_s,
               score: r.score.to_f,
-              metadata: JSON.parse(r.metadata.to_s, symbolize_names: true)
+              metadata: parse_metadata(r.metadata)
             }
           end
       end
@@ -80,6 +80,25 @@ module Phronomy
       end
 
       private
+
+      # Parses a metadata value returned by the pg driver.
+      # Handles NULL (nil), already-parsed Hash, and JSON string forms.
+      def parse_metadata(raw)
+        return {} if raw.nil?
+        return symbolize_hash_keys(raw) if raw.is_a?(Hash)
+
+        parsed = JSON.parse(raw.to_s, symbolize_names: true)
+        parsed.is_a?(Hash) ? parsed : {}
+      rescue JSON::ParserError
+        {}
+      end
+
+      # Recursively symbolizes keys for an already-parsed Hash.
+      def symbolize_hash_keys(hash)
+        hash.each_with_object({}) do |(k, v), h|
+          h[k.to_sym] = v.is_a?(Hash) ? symbolize_hash_keys(v) : v
+        end
+      end
 
       # Validates that all elements are numeric and converts to a pgvector-
       # compatible literal string (e.g. "[1.0,0.5,-0.3]").
