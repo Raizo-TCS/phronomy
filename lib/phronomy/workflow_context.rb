@@ -78,6 +78,9 @@ module Phronomy
     end
 
     def initialize(**attrs)
+      unknown = attrs.keys - self.class.fields.keys
+      raise ArgumentError, "Unknown WorkflowContext field(s): #{unknown.inspect}" unless unknown.empty?
+
       self.class.fields.each do |name, config|
         default = config[:default].is_a?(Proc) ? config[:default].call : config[:default]
         send(:"#{name}=", attrs.fetch(name, default))

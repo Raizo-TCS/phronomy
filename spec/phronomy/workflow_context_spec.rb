@@ -207,4 +207,32 @@ RSpec.describe Phronomy::WorkflowContext do
       end.not_to raise_error
     end
   end
+
+  describe "unknown field detection in initialize (issue #121)" do
+    let(:klass) do
+      Class.new do
+        include Phronomy::WorkflowContext
+        field :score, default: 0
+        field :name, default: "anon"
+      end
+    end
+
+    it "raises ArgumentError for an unknown key (typo scenario)" do
+      expect { klass.new(scor: 10) }
+        .to raise_error(ArgumentError, /Unknown WorkflowContext field.*scor/)
+    end
+
+    it "raises ArgumentError listing all unknown keys" do
+      expect { klass.new(foo: 1, bar: 2) }
+        .to raise_error(ArgumentError, /foo/)
+    end
+
+    it "does not raise when all keys are declared fields" do
+      expect { klass.new(score: 42, name: "Alice") }.not_to raise_error
+    end
+
+    it "does not raise when no keys are provided (all defaults)" do
+      expect { klass.new }.not_to raise_error
+    end
+  end
 end
