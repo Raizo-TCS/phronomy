@@ -428,8 +428,14 @@ Phronomy.configure do |c|
   c.recursion_limit     = 25
   c.tracer              = Phronomy::Tracing::NullTracer.new
   c.before_completion   = nil   # optional; global hook lambda
+  c.trace_pii           = true  # set to false to redact agent inputs from traces
 end
 ```
+
+> **Note**: `trace_pii = false` currently redacts only the _input_ to LLM/tool
+> calls from trace spans. Output (LLM responses and tool results) is still
+> included in traces. A full input+output redaction option is planned for a
+> future release.
 
 ## Context Management
 
