@@ -65,14 +65,195 @@
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="New_Features">New Features</h3>
+<ul>
+<li>
+<p><strong><code>invoke_timeout</code> DSL and <code>Phronomy::TimeoutError</code></strong>: Agents can declare a per-invoke
+timeout in seconds via <code>invoke_timeout N</code> in the class body. Exceeding the timeout raises
+<code>Phronomy::TimeoutError</code> (a subclass of <code>Phronomy::Error</code>). The default remains unlimited.</p>
+</li>
+<li>
+<p><strong><code>dispatch_parallel</code> / <code>fan_out</code> — per-call <code>timeout:</code> option</strong> (#133): Both methods now
+accept <code>timeout: nil</code> (default, unlimited) or a positive <code>Numeric</code> in seconds. Timed-out
+tasks are treated the same as errors and follow the existing <code>on_error:</code> policy (<code>:raise</code>
+or <code>:skip</code>).</p>
+</li>
+<li>
+<p><strong>MCP <code>HttpTransport</code> custom authentication headers</strong> (#144): <code>McpTool.from_server</code> now
+accepts <code>headers: {}</code>, forwarded all the way to <code>HttpTransport#initialize</code>. Arbitrary
+headers (e.g. <code>Authorization: Bearer …</code>) are injected into every JSON-RPC request,
+enabling use of MCP servers that require bearer tokens or API keys.</p>
+</li>
+<li>
+<p><strong><code>StdioTransport</code> — <code>env:</code>, <code>cwd:</code>, and <code>startup_timeout:</code> options</strong> (#145):
+Three new keyword arguments are now accepted when constructing a <code>StdioTransport</code> (and
+therefore via <code>McpTool.from_server</code>): <code>env: {}</code> merges extra variables into the child
+process environment; <code>cwd: nil</code> sets the working directory; <code>startup_timeout: 5</code> limits
+how long to wait for the child process to become ready.</p>
+</li>
+<li>
+<p><strong>Workflow DSL validates graph structure at build time</strong> (#124): <code>Phronomy::Workflow.define</code>
+now raises <code>ArgumentError</code> immediately when the graph is structurally invalid (e.g.
+unreachable states, transitions referencing undefined targets). Errors surface at load time
+rather than at the first <code>invoke</code>.</p>
+</li>
+<li>
+<p><strong>Expanded error taxonomy</strong> (#149): Five new subclasses of <code>Phronomy::Error</code> are now
+available: <code>TransportError</code> (MCP network-layer failure), <code>RateLimitError</code> (HTTP 429),
+<code>AuthenticationError</code> (HTTP 401/403), <code>ContextLengthError</code> (model context window exceeded),
+and <code>CancellationError</code> (invoke cancelled, e.g. via <code>invoke_timeout</code>).</p>
+</li>
+</ul>
+<h3 id="Enhancements">Enhancements</h3>
+<ul>
+<li>
+<p><strong><code>EventLoop</code> warns on events for unknown <code>target_id</code></strong>: When the event loop receives an
+event whose <code>target_id</code> does not match any registered session, a warning is emitted instead
+of silently discarding the event.</p>
+</li>
+<li>
+<p><strong><code>VectorStore#search</code> validates <code>k</code> is a positive integer</strong>: All three backends
+(<code>InMemory</code>, <code>RedisSearch</code>, <code>Pgvector</code>) now raise <code>ArgumentError</code> immediately when <code>k</code> is
+not a positive integer, providing a clear error instead of a silent empty result or an
+obscure database error.</p>
+</li>
+<li>
+<p><strong><code>max_parallel_tools</code> DSL</strong>: Agents can cap the number of concurrent tool-call threads
+with <code>max_parallel_tools N</code> in the class body. Useful for rate-limiting external API calls.
+The default remains unlimited.</p>
+</li>
+</ul>
 <h3 id="Fixed">Fixed</h3>
 <ul>
-<li><strong><code>WorkflowContext</code> return value from entry actions is now adopted in EventLoop mode</strong> ([#107]):
+<li>
+<p><strong><code>trace_pii: false</code> now redacts both input and output</strong>: Previously only the LLM response
+was redacted when <code>trace_pii</code> was <code>false</code>; user input was still recorded in traces. Both
+sides are now replaced with <code>[REDACTED]</code>.</p>
+</li>
+<li>
+<p><strong><code>StdioTransport</code> — <code>read_timeout</code> prevents indefinite blocking</strong>: A configurable
+<code>read_timeout</code> (default 30 s) is now enforced on MCP stdio reads. A silent child process
+could previously block the calling thread forever.</p>
+</li>
+<li>
+<p><strong>MCP schema <code>required</code> and <code>enum</code> constraints propagated to <code>param</code> DSL</strong>:
+<code>McpTool.from_server</code> now copies <code>required</code> and <code>enum</code> constraints from the MCP JSON Schema
+into the generated <code>param</code> declarations so downstream validation sees them.</p>
+</li>
+<li>
+<p><strong><code>FSMSession</code> notifies parent when child <code>AgentFSM</code> fails</strong>: An unhandled error in a child
+<code>AgentFSM</code> now correctly notifies the parent <code>FSMSession</code>, preventing it from waiting
+indefinitely for a completion event that will never arrive.</p>
+</li>
+<li>
+<p><strong><code>WorkflowContext.field</code> rejects mutable non-Proc defaults</strong>: Passing a plain <code>Array</code>,
+<code>Hash</code>, or other mutable object as a field default now raises <code>ArgumentError</code> at
+class-definition time, preventing accidental state sharing across workflow invocations.</p>
+</li>
+<li>
+<p><strong>Tool aliases inherited by <code>Agent</code> subclasses</strong>: <code>tool_aliases</code> declared in a parent
+<code>Agent::Base</code> subclass are now correctly merged into subclasses rather than being silently
+dropped.</p>
+</li>
+<li>
+<p><strong><code>ReactAgent</code> output selection skips tool-role messages</strong>: The final output selection
+logic no longer misidentifies <code>tool</code>-role messages as the assistant response, fixing
+spurious tool-call JSON appearing in <code>result[:output]</code>.</p>
+</li>
+<li>
+<p><strong>Thread-local context cache cleaned up after each <code>invoke</code></strong> (#128): <code>Agent::Base#invoke</code>
+previously leaked thread-local context cache entries after each call, causing stale cache
+hits in long-lived threads. The cache is now cleared in an <code>ensure</code> block.</p>
+</li>
+<li>
+<p><strong>Unknown tool parameters are rejected</strong> (#130): <code>Tool::Base#call</code> now raises
+<code>ArgumentError</code> when keyword arguments not declared via the <code>param</code> DSL are passed, instead
+of forwarding them silently to <code>execute</code>.</p>
+</li>
+<li>
+<p><strong><code>EventLoop#stop</code> uses cooperative shutdown instead of <code>Thread#kill</code></strong> (#135):
+<code>Thread#kill</code> bypasses <code>ensure</code> blocks and is unsafe. The event loop now sets a sentinel
+flag and joins the worker thread, allowing it to flush pending events before termination.</p>
+</li>
+<li>
+<p><strong><code>Orchestrator</code> propagates parent <code>config</code> and <code>thread_id</code> to sub-agents</strong> (#132):
+Sub-agents spawned via <code>dispatch</code> or <code>dispatch_parallel</code> now inherit the caller's <code>config</code>
+hash and <code>thread_id</code>, enabling correct memory isolation and distributed tracing in
+multi-agent pipelines.</p>
+</li>
+<li>
+<p><strong><code>Agent::Base</code> caches <code>static_knowledge</code> fetch at the class level</strong> (#127): The RAG
+knowledge fetch was re-executed on every <code>invoke</code>. The result is now cached at the class
+level and invalidated only when the knowledge source changes, eliminating redundant
+vector-store queries.</p>
+</li>
+<li>
+<p><strong><code>WorkflowContext#initialize</code> raises on unknown field keys</strong> (#121): Passing an
+unrecognised key to <code>WorkflowContext.new</code> (or <code>WorkflowContext#merge</code>) was silently
+ignored. Both methods now raise <code>ArgumentError</code>, surfacing typos and API mismatches
+immediately.</p>
+</li>
+<li>
+<p><strong><code>WorkflowContext#merge</code> deep-copies unchanged fields</strong> (#123): Fields absent from the
+<code>merge</code> argument were previously shared by reference with the original context, allowing
+one branch to mutate another branch's state. All fields are now independently copied.</p>
+</li>
+<li>
+<p><strong>Robust metadata parsing in <code>PgvectorStore#search</code></strong> (#139): Metadata stored as a
+PostgreSQL JSON string is now parsed correctly regardless of whether the database driver
+returns a <code>String</code> or an already-decoded <code>Hash</code>.</p>
+</li>
+<li>
+<p><strong><code>OutputParser::JSONParser</code> tries all fenced code blocks before falling back</strong> (#146):
+The parser now scans every fenced block in the LLM response (in order) and returns the
+first one that parses as valid JSON, rather than only checking the first block. This
+improves reliability with models that include prose before the JSON block.</p>
+</li>
+<li>
+<p><strong><code>on_error: :return_empty</code> emits a warning and returns a descriptive string</strong> (#147):
+Errors in tools that declare <code>on_error :return_empty</code> are now logged to <code>warn</code> before the
+tool returns. The placeholder string includes the tool name and a brief reason, making
+silent failures easier to diagnose.</p>
+</li>
+<li>
+<p><strong><code>context_version_cache</code> accessible after <code>invoke</code> completes</strong>: The thread-local cache is
+cleared in <code>invoke</code>'s <code>ensure</code> block, which caused <code>context_version_cache</code> to return <code>nil</code>
+immediately after every call. The value is now persisted in <code>@last_context_version_cache</code>
+so it remains readable post-invoke.</p>
+</li>
+<li>
+<p><strong><code>WorkflowContext</code> field type <code>:merge</code> comment corrected</strong>: The inline comment incorrectly
+described <code>:merge</code> as a deep-merge. It performs a shallow merge (<code>Hash#merge</code>). The comment
+has been updated.</p>
+</li>
+<li>
+<p><strong><code>WorkflowContext</code> return value from entry actions now adopted in EventLoop mode</strong> (#107):
 <code>FSMSession</code> previously discarded the <code>WorkflowContext</code> returned by entry action callables,
 causing <code>s.merge(...)</code> updates to be silently lost when <code>event_loop = true</code>. The context is
 now correctly propagated, bringing EventLoop semantics in line with the synchronous
 <code>WorkflowRunner</code>. Regression tests added in <code>spec/phronomy/fsm_session_spec.rb</code> (unit)
-and <code>spec/integration/workflow_spec.rb</code> (integration, both sync and EventLoop paths).</li>
+and <code>spec/integration/workflow_spec.rb</code> (integration, both sync and EventLoop paths).</p>
+</li>
+</ul>
+<h3 id="Documentation">Documentation</h3>
+<ul>
+<li>
+<p><strong><code>trace_pii</code> option documented in README</strong>: The <code>trace_pii:</code> configuration key and its
+behaviour (default <code>false</code>, redacts input and output in trace records) is now described in
+the Configuration section of the README.</p>
+</li>
+<li>
+<p><strong>CJK token under-count warning in <code>TokenEstimator</code></strong>: A note in both the source and README
+explains that the byte-based heuristic under-counts CJK characters by roughly 3×. Users
+processing Chinese, Japanese, or Korean content should apply a correction factor or use a
+model-specific tokenizer.</p>
+</li>
+<li>
+<p><strong>Stability labels, <code>reset_configuration!</code> caveat, CI, and gemspec</strong> (#140 / #141 / #142 / #143 / #148 / #150):
+README stability table revised for several APIs. <code>Phronomy.reset_configuration!</code> now carries
+a warning that it is intended for test isolation only. Gemspec upper bounds added for
+<code>ruby_llm</code> and <code>pg</code>. <code>ruby head</code> added to the CI test matrix. README API smoke tests added.</p>
+</li>
 </ul>
 <hr />
 <h2 id="_0_6_0____2026_05_21">[0.6.0] - 2026-05-21</h2>
@@ -470,7 +651,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Fri May 22 13:18:08 2026 by
+  Generated on Fri May 22 14:04:54 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
