@@ -65,7 +65,7 @@
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
-<h3 id="New_Features">New Features</h3>
+<h3 id="Added">Added</h3>
 <ul>
 <li>
 <p><strong><code>invoke_timeout</code> DSL and <code>Phronomy::TimeoutError</code></strong>: Agents can declare a per-invoke
@@ -93,15 +93,18 @@ how long to wait for the child process to become ready.</p>
 </li>
 <li>
 <p><strong>Workflow DSL validates graph structure at build time</strong> (#124): <code>Phronomy::Workflow.define</code>
-now raises <code>ArgumentError</code> immediately when the graph is structurally invalid (e.g.
-unreachable states, transitions referencing undefined targets). Errors surface at load time
-rather than at the first <code>invoke</code>.</p>
+now raises <code>ArgumentError</code> immediately for hard structural errors (no states declared,
+transitions referencing undefined targets). Unreachable states emit a warning but do not
+raise. Errors surface at load time rather than at the first <code>invoke</code>.</p>
 </li>
 <li>
 <p><strong>Expanded error taxonomy</strong> (#149): Five new subclasses of <code>Phronomy::Error</code> are now
-available: <code>TransportError</code> (MCP network-layer failure), <code>RateLimitError</code> (HTTP 429),
-<code>AuthenticationError</code> (HTTP 401/403), <code>ContextLengthError</code> (model context window exceeded),
-and <code>CancellationError</code> (invoke cancelled, e.g. via <code>invoke_timeout</code>).</p>
+available: <code>TransportError</code> (MCP or LLM network-layer failure; subclasses are
+<code>RateLimitError</code> for HTTP 429 and <code>AuthenticationError</code> for HTTP 401/403),
+<code>ContextLengthError</code> (prompt exceeds model context window), and
+<code>CancellationError</code> (explicit invocation cancellation, distinct from the
+deadline-exceeded <code>TimeoutError</code>). All five are defined as subclasses of
+<code>Phronomy::Error</code> so application code can rescue them uniformly.</p>
 </li>
 <li>
 <p><strong><code>Agent::Base.static_knowledge_refresh!</code></strong> (#164): New class-level method that clears the
@@ -116,7 +119,7 @@ messages — starting with the unreachable-state warning from <code>Workflow.def
 through this logger instead of writing directly to <code>$stderr</code> via <code>Kernel#warn</code>.</p>
 </li>
 </ul>
-<h3 id="Enhancements">Enhancements</h3>
+<h3 id="Changed">Changed</h3>
 <ul>
 <li>
 <p><strong><code>EventLoop</code> warns on events for unknown <code>target_id</code></strong>: When the event loop receives an
@@ -132,7 +135,7 @@ obscure database error.</p>
 <li>
 <p><strong><code>max_parallel_tools</code> DSL</strong>: Agents can cap the number of concurrent tool-call threads
 with <code>max_parallel_tools N</code> in the class body. Useful for rate-limiting external API calls.
-The default remains unlimited.</p>
+The default is <strong>10</strong> (inheriting from <code>Base</code>); set explicitly to raise or lower the cap.</p>
 </li>
 <li>
 <p><strong><code>max_parallel_tools</code> and <code>invoke_timeout</code> DSL argument validation</strong> (#152): Both setters
@@ -156,9 +159,9 @@ enabling accurate structured argument generation for complex tool parameters.</p
 <h3 id="Fixed">Fixed</h3>
 <ul>
 <li>
-<p><strong><code>trace_pii: false</code> now redacts both input and output</strong>: Previously only the LLM response
-was redacted when <code>trace_pii</code> was <code>false</code>; user input was still recorded in traces. Both
-sides are now replaced with <code>[REDACTED]</code>.</p>
+<p><strong><code>trace_pii: false</code> now redacts both input and output</strong>: Previously only the user input
+was redacted when <code>trace_pii</code> was <code>false</code>; LLM responses and tool results were still
+forwarded to the tracing backend unredacted. Both sides are now replaced with <code>[REDACTED]</code>.</p>
 </li>
 <li>
 <p><strong><code>StdioTransport</code> — <code>read_timeout</code> prevents indefinite blocking</strong>: A configurable
@@ -176,9 +179,10 @@ into the generated <code>param</code> declarations so downstream validation sees
 indefinitely for a completion event that will never arrive.</p>
 </li>
 <li>
-<p><strong><code>WorkflowContext.field</code> rejects mutable non-Proc defaults</strong>: Passing a plain <code>Array</code>,
-<code>Hash</code>, or other mutable object as a field default now raises <code>ArgumentError</code> at
-class-definition time, preventing accidental state sharing across workflow invocations.</p>
+<p><strong><code>WorkflowContext.field</code> rejects plain <code>Array</code> or <code>Hash</code> defaults</strong>: Passing a plain <code>Array</code>
+or <code>Hash</code> as a field default now raises <code>ArgumentError</code> at class-definition time,
+preventing accidental state sharing across workflow invocations. Other mutable objects
+are not checked. Wrap collection defaults in a Proc: <code>default: -&gt; { [] }</code>.</p>
 </li>
 <li>
 <p><strong>Tool aliases inherited by <code>Agent</code> subclasses</strong>: <code>tool_aliases</code> declared in a parent
@@ -213,20 +217,20 @@ multi-agent pipelines.</p>
 </li>
 <li>
 <p><strong><code>Agent::Base</code> caches <code>static_knowledge</code> fetch at the class level</strong> (#127): The RAG
-knowledge fetch was re-executed on every <code>invoke</code>. The result is now cached at the class
-level and invalidated only when the knowledge source changes, eliminating redundant
-vector-store queries.</p>
+knowledge fetch was re-executed on every <code>invoke</code>. The result is now memoized at the class
+level (<code>@static_knowledge_chunks ||= ...</code>), eliminating redundant vector-store queries.
+The cache is <strong>not</strong> invalidated automatically when source content changes; call
+<code>static_knowledge_refresh!</code> explicitly to force a reload.</p>
 </li>
 <li>
 <p><strong><code>WorkflowContext#initialize</code> raises on unknown field keys</strong> (#121): Passing an
-unrecognised key to <code>WorkflowContext.new</code> (or <code>WorkflowContext#merge</code>) was silently
-ignored. Both methods now raise <code>ArgumentError</code>, surfacing typos and API mismatches
-immediately.</p>
+unrecognised key to <code>WorkflowContext.new</code> was silently ignored. The constructor now raises
+<code>ArgumentError</code>, surfacing typos and API mismatches immediately.</p>
 </li>
 <li>
-<p><strong><code>WorkflowContext#merge</code> raises <code>ArgumentError</code> for unknown field keys</strong> (#154): An
-additional guard now covers updates via <code>#merge</code> (a complementary fix to #121). Typos in
-merge calls are surfaced immediately rather than being silently discarded.</p>
+<p><strong><code>WorkflowContext#merge</code> raises <code>ArgumentError</code> for unknown field keys</strong> (#154): Passing
+an unrecognised key to <code>WorkflowContext#merge</code> was silently ignored. The method now raises
+<code>ArgumentError</code>, matching the guard added to <code>#initialize</code> in #121.</p>
 </li>
 <li>
 <p><strong><code>WorkflowContext#deep_dup_value</code> rescues <code>TypeError</code> for non-dupable objects</strong> (#156):
@@ -258,12 +262,12 @@ validation error rather than being silently forwarded.</p>
 one branch to mutate another branch's state. All fields are now independently copied.</p>
 </li>
 <li>
-<p><strong>Robust metadata parsing in <code>PgvectorStore#search</code></strong> (#139): Metadata stored as a
+<p><strong>Robust metadata parsing in <code>VectorStore::Pgvector#search</code></strong> (#139): Metadata stored as a
 PostgreSQL JSON string is now parsed correctly regardless of whether the database driver
 returns a <code>String</code> or an already-decoded <code>Hash</code>.</p>
 </li>
 <li>
-<p><strong><code>OutputParser::JSONParser</code> tries all fenced code blocks before falling back</strong> (#146):
+<p><strong><code>OutputParser::JsonParser</code> tries all fenced code blocks before falling back</strong> (#146):
 The parser now scans every fenced block in the LLM response (in order) and returns the
 first one that parses as valid JSON, rather than only checking the first block. This
 improves reliability with models that include prose before the JSON block.</p>
@@ -724,7 +728,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Fri May 22 16:25:47 2026 by
+  Generated on Fri May 22 17:46:37 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
