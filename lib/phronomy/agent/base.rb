@@ -196,7 +196,11 @@ module Phronomy
         #     max_parallel_tools 4
         #   end
         def max_parallel_tools(val = nil)
-          if val
+          unless val.nil?
+            unless val.is_a?(Integer) && val >= 1
+              raise ArgumentError,
+                "max_parallel_tools must be a positive Integer (>= 1), got #{val.inspect}"
+            end
             @max_parallel_tools = val
           else
             @max_parallel_tools ||
@@ -212,6 +216,14 @@ module Phronomy
         # Defaults to +nil+ (no timeout).
         # Inherited by subclasses; the most-specific definition wins.
         #
+        # **Note**: +invoke_timeout+ is a *wait timeout*, not a cancellation.
+        # When the timeout fires, +Phronomy::TimeoutError+ is raised to the
+        # caller, but the background agent thread and any in-flight LLM or tool
+        # calls are **not** interrupted — they continue running until they
+        # complete naturally.  The agent therefore keeps consuming threads,
+        # memory, and external API credits after the caller has already received
+        # the error.  True cancellation is not yet supported.
+        #
         # @param val [Numeric, nil]
         # @return [Numeric, nil]
         # @example
@@ -219,7 +231,11 @@ module Phronomy
         #     invoke_timeout 30
         #   end
         def invoke_timeout(val = nil)
-          if val
+          unless val.nil?
+            unless val.is_a?(Numeric) && val > 0
+              raise ArgumentError,
+                "invoke_timeout must be a positive number, got #{val.inspect}"
+            end
             @invoke_timeout = val
           else
             return @invoke_timeout if defined?(@invoke_timeout)
@@ -259,6 +275,21 @@ module Phronomy
           @static_knowledge_chunks ||= static_knowledge_sources.flat_map { |ks|
             ks.fetch(query: nil)
           }
+        end
+
+        # Clears the class-level knowledge cache so that the next +invoke+ call
+        # re-fetches content from all registered static knowledge sources.
+        #
+        # Call this method when the underlying knowledge source has been updated
+        # at runtime (e.g. a file was rewritten, a DB record changed) and you
+        # want the agent to pick up the new content without restarting the
+        # process.
+        #
+        # @return [nil]
+        # @example Refresh after updating a knowledge file
+        #   MyAgent.static_knowledge_refresh!
+        def static_knowledge_refresh!
+          @static_knowledge_chunks = nil
         end
 
         # Registers a callback that is invoked before every LLM call so the
@@ -572,6 +603,11 @@ module Phronomy
       # cleaned up in the +ensure+ block of {#invoke}, but a reference is kept
       # in +@last_context_version_cache+ so callers can inspect it after invoke
       # returns.
+      #
+      # NOTE: Not thread-safe.  When the same Agent instance is used concurrently,
+      # +@last_context_version_cache+ reflects the most recent +invoke+ on *any*
+      # thread.  For per-invocation isolation, use a separate Agent instance per
+      # thread.
       # @api private
       def context_version_cache
         @last_context_version_cache

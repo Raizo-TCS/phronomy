@@ -25,7 +25,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **Agent** — ReAct-style tool-calling agents with guardrails and conversation history | Stable |
 | **Before-Completion Hook** — Three-tier LLM parameter injection | Stable |
 | **Context Management** — Token budget calculation, estimation, and pruning | Stable |
-| **Knowledge/RAG** — Retrieval sources with pluggable loaders, splitters, and vector stores | Beta |
+| **Knowledge/RAG** — Retrieval sources with pluggable loaders, splitters, and vector stores; `static_knowledge_refresh!` for runtime cache invalidation | Beta |
 | **Multi-agent** — Agent-as-Tool pattern and hub-and-spoke handoff routing | Beta |
 | **GeneratorVerifier** — Generator-Verifier loop with injectable prompt builders/parsers | Beta |
 | **Agent::Orchestrator** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
@@ -173,6 +173,9 @@ rag = Phronomy::KnowledgeSource::RAGKnowledge.new(store: store, embeddings: embe
 # Inject at invocation time
 result = MyAgent.new.invoke("What is the refund policy?",
   config: { knowledge_sources: [policy, rag] })
+
+# Invalidate the class-level cache when the source is updated at runtime
+MyAgent.static_knowledge_refresh!
 ```
 
 Load and split documents with built-in loaders:
@@ -435,14 +438,18 @@ Phronomy.configure do |c|
   c.recursion_limit     = 25
   c.tracer              = Phronomy::Tracing::NullTracer.new
   c.before_completion   = nil   # optional; global hook lambda
-  c.trace_pii           = true  # set to false to redact agent inputs from traces
+  c.trace_pii           = true  # set to false to redact both inputs and outputs from traces
+  c.logger              = nil   # optional; any object responding to #warn (e.g. Rails.logger)
 end
 ```
 
-> **Note**: `trace_pii = false` currently redacts only the _input_ to LLM/tool
-> calls from trace spans. Output (LLM responses and tool results) is still
-> included in traces. A full input+output redaction option is planned for a
-> future release.
+`c.logger` receives framework diagnostic messages (e.g. unreachable-state warnings from
+`Workflow.define`). When `nil` (default), messages are written to `$stderr` via `Kernel#warn`.
+
+> **Note**: When `trace_pii = false`, both the _input_ and the _output_ (LLM
+> responses and tool results) are replaced with `[REDACTED]` in trace spans.
+> The default is `false` (PII protection enabled). Set to `true` only when
+> trace data does not contain sensitive information.
 
 ## Context Management
 

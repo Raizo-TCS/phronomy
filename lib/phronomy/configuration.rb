@@ -38,6 +38,13 @@ module Phronomy
     # the tracing backend (OTel, Langfuse, etc.).
     attr_accessor :trace_pii
 
+    # Optional logger for framework diagnostic messages (e.g. unreachable-state warnings).
+    # Must respond to +#warn(message)+.  When nil (default), messages are written to +$stderr+
+    # via +Kernel#warn+.
+    # @example
+    #   Phronomy.configure { |c| c.logger = Rails.logger }
+    attr_accessor :logger
+
     def initialize
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new

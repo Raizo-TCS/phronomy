@@ -93,7 +93,11 @@ module Phronomy
     # Internal workflow metadata (thread_id, phase) is preserved.
     # @param updates [Hash] { field_name => new_value }
     # @return [self.class] new context instance
+    # @raise [ArgumentError] if updates contains keys that are not declared fields
     def merge(updates)
+      unknown = updates.keys - self.class.fields.keys
+      raise ArgumentError, "Unknown WorkflowContext field(s): #{unknown.inspect}" unless unknown.empty?
+
       new_attrs = {}
       self.class.fields.each_key do |name|
         field_config = self.class.fields[name]
@@ -132,6 +136,7 @@ module Phronomy
     # Arrays and Hashes are deep-duplicated recursively.
     # Immutable values (nil, Symbol, Integer, Float, true/false, frozen String) are returned as-is.
     # Other objects are dup'd (best-effort shallow copy for custom types).
+    # Objects that cannot be dup'd (e.g. Proc, Method) are returned as-is.
     def deep_dup_value(val)
       case val
       when Array
@@ -141,7 +146,13 @@ module Phronomy
       when NilClass, Symbol, Integer, Float, TrueClass, FalseClass
         val
       else
-        val.frozen? ? val : val.dup
+        return val if val.frozen?
+
+        begin
+          val.dup
+        rescue TypeError
+          val
+        end
       end
     end
   end

@@ -160,6 +160,16 @@ RSpec.describe Phronomy::Workflow do
       }.to raise_error(ArgumentError, /undefined state.*missing/i)
     end
 
+    it "raises ArgumentError when a transition from: is an undeclared state (issue #157)" do
+      expect {
+        Phronomy::Workflow.define(ctx) do
+          initial :step
+          state :step, action: ->(s) { s }
+          transition from: :ghost, to: :__finish__
+        end
+      }.to raise_error(ArgumentError, /undefined state.*ghost/i)
+    end
+
     it "raises ArgumentError when no states are declared" do
       expect {
         Phronomy::Workflow.define(ctx) {}
@@ -175,6 +185,22 @@ RSpec.describe Phronomy::Workflow do
           state :orphan, action: ->(s) { s }
         end
       }.to output(/unreachable state.*orphan/i).to_stderr
+    end
+
+    it "routes unreachable-state warning through configured logger (issue #158)" do
+      fake_logger = instance_double("Logger", warn: nil)
+      Phronomy.configure { |c| c.logger = fake_logger }
+
+      Phronomy::Workflow.define(ctx) do
+        initial :step
+        state :step, action: ->(s) { s }
+        transition from: :step, to: :__finish__
+        state :orphan, action: ->(s) { s }
+      end
+
+      expect(fake_logger).to have_received(:warn).with(/unreachable state.*orphan/i)
+    ensure
+      Phronomy.configure { |c| c.logger = nil }
     end
 
     it "does not raise for a valid graph" do

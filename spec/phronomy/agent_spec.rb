@@ -938,4 +938,21 @@ RSpec.describe "Agent static_knowledge caching (issue #127)" do
     agent_class.new.invoke("q2")
     expect(ks.fetch_count).to eq(2)
   end
+
+  it "re-fetches after static_knowledge_refresh! is called (issue #164)" do
+    ks = CountingKnowledgeSource.new("refreshable text")
+
+    agent_class = Class.new(Phronomy::Agent::Base) do
+      model "test-model"
+    end
+    agent_class.static_knowledge(ks)
+
+    agent_class.new.invoke("q1")
+    expect(ks.fetch_count).to eq(1)
+
+    # Calling refresh! must invalidate the cache.
+    agent_class.static_knowledge_refresh!
+    agent_class.new.invoke("q2")
+    expect(ks.fetch_count).to eq(2)
+  end
 end

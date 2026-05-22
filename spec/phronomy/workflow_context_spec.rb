@@ -83,6 +83,11 @@ RSpec.describe Phronomy::WorkflowContext do
     it "returns an instance of the same class" do
       expect(state.merge(value: 2)).to be_a(TestState)
     end
+
+    it "raises ArgumentError when an unknown field key is passed (issue #154)" do
+      expect { state.merge(nonexistent: 99) }
+        .to raise_error(ArgumentError, /nonexistent/)
+    end
   end
 
   describe "#to_h" do
@@ -283,6 +288,28 @@ RSpec.describe Phronomy::WorkflowContext do
       expect(new_ctx.tags).to eq(["b"])
       expect(new_ctx.count).to eq(1)
       expect(old_ctx.tags).to eq(["a"])
+    end
+  end
+
+  describe "#merge with non-dupable field values (issue #156)" do
+    let(:klass) do
+      Class.new do
+        include Phronomy::WorkflowContext
+        field :callback, type: :replace, default: nil
+      end
+    end
+
+    it "does not raise TypeError when a non-dupable object (Method) is stored in a field" do
+      m = method(:puts)  # Method objects raise TypeError on dup
+      ctx = klass.new(callback: m)
+      expect { ctx.merge({}) }.not_to raise_error
+    end
+
+    it "returns the original object when dup raises TypeError" do
+      m = method(:puts)
+      ctx = klass.new(callback: m)
+      new_ctx = ctx.merge({})
+      expect(new_ctx.callback).to be(m)
     end
   end
 end

@@ -47,9 +47,14 @@ RSpec.describe Phronomy::Tool::Base do
         expect(hello_tool_class.on_error).to eq(:raise)
       end
 
-      it "can be set to :return_empty" do
-        klass = Class.new(described_class) { on_error :return_empty }
-        expect(klass.on_error).to eq(:return_empty)
+      it "can be set to :return_empty (deprecated alias)" do
+        expect { Class.new(described_class) { on_error :return_empty } }
+          .to output(/deprecated.*suppress/i).to_stderr
+      end
+
+      it "can be set to :suppress (new canonical name, issue #165)" do
+        klass = Class.new(described_class) { on_error :suppress }
+        expect(klass.on_error).to eq(:suppress)
       end
     end
 
@@ -99,6 +104,26 @@ RSpec.describe Phronomy::Tool::Base do
         end
 
         it "returns a descriptive error string without raising an exception (Issue #147)" do
+          expect(failing_tool.call({})).to match(/Tool error suppressed:.*went wrong/)
+        end
+
+        it "does not raise an exception" do
+          expect { failing_tool.call({}) }.not_to raise_error
+        end
+      end
+
+      context "on_error :suppress (canonical name, issue #165)" do
+        let(:failing_tool_class) do
+          Class.new(described_class) do
+            on_error :suppress
+
+            def execute
+              raise "something went wrong"
+            end
+          end
+        end
+
+        it "returns a descriptive error string without raising an exception" do
           expect(failing_tool.call({})).to match(/Tool error suppressed:.*went wrong/)
         end
 
@@ -286,6 +311,39 @@ RSpec.describe Phronomy::Tool::Base do
         enum_vals = schema["properties"]["lang"]["enum"]
         expect(enum_vals).to all(be_a(String))
         expect(enum_vals).to eq(%w[en ja fr])
+      end
+    end
+
+    context "with an :object param and nested properties (issue #162)" do
+      let(:nested_tool_class) do
+        Class.new(described_class) do
+          description "Config tool"
+          param :config, type: :object, desc: "Configuration", properties: {
+            timeout: {type: :integer, desc: "Timeout in seconds"},
+            retries: {type: :integer, desc: "Retry count"}
+          }
+
+          def execute(config:) = "config: #{config}"
+        end
+      end
+
+      it "includes 'properties' in the JSON Schema for the object param" do
+        schema = nested_tool_class.new.params_schema
+        config_schema = schema["properties"]["config"]
+        expect(config_schema).to have_key("properties")
+      end
+
+      it "includes each nested field in the JSON Schema" do
+        schema = nested_tool_class.new.params_schema
+        nested = schema["properties"]["config"]["properties"]
+        expect(nested.keys).to contain_exactly("timeout", "retries")
+      end
+
+      it "includes type and description for each nested field" do
+        schema = nested_tool_class.new.params_schema
+        timeout_schema = schema["properties"]["config"]["properties"]["timeout"]
+        expect(timeout_schema["type"]).to eq("integer")
+        expect(timeout_schema["description"]).to eq("Timeout in seconds")
       end
     end
   end
@@ -549,6 +607,21 @@ RSpec.describe Phronomy::Tool::Base do
 
       result = deep_tool.call({"root" => {"child" => {"leaf" => 42}}})
       expect(result).to match(/nested field.*root\.child\.leaf/i)
+    end
+
+    it "rejects extra keys inside a nested object (issue #166)" do
+      tool = Class.new(described_class) do
+        description "options tool"
+        on_schema_error :return_error
+        param :options, type: :object, properties: {
+          timeout: {type: :integer}
+        }
+
+        def execute(options:) = options.inspect
+      end.new
+
+      result = tool.call({"options" => {"timeout" => 5, "injected" => "payload"}})
+      expect(result).to match(/undeclared key/i)
     end
   end
 end

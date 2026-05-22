@@ -92,11 +92,25 @@ module Phronomy
           @scope = value
         end
 
-        # Configures error-handling behavior.
-        # @param behavior [Symbol] :raise (default) or :return_empty
+        # Configures error-handling behavior when +execute+ raises an unexpected error.
+        #
+        # @param behavior [Symbol]
+        #   :raise        (default)  — re-raise as Phronomy::ToolError, stopping the agent.
+        #   :suppress                — suppress the error and return a descriptive string so
+        #                             the LLM can recover on the next turn.
+        #   :return_empty            — *deprecated* alias for +:suppress+; will be removed in a
+        #                             future major release.
         def on_error(behavior = nil)
           return @on_error || :raise if behavior.nil?
 
+          if behavior == :return_empty
+            msg = "[Phronomy] on_error :return_empty is deprecated; use :suppress instead"
+            if Phronomy.configuration.logger
+              Phronomy.configuration.logger.warn(msg)
+            else
+              warn msg
+            end
+          end
           @on_error = behavior
         end
 
@@ -173,24 +187,37 @@ module Phronomy
       # Injects "enum" entries for any param declared with enum: [...].
       def params_schema
         schema = super
-        return schema if schema.nil? || self.class.param_enums.empty?
+        return schema if schema.nil?
 
-        enums = self.class.param_enums
         properties = schema.dig("properties") || schema.dig(:properties)
         return schema unless properties
 
-        enums.each do |param_name, values|
+        # Inject enum values for params declared with enum: [...].
+        unless self.class.param_enums.empty?
+          enums = self.class.param_enums
+          enums.each do |param_name, values|
+            key = properties.key?(param_name.to_s) ? param_name.to_s : param_name.to_sym
+            next unless properties[key]
+
+            param_type = properties[key]["type"]
+            properties[key]["enum"] = values.map do |v|
+              case param_type
+              when "integer" then v.is_a?(Integer) ? v : Integer(v.to_s)
+              when "number" then v.is_a?(Numeric) ? v : Float(v.to_s)
+              else v.to_s
+              end
+            end
+          end
+        end
+
+        # Inject nested properties for :object params (issue #162).
+        # Without this the LLM sees only { "type": "object" } with no field
+        # definitions, making it unable to populate nested object params.
+        self.class.param_schemas.each do |param_name, nested|
           key = properties.key?(param_name.to_s) ? param_name.to_s : param_name.to_sym
           next unless properties[key]
 
-          param_type = properties[key]["type"]
-          properties[key]["enum"] = values.map do |v|
-            case param_type
-            when "integer" then v.is_a?(Integer) ? v : Integer(v.to_s)
-            when "number" then v.is_a?(Numeric) ? v : Float(v.to_s)
-            else v.to_s
-            end
-          end
+          properties[key]["properties"] = nested_schema_to_json_schema(nested)
         end
 
         schema
@@ -219,8 +246,13 @@ module Phronomy
         raise
       rescue => e
         case self.class.on_error
-        when :return_empty
-          warn "[Phronomy] Tool #{self.class.name} suppressed error (on_error: :return_empty): #{e.class}: #{e.message}"
+        when :return_empty, :suppress
+          msg = "[Phronomy] Tool #{self.class.name} suppressed error: #{e.class}: #{e.message}"
+          if Phronomy.configuration.logger
+            Phronomy.configuration.logger.warn(msg)
+          else
+            warn msg
+          end
           "Tool error suppressed: #{e.message}"
         else
           raise Phronomy::ToolError, "#{self.class.name} execution failed: #{e.message}"
@@ -358,6 +390,22 @@ module Phronomy
         [result, nil]
       end
 
+      # Converts the internal normalized nested schema (from param_schemas) to
+      # a JSON Schema +properties+ hash suitable for inclusion in the LLM tool
+      # definition (issue #162).
+      #
+      # @param nested [Hash{Symbol=>Hash}] normalized schema from param_schemas
+      # @return [Hash{String=>Hash}] JSON Schema properties
+      def nested_schema_to_json_schema(nested)
+        nested.each_with_object({}) do |(prop_name, spec), acc|
+          entry = {"type" => spec[:type].to_s}
+          entry["description"] = spec[:desc] if spec[:desc]
+          entry["enum"] = spec[:enum] if spec[:enum]
+          entry["properties"] = nested_schema_to_json_schema(spec[:properties]) if spec[:properties]
+          acc[prop_name.to_s] = entry
+        end
+      end
+
       # Recursively validates +value+ (a Hash) against a +properties+ schema.
       # Returns an error message string or nil.
       #
@@ -368,6 +416,13 @@ module Phronomy
         return "field '#{path}' must be an object (Hash)" unless value.is_a?(Hash)
 
         normalized = value.transform_keys(&:to_sym)
+
+        # Reject extra keys not declared in the schema (issue #166).
+        extra = normalized.keys - properties.keys
+        unless extra.empty?
+          return "nested field '#{path}' contains undeclared key(s): #{extra.inspect}"
+        end
+
         properties.each do |fname, spec|
           field_path = "#{path}.#{fname}"
           field_value = normalized[fname]

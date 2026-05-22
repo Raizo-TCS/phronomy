@@ -41,6 +41,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `AuthenticationError` (HTTP 401/403), `ContextLengthError` (model context window exceeded),
   and `CancellationError` (invoke cancelled, e.g. via `invoke_timeout`).
 
+- **`Agent::Base.static_knowledge_refresh!`** (#164): New class-level method that clears the
+  cached `static_knowledge` chunks so the next `invoke` re-fetches from all registered
+  sources. Essential for long-running processes (web servers, job workers) where knowledge
+  sources may be updated at runtime without a process restart.
+
+- **`Phronomy::Configuration#logger`** (#158): New optional configuration attribute. Any
+  object responding to `#warn` (e.g. `Rails.logger`) can be assigned. Framework diagnostic
+  messages — starting with the unreachable-state warning from `Workflow.define` — are routed
+  through this logger instead of writing directly to `$stderr` via `Kernel#warn`.
+
 ### Enhancements
 
 - **`EventLoop` warns on events for unknown `target_id`**: When the event loop receives an
@@ -55,6 +65,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`max_parallel_tools` DSL**: Agents can cap the number of concurrent tool-call threads
   with `max_parallel_tools N` in the class body. Useful for rate-limiting external API calls.
   The default remains unlimited.
+
+- **`max_parallel_tools` and `invoke_timeout` DSL argument validation** (#152): Both setters
+  now raise `ArgumentError` at class-definition time if the supplied value is invalid
+  (`max_parallel_tools` requires an `Integer >= 1`; `invoke_timeout` requires a positive
+  `Numeric`), surfacing configuration mistakes immediately.
+
+- **`on_error :suppress` — canonical alias for `:return_empty`** (#165): `:suppress` is the
+  new preferred name for the error-suppression behaviour in `Tool::Base`. `:return_empty`
+  continues to function but emits a deprecation warning and will be removed in a future major
+  release. Migrate by replacing `on_error :return_empty` with `on_error :suppress`.
+
+- **Tool nested object properties injected into JSON Schema** (#162): `Tool::Base#params_schema`
+  now recursively serialises nested `:object` param specs (including `enum` constraints and
+  further nesting) into the JSON Schema `properties` structure forwarded to the LLM,
+  enabling accurate structured argument generation for complex tool parameters.
 
 ### Fixed
 
@@ -113,6 +138,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ignored. Both methods now raise `ArgumentError`, surfacing typos and API mismatches
   immediately.
 
+- **`WorkflowContext#merge` raises `ArgumentError` for unknown field keys** (#154): An
+  additional guard now covers updates via `#merge` (a complementary fix to #121). Typos in
+  merge calls are surfaced immediately rather than being silently discarded.
+
+- **`WorkflowContext#deep_dup_value` rescues `TypeError` for non-dupable objects** (#156):
+  Objects that raise `TypeError` from `#dup` (e.g. `Method`, frozen `Proc`, `Integer`,
+  `Symbol`) are now returned as-is instead of crashing.
+
+- **`Workflow.define` raises for undefined `from:` state in transitions** (#157): Transitions
+  that reference a `from:` state not declared in the DSL now raise `ArgumentError` at
+  build time, complementing the existing check for undefined `to:` targets.
+
+- **`Workflow.define` unreachable-state warning routes through configured logger** (#158):
+  The diagnostic warning for unreachable states now uses `Phronomy.configuration.logger`
+  when set, falling back to `Kernel#warn`. Previously the warning always went to `$stderr`.
+
+- **`require "set"` added to `workflow.rb`** (#159): Eliminates an implicit dependency on
+  `Set` being pre-loaded by another gem.
+
+- **`Tool::Base#validate_nested_object` rejects undeclared extra keys** (#166): Keys present
+  in the LLM-supplied hash but absent from the tool's nested `param` schema now produce a
+  validation error rather than being silently forwarded.
+
 - **`WorkflowContext#merge` deep-copies unchanged fields** (#123): Fields absent from the
   `merge` argument were previously shared by reference with the original context, allowing
   one branch to mutate another branch's state. All fields are now independently copied.
@@ -148,6 +196,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and `spec/integration/workflow_spec.rb` (integration, both sync and EventLoop paths).
 
 ### Documentation
+
+- **`trace_pii = false` description corrected** (#153): The inline comment and README Note
+  now correctly state that both the input and the output are redacted.
+
+- **`invoke_timeout` is a wait timeout, not cancellation** (#163): YARD comment now
+  explicitly documents that the background agent thread and in-flight LLM/tool calls are
+  **not** interrupted when the timeout fires. Only the caller receives `TimeoutError`.
+
+- **`context_version_cache` thread-safety limitation documented** (#161): A NOTE in the YARD
+  comment explains that the per-instance cache is not thread-safe when the same agent
+  instance is shared across threads.
 
 - **`trace_pii` option documented in README**: The `trace_pii:` configuration key and its
   behaviour (default `false`, redacts input and output in trace records) is now described in

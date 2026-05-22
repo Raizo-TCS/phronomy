@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "set"
 require_relative "workflow_runner"
 require_relative "runnable"
 
@@ -217,6 +218,15 @@ module Phronomy
             "Declare each with state(...) or wait_state(...)."
         end
 
+        # Check that all from: states in transitions are declared.
+        referenced_sources = @transitions.map { |t| t[:from] }
+        undefined_sources = referenced_sources - all_states
+        unless undefined_sources.empty?
+          raise ArgumentError,
+            "Workflow transition(s) originate from undefined state(s): #{undefined_sources.sort.inspect}. " \
+            "Declare each with state(...) or wait_state(...)."
+        end
+
         # Reachability check: warn about declared states that cannot be reached
         # from the initial state (transition target not referenced by any transition).
         reachable = Set.new([entry_point])
@@ -235,8 +245,13 @@ module Phronomy
 
         unreachable = all_states - reachable.to_a
         unless unreachable.empty?
-          warn "[Phronomy] Workflow has unreachable state(s): #{unreachable.sort.inspect}. " \
-               "These states can never be entered from the initial state '#{entry_point}'."
+          msg = "[Phronomy] Workflow has unreachable state(s): #{unreachable.sort.inspect}. " \
+                "These states can never be entered from the initial state '#{entry_point}'."
+          if Phronomy.configuration.logger
+            Phronomy.configuration.logger.warn(msg)
+          else
+            warn msg
+          end
         end
       end
 
