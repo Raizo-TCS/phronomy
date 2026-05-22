@@ -111,10 +111,14 @@ module Phronomy
       # @param max_concurrency [Integer, nil] maximum number of concurrent threads;
       #   nil means no limit (all tasks run simultaneously)
       # @param on_error        [Symbol] +:raise+ or +:skip+
+      # @param timeout         [Numeric, nil] maximum seconds to wait for all workers;
+      #   nil means wait indefinitely. When the deadline is exceeded,
+      #   {Phronomy::TimeoutError} is raised and all surviving worker threads are killed.
       # @return [Array<Hash, nil>] agent results in the same order as +tasks+
       # @raise [ArgumentError] if +on_error+ is not +:raise+ or +:skip+
       # @raise [ArgumentError] if +max_concurrency+ is not a positive Integer or nil
-      def dispatch_parallel(*tasks, max_concurrency: nil, on_error: :raise)
+      # @raise [Phronomy::TimeoutError] if +timeout+ is exceeded
+      def dispatch_parallel(*tasks, max_concurrency: nil, on_error: :raise, timeout: nil)
         unless [:raise, :skip].include?(on_error)
           raise ArgumentError, "unknown on_error: #{on_error.inspect}"
         end
@@ -122,7 +126,7 @@ module Phronomy
           raise ArgumentError, "max_concurrency must be a positive Integer"
         end
 
-        bounded_map(tasks, max_concurrency: max_concurrency, on_error: on_error)
+        bounded_map(tasks, max_concurrency: max_concurrency, on_error: on_error, timeout: timeout)
       end
 
       # Runs the same agent against multiple inputs in parallel (fan-out pattern).
@@ -137,11 +141,12 @@ module Phronomy
       # @param max_concurrency [Integer, nil]  forwarded to {#dispatch_parallel}
       # @param on_error        [Symbol]        forwarded to {#dispatch_parallel}
       # @return [Array<Hash, nil>] results in the same order as +inputs+
-      def fan_out(agent:, inputs:, config: {}, thread_id: nil, max_concurrency: nil, on_error: :raise)
+      def fan_out(agent:, inputs:, config: {}, thread_id: nil, max_concurrency: nil, on_error: :raise, timeout: nil)
         dispatch_parallel(
           *inputs.map { |input| {agent: agent, input: input, config: config, thread_id: thread_id} },
           max_concurrency: max_concurrency,
-          on_error: on_error
+          on_error: on_error,
+          timeout: timeout
         )
       end
 
@@ -186,7 +191,7 @@ module Phronomy
       # A +Mutex+ guards concurrent writes to +errors+ even though Array element
       # assignment at different indices is safe in MRI; this keeps the code
       # correct across alternative Ruby runtimes.
-      def bounded_map(tasks, max_concurrency:, on_error:)
+      def bounded_map(tasks, max_concurrency:, on_error:, timeout: nil)
         return [] if tasks.empty?
 
         results = Array.new(tasks.length)
@@ -225,7 +230,23 @@ module Phronomy
           end
         end
 
-        workers.each(&:join)
+        workers.each(&:join) if timeout.nil?
+
+        if timeout
+          deadline = Time.now + timeout
+          workers.each do |w|
+            remaining = deadline - Time.now
+            w.join([remaining, 0].max)
+          end
+
+          alive = workers.select(&:alive?)
+          unless alive.empty?
+            alive.each(&:kill)
+            raise Phronomy::TimeoutError,
+              "dispatch_parallel timed out after #{timeout}s " \
+              "(#{alive.length} of #{workers.length} workers still running)"
+          end
+        end
 
         first_error = errors.compact.first
         raise first_error if first_error

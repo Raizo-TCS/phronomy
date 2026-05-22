@@ -447,4 +447,36 @@ RSpec.describe Phronomy::Agent::Orchestrator do
       expect(received_thread_ids).to eq(["parent-thread"])
     end
   end
+
+  describe "#dispatch_parallel timeout: option (Issue #133)" do
+    let(:orchestrator_class) { Class.new(described_class) }
+    subject(:orchestrator) { orchestrator_class.new }
+
+    it "raises Phronomy::TimeoutError when a worker exceeds the timeout" do
+      slow_agent = Class.new(Phronomy::Agent::Base) do
+        define_method(:invoke) do |_input, config: {}, thread_id: nil|
+          sleep(10)
+          {output: "never", messages: []}
+        end
+      end
+
+      expect {
+        orchestrator.dispatch_parallel(
+          {agent: slow_agent, input: "x"},
+          timeout: 0.1
+        )
+      }.to raise_error(Phronomy::TimeoutError, /timed out/)
+    end
+
+    it "does not raise when all workers finish within the timeout" do
+      fast_agent = stub_agent("fast")
+
+      expect {
+        orchestrator.dispatch_parallel(
+          {agent: fast_agent, input: "x"},
+          timeout: 5
+        )
+      }.not_to raise_error
+    end
+  end
 end
