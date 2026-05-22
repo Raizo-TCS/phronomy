@@ -836,3 +836,41 @@ RSpec.describe "Phronomy::Agent::Base tool_aliases inheritance (Issue #126)" do
     expect(parent.tool_aliases.key?("ToolB")).to be false
   end
 end
+
+RSpec.describe "Agent thread-local context cache cleanup (issue #128)" do
+  class CacheCleanupAgent < Phronomy::Agent::Base
+    model "test-model"
+  end
+
+  let(:reply_tokens) { double("Tokens", input: 5, output: 5, cached: 0, cache_creation: 0) }
+  let(:reply_msg) do
+    double("Msg", role: :assistant, content: "hi", tool_calls: nil, tokens: reply_tokens)
+  end
+  let(:chat) do
+    dbl = double("Chat")
+    allow(dbl).to receive(:with_instructions).and_return(dbl)
+    allow(dbl).to receive(:with_tool).and_return(dbl)
+    allow(dbl).to receive(:messages).and_return([reply_msg])
+    allow(dbl).to receive(:ask).and_return(reply_msg)
+    dbl
+  end
+
+  before { allow(RubyLLM).to receive(:chat).and_return(chat) }
+
+  it "removes the cache entry after invoke completes" do
+    agent = CacheCleanupAgent.new
+    agent.invoke("hello")
+    cache = Thread.current[:phronomy_context_version_caches]
+    expect(cache).to be_nil.or(satisfy { |c| !c.key?(agent.object_id) })
+  end
+
+  it "does not accumulate entries across multiple sequential invocations" do
+    agent1 = CacheCleanupAgent.new
+    agent2 = CacheCleanupAgent.new
+    agent1.invoke("a")
+    agent2.invoke("b")
+    cache = Thread.current[:phronomy_context_version_caches] || {}
+    expect(cache.key?(agent1.object_id)).to be false
+    expect(cache.key?(agent2.object_id)).to be false
+  end
+end

@@ -468,6 +468,11 @@ module Phronomy
         else
           _invoke_impl(input, messages: messages, thread_id: thread_id, config: config)
         end
+      ensure
+        # Remove this agent's context cache entry from the current thread to
+        # prevent unbounded growth of the thread-local hash in long-lived
+        # processes (e.g. Rails servers).
+        Thread.current[:phronomy_context_version_caches]&.delete(object_id)
       end
 
       # Registers this agent as a child {AgentFSM} inside the given Workflow context.

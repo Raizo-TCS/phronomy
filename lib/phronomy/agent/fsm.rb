@@ -166,6 +166,10 @@ module Phronomy
             Phronomy::EventLoop.instance.post(
               Phronomy::Event.new(type: :error, target_id: fsm_id, payload: e)
             )
+          ensure
+            # Clear the thread-local context cache for this agent so the IO
+            # thread's cache does not grow unboundedly across invocations.
+            Thread.current[:phronomy_context_version_caches]&.delete(agent.object_id)
           end
         end
       end
