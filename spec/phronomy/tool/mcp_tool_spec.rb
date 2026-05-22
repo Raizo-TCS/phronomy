@@ -406,4 +406,70 @@ RSpec.describe Phronomy::Tool::McpTool do
       expect(http_dbl).to have_received(:read_timeout=).with(15)
     end
   end
+
+  describe "HttpTransport custom headers (Issue #144)" do
+    subject(:transport) do
+      Phronomy::Tool::McpTool::HttpTransport.new(
+        "http://localhost:8080/mcp",
+        headers: {"Authorization" => "Bearer secret", "X-Custom" => "value"}
+      )
+    end
+
+    it "includes custom headers in the request" do
+      body = JSON.generate({result: {tools: []}})
+      http_dbl = instance_double(Net::HTTP)
+      allow(http_dbl).to receive(:use_ssl=)
+      allow(http_dbl).to receive(:open_timeout=)
+      allow(http_dbl).to receive(:read_timeout=)
+      allow(Net::HTTP).to receive(:new).and_return(http_dbl)
+
+      sent_headers = {}
+      allow(http_dbl).to receive(:request) do |req|
+        sent_headers["Authorization"] = req["Authorization"]
+        sent_headers["X-Custom"] = req["X-Custom"]
+        res = instance_double(Net::HTTPOK)
+        allow(res).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+        allow(res).to receive(:body).and_return(body)
+        allow(res).to receive(:[]).with("Content-Type").and_return("application/json")
+        res
+      end
+
+      transport.fetch_tool("any") rescue nil
+      expect(sent_headers["Authorization"]).to eq("Bearer secret")
+      expect(sent_headers["X-Custom"]).to eq("value")
+    end
+  end
+
+  describe "StdioTransport env/cwd options (Issue #145)" do
+    it "passes env hash to Open3.popen3" do
+      expect(Open3).to receive(:popen3).with(
+        {"MY_KEY" => "val"}, "node", "server.js",
+        chdir: "/tmp"
+      ).and_return([
+        instance_double(IO, closed?: false, puts: nil),
+        instance_double(IO, gets: nil),
+        instance_double(IO, read: nil),
+        instance_double(Thread, join: nil)
+      ])
+
+      transport = Phronomy::Tool::McpTool::StdioTransport.new(
+        "node server.js",
+        env: {"MY_KEY" => "val"},
+        cwd: "/tmp"
+      )
+      transport.send(:ensure_started!) rescue nil
+    end
+
+    it "uses no env prefix and no chdir when not specified" do
+      expect(Open3).to receive(:popen3).with("node", "server.js").and_return([
+        instance_double(IO, closed?: false, puts: nil),
+        instance_double(IO, gets: nil),
+        instance_double(IO, read: nil),
+        instance_double(Thread, join: nil)
+      ])
+
+      transport = Phronomy::Tool::McpTool::StdioTransport.new("node server.js")
+      transport.send(:ensure_started!) rescue nil
+    end
+  end
 end

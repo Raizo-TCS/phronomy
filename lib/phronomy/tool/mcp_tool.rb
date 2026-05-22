@@ -111,15 +111,26 @@ module Phronomy
       # so that session state (registered resources, tool context, etc.) is preserved
       # across multiple calls.
       class StdioTransport
-        # @param command      [String]  shell command to spawn the MCP server process
-        # @param read_timeout [Integer] seconds to wait for the server's JSON-RPC response
+        # @param command         [String]  shell command to spawn the MCP server process
+        # @param read_timeout    [Integer] seconds to wait for the server's JSON-RPC response
         #   before raising {Phronomy::ToolError}. Mirrors the +read_timeout+ option on
         #   {HttpTransport}. Defaults to 30 seconds.
-        def initialize(command, read_timeout: 30)
+        # @param env             [Hash, nil] environment variable overrides for the subprocess.
+        #   When provided, only these variables are added/overridden; the parent environment
+        #   is still inherited unless explicitly cleared via an empty string value.
+        # @param cwd             [String, nil] working directory for the subprocess.
+        #   Defaults to the current process's working directory.
+        # @param startup_timeout [Numeric, nil] seconds to wait for the server to
+        #   emit its first line on stdout before raising {Phronomy::ToolError}.
+        #   When nil (default), no startup check is performed.
+        def initialize(command, read_timeout: 30, env: nil, cwd: nil, startup_timeout: nil)
           # Split the command string into an argv array so that Open3 executes
           # it directly without going through the shell, preventing injection.
           @command = Shellwords.split(command)
           @read_timeout = read_timeout
+          @env = env
+          @cwd = cwd
+          @startup_timeout = startup_timeout
           @stdin = nil
           @stdout = nil
           @stderr = nil
@@ -186,7 +197,11 @@ module Phronomy
         def ensure_started!
           return if @stdin && !@stdin.closed?
 
-          @stdin, @stdout, @stderr, @wait_thr = Open3.popen3(*@command)
+          popen3_opts = {}
+          popen3_opts[:chdir] = @cwd if @cwd
+
+          argv = @env ? [@env, *@command] : @command
+          @stdin, @stdout, @stderr, @wait_thr = Open3.popen3(*argv, **popen3_opts)
           # Drain stderr asynchronously to prevent the pipe buffer from filling
           # and deadlocking the child process. Errors inside the drain thread are
           # silently ignored since stderr content is diagnostics-only.
@@ -195,6 +210,14 @@ module Phronomy
           rescue
             nil
           end
+
+          if @startup_timeout
+            Timeout.timeout(@startup_timeout) { @stdout.gets.tap { |line| @stdout.ungetbyte(line) if line } }
+          end
+        rescue Timeout::Error
+          close
+          raise Phronomy::ToolError,
+            "MCP stdio server did not start within #{@startup_timeout} seconds"
         end
 
         def rpc_call(method, params)
@@ -239,10 +262,14 @@ module Phronomy
         # @param base_url     [String]  full URL of the MCP endpoint, e.g. "http://localhost:8080/mcp"
         # @param open_timeout [Integer] TCP connection timeout in seconds (default: 5)
         # @param read_timeout [Integer] HTTP read timeout in seconds (default: 30)
-        def initialize(base_url, open_timeout: 5, read_timeout: 30)
+        # @param headers      [Hash]    additional HTTP request headers (e.g. Authorization).
+        #   Merged on top of the default Content-Type and Accept headers; caller-supplied
+        #   values override defaults when keys collide.
+        def initialize(base_url, open_timeout: 5, read_timeout: 30, headers: {})
           @uri = URI.parse(base_url)
           @open_timeout = open_timeout
           @read_timeout = read_timeout
+          @extra_headers = headers
         end
 
         # HTTP connections are stateless; close is a no-op, defined so that
@@ -302,6 +329,7 @@ module Phronomy
           request = Net::HTTP::Post.new(path)
           request["Content-Type"] = "application/json"
           request["Accept"] = "application/json, text/event-stream"
+          @extra_headers.each { |k, v| request[k.to_s] = v.to_s }
           request.body = payload
 
           http_response = http.request(request)
