@@ -107,7 +107,7 @@ module Phronomy
             updates[name]
           end
         else
-          send(name)
+          deep_dup_value(send(name))
         end
       end
       new_context = self.class.new(**new_attrs)
@@ -123,6 +123,25 @@ module Phronomy
     def to_h
       self.class.fields.keys.each_with_object({}) do |name, h|
         h[name] = send(name)
+      end
+    end
+
+    private
+
+    # Performs a deep copy of a value for immutable context propagation.
+    # Arrays and Hashes are deep-duplicated recursively.
+    # Immutable values (nil, Symbol, Integer, Float, true/false, frozen String) are returned as-is.
+    # Other objects are dup'd (best-effort shallow copy for custom types).
+    def deep_dup_value(val)
+      case val
+      when Array
+        val.map { |v| deep_dup_value(v) }
+      when Hash
+        val.each_with_object({}) { |(k, v), h| h[k] = deep_dup_value(v) }
+      when NilClass, Symbol, Integer, Float, TrueClass, FalseClass
+        val
+      else
+        val.frozen? ? val : val.dup
       end
     end
   end

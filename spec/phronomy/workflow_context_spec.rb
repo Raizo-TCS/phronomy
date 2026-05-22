@@ -235,4 +235,48 @@ RSpec.describe Phronomy::WorkflowContext do
       expect { klass.new }.not_to raise_error
     end
   end
+
+  describe "deep copy isolation in merge (issue #123)" do
+    let(:klass) do
+      Class.new do
+        include Phronomy::WorkflowContext
+        field :tags, type: :replace, default: -> { [] }
+        field :meta, type: :replace, default: -> { {} }
+        field :count, type: :replace, default: 0
+      end
+    end
+
+    it "does not share Array references between old and new context after merge" do
+      old_ctx = klass.new(tags: ["a", "b"], count: 1)
+      new_ctx = old_ctx.merge(count: 2)
+
+      # Mutating new_ctx.tags must not affect old_ctx.tags
+      new_ctx.tags << "c"
+      expect(old_ctx.tags).to eq(["a", "b"])
+    end
+
+    it "does not share Hash references between old and new context after merge" do
+      old_ctx = klass.new(meta: {key: "v"}, count: 1)
+      new_ctx = old_ctx.merge(count: 2)
+
+      new_ctx.meta[:extra] = "x"
+      expect(old_ctx.meta).to eq({key: "v"})
+    end
+
+    it "deep-duplicates nested hashes inside arrays" do
+      old_ctx = klass.new(tags: [{name: "a"}], count: 1)
+      new_ctx = old_ctx.merge(count: 2)
+
+      new_ctx.tags.first[:name] = "mutated"
+      expect(old_ctx.tags.first[:name]).to eq("a")
+    end
+
+    it "still allows updating fields with new values via merge" do
+      old_ctx = klass.new(tags: ["a"], count: 0)
+      new_ctx = old_ctx.merge(tags: ["b"], count: 1)
+      expect(new_ctx.tags).to eq(["b"])
+      expect(new_ctx.count).to eq(1)
+      expect(old_ctx.tags).to eq(["a"])
+    end
+  end
 end
