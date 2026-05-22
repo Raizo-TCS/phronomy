@@ -104,10 +104,19 @@ module Phronomy
     end
 
     # Stops the background thread. Used in tests only.
+    #
+    # Sends a cooperative shutdown sentinel to the event queue so that the
+    # worker thread can finish any in-flight handler before exiting.  Waits up
+    # to +timeout+ seconds for a clean shutdown; if the thread is still alive
+    # afterwards it is force-killed as a last resort.
+    #
+    # @param timeout [Numeric] seconds to wait for cooperative shutdown (default 5)
     # @api private
-    def stop
+    def stop(timeout: 5)
       @running = false
-      @thread&.kill
+      @queue.push(:__stop__)   # unblock queue.pop so the worker can see @running = false
+      @thread&.join(timeout)
+      @thread&.kill if @thread&.alive?  # fallback after timeout
       @thread = nil
     end
 
@@ -116,6 +125,7 @@ module Phronomy
     def run_loop
       while @running
         event = @queue.pop
+        break if event == :__stop__  # cooperative shutdown sentinel
 
         case event.type
         when :finished, :halted, :error

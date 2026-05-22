@@ -213,4 +213,27 @@ RSpec.describe Phronomy::EventLoop do
       expect(warning_output).to include("custom")
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Cooperative shutdown (issue #135)
+  # ---------------------------------------------------------------------------
+
+  describe "cooperative stop (issue #135)" do
+    it "stops without force-killing the thread when no events are in-flight" do
+      Phronomy.configure { |c| c.event_loop = true }
+      loop_instance = Phronomy::EventLoop.instance
+      # Ensure the loop is running.
+      expect(loop_instance.instance_variable_get(:@thread)).not_to be_nil
+
+      loop_instance.stop(timeout: 2)
+
+      expect(loop_instance.instance_variable_get(:@thread)).to be_nil
+    end
+
+    it "accepts the timeout keyword argument" do
+      Phronomy.configure { |c| c.event_loop = true }
+      loop_instance = Phronomy::EventLoop.instance
+      expect { loop_instance.stop(timeout: 1) }.not_to raise_error
+    end
+  end
 end
