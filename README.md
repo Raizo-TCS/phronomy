@@ -5,9 +5,10 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 
 ## Features
 
-> **Stability labels**: `Stable` — production-ready, semver-protected API.
-> `Beta` — functional but the API may change in a minor release.
-> `Experimental` — subject to breaking changes without notice.
+> **Stability labels**:
+> - `Stable` — The public API is semver-protected. Breaking changes require a major version bump. Suitable for production use.
+> - `Beta` — Functionality is complete and tested, but the API may change in a minor version release (0.x). Use with awareness that signatures or behaviour may evolve.
+> - `Experimental` — Functionality may be incomplete or subject to breaking changes at any time without notice. Not recommended for production use.
 
 | Feature | Stability |
 |---|---|
@@ -324,13 +325,13 @@ end
 app = Phronomy::Workflow.define(EnrichContext) do
   initial :enrich
   state :enrich, action: ->(s) do
-    results = {}
-    threads = [
-      Thread.new { results[:summary] = Summarizer.call(s) },
-      Thread.new { results[:tags]    = Tagger.call(s) }
-    ]
-    threads.each { |t| t.join(10) }  # 10-second timeout
-    s.merge(summary: results[:summary], tags: Array(results[:tags]))
+    # Use Thread#value to collect results safely — avoids concurrent Hash writes
+    threads = {
+      summary: Thread.new { Summarizer.call(s) },
+      tags:    Thread.new { Tagger.call(s) }
+    }
+    threads.each_value { |t| t.join(10) }  # 10-second timeout
+    s.merge(summary: threads[:summary].value, tags: Array(threads[:tags].value))
   end
   transition from: :enrich, to: :__finish__
 end

@@ -21,6 +21,11 @@ jobs:
           - '3.2'
           - '3.3'
           - '3.4'
+          - 'head'
+        include:
+          - ruby: 'head'
+            continue-on-error: true
+    continue-on-error: ${{ matrix.ruby == 'head' }}
 
     steps:
       - uses: actions/checkout@v6
