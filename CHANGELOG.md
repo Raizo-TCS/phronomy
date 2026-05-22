@@ -9,14 +9,159 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### New Features
+
+- **`invoke_timeout` DSL and `Phronomy::TimeoutError`**: Agents can declare a per-invoke
+  timeout in seconds via `invoke_timeout N` in the class body. Exceeding the timeout raises
+  `Phronomy::TimeoutError` (a subclass of `Phronomy::Error`). The default remains unlimited.
+
+- **`dispatch_parallel` / `fan_out` — per-call `timeout:` option** (#133): Both methods now
+  accept `timeout: nil` (default, unlimited) or a positive `Numeric` in seconds. Timed-out
+  tasks are treated the same as errors and follow the existing `on_error:` policy (`:raise`
+  or `:skip`).
+
+- **MCP `HttpTransport` custom authentication headers** (#144): `McpTool.from_server` now
+  accepts `headers: {}`, forwarded all the way to `HttpTransport#initialize`. Arbitrary
+  headers (e.g. `Authorization: Bearer …`) are injected into every JSON-RPC request,
+  enabling use of MCP servers that require bearer tokens or API keys.
+
+- **`StdioTransport` — `env:`, `cwd:`, and `startup_timeout:` options** (#145):
+  Three new keyword arguments are now accepted when constructing a `StdioTransport` (and
+  therefore via `McpTool.from_server`): `env: {}` merges extra variables into the child
+  process environment; `cwd: nil` sets the working directory; `startup_timeout: 5` limits
+  how long to wait for the child process to become ready.
+
+- **Workflow DSL validates graph structure at build time** (#124): `Phronomy::Workflow.define`
+  now raises `ArgumentError` immediately when the graph is structurally invalid (e.g.
+  unreachable states, transitions referencing undefined targets). Errors surface at load time
+  rather than at the first `invoke`.
+
+- **Expanded error taxonomy** (#149): Five new subclasses of `Phronomy::Error` are now
+  available: `TransportError` (MCP network-layer failure), `RateLimitError` (HTTP 429),
+  `AuthenticationError` (HTTP 401/403), `ContextLengthError` (model context window exceeded),
+  and `CancellationError` (invoke cancelled, e.g. via `invoke_timeout`).
+
+### Enhancements
+
+- **`EventLoop` warns on events for unknown `target_id`**: When the event loop receives an
+  event whose `target_id` does not match any registered session, a warning is emitted instead
+  of silently discarding the event.
+
+- **`VectorStore#search` validates `k` is a positive integer**: All three backends
+  (`InMemory`, `RedisSearch`, `Pgvector`) now raise `ArgumentError` immediately when `k` is
+  not a positive integer, providing a clear error instead of a silent empty result or an
+  obscure database error.
+
+- **`max_parallel_tools` DSL**: Agents can cap the number of concurrent tool-call threads
+  with `max_parallel_tools N` in the class body. Useful for rate-limiting external API calls.
+  The default remains unlimited.
+
 ### Fixed
 
-- **`WorkflowContext` return value from entry actions is now adopted in EventLoop mode** ([#107]):
+- **`trace_pii: false` now redacts both input and output**: Previously only the LLM response
+  was redacted when `trace_pii` was `false`; user input was still recorded in traces. Both
+  sides are now replaced with `[REDACTED]`.
+
+- **`StdioTransport` — `read_timeout` prevents indefinite blocking**: A configurable
+  `read_timeout` (default 30 s) is now enforced on MCP stdio reads. A silent child process
+  could previously block the calling thread forever.
+
+- **MCP schema `required` and `enum` constraints propagated to `param` DSL**:
+  `McpTool.from_server` now copies `required` and `enum` constraints from the MCP JSON Schema
+  into the generated `param` declarations so downstream validation sees them.
+
+- **`FSMSession` notifies parent when child `AgentFSM` fails**: An unhandled error in a child
+  `AgentFSM` now correctly notifies the parent `FSMSession`, preventing it from waiting
+  indefinitely for a completion event that will never arrive.
+
+- **`WorkflowContext.field` rejects mutable non-Proc defaults**: Passing a plain `Array`,
+  `Hash`, or other mutable object as a field default now raises `ArgumentError` at
+  class-definition time, preventing accidental state sharing across workflow invocations.
+
+- **Tool aliases inherited by `Agent` subclasses**: `tool_aliases` declared in a parent
+  `Agent::Base` subclass are now correctly merged into subclasses rather than being silently
+  dropped.
+
+- **`ReactAgent` output selection skips tool-role messages**: The final output selection
+  logic no longer misidentifies `tool`-role messages as the assistant response, fixing
+  spurious tool-call JSON appearing in `result[:output]`.
+
+- **Thread-local context cache cleaned up after each `invoke`** (#128): `Agent::Base#invoke`
+  previously leaked thread-local context cache entries after each call, causing stale cache
+  hits in long-lived threads. The cache is now cleared in an `ensure` block.
+
+- **Unknown tool parameters are rejected** (#130): `Tool::Base#call` now raises
+  `ArgumentError` when keyword arguments not declared via the `param` DSL are passed, instead
+  of forwarding them silently to `execute`.
+
+- **`EventLoop#stop` uses cooperative shutdown instead of `Thread#kill`** (#135):
+  `Thread#kill` bypasses `ensure` blocks and is unsafe. The event loop now sets a sentinel
+  flag and joins the worker thread, allowing it to flush pending events before termination.
+
+- **`Orchestrator` propagates parent `config` and `thread_id` to sub-agents** (#132):
+  Sub-agents spawned via `dispatch` or `dispatch_parallel` now inherit the caller's `config`
+  hash and `thread_id`, enabling correct memory isolation and distributed tracing in
+  multi-agent pipelines.
+
+- **`Agent::Base` caches `static_knowledge` fetch at the class level** (#127): The RAG
+  knowledge fetch was re-executed on every `invoke`. The result is now cached at the class
+  level and invalidated only when the knowledge source changes, eliminating redundant
+  vector-store queries.
+
+- **`WorkflowContext#initialize` raises on unknown field keys** (#121): Passing an
+  unrecognised key to `WorkflowContext.new` (or `WorkflowContext#merge`) was silently
+  ignored. Both methods now raise `ArgumentError`, surfacing typos and API mismatches
+  immediately.
+
+- **`WorkflowContext#merge` deep-copies unchanged fields** (#123): Fields absent from the
+  `merge` argument were previously shared by reference with the original context, allowing
+  one branch to mutate another branch's state. All fields are now independently copied.
+
+- **Robust metadata parsing in `PgvectorStore#search`** (#139): Metadata stored as a
+  PostgreSQL JSON string is now parsed correctly regardless of whether the database driver
+  returns a `String` or an already-decoded `Hash`.
+
+- **`OutputParser::JSONParser` tries all fenced code blocks before falling back** (#146):
+  The parser now scans every fenced block in the LLM response (in order) and returns the
+  first one that parses as valid JSON, rather than only checking the first block. This
+  improves reliability with models that include prose before the JSON block.
+
+- **`on_error: :return_empty` emits a warning and returns a descriptive string** (#147):
+  Errors in tools that declare `on_error :return_empty` are now logged to `warn` before the
+  tool returns. The placeholder string includes the tool name and a brief reason, making
+  silent failures easier to diagnose.
+
+- **`context_version_cache` accessible after `invoke` completes**: The thread-local cache is
+  cleared in `invoke`'s `ensure` block, which caused `context_version_cache` to return `nil`
+  immediately after every call. The value is now persisted in `@last_context_version_cache`
+  so it remains readable post-invoke.
+
+- **`WorkflowContext` field type `:merge` comment corrected**: The inline comment incorrectly
+  described `:merge` as a deep-merge. It performs a shallow merge (`Hash#merge`). The comment
+  has been updated.
+
+- **`WorkflowContext` return value from entry actions now adopted in EventLoop mode** (#107):
   `FSMSession` previously discarded the `WorkflowContext` returned by entry action callables,
   causing `s.merge(...)` updates to be silently lost when `event_loop = true`. The context is
   now correctly propagated, bringing EventLoop semantics in line with the synchronous
   `WorkflowRunner`. Regression tests added in `spec/phronomy/fsm_session_spec.rb` (unit)
   and `spec/integration/workflow_spec.rb` (integration, both sync and EventLoop paths).
+
+### Documentation
+
+- **`trace_pii` option documented in README**: The `trace_pii:` configuration key and its
+  behaviour (default `false`, redacts input and output in trace records) is now described in
+  the Configuration section of the README.
+
+- **CJK token under-count warning in `TokenEstimator`**: A note in both the source and README
+  explains that the byte-based heuristic under-counts CJK characters by roughly 3×. Users
+  processing Chinese, Japanese, or Korean content should apply a correction factor or use a
+  model-specific tokenizer.
+
+- **Stability labels, `reset_configuration!` caveat, CI, and gemspec** (#140 / #141 / #142 / #143 / #148 / #150):
+  README stability table revised for several APIs. `Phronomy.reset_configuration!` now carries
+  a warning that it is intended for test isolation only. Gemspec upper bounds added for
+  `ruby_llm` and `pg`. `ruby head` added to the CI test matrix. README API smoke tests added.
 
 ---
 
