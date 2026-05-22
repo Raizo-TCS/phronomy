@@ -96,7 +96,7 @@
     
   
     
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Phronomy/Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span>, <span class='object_link'><a href="Phronomy/ConfigurationError.html" title="Phronomy::ConfigurationError (class)">ConfigurationError</a></span>, <span class='object_link'><a href="Phronomy/Error.html" title="Phronomy::Error (class)">Error</a></span>, <span class='object_link'><a href="Phronomy/Event.html" title="Phronomy::Event (class)">Event</a></span>, <span class='object_link'><a href="Phronomy/EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span>, <span class='object_link'><a href="Phronomy/FSMSession.html" title="Phronomy::FSMSession (class)">FSMSession</a></span>, <span class='object_link'><a href="Phronomy/GeneratorVerifier.html" title="Phronomy::GeneratorVerifier (class)">GeneratorVerifier</a></span>, <span class='object_link'><a href="Phronomy/GuardrailError.html" title="Phronomy::GuardrailError (class)">GuardrailError</a></span>, <span class='object_link'><a href="Phronomy/HandoffError.html" title="Phronomy::HandoffError (class)">HandoffError</a></span>, <span class='object_link'><a href="Phronomy/LowConfidenceError.html" title="Phronomy::LowConfidenceError (class)">LowConfidenceError</a></span>, <span class='object_link'><a href="Phronomy/ParseError.html" title="Phronomy::ParseError (class)">ParseError</a></span>, <span class='object_link'><a href="Phronomy/PromptTemplate.html" title="Phronomy::PromptTemplate (class)">PromptTemplate</a></span>, <span class='object_link'><a href="Phronomy/RecursionLimitError.html" title="Phronomy::RecursionLimitError (class)">RecursionLimitError</a></span>, <span class='object_link'><a href="Phronomy/TokenUsage.html" title="Phronomy::TokenUsage (class)">TokenUsage</a></span>, <span class='object_link'><a href="Phronomy/ToolError.html" title="Phronomy::ToolError (class)">ToolError</a></span>, <span class='object_link'><a href="Phronomy/Workflow.html" title="Phronomy::Workflow (class)">Workflow</a></span>, <span class='object_link'><a href="Phronomy/WorkflowRunner.html" title="Phronomy::WorkflowRunner (class)">WorkflowRunner</a></span>
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Phronomy/AuthenticationError.html" title="Phronomy::AuthenticationError (class)">AuthenticationError</a></span>, <span class='object_link'><a href="Phronomy/CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span>, <span class='object_link'><a href="Phronomy/Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span>, <span class='object_link'><a href="Phronomy/ConfigurationError.html" title="Phronomy::ConfigurationError (class)">ConfigurationError</a></span>, <span class='object_link'><a href="Phronomy/ContextLengthError.html" title="Phronomy::ContextLengthError (class)">ContextLengthError</a></span>, <span class='object_link'><a href="Phronomy/Error.html" title="Phronomy::Error (class)">Error</a></span>, <span class='object_link'><a href="Phronomy/Event.html" title="Phronomy::Event (class)">Event</a></span>, <span class='object_link'><a href="Phronomy/EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span>, <span class='object_link'><a href="Phronomy/FSMSession.html" title="Phronomy::FSMSession (class)">FSMSession</a></span>, <span class='object_link'><a href="Phronomy/GeneratorVerifier.html" title="Phronomy::GeneratorVerifier (class)">GeneratorVerifier</a></span>, <span class='object_link'><a href="Phronomy/GuardrailError.html" title="Phronomy::GuardrailError (class)">GuardrailError</a></span>, <span class='object_link'><a href="Phronomy/HandoffError.html" title="Phronomy::HandoffError (class)">HandoffError</a></span>, <span class='object_link'><a href="Phronomy/LowConfidenceError.html" title="Phronomy::LowConfidenceError (class)">LowConfidenceError</a></span>, <span class='object_link'><a href="Phronomy/ParseError.html" title="Phronomy::ParseError (class)">ParseError</a></span>, <span class='object_link'><a href="Phronomy/PromptTemplate.html" title="Phronomy::PromptTemplate (class)">PromptTemplate</a></span>, <span class='object_link'><a href="Phronomy/RateLimitError.html" title="Phronomy::RateLimitError (class)">RateLimitError</a></span>, <span class='object_link'><a href="Phronomy/RecursionLimitError.html" title="Phronomy::RecursionLimitError (class)">RecursionLimitError</a></span>, <span class='object_link'><a href="Phronomy/TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span>, <span class='object_link'><a href="Phronomy/TokenUsage.html" title="Phronomy::TokenUsage (class)">TokenUsage</a></span>, <span class='object_link'><a href="Phronomy/ToolError.html" title="Phronomy::ToolError (class)">ToolError</a></span>, <span class='object_link'><a href="Phronomy/TransportError.html" title="Phronomy::TransportError (class)">TransportError</a></span>, <span class='object_link'><a href="Phronomy/Workflow.html" title="Phronomy::Workflow (class)">Workflow</a></span>, <span class='object_link'><a href="Phronomy/WorkflowRunner.html" title="Phronomy::WorkflowRunner (class)">WorkflowRunner</a></span>
     
   
 </p>
@@ -192,7 +192,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Resets configuration; primarily used in tests.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Resets the global Phronomy configuration to defaults.</p></div></span>
   
 </li>
 
@@ -222,12 +222,12 @@
       <pre class="lines">
 
 
-58
-59
-60</pre>
+80
+81
+82</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 58</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 80</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_configuration'>configuration</span>
   <span class='ivar'>@configuration</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="Phronomy/Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Configuration.html#initialize-instance_method" title="Phronomy::Configuration#initialize (method)">new</a></span></span>
@@ -274,12 +274,12 @@
       <pre class="lines">
 
 
-62
-63
-64</pre>
+84
+85
+86</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 62</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 84</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_configure'>configure</span>
   <span class='kw'>yield</span> <span class='id identifier rubyid_configuration'>configuration</span>
@@ -300,7 +300,17 @@
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Resets configuration; primarily used in tests.</p>
+    <p>Resets the global Phronomy configuration to defaults.</p>
+<p><strong>Intended for test suites only.</strong> Calling this in a production process
+will drop all runtime configuration (tracer, model, tokenizer, etc.)
+globally and immediately affect all subsequent agent and workflow calls.</p>
+<p><strong>Parallel test suites warning:</strong> When tests run in parallel (e.g.
+<code>parallel_tests</code> or <code>parallel_rspec</code>), <code>reset_configuration!</code> in one
+worker will clear configuration shared with other workers in the same
+process. Prefer process-isolation strategies (forked workers) over
+thread-based parallelism when using this method.</p>
+<p>Typical usage in a sequential test suite:</p>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_after'>after</span> <span class='lbrace'>{</span> <span class='const'><span class='object_link'><a href="" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_reset_configuration!'>reset_configuration!</span> <span class='rbrace'>}</span></code></pre>
 
   </div>
 </div>
@@ -313,12 +323,12 @@
       <pre class="lines">
 
 
-67
-68
-69</pre>
+102
+103
+104</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 67</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 102</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_reset_configuration!'>reset_configuration!</span>
   <span class='ivar'>@configuration</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy/Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Configuration.html#initialize-instance_method" title="Phronomy::Configuration#initialize (method)">new</a></span></span>
@@ -333,7 +343,7 @@
 </div>
 
       <div id="footer">
-  Generated on Thu May 21 15:43:22 2026 by
+  Generated on Fri May 22 13:13:01 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

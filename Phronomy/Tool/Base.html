@@ -236,7 +236,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#param-class_method" title="param (class method)">.<strong>param</strong>(name, enum: nil, **options)  &#x21d2; Object </a>
+      <a href="#param-class_method" title="param (class method)">.<strong>param</strong>(name, enum: nil, properties: nil, **options)  &#x21d2; Object </a>
     
 
     
@@ -250,7 +250,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Extends RubyLLM::Tool.param with an optional <code>enum:</code> keyword.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Extends RubyLLM::Tool.param with optional <code>enum:</code> and <code>properties:</code> keywords.</p></div></span>
   
 </li>
 
@@ -273,6 +273,28 @@
 
   
     <span class="summary_desc"><div class='inline'><p>Returns the enum constraints registered via .param.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#param_schemas-class_method" title="param_schemas (class method)">.<strong>param_schemas</strong>  &#x21d2; Hash{Symbol =&gt; Hash} </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns nested schema definitions registered via .param(properties: ...).</p></div></span>
   
 </li>
 
@@ -578,12 +600,12 @@ Defaults to Kernel#sleep.</p>
       <pre class="lines">
 
 
-130
-131
-132</pre>
+156
+157
+158</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 130</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 156</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__sleep_proc'>_sleep_proc</span>
   <span class='ivar'>@_sleep_proc</span> <span class='op'>||</span> <span class='id identifier rubyid_method'>method</span><span class='lparen'>(</span><span class='symbol'>:sleep</span><span class='rparen'>)</span>
@@ -644,14 +666,14 @@ Defaults to Kernel#sleep.</p>
       <pre class="lines">
 
 
-71
-72
-73
-74
-75</pre>
+97
+98
+99
+100
+101</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 71</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 97</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_error'>on_error</span><span class='lparen'>(</span><span class='id identifier rubyid_behavior'>behavior</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='ivar'>@on_error</span> <span class='op'>||</span> <span class='symbol'>:raise</span> <span class='kw'>if</span> <span class='id identifier rubyid_behavior'>behavior</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -712,14 +734,14 @@ falls back to :return_error when coercion is not possible.</p></div>
       <pre class="lines">
 
 
-86
-87
-88
-89
-90</pre>
+112
+113
+114
+115
+116</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 86</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 112</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_schema_error'>on_schema_error</span><span class='lparen'>(</span><span class='id identifier rubyid_behavior'>behavior</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='ivar'>@on_schema_error</span> <span class='op'>||</span> <span class='symbol'>:return_error</span> <span class='kw'>if</span> <span class='id identifier rubyid_behavior'>behavior</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -734,7 +756,7 @@ falls back to :return_error when coercion is not possible.</p></div>
       <div class="method_details ">
   <h3 class="signature " id="param-class_method">
   
-    .<strong>param</strong>(name, enum: nil, **options)  &#x21d2; <tt>Object</tt> 
+    .<strong>param</strong>(name, enum: nil, properties: nil, **options)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -742,9 +764,14 @@ falls back to :return_error when coercion is not possible.</p></div>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Extends RubyLLM::Tool.param with an optional <code>enum:</code> keyword.
-The enum values are stored separately and injected into the JSON Schema
-produced by #params_schema.</p>
+    <p>Extends RubyLLM::Tool.param with optional <code>enum:</code> and <code>properties:</code> keywords.</p>
+<ul>
+<li><code>enum:</code>       restricts allowed values; injected into the JSON Schema.</li>
+<li><code>properties:</code> declares nested fields for :object type params.  Each
+entry is a Hash mapping field name (Symbol) to a spec Hash with keys:
+:type (Symbol, default :string), :required (Boolean, default false),
+and optionally :properties (for further nesting).</li>
+</ul>
 
   </div>
 </div>
@@ -778,7 +805,23 @@ produced by #params_schema.</p>
       
       
         &mdash;
-        <div class='inline'><p>allowed values; when given, added as &quot;enum&quot; in JSON Schema</p></div>
+        <div class='inline'><p>allowed values</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>properties</span>
+      
+      
+        <span class='type'>(<tt>Hash</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>nested schema for :object params</p></div>
       
     </li>
   
@@ -805,17 +848,19 @@ produced by #params_schema.</p>
       <pre class="lines">
 
 
-49
-50
-51
-52</pre>
+53
+54
+55
+56
+57</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 53</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_param'>param</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>enum:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_options'>options</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_param'>param</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>enum:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>properties:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_options'>options</span><span class='rparen'>)</span>
   <span class='kw'>super</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_options'>options</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_param_enums'>param_enums</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_enum'>enum</span> <span class='kw'>if</span> <span class='id identifier rubyid_enum'>enum</span>
+  <span class='id identifier rubyid_param_schemas'>param_schemas</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_normalize_nested_schema'>normalize_nested_schema</span><span class='lparen'>(</span><span class='id identifier rubyid_properties'>properties</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_properties'>properties</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -859,15 +904,67 @@ produced by #params_schema.</p>
       <pre class="lines">
 
 
-56
-57
-58</pre>
+61
+62
+63</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 61</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_param_enums'>param_enums</span>
   <span class='ivar'>@param_enums</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="param_schemas-class_method">
+  
+    .<strong>param_schemas</strong>  &#x21d2; <tt>Hash{Symbol =&gt; Hash}</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns nested schema definitions registered via .param(properties: ...).</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Hash{Symbol =&gt; Hash}</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+67
+68
+69</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 67</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_param_schemas'>param_schemas</span>
+  <span class='ivar'>@param_schemas</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -915,14 +1012,14 @@ produced by #params_schema.</p>
       <pre class="lines">
 
 
-94
-95
-96
-97
-98</pre>
+120
+121
+122
+123
+124</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 94</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 120</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_requires_approval'>requires_approval</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='ivar'>@requires_approval</span> <span class='op'>||</span> <span class='kw'>false</span> <span class='kw'>if</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1037,13 +1134,13 @@ Multiple policies can be registered and are evaluated in order.</p>
       <pre class="lines">
 
 
-116
-117
-118
-119</pre>
+142
+143
+144
+145</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 116</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 142</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_retry_on'>retry_on</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_exception_classes'>exception_classes</span><span class='comma'>,</span> <span class='label'>times:</span> <span class='int'>1</span><span class='comma'>,</span> <span class='label'>wait:</span> <span class='int'>0</span><span class='comma'>,</span> <span class='label'>base:</span> <span class='float'>1.0</span><span class='rparen'>)</span>
   <span class='ivar'>@retry_policies</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -1091,12 +1188,12 @@ Multiple policies can be registered and are evaluated in order.</p>
       <pre class="lines">
 
 
-123
-124
-125</pre>
+149
+150
+151</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 123</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 149</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_retry_policies'>retry_policies</span>
   <span class='ivar'>@retry_policies</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -1151,14 +1248,14 @@ the Workflow/Guardrail layer).</p>
       <pre class="lines">
 
 
-63
-64
-65
-66
-67</pre>
+89
+90
+91
+92
+93</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 63</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 89</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_scope'>scope</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='ivar'>@scope</span> <span class='kw'>if</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1270,31 +1367,32 @@ the on_error policy, and wrap errors as ToolError.</p>
       <pre class="lines">
 
 
-180
-181
-182
-183
-184
-185
-186
-187
-188
-189
-190
-191
-192
-193
-194
-195
-196
-197
-198
-199
-200
-201</pre>
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 180</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 206</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_args'>args</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_validated_args'>validated_args</span><span class='comma'>,</span> <span class='id identifier rubyid_schema_error'>schema_error</span> <span class='op'>=</span> <span class='id identifier rubyid_validate_and_coerce'>validate_and_coerce</span><span class='lparen'>(</span><span class='id identifier rubyid_args'>args</span><span class='rparen'>)</span>
@@ -1313,7 +1411,8 @@ the on_error policy, and wrap errors as ToolError.</p>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
   <span class='kw'>case</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_on_error'>on_error</span>
   <span class='kw'>when</span> <span class='symbol'>:return_empty</span>
-    <span class='lbracket'>[</span><span class='rbracket'>]</span>
+    <span class='id identifier rubyid_warn'>warn</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[Phronomy] Tool </span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'> suppressed error (on_error: :return_empty): </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_e'>e</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_e'>e</span><span class='period'>.</span><span class='id identifier rubyid_message'>message</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Tool error suppressed: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_e'>e</span><span class='period'>.</span><span class='id identifier rubyid_message'>message</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
   <span class='kw'>else</span>
     <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ToolError.html" title="Phronomy::ToolError (class)">ToolError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'> execution failed: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_e'>e</span><span class='period'>.</span><span class='id identifier rubyid_message'>message</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
   <span class='kw'>end</span>
@@ -1397,12 +1496,12 @@ The return value is passed back to the LLM as the tool result.</p>
       <pre class="lines">
 
 
-229
-230
-231</pre>
+256
+257
+258</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 229</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 256</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execute'>execute</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid__args'>_args</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#execute is not implemented</span><span class='tstring_end'>&quot;</span></span>
@@ -1438,12 +1537,12 @@ automatic conversion (CamelCase → snake_case, strips trailing &quot;_tool&quot
       <pre class="lines">
 
 
-142
-143
-144</pre>
+168
+169
+170</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 142</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 168</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_name'>name</span>
   <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_tool_name'>tool_name</span> <span class='op'>||</span> <span class='kw'>super</span>
@@ -1478,33 +1577,33 @@ Injects &quot;enum&quot; entries for any param declared with enum: [...].</p>
       <pre class="lines">
 
 
-148
-149
-150
-151
-152
-153
-154
-155
-156
-157
-158
-159
-160
-161
-162
-163
-164
-165
-166
-167
-168
-169
-170
-171</pre>
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 148</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 174</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_params_schema'>params_schema</span>
   <span class='id identifier rubyid_schema'>schema</span> <span class='op'>=</span> <span class='kw'>super</span>
@@ -1559,12 +1658,12 @@ Injects &quot;enum&quot; entries for any param declared with enum: [...].</p>
       <pre class="lines">
 
 
-204
-205
-206</pre>
+231
+232
+233</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 204</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 231</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_requires_approval'>requires_approval</span>
   <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_requires_approval'>requires_approval</span>
@@ -1611,12 +1710,12 @@ Injects &quot;enum&quot; entries for any param declared with enum: [...].</p>
       <pre class="lines">
 
 
-209
-210
-211</pre>
+236
+237
+238</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 209</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 236</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_requires_approval?'>requires_approval?</span>
   <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_requires_approval'>requires_approval</span>
@@ -1631,7 +1730,7 @@ Injects &quot;enum&quot; entries for any param declared with enum: [...].</p>
 </div>
 
       <div id="footer">
-  Generated on Thu May 21 15:43:23 2026 by
+  Generated on Fri May 22 13:13:01 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

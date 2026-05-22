@@ -672,7 +672,7 @@ silently returns [] in the meantime.</p></div>
 
   <span class='id identifier rubyid_validate_embedding_dimension!'>validate_embedding_dimension!</span><span class='lparen'>(</span><span class='id identifier rubyid_query_embedding'>query_embedding</span><span class='comma'>,</span> <span class='ivar'>@dimension</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ensure_index!'>ensure_index!</span><span class='lparen'>(</span><span class='ivar'>@dimension</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_k_safe'>k_safe</span> <span class='op'>=</span> <span class='const'>Integer</span><span class='lparen'>(</span><span class='id identifier rubyid_k'>k</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_k_safe'>k_safe</span> <span class='op'>=</span> <span class='id identifier rubyid_validate_k!'>validate_k!</span><span class='lparen'>(</span><span class='id identifier rubyid_k'>k</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_blob'>blob</span> <span class='op'>=</span> <span class='id identifier rubyid_pack_vector'>pack_vector</span><span class='lparen'>(</span><span class='id identifier rubyid_query_embedding'>query_embedding</span><span class='rparen'>)</span>
 
   <span class='id identifier rubyid_raw'>raw</span> <span class='op'>=</span> <span class='ivar'>@redis</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span>
@@ -696,7 +696,7 @@ silently returns [] in the meantime.</p></div>
 </div>
 
       <div id="footer">
-  Generated on Thu May 21 15:43:24 2026 by
+  Generated on Fri May 22 13:13:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

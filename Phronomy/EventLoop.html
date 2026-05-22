@@ -309,7 +309,7 @@ back to the EventLoop).</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#stop-instance_method" title="#stop (instance method)">#<strong>stop</strong>  &#x21d2; Object </a>
+      <a href="#stop-instance_method" title="#stop (instance method)">#<strong>stop</strong>(timeout: 5)  &#x21d2; Object </a>
     
 
     
@@ -773,7 +773,7 @@ the popped value will be an Exception — callers are responsible for re-raising
       <div class="method_details ">
   <h3 class="signature " id="stop-instance_method">
   
-    #<strong>stop</strong>  &#x21d2; <tt>Object</tt> 
+    #<strong>stop</strong>(timeout: 5)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -786,11 +786,35 @@ the popped value will be an Exception — callers are responsible for re-raising
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
 <p>Stops the background thread. Used in tests only.</p>
+<p>Sends a cooperative shutdown sentinel to the event queue so that the
+worker thread can finish any in-flight handler before exiting.  Waits up
+to <code>timeout</code> seconds for a clean shutdown; if the thread is still alive
+afterwards it is force-killed as a last resort.</p>
 
   </div>
 </div>
 <div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
   
+    <li>
+      
+        <span class='name'>timeout</span>
+      
+      
+        <span class='type'>(<tt>Numeric</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>5</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>seconds to wait for cooperative shutdown (default 5)</p></div>
+      
+    </li>
+  
+</ul>
+
 
 </div><table class="source_code">
   <tr>
@@ -798,19 +822,23 @@ the popped value will be an Exception — callers are responsible for re-raising
       <pre class="lines">
 
 
-108
-109
-110
-111
-112</pre>
+115
+116
+117
+118
+119
+120
+121</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 108</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 115</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_stop'>stop</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_stop'>stop</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='int'>5</span><span class='rparen'>)</span>
   <span class='ivar'>@running</span> <span class='op'>=</span> <span class='kw'>false</span>
-  <span class='ivar'>@thread</span><span class='op'>&amp;.</span><span class='id identifier rubyid_kill'>kill</span>
-  <span class='ivar'>@thread</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='symbol'>:__stop__</span><span class='rparen'>)</span>   <span class='comment'># unblock queue.pop so the worker can see @running = false
+</span>  <span class='ivar'>@thread</span><span class='op'>&amp;.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='id identifier rubyid_timeout'>timeout</span><span class='rparen'>)</span>
+  <span class='ivar'>@thread</span><span class='op'>&amp;.</span><span class='id identifier rubyid_kill'>kill</span> <span class='kw'>if</span> <span class='ivar'>@thread</span><span class='op'>&amp;.</span><span class='id identifier rubyid_alive?'>alive?</span>  <span class='comment'># fallback after timeout
+</span>  <span class='ivar'>@thread</span> <span class='op'>=</span> <span class='kw'>nil</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -822,7 +850,7 @@ the popped value will be an Exception — callers are responsible for re-raising
 </div>
 
       <div id="footer">
-  Generated on Thu May 21 15:43:23 2026 by
+  Generated on Fri May 22 13:13:01 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

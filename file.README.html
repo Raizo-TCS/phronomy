@@ -64,9 +64,12 @@
 It provides composable building blocks — Workflows, Agents, Tools, Guardrails, RAG, and Tracing — all powered by <a href="https://github.com/crmne/ruby_llm">RubyLLM</a> for LLM abstraction.</p>
 <h2 id="Features">Features</h2>
 <blockquote>
-<p><strong>Stability labels</strong>: <code>Stable</code> — production-ready, semver-protected API.
-<code>Beta</code> — functional but the API may change in a minor release.
-<code>Experimental</code> — subject to breaking changes without notice.</p>
+<p><strong>Stability labels</strong>:</p>
+<ul>
+<li><code>Stable</code> — The public API is semver-protected. Breaking changes require a major version bump. Suitable for production use.</li>
+<li><code>Beta</code> — Functionality is complete and tested, but the API may change in a minor version release (0.x). Use with awareness that signatures or behaviour may evolve.</li>
+<li><code>Experimental</code> — Functionality may be incomplete or subject to breaking changes at any time without notice. Not recommended for production use.</li>
+</ul>
 </blockquote>
 <table>
 <thead>
@@ -395,13 +398,13 @@ fan-outs consider additional rate-limiting at the application level.</p>
 <span class='id identifier rubyid_app'>app</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Workflow.html" title="Phronomy::Workflow (class)">Workflow</a></span></span><span class='period'>.</span><span class='id identifier rubyid_define'><span class='object_link'><a href="Phronomy/Workflow.html#define-class_method" title="Phronomy::Workflow.define (method)">define</a></span></span><span class='lparen'>(</span><span class='const'>EnrichContext</span><span class='rparen'>)</span> <span class='kw'>do</span>
   <span class='id identifier rubyid_initial'>initial</span> <span class='symbol'>:enrich</span>
   <span class='id identifier rubyid_state'>state</span> <span class='symbol'>:enrich</span><span class='comma'>,</span> <span class='label'>action:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_s'>s</span><span class='rparen'>)</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_results'>results</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
-    <span class='id identifier rubyid_threads'>threads</span> <span class='op'>=</span> <span class='lbracket'>[</span>
-      <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_results'>results</span><span class='lbracket'>[</span><span class='symbol'>:summary</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>Summarizer</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_s'>s</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='comma'>,</span>
-      <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_results'>results</span><span class='lbracket'>[</span><span class='symbol'>:tags</span><span class='rbracket'>]</span>    <span class='op'>=</span> <span class='const'>Tagger</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_s'>s</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
-    <span class='rbracket'>]</span>
-    <span class='id identifier rubyid_threads'>threads</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_t'>t</span><span class='op'>|</span> <span class='id identifier rubyid_t'>t</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='int'>10</span><span class='rparen'>)</span> <span class='rbrace'>}</span>  <span class='comment'># 10-second timeout
-</span>    <span class='id identifier rubyid_s'>s</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>summary:</span> <span class='id identifier rubyid_results'>results</span><span class='lbracket'>[</span><span class='symbol'>:summary</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>tags:</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_results'>results</span><span class='lbracket'>[</span><span class='symbol'>:tags</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='rparen'>)</span>
+    <span class='comment'># Use Thread#value to collect results safely — avoids concurrent Hash writes
+</span>    <span class='id identifier rubyid_threads'>threads</span> <span class='op'>=</span> <span class='lbrace'>{</span>
+      <span class='label'>summary:</span> <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='lbrace'>{</span> <span class='const'>Summarizer</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_s'>s</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='comma'>,</span>
+      <span class='label'>tags:</span>    <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='lbrace'>{</span> <span class='const'>Tagger</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_s'>s</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+    <span class='rbrace'>}</span>
+    <span class='id identifier rubyid_threads'>threads</span><span class='period'>.</span><span class='id identifier rubyid_each_value'>each_value</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_t'>t</span><span class='op'>|</span> <span class='id identifier rubyid_t'>t</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='int'>10</span><span class='rparen'>)</span> <span class='rbrace'>}</span>  <span class='comment'># 10-second timeout
+</span>    <span class='id identifier rubyid_s'>s</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>summary:</span> <span class='id identifier rubyid_threads'>threads</span><span class='lbracket'>[</span><span class='symbol'>:summary</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='label'>tags:</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_threads'>threads</span><span class='lbracket'>[</span><span class='symbol'>:tags</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_transition'>transition</span> <span class='label'>from:</span> <span class='symbol'>:enrich</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:__finish__</span>
 <span class='kw'>end</span>
@@ -475,8 +478,15 @@ Persist it however suits your application (in-memory hash, Redis, ActiveRecord, 
   <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_recursion_limit'>recursion_limit</span>     <span class='op'>=</span> <span class='int'>25</span>
   <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_tracer'>tracer</span>              <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tracing.html" title="Phronomy::Tracing (module)">Tracing</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tracing/NullTracer.html" title="Phronomy::Tracing::NullTracer (class)">NullTracer</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_before_completion'>before_completion</span>   <span class='op'>=</span> <span class='kw'>nil</span>   <span class='comment'># optional; global hook lambda
+</span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_trace_pii'>trace_pii</span>           <span class='op'>=</span> <span class='kw'>true</span>  <span class='comment'># set to false to redact agent inputs from traces
 </span><span class='kw'>end</span>
 </code></pre>
+<blockquote>
+<p><strong>Note</strong>: <code>trace_pii = false</code> currently redacts only the <em>input</em> to LLM/tool
+calls from trace spans. Output (LLM responses and tool results) is still
+included in traces. A full input+output redaction option is planned for a
+future release.</p>
+</blockquote>
 <h2 id="Context_Management">Context Management</h2>
 <p>Phronomy includes a context window management layer so agents automatically
 stay within the token limits of the underlying model.</p>
@@ -505,6 +515,17 @@ stay within the token limits of the underlying model.</p>
 </code></pre>
 <p><code>Agent::Base#invoke</code> builds a <code>TokenBudget</code> automatically. When the model is not in the
 registry the budget is silently skipped.</p>
+<blockquote>
+<p><strong>Note on CJK languages</strong>: The default <code>TokenEstimator</code> uses a character-ratio heuristic
+calibrated for ASCII/Latin text (4 chars/token). For Chinese, Japanese, and Korean text,
+actual token counts are approximately <strong>4× higher</strong> than the estimate because CJK
+characters are typically 1 token each. For accurate CJK token counting, supply a
+tokenizer-backed callable:</p>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_require'>require</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tiktoken_ruby</span><span class='tstring_end'>&quot;</span></span>
+<span class='id identifier rubyid_enc'>enc</span> <span class='op'>=</span> <span class='const'>Tiktoken</span><span class='period'>.</span><span class='id identifier rubyid_encoding_for_model'>encoding_for_model</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>gpt-4o</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+<span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Context.html" title="Phronomy::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Context/TokenEstimator.html" title="Phronomy::Context::TokenEstimator (module)">TokenEstimator</a></span></span><span class='period'>.</span><span class='id identifier rubyid_tokenizer'><span class='object_link'><a href="Phronomy/Context/TokenEstimator.html#tokenizer-class_method" title="Phronomy::Context::TokenEstimator.tokenizer (method)">tokenizer</a></span></span> <span class='op'>=</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_text'>text</span><span class='rparen'>)</span> <span class='tlambeg'>{</span> <span class='id identifier rubyid_enc'>enc</span><span class='period'>.</span><span class='id identifier rubyid_encode'>encode</span><span class='lparen'>(</span><span class='id identifier rubyid_text'>text</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span> <span class='rbrace'>}</span>
+</code></pre>
+</blockquote>
 <h2 id="Examples">Examples</h2>
 <p>Runnable examples covering all major features are available in the
 <a href="https://github.com/Raizo-TCS/phronomy-examples">phronomy-examples</a> repository.</p>
@@ -649,7 +670,7 @@ that require additional infrastructure (a running Rails server, database, etc.):
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Thu May 21 15:43:22 2026 by
+  Generated on Fri May 22 13:13:00 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

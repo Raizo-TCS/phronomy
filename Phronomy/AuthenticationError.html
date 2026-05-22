@@ -4,7 +4,7 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-  Module: Phronomy::Guardrail
+  Exception: Phronomy::AuthenticationError
   
     &mdash; Documentation by YARD 0.9.43
   
@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="../css/common.css" type="text/css">
 
 <script type="text/javascript">
-  pathId = "Phronomy::Guardrail";
+  pathId = "Phronomy::AuthenticationError";
   relpath = '../';
 </script>
 
@@ -38,10 +38,10 @@
       <div id="header">
         <div id="menu">
   
-    <a href="../_index.html">Index (G)</a> &raquo;
+    <a href="../_index.html">Index (A)</a> &raquo;
     <span class='title'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span>
      &raquo; 
-    <span class="title">Guardrail</span>
+    <span class="title">AuthenticationError</span>
   
 </div>
 
@@ -61,12 +61,34 @@
         <div class="clear"></div>
       </div>
 
-      <div id="content"><h1>Module: Phronomy::Guardrail
+      <div id="content"><h1>Exception: Phronomy::AuthenticationError
   
   
   
 </h1>
 <div class="box_info">
+  
+  <dl>
+    <dt>Inherits:</dt>
+    <dd>
+      <span class="inheritName"><span class='object_link'><a href="TransportError.html" title="Phronomy::TransportError (class)">TransportError</a></span></span>
+      
+        <ul class="fullTree">
+          <li>Object</li>
+          
+            <li class="next">StandardError</li>
+          
+            <li class="next"><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></li>
+          
+            <li class="next"><span class='object_link'><a href="TransportError.html" title="Phronomy::TransportError (class)">TransportError</a></span></li>
+          
+            <li class="next">Phronomy::AuthenticationError</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+    </dd>
+  </dl>
   
 
   
@@ -80,32 +102,45 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/guardrail/base.rb<span class="defines">,<br>
-  lib/phronomy/guardrail/input_guardrail.rb,<br> lib/phronomy/guardrail/output_guardrail.rb</span>
-
+    <dd>lib/phronomy.rb
 </dd>
   </dl>
   
 </div>
 
-<h2>Defined Under Namespace</h2>
-<p class="children">
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>Raised when the LLM API rejects the request due to an invalid or revoked API key.
+Callers should not retry without fixing the credentials.</p>
+
+  </div>
+</div>
+<div class="tags">
   
-    
+
+</div>
+
+
+
+
+
+
+
   
-    
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Guardrail/Base.html" title="Phronomy::Guardrail::Base (class)">Base</a></span>, <span class='object_link'><a href="Guardrail/InputGuardrail.html" title="Phronomy::Guardrail::InputGuardrail (class)">InputGuardrail</a></span>, <span class='object_link'><a href="Guardrail/OutputGuardrail.html" title="Phronomy::Guardrail::OutputGuardrail (class)">OutputGuardrail</a></span>
-    
   
-</p>
-
-
-
-
-
-
-
-
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 </div>
 
