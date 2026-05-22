@@ -37,9 +37,10 @@ module Phronomy
             end
           end
 
-          # Fall back to the last message
-          # guards against the case where the final message is a tool-call or
-          output = messages.reverse.find { |m| m.content && !m.content.empty? }&.content
+          # Select the last assistant-produced content as the output, skipping
+          # raw tool result messages (role: :tool) to avoid returning tool JSON
+          # or status strings as the agent's answer when iterations are exhausted.
+          output = messages.reverse.find { |m| m.content && !m.content.empty? && m.role != :tool }&.content
 
           # Run output guardrails before returning to the caller.
           run_output_guardrails!(output)
@@ -88,9 +89,9 @@ module Phronomy
             end
           end
 
-          # Fall back to the last message that carries non-nil content (same as
-          # the non-streaming path above).
-          output = messages.reverse.find { |m| m.content && !m.content.empty? }&.content
+          # Select the last assistant-produced content as the output, skipping
+          # raw tool result messages (role: :tool) — same as the non-streaming path.
+          output = messages.reverse.find { |m| m.content && !m.content.empty? && m.role != :tool }&.content
           run_output_guardrails!(output)
 
           result = {output: output, messages: messages, usage: total_usage, iterations_exhausted: iterations_exhausted}

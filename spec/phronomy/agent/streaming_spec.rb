@@ -18,7 +18,7 @@ end
 # ---------------------------------------------------------------------------
 RSpec.describe "Agent streaming" do
   let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0) }
-  let(:fake_response) { double("Response", content: "Hello, world!", tool_calls: nil, tokens: fake_tokens) }
+  let(:fake_response) { double("Response", role: :assistant, content: "Hello, world!", tool_calls: nil, tokens: fake_tokens) }
 
   # Build a chat double that supports streaming callbacks
   def build_streaming_chat(response)

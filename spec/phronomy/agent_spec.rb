@@ -347,7 +347,7 @@ end
 RSpec.describe Phronomy::Agent::ReactAgent do
   # Chat mock that completes immediately without tool calls
   let(:final_tokens) { double("Tokens", input: 20, output: 10, cached: 0, cache_creation: 0) }
-  let(:final_message) { double("Message", content: "Final answer", tool_calls: nil, tokens: final_tokens) }
+  let(:final_message) { double("Message", role: :assistant, content: "Final answer", tool_calls: nil, tokens: final_tokens) }
   let(:messages_list) { [final_message] }
   let(:done_chat) do
     dbl = double("Chat")
@@ -360,7 +360,7 @@ RSpec.describe Phronomy::Agent::ReactAgent do
   end
 
   # Chat mock with two steps: tool call followed by final answer
-  let(:tool_message) { double("Message", content: "Tool called", tool_calls: [{name: "search"}]) }
+  let(:tool_message) { double("Message", role: :assistant, content: "Tool called", tool_calls: [{name: "search"}]) }
   let(:messages_with_tool) { [tool_message] }
   let(:tool_then_done_chat) do
     dbl = double("Chat")
@@ -416,8 +416,8 @@ RSpec.describe Phronomy::Agent::ReactAgent do
 
     let(:tool_tokens) { double("Tokens", input: 15, output: 3, cached: 0, cache_creation: 0) }
     let(:final_tokens2) { double("Tokens", input: 12, output: 8, cached: 0, cache_creation: 0) }
-    let(:tool_call_msg) { double("ToolCallMessage", content: nil, tool_calls: [double("ToolCall", name: "add")], tokens: tool_tokens) }
-    let(:final_answer_msg) { double("FinalMessage", content: "The answer is 7", tool_calls: nil, tokens: final_tokens2) }
+    let(:tool_call_msg) { double("ToolCallMessage", role: :assistant, content: nil, tool_calls: [double("ToolCall", name: "add")], tokens: tool_tokens) }
+    let(:final_answer_msg) { double("FinalMessage", role: :assistant, content: "The answer is 7", tool_calls: nil, tokens: final_tokens2) }
 
     let(:step1_chat) do
       dbl = double("Step1Chat")
@@ -519,7 +519,7 @@ RSpec.describe Phronomy::Agent::ReactAgent do
 
     # A chat double that always returns a tool call (never terminates)
     let(:always_tool_msg) do
-      double("AlwaysToolMsg", content: nil,
+      double("AlwaysToolMsg", role: :assistant, content: nil,
         tool_calls: [double("tc", name: "noop")],
         tokens: double("Tok", input: 1, output: 1, cached: 0, cache_creation: 0))
     end
@@ -545,6 +545,30 @@ RSpec.describe Phronomy::Agent::ReactAgent do
       result = ExhaustedReactAgent.new.invoke("Hello")
       expect(result[:iterations_exhausted]).to be true
     end
+
+    it "does not return a raw tool result as output when iterations exhausted" do
+      # Simulate a cycle where the last assistant message is a tool-call and
+      # the conversation history also contains a tool result (role: :tool).
+      # When iterations are exhausted, the tool result string must NOT become
+      # the agent's output.
+      tool_result_msg = double("ToolResultMsg", role: :tool, content: "raw_tool_output",
+        tool_calls: nil,
+        tokens: double("Tok", input: 1, output: 1, cached: 0, cache_creation: 0))
+      exhausted_chat = double("ExhaustedChat")
+      allow(exhausted_chat).to receive(:with_instructions).and_return(exhausted_chat)
+      allow(exhausted_chat).to receive(:with_tool).and_return(exhausted_chat)
+      allow(exhausted_chat).to receive(:ask).and_return(always_tool_msg)
+      # Messages: tool_result first, then another tool-call message last so that
+      # done=false and iterations_exhausted=true, while tool result is in history.
+      allow(exhausted_chat).to receive(:messages).and_return([tool_result_msg, always_tool_msg])
+      allow(exhausted_chat).to receive(:last_message).and_return(always_tool_msg)
+      allow(exhausted_chat).to receive(:complete).and_return(always_tool_msg)
+      allow(exhausted_chat).to receive(:add_message)
+      allow(RubyLLM).to receive(:chat).and_return(exhausted_chat)
+      result = ExhaustedReactAgent.new.invoke("Hello")
+      expect(result[:output]).not_to eq("raw_tool_output")
+      expect(result[:iterations_exhausted]).to be true
+    end
   end
 
   describe "#stream iterations_exhausted flag" do
@@ -554,7 +578,7 @@ RSpec.describe Phronomy::Agent::ReactAgent do
     end
 
     let(:normal_msg) do
-      double("NormalMsg", content: "done", tool_calls: nil,
+      double("NormalMsg", role: :assistant, content: "done", tool_calls: nil,
         tokens: double("Tok", input: 1, output: 1, cached: 0, cache_creation: 0))
     end
     let(:normal_chat) do
@@ -579,7 +603,7 @@ RSpec.describe Phronomy::Agent::ReactAgent do
     it "returns iterations_exhausted: true when max_iterations is reached in stream" do
       # Reuse stuck_chat from the outer context via a local double
       stuck = double("StuckStreamChat")
-      always_msg = double("AlwaysToolMsg", content: nil,
+      always_msg = double("AlwaysToolMsg", role: :assistant, content: nil,
         tool_calls: [double("tc", name: "noop")],
         tokens: double("Tok", input: 1, output: 1, cached: 0, cache_creation: 0))
       allow(stuck).to receive(:with_instructions).and_return(stuck)
