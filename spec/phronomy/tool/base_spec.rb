@@ -424,4 +424,54 @@ RSpec.describe Phronomy::Tool::Base do
         "execute received a String instead of Integer — :return_error mode must reject '42' or coerce it"
     end
   end
+
+  describe "unknown parameter rejection (issue #130)" do
+    let(:simple_tool) do
+      Class.new(described_class) do
+        description "A simple tool"
+        param :name, type: :string, desc: "Name"
+
+        def execute(name:)
+          "hello #{name}"
+        end
+      end.new
+    end
+
+    it "returns a schema-error string when an unknown key is passed (default :return_error mode)" do
+      result = simple_tool.call({"name" => "Alice", "injected" => "evil"})
+      expect(result).to start_with("Schema validation failed:")
+      expect(result).to include("injected")
+    end
+
+    it "does not pass unknown keys through to execute" do
+      executed_args = nil
+      tool = Class.new(described_class) do
+        description "spy tool"
+        param :x, type: :string, desc: "x"
+
+        define_method(:execute) do |**kwargs|
+          executed_args = kwargs
+          "ok"
+        end
+      end.new
+
+      tool.call({"x" => "v", "secret" => "payload"})
+      expect(executed_args).to be_nil.or(satisfy { |a| !a.key?(:secret) })
+    end
+
+    it "raises ToolError when on_schema_error is :raise and unknown key is given" do
+      strict_tool = Class.new(described_class) do
+        description "strict"
+        on_schema_error :raise
+        param :n, type: :string, desc: "n"
+
+        def execute(n:)
+          n
+        end
+      end.new
+
+      expect { strict_tool.call({"n" => "ok", "bad" => "x"}) }
+        .to raise_error(Phronomy::ToolError, /unknown parameter/)
+    end
+  end
 end

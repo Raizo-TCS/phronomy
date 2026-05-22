@@ -312,9 +312,14 @@ module Phronomy
           result[name] = value
         end
 
-        # Merge in any extra keys not covered by declared parameters (pass-through).
-        extra = normalized.reject { |k, _| self.class.parameters.key?(k) }
-        [result.merge(extra), nil]
+        # Reject any keys not covered by declared parameters to prevent silent
+        # parameter injection (e.g. via prompt injection).
+        extra = normalized.keys - self.class.parameters.keys
+        unless extra.empty?
+          return [nil, "unknown parameter(s): #{extra.inspect}"]
+        end
+
+        [result, nil]
       end
 
       # Returns a type-error message string if +value+ does not match +declared_type+,
