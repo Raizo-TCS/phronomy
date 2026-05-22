@@ -83,6 +83,23 @@ RSpec.describe Phronomy::OutputParser::JsonParser do
         expect { parser.parse("bad") }.to raise_error(Phronomy::ParseError, /Input: bad/)
       end
     end
+
+    context "multi-block and no-fence extraction (Issue #146)" do
+      it "skips a non-JSON first fence and uses the second JSON fence" do
+        text = "```ruby\nputs 'hi'\n```\n```json\n{\"a\":1}\n```"
+        expect(parser.parse(text)).to eq({a: 1})
+      end
+
+      it "parses bare JSON with no code fence" do
+        text = '  {"bare": true}  '
+        expect(parser.parse(text)).to eq({bare: true})
+      end
+
+      it "picks the first valid JSON fence when multiple JSON fences are present" do
+        text = "```json\n{\"first\":1}\n```\n```json\n{\"second\":2}\n```"
+        expect(parser.parse(text)).to eq({first: 1})
+      end
+    end
   end
 
   describe "#invoke" do
