@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "set"
 require_relative "workflow_runner"
 require_relative "runnable"
 
@@ -196,10 +197,63 @@ module Phronomy
         @transitions << {from: from, to: dest, guard: guard, on: on}
       end
 
+      private
+
+      # Performs build-time structural validation of the workflow graph.
+      # Raises ArgumentError for hard errors; warns for unreachable states.
+      def validate_graph!
+        all_states = (@declared_states + @wait_state_names).uniq
+        entry_point = @initial || @declared_states.first
+
+        if entry_point.nil?
+          raise ArgumentError, "Workflow has no states declared — call state(...) or wait_state(...) at least once"
+        end
+
+        # Collect all reachable state names from transitions (excluding :__finish__ sentinel).
+        referenced_targets = @transitions.map { |t| t[:to] }.reject { |t| t == FINISH }
+        undefined = referenced_targets - all_states
+        unless undefined.empty?
+          raise ArgumentError,
+            "Workflow transition(s) reference undefined state(s): #{undefined.sort.inspect}. " \
+            "Declare each with state(...) or wait_state(...)."
+        end
+
+        # Reachability check: warn about declared states that cannot be reached
+        # from the initial state (transition target not referenced by any transition).
+        reachable = Set.new([entry_point])
+        queue = [entry_point]
+        until queue.empty?
+          current = queue.shift
+          @transitions.each do |t|
+            next if t[:from] != current
+            next if t[:to] == FINISH
+            unless reachable.include?(t[:to])
+              reachable.add(t[:to])
+              queue << t[:to]
+            end
+          end
+        end
+
+        unreachable = all_states - reachable.to_a
+        unless unreachable.empty?
+          warn "[Phronomy] Workflow has unreachable state(s): #{unreachable.sort.inspect}. " \
+               "These states can never be entered from the initial state '#{entry_point}'."
+        end
+      end
+
+      public
+
       # Builds and returns a Phronomy::Workflow backed by a WorkflowRunner.
+      # Performs build-time validation of the graph structure:
+      #   - raises ArgumentError when no initial state is declared and no states have been defined
+      #   - raises ArgumentError when a transition references an undeclared target state
+      #   - warns when declared states are unreachable from the initial state
+      # @raise [ArgumentError] on structural errors
       def build
         entry_actions = @entry_actions.dup
         exit_actions = @exit_actions.dup
+
+        validate_graph!
 
         # Auto-fire transitions (no :on): fire automatically when action completes.
         # External events (with :on): triggered manually via send_event.

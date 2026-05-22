@@ -140,4 +140,50 @@ RSpec.describe Phronomy::Workflow do
       expect(result.approved).to eq(true)
     end
   end
+
+  describe "build-time validation (Issue #124)" do
+    let(:ctx) do
+      Class.new do
+        include Phronomy::WorkflowContext
+        field :v, type: :replace, default: nil
+      end
+    end
+
+    it "raises ArgumentError when a transition target is an undeclared state" do
+      expect {
+        Phronomy::Workflow.define(ctx) do
+          initial :step
+          state :step, action: ->(s) { s }
+          transition from: :step, to: :missing
+        end
+      }.to raise_error(ArgumentError, /undefined state.*missing/i)
+    end
+
+    it "raises ArgumentError when no states are declared" do
+      expect {
+        Phronomy::Workflow.define(ctx) {}
+      }.to raise_error(ArgumentError, /no states declared/i)
+    end
+
+    it "emits a warning for unreachable states" do
+      expect {
+        Phronomy::Workflow.define(ctx) do
+          initial :step
+          state :step, action: ->(s) { s }
+          transition from: :step, to: :__finish__
+          state :orphan, action: ->(s) { s }
+        end
+      }.to output(/unreachable state.*orphan/i).to_stderr
+    end
+
+    it "does not raise for a valid graph" do
+      expect {
+        Phronomy::Workflow.define(ctx) do
+          initial :step
+          state :step, action: ->(s) { s }
+          transition from: :step, to: :__finish__
+        end
+      }.not_to raise_error
+    end
+  end
 end
