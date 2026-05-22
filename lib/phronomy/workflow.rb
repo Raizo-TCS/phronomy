@@ -62,6 +62,8 @@ module Phronomy
     # @param context_class [Class] class that includes Phronomy::WorkflowContext
     # @yield block evaluated in DSL context
     # @return [Phronomy::Workflow] compiled and ready-to-run workflow instance
+    # @raise [ArgumentError] if no states are declared (empty workflow)
+    # @raise [ArgumentError] if any transition references an undeclared +to:+ or +from:+ state
     def self.define(context_class, &block)
       builder = Builder.new(context_class)
       builder.instance_eval(&block)

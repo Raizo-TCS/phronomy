@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### New Features
+### Added
 
 - **`invoke_timeout` DSL and `Phronomy::TimeoutError`**: Agents can declare a per-invoke
   timeout in seconds via `invoke_timeout N` in the class body. Exceeding the timeout raises
@@ -32,14 +32,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   how long to wait for the child process to become ready.
 
 - **Workflow DSL validates graph structure at build time** (#124): `Phronomy::Workflow.define`
-  now raises `ArgumentError` immediately when the graph is structurally invalid (e.g.
-  unreachable states, transitions referencing undefined targets). Errors surface at load time
-  rather than at the first `invoke`.
+  now raises `ArgumentError` immediately for hard structural errors (no states declared,
+  transitions referencing undefined targets). Unreachable states emit a warning but do not
+  raise. Errors surface at load time rather than at the first `invoke`.
 
 - **Expanded error taxonomy** (#149): Five new subclasses of `Phronomy::Error` are now
-  available: `TransportError` (MCP network-layer failure), `RateLimitError` (HTTP 429),
-  `AuthenticationError` (HTTP 401/403), `ContextLengthError` (model context window exceeded),
-  and `CancellationError` (invoke cancelled, e.g. via `invoke_timeout`).
+  available: `TransportError` (MCP or LLM network-layer failure; subclasses are
+  `RateLimitError` for HTTP 429 and `AuthenticationError` for HTTP 401/403),
+  `ContextLengthError` (prompt exceeds model context window), and
+  `CancellationError` (explicit invocation cancellation, distinct from the
+  deadline-exceeded `TimeoutError`). All five are defined as subclasses of
+  `Phronomy::Error` so application code can rescue them uniformly.
 
 - **`Agent::Base.static_knowledge_refresh!`** (#164): New class-level method that clears the
   cached `static_knowledge` chunks so the next `invoke` re-fetches from all registered
@@ -51,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   messages — starting with the unreachable-state warning from `Workflow.define` — are routed
   through this logger instead of writing directly to `$stderr` via `Kernel#warn`.
 
-### Enhancements
+### Changed
 
 - **`EventLoop` warns on events for unknown `target_id`**: When the event loop receives an
   event whose `target_id` does not match any registered session, a warning is emitted instead
@@ -64,7 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`max_parallel_tools` DSL**: Agents can cap the number of concurrent tool-call threads
   with `max_parallel_tools N` in the class body. Useful for rate-limiting external API calls.
-  The default remains unlimited.
+  The default is **10** (inheriting from `Base`); set explicitly to raise or lower the cap.
 
 - **`max_parallel_tools` and `invoke_timeout` DSL argument validation** (#152): Both setters
   now raise `ArgumentError` at class-definition time if the supplied value is invalid
@@ -83,9 +86,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **`trace_pii: false` now redacts both input and output**: Previously only the LLM response
-  was redacted when `trace_pii` was `false`; user input was still recorded in traces. Both
-  sides are now replaced with `[REDACTED]`.
+- **`trace_pii: false` now redacts both input and output**: Previously only the user input
+  was redacted when `trace_pii` was `false`; LLM responses and tool results were still
+  forwarded to the tracing backend unredacted. Both sides are now replaced with `[REDACTED]`.
 
 - **`StdioTransport` — `read_timeout` prevents indefinite blocking**: A configurable
   `read_timeout` (default 30 s) is now enforced on MCP stdio reads. A silent child process
@@ -99,9 +102,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `AgentFSM` now correctly notifies the parent `FSMSession`, preventing it from waiting
   indefinitely for a completion event that will never arrive.
 
-- **`WorkflowContext.field` rejects mutable non-Proc defaults**: Passing a plain `Array`,
-  `Hash`, or other mutable object as a field default now raises `ArgumentError` at
-  class-definition time, preventing accidental state sharing across workflow invocations.
+- **`WorkflowContext.field` rejects plain `Array` or `Hash` defaults**: Passing a plain `Array`
+  or `Hash` as a field default now raises `ArgumentError` at class-definition time,
+  preventing accidental state sharing across workflow invocations. Other mutable objects
+  are not checked. Wrap collection defaults in a Proc: `default: -> { [] }`.
 
 - **Tool aliases inherited by `Agent` subclasses**: `tool_aliases` declared in a parent
   `Agent::Base` subclass are now correctly merged into subclasses rather than being silently
@@ -129,18 +133,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   multi-agent pipelines.
 
 - **`Agent::Base` caches `static_knowledge` fetch at the class level** (#127): The RAG
-  knowledge fetch was re-executed on every `invoke`. The result is now cached at the class
-  level and invalidated only when the knowledge source changes, eliminating redundant
-  vector-store queries.
+  knowledge fetch was re-executed on every `invoke`. The result is now memoized at the class
+  level (`@static_knowledge_chunks ||= ...`), eliminating redundant vector-store queries.
+  The cache is **not** invalidated automatically when source content changes; call
+  `static_knowledge_refresh!` explicitly to force a reload.
 
 - **`WorkflowContext#initialize` raises on unknown field keys** (#121): Passing an
-  unrecognised key to `WorkflowContext.new` (or `WorkflowContext#merge`) was silently
-  ignored. Both methods now raise `ArgumentError`, surfacing typos and API mismatches
-  immediately.
+  unrecognised key to `WorkflowContext.new` was silently ignored. The constructor now raises
+  `ArgumentError`, surfacing typos and API mismatches immediately.
 
-- **`WorkflowContext#merge` raises `ArgumentError` for unknown field keys** (#154): An
-  additional guard now covers updates via `#merge` (a complementary fix to #121). Typos in
-  merge calls are surfaced immediately rather than being silently discarded.
+- **`WorkflowContext#merge` raises `ArgumentError` for unknown field keys** (#154): Passing
+  an unrecognised key to `WorkflowContext#merge` was silently ignored. The method now raises
+  `ArgumentError`, matching the guard added to `#initialize` in #121.
 
 - **`WorkflowContext#deep_dup_value` rescues `TypeError` for non-dupable objects** (#156):
   Objects that raise `TypeError` from `#dup` (e.g. `Method`, frozen `Proc`, `Integer`,
@@ -165,11 +169,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `merge` argument were previously shared by reference with the original context, allowing
   one branch to mutate another branch's state. All fields are now independently copied.
 
-- **Robust metadata parsing in `PgvectorStore#search`** (#139): Metadata stored as a
+- **Robust metadata parsing in `VectorStore::Pgvector#search`** (#139): Metadata stored as a
   PostgreSQL JSON string is now parsed correctly regardless of whether the database driver
   returns a `String` or an already-decoded `Hash`.
 
-- **`OutputParser::JSONParser` tries all fenced code blocks before falling back** (#146):
+- **`OutputParser::JsonParser` tries all fenced code blocks before falling back** (#146):
   The parser now scans every fenced block in the LLM response (in order) and returns the
   first one that parses as valid JSON, rather than only checking the first block. This
   improves reliability with models that include prose before the JSON block.

@@ -33,7 +33,8 @@ module Phronomy
     # @see Phronomy::EventLoop
     attr_accessor :event_loop
 
-    # When true (default), user input and LLM output are recorded in trace spans.
+    # When true, user input and LLM output are recorded in trace spans.
+    # Defaults to false; set to true only in environments where PII capture is acceptable.
     # Set to false in privacy-sensitive environments to prevent PII from reaching
     # the tracing backend (OTel, Langfuse, etc.).
     attr_accessor :trace_pii

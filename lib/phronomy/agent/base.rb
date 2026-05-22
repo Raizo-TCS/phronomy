@@ -244,10 +244,9 @@ module Phronomy
         end
 
         # Registers one or more static knowledge sources on the agent class.
-        # Static sources are fetched once per agent instance and their content
-        # is cached in ContextVersionCache keyed by a fingerprint of the
-        # instruction text + source content. The cache is invalidated automatically
-        # when the fingerprint changes (e.g. because a source was updated).
+        # Static source content is fetched and memoized at the **class** level
+        # the first time +invoke+ is called. The cache persists for the lifetime
+        # of the process; call {.static_knowledge_refresh!} to force a reload.
         #
         # @param sources [Array<Phronomy::KnowledgeSource::Base>]
         # @example

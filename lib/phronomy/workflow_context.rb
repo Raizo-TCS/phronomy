@@ -31,6 +31,7 @@ module Phronomy
       # @param name [Symbol]
       # @param type [Symbol] :replace / :append / :merge
       # @param default [Object, Proc, nil]
+      # @raise [ArgumentError] if +default+ is a plain Array or Hash (use a Proc instead)
       def field(name, type: :replace, default: nil)
         if default.is_a?(Array) || default.is_a?(Hash)
           raise ArgumentError,
@@ -89,8 +90,11 @@ module Phronomy
       @phase = :__end__
     end
 
-    # Immutably updates context fields. Returns a new instance with the applied changes.
-    # Internal workflow metadata (thread_id, phase) is preserved.
+    # Returns a new context instance with the specified field updates applied.
+    # Updated fields follow the field's declared +:type+ semantics (:replace, :append,
+    # or :merge). Unchanged fields are deep-copied on a best-effort basis — objects
+    # that do not support +#dup+ (e.g. integers, frozen objects) are carried over
+    # by reference. Internal workflow metadata (thread_id, phase) is preserved.
     # @param updates [Hash] { field_name => new_value }
     # @return [self.class] new context instance
     # @raise [ArgumentError] if updates contains keys that are not declared fields

@@ -11,10 +11,16 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 
 ## Features
 
-> **Stability labels**:
-> - `Stable` — The public API is semver-protected. Breaking changes require a major version bump. Suitable for production use.
+> **Stability labels** (phronomy is pre-1.0, so `0.x` minor releases may include
+> breaking changes even to `Stable` APIs; patch releases (`0.x.y`) are non-breaking):
+> - `Stable` — API is considered complete and suitable for production use. Breaking changes
+>   within a minor release are avoided, and any breaking changes in a minor bump are noted
+>   in `CHANGELOG.md`.
 > - `Beta` — Functionality is complete and tested, but the API may change in a minor version release (0.x). Use with awareness that signatures or behaviour may evolve.
 > - `Experimental` — Functionality may be incomplete or subject to breaking changes at any time without notice. Not recommended for production use.
+>
+> **Note**: The `main` branch contains unreleased development work. Pin to a released gem
+> version (`gem "phronomy", "~> 0.x"`) for stability in production.
 
 | Feature | Stability |
 |---|---|
@@ -51,6 +57,30 @@ Then run:
 bundle install
 ```
 
+### RubyLLM setup
+
+Phronomy uses [RubyLLM](https://github.com/crmne/ruby_llm) for LLM access.
+Configure your provider credentials before using agents or chains:
+
+```ruby
+RubyLLM.configure do |c|
+  c.openai_api_key = ENV["OPENAI_API_KEY"]
+  # c.anthropic_api_key = ENV["ANTHROPIC_API_KEY"]
+end
+```
+
+See the [RubyLLM documentation](https://rubyllm.com) for all supported providers.
+
+### Optional dependencies
+
+Install additional gems only for the features you use:
+
+| Gem | Required for |
+|-----|-------------|
+| `pgvector` | `Phronomy::VectorStore::Pgvector` |
+| `redis` | `Phronomy::VectorStore::RedisSearch` |
+| `opentelemetry-api` | `Phronomy::Tracing::OpenTelemetryTracer` |
+
 ## Quick Start
 
 ### Agent — ReAct tool-calling agent
@@ -86,10 +116,14 @@ class ReviewContext
   field :approved, type: :replace, default: false
 end
 
+# Placeholder callables representing your own implementation
+write_draft  = ->(state) { state.merge(draft:    "Draft content here") }
+review_draft = ->(state) { state.merge(feedback: "Feedback on: #{state.draft}") }
+
 app = Phronomy::Workflow.define(ReviewContext) do
   initial :write
-  state     :write,    action: ->(s) { s.merge(draft: Writer.call(s)) }
-  state     :review,   action: ->(s) { s.merge(feedback: Reviewer.call(s.draft)) }
+  state     :write,    action: write_draft
+  state     :review,   action: review_draft
   wait_state :awaiting_approval           # halts here for human decision
   state     :finalize, action: ->(s) { s.merge(approved: true) }
   transition from: :write,              to: :review
@@ -109,6 +143,19 @@ final = app.send_event(state: state, event: :approve)
 puts "Approved: #{final.approved}"  # => true
 ```
 
+In EventLoop mode (`c.event_loop = true`), `Agent#run_as_child` spawns a child agent
+asynchronously. When the child succeeds, `:child_completed` is dispatched; when it fails,
+`:child_failed` is dispatched. Always declare both transitions to avoid a stuck workflow:
+
+```ruby
+# EventLoop mode: workflow that runs an agent as a child FSM
+entry :run_agent, ->(ctx) {
+  MyAgent.new.run_as_child(ctx.query, ctx: ctx) { |r| ctx.answer = r[:output] }
+}
+transition from: :run_agent, on: :child_completed, to: :done
+transition from: :run_agent, on: :child_failed,    to: :handle_error
+```
+
 ### Multi-Agent — Agent-as-Tool pattern
 
 Wrap sub-agents as `Tool::Base` subclasses so the orchestrator LLM can call them on demand.
@@ -121,6 +168,11 @@ class ResearchTool < Phronomy::Tool::Base
   def execute(topic:)
     ResearchAgent.new.invoke(topic)[:output]
   end
+end
+
+class WriterAgent < Phronomy::Agent::Base
+  model "gpt-4o"
+  instructions "You are a professional technical writer."
 end
 
 class WriteTool < Phronomy::Tool::Base
@@ -144,6 +196,9 @@ puts result[:output]
 
 ### Guardrails — Input/output validation
 
+Call `fail!(reason)` inside `check` to reject — it raises `Phronomy::GuardrailError`.
+When a guardrail rejects, `invoke` raises instead of returning an output.
+
 ```ruby
 class NoSensitiveDataGuardrail < Phronomy::Guardrail::InputGuardrail
   def check(input)
@@ -153,7 +208,18 @@ end
 
 agent = ResearchAgent.new
 agent.add_input_guardrail(NoSensitiveDataGuardrail.new)
+
+begin
+  agent.invoke("Charge 4111-1111-1111-1111")
+rescue Phronomy::GuardrailError => e
+  puts e.message   # => "Credit card numbers are not allowed"
+end
 ```
+
+> **Limitations:** Phronomy ships no built-in guardrail implementations. There is no
+> built-in prompt injection detector, PII scanner, or content classifier. All guardrail
+> logic must be implemented by the application. Reference implementations for common
+> patterns are available in `phronomy-examples` (example 06).
 
 ### Knowledge/RAG — Context injection and vector retrieval
 
@@ -168,13 +234,24 @@ policy = Phronomy::KnowledgeSource::StaticKnowledge.new(
 # RAG retrieval from a vector store
 store      = Phronomy::VectorStore::InMemory.new
 embeddings = Phronomy::Embeddings::RubyLLMEmbeddings.new(model: "text-embedding-3-small")
+
+# Add documents before querying
+store.add("Refunds are processed within 5 business days.", embeddings: embeddings)
+store.add("Contact support@example.com for refund requests.", embeddings: embeddings)
+
 rag = Phronomy::KnowledgeSource::RAGKnowledge.new(store: store, embeddings: embeddings, k: 5)
 
 # Inject at invocation time
 result = MyAgent.new.invoke("What is the refund policy?",
   config: { knowledge_sources: [policy, rag] })
+```
 
-# Invalidate the class-level cache when the source is updated at runtime
+`static_knowledge_refresh!` invalidates the class-level cache of *static* knowledge sources
+(not RAG stores). Call it when the underlying file or content has changed:
+
+```ruby
+# Static knowledge sources are cached at the class level after the first fetch.
+# Call refresh! when the underlying content changes (e.g. after reloading policy.md).
 MyAgent.static_knowledge_refresh!
 ```
 
@@ -221,7 +298,7 @@ Phronomy.configure do |c|
 end
 ```
 
-Hooks are called in order — global → class → instance — and deep-merged.
+Hooks are called in order — global → class → instance — and shallow-merged (`Hash#merge`; last hook wins on key conflicts).
 
 ### GeneratorVerifier — Generator-Verifier loop with custom prompt builders
 
@@ -300,19 +377,21 @@ class MyOrchestrator < Phronomy::Agent::Orchestrator
   instructions "Orchestrate."
 
   def run(query)
-    # Heterogeneous agents in parallel (cap at 4 threads; skip failures)
+    # Heterogeneous agents in parallel (cap at 4 threads; skip failures; 30 s timeout)
     results = dispatch_parallel(
       {agent: SearchAgent,   input: "topic A"},
       {agent: AnalysisAgent, input: query},
       max_concurrency: 4,
-      on_error: :skip
+      on_error: :skip,
+      timeout: 30
     )
 
     # Fan-out — same agent, multiple inputs
     translations = fan_out(
       agent: TranslationAgent,
       inputs: %w[Hello World],
-      max_concurrency: 2
+      max_concurrency: 2,
+      timeout: 20
     )
 
     results.compact.map { |r| r[:output] }.join("\n")
@@ -339,7 +418,9 @@ app = Phronomy::Workflow.define(EnrichContext) do
       summary: Thread.new { Summarizer.call(s) },
       tags:    Thread.new { Tagger.call(s) }
     }
-    threads.each_value { |t| t.join(10) }  # 10-second timeout
+    # Thread#join returns nil on timeout but Thread#value would still block.
+    # For production use, wrap with Timeout.timeout or catch dead threads:
+    threads.each_value(&:join)
     s.merge(summary: threads[:summary].value, tags: Array(threads[:tags].value))
   end
   transition from: :enrich, to: :__finish__
@@ -429,6 +510,10 @@ puts result2[:output]   # => "Your name is Alice."
 `result[:messages]` contains the complete message history after each invocation.
 Persist it however suits your application (in-memory hash, Redis, ActiveRecord, etc.).
 
+> **Note on `thread_id`**: `thread_id` is a correlation identifier used internally for
+> context-cache keying and EventLoop routing. It does **not** automatically persist or
+> restore conversation history — you must pass `messages:` explicitly on each turn as shown above.
+
 
 ## Configuration
 
@@ -438,7 +523,7 @@ Phronomy.configure do |c|
   c.recursion_limit     = 25
   c.tracer              = Phronomy::Tracing::NullTracer.new
   c.before_completion   = nil   # optional; global hook lambda
-  c.trace_pii           = true  # set to false to redact both inputs and outputs from traces
+  c.trace_pii           = false # default; set to true only when trace data contains no PII
   c.logger              = nil   # optional; any object responding to #warn (e.g. Rails.logger)
 end
 ```
@@ -486,6 +571,8 @@ class MyAgent < Phronomy::Agent::Base
   model "gpt-4o"
   max_output_tokens 4096   # override max_output_tokens from registry
   context_overhead  600    # extra reservation for system prompt + tools
+  invoke_timeout    30     # raise Phronomy::TimeoutError after 30 s (wait timeout, not cancellation)
+  max_parallel_tools 4     # cap concurrent tool-call threads (default: 10)
 end
 ```
 
@@ -573,6 +660,26 @@ bin/console
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/Raizo-TCS/phronomy.
+
+## Security & Privacy
+
+**API credentials** — Phronomy does not store or transmit your LLM API keys. All
+credentials are handled by RubyLLM and passed directly to the provider.
+
+**Tracing and PII** — When tracing is enabled (`Phronomy::Tracing::OpenTelemetryTracer`
+or a custom tracer), agent inputs and LLM outputs are included in span attributes by
+default. Set `trace_pii: false` in your Phronomy configuration to replace both input
+and output with `[REDACTED]` in all trace records. Evaluate whether your tracing
+backend (OTLP collector, Jaeger, Honeycomb, etc.) meets your data-retention and
+privacy requirements.
+
+**Prompt injection** — Phronomy provides no built-in prompt injection detection.
+Applications that process untrusted user input should implement their own input
+guardrails (see the Guardrails section above).
+
+**Vulnerability reports** — Please report security vulnerabilities privately via
+GitHub's [Security Advisories](https://github.com/Raizo-TCS/phronomy/security/advisories)
+rather than opening a public issue.
 
 ## License
 
