@@ -78,7 +78,7 @@ RSpec.describe "README API smoke tests (Issue #141)" do
       klass = Class.new do
         include Phronomy::WorkflowContext
 
-        field :draft,    type: :replace
+        field :draft, type: :replace
         field :feedback, type: :replace
         field :approved, type: :replace, default: false
       end
@@ -93,6 +93,7 @@ RSpec.describe "README API smoke tests (Issue #141)" do
     it "supports define / initial / state / transition as shown in README" do
       ctx_class = Class.new do
         include Phronomy::WorkflowContext
+
         field :step_ran, type: :replace, default: false
       end
 

@@ -434,7 +434,11 @@ RSpec.describe Phronomy::Tool::McpTool do
         res
       end
 
-      transport.fetch_tool("any") rescue nil
+      begin
+        transport.fetch_tool("any")
+      rescue
+        nil
+      end
       expect(sent_headers["Authorization"]).to eq("Bearer secret")
       expect(sent_headers["X-Custom"]).to eq("value")
     end
@@ -457,7 +461,11 @@ RSpec.describe Phronomy::Tool::McpTool do
         env: {"MY_KEY" => "val"},
         cwd: "/tmp"
       )
-      transport.send(:ensure_started!) rescue nil
+      begin
+        transport.send(:ensure_started!)
+      rescue
+        nil
+      end
     end
 
     it "uses no env prefix and no chdir when not specified" do
@@ -469,7 +477,11 @@ RSpec.describe Phronomy::Tool::McpTool do
       ])
 
       transport = Phronomy::Tool::McpTool::StdioTransport.new("node server.js")
-      transport.send(:ensure_started!) rescue nil
+      begin
+        transport.send(:ensure_started!)
+      rescue
+        nil
+      end
     end
   end
 end

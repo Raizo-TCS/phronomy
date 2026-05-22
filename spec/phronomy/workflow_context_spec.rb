@@ -173,6 +173,7 @@ RSpec.describe Phronomy::WorkflowContext do
       expect do
         Class.new do
           include Phronomy::WorkflowContext
+
           field :tags, default: []
         end
       end.to raise_error(ArgumentError, /Mutable default.*tags.*Proc/)
@@ -182,6 +183,7 @@ RSpec.describe Phronomy::WorkflowContext do
       expect do
         Class.new do
           include Phronomy::WorkflowContext
+
           field :meta, default: {}
         end
       end.to raise_error(ArgumentError, /Mutable default.*meta.*Proc/)
@@ -190,6 +192,7 @@ RSpec.describe Phronomy::WorkflowContext do
     it "accepts a Proc default that returns an Array" do
       klass = Class.new do
         include Phronomy::WorkflowContext
+
         field :tags, default: -> { [] }
       end
       ctx1 = klass.new
@@ -202,6 +205,7 @@ RSpec.describe Phronomy::WorkflowContext do
       expect do
         Class.new do
           include Phronomy::WorkflowContext
+
           field :value
         end
       end.not_to raise_error
@@ -212,6 +216,7 @@ RSpec.describe Phronomy::WorkflowContext do
     let(:klass) do
       Class.new do
         include Phronomy::WorkflowContext
+
         field :score, default: 0
         field :name, default: "anon"
       end
@@ -240,6 +245,7 @@ RSpec.describe Phronomy::WorkflowContext do
     let(:klass) do
       Class.new do
         include Phronomy::WorkflowContext
+
         field :tags, type: :replace, default: -> { [] }
         field :meta, type: :replace, default: -> { {} }
         field :count, type: :replace, default: 0

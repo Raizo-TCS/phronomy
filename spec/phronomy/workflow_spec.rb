@@ -145,6 +145,7 @@ RSpec.describe Phronomy::Workflow do
     let(:ctx) do
       Class.new do
         include Phronomy::WorkflowContext
+
         field :v, type: :replace, default: nil
       end
     end

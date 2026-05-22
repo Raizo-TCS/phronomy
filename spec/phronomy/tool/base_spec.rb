@@ -487,7 +487,7 @@ RSpec.describe Phronomy::Tool::Base do
         param :config, type: :object, desc: "config",
           properties: {
             timeout: {type: :integer, required: true},
-            retry:   {type: :boolean, required: false}
+            retry: {type: :boolean, required: false}
           }
 
         def execute(config:)

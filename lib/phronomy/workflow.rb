@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "set"
 require_relative "workflow_runner"
 require_relative "runnable"
 
