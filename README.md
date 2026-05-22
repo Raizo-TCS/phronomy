@@ -1,5 +1,11 @@
 # Phronomy
 
+> **⚠️ Development Notice**
+> This project is primarily developed and maintained by **AI coding agents**.
+> As a result, `main` receives frequent, large, and unannounced changes.
+> External contributors should expect significant churn and potential conflicts at any time.
+> We apologise for the instability this may cause.
+
 **Phronomy** is a Ruby AI agent framework inspired by open-source AI agent frameworks.  
 It provides composable building blocks — Workflows, Agents, Tools, Guardrails, RAG, and Tracing — all powered by [RubyLLM](https://github.com/crmne/ruby_llm) for LLM abstraction.
 
