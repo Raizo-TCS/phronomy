@@ -1006,10 +1006,15 @@ module Phronomy
 
       # Builds the final tool class to register with the chat.
       #
-      # Two transformations are applied in order:
+      # Three transformations are applied in order:
       #   1. Alias override — when the Hash form of .tools maps this class to an
       #      explicit name, an anonymous subclass with that tool_name is returned.
-      #   2. Approval gate  — when the tool class has +requires_approval+ set AND
+      #   2. Scope policy   — when a scope is declared on the tool, the configured
+      #      {Phronomy::Tool::ScopePolicy} (or the default) is evaluated.
+      #      +:reject+ wraps the tool to return a denial message without executing.
+      #      +:approve+ behaves like requiring approval (same as step 3 when the
+      #      tool does not already have +requires_approval+).
+      #   3. Approval gate  — when the tool class has +requires_approval+ set AND
       #      an approval handler has been registered via #on_approval_required,
       #      the tool's #call method is wrapped: the handler is invoked with
       #      (tool_name, args) and, if it returns falsy, the tool returns a denial
@@ -1026,7 +1031,34 @@ module Phronomy
           tool_class
         end
 
-        # Step 2: wrap with approval gate when handler is registered.
+        # Step 2: evaluate scope policy.
+        scope = resolved.scope
+        if scope
+          policy = @scope_policy || Phronomy::Tool::ScopePolicy::DEFAULT
+          decision = policy.call(resolved, scope, self)
+          case decision
+          when :reject
+            effective_name = resolved.new.name
+            rejected_class = Class.new(resolved) do
+              tool_name effective_name
+              define_method(:call) do |_args|
+                "Tool execution denied: scope :#{scope} is not permitted."
+              end
+            end
+            return rejected_class
+          when :approve
+            # Treat as requires_approval unless the tool already has that flag.
+            unless resolved.requires_approval
+              effective_name = resolved.new.name
+              resolved = Class.new(resolved) do
+                tool_name effective_name
+                requires_approval true
+              end
+            end
+          end
+        end
+
+        # Step 3: wrap with approval gate when handler is registered.
         return resolved unless resolved.requires_approval && @approval_handler
 
         handler = @approval_handler

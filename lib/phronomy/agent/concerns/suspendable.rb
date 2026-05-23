@@ -32,6 +32,21 @@ module Phronomy
           self
         end
 
+        # Registers a scope policy callable for this agent instance.
+        #
+        # The callable receives +(tool_class, scope, agent)+ and must return
+        # +:allow+, +:reject+, or +:approve+.
+        #
+        # @example Reject all write-scoped tools
+        #   agent.scope_policy = ->(_tc, scope, _agent) { scope == :write ? :reject : :allow }
+        #
+        # @param policy [#call]
+        # @return [void]
+        # @api public
+        def scope_policy=(policy)
+          @scope_policy = policy
+        end
+
         # Resumes a previously suspended invocation from a {Phronomy::Agent::Checkpoint}.
         #
         # This method reconstructs the conversation state captured at suspension
