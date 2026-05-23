@@ -14,12 +14,19 @@ module Phronomy
     # +super+, preserving all existing edge-case behaviour (Tool::Halt,
     # forced_tool_choice, streaming, SuspendSignal, etc.).
     #
-    # This class is used automatically when the agent is running inside an
-    # {AgentFSM} IO thread (i.e. when the +:phronomy_agent_parallel_tools+
-    # thread-local flag is +true+).  It is not used for direct synchronous
-    # +invoke+ calls so that the streaming callback state remains single-threaded.
+    # This class is used automatically when EventLoop mode is enabled
+    # ({Phronomy.configuration.event_loop}).  It is not used for direct
+    # synchronous +invoke+ calls so that the streaming callback state remains
+    # single-threaded.
     # @api private
     class ParallelToolChat < RubyLLM::Chat
+      # @param max_parallel_tools [Integer] maximum simultaneous tool executions
+      # @param opts [Hash] remaining kwargs forwarded to RubyLLM::Chat
+      def initialize(max_parallel_tools: 10, **opts)
+        super(**opts)
+        @max_parallel_tools = max_parallel_tools
+      end
+
       private
 
       # Overrides RubyLLM::Chat#handle_tool_calls to parallelise execution
@@ -60,7 +67,7 @@ module Phronomy
         # Check for cancellation before dispatching each batch so that
         # already-cancelled tokens do not start new LLM/tool-round-trips.
         ct = Thread.current[:phronomy_cancellation_token]
-        max = Thread.current[:phronomy_max_parallel_tools] || 10
+        max = @max_parallel_tools
         thread_results = tool_calls.each_slice(max).flat_map do |batch|
           if ct&.cancelled?
             raise Phronomy::CancellationError, "invocation cancelled before tool execution"

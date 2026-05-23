@@ -15,14 +15,14 @@ module Phronomy
     # == Execution model
     #
     # {#start} is called by the EventLoop on the +:start+ event.  It immediately
-    # returns after spawning a background IO thread that runs the agent's full
+    # returns after spawning a {Phronomy::Task} that runs the agent's full
     # invocation pipeline (via +_invoke_impl+).  The EventLoop thread is never
     # blocked by agent execution.
     #
-    # Inside the IO thread, the +:phronomy_agent_parallel_tools+ thread-local
-    # flag is set to +true+ so that {Agent::Base#build_chat} returns a
-    # {ParallelToolChat} instance, enabling concurrent tool dispatch when the LLM
-    # returns multiple tool calls in one response.
+    # Inside the task, {Agent::Base#build_chat} returns a
+    # {ParallelToolChat} instance when EventLoop mode is enabled, allowing
+    # concurrent tool dispatch when the LLM returns multiple tool calls in one
+    # response.
     #
     # == Completion events
     #
@@ -102,10 +102,10 @@ module Phronomy
       end
 
       # Called by {EventLoop} on the +:start+ event.
-      # Transitions to +:running+ and spawns the agent IO thread.
+      # Transitions to +:running+ and spawns the agent task.
       def start
         @current_phase = :running
-        spawn_agent_thread
+        spawn_agent_task
       end
 
       # Called by {EventLoop} for external events dispatched to this id.
@@ -117,10 +117,10 @@ module Phronomy
 
       private
 
-      # Spawns the background IO thread that runs the agent invocation.
-      # Captures all instance variables by value so the thread closure is
+      # Spawns a {Phronomy::Task} that runs the agent invocation pipeline.
+      # Captures all instance variables by value so the task closure is
       # safe even if the FSM object is modified (though it is not in practice).
-      def spawn_agent_thread
+      def spawn_agent_task
         agent = @agent
         input = @input
         messages = @messages
@@ -130,13 +130,7 @@ module Phronomy
         parent_id = @parent_id
         result_writer = @result_writer
 
-        Thread.new do
-          # Enable parallel tool dispatch inside this IO thread.
-          Thread.current[:phronomy_agent_parallel_tools] = true
-          # Forward the concurrency cap to ParallelToolChat.
-          Thread.current[:phronomy_max_parallel_tools] =
-            agent.class.respond_to?(:max_parallel_tools) ? agent.class.max_parallel_tools : 10
-
+        Phronomy::Task.spawn(name: "agent-fsm:#{fsm_id}") do
           begin
             result = agent.send(:_invoke_impl,
               input,
@@ -169,7 +163,7 @@ module Phronomy
               Phronomy::Event.new(type: :error, target_id: fsm_id, payload: e)
             )
           ensure
-            # Clear the thread-local context cache for this agent so the IO
+            # Clear the thread-local context cache for this agent so the task
             # thread's cache does not grow unboundedly across invocations.
             Thread.current[:phronomy_context_version_caches]&.delete(agent.object_id)
           end

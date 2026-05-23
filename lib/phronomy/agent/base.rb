@@ -909,15 +909,13 @@ module Phronomy
         cache.system_text.empty? ? nil : cache.system_text
       end
 
-      # Load messages from a ConversationManager.
-      #
       # Returns the chat class to instantiate for this invocation.
-      # When the +:phronomy_agent_parallel_tools+ thread-local flag is set
-      # (i.e. inside an {AgentFSM} IO thread), returns {ParallelToolChat} so
-      # that concurrent tool dispatch is enabled.  Falls back to +nil+ otherwise,
-      # signalling {#build_chat} to use the standard +RubyLLM.chat+ factory.
+      # When EventLoop mode is enabled ({Phronomy.configuration.event_loop}),
+      # returns {ParallelToolChat} so that concurrent tool dispatch is enabled.
+      # Falls back to +nil+ otherwise, signalling {#build_chat} to use the
+      # standard +RubyLLM.chat+ factory.
       def build_chat_class
-        Thread.current[:phronomy_agent_parallel_tools] ? Agent::ParallelToolChat : nil
+        Phronomy.configuration.event_loop ? Agent::ParallelToolChat : nil
       end
 
       def build_chat
@@ -931,7 +929,11 @@ module Phronomy
         end
         t = self.class.temperature
         parallel_class = build_chat_class
-        chat = parallel_class ? parallel_class.new(**opts) : RubyLLM.chat(**opts)
+        chat = if parallel_class
+          parallel_class.new(max_parallel_tools: self.class.max_parallel_tools, **opts)
+        else
+          RubyLLM.chat(**opts)
+        end
         chat.with_temperature(t) if t
         self.class.tools.each do |tool_class|
           chat.with_tool(prepare_tool_class(tool_class))

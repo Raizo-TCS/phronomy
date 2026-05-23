@@ -277,20 +277,23 @@ RSpec.describe Phronomy::Agent::FSM do
       end
     end
 
-    it "sets the :phronomy_agent_parallel_tools thread-local flag inside the IO thread" do
-      flag_value = nil
+    it "runs the agent pipeline in a Task (not a raw Thread)" do
+      task_spawned = false
       agent = double("Agent")
-      allow(agent).to receive(:send) do |meth, *_args, **_kwargs|
-        flag_value = Thread.current[:phronomy_agent_parallel_tools] if meth == :_invoke_impl
-        {output: "done", messages: [], usage: nil}
-      end
+      allow(agent).to receive(:send).and_return({output: "done", messages: [], usage: nil})
+      allow(agent).to receive(:class).and_return(double(respond_to?: false))
 
       fsm = described_class.new(agent: agent, input: "hi", thread_id: "t1")
+
+      allow(Phronomy::Task).to receive(:spawn).and_wrap_original do |orig, **kw, &blk|
+        task_spawned = true
+        orig.call(**kw, &blk)
+      end
 
       with_fake_loop do |_fake|
         fsm.start
         sleep 0.2
-        expect(flag_value).to be true
+        expect(task_spawned).to be true
       end
     end
   end
