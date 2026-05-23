@@ -198,15 +198,15 @@ module Phronomy
         #     max_parallel_tools 4
         #   end
         def max_parallel_tools(val = nil)
-          unless val.nil?
+          if val.nil?
+            @max_parallel_tools ||
+              (superclass.respond_to?(:max_parallel_tools) ? superclass.max_parallel_tools : 10)
+          else
             unless val.is_a?(Integer) && val >= 1
               raise ArgumentError,
                 "max_parallel_tools must be a positive Integer (>= 1), got #{val.inspect}"
             end
             @max_parallel_tools = val
-          else
-            @max_parallel_tools ||
-              (superclass.respond_to?(:max_parallel_tools) ? superclass.max_parallel_tools : 10)
           end
         end
 
@@ -233,15 +233,15 @@ module Phronomy
         #     invoke_timeout 30
         #   end
         def invoke_timeout(val = nil)
-          unless val.nil?
+          if val.nil?
+            return @invoke_timeout if defined?(@invoke_timeout)
+            superclass.respond_to?(:invoke_timeout) ? superclass.invoke_timeout : nil
+          else
             unless val.is_a?(Numeric) && val > 0
               raise ArgumentError,
                 "invoke_timeout must be a positive number, got #{val.inspect}"
             end
             @invoke_timeout = val
-          else
-            return @invoke_timeout if defined?(@invoke_timeout)
-            superclass.respond_to?(:invoke_timeout) ? superclass.invoke_timeout : nil
           end
         end
 
