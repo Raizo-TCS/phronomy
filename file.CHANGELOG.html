@@ -68,6 +68,23 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h3 id="Added">Added</h3>
 <ul>
 <li>
+<p><strong><code>CancellationToken.timeout_after</code> — monotonic-clock deadline</strong> (#225):
+New <code>CancellationToken.timeout_after(seconds)</code> class method creates a token that
+becomes cancelled after the specified number of seconds, measured with
+<code>Process::CLOCK_MONOTONIC</code> (immune to NTP/DST drift). The existing <code>deadline:</code>
+keyword for wall-clock deadlines remains supported for backward compatibility.</p>
+</li>
+<li>
+<p><strong><code>EventLoop#stop</code> — drain mode and cooperative shutdown</strong> (#233):
+<code>EventLoop#stop</code> now accepts a <code>drain: true</code> keyword (default: <code>false</code>). When
+set, the loop waits up to <code>Phronomy.configuration.event_loop_stop_grace_seconds</code>
+(default: 5 s, configurable) for in-flight FSM sessions to complete before
+joining threads. New sessions submitted while shutdown is pending are rejected
+immediately with <code>Phronomy::CancellationError</code>. A new
+<code>event_loop_stop_grace_seconds</code> configuration attribute is available on
+<code>Phronomy::Configuration</code>.</p>
+</li>
+<li>
 <p><strong><code>invoke_timeout</code> DSL and <code>Phronomy::TimeoutError</code></strong>: Agents can declare a per-invoke
 timeout in seconds via <code>invoke_timeout N</code> in the class body. Exceeding the timeout raises
 <code>Phronomy::TimeoutError</code> (a subclass of <code>Phronomy::Error</code>). The default remains unlimited.</p>
@@ -141,6 +158,23 @@ inject it into every worker task's config unless the task already supplies its o
 </ul>
 <h3 id="Changed">Changed</h3>
 <ul>
+<li>
+<p><strong><code>CancellationToken</code> checked at granular checkpoints</strong> (#223):
+The cancellation token (passed via <code>config: { cancellation_token: token }</code>) is
+now checked at multiple additional points beyond the initial LLM call boundary:
+before each <code>KnowledgeSource#fetch</code> in <code>build_context</code> (RAG phase); after each
+streaming chunk in <code>_stream_impl</code>; before each tool-call batch in
+<code>ParallelToolChat</code>; and after each <code>before_completion</code> hook. This ensures that
+long-running retrieval, streaming, and tool-dispatch phases respect cancellation
+with minimal latency.</p>
+</li>
+<li>
+<p><strong><code>Agent::Orchestrator</code> uses <code>CancellationToken</code> for internal stop flag</strong> (#224):
+The boolean stop flag in <code>Orchestrator</code> is replaced with an internal
+<code>CancellationToken</code>. FSM session loops perform cooperative cancellation checks
+via <code>cancelled?</code>; <code>Thread#kill</code> is retained only as a last resort after
+cooperative shutdown.</p>
+</li>
 <li>
 <p><strong>Error taxonomy classes are now raised at the retry boundary</strong> (#204): The classes
 <code>Phronomy::RateLimitError</code>, <code>Phronomy::AuthenticationError</code>, <code>Phronomy::ContextLengthError</code>,
@@ -780,7 +814,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sat May 23 12:42:48 2026 by
+  Generated on Sat May 23 12:47:29 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
