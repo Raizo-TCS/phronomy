@@ -33,6 +33,7 @@ Copy it into the GitHub Release draft and check off each item.
 
 ## Security Review
 
+- [ ] `SECURITY.md` is up to date (supported versions table, contact info)
 - [ ] No new `trace_pii`-sensitive data paths introduced without redaction
 - [ ] No new `requires_approval` tools missing the approval gate
 - [ ] No secrets, credentials, or PII in tool descriptions, schema strings, or spec fixtures
