@@ -91,7 +91,8 @@ class WebSearch < Phronomy::Tool::Base
   param :query, type: :string, desc: "Search query"
 
   def execute(query:)
-    # ... call a search API
+    # Replace with a real search API call (e.g., SerpAPI, Tavily)
+    "Mock search result for: #{query}"
   end
 end
 
@@ -236,8 +237,10 @@ store      = Phronomy::VectorStore::InMemory.new
 embeddings = Phronomy::Embeddings::RubyLLMEmbeddings.new(model: "text-embedding-3-small")
 
 # Add documents before querying
-store.add("Refunds are processed within 5 business days.", embeddings: embeddings)
-store.add("Contact support@example.com for refund requests.", embeddings: embeddings)
+text1 = "Refunds are processed within 5 business days."
+text2 = "Contact support@example.com for refund requests."
+store.add(id: "doc-1", embedding: embeddings.embed(text1), metadata: { content: text1, source: "policy.md" })
+store.add(id: "doc-2", embedding: embeddings.embed(text2), metadata: { content: text2, source: "policy.md" })
 
 rag = Phronomy::KnowledgeSource::RAGKnowledge.new(store: store, embeddings: embeddings, k: 5)
 
@@ -418,8 +421,9 @@ app = Phronomy::Workflow.define(EnrichContext) do
       summary: Thread.new { Summarizer.call(s) },
       tags:    Thread.new { Tagger.call(s) }
     }
-    # Thread#join returns nil on timeout but Thread#value would still block.
-    # For production use, wrap with Timeout.timeout or catch dead threads:
+    # For production use, wrap with Timeout.timeout to avoid unbounded waits:
+    #   require "timeout"
+    #   Timeout.timeout(30) { threads.each_value(&:join) }
     threads.each_value(&:join)
     s.merge(summary: threads[:summary].value, tags: Array(threads[:tags].value))
   end
@@ -511,7 +515,7 @@ puts result2[:output]   # => "Your name is Alice."
 Persist it however suits your application (in-memory hash, Redis, ActiveRecord, etc.).
 
 > **Note on `thread_id`**: `thread_id` is a correlation identifier used internally for
-> context-cache keying and EventLoop routing. It does **not** automatically persist or
+> checkpoint/compaction context and EventLoop routing. It does **not** automatically persist or
 > restore conversation history — you must pass `messages:` explicitly on each turn as shown above.
 
 
@@ -538,8 +542,9 @@ end
 
 ## Context Management
 
-Phronomy includes a context window management layer so agents automatically
-stay within the token limits of the underlying model.
+Phronomy includes a context window management layer. When model metadata is
+available (either from the built-in registry or via an explicit `context_window:` setting),
+agents automatically stay within the configured token limit.
 
 ### TokenBudget
 
@@ -667,15 +672,24 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/Raizo-
 credentials are handled by RubyLLM and passed directly to the provider.
 
 **Tracing and PII** — When tracing is enabled (`Phronomy::Tracing::OpenTelemetryTracer`
-or a custom tracer), agent inputs and LLM outputs are included in span attributes by
-default. Set `trace_pii: false` in your Phronomy configuration to replace both input
-and output with `[REDACTED]` in all trace records. Evaluate whether your tracing
-backend (OTLP collector, Jaeger, Honeycomb, etc.) meets your data-retention and
-privacy requirements.
+or a custom tracer), agent inputs and LLM outputs are replaced with `[REDACTED]` in
+span attributes by default (`trace_pii: false`). To include full content in traces
+(e.g., for debugging in a non-production environment), set `trace_pii: true` in your
+Phronomy configuration. Evaluate whether your tracing backend (OTLP collector, Jaeger,
+Honeycomb, etc.) meets your data-retention and privacy requirements.
 
 **Prompt injection** — Phronomy provides no built-in prompt injection detection.
 Applications that process untrusted user input should implement their own input
 guardrails (see the Guardrails section above).
+
+**Tool and MCP security** — Tools can perform real-world side effects (database
+writes, API calls, file deletion). Treat tool execution as a privileged operation:
+use the interrupt/approval mechanism for high-risk tools (e.g., payment processing,
+file deletion) rather than allowing fully autonomous execution. MCP servers are
+external trust boundaries: connect only to servers you control. A compromised MCP
+server can inject instructions that manipulate agent behavior (tool-level prompt
+injection). Avoid passing secrets as direct tool parameters — if `trace_pii: true`
+is set, tool arguments are captured in trace spans.
 
 **Vulnerability reports** — Please report security vulnerabilities privately via
 GitHub's [Security Advisories](https://github.com/Raizo-TCS/phronomy/security/advisories)
