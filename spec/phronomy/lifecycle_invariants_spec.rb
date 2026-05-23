@@ -396,4 +396,95 @@ RSpec.describe "Lifecycle invariants" do
       expect(received).to be_a(Exception)
     end
   end
+
+  # ===========================================================================
+  # 5. Resource cleanup invariants (no leaked FSM entries or sessions)
+  # ===========================================================================
+  describe "resource cleanup invariants" do
+    after do
+      Phronomy::EventLoop.reset!
+      Phronomy.reset_configuration!
+    end
+
+    # Shared helper: build a quick stub agent that returns immediately.
+    def quick_agent_double(result: {output: "done", messages: [], usage: nil})
+      agent = double("QuickAgent")
+      allow(agent).to receive(:send) { result }
+      allow(agent).to receive(:class).and_return(double(respond_to?: false))
+      agent
+    end
+
+    it "@fsm_count returns to zero after a completed AgentFSM" do
+      # Verifies that a successful FSMSession does not leave a leaked entry in
+      # the EventLoop registry (@fsm_count must decrement back to 0 after the
+      # session's :finished event is processed).
+      Phronomy.configure { |c| c.event_loop = true }
+      el = Phronomy::EventLoop.instance
+
+      fsm = Phronomy::Agent::FSM.new(
+        agent: quick_agent_double,
+        input: "hi",
+        thread_id: "count-cleanup-test"
+      )
+      cq = el.register(fsm)
+      cq.pop  # block until EventLoop processes :finished and pushes to cq
+
+      # @fsm_count is decremented synchronously in the same EventLoop iteration
+      # that pushes to cq.  A brief sleep guards against a scheduler preemption
+      # between the push and the decrement.
+      sleep 0.05
+      expect(el.instance_variable_get(:@fsm_count)).to eq(0)
+    end
+
+    it "EventLoop.reset! nulls the singleton so the next call returns a fresh loop" do
+      # Verifies that EventLoop.reset! fully tears down the background thread and
+      # clears @instance, so a subsequent EventLoop.instance starts cleanly with
+      # no residual state from the previous run.
+      Phronomy.configure { |c| c.event_loop = true }
+      first = Phronomy::EventLoop.instance
+      first_thread = first.instance_variable_get(:@thread)
+      expect(first_thread).to be_alive
+
+      Phronomy::EventLoop.reset!
+
+      expect(first_thread).not_to be_alive
+      expect(Phronomy::EventLoop.instance_variable_get(:@instance)).to be_nil
+
+      second = Phronomy::EventLoop.instance
+      expect(second).not_to be(first)
+      expect(second.instance_variable_get(:@fsm_count)).to eq(0)
+      expect(second.instance_variable_get(:@thread)).to be_alive
+    end
+
+    it "EventLoop#stop(drain: true) waits for in-flight sessions before the loop thread exits" do
+      # Verifies that stop(drain: true) blocks until @fsm_count reaches 0,
+      # meaning all queued sessions have completed before the loop shuts down.
+      Phronomy.configure { |c| c.event_loop = true }
+      el = Phronomy::EventLoop.instance
+
+      started_q = Thread::Queue.new
+      results = []
+      agent = double("SlowAgent")
+      allow(agent).to receive(:send) do
+        started_q.push(:started)  # signal that @fsm_count has been incremented
+        sleep 0.15
+        results << :completed
+        {output: "done", messages: [], usage: nil}
+      end
+      allow(agent).to receive(:class).and_return(double(respond_to?: false))
+
+      fsm = Phronomy::Agent::FSM.new(
+        agent: agent,
+        input: "hi",
+        thread_id: "drain-invariant-test"
+      )
+      el.register(fsm)
+      started_q.pop  # block until the IO thread has started (guarantees @fsm_count > 0)
+
+      status = el.stop(drain: true, timeout: 5, force_kill: true)
+
+      expect(status).to eq(:clean)
+      expect(results).to include(:completed)
+    end
+  end
 end
