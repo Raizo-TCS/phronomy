@@ -332,4 +332,166 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
         .to raise_error(Phronomy::GuardrailError, /rejected/)
     end
   end
+
+  # -------------------------------------------------------------------------
+  # 11. RAG nil / invalid chunk from KnowledgeSource (Issue #243)
+  # -------------------------------------------------------------------------
+  describe "RAG nil/invalid chunk from KnowledgeSource" do
+    # When a custom KnowledgeSource returns a non-Hash element (nil or Integer),
+    # build_context propagates a NoMethodError because it calls chunk[:content]
+    # on the raw element without a nil-guard.  This test documents the current
+    # propagation contract so any future nil-guard change is visible.
+
+    let(:agent_class) { Class.new(Phronomy::Agent::Base) { model "test-model" } }
+    let(:agent) { agent_class.new }
+
+    it "propagates NoMethodError when KnowledgeSource#fetch returns [nil]" do
+      nil_ks = double("NilKnowledgeSource")
+      allow(nil_ks).to receive(:fetch).and_return([nil])
+
+      expect {
+        agent.send(:build_context, "hello",
+          messages: [],
+          thread_id: nil,
+          config: {knowledge_sources: [nil_ks]})
+      }.to raise_error(NoMethodError)
+    end
+
+    it "propagates TypeError when KnowledgeSource#fetch returns [42] (non-Hash chunk)" do
+      int_ks = double("IntKnowledgeSource")
+      allow(int_ks).to receive(:fetch).and_return([42])
+
+      expect {
+        agent.send(:build_context, "hello",
+          messages: [],
+          thread_id: nil,
+          config: {knowledge_sources: [int_ks]})
+      }.to raise_error(TypeError)
+    end
+  end
+
+  # -------------------------------------------------------------------------
+  # 12. before_completion returns invalid type (Issue #243)
+  # -------------------------------------------------------------------------
+  describe "before_completion hook returns invalid type (non-Hash)" do
+    # When a before_completion hook returns a non-Hash value (e.g. Integer 42),
+    # the current implementation silently ignores it — only Hash return values
+    # are merged into the LLM call params.  This documents the current contract.
+
+    let(:agent_class) { Class.new(Phronomy::Agent::Base) { model "test-model" } }
+    let(:agent) { agent_class.new }
+    let(:chat_double) do
+      dbl = double("RubyLLM::Chat")
+      allow(dbl).to receive(:messages).and_return([])
+      dbl
+    end
+
+    it "silently ignores an Integer return value from the hook" do
+      agent.before_completion = ->(_ctx) { 42 }
+      result = agent.send(:run_before_completion_hooks!, chat_double, {})
+      expect(result).to eq({})
+    end
+
+    it "silently ignores a String return value from the hook" do
+      agent.before_completion = ->(_ctx) { "not a hash" }
+      result = agent.send(:run_before_completion_hooks!, chat_double, {})
+      expect(result).to eq({})
+    end
+  end
+
+  # -------------------------------------------------------------------------
+  # 13. EventLoop shutdown rejects new sessions (Issue #243)
+  # -------------------------------------------------------------------------
+  describe "EventLoop shutdown rejects new sessions with CancellationError" do
+    # When the EventLoop's shutdown_token has been cancelled (set by stop()),
+    # any new :start event is rejected immediately: the completion_queue receives
+    # a CancellationError so callers never block indefinitely.
+
+    after do
+      Phronomy::EventLoop.reset!
+      Phronomy.reset_configuration!
+    end
+
+    it "pushes CancellationError to the completion_queue when the shutdown token is active" do
+      Phronomy.configure { |c| c.event_loop = true }
+      el = Phronomy::EventLoop.instance
+      # Simulate shutdown state without stopping the thread (token only).
+      el.instance_variable_get(:@shutdown_token).cancel!
+
+      agent = double("Agent")
+      allow(agent).to receive(:class).and_return(double(respond_to?: false))
+
+      fsm = Phronomy::Agent::FSM.new(
+        agent: agent,
+        input: "hi",
+        thread_id: "shutdown-reject-test"
+      )
+      cq = el.register(fsm)
+      result = cq.pop
+
+      expect(result).to be_a(Phronomy::CancellationError)
+      expect(result.message).to match(/shutting down/)
+    end
+  end
+
+  # -------------------------------------------------------------------------
+  # 14. Approval handler raises exception (Issue #243)
+  # -------------------------------------------------------------------------
+  describe "approval handler raises exception" do
+    # When the on_approval_required handler raises, the exception propagates
+    # through Tool#call to the agent's tool execution path.
+
+    let(:approval_tool_class) do
+      Class.new(Phronomy::Tool::Base) do
+        tool_name "approval_fault_tool"
+        requires_approval true
+        description "A tool that requires approval"
+
+        def execute
+          "executed"
+        end
+      end
+    end
+
+    it "propagates RuntimeError raised inside the approval handler through tool#call" do
+      agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
+      agent.on_approval_required { |_name, _args| raise "approval handler failed" }
+
+      wrapped = agent.send(:prepare_tool_class, approval_tool_class)
+      expect { wrapped.new.call({}) }.to raise_error(RuntimeError, "approval handler failed")
+    end
+  end
+
+  # -------------------------------------------------------------------------
+  # 15. before_completion raises + output_guardrail registered (Issue #243)
+  # -------------------------------------------------------------------------
+  describe "before_completion raises with output_guardrail also registered" do
+    # When before_completion raises, the exception propagates before the LLM
+    # call and before run_output_guardrails! is reached.  The guardrail must
+    # NOT be invoked.
+
+    let(:agent_class) { Class.new(Phronomy::Agent::Base) { model "test-model" } }
+    let(:chat_double) do
+      dbl = double("RubyLLM::Chat")
+      allow(dbl).to receive(:messages).and_return([])
+      dbl
+    end
+
+    it "propagates the hook exception and does not invoke the output guardrail" do
+      agent = agent_class.new
+      agent.before_completion = ->(_ctx) { raise "hook exploded" }
+
+      guardrail_invoked = false
+      spy_guardrail = double("SpyGuardrail")
+      allow(spy_guardrail).to receive(:run!) { guardrail_invoked = true }
+
+      agent.instance_variable_set(:@output_guardrails, [spy_guardrail])
+
+      expect {
+        agent.send(:run_before_completion_hooks!, chat_double, {})
+      }.to raise_error(RuntimeError, "hook exploded")
+
+      expect(guardrail_invoked).to be(false)
+    end
+  end
 end
