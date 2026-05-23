@@ -87,7 +87,7 @@ Install additional gems only for the features you use:
 
 ### Agent — ReAct tool-calling agent
 
-```ruby
+```ruby runnable
 class WebSearch < Phronomy::Tool::Base
   description "Search the web"
   param :query, type: :string, desc: "Search query"
@@ -111,7 +111,7 @@ puts result[:output]
 
 ### Workflow — Stateful workflow with wait_state/send_event
 
-```ruby
+```ruby runnable
 class ReviewContext
   include Phronomy::WorkflowContext
   field :draft,    type: :replace

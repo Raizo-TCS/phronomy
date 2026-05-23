@@ -80,3 +80,18 @@ jobs:
           bundler-cache: false
       - name: Syntax-check Ruby code blocks in README
         run: ruby scripts/check_readme_ruby.rb
+
+  readme-runnable:
+    runs-on: ubuntu-latest
+    name: Lint — README runnable blocks
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+      - name: Execute runnable README code blocks
+        run: bundle exec ruby scripts/check_readme_runnable.rb
