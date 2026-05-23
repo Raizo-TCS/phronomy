@@ -245,7 +245,7 @@ agents.</li>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#dispatch_parallel-instance_method" title="#dispatch_parallel (instance method)">#<strong>dispatch_parallel</strong>(*tasks, max_concurrency: nil, on_error: :raise, timeout: nil)  &#x21d2; Array&lt;Hash, nil&gt; </a>
+      <a href="#dispatch_parallel-instance_method" title="#dispatch_parallel (instance method)">#<strong>dispatch_parallel</strong>(*tasks, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil)  &#x21d2; Array&lt;Hash, nil&gt; </a>
     
 
     
@@ -267,7 +267,7 @@ agents.</li>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#fan_out-instance_method" title="#fan_out (instance method)">#<strong>fan_out</strong>(agent:, inputs:, config: {}, thread_id: nil, max_concurrency: nil, on_error: :raise, timeout: nil)  &#x21d2; Array&lt;Hash, nil&gt; </a>
+      <a href="#fan_out-instance_method" title="#fan_out (instance method)">#<strong>fan_out</strong>(agent:, inputs:, config: {}, thread_id: nil, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil)  &#x21d2; Array&lt;Hash, nil&gt; </a>
     
 
     
@@ -602,7 +602,7 @@ proceed</p></div>
       <div class="method_details first">
   <h3 class="signature first" id="dispatch_parallel-instance_method">
   
-    #<strong>dispatch_parallel</strong>(*tasks, max_concurrency: nil, on_error: :raise, timeout: nil)  &#x21d2; <tt>Array&lt;Hash, nil&gt;</tt> 
+    #<strong>dispatch_parallel</strong>(*tasks, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil)  &#x21d2; <tt>Array&lt;Hash, nil&gt;</tt> 
   
 
   
@@ -692,6 +692,24 @@ nil means wait indefinitely. When the deadline is exceeded,
   
     <li>
       
+        <span class='name'>cancellation_token</span>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="../CancellationToken.html" title="Phronomy::CancellationToken (class)">Phronomy::CancellationToken</a></span></tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>when provided, the
+token is merged into each task's config (unless the task already sets one) so
+that every worker agent checks it before making LLM calls.</p></div>
+      
+    </li>
+  
+    <li>
+      
         <span class='name'>task</span>
       
       
@@ -707,6 +725,8 @@ nil means wait indefinitely. When the deadline is exceeded,
 </ul>
 
   
+    
+    
     
     
     
@@ -779,21 +799,21 @@ nil means wait indefinitely. When the deadline is exceeded,
       <pre class="lines">
 
 
-121
-122
-123
 124
 125
 126
 127
 128
 129
-130</pre>
+130
+131
+132
+133</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/orchestrator.rb', line 121</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/orchestrator.rb', line 124</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_dispatch_parallel'>dispatch_parallel</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_tasks'>tasks</span><span class='comma'>,</span> <span class='label'>max_concurrency:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on_error:</span> <span class='symbol'>:raise</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_dispatch_parallel'>dispatch_parallel</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_tasks'>tasks</span><span class='comma'>,</span> <span class='label'>max_concurrency:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on_error:</span> <span class='symbol'>:raise</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>unless</span> <span class='lbracket'>[</span><span class='symbol'>:raise</span><span class='comma'>,</span> <span class='symbol'>:skip</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_on_error'>on_error</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>unknown on_error: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_on_error'>on_error</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
   <span class='kw'>end</span>
@@ -801,7 +821,7 @@ nil means wait indefinitely. When the deadline is exceeded,
     <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>max_concurrency must be a positive Integer</span><span class='tstring_end'>&quot;</span></span>
   <span class='kw'>end</span>
 
-  <span class='id identifier rubyid_bounded_map'>bounded_map</span><span class='lparen'>(</span><span class='id identifier rubyid_tasks'>tasks</span><span class='comma'>,</span> <span class='label'>max_concurrency:</span> <span class='id identifier rubyid_max_concurrency'>max_concurrency</span><span class='comma'>,</span> <span class='label'>on_error:</span> <span class='id identifier rubyid_on_error'>on_error</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_bounded_map'>bounded_map</span><span class='lparen'>(</span><span class='id identifier rubyid_tasks'>tasks</span><span class='comma'>,</span> <span class='label'>max_concurrency:</span> <span class='id identifier rubyid_max_concurrency'>max_concurrency</span><span class='comma'>,</span> <span class='label'>on_error:</span> <span class='id identifier rubyid_on_error'>on_error</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -811,7 +831,7 @@ nil means wait indefinitely. When the deadline is exceeded,
       <div class="method_details ">
   <h3 class="signature " id="fan_out-instance_method">
   
-    #<strong>fan_out</strong>(agent:, inputs:, config: {}, thread_id: nil, max_concurrency: nil, on_error: :raise, timeout: nil)  &#x21d2; <tt>Array&lt;Hash, nil&gt;</tt> 
+    #<strong>fan_out</strong>(agent:, inputs:, config: {}, thread_id: nil, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil)  &#x21d2; <tt>Array&lt;Hash, nil&gt;</tt> 
   
 
   
@@ -946,24 +966,26 @@ nil means wait indefinitely. When the deadline is exceeded,
       <pre class="lines">
 
 
-144
-145
-146
 147
 148
 149
 150
-151</pre>
+151
+152
+153
+154
+155</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/orchestrator.rb', line 144</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/orchestrator.rb', line 147</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_fan_out'>fan_out</span><span class='lparen'>(</span><span class='label'>agent:</span><span class='comma'>,</span> <span class='label'>inputs:</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>max_concurrency:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on_error:</span> <span class='symbol'>:raise</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_fan_out'>fan_out</span><span class='lparen'>(</span><span class='label'>agent:</span><span class='comma'>,</span> <span class='label'>inputs:</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>max_concurrency:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on_error:</span> <span class='symbol'>:raise</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_dispatch_parallel'>dispatch_parallel</span><span class='lparen'>(</span>
     <span class='op'>*</span><span class='id identifier rubyid_inputs'>inputs</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_input'>input</span><span class='op'>|</span> <span class='lbrace'>{</span><span class='label'>agent:</span> <span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rbrace'>}</span> <span class='rbrace'>}</span><span class='comma'>,</span>
     <span class='label'>max_concurrency:</span> <span class='id identifier rubyid_max_concurrency'>max_concurrency</span><span class='comma'>,</span>
     <span class='label'>on_error:</span> <span class='id identifier rubyid_on_error'>on_error</span><span class='comma'>,</span>
-    <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span>
+    <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
+    <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
   <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1076,17 +1098,17 @@ instance, inheriting the parent's <code>thread_id</code> and <code>config</code>
       <pre class="lines">
 
 
-161
-162
-163
-164
 165
 166
 167
-168</pre>
+168
+169
+170
+171
+172</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/orchestrator.rb', line 161</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/orchestrator.rb', line 165</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_subagent'>subagent</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_class'>agent_class</span><span class='comma'>,</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ctx'>ctx</span> <span class='op'>=</span> <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='lbracket'>[</span><span class='symbol'>:phronomy_orchestrator_context</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
@@ -1106,7 +1128,7 @@ instance, inheriting the parent's <code>thread_id</code> and <code>config</code>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 07:19:43 2026 by
+  Generated on Sat May 23 11:30:54 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

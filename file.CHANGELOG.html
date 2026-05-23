@@ -127,6 +127,17 @@ clears its singleton, and resets configuration to defaults; intended for test su
 ensure clean state between examples. <code>spec_helper.rb</code> now calls <code>reset_runtime!</code> in an
 <code>after(:each)</code> hook automatically.</p>
 </li>
+<li>
+<p><strong><code>CancellationToken</code> — cooperative cancellation for agent invocations</strong> (#216):
+New class <code>Phronomy::CancellationToken</code> enables cooperative cancellation without
+<code>Thread#kill</code>. Tokens are passed via <code>config: { cancellation_token: token }</code>.
+<code>cancel!</code> marks the token (thread-safe via Mutex); <code>cancelled?</code> returns <code>true</code>
+once cancelled or once an optional <code>deadline: Time</code> has passed. Agents check the
+token in <code>_invoke_impl</code> (fail-fast before any LLM call) and again immediately
+before <code>chat.ask</code>. <code>CancellationError</code> is never retried by the retry policy.
+<code>dispatch_parallel</code> and <code>fan_out</code> accept <code>cancellation_token:</code> and automatically
+inject it into every worker task's config unless the task already supplies its own.</p>
+</li>
 </ul>
 <h3 id="Changed">Changed</h3>
 <ul>
@@ -769,7 +780,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sat May 23 07:19:42 2026 by
+  Generated on Sat May 23 11:30:53 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
