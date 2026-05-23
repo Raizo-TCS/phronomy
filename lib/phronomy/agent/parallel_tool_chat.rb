@@ -55,8 +55,16 @@ module Phronomy
         # Tool calls are processed in batches of at most `max` threads;
         # batches run sequentially so the total in-flight thread count never
         # exceeds the limit.
+        #
+        # Check for cancellation before dispatching each batch so that
+        # already-cancelled tokens do not start new LLM/tool-round-trips.
+        ct = Thread.current[:phronomy_cancellation_token]
         max = Thread.current[:phronomy_max_parallel_tools] || 10
         thread_results = tool_calls.each_slice(max).flat_map do |batch|
+          if ct&.cancelled?
+            raise Phronomy::CancellationError, "invocation cancelled before tool execution"
+          end
+
           threads = batch.map do |tool_call|
             Thread.new { {tool_call: tool_call, result: execute_tool(tool_call)} }
           end

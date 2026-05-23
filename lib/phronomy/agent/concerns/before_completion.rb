@@ -73,6 +73,7 @@ module Phronomy
           merged = {}
           hooks.each do |hook|
             result = hook.call(ctx)
+            check_cancellation!(config, "invocation cancelled during before_completion hook")
             merged.merge!(result) if result.is_a?(Hash)
           end
 

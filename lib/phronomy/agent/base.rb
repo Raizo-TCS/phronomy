@@ -653,6 +653,7 @@ module Phronomy
 
           response = chat.ask(user_message) do |chunk|
             block.call(StreamEvent.new(type: :token, payload: {content: chunk.content}))
+            check_cancellation!(config, "invocation cancelled during streaming")
           end
 
           output = response.content
@@ -686,6 +687,7 @@ module Phronomy
         assembler.add_instruction(system_text) if system_text
 
         Array(config[:knowledge_sources]).each do |ks|
+          check_cancellation!(config, "invocation cancelled during RAG fetch")
           ks.fetch(query: user_message).each do |chunk|
             assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
           end
@@ -764,9 +766,13 @@ module Phronomy
           _register_suspension_hook!(chat)
 
           # Check for cancellation immediately before the LLM call.
-          if (ct = config[:cancellation_token]) && ct.cancelled?
-            raise Phronomy::CancellationError, "invocation cancelled before LLM call"
-          end
+          check_cancellation!(config, "invocation cancelled before LLM call")
+
+          # Forward the cancellation token to ParallelToolChat via a thread-local
+          # so that tool dispatch batches can observe cancellation without needing
+          # direct access to config.
+          prev_ct = Thread.current[:phronomy_cancellation_token]
+          Thread.current[:phronomy_cancellation_token] = config[:cancellation_token]
 
           begin
             response = chat.ask(user_message)
@@ -781,6 +787,8 @@ module Phronomy
             )
             suspended_result = {output: nil, suspended: true, checkpoint: checkpoint, messages: chat.messages}
             next [suspended_result, nil]
+          ensure
+            Thread.current[:phronomy_cancellation_token] = prev_ct
           end
 
           output = response.content
@@ -939,6 +947,17 @@ module Phronomy
         when Hash then input[:message] || input[:query] || input[:user] || input.to_s
         else input.to_s
         end
+      end
+
+      # Raises CancellationError if the cancellation_token in config is cancelled.
+      # No-op when config has no cancellation_token or the token is not cancelled.
+      #
+      # @param config [Hash] the invocation config hash
+      # @param message [String] the message for the CancellationError
+      # @raise [Phronomy::CancellationError]
+      def check_cancellation!(config, message = "invocation cancelled")
+        ct = config[:cancellation_token]
+        raise Phronomy::CancellationError, message if ct&.cancelled?
       end
 
       # Builds the final tool class to register with the chat.
