@@ -487,4 +487,90 @@ RSpec.describe "Lifecycle invariants" do
       expect(results).to include(:completed)
     end
   end
+
+  # ===========================================================================
+  # 6. Thread-leak detection after timeout-forced shutdown (Issue #251)
+  #
+  # When stop(force_kill: true) fires before an in-flight session completes,
+  # the background loop thread must be dead and @thread must be nil so that a
+  # subsequent EventLoop.instance starts without contaminated state.
+  # ===========================================================================
+  describe "thread leak after timeout-forced shutdown (Issue #251)" do
+    after do
+      Phronomy::EventLoop.reset!
+      Phronomy.reset_configuration!
+    end
+
+    it "loop thread is dead and @thread is nil after stop with an in-flight session" do
+      # Verifies that stop (regardless of :clean or :force_killed outcome) always
+      # sets @thread to nil and leaves the background thread no longer alive,
+      # even when a session IO thread is still running at shutdown time.
+      Phronomy.configure { |c| c.event_loop = true }
+      el = Phronomy::EventLoop.instance
+      loop_thread = el.instance_variable_get(:@thread)
+      expect(loop_thread).to be_alive
+
+      # Register a session that sleeps far longer than the stop timeout.
+      started_q = Thread::Queue.new
+      agent = double("SlowAgentForceKill")
+      allow(agent).to receive(:send) do
+        started_q.push(:started)
+        sleep 10 # intentionally outlasts the stop timeout
+        {output: "done", messages: [], usage: nil}
+      end
+      allow(agent).to receive(:class).and_return(double(respond_to?: false))
+
+      fsm = Phronomy::Agent::FSM.new(
+        agent: agent,
+        input: "hi",
+        thread_id: "leak-force-kill-#{SecureRandom.hex(4)}"
+      )
+      el.register(fsm)
+      started_q.pop # ensure the IO thread is running before we call stop
+
+      # stop with force_kill so the loop thread is definitively terminated even
+      # if a IO thread is still sleeping.  The loop thread itself exits cleanly
+      # once @running = false is observed; IO threads are independent.
+      status = el.stop(timeout: 2, force_kill: true)
+
+      expect([:clean, :force_killed]).to include(status)
+      expect(loop_thread).not_to be_alive
+      expect(el.instance_variable_get(:@thread)).to be_nil
+    end
+
+    it "a subsequent EventLoop.instance starts with a fresh thread after force_kill" do
+      # Verifies that EventLoop.reset! followed by .instance creates a new,
+      # alive thread — no residual contamination from the killed instance.
+      Phronomy.configure { |c| c.event_loop = true }
+      el_first = Phronomy::EventLoop.instance
+      first_thread = el_first.instance_variable_get(:@thread)
+
+      started_q = Thread::Queue.new
+      agent = double("SlowAgentReset")
+      allow(agent).to receive(:send) do
+        started_q.push(:started)
+        sleep 10
+        {output: "done", messages: [], usage: nil}
+      end
+      allow(agent).to receive(:class).and_return(double(respond_to?: false))
+
+      fsm = Phronomy::Agent::FSM.new(
+        agent: agent,
+        input: "hi",
+        thread_id: "leak-reset-#{SecureRandom.hex(4)}"
+      )
+      el_first.register(fsm)
+      started_q.pop
+
+      el_first.stop(timeout: 0.1, force_kill: true)
+      Phronomy::EventLoop.reset!
+
+      # After reset, a new instance must have its own alive thread.
+      el_second = Phronomy::EventLoop.instance
+      second_thread = el_second.instance_variable_get(:@thread)
+      expect(second_thread).to be_alive
+      expect(second_thread).not_to be(first_thread)
+      expect(el_second.instance_variable_get(:@fsm_count)).to eq(0)
+    end
+  end
 end
