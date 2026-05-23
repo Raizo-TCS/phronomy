@@ -9,6 +9,9 @@ gem "rake", "~> 13.0"
 
 gem "rspec", "~> 3.0"
 
+# Property-based testing
+gem "rantly", "~> 2.0"
+
 # Code coverage with branch tracking
 gem "simplecov", require: false
 gem "simplecov-lcov", require: false

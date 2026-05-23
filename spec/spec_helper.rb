@@ -19,6 +19,9 @@ end
 
 require "phronomy"
 
+# Suppress rantly dot/SUCCESS output by default; set RANTLY_VERBOSE=1 to enable.
+ENV["RANTLY_VERBOSE"] ||= "0"
+
 # Load shared examples and other support files.
 Dir[File.expand_path("support/**/*.rb", __dir__)].sort.each { |f| require f }
 
