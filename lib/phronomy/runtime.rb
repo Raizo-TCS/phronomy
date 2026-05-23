@@ -48,5 +48,20 @@ module Phronomy
     def spawn(name: nil, &block)
       Task.spawn(name: name, &block)
     end
+
+    # Returns the shared {BlockingAdapterPool} for this Runtime.
+    # All blocking I/O (LLM HTTP, MCP, ActiveRecord, Redis) should be
+    # submitted through this pool.
+    #
+    # Pool settings default to 10 workers / 100-deep queue.  Override by
+    # constructing a Runtime with custom pool options or by replacing the
+    # shared Runtime via {.instance=} in tests.
+    #
+    # @param pool_size  [Integer] worker thread count (default: 10)
+    # @param queue_size [Integer] max pending operations (default: 100)
+    # @return [BlockingAdapterPool]
+    def blocking_io(pool_size: 10, queue_size: 100)
+      @blocking_io ||= BlockingAdapterPool.new(pool_size: pool_size, queue_size: queue_size)
+    end
   end
 end

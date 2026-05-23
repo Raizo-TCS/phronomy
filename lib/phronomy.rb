@@ -76,6 +76,10 @@ module Phronomy
     end
   end
 
+  # Raised when an operation is submitted to a {BlockingAdapterPool} that has
+  # already been shut down via {BlockingAdapterPool#shutdown}.
+  class PoolShutdownError < Error; end
+
   class << self
     def configuration
       @configuration ||= Configuration.new
