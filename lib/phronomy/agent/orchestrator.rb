@@ -214,7 +214,8 @@ module Phronomy
         results = Array.new(tasks.length)
         errors = Array.new(tasks.length)
         errors_mutex = Mutex.new
-        cancelled = [false] # cooperative stop flag; workers check before each task
+        # Mutex-backed cooperative stop token; workers check before each task pick-up.
+        internal_stop_token = Phronomy::CancellationToken.new
 
         queue = Queue.new
         tasks.each_with_index { |task, i| queue << [i, task] }
@@ -224,7 +225,7 @@ module Phronomy
         workers = worker_count.times.map do
           Thread.new do
             loop do
-              break if cancelled[0]
+              break if internal_stop_token.cancelled?
 
               i, task = begin
                 queue.pop(true)
@@ -269,7 +270,7 @@ module Phronomy
           alive = workers.select(&:alive?)
           unless alive.empty?
             # Signal workers cooperatively to stop picking up new tasks.
-            cancelled[0] = true
+            internal_stop_token.cancel!
             # Give in-flight ensure blocks a short grace period before kill.
             alive.each { |w| w.join(KILL_GRACE_SECONDS) }
             still_alive = alive.select(&:alive?)
