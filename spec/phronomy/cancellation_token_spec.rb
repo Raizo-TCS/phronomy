@@ -68,6 +68,33 @@ RSpec.describe Phronomy::CancellationToken do
     end
   end
 
+  describe ".timeout_after" do
+    it "returns a CancellationToken" do
+      expect(described_class.timeout_after(60)).to be_a(described_class)
+    end
+
+    it "is not cancelled immediately for a positive duration" do
+      token = described_class.timeout_after(60)
+      expect(token.cancelled?).to be false
+    end
+
+    it "is cancelled when the duration has elapsed (monotonic clock)" do
+      token = described_class.timeout_after(-1)
+      expect(token.cancelled?).to be true
+    end
+
+    it "has a nil wall-clock deadline (uses monotonic clock internally)" do
+      token = described_class.timeout_after(60)
+      expect(token.deadline).to be_nil
+    end
+
+    it "can still be explicitly cancelled before the timeout elapses" do
+      token = described_class.timeout_after(60)
+      token.cancel!
+      expect(token.cancelled?).to be true
+    end
+  end
+
   describe "Agent::Base integration" do
     # A bare agent class with no invoke override. Cancellation is checked
     # in _invoke_impl before invoke_once (and thus the LLM) is called.

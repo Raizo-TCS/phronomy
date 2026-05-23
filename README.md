@@ -44,7 +44,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **MCP Tool** — Model Context Protocol server integration | Beta |
 | **Error Taxonomy** — `RateLimitError`, `AuthenticationError`, `ContextLengthError`, `TransportError` (subclasses of `Phronomy::Error`) raised at the agent retry boundary | Beta |
 | **`Phronomy.with_configuration` / `Phronomy.reset_runtime!`** — Scoped configuration override and full runtime reset for test isolation | Beta |
-| **CancellationToken** — Cooperative cancellation via `cancel!`/`cancelled?`; optional `deadline:` for time-based expiry; passed as `config: { cancellation_token: token }` to agents and `dispatch_parallel` | Experimental |
+| **CancellationToken** — Cooperative cancellation via `cancel!`/`cancelled?`; `timeout_after(seconds)` for monotonic-clock deadlines; optional `deadline:` (wall-clock) for backward compatibility; passed as `config: { cancellation_token: token }` to agents and `dispatch_parallel` | Experimental |
 
 ## Installation
 
@@ -618,7 +618,11 @@ rescue Phronomy::CancellationError
   puts "cancelled"
 end
 
-# Hard deadline (auto-cancel after 30 s)
+# Hard deadline via monotonic clock (recommended — immune to NTP/DST changes)
+token = Phronomy::CancellationToken.timeout_after(30)
+result = MyAgent.new.invoke("...", config: { cancellation_token: token })
+
+# Hard deadline via wall-clock (legacy — still supported)
 token = Phronomy::CancellationToken.new(deadline: Time.now + 30)
 result = MyAgent.new.invoke("...", config: { cancellation_token: token })
 
