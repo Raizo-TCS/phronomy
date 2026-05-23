@@ -89,7 +89,8 @@ RSpec.describe Phronomy::Tool::McpTool do
   describe Phronomy::Tool::McpTool::StdioTransport do
     subject(:transport) { described_class.new("./echo-server") }
 
-    # Helper: stub Open3.popen3 to return IO doubles that respond with one JSON line
+    # Helper: stub Open3.popen3 to return IO doubles that respond with one JSON line.
+    # Also stubs IO.select to return immediately (no real I/O select needed in tests).
     def stub_popen3_response(json_hash)
       json_line = JSON.generate(json_hash)
       stdin_dbl = instance_double(IO, puts: nil, closed?: false, close: nil)
@@ -100,6 +101,10 @@ RSpec.describe Phronomy::Tool::McpTool do
       stderr_dbl = instance_double(IO, closed?: false, close: nil)
       wait_thr = double("wait_thr")
       allow(Open3).to receive(:popen3).and_return([stdin_dbl, stdout_dbl, stderr_dbl, wait_thr])
+      # IO.select is used for read_timeout; stub it to return ready immediately.
+      allow(IO).to receive(:select).and_return([[stdout_dbl], [], []])
+      # stderr drain thread calls @stderr.read; stub it to avoid mock errors.
+      allow(stderr_dbl).to receive(:read).and_return("")
     end
 
     describe "#fetch_tool" do
@@ -296,9 +301,10 @@ RSpec.describe Phronomy::Tool::McpTool do
       )
       stdin_dbl = instance_double(IO, puts: nil, closed?: false, close: nil)
       stdout_dbl = instance_double(IO, gets: "#{json_line}\n", closed?: false, close: nil)
-      stderr_dbl = instance_double(IO, closed?: false, close: nil)
+      stderr_dbl = instance_double(IO, closed?: false, close: nil, read: "")
       wait_thr = double("wait_thr")
       allow(Open3).to receive(:popen3).once.and_return([stdin_dbl, stdout_dbl, stderr_dbl, wait_thr])
+      allow(IO).to receive(:select).and_return([[stdout_dbl], [], []])
 
       transport.call_tool("search", {})
       transport.call_tool("search", {})
@@ -318,9 +324,10 @@ RSpec.describe Phronomy::Tool::McpTool do
       stdin_dbl = instance_double(IO, closed?: false, close: nil)
       allow(stdin_dbl).to receive(:puts) { |payload| sent_payloads << JSON.parse(payload) }
       stdout_dbl = instance_double(IO, gets: "#{json_line}\n", closed?: false, close: nil)
-      stderr_dbl = instance_double(IO, closed?: false, close: nil)
+      stderr_dbl = instance_double(IO, closed?: false, close: nil, read: "")
       wait_thr = double("wait_thr")
       allow(Open3).to receive(:popen3).and_return([stdin_dbl, stdout_dbl, stderr_dbl, wait_thr])
+      allow(IO).to receive(:select).and_return([[stdout_dbl], [], []])
 
       transport.call_tool("search", {})
       transport.call_tool("search", {})

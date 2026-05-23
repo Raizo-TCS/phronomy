@@ -80,6 +80,10 @@ module Phronomy
   # already been shut down via {BlockingAdapterPool#shutdown}.
   class PoolShutdownError < Error; end
 
+  # Raised by {CancellationScope#pop_queue} when the deadline expires before a
+  # result is available. Extends {TimeoutError} for backwards compatibility.
+  class ScopeTimeoutError < TimeoutError; end
+
   class << self
     def configuration
       @configuration ||= Configuration.new

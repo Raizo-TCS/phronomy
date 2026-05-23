@@ -2,7 +2,6 @@
 
 require "digest"
 require "securerandom"
-require "timeout"
 require_relative "concerns/retryable"
 require_relative "concerns/guardrailable"
 require_relative "concerns/before_completion"
@@ -525,9 +524,11 @@ module Phronomy
           completion_queue = Phronomy::EventLoop.instance.register(fsm)
           timeout_sec = self.class.invoke_timeout
           result = if timeout_sec
-            begin
-              Timeout.timeout(timeout_sec) { completion_queue.pop }
-            rescue Timeout::Error
+            # Use CancellationScope so the deadline is tracked and the scope's
+            # token can propagate to child tasks via config in future work.
+            scope = Phronomy::CancellationScope.new(parent_token: config[:cancellation_token])
+            scope.deadline_in(timeout_sec)
+            scope.pop_queue(completion_queue) do
               raise Phronomy::TimeoutError,
                 "Agent #{self.class.name} invoke timed out after #{timeout_sec}s"
             end

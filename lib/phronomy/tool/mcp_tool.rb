@@ -5,7 +5,6 @@ require "net/http"
 require "open3"
 require "securerandom"
 require "shellwords"
-require "timeout"
 require "uri"
 
 module Phronomy
@@ -216,24 +215,29 @@ module Phronomy
           end
 
           if @startup_timeout
-            Timeout.timeout(@startup_timeout) { @stdout.gets.tap { |line| @stdout.ungetbyte(line) if line } }
+            unless IO.select([@stdout], nil, nil, @startup_timeout)
+              close
+              raise Phronomy::ToolError,
+                "MCP stdio server did not start within #{@startup_timeout} seconds"
+            end
+            line = @stdout.gets
+            @stdout.ungetbyte(line) if line
           end
-        rescue Timeout::Error
-          close
-          raise Phronomy::ToolError,
-            "MCP stdio server did not start within #{@startup_timeout} seconds"
+        rescue Phronomy::ToolError
+          raise
         end
 
         def rpc_call(method, params)
           ensure_started!
           payload = JSON.generate(jsonrpc: "2.0", id: SecureRandom.uuid, method: method, params: params)
           @stdin.puts(payload)
-          raw = Timeout.timeout(@read_timeout) { @stdout.gets }
+          unless IO.select([@stdout], nil, nil, @read_timeout)
+            raise Phronomy::ToolError,
+              "MCP stdio server did not respond within #{@read_timeout} seconds"
+          end
+          raw = @stdout.gets
           raise Phronomy::ToolError, "MCP server closed the connection unexpectedly" if raw.nil?
           JSON.parse(raw)
-        rescue Timeout::Error
-          raise Phronomy::ToolError,
-            "MCP stdio server did not respond within #{@read_timeout} seconds"
         end
 
         def parse_schema_params(properties, required_names: [])
