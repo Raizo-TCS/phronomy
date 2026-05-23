@@ -1,0 +1,107 @@
+name: Nightly — Real Backend Integration Tests
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # daily at 02:00 UTC
+  workflow_dispatch:        # allow manual trigger
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Real-backend tests (pgvector, Redis Stack, OpenTelemetry)
+  # ---------------------------------------------------------------------------
+  real-backends:
+    runs-on: ubuntu-latest
+    name: Real backends (${{ matrix.ruby }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ['3.2', '3.3']
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: phronomy
+          POSTGRES_USER: phronomy
+          POSTGRES_DB: phronomy_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U phronomy"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis/redis-stack:latest
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      PGVECTOR_DATABASE_URL: postgresql://phronomy:phronomy@localhost:5432/phronomy_test
+      REDIS_URL: redis://localhost:6379
+      NIGHTLY: '1'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby ${{ matrix.ruby }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: false
+
+      - name: Install base dependencies
+        run: bundle install --jobs 4
+
+      - name: Install optional nightly dependencies
+        run: |
+          gem install pg --no-document
+          gem install redis --no-document
+          gem install pgvector --no-document
+
+      - name: Run nightly real-backend specs
+        run: |
+          bundle exec rspec spec/integration/nightly \
+            --require spec_helper \
+            --format documentation \
+            --tag nightly
+
+  # ---------------------------------------------------------------------------
+  # 2. Optional-dependency absence tests
+  #    Verify the gem loads cleanly and raises helpful errors without optionals.
+  # ---------------------------------------------------------------------------
+  optional-absence:
+    runs-on: ubuntu-latest
+    name: Optional dependency absence
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby 3.3
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: false
+
+      - name: Install dependencies (no optional gems)
+        run: bundle install --jobs 4
+
+      - name: Run optional absence spec
+        run: |
+          bundle exec rspec spec/integration/nightly/optional_absence_spec.rb \
+            --format documentation \
+            --tag nightly
