@@ -95,6 +95,36 @@ RSpec.describe Phronomy::CancellationToken do
     end
   end
 
+  describe "#raise_if_cancelled!" do
+    it "returns nil when not cancelled" do
+      token = described_class.new
+      expect(token.raise_if_cancelled!).to be_nil
+    end
+
+    it "raises CancellationError when explicitly cancelled" do
+      token = described_class.new
+      token.cancel!
+      expect { token.raise_if_cancelled! }.to raise_error(Phronomy::CancellationError)
+    end
+
+    it "raises CancellationError with the default message" do
+      token = described_class.new
+      token.cancel!
+      expect { token.raise_if_cancelled! }.to raise_error(Phronomy::CancellationError, "invocation cancelled")
+    end
+
+    it "raises CancellationError with a custom message" do
+      token = described_class.new
+      token.cancel!
+      expect { token.raise_if_cancelled!("stopped during RAG") }.to raise_error(Phronomy::CancellationError, "stopped during RAG")
+    end
+
+    it "raises CancellationError when deadline-expired (timeout_after)" do
+      token = described_class.timeout_after(-1)
+      expect { token.raise_if_cancelled! }.to raise_error(Phronomy::CancellationError)
+    end
+  end
+
   describe "Agent::Base integration" do
     # A bare agent class with no invoke override. Cancellation is checked
     # in _invoke_impl before invoke_once (and thus the LLM) is called.

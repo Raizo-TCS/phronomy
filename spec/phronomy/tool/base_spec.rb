@@ -628,4 +628,72 @@ RSpec.describe Phronomy::Tool::Base do
       expect(result).to match(/undeclared key/i)
     end
   end
+
+  describe "cancellation_token injection (#234)" do
+    let(:token_receiving_class) do
+      Class.new(described_class) do
+        description "token-aware tool"
+        param :msg, type: :string, desc: "message"
+
+        def execute(msg:, cancellation_token: nil)
+          "#{msg}:#{cancellation_token.class}"
+        end
+      end
+    end
+
+    let(:token_unaware_class) do
+      Class.new(described_class) do
+        description "plain tool"
+        param :msg, type: :string, desc: "message"
+
+        def execute(msg:)
+          "plain:#{msg}"
+        end
+      end
+    end
+
+    it "injects Thread.current[:phronomy_cancellation_token] when execute accepts it" do
+      token = Phronomy::CancellationToken.new
+      Thread.current[:phronomy_cancellation_token] = token
+      result = token_receiving_class.new.call({"msg" => "hi"})
+      expect(result).to eq("hi:Phronomy::CancellationToken")
+    ensure
+      Thread.current[:phronomy_cancellation_token] = nil
+    end
+
+    it "does not inject when no token is set in Thread.current" do
+      Thread.current[:phronomy_cancellation_token] = nil
+      result = token_receiving_class.new.call({"msg" => "hi"})
+      expect(result).to eq("hi:NilClass")
+    end
+
+    it "does not inject when execute does not accept cancellation_token:" do
+      token = Phronomy::CancellationToken.new
+      Thread.current[:phronomy_cancellation_token] = token
+      result = token_unaware_class.new.call({"msg" => "plain"})
+      expect(result).to eq("plain:plain")
+    ensure
+      Thread.current[:phronomy_cancellation_token] = nil
+    end
+
+    it "raises CancellationError when token is cancelled and tool calls raise_if_cancelled!" do
+      token = Phronomy::CancellationToken.new
+      token.cancel!
+      Thread.current[:phronomy_cancellation_token] = token
+
+      checking_class = Class.new(described_class) do
+        description "check tool"
+        param :msg, type: :string, desc: "message"
+
+        def execute(msg:, cancellation_token: nil)
+          cancellation_token&.raise_if_cancelled!
+          "should not reach"
+        end
+      end
+
+      expect { checking_class.new.call({"msg" => "x"}) }.to raise_error(Phronomy::CancellationError)
+    ensure
+      Thread.current[:phronomy_cancellation_token] = nil
+    end
+  end
 end

@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`CancellationToken#raise_if_cancelled!` — convenience cancellation check** (#234):
+  New instance method that raises `Phronomy::CancellationError` when the token is
+  cancelled, or returns `nil` otherwise. Replaces the `if cancelled? then raise`
+  pattern inside tools, RAG loaders, and hooks.
+
+- **Tool cooperative cancellation via `cancellation_token:` keyword** (#234):
+  `Tool::Base#call` now injects `Thread.current[:phronomy_cancellation_token]` as
+  `cancellation_token:` into `execute` when the method declares that keyword. Existing
+  tools without the keyword continue to work unchanged. Tool authors can opt in:
+  `def execute(query:, cancellation_token: nil)`.
+
 - **`CancellationToken.timeout_after` — monotonic-clock deadline** (#225):
   New `CancellationToken.timeout_after(seconds)` class method creates a token that
   becomes cancelled after the specified number of seconds, measured with

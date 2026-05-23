@@ -72,5 +72,16 @@ module Phronomy
       !@monotonic_deadline.nil? &&
         Process.clock_gettime(Process::CLOCK_MONOTONIC) >= @monotonic_deadline
     end
+
+    # Raises {Phronomy::CancellationError} if the token is cancelled.
+    # A convenience method for cooperative cancellation checks inside tools,
+    # RAG loaders, and hooks, replacing the +if cancelled? then raise+ pattern.
+    #
+    # @param message [String] optional error message
+    # @return [nil] when the token is not cancelled
+    # @raise [Phronomy::CancellationError] when the token is cancelled
+    def raise_if_cancelled!(message = "invocation cancelled")
+      raise Phronomy::CancellationError, message if cancelled?
+    end
   end
 end

@@ -228,8 +228,9 @@ module Phronomy
       #
       # Execution order:
       #   1. Schema validation (type + enum checks).
-      #   2. Call super(validated_args) inside a retry loop.
-      #   3. On persistent failure, apply on_error policy.
+      #   2. Inject +cancellation_token:+ into args when +execute+ opts in.
+      #   3. Call super(validated_args) inside a retry loop.
+      #   4. On persistent failure, apply on_error policy.
       def call(args)
         validated_args, schema_error = validate_and_coerce(args)
         if schema_error
@@ -241,8 +242,12 @@ module Phronomy
             return "Schema validation failed: #{schema_error}"
           end
         end
+        ct = Thread.current[:phronomy_cancellation_token]
+        validated_args = validated_args.merge(cancellation_token: ct) if ct && execute_accepts_cancellation_token?
         with_tool_retry { super(validated_args) }
       rescue Phronomy::ToolError
+        raise
+      rescue Phronomy::CancellationError
         raise
       rescue => e
         case self.class.on_error
@@ -290,6 +295,14 @@ module Phronomy
       end
 
       private
+
+      # Returns true when the #execute method declares a +cancellation_token:+
+      # keyword parameter, indicating it opts into cooperative cancellation.
+      def execute_accepts_cancellation_token?
+        method(:execute).parameters.any? do |type, name|
+          name == :cancellation_token && %i[key keyreq].include?(type)
+        end
+      end
 
       # Executes the given block inside a retry loop driven by the class-level
       # retry_policies. Each policy matches by exception class; the first matching
