@@ -95,3 +95,20 @@ jobs:
           bundler-cache: true
       - name: Execute runnable README code blocks
         run: bundle exec ruby scripts/check_readme_runnable.rb
+
+  coverage:
+    runs-on: ubuntu-latest
+    name: Coverage gate (line ≥ 85 %, branch ≥ 75 %)
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+      - name: Run tests with coverage
+        run: bundle exec rspec
+        env:
+          COVERAGE: "1"

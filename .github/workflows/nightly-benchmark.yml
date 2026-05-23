@@ -1,0 +1,32 @@
+name: Nightly — Benchmark Regression
+
+on:
+  schedule:
+    - cron: '0 4 * * *'   # daily at 04:00 UTC (after mutation testing at 03:00)
+  workflow_dispatch:        # allow manual trigger
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark-regression:
+    runs-on: ubuntu-latest
+    name: Benchmark regression check
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Run benchmark suite with regression comparison
+        run: bundle exec ruby benchmark/run_all.rb
+        env:
+          BENCHMARK_MAX_SECONDS: "120"
+          BENCHMARK_BASELINE: "benchmark/baseline.json"
+          BENCHMARK_REGRESSION_THRESHOLD: "20"
