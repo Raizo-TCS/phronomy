@@ -35,6 +35,7 @@ module Phronomy
         # @param description  [String, nil] description exposed to the LLM;
         #   defaults to "Delegates to <AgentClassName>"
         # @return [Class] an anonymous Phronomy::Tool::AgentTool subclass
+        # @api public
         def from_agent(agent_class, tool_name: nil, description: nil)
           raise ArgumentError, "agent_class must be a Class" unless agent_class.is_a?(Class)
 

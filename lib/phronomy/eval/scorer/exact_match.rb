@@ -12,11 +12,13 @@ module Phronomy
       #   ExactMatch.new.score(actual: "paris", expected: "Paris")  # => 0.0
       class ExactMatch < Base
         # @param case_sensitive [Boolean] default true
+        # @api public
         def initialize(case_sensitive: true)
           @case_sensitive = case_sensitive
         end
 
         # @return [Float] 1.0 on match, 0.0 otherwise
+        # @api public
         def score(actual:, expected:, input: nil)
           a = actual.to_s.strip
           e = expected.to_s.strip

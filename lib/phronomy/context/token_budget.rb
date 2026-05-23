@@ -45,6 +45,7 @@ module Phronomy
       # @param max_output_tokens [Integer, nil] explicit output reservation; when nil
       #                                         and model is given, uses max_output_tokens
       # @param overhead          [Integer]      tokens reserved for instructions/tools
+      # @api private
       def initialize(model: nil, context_window: nil, max_output_tokens: nil, overhead: 0)
         @overhead = overhead.to_i
 
@@ -65,6 +66,7 @@ module Phronomy
       # Always >= 0.
       #
       # @return [Integer]
+      # @api private
       def effective_input_limit
         [@context_window - @max_output_tokens - @overhead, 0].max
       end
@@ -73,6 +75,7 @@ module Phronomy
       #
       # @param used [Integer] tokens already committed (e.g. from knowledge injection)
       # @return [Integer] remaining tokens (always >= 0)
+      # @api private
       def available(used: 0)
         [effective_input_limit - used.to_i, 0].max
       end

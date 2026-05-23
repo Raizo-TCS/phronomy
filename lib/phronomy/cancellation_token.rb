@@ -35,6 +35,7 @@ module Phronomy
     #
     # @param seconds [Numeric] duration in seconds until the token expires.
     # @return [CancellationToken]
+    # @api public
     def self.timeout_after(seconds)
       monotonic_deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + seconds
       new(monotonic_deadline: monotonic_deadline)
@@ -45,6 +46,7 @@ module Phronomy
     #   {.timeout_after} for duration-based cancellation.
     # @param monotonic_deadline [Float, nil] internal monotonic timestamp set by
     #   {.timeout_after}; prefer that factory method over passing this directly.
+    # @api public
     def initialize(deadline: nil, monotonic_deadline: nil)
       @cancelled = false
       @deadline = deadline
@@ -57,6 +59,7 @@ module Phronomy
 
     # Mark the token as cancelled. Thread-safe; may be called from any thread.
     # @return [self]
+    # @api public
     def cancel!
       @mutex.synchronize { @cancelled = true }
       self
@@ -66,6 +69,7 @@ module Phronomy
     # when the wall-clock deadline has passed, or when the monotonic deadline
     # (set by {.timeout_after}) has elapsed. Thread-safe.
     # @return [Boolean]
+    # @api public
     def cancelled?
       return true if @mutex.synchronize { @cancelled }
       return true if !@deadline.nil? && Time.now >= @deadline
@@ -80,6 +84,7 @@ module Phronomy
     # @param message [String] optional error message
     # @return [nil] when the token is not cancelled
     # @raise [Phronomy::CancellationError] when the token is cancelled
+    # @api public
     def raise_if_cancelled!(message = "invocation cancelled")
       raise Phronomy::CancellationError, message if cancelled?
     end

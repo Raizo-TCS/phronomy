@@ -60,6 +60,7 @@ module Phronomy
         # Falls back to +Phronomy.configuration.default_model+ when not set.
         #
         # @param value [String, nil]
+        # @api public
         def coordinator_model(value = nil)
           value ? @coordinator_model = value : @coordinator_model
         end
@@ -69,6 +70,7 @@ module Phronomy
         # and then call +finalize+ when all tasks are enqueued.
         #
         # @param value [String, nil]
+        # @api public
         def coordinator_instructions(value = nil)
           value ? @coordinator_instructions = value : @coordinator_instructions
         end
@@ -79,6 +81,7 @@ module Phronomy
         # Pass the same value as +LLMConfig::PROVIDER+ in your examples.
         #
         # @param value [Symbol, nil]
+        # @api public
         def coordinator_provider(value = nil)
           value ? @coordinator_provider = value : @coordinator_provider
         end
@@ -89,6 +92,7 @@ module Phronomy
         # @param agent    [Class]   Agent::Base subclass used for all workers
         # @param on_error [Symbol]  +:raise+ (default) propagates worker exceptions;
         #                           +:skip+ records the failure and continues with remaining tasks
+        # @api public
         def pool(size:, agent:, on_error: :raise)
           @pool_size = Integer(size)
           @worker_agent = agent
@@ -102,6 +106,7 @@ module Phronomy
         #
         # @yield [Array<WorkerState>] available workers
         # @yieldreturn [WorkerState] the chosen worker
+        # @api public
         def schedule(&block)
           @scheduler = block
         end
@@ -112,6 +117,7 @@ module Phronomy
         # When omitted, the raw assignments array is returned.
         #
         # @yield [Array<Hash>] all completed (and skipped) task assignments
+        # @api public
         def aggregate(&block)
           @aggregator = block
         end
@@ -141,6 +147,7 @@ module Phronomy
       # @param config     [Hash]         reserved for future use
       # @return [Object] the return value of the aggregate block, or the raw assignments Array
       # @raise [ArgumentError] when +pool :agent+ has not been configured
+      # @api public
       def invoke(team_input, config: {})
         raise ArgumentError, "pool :agent must be configured before invoking" unless self.class._worker_agent
 
@@ -165,6 +172,7 @@ module Phronomy
       # @yield [Hash] one event per completed/failed task
       # @return [Object] same as +invoke+
       # @raise [ArgumentError] when +pool :agent+ has not been configured
+      # @api public
       def stream(team_input, config: {}, &block)
         return invoke(team_input, config: config) unless block
 

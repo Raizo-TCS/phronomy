@@ -13,6 +13,7 @@ module Phronomy
         # Attach a guardrail that validates input before every #invoke call.
         # @param guardrail [Phronomy::Guardrail::InputGuardrail]
         # @return [self]
+        # @api private
         def add_input_guardrail(guardrail)
           @input_guardrails ||= []
           @input_guardrails << guardrail
@@ -22,6 +23,7 @@ module Phronomy
         # Attach a guardrail that validates output before it is returned.
         # @param guardrail [Phronomy::Guardrail::OutputGuardrail]
         # @return [self]
+        # @api private
         def add_output_guardrail(guardrail)
           @output_guardrails ||= []
           @output_guardrails << guardrail

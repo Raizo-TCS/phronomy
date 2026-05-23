@@ -25,6 +25,7 @@ module Phronomy
       #
       # @param fingerprint [String] SHA-256 hex digest to compare
       # @return [Boolean]
+      # @api private
       def valid?(fingerprint)
         !@fingerprint.nil? && !@system_text.nil? && @fingerprint == fingerprint
       end
@@ -33,6 +34,7 @@ module Phronomy
       #
       # @param fingerprint  [String] new SHA-256 hex digest
       # @param system_text  [String] fully assembled system prompt text
+      # @api private
       def update(fingerprint:, system_text:)
         @fingerprint = fingerprint
         @system_text = system_text.to_s

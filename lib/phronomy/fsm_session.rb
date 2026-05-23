@@ -51,6 +51,7 @@ module Phronomy
     # @param recursion_limit     [Integer]
     # @param resume_event        [Symbol, nil]   external event to fire when resuming
     # @param resume_phase        [Symbol, nil]   wait state name to resume from
+    # @api private
     def initialize(id:, context:, entry_point:, entry_actions:, auto_state_set:,
       declared_states:, wait_state_names:, external_events:, phase_machine_class:,
       recursion_limit:, resume_event: nil, resume_phase: nil)
@@ -103,6 +104,7 @@ module Phronomy
     # Called for :state_completed and all user-defined external events.
     #
     # @param event [Phronomy::Event]
+    # @api private
     def handle(event)
       return if @done
 

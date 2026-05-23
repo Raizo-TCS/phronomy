@@ -26,6 +26,7 @@ module Phronomy
           #   class MyAgent < Phronomy::Agent::Base
           #     retry_policy times: 2, wait: :exponential, base: 1.0
           #   end
+          # @api private
           def retry_policy(times: 0, wait: 0, base: 1.0)
             @_retry_policy = {times: times, wait: wait, base: base}
           end
@@ -36,6 +37,7 @@ module Phronomy
 
           # Injectable sleep callable for testing (shared with Tool::Base pattern).
           # @return [#call]
+          # @api private
           def _sleep_proc
             @_sleep_proc || method(:sleep)
           end
@@ -78,6 +80,7 @@ module Phronomy
         # @param base     [Float]
         # @param attempt  [Integer]
         # @return [Float]
+        # @api private
         def compute_agent_retry_wait(strategy, base, attempt)
           case strategy
           when :exponential

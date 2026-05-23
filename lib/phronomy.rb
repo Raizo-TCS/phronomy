@@ -114,6 +114,7 @@ module Phronomy
     #   Phronomy.with_configuration do |c|
     #     c.logger = Logger.new($stdout)
     #   end
+    # @api public
     def with_configuration
       original = @configuration&.dup
       yield configuration
@@ -130,6 +131,7 @@ module Phronomy
     #
     # @example
     #   config.around { |ex| Phronomy.reset_runtime! ; ex.run ; Phronomy.reset_runtime! }
+    # @api public
     def reset_runtime!
       Phronomy::EventLoop.reset!
       @configuration = Configuration.new

@@ -12,6 +12,7 @@ module Phronomy
       # @param source [String] absolute or relative path to a text file
       # @return [Array<Hash>] single-element array with the file contents
       # @raise [Errno::ENOENT] if the file does not exist
+      # @api public
       def load(source)
         text = File.read(source, encoding: "UTF-8")
         [{text: text, metadata: {source: source}}]

@@ -31,6 +31,7 @@ module Phronomy
       # @param public_key [String] Langfuse project public key
       # @param secret_key [String] Langfuse project secret key
       # @param host [String] Langfuse host URL (override for self-hosted instances)
+      # @api public
       def initialize(public_key:, secret_key:, host: DEFAULT_HOST)
         @public_key = public_key
         @secret_key = secret_key
@@ -41,6 +42,7 @@ module Phronomy
       # Returns a plain Hash that records the span start state.
       #
       # @return [Hash] an opaque span handle used by {#finish_span}
+      # @api public
       def start_span(name, input: nil, **meta)
         {
           id: SecureRandom.uuid,

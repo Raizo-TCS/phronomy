@@ -27,6 +27,7 @@ module Phronomy
 
     # @param template        [String] human message template with {{var}} placeholders
     # @param system_template [String, nil] optional system message template
+    # @api public
     def initialize(template:, system_template: nil)
       @template = template
       @system_template = system_template
@@ -36,6 +37,7 @@ module Phronomy
     #
     # @param variables [Hash{Symbol => String}]
     # @return [String]
+    # @api public
     def format(**variables)
       substitute(@template, variables)
     end
@@ -45,6 +47,7 @@ module Phronomy
     #
     # @param variables [Hash{Symbol => String}]
     # @return [String, nil]
+    # @api public
     def format_system(**variables)
       @system_template && substitute(@system_template, variables)
     end
@@ -54,6 +57,7 @@ module Phronomy
     #
     # @param input  [Hash{Symbol => String}]
     # @return [Hash]
+    # @api public
     def invoke(input, config: {})
       vars = normalize_input(input)
       result = {prompt: format(**vars)}
@@ -65,6 +69,7 @@ module Phronomy
     # Returns the list of placeholder names found in both templates.
     #
     # @return [Array<Symbol>]
+    # @api public
     def variables
       names = @template.scan(PLACEHOLDER).flatten
       names += @system_template.scan(PLACEHOLDER).flatten if @system_template

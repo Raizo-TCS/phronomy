@@ -11,12 +11,14 @@ module Phronomy
     #   puts metrics.to_h
     class Metrics
       # @param results [Array<EvalResult>]
+      # @api public
       def initialize(results)
         @results = results
       end
 
       # Fraction of results that passed (score == 1.0).
       # @return [Float] in [0.0, 1.0]
+      # @api public
       def pass_rate
         return 0.0 if @results.empty?
         @results.count(&:pass?).to_f / @results.size
@@ -24,6 +26,7 @@ module Phronomy
 
       # Arithmetic mean of all scores.
       # @return [Float]
+      # @api public
       def average_score
         return 0.0 if @results.empty?
         @results.sum(&:score) / @results.size
@@ -32,12 +35,14 @@ module Phronomy
       # Sum of all TokenUsage objects present in the results.
       # Results without usage are skipped.
       # @return [Phronomy::TokenUsage]
+      # @api public
       def total_usage
         @results.map(&:usage).compact.reduce(TokenUsage.zero, :+)
       end
 
       # Arithmetic mean of latency_ms across all results.
       # @return [Float]
+      # @api public
       def average_latency_ms
         return 0.0 if @results.empty?
         @results.sum(&:latency_ms).to_f / @results.size
@@ -45,6 +50,7 @@ module Phronomy
 
       # Returns a plain Hash summary suitable for logging or serialisation.
       # @return [Hash]
+      # @api public
       def to_h
         {
           total: @results.size,

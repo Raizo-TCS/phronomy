@@ -18,6 +18,7 @@ module Phronomy
       #   returned by a Loader, or a plain String.
       # @return [Array<Hash>] array of <tt>{ text: String, metadata: Hash }</tt>
       # @raise [NotImplementedError] when not overridden by a subclass
+      # @api public
       def split(document)
         raise NotImplementedError, "#{self.class}#split is not implemented"
       end
@@ -26,6 +27,7 @@ module Phronomy
       #
       # @param documents [Array<Hash, String>]
       # @return [Array<Hash>]
+      # @api public
       def split_all(documents)
         documents.flat_map { |doc| split(doc) }
       end

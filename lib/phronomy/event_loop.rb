@@ -59,6 +59,7 @@ module Phronomy
     #
     # @param fsm_session [Phronomy::FSMSession]
     # @return [Thread::Queue] resolves to final/halted context, or an Exception
+    # @api private
     def register(fsm_session)
       if Thread.current[:phronomy_event_loop_thread]
         raise Phronomy::Error,
@@ -84,6 +85,7 @@ module Phronomy
     #
     # @param agent_fsm [Phronomy::Agent::FSM]
     # @return [nil]
+    # @api private
     def enqueue_child(agent_fsm)
       @queue.push(Event.new(type: :start, target_id: agent_fsm.id,
         payload: {session: agent_fsm, completion: nil}))
@@ -93,12 +95,14 @@ module Phronomy
     # Posts an event to the loop. Safe to call from any thread (including IO threads).
     #
     # @param event [Phronomy::Event]
+    # @api private
     def post(event)
       @queue.push(event)
     end
 
     # Starts the background event loop thread.
     # @return [self]
+    # @api private
     def start
       return self if @thread&.alive?
 

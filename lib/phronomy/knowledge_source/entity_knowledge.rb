@@ -43,6 +43,7 @@ module Phronomy
       # Call this after saving a new set of messages (e.g. from a ConversationManager save hook).
       #
       # @param messages [Array] message objects responding to #role and #content
+      # @api public
       def update(messages:)
         messages.each do |msg|
           next unless msg.role.to_sym == :user
@@ -57,6 +58,7 @@ module Phronomy
       # @param query              [String, nil]                    unused — entity knowledge is always fully injected
       # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
       # @return [Array<Hash>]
+      # @api public
       def fetch(query: nil, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
         return [] if @entities.empty?
@@ -72,6 +74,7 @@ module Phronomy
       # Returns the current entity store (primarily for testing).
       #
       # @return [Hash]
+      # @api public
       def entities
         @entities.dup
       end

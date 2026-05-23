@@ -9,6 +9,7 @@ module Phronomy
     #   parser.parse('{"name":"Alice","age":30}')  #=> #<struct PersonSchema name="Alice", age=30>
     class StructuredParser < Base
       # @param schema_class [Class] Struct with keyword_init: true or equivalent
+      # @api public
       def initialize(schema_class)
         @schema_class = schema_class
       end
@@ -16,6 +17,7 @@ module Phronomy
       # @param text [String]
       # @return [Object] instance of schema_class
       # @raise [Phronomy::ParseError] raised when JSON parsing or schema instantiation fails
+      # @api public
       def parse(text)
         data = JsonParser.new.parse(text)
         @schema_class.new(**data)

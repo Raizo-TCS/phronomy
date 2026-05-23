@@ -35,6 +35,7 @@ module Phronomy
       # @param messages [Array]
       # @param config   [Hash]
       # @param params   [Hash] initial params (model, temperature already set on chat)
+      # @api public
       def initialize(agent:, messages:, config:, params: {})
         @agent = agent
         @messages = messages.dup.freeze

@@ -17,6 +17,7 @@ module Phronomy
       # Validate the value. Subclasses must implement this method.
       # @param value [Object] the input or output being checked
       # @raise [Phronomy::GuardrailError] if the guardrail rejects the value
+      # @api public
       def check(value)
         raise NotImplementedError, "#{self.class}#check is not implemented"
       end
@@ -24,6 +25,7 @@ module Phronomy
       # Run the check, raising GuardrailError on failure.
       # @param value [Object]
       # @return [Object] the original value (unchanged) when the check passes
+      # @api public
       def run!(value)
         check(value)
         value
@@ -34,6 +36,7 @@ module Phronomy
       # Call inside #check to reject the value.
       # @param reason [String] human-readable rejection reason
       # @raise [Phronomy::GuardrailError]
+      # @api public
       def fail!(reason)
         raise Phronomy::GuardrailError.new(reason, guardrail: self)
       end

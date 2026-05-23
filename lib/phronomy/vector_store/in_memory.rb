@@ -16,6 +16,7 @@ module Phronomy
       #   When nil, the dimension is inferred from the first call to #add.
       #   For multi-threaded use, pass dimension: explicitly; concurrent first
       #   adds are not guaranteed to be race-free.
+      # @api public
       def initialize(dimension: nil)
         @documents = {}
         @expected_dimension = dimension
@@ -25,6 +26,7 @@ module Phronomy
       # @param embedding          [Array<Float>]
       # @param metadata           [Hash]
       # @param cancellation_token [Phronomy::CancellationToken, nil]
+      # @api public
       def add(id:, embedding:, metadata: {}, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
         # Establish expected dimension on first add, then validate.
@@ -38,6 +40,7 @@ module Phronomy
       # @param k                  [Integer]
       # @param cancellation_token [Phronomy::CancellationToken, nil]
       # @return [Array<Hash>] sorted by descending score
+      # @api public
       def search(query_embedding:, k: 5, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
         k = validate_k!(k)
@@ -67,6 +70,7 @@ module Phronomy
       end
 
       # @return [Integer] number of documents stored
+      # @api public
       def size
         @documents.size
       end

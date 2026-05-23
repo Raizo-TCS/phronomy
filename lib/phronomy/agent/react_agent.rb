@@ -61,6 +61,7 @@ module Phronomy
       # @param config    [Hash]
       # @yield [Phronomy::Agent::StreamEvent]
       # @return [Hash] { output:, messages:, usage: }
+      # @api public
       def stream(input, messages: [], thread_id: nil, config: {}, &block)
         return invoke(input, messages: messages, thread_id: thread_id, config: config) unless block
 

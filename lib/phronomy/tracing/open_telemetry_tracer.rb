@@ -17,6 +17,7 @@ module Phronomy
     #   end
     class OpenTelemetryTracer < Base
       # @param tracer_name [String] name passed to the OTel TracerProvider
+      # @api public
       def initialize(tracer_name: "phronomy")
         require "opentelemetry"
         @otel_tracer = OpenTelemetry.tracer_provider.tracer(tracer_name, Phronomy::VERSION)
@@ -27,6 +28,7 @@ module Phronomy
       # +phronomy.+.
       #
       # @return [OpenTelemetry::Trace::Span]
+      # @api public
       def start_span(name, input: nil, **attributes)
         attrs = {}
         attrs["phronomy.input"] = input.to_s if input

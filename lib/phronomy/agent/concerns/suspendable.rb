@@ -26,6 +26,7 @@ module Phronomy
         #   agent = MyAgent.new
         #   agent.on_approval_required { |tool_name, args| prompt_user(tool_name, args) }
         # @return [self]
+        # @api private
         def on_approval_required(&block)
           @approval_handler = block
           self
@@ -44,6 +45,7 @@ module Phronomy
         # @param config     [Hash] same runtime options as #invoke
         # @return [Hash] +{ output: String, suspended: false, messages: Array, usage: Phronomy::TokenUsage }+
         # @raise [Phronomy::GuardrailError] when an output guardrail rejects the value
+        # @api private
         def resume(checkpoint, approved:, config: {})
           # Build a fresh chat with all tools registered.
           chat = build_chat
@@ -96,6 +98,7 @@ module Phronomy
         #   - none of the agent's tools have requires_approval set.
         #
         # @param chat [RubyLLM::Chat]
+        # @api private
         def _register_suspension_hook!(chat)
           return if @approval_handler
           return if self.class.tools.none? { |tc| tc.requires_approval }

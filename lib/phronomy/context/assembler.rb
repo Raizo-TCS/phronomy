@@ -35,12 +35,14 @@ module Phronomy
       # @param type    [Symbol, String]
       # @param trusted [Boolean]
       # @return [String]
+      # @api private
       def self.xml_tag(text, type:, trusted: false)
         "<context type=\"#{CGI.escapeHTML(type.to_s)}\" trusted=\"#{trusted}\">\n#{CGI.escapeHTML(text.to_s)}\n</context>"
       end
 
       # @param budget [Phronomy::Context::TokenBudget, nil]
       #   when nil no token trimming is performed
+      # @api private
       def initialize(budget: nil)
         @budget = budget
         @instruction = nil
@@ -53,6 +55,7 @@ module Phronomy
       #
       # @param text [String]
       # @return [self]
+      # @api private
       def add_instruction(text)
         @instruction = text.to_s
         self
@@ -67,6 +70,7 @@ module Phronomy
       # @param source  [String, nil]     optional source label (e.g. filename); included in the
       #   XML tag so the LLM can produce grounded citations. Omitted when nil.
       # @return [self]
+      # @api private
       def add_knowledge(text, type:, trusted: false, source: nil)
         @knowledge_chunks << {text: text.to_s, type: type.to_s, trusted: trusted, source: source}
         self
@@ -76,6 +80,7 @@ module Phronomy
       #
       # @param messages [Array] message-like objects with #role and #content
       # @return [self]
+      # @api private
       def add_messages(messages)
         @messages = Array(messages)
         self
@@ -86,6 +91,7 @@ module Phronomy
       # @return [Hash{Symbol => Object}]
       #   :system   [String, nil]  combined system prompt (instruction + knowledge XML tags)
       #   :messages [Array]        conversation messages, trimmed to budget if set
+      # @api private
       def build
         knowledge_text = @knowledge_chunks.map { |c| xml_context_tag(c) }.join("\n\n")
         system_parts = [@instruction, knowledge_text.empty? ? nil : knowledge_text].compact

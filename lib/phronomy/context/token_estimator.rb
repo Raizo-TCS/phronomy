@@ -37,11 +37,13 @@ module Phronomy
         #   In tests, call +TokenEstimator.reset_tokenizer!+ after each test to
         #   prevent cross-test contamination.
         # @param callable [#call, nil]
+        # @api private
         def tokenizer=(callable)
           @tokenizer_mutex.synchronize { @tokenizer = callable }
         end
 
         # @return [#call, nil]
+        # @api private
         def tokenizer
           @tokenizer_mutex.synchronize { @tokenizer }
         end
@@ -56,6 +58,7 @@ module Phronomy
         # @param input [String, Array, #content] a string, a message-like object,
         #   or an Array of message-like objects (each must respond to #content).
         # @return [Integer] estimated token count (>= 0)
+        # @api private
         def estimate(input)
           tok = @tokenizer_mutex.synchronize { @tokenizer }
           case input

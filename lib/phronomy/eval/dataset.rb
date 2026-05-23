@@ -13,6 +13,7 @@ module Phronomy
       include Enumerable
 
       # @param cases [Array<EvalCase>]
+      # @api public
       def initialize(cases = [])
         @cases = cases.freeze
       end
@@ -23,16 +24,19 @@ module Phronomy
       #
       # @param pairs [Array<Hash>]
       # @return [Dataset]
+      # @api public
       def self.from_array(pairs)
         new(pairs.map { |h| EvalCase.new(**h) })
       end
 
       # @yield [EvalCase]
+      # @api public
       def each(&block)
         @cases.each(&block)
       end
 
       # @return [Integer]
+      # @api public
       def size
         @cases.size
       end

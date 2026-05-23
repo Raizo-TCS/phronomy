@@ -32,6 +32,7 @@ module Phronomy
     #
     # @example
     #   trace("my_chain", input: input) { [invoke(input), nil] }
+    # @api public
     def trace(name, input: nil, **meta, &block)
       traced_input = Phronomy.configuration.trace_pii ? input : "[REDACTED]"
 

@@ -10,6 +10,7 @@ module Phronomy
       # @param text [String]
       # @return [Hash, Array] result parsed with symbolize_names: true
       # @raise [Phronomy::ParseError] raised when JSON parsing fails
+      # @api public
       def parse(text)
         json_str = extract_json(text)
         JSON.parse(json_str, symbolize_names: true)

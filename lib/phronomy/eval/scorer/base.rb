@@ -12,6 +12,7 @@ module Phronomy
         # @param expected [String] the ground-truth value from the EvalCase
         # @param input    [String, nil] the original input (used by LLM scorers)
         # @return [Float] a value in [0.0, 1.0]
+        # @api public
         def score(actual:, expected:, input: nil)
           raise NotImplementedError, "#{self.class}#score is not implemented"
         end

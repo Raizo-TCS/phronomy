@@ -55,6 +55,7 @@ module Phronomy
       # @param on_error    [Symbol] +:raise+ (default) re-raises any exception
       #   from the subagent; +:skip+ returns +nil+ so the LLM can decide how to
       #   proceed
+      # @api public
       def self.subagent(name, agent_class, on_error: :raise)
         tool_class = Class.new(Phronomy::Tool::Base) do
           tool_name "dispatch_to_#{name}"
@@ -87,6 +88,7 @@ module Phronomy
       # Returns the subagent registry for this specific class (not inherited).
       #
       # @return [Hash{Symbol => Hash}]
+      # @api public
       def self.registered_subagents
         @registered_subagents ||= {}
       end
@@ -127,6 +129,7 @@ module Phronomy
       # @raise [ArgumentError] if +on_error+ is not +:raise+ or +:skip+
       # @raise [ArgumentError] if +max_concurrency+ is not a positive Integer or nil
       # @raise [Phronomy::TimeoutError] if +timeout+ is exceeded
+      # @api public
       def dispatch_parallel(*tasks, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil, force_kill: false)
         unless [:raise, :skip].include?(on_error)
           raise ArgumentError, "unknown on_error: #{on_error.inspect}"
@@ -150,6 +153,7 @@ module Phronomy
       # @param max_concurrency [Integer, nil]  forwarded to {#dispatch_parallel}
       # @param on_error        [Symbol]        forwarded to {#dispatch_parallel}
       # @return [Array<Hash, nil>] results in the same order as +inputs+
+      # @api public
       def fan_out(agent:, inputs:, config: {}, thread_id: nil, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil, force_kill: false)
         dispatch_parallel(
           *inputs.map { |input| {agent: agent, input: input, config: config, thread_id: thread_id} },
@@ -169,6 +173,7 @@ module Phronomy
       # @param config      [Hash, nil]     override config (falls back to parent's)
       # @param thread_id   [String, nil]   override thread_id (falls back to parent's)
       # @return [Hash]  the sub-agent's result hash (+:output+, +:messages+)
+      # @api public
       def subagent(agent_class, input, config: nil, thread_id: nil)
         ctx = Thread.current[:phronomy_orchestrator_context] || {}
         agent_class.new.invoke(

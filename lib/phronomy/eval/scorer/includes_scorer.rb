@@ -13,11 +13,13 @@ module Phronomy
       #   IncludesScorer.new.score(actual: "The answer is 42.", expected: "42")  # => 1.0
       class IncludesScorer < Base
         # @param case_sensitive [Boolean] default false
+        # @api public
         def initialize(case_sensitive: false)
           @case_sensitive = case_sensitive
         end
 
         # @return [Float] 1.0 if actual contains expected, 0.0 otherwise
+        # @api public
         def score(actual:, expected:, input: nil)
           a = actual.to_s
           e = expected.to_s

@@ -32,6 +32,7 @@ module Phronomy
       # @param type [Symbol] :replace / :append / :merge
       # @param default [Object, Proc, nil]
       # @raise [ArgumentError] if +default+ is a plain Array or Hash (use a Proc instead)
+      # @api public
       def field(name, type: :replace, default: nil)
         if default.is_a?(Array) || default.is_a?(Hash)
           raise ArgumentError,
@@ -59,12 +60,14 @@ module Phronomy
     #   :awaiting_<name>   — halted at a wait_state(:awaiting_<name>) declaration
     #   :<state>           — resuming at <state> (workflow paused before its execution)
     # @return [Symbol]
+    # @api public
     def phase
       @phase || :__end__
     end
 
     # Returns true if the workflow is paused mid-execution (not yet completed).
     # @return [Boolean]
+    # @api public
     def halted?
       phase != :__end__
     end
@@ -72,6 +75,7 @@ module Phronomy
     # Sets internal workflow metadata. Returns self.
     # @param thread_id [String, nil]
     # @param phase [Symbol, nil]
+    # @api public
     def set_graph_metadata(thread_id: nil, phase: nil)
       @thread_id = thread_id unless thread_id.nil?
       @phase = phase unless phase.nil?
@@ -98,6 +102,7 @@ module Phronomy
     # @param updates [Hash] { field_name => new_value }
     # @return [self.class] new context instance
     # @raise [ArgumentError] if updates contains keys that are not declared fields
+    # @api public
     def merge(updates)
       unknown = updates.keys - self.class.fields.keys
       raise ArgumentError, "Unknown WorkflowContext field(s): #{unknown.inspect}" unless unknown.empty?
@@ -128,6 +133,7 @@ module Phronomy
 
     # Converts user-defined fields to a Hash (excludes internal workflow metadata).
     # @return [Hash]
+    # @api public
     def to_h
       self.class.fields.keys.each_with_object({}) do |name, h|
         h[name] = send(name)

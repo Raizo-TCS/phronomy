@@ -45,6 +45,7 @@ module Phronomy
       # @param thread_id [String, nil] used when saving compaction records
       # @param memory [Object, nil] memory object; must respond to #save_compaction
       #   for compaction records to be persisted
+      # @api private
       def initialize(message_elements:, budget:, thread_id: nil, memory: nil)
         @message_elements = message_elements.dup
         @budget = budget
@@ -67,6 +68,7 @@ module Phronomy
       # @yieldparam elements [Array<Hash>] the selected message elements
       # @yieldreturn [String] summary text to replace the selected messages
       # @return [Array] the updated result_messages array
+      # @api private
       def compact(range)
         # Normalise: Integer index → single-element Array; Range → Array slice.
         raw = @message_elements[range]

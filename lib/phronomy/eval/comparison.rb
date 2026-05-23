@@ -19,6 +19,7 @@ module Phronomy
       ComparisonPair = Data.define(:eval_case, :result_a, :result_b)
 
       # @param scorer [Scorer::Base]
+      # @api public
       def initialize(scorer: Scorer::ExactMatch.new)
         @scorer = scorer
       end
@@ -29,6 +30,7 @@ module Phronomy
       # @param callable_a [#call]
       # @param callable_b [#call]
       # @return [Array<ComparisonPair>]
+      # @api public
       def compare(dataset, callable_a, callable_b)
         runner_a = Runner.new(scorer: @scorer)
         runner_b = Runner.new(scorer: @scorer)

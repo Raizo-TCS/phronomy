@@ -47,6 +47,7 @@ module Phronomy
       # @param pending_tool_name    [String]
       # @param pending_tool_args    [Hash]
       # @param pending_tool_call_id [String]
+      # @api public
       def initialize(thread_id:, original_input:, messages:, pending_tool_name:, pending_tool_args:, pending_tool_call_id:)
         @thread_id = thread_id
         @original_input = original_input

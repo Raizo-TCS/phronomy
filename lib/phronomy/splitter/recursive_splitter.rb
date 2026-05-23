@@ -25,6 +25,7 @@ module Phronomy
       # @param chunk_size    [Integer] maximum characters per chunk (default: 1000)
       # @param chunk_overlap [Integer] overlap characters (default: 200)
       # @param separators    [Array<String>] separator list in priority order
+      # @api public
       def initialize(chunk_size: 1000, chunk_overlap: 200, separators: DEFAULT_SEPARATORS)
         raise ArgumentError, "chunk_overlap must be less than chunk_size" if chunk_overlap >= chunk_size
 
@@ -35,6 +36,7 @@ module Phronomy
 
       # @param document [Hash, String]
       # @return [Array<Hash>]
+      # @api public
       def split(document)
         doc = normalise(document)
         texts = recursive_split(doc[:text], @separators)

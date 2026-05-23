@@ -24,6 +24,7 @@ module Phronomy
       HEADING_RE = /^(\#{1,6})\s+(.+)$/
 
       # @param split_on_headings [Boolean] split on H1–H6 boundaries (default: true)
+      # @api public
       def initialize(split_on_headings: true)
         @split_on_headings = split_on_headings
       end
@@ -31,6 +32,7 @@ module Phronomy
       # @param source [String] path to a Markdown file
       # @return [Array<Hash>]
       # @raise [Errno::ENOENT] if the file does not exist
+      # @api public
       def load(source)
         content = File.read(source, encoding: "UTF-8")
         return [{text: content, metadata: {source: source}}] unless @split_on_headings

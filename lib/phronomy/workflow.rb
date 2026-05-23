@@ -63,6 +63,7 @@ module Phronomy
     # @return [Phronomy::Workflow] compiled and ready-to-run workflow instance
     # @raise [ArgumentError] if no states are declared (empty workflow)
     # @raise [ArgumentError] if any transition references an undeclared +to:+ or +from:+ state
+    # @api public
     def self.define(context_class, &block)
       builder = Builder.new(context_class)
       builder.instance_eval(&block)
@@ -70,6 +71,7 @@ module Phronomy
     end
 
     # @param runner [Phronomy::WorkflowRunner]
+    # @api public
     def initialize(runner)
       @runner = runner
     end
@@ -78,6 +80,7 @@ module Phronomy
     # @param input [Hash] initial context field values
     # @param config [Hash] { thread_id:, recursion_limit:, user_id:, session_id: }
     # @return [Object] final context
+    # @api public
     def invoke(input, config: {})
       @runner.invoke(input, config: config)
     end
@@ -86,6 +89,7 @@ module Phronomy
     # @param state [Object] halted context
     # @param input [Hash, nil] optional field updates to merge before resuming
     # @return [Object] final context
+    # @api public
     def resume(state:, input: nil)
       @runner.resume(state: state, input: input)
     end
@@ -95,6 +99,7 @@ module Phronomy
     # @param event [Symbol] event name (e.g. :approve, :reject, :resume)
     # @param input [Hash, nil] optional field updates to merge before resuming
     # @return [Object] final context
+    # @api public
     def send_event(state:, event:, input: nil)
       @runner.send_event(state: state, event: event, input: input)
     end
@@ -104,6 +109,7 @@ module Phronomy
     # @param config [Hash]
     # @yield [Hash]
     # @return [Object] final context
+    # @api public
     def stream(input, config: {}, &block)
       @runner.stream(input, config: config, &block)
     end
@@ -135,6 +141,7 @@ module Phronomy
       # Declares the initial (entry) state.
       # @param state_name [Symbol]
       # rubocop:disable Style/TrivialAccessors
+      # @api public
       def initial(state_name)
         @initial = state_name
       end
@@ -145,6 +152,7 @@ module Phronomy
       # @param action [#call, nil] optional entry action shorthand.
       #   +state :generate, action: MY_PROC+ is equivalent to
       #   +state :generate; entry :generate, MY_PROC+.
+      # @api public
       def state(name, action: nil)
         @declared_states << name
         entry(name, action) if action
@@ -160,6 +168,7 @@ module Phronomy
       # Multiple calls for the same state are allowed; callables fire in declaration order.
       # @param name [Symbol] state name
       # @param callable [#call] receives context; may return a new WorkflowContext
+      # @api public
       def entry(name, callable)
         (@entry_actions[name] ||= []) << callable
       end
@@ -171,6 +180,7 @@ module Phronomy
       # Multiple calls for the same state are allowed; callables fire in declaration order.
       # @param name [Symbol] state name
       # @param callable [#call] receives context, mutates it in place
+      # @api public
       def exit(name, callable)
         (@exit_actions[name] ||= []) << callable
       end
@@ -178,6 +188,7 @@ module Phronomy
       # Declares a wait state that automatically halts execution when reached.
       # No entry action is registered; the workflow pauses here until an event resumes it.
       # @param name [Symbol] wait state name (conventionally :awaiting_something)
+      # @api public
       def wait_state(name)
         @wait_state_names << name
       end
@@ -193,6 +204,7 @@ module Phronomy
       # @param to [Symbol] destination state or :__finish__
       # @param guard [Proc, nil] optional guard — receives context, returns truthy/falsy
       # @param on [Symbol, nil] named event for manual triggers (e.g. :approve)
+      # @api public
       def transition(from:, to:, guard: nil, on: nil)
         dest = (to == :__finish__) ? FINISH : to
         @transitions << {from: from, to: dest, guard: guard, on: on}
@@ -264,6 +276,7 @@ module Phronomy
       #   - raises ArgumentError when a transition references an undeclared target state
       #   - warns when declared states are unreachable from the initial state
       # @raise [ArgumentError] on structural errors
+      # @api public
       def build
         entry_actions = @entry_actions.dup
         exit_actions = @exit_actions.dup

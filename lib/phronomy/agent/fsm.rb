@@ -88,6 +88,7 @@ module Phronomy
       #   entry :run_agent, ->(ctx) {
       #     MyAgent.new.run_as_child(ctx.query, ctx: ctx) { |r| ctx.answer = r[:output] }
       #   }
+      # @api private
       def initialize(agent:, input:, messages: [], thread_id: nil, config: {}, parent_id: nil, result_writer: nil)
         @agent = agent
         @input = input

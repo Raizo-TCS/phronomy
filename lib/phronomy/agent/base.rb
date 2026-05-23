@@ -51,6 +51,7 @@ module Phronomy
         #   class MyAgent < Phronomy::Agent::Base
         #     model "gpt-4o"
         #   end
+        # @api public
         def model(name = nil)
           if name
             @model = name
@@ -74,6 +75,7 @@ module Phronomy
         #   class MyAgent < Phronomy::Agent::Base
         #     instructions { |input| "Answer in #{input[:lang]}." }
         #   end
+        # @api public
         def instructions(text = nil, &block)
           if text || block_given?
             @instructions = text || block
@@ -99,6 +101,7 @@ module Phronomy
         #     Places::SearchTool  => "places_search",
         #     CurrentTimeTool     => nil
         #   )
+        # @api public
         def tools(*args)
           if args.empty?
             if instance_variable_defined?(:@tools)
@@ -121,6 +124,7 @@ module Phronomy
         # Merges parent class aliases so subclasses inherit their parent's mappings.
         # Subclass-specific aliases take precedence over parent aliases.
         # @return [Hash{Class => String}]
+        # @api public
         def tool_aliases
           own = @tool_aliases || {}
           if superclass.respond_to?(:tool_aliases)
@@ -141,6 +145,7 @@ module Phronomy
         #     model "openai/gpt-oss-20b"
         #     provider :openai
         #   end
+        # @api public
         def provider(name = nil)
           if name
             @provider = name
@@ -159,6 +164,7 @@ module Phronomy
         #   class MyAgent < Phronomy::Agent::Base
         #     temperature 0.2
         #   end
+        # @api public
         def temperature(val = nil)
           if val
             @temperature = val
@@ -176,6 +182,7 @@ module Phronomy
         #   class MyAgent < Phronomy::Agent::Base
         #     max_iterations 5
         #   end
+        # @api public
         def max_iterations(val = nil)
           if val
             @max_iterations = val
@@ -197,6 +204,7 @@ module Phronomy
         #   class MyAgent < Phronomy::Agent::Base
         #     max_parallel_tools 4
         #   end
+        # @api public
         def max_parallel_tools(val = nil)
           if val.nil?
             @max_parallel_tools ||
@@ -232,6 +240,7 @@ module Phronomy
         #   class MyAgent < Phronomy::Agent::Base
         #     invoke_timeout 30
         #   end
+        # @api public
         def invoke_timeout(val = nil)
           if val.nil?
             return @invoke_timeout if defined?(@invoke_timeout)
@@ -255,6 +264,7 @@ module Phronomy
         #   class PolicyAgent < Phronomy::Agent::Base
         #     static_knowledge Phronomy::KnowledgeSource::StaticKnowledge.new(POLICY_TEXT)
         #   end
+        # @api public
         def static_knowledge(*sources)
           @static_knowledge_sources = sources.flatten
           # Invalidate the cached chunks so the new sources are fetched on
@@ -264,6 +274,7 @@ module Phronomy
 
         # Returns the registered static knowledge sources.
         # @return [Array<Phronomy::KnowledgeSource::Base>]
+        # @api public
         def static_knowledge_sources
           @static_knowledge_sources || []
         end
@@ -272,6 +283,7 @@ module Phronomy
         # Results are cached at the class level so that each source is fetched
         # only once regardless of how many times the agent is invoked.
         # @return [Array<Hash>]
+        # @api public
         def static_knowledge_chunks
           @static_knowledge_chunks ||= static_knowledge_sources.flat_map { |ks|
             ks.fetch(query: nil)
@@ -289,6 +301,7 @@ module Phronomy
         # @return [nil]
         # @example Refresh after updating a knowledge file
         #   MyAgent.static_knowledge_refresh!
+        # @api public
         def static_knowledge_refresh!
           @static_knowledge_chunks = nil
         end
@@ -307,11 +320,13 @@ module Phronomy
         #     limit = ctx.budget&.available(used: 0) || Float::INFINITY
         #     ctx.remove(ctx.message_elements.first[:seq]) if ctx.total_tokens > limit * 0.8
         #   end
+        # @api public
         def on_trim(&block)
           @on_trim_callback = block
         end
 
         # @return [Proc, nil]
+        # @api private
         def _on_trim_callback
           @on_trim_callback
         end
@@ -330,11 +345,13 @@ module Phronomy
         #     limit = ctx.budget&.available(used: 0) || Float::INFINITY
         #     ctx.total_tokens > limit * 0.7
         #   end
+        # @api public
         def on_compaction_trigger(&block)
           @on_compaction_trigger_callback = block
         end
 
         # @return [Proc, nil]
+        # @api private
         def _on_compaction_trigger_callback
           @on_compaction_trigger_callback
         end
@@ -352,11 +369,13 @@ module Phronomy
         #       "Earlier conversation summary: #{texts}"
         #     end
         #   end
+        # @api public
         def on_compact(&block)
           @on_compact_callback = block
         end
 
         # @return [Proc, nil]
+        # @api private
         def _on_compact_callback
           @on_compact_callback
         end
@@ -376,6 +395,7 @@ module Phronomy
         #     provider :anthropic
         #     cache_instructions true
         #   end
+        # @api public
         def cache_instructions(enabled = nil)
           if enabled.nil?
             @cache_instructions
@@ -391,6 +411,7 @@ module Phronomy
         #   class MyAgent < Phronomy::Agent::Base
         #     max_output_tokens 4096
         #   end
+        # @api public
         def max_output_tokens(val = nil)
           if val.nil?
             @max_output_tokens
@@ -408,6 +429,7 @@ module Phronomy
         #   class MyAgent < Phronomy::Agent::Base
         #     context_window 4096
         #   end
+        # @api public
         def context_window(val = nil)
           if val.nil?
             @context_window
@@ -423,6 +445,7 @@ module Phronomy
         #   class MyAgent < Phronomy::Agent::Base
         #     context_overhead 500
         #   end
+        # @api public
         def context_overhead(val = nil)
           if val.nil?
             @context_overhead || 0
@@ -436,6 +459,7 @@ module Phronomy
       # Called by Runner during construction when routes are configured.
       # @param tool_class [Class<Phronomy::Tool::Base>]
       # @return [self]
+      # @api private
       def _add_handoff_tool(tool_class)
         @_handoff_tools ||= []
         @_handoff_tools << tool_class
@@ -444,6 +468,7 @@ module Phronomy
 
       # Returns handoff tool classes registered on this instance by Runner.
       # @return [Array<Class>]
+      # @api private
       def _handoff_tools
         @_handoff_tools || []
       end
@@ -480,6 +505,7 @@ module Phronomy
       #     result = agent.resume(result[:checkpoint], approved: true)
       #   end
       #   puts result[:output]
+      # @api public
       def invoke(input, messages: [], thread_id: nil, config: {})
         if Phronomy.configuration.event_loop
           # Protect against blocking the EventLoop thread itself.
@@ -554,6 +580,7 @@ module Phronomy
       # @return [nil]  the caller must not wait on any return value;
       #                the result arrives as a +:child_completed+ event
       # @raise [Phronomy::Error] when EventLoop mode is not enabled
+      # @api public
       def run_as_child(input, ctx:, messages: [], config: {}, &result_writer)
         unless Phronomy.configuration.event_loop
           raise Phronomy::Error,
@@ -590,6 +617,7 @@ module Phronomy
       # @param config    [Hash]        same as #invoke
       # @yield [Phronomy::Agent::StreamEvent]
       # @return [Hash] { output:, messages:, usage: } — same as #invoke
+      # @api public
       def stream(input, messages: [], thread_id: nil, config: {}, &block)
         return invoke(input, messages: messages, thread_id: thread_id, config: config) unless block
 
@@ -677,6 +705,7 @@ module Phronomy
       # @param thread_id [String, nil] conversation thread identifier
       # @param config    [Hash] the invocation config (see #invoke)
       # @return [Hash] { system: String|nil, messages: Array }
+      # @api public
       def build_context(input, messages: [], thread_id: nil, config: {})
         history = prepare_history(messages: messages, thread_id: thread_id, config: config)
         budget = build_token_budget
@@ -709,6 +738,7 @@ module Phronomy
       # @param thread_id [String, nil] conversation thread identifier
       # @param config    [Hash] additional invocation options
       # @return [Array] filtered and/or compacted message objects
+      # @api public
       def prepare_history(messages: [], thread_id: nil, config: {})
         budget = build_token_budget
         elements = build_message_elements(Array(messages))
@@ -834,6 +864,7 @@ module Phronomy
       #
       # @param messages [Array] message-like objects with #role and #content
       # @return [Array<Hash>]
+      # @api public
       def build_message_elements(messages)
         Array(messages).each_with_index.map do |msg, idx|
           tokens = Context::TokenEstimator.estimate(msg.content.to_s)
@@ -849,6 +880,7 @@ module Phronomy
       #
       # @param input [String, Hash] the agent's current input (used for template evaluation)
       # @return [String, nil] assembled system text, or nil when empty
+      # @api public
       def build_cached_system_text(input)
         instruction = build_instructions(input)
 
@@ -955,6 +987,7 @@ module Phronomy
       # @param config [Hash] the invocation config hash
       # @param message [String] the message for the CancellationError
       # @raise [Phronomy::CancellationError]
+      # @api public
       def check_cancellation!(config, message = "invocation cancelled")
         ct = config[:cancellation_token]
         raise Phronomy::CancellationError, message if ct&.cancelled?

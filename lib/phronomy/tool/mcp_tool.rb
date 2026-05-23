@@ -37,6 +37,7 @@ module Phronomy
         #   - "http://<url>" / "https://<url>" — connect to an HTTP/SSE server
         # @param tool_name [String] the tool name as registered in the MCP server
         # @return [McpTool] a configured subclass instance ready for use with an Agent
+        # @api public
         def from_server(server_uri, tool_name:)
           # Use a short-lived transport only to query the tool definition,
           # then close it.  Each McpTool instance creates its own transport
@@ -123,6 +124,7 @@ module Phronomy
         # @param startup_timeout [Numeric, nil] seconds to wait for the server to
         #   emit its first line on stdout before raising {Phronomy::ToolError}.
         #   When nil (default), no startup check is performed.
+        # @api public
         def initialize(command, read_timeout: 30, env: nil, cwd: nil, startup_timeout: nil)
           # Split the command string into an argv array so that Open3 executes
           # it directly without going through the shell, preventing injection.
@@ -157,6 +159,7 @@ module Phronomy
         # Retrieve the tool definition from the server using the MCP `tools/list` method.
         # @param tool_name [String]
         # @return [Hash] { description:, parameters: }
+        # @api public
         def fetch_tool(tool_name)
           response = rpc_call("tools/list", {})
           tools = response.dig("result", "tools") || []
@@ -174,6 +177,7 @@ module Phronomy
         # @param tool_name [String]
         # @param args [Hash]
         # @return [Object] the tool result
+        # @api public
         def call_tool(tool_name, args)
           response = rpc_call("tools/call", {name: tool_name, arguments: args})
           if response["error"]
@@ -265,6 +269,7 @@ module Phronomy
         # @param headers      [Hash]    additional HTTP request headers (e.g. Authorization).
         #   Merged on top of the default Content-Type and Accept headers; caller-supplied
         #   values override defaults when keys collide.
+        # @api public
         def initialize(base_url, open_timeout: 5, read_timeout: 30, headers: {})
           @uri = URI.parse(base_url)
           @open_timeout = open_timeout
@@ -280,6 +285,7 @@ module Phronomy
         # Retrieve the tool definition from the server using MCP `tools/list`.
         # @param tool_name [String]
         # @return [Hash] { description:, parameters: }
+        # @api public
         def fetch_tool(tool_name)
           response = rpc_call("tools/list", {})
           tools = response.dig("result", "tools") || []
@@ -297,6 +303,7 @@ module Phronomy
         # @param tool_name [String]
         # @param args [Hash]
         # @return [Object] the tool result
+        # @api public
         def call_tool(tool_name, args)
           response = rpc_call("tools/call", {name: tool_name, arguments: args})
           if response["error"]

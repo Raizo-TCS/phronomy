@@ -27,6 +27,7 @@ module Phronomy
           #   class MyAgent < Phronomy::Agent::Base
           #     before_completion ->(ctx) { { temperature: 0.2 } }
           #   end
+          # @api private
           def before_completion(callable = nil)
             if callable.nil? && !block_given?
               @before_completion
@@ -36,6 +37,7 @@ module Phronomy
           end
 
           # @return [#call, nil]
+          # @api private
           def _before_completion
             @before_completion
           end
@@ -54,6 +56,7 @@ module Phronomy
         # @param chat   [RubyLLM::Chat] the assembled chat object
         # @param config [Hash] the invocation config hash
         # @return [Hash] the merged params applied to the chat
+        # @api private
         def run_before_completion_hooks!(chat, config)
           hooks = [
             Phronomy.configuration.before_completion,
@@ -88,6 +91,7 @@ module Phronomy
         #
         # @param chat   [RubyLLM::Chat]
         # @param params [Hash]
+        # @api private
         def apply_before_completion_params!(chat, params)
           params.each do |key, value|
             case key

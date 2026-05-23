@@ -113,6 +113,7 @@ module Phronomy
     # @param raise_if_untrusted    [Boolean] when +true+, raises
     #   {Phronomy::LowConfidenceError} if the final result does not meet the
     #   confidence threshold (default: false)
+    # @api private
     def initialize(
       draft_agent:,
       review_agent:,
@@ -143,6 +144,7 @@ module Phronomy
     # @return [Result]
     # @raise [Phronomy::LowConfidenceError] when +raise_if_untrusted:+ is +true+
     #   and the result does not meet the confidence threshold
+    # @api private
     def invoke(input, config: {})
       app = compiled_workflow
       state = app.invoke({input: input}, config: config)

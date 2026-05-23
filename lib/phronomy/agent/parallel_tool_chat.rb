@@ -35,6 +35,7 @@ module Phronomy
       #
       # @param response [RubyLLM::Message] the LLM response containing tool calls
       # @yield streaming block forwarded to +complete+
+      # @api private
       def handle_tool_calls(response, &block)
         tool_calls = response.tool_calls.values
 

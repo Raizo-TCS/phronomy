@@ -28,6 +28,7 @@ module Phronomy
 
       # @param message_elements [Array<Hash>]
       # @param budget [Phronomy::Context::TokenBudget, nil]
+      # @api private
       def initialize(message_elements:, budget:)
         @message_elements = message_elements.dup.freeze
         @budget = budget

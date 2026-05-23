@@ -25,6 +25,7 @@ module Phronomy
       # @param tool_name    [String]
       # @param args         [Hash]
       # @param tool_call_id [String]
+      # @api private
       def initialize(tool_name:, args:, tool_call_id:)
         super("Agent suspended waiting for approval of tool: #{tool_name}")
         @tool_name = tool_name

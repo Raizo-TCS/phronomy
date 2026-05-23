@@ -19,6 +19,7 @@ module Phronomy
       # @param source [String, nil] label identifying where this knowledge came from
       #   (e.g. a filename). Included in the context XML tag and exposed to the LLM
       #   so that agents can produce grounded citations.
+      # @api public
       def initialize(text, type: :static, source: nil)
         @text = text.to_s
         @type = type
@@ -30,6 +31,7 @@ module Phronomy
       # @param query              [String, nil]                    ignored for static knowledge
       # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
       # @return [Array<Hash>]
+      # @api public
       def fetch(query: nil, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
         return [] if @text.empty?
@@ -41,6 +43,7 @@ module Phronomy
 
       # Static knowledge content never changes between invocations.
       # @return [true]
+      # @api public
       def static?
         true
       end

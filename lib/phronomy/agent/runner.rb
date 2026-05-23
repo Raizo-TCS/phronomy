@@ -30,6 +30,7 @@ module Phronomy
       # @param routes [Hash{Phronomy::Agent::Base => Array<Phronomy::Agent::Base>}]
       #   declares which target agents each source agent may hand off to;
       #   when omitted no handoffs are configured and the entry agent handles everything
+      # @api public
       def initialize(agents:, routes: {})
         @agents = Array(agents)
         raise ArgumentError, "At least one agent is required" if @agents.empty?
@@ -47,6 +48,7 @@ module Phronomy
       # @param config [Hash] forwarded to each agent's #invoke
       # @return [Hash] { output:, messages:, usage:, agent: }
       # @raise [Phronomy::HandoffError] if more than MAX_HANDOFFS handoffs occur
+      # @api public
       def invoke(input, config: {})
         current = @entry_agent
         handoffs_taken = 0

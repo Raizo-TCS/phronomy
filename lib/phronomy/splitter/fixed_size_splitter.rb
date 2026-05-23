@@ -15,6 +15,7 @@ module Phronomy
       # @param chunk_size    [Integer] maximum characters per chunk (default: 1000)
       # @param chunk_overlap [Integer] characters to repeat at the start of each
       #   subsequent chunk (default: 200); must be less than chunk_size
+      # @api public
       def initialize(chunk_size: 1000, chunk_overlap: 200)
         raise ArgumentError, "chunk_overlap must be less than chunk_size" if chunk_overlap >= chunk_size
 
@@ -24,6 +25,7 @@ module Phronomy
 
       # @param document [Hash, String]
       # @return [Array<Hash>]
+      # @api public
       def split(document)
         doc = normalise(document)
         text = doc[:text]

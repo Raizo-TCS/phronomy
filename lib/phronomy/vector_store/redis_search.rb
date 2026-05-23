@@ -30,6 +30,7 @@ module Phronomy
       #   dimension: explicitly.  Without it, a freshly constructed instance
       #   treats the index as uninitialized until #add is called, and #search
       #   silently returns [] in the meantime.
+      # @api public
       def initialize(redis:, index_name: "phronomy_vectors", dimension: nil)
         begin
           require "redis"
@@ -49,6 +50,7 @@ module Phronomy
       # @param embedding          [Array<Float>]
       # @param metadata           [Hash]
       # @param cancellation_token [Phronomy::CancellationToken, nil]
+      # @api public
       def add(id:, embedding:, metadata: {}, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
         # Establish expected dimension on first add (not race-free for concurrent
@@ -68,6 +70,7 @@ module Phronomy
       # @param k                  [Integer]
       # @param cancellation_token [Phronomy::CancellationToken, nil]
       # @return [Array<Hash>] sorted by descending similarity score
+      # @api public
       def search(query_embedding:, k: 5, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
         # search never establishes dimension.  If dimension is unknown and the

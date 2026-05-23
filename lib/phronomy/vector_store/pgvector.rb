@@ -22,6 +22,7 @@ module Phronomy
       # @param dimension   [Integer, nil] expected embedding dimension for Phronomy-side
       #   pre-validation.  When nil, dimension enforcement is delegated to the
       #   database schema; no pre-validation is performed by Phronomy.
+      # @api public
       def initialize(model_class:, dimension: nil)
         begin
           require "pgvector"
@@ -38,6 +39,7 @@ module Phronomy
       # @param embedding          [Array<Float>]
       # @param metadata           [Hash]
       # @param cancellation_token [Phronomy::CancellationToken, nil]
+      # @api public
       def add(id:, embedding:, metadata: {}, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
         validate_embedding_dimension!(embedding, @dimension)
@@ -52,6 +54,7 @@ module Phronomy
       # @param k                  [Integer]
       # @param cancellation_token [Phronomy::CancellationToken, nil]
       # @return [Array<Hash>] sorted by descending similarity score
+      # @api public
       def search(query_embedding:, k: 5, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
         k_safe = validate_k!(k)

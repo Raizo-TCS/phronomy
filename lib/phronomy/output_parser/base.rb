@@ -9,6 +9,7 @@ module Phronomy
 
       # @param input [String, #to_s] text to parse
       # @return [Object] parsed result
+      # @api public
       def invoke(input, config: {})
         parse(input.is_a?(String) ? input : input.to_s)
       end

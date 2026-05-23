@@ -33,6 +33,7 @@ module Phronomy
         # When omitted, RubyLLM's default conversion applies (e.g. WeatherTool → "weather").
         #
         # @param value [String, nil] the exact function name the LLM will see
+        # @api public
         def tool_name(value = nil)
           return @tool_name if value.nil?
 
@@ -50,6 +51,7 @@ module Phronomy
         # @param enum [Array, nil] allowed values
         # @param properties [Hash, nil] nested schema for :object params
         # @param options [Hash] forwarded to RubyLLM::Tool.param
+        # @api public
         def param(name, enum: nil, properties: nil, **options)
           super(name, **options)
           param_enums[name] = enum if enum
@@ -58,12 +60,14 @@ module Phronomy
 
         # Returns the enum constraints registered via .param.
         # @return [Hash{Symbol => Array}]
+        # @api public
         def param_enums
           @param_enums ||= {}
         end
 
         # Returns nested schema definitions registered via .param(properties: ...).
         # @return [Hash{Symbol => Hash}]
+        # @api public
         def param_schemas
           @param_schemas ||= {}
         end
@@ -86,6 +90,7 @@ module Phronomy
         # Sets the access scope for this tool (metadata; enforcement is the responsibility of
         # the Workflow/Guardrail layer).
         # @param value [Symbol] e.g. :read_only, :write, :admin
+        # @api public
         def scope(value = nil)
           return @scope if value.nil?
 
@@ -100,6 +105,7 @@ module Phronomy
         #                             the LLM can recover on the next turn.
         #   :return_empty            — *deprecated* alias for +:suppress+; will be removed in a
         #                             future major release.
+        # @api public
         def on_error(behavior = nil)
           return @on_error || :raise if behavior.nil?
 
@@ -123,6 +129,7 @@ module Phronomy
         #   :raise                  — raise Phronomy::ToolError, stopping the agent loop.
         #   :coerce                 — attempt type coercion (e.g. "42" → 42 for :integer);
         #                             falls back to :return_error when coercion is not possible.
+        # @api public
         def on_schema_error(behavior = nil)
           return @on_schema_error || :return_error if behavior.nil?
 
@@ -131,6 +138,7 @@ module Phronomy
 
         # Configures whether human approval is required before executing this tool.
         # @param value [Boolean]
+        # @api public
         def requires_approval(value = nil)
           return @requires_approval || false if value.nil?
 
@@ -153,6 +161,7 @@ module Phronomy
         # @example
         #   retry_on Phronomy::ToolError, times: 3, wait: :exponential, base: 1.0
         #   retry_on Net::ReadTimeout, times: 2, wait: 0.5
+        # @api public
         def retry_on(*exception_classes, times: 1, wait: 0, base: 1.0)
           @retry_policies ||= []
           @retry_policies << {exceptions: exception_classes, times: times, wait: wait, base: base}
@@ -160,6 +169,7 @@ module Phronomy
 
         # Returns all retry policies registered on this tool class.
         # @return [Array<Hash>]
+        # @api public
         def retry_policies
           @retry_policies || []
         end
@@ -167,6 +177,7 @@ module Phronomy
         # Injectable sleep callable for testing.
         # Defaults to Kernel#sleep.
         # @return [#call]
+        # @api private
         def _sleep_proc
           @_sleep_proc || method(:sleep)
         end
@@ -235,6 +246,7 @@ module Phronomy
       #
       # @param args               [Hash]
       # @param cancellation_token [Phronomy::CancellationToken, nil] optional; takes precedence over the thread-local token
+      # @api public
       def call(args, cancellation_token: nil)
         ct = cancellation_token || Thread.current[:phronomy_cancellation_token]
         ct&.raise_if_cancelled!
@@ -295,6 +307,7 @@ module Phronomy
       #       WeatherService.fetch(location).to_s
       #     end
       #   end
+      # @api public
       def execute(**_args)
         raise NotImplementedError, "#{self.class}#execute is not implemented"
       end
@@ -338,6 +351,7 @@ module Phronomy
       # @param base     [Float]           base wait time in seconds
       # @param attempt  [Integer]         zero-based attempt index
       # @return [Float]
+      # @api public
       def compute_retry_wait(strategy, base, attempt)
         case strategy
         when :exponential
@@ -356,6 +370,7 @@ module Phronomy
       #
       # @param args [Hash] raw args passed to #call (string or symbol keys)
       # @return [Array(Hash, String|nil)] [possibly_coerced_args, error_message_or_nil]
+      # @api public
       def validate_and_coerce(args)
         return [args, nil] if self.class.parameters.empty?
 
@@ -414,6 +429,7 @@ module Phronomy
       #
       # @param nested [Hash{Symbol=>Hash}] normalized schema from param_schemas
       # @return [Hash{String=>Hash}] JSON Schema properties
+      # @api public
       def nested_schema_to_json_schema(nested)
         nested.each_with_object({}) do |(prop_name, spec), acc|
           entry = {"type" => spec[:type].to_s}
@@ -430,6 +446,7 @@ module Phronomy
       # @param value      [Hash]            the object value to validate
       # @param properties [Hash{Symbol=>Hash}] nested schema from param_schemas
       # @param path       [String]          dot-separated field path for error messages
+      # @api public
       def validate_nested_object(value, properties, path)
         return "field '#{path}' must be an object (Hash)" unless value.is_a?(Hash)
 
@@ -466,6 +483,7 @@ module Phronomy
       #
       # @param value         [Object]
       # @param declared_type [Symbol, String]  e.g. :string, :integer, :number, :boolean, :array, :object
+      # @api public
       def type_error(value, declared_type)
         return nil if value.nil?
 

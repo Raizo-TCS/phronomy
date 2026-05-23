@@ -57,6 +57,7 @@ module Phronomy
 
         # Returns a shallow copy of all findings in insertion order.
         # @return [Array<Hash>]
+        # @api public
         def read_all
           @findings.dup
         end
@@ -66,6 +67,7 @@ module Phronomy
         # @param content [String]  the finding text
         # @param cycle   [Integer] the current cycle number
         # @return [nil]
+        # @api public
         def write(agent:, content:, cycle:)
           @findings << {agent: agent, content: content, cycle: cycle}
           nil
@@ -73,6 +75,7 @@ module Phronomy
 
         # Returns the number of findings recorded so far.
         # @return [Integer]
+        # @api public
         def size
           @findings.size
         end
@@ -85,6 +88,7 @@ module Phronomy
         # @param klass [Class] an Agent::Base subclass
         # @param instruction [String, nil] optional per-agent coordination instruction
         #   appended to the team coordination text in this agent's prompt
+        # @api public
         def member(klass, instruction: nil)
           @members ||= []
           @members << {klass: klass, instruction: instruction}
@@ -94,6 +98,7 @@ module Phronomy
         # per-agent instruction. Prefer {.member} for new code.
         #
         # @param classes [Array<Class>] Agent::Base subclasses
+        # @api public
         def researchers(*classes)
           classes.flatten.each { |klass| member(klass) }
         end
@@ -104,6 +109,7 @@ module Phronomy
         # workflow. Override this when you need a different protocol or tone.
         #
         # @param text [String, nil] the coordination instructions
+        # @api public
         def coordination(text = nil)
           text ? @coordination = text : @coordination
         end
@@ -112,6 +118,7 @@ module Phronomy
         # At least one of +max_cycles+ or +timeout+ must be configured.
         #
         # @param value [Integer, nil]
+        # @api public
         def max_cycles(value = nil)
           value ? @max_cycles = Integer(value) : @max_cycles
         end
@@ -120,6 +127,7 @@ module Phronomy
         # At least one of +max_cycles+ or +timeout+ must be configured.
         #
         # @param value [Numeric, nil]
+        # @api public
         def timeout(value = nil)
           value ? @timeout = value.to_f : @timeout
         end
@@ -128,6 +136,7 @@ module Phronomy
         # cycle; when it returns +true+ the loop terminates early.
         #
         # @yield [KnowledgeStore] receives the store; return +true+ to stop
+        # @api public
         def terminate_when(&block)
           block ? @terminate_when = block : @terminate_when
         end
@@ -136,6 +145,7 @@ module Phronomy
         # When omitted, +store.read_all+ is used as-is.
         #
         # @yield [KnowledgeStore] receives the final store; return value becomes +:output+
+        # @api public
         def aggregate(&block)
           block ? @aggregator = block : @aggregator
         end
@@ -162,6 +172,7 @@ module Phronomy
       # @param config [Hash]   reserved for future use
       # @return [Hash] +:output+, +:cycles+, +:terminated_by+
       # @raise [ArgumentError] when neither +max_cycles+ nor +timeout+ is configured
+      # @api public
       def invoke(input, config: {})
         validate_termination!
 

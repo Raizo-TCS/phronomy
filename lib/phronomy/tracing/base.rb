@@ -23,6 +23,7 @@ module Phronomy
       # @param meta [Hash] additional metadata attached to the span
       # @yield [span] the active span object
       # @return [Object] the block's return value
+      # @api public
       def trace(name, input: nil, **meta)
         span = start_span(name, input: input, **meta)
         result, usage = yield span
@@ -38,6 +39,7 @@ module Phronomy
       # @param name [String]
       # @param attributes [Hash]
       # @return [Object] an opaque span handle
+      # @api public
       def start_span(name, **attributes)
         raise NotImplementedError, "#{self.class}#start_span is not implemented"
       end
@@ -48,6 +50,7 @@ module Phronomy
       # @param output [Object, nil] successful output value
       # @param usage [Phronomy::TokenUsage, nil] token usage for this span
       # @param error [Exception, nil] exception if the block raised
+      # @api public
       def finish_span(span, output: nil, usage: nil, error: nil)
         raise NotImplementedError, "#{self.class}#finish_span is not implemented"
       end

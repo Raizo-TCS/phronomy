@@ -19,6 +19,7 @@ module Phronomy
       # @param provider            [Symbol, nil] provider override (e.g. :openai); nil uses the RubyLLM default
       # @param assume_model_exists [Boolean]     when true, skips RubyLLM model-registry validation
       #                                          (useful for locally hosted models not in the registry)
+      # @api public
       def initialize(model: nil, provider: nil, assume_model_exists: false)
         @model = model
         @provider = provider
@@ -30,6 +31,7 @@ module Phronomy
       # @param text               [String]
       # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
       # @return [Array<Float>]
+      # @api public
       def embed(text, cancellation_token = nil)
         cancellation_token&.raise_if_cancelled!
         opts = {}

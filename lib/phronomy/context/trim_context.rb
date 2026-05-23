@@ -28,6 +28,7 @@ module Phronomy
       # @param message_elements [Array<Hash>]
       #   each element: { seq: Integer, message: Object, tokens: Integer, role: Symbol }
       # @param budget [Phronomy::Context::TokenBudget, nil]
+      # @api private
       def initialize(message_elements:, budget:)
         @message_elements = message_elements.dup
         @budget = budget
@@ -38,6 +39,7 @@ module Phronomy
       # Each element is a Hash with +:seq+, +:message+, +:tokens+, and +:role+.
       #
       # @return [Array<Hash>]
+      # @api private
       def message_elements
         @message_elements.dup
       end
@@ -47,6 +49,7 @@ module Phronomy
       #
       # @param seqs [Integer, Array<Integer>] seq number(s) to remove
       # @return [self]
+      # @api private
       def remove(seqs)
         seqs_set = Array(seqs).to_set
         @message_elements.reject! { |e| seqs_set.include?(e[:seq]) }
@@ -57,6 +60,7 @@ module Phronomy
       # Convenience: returns the plain message objects (without element metadata).
       #
       # @return [Array]
+      # @api private
       def messages
         @message_elements.map { |e| e[:message] }
       end

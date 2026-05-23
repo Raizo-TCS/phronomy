@@ -36,6 +36,7 @@ module Phronomy
         # @param prompt_template [String]  format string with %<input>s, %<expected>s, %<actual>s
         # @param raise_on_error  [Boolean] when true, re-raises scoring exceptions instead of
         #   returning 0.0. Use this in batch eval pipelines where silent failures are unacceptable.
+        # @api public
         def initialize(model:, prompt_template: DEFAULT_PROMPT, raise_on_error: false)
           @model = model
           @prompt_template = prompt_template
@@ -43,6 +44,7 @@ module Phronomy
         end
 
         # @return [Float] score in [0.0, 1.0]; 0.0 on error when raise_on_error is false
+        # @api public
         def score(actual:, expected:, input: nil)
           prompt = format(@prompt_template, input: input.to_s, expected: expected.to_s, actual: actual.to_s)
           response = RubyLLM.chat(model: @model).ask(prompt)

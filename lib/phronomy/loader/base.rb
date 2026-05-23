@@ -16,6 +16,7 @@ module Phronomy
       # @param source [String] file path, URL, or other source identifier
       # @return [Array<Hash>] array of <tt>{ text: String, metadata: Hash }</tt>
       # @raise [NotImplementedError] when not overridden by a subclass
+      # @api public
       def load(source)
         raise NotImplementedError, "#{self.class}#load is not implemented"
       end

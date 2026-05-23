@@ -14,6 +14,7 @@ module Phronomy
       # @param query              [String, nil]                    the current user input used to select relevant chunks
       # @param cancellation_token [Phronomy::CancellationToken, nil] optional token; raises CancellationError when cancelled
       # @return [Array<Hash>] array of { content: String, type: Symbol }
+      # @api public
       def fetch(query: nil, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
         raise NotImplementedError, "#{self.class}#fetch is not implemented"
@@ -26,6 +27,7 @@ module Phronomy
       # Override in subclasses that return fixed content.
       #
       # @return [Boolean]
+      # @api public
       def static?
         false
       end

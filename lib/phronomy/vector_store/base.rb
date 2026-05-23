@@ -13,6 +13,7 @@ module Phronomy
       # @param embedding          [Array<Float>]                   vector embedding
       # @param metadata           [Hash]                           arbitrary metadata (e.g. the original message object)
       # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
+      # @api public
       def add(id:, embedding:, metadata: {}, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
         raise NotImplementedError, "#{self.class}#add is not implemented"
@@ -24,6 +25,7 @@ module Phronomy
       # @param k                  [Integer]                        number of results
       # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
       # @return [Array<Hash>] each element: { id:, score:, metadata: }
+      # @api public
       def search(query_embedding:, k: 5, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
         raise NotImplementedError, "#{self.class}#search is not implemented"
@@ -32,6 +34,7 @@ module Phronomy
       # Remove a single document by id.
       #
       # @param id [String] document identifier
+      # @api public
       def remove(id:)
         raise NotImplementedError, "#{self.class}#remove is not implemented"
       end
@@ -44,6 +47,7 @@ module Phronomy
       # Return the number of documents stored.
       #
       # @return [Integer]
+      # @api public
       def size
         raise NotImplementedError, "#{self.class}#size is not implemented"
       end

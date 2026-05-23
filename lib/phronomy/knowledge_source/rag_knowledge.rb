@@ -22,6 +22,7 @@ module Phronomy
       # @param type       [Symbol]                         semantic tag (default :rag)
       # @param source     [String, nil]                    default source label; falls back to
       #   each document's :source metadata when nil
+      # @api public
       def initialize(store:, embeddings:, k: 5, type: :rag, source: nil)
         @store = store
         @embeddings = embeddings
@@ -37,6 +38,7 @@ module Phronomy
       # @param query              [String, nil]
       # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
       # @return [Array<Hash>]
+      # @api public
       def fetch(query: nil, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
         return [] if query.nil? || query.strip.empty?

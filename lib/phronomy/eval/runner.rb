@@ -18,6 +18,7 @@ module Phronomy
     #   results = runner.run(dataset, ->(input) { agent.invoke(input) })
     class Runner
       # @param scorer [Scorer::Base] scorer used to evaluate each result
+      # @api public
       def initialize(scorer: Scorer::ExactMatch.new)
         @scorer = scorer
       end
@@ -26,6 +27,7 @@ module Phronomy
       # @param callable    [#call]    accepts a single String argument
       # @param concurrency [Integer]  number of parallel threads (default: 1, sequential)
       # @return [Array<EvalResult>]
+      # @api public
       def run(dataset, callable, concurrency: 1)
         cases = dataset.to_a
         return cases.map { |eval_case| run_one(eval_case, callable) } if concurrency <= 1

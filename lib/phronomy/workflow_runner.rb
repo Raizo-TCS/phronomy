@@ -61,6 +61,7 @@ module Phronomy
     # @param input [Hash] initial context field values
     # @param config [Hash] { thread_id:, recursion_limit:, user_id:, session_id: }
     # @return [Object] final context (includes Phronomy::WorkflowContext)
+    # @api private
     def invoke(input, config: {})
       caller_meta = {}
       caller_meta[:user_id] = config[:user_id] if config[:user_id]
@@ -84,6 +85,7 @@ module Phronomy
     # @param state [Object] halted context
     # @param input [Hash, nil] optional field updates to merge before resuming
     # @return [Object] final context
+    # @api private
     def resume(state:, input: nil)
       send_event(state: state, event: :resume, input: input)
     end
@@ -97,6 +99,7 @@ module Phronomy
     # @param event [Symbol] named event or +:resume+ for generic resumption
     # @param input [Hash, nil] optional field updates to merge before resuming
     # @return [Object] final context
+    # @api private
     def send_event(state:, event:, input: nil)
       state = state.merge(input) if input
       event = event.to_sym
@@ -132,6 +135,7 @@ module Phronomy
     # @param config [Hash]
     # @yield [Hash]
     # @return [Object] final context
+    # @api private
     def stream(input, config: {}, &block)
       thread_id = config[:thread_id] || SecureRandom.uuid
       recursion_limit = config.fetch(:recursion_limit, Phronomy.configuration.recursion_limit)

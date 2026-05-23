@@ -22,6 +22,7 @@ module Phronomy
 
       # @param target_agent [Phronomy::Agent::Base] the agent to hand off to
       # @param description  [String, nil] overrides the auto-generated tool description
+      # @api public
       def initialize(target_agent:, description: nil)
         @target_agent = target_agent
         klass_name = target_agent.class.name&.split("::")&.last || "Agent"
@@ -33,6 +34,7 @@ module Phronomy
 
       # Builds an anonymous Phronomy::Tool::Base subclass for this handoff.
       # @return [Class<Phronomy::Tool::Base>]
+      # @api public
       def to_tool_class
         sentinel_value = sentinel
         tn = tool_name
@@ -46,6 +48,7 @@ module Phronomy
 
       # The sentinel string embedded in the tool result.
       # @return [String]
+      # @api public
       def sentinel
         "#{SENTINEL_PREFIX}:#{target_agent.class.name}:#{@uuid}"
       end

@@ -20,6 +20,7 @@ module Phronomy
     class CsvLoader < Base
       # @param headers     [Boolean] treat the first row as headers (default: true)
       # @param text_column [String, nil] if set, use only this column as the document text
+      # @api public
       def initialize(headers: true, text_column: nil)
         @headers = headers
         @text_column = text_column
@@ -28,6 +29,7 @@ module Phronomy
       # @param source [String] path to a CSV file
       # @return [Array<Hash>]
       # @raise [Errno::ENOENT] if the file does not exist
+      # @api public
       def load(source)
         rows = CSV.read(source, headers: @headers, encoding: "UTF-8")
 
