@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`VectorStore#size` — document count for all backends, contract coverage for RedisSearch and Pgvector** (#240):
+  `VectorStore::Base` gains `#size` as an abstract method; `InMemory`, `RedisSearch`,
+  and `Pgvector` all implement it. `RedisSearch#size` queries `FT.INFO num_docs`;
+  `Pgvector#size` delegates to `model_class.count`. The `a_vector_store` shared example
+  is applied to RedisSearch and Pgvector (nightly real-backend CI); unit specs add a
+  skip-guarded `it_behaves_like` reference and dedicated `#size` unit tests.
+  `empty_store` override hook added to the shared example for real-backend callers.
+
 - **`force_kill: false` default in `dispatch_parallel`, `fan_out`, and `EventLoop#stop`** (#235):
   Thread#kill is now opt-in. The default `force_kill: false` leaves timed-out workers
   running and raises `TimeoutError` immediately, avoiding the risk of interrupted

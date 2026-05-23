@@ -77,8 +77,8 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
   describe "Phronomy::VectorStore::Base" do
     subject { Phronomy::VectorStore::Base }
 
-    it "exposes instance methods: add, search, remove, clear" do
-      expect(subject.public_instance_methods).to include(:add, :search, :remove, :clear)
+    it "exposes instance methods: add, search, remove, clear, size" do
+      expect(subject.public_instance_methods).to include(:add, :search, :remove, :clear, :size)
     end
   end
 

@@ -79,6 +79,11 @@ module Phronomy
         self
       end
 
+      # Returns the number of documents in the backing table.
+      def size
+        @model_class.count
+      end
+
       private
 
       # Parses a metadata value returned by the pg driver.

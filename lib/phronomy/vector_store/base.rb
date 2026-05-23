@@ -37,6 +37,13 @@ module Phronomy
         raise NotImplementedError, "#{self.class}#clear is not implemented"
       end
 
+      # Return the number of documents stored.
+      #
+      # @return [Integer]
+      def size
+        raise NotImplementedError, "#{self.class}#size is not implemented"
+      end
+
       private
 
       # Validates that embedding has the expected dimension.

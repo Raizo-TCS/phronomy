@@ -92,6 +92,20 @@ module Phronomy
         self
       end
 
+      # Returns the number of documents indexed.
+      # Queries FT.INFO when the index has been created; returns 0 otherwise.
+      def size
+        return 0 unless @index_created
+
+        raw = @redis.call("FT.INFO", @index_name)
+        return 0 unless raw.is_a?(Array)
+
+        idx = raw.index("num_docs")
+        idx ? raw[idx + 1].to_i : 0
+      rescue
+        0
+      end
+
       def clear
         @mutex.synchronize do
           begin

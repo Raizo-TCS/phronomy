@@ -159,4 +159,22 @@ RSpec.describe Phronomy::VectorStore::Pgvector do
       expect(result.first[:metadata]).to eq({})
     end
   end
+
+  describe "#size" do
+    it "delegates to model_class.count" do
+      allow(model_class).to receive(:count).and_return(3)
+      expect(store.size).to eq(3)
+    end
+  end
+
+  # Contract: structural expectations without a live backend.
+  # Full data-operation contract runs in spec/integration/nightly/pgvector_spec.rb.
+  describe "a_vector_store contract (live backend required)" do
+    before { skip "Requires live pgvector backend; see spec/integration/nightly/pgvector_spec.rb" }
+
+    it_behaves_like "a vector store" do
+      let(:store) { described_class.new(model_class: model_class, dimension: 3) }
+      let(:empty_store) { described_class.new(model_class: model_class, dimension: 3) }
+    end
+  end
 end

@@ -35,11 +35,22 @@ RSpec.describe "Nightly: VectorStore::Pgvector against real PostgreSQL", :nightl
         t.column :embedding, :vector, limit: 3
         t.text :metadata
       end
+
+      create_table :phronomy_nightly_empty_docs, force: true do |t|
+        t.string :id, null: false, primary_key: true
+        t.column :embedding, :vector, limit: 3
+        t.text :metadata
+      end
     end
 
-    # Minimal AR model for test.
+    # Minimal AR models for tests.
     stub_const("NightlyDoc", Class.new(ActiveRecord::Base) do
       self.table_name = "phronomy_nightly_docs"
+      self.primary_key = "id"
+    end)
+
+    stub_const("NightlyEmptyDoc", Class.new(ActiveRecord::Base) do
+      self.table_name = "phronomy_nightly_empty_docs"
       self.primary_key = "id"
     end)
   end
@@ -47,6 +58,7 @@ RSpec.describe "Nightly: VectorStore::Pgvector against real PostgreSQL", :nightl
   after(:all) do
     if PGVECTOR_AVAILABLE
       ActiveRecord::Base.connection.drop_table(:phronomy_nightly_docs, if_exists: true)
+      ActiveRecord::Base.connection.drop_table(:phronomy_nightly_empty_docs, if_exists: true)
     end
   end
 
@@ -94,5 +106,19 @@ RSpec.describe "Nightly: VectorStore::Pgvector against real PostgreSQL", :nightl
     expect {
       store.add(id: "bad", embedding: [1.0, 0.0], metadata: {})
     }.to raise_error(ArgumentError, /dimension/i)
+  end
+
+  # Contract tests: verify that Pgvector satisfies the a_vector_store interface.
+  # The outer before(:all) sets up the real DB schema; each contract example
+  # clears the tables to start from a known-empty state.
+  it_behaves_like "a vector store" do
+    before do
+      skip "Requires real PostgreSQL with pgvector" unless PGVECTOR_AVAILABLE
+      NightlyDoc.delete_all
+      NightlyEmptyDoc.delete_all
+    end
+
+    let(:store) { Phronomy::VectorStore::Pgvector.new(model_class: NightlyDoc, dimension: 3) }
+    let(:empty_store) { Phronomy::VectorStore::Pgvector.new(model_class: NightlyEmptyDoc, dimension: 3) }
   end
 end

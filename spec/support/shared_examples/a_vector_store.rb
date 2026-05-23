@@ -9,6 +9,13 @@
 RSpec.shared_examples "a vector store" do
   # Callers must supply a `store` let block pointing to a fresh instance.
   # The store must accept embeddings of dimension 3.
+  #
+  # Callers may also supply an `empty_store` let block pointing to a fresh
+  # instance that is guaranteed to be empty (no documents added).  The default
+  # creates a new instance via `store.class.new(dimension: 3)`, which works
+  # for InMemory.  For real-backend stores (RedisSearch, Pgvector) that require
+  # additional constructor arguments, override this let in the caller context.
+  let(:empty_store) { store.class.new(dimension: 3) }
 
   describe "interface" do
     it "responds to #add" do
@@ -88,7 +95,6 @@ RSpec.shared_examples "a vector store" do
     end
 
     it "returns an empty array when the store is empty" do
-      empty_store = store.class.new(dimension: 3)
       expect(empty_store.search(query_embedding: [1.0, 0.0, 0.0])).to eq([])
     end
   end

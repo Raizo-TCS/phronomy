@@ -82,4 +82,17 @@ RSpec.describe "Nightly: VectorStore::RedisSearch against real Redis Stack", :ni
       store.add(id: "bad", embedding: [1.0, 0.0], metadata: {})
     }.to raise_error(ArgumentError, /dimension/i)
   end
+
+  # Contract tests: verify that RedisSearch satisfies the a_vector_store interface.
+  # The outer before/after hooks handle backend availability checks and index cleanup.
+  it_behaves_like "a vector store" do
+    let(:empty_store) do
+      # dimension: nil → search returns [] immediately before any index is created
+      Phronomy::VectorStore::RedisSearch.new(
+        redis: redis,
+        index_name: index_name,
+        dimension: nil
+      )
+    end
+  end
 end

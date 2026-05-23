@@ -179,4 +179,39 @@ RSpec.describe Phronomy::VectorStore::RedisSearch do
       end
     end
   end
+
+  describe "#size" do
+    it "returns 0 before any add (index not created)" do
+      expect(store.size).to eq(0)
+    end
+
+    it "queries FT.INFO after index is created" do
+      stub_index_create
+      allow(redis).to receive(:call).with("HSET", any_args)
+      store.add(id: "a", embedding: [1.0, 0.0], metadata: {})
+      allow(redis).to receive(:call).with("FT.INFO", "test_idx")
+        .and_return(["num_docs", "1", "other", "val"])
+      expect(store.size).to eq(1)
+    end
+
+    it "returns 0 after clear" do
+      stub_index_create
+      allow(redis).to receive(:call).with("HSET", any_args)
+      store.add(id: "a", embedding: [1.0, 0.0], metadata: {})
+      allow(redis).to receive(:call).with("FT.DROPINDEX", any_args)
+      store.clear
+      expect(store.size).to eq(0)
+    end
+  end
+
+  # Contract: structural expectations without a live backend.
+  # Full data-operation contract runs in spec/integration/nightly/redis_search_spec.rb.
+  describe "a_vector_store contract (live backend required)" do
+    before { skip "Requires live Redis backend; see spec/integration/nightly/redis_search_spec.rb" }
+
+    it_behaves_like "a vector store" do
+      let(:store) { described_class.new(redis: redis, index_name: "test_idx", dimension: 3) }
+      let(:empty_store) { described_class.new(redis: redis, index_name: "test_idx", dimension: nil) }
+    end
+  end
 end

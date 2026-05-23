@@ -32,6 +32,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **Before-Completion Hook** — Three-tier LLM parameter injection | Stable |
 | **Context Management** — Token budget calculation, estimation, and pruning | Stable |
 | **Knowledge/RAG** — Retrieval sources with pluggable loaders, splitters, and vector stores; `static_knowledge_refresh!` for runtime cache invalidation | Beta |
+| **`VectorStore#size`** — Returns document count for all three backends (InMemory, RedisSearch, Pgvector) | Beta |
 | **Multi-agent** — Agent-as-Tool pattern and hub-and-spoke handoff routing | Beta |
 | **GeneratorVerifier** — Generator-Verifier loop with injectable prompt builders/parsers | Beta |
 | **Agent::Orchestrator** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
