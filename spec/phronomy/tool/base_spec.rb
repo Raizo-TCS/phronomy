@@ -652,34 +652,26 @@ RSpec.describe Phronomy::Tool::Base do
       end
     end
 
-    it "injects Thread.current[:phronomy_cancellation_token] when execute accepts it" do
+    it "injects the cancellation_token kwarg into execute when execute accepts it" do
       token = Phronomy::CancellationToken.new
-      Thread.current[:phronomy_cancellation_token] = token
-      result = token_receiving_class.new.call({"msg" => "hi"})
+      result = token_receiving_class.new.call({"msg" => "hi"}, cancellation_token: token)
       expect(result).to eq("hi:Phronomy::CancellationToken")
-    ensure
-      Thread.current[:phronomy_cancellation_token] = nil
     end
 
-    it "does not inject when no token is set in Thread.current" do
-      Thread.current[:phronomy_cancellation_token] = nil
+    it "does not inject when no cancellation_token: is passed" do
       result = token_receiving_class.new.call({"msg" => "hi"})
       expect(result).to eq("hi:NilClass")
     end
 
     it "does not inject when execute does not accept cancellation_token:" do
       token = Phronomy::CancellationToken.new
-      Thread.current[:phronomy_cancellation_token] = token
-      result = token_unaware_class.new.call({"msg" => "plain"})
+      result = token_unaware_class.new.call({"msg" => "plain"}, cancellation_token: token)
       expect(result).to eq("plain:plain")
-    ensure
-      Thread.current[:phronomy_cancellation_token] = nil
     end
 
     it "raises CancellationError when token is cancelled and tool calls raise_if_cancelled!" do
       token = Phronomy::CancellationToken.new
       token.cancel!
-      Thread.current[:phronomy_cancellation_token] = token
 
       checking_class = Class.new(described_class) do
         description "check tool"
@@ -691,9 +683,7 @@ RSpec.describe Phronomy::Tool::Base do
         end
       end
 
-      expect { checking_class.new.call({"msg" => "x"}) }.to raise_error(Phronomy::CancellationError)
-    ensure
-      Thread.current[:phronomy_cancellation_token] = nil
+      expect { checking_class.new.call({"msg" => "x"}, cancellation_token: token) }.to raise_error(Phronomy::CancellationError)
     end
 
     it "raises CancellationError at call entry when a cancelled token is passed as kwarg (#242)" do
@@ -711,11 +701,10 @@ RSpec.describe Phronomy::Tool::Base do
         .to raise_error(Phronomy::CancellationError)
     end
 
-    it "kwarg token takes precedence over thread-local token (#242)" do
+    it "cancellation_token: kwarg causes CancellationError at call entry when cancelled (#242)" do
       active_token = Phronomy::CancellationToken.new
       cancelled_kwarg_token = Phronomy::CancellationToken.new
       cancelled_kwarg_token.cancel!
-      Thread.current[:phronomy_cancellation_token] = active_token
 
       plain_class = Class.new(described_class) do
         description "plain tool"
@@ -727,8 +716,6 @@ RSpec.describe Phronomy::Tool::Base do
       end
       expect { plain_class.new.call({"msg" => "hi"}, cancellation_token: cancelled_kwarg_token) }
         .to raise_error(Phronomy::CancellationError)
-    ensure
-      Thread.current[:phronomy_cancellation_token] = nil
     end
   end
 end

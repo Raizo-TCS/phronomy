@@ -28,6 +28,16 @@ module Phronomy
       @instance ||= new.tap(&:start)
     end
 
+    # Returns true when called from within the EventLoop background thread.
+    # Used by {Agent::Base#invoke} and {EventLoop#register} to detect deadlock
+    # conditions. Thread.current is intentionally used here as an internal
+    # implementation detail — callers should not read the raw thread-local key.
+    # @return [Boolean]
+    # @api private
+    def self.current?
+      Thread.current[:phronomy_event_loop_thread] == true
+    end
+
     # Stops and destroys the singleton. Primarily used in tests.
     # @api private
     def self.reset!
@@ -61,7 +71,7 @@ module Phronomy
     # @return [Thread::Queue] resolves to final/halted context, or an Exception
     # @api private
     def register(fsm_session)
-      if Thread.current[:phronomy_event_loop_thread]
+      if Phronomy::EventLoop.current?
         raise Phronomy::Error,
           "Cannot call Workflow#invoke (EventLoop mode) from within an EventLoop " \
           "entry action. Use the async IO pattern: spawn a Thread, post events " \

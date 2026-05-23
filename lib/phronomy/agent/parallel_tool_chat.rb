@@ -21,11 +21,17 @@ module Phronomy
     # @api private
     class ParallelToolChat < RubyLLM::Chat
       # @param max_parallel_tools [Integer] maximum simultaneous tool executions
+      # @param cancellation_token [Phronomy::CancellationToken, nil] token observed before each batch
       # @param opts [Hash] remaining kwargs forwarded to RubyLLM::Chat
-      def initialize(max_parallel_tools: 10, **opts)
+      def initialize(max_parallel_tools: 10, cancellation_token: nil, **opts)
         super(**opts)
         @max_parallel_tools = max_parallel_tools
+        @cancellation_token = cancellation_token
       end
+
+      # Allows the owning agent to update the token between retries.
+      # @api private
+      attr_writer :cancellation_token
 
       private
 
@@ -66,7 +72,7 @@ module Phronomy
         #
         # Check for cancellation before dispatching each batch so that
         # already-cancelled tokens do not start new LLM/tool-round-trips.
-        ct = Thread.current[:phronomy_cancellation_token]
+        ct = @cancellation_token
         max = @max_parallel_tools
         thread_results = tool_calls.each_slice(max).flat_map do |batch|
           if ct&.cancelled?
@@ -94,6 +100,19 @@ module Phronomy
 
         reset_tool_choice if forced_tool_choice?
         halt_result || complete(&block)
+      end
+
+      # Overrides RubyLLM::Chat#execute_tool to forward the cancellation token
+      # explicitly so that Tool::Base#call does not need Thread.current.
+      def execute_tool(tool_call)
+        tool = tools[tool_call.name.to_sym]
+        unless tool
+          return {
+            error: "Model tried to call unavailable tool `#{tool_call.name}`. " \
+                   "Available tools: #{tools.keys.to_json}."
+          }
+        end
+        tool.call(tool_call.arguments, cancellation_token: @cancellation_token)
       end
     end
   end

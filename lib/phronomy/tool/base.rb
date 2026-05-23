@@ -248,7 +248,7 @@ module Phronomy
       # @param cancellation_token [Phronomy::CancellationToken, nil] optional; takes precedence over the thread-local token
       # @api public
       def call(args, cancellation_token: nil)
-        ct = cancellation_token || Thread.current[:phronomy_cancellation_token]
+        ct = cancellation_token
         ct&.raise_if_cancelled!
         validated_args, schema_error = validate_and_coerce(args)
         if schema_error

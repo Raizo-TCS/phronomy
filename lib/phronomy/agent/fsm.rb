@@ -163,9 +163,7 @@ module Phronomy
               Phronomy::Event.new(type: :error, target_id: fsm_id, payload: e)
             )
           ensure
-            # Clear the thread-local context cache for this agent so the task
-            # thread's cache does not grow unboundedly across invocations.
-            Thread.current[:phronomy_context_version_caches]&.delete(agent.object_id)
+            # Context caches are instance variables; no thread-local cleanup needed.
           end
         end
       end

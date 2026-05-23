@@ -509,7 +509,7 @@ module Phronomy
       def invoke(input, messages: [], thread_id: nil, config: {})
         if Phronomy.configuration.event_loop
           # Protect against blocking the EventLoop thread itself.
-          if Thread.current[:phronomy_event_loop_thread]
+          if Phronomy::EventLoop.current?
             raise Phronomy::Error,
               "Cannot call Agent#invoke (EventLoop mode) from within an EventLoop " \
               "entry action. Use agent.run_as_child(input, ctx: ctx) instead."
@@ -540,10 +540,7 @@ module Phronomy
           _invoke_impl(input, messages: messages, thread_id: thread_id, config: config)
         end
       ensure
-        # Remove this agent's context cache entry from the current thread to
-        # prevent unbounded growth of the thread-local hash in long-lived
-        # processes (e.g. Rails servers).
-        Thread.current[:phronomy_context_version_caches]&.delete(object_id)
+        # No per-thread cleanup needed: context caches are instance variables.
       end
 
       # Registers this agent as a child {AgentFSM} inside the given Workflow context.
@@ -798,11 +795,10 @@ module Phronomy
           # Check for cancellation immediately before the LLM call.
           check_cancellation!(config, "invocation cancelled before LLM call")
 
-          # Forward the cancellation token to ParallelToolChat via a thread-local
-          # so that tool dispatch batches can observe cancellation without needing
-          # direct access to config.
-          prev_ct = Thread.current[:phronomy_cancellation_token]
-          Thread.current[:phronomy_cancellation_token] = config[:cancellation_token]
+          # Forward the cancellation token to ParallelToolChat explicitly
+          # via the chat instance so that tool dispatch batches can observe
+          # cancellation without needing Thread.current.
+          chat.cancellation_token = config[:cancellation_token] if chat.respond_to?(:cancellation_token=)
 
           begin
             response = chat.ask(user_message)
@@ -818,7 +814,8 @@ module Phronomy
             suspended_result = {output: nil, suspended: true, checkpoint: checkpoint, messages: chat.messages}
             next [suspended_result, nil]
           ensure
-            Thread.current[:phronomy_cancellation_token] = prev_ct
+            # Clear the chat's cancellation token reference after each LLM call.
+            chat.cancellation_token = nil if chat.respond_to?(:cancellation_token=)
           end
 
           output = response.content
@@ -891,8 +888,7 @@ module Phronomy
         )
 
         agent_id = object_id
-        cache = (Thread.current[:phronomy_context_version_caches] ||= {})[agent_id] ||=
-          Context::ContextVersionCache.new
+        cache = (@context_version_cache ||= Context::ContextVersionCache.new)
         unless cache.valid?(fingerprint)
           parts = [instruction]
           static_chunks.each do |chunk|
@@ -902,8 +898,7 @@ module Phronomy
         end
 
         # Persist a reference on the instance so that context_version_cache
-        # remains accessible after invoke's ensure block cleans up the
-        # thread-local entry.
+        # remains accessible after invoke completes.
         @last_context_version_cache = cache
 
         cache.system_text.empty? ? nil : cache.system_text
