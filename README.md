@@ -526,12 +526,13 @@ Persist it however suits your application (in-memory hash, Redis, ActiveRecord, 
 
 ```ruby
 Phronomy.configure do |c|
-  c.default_model       = "gpt-4o-mini"
-  c.recursion_limit     = 25
-  c.tracer              = Phronomy::Tracing::NullTracer.new
-  c.before_completion   = nil   # optional; global hook lambda
-  c.trace_pii           = false # default; set to true only when trace data contains no PII
-  c.logger              = nil   # optional; any object responding to #warn (e.g. Rails.logger)
+  c.default_model                   = "gpt-4o-mini"
+  c.recursion_limit                 = 25
+  c.tracer                          = Phronomy::Tracing::NullTracer.new
+  c.before_completion               = nil   # optional; global hook lambda
+  c.trace_pii                       = false # default; set to true only when trace data contains no PII
+  c.logger                          = nil   # optional; any object responding to #warn (e.g. Rails.logger)
+  c.event_loop_stop_grace_seconds   = 5     # seconds to wait for sessions to drain on EventLoop#stop(drain: true)
 end
 ```
 
@@ -603,8 +604,11 @@ registry the budget is silently skipped.
 ### CancellationToken — Cooperative cancellation
 
 Pass a `CancellationToken` to any agent via `config: { cancellation_token: token }`.
-The token is checked before every LLM call; `CancellationError` is raised immediately
-and is never retried. No threads are force-killed — `ensure` blocks always execute.
+Cancellation is checked at multiple granular checkpoints: before the LLM call, before
+each RAG knowledge-source fetch, after each streaming chunk, before each parallel
+tool-call batch, and after each `before_completion` hook. `CancellationError` is
+raised immediately and is never retried. No threads are force-killed — `ensure`
+blocks always execute.
 
 ```ruby
 token = Phronomy::CancellationToken.new

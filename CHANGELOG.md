@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`CancellationToken.timeout_after` — monotonic-clock deadline** (#225):
+  New `CancellationToken.timeout_after(seconds)` class method creates a token that
+  becomes cancelled after the specified number of seconds, measured with
+  `Process::CLOCK_MONOTONIC` (immune to NTP/DST drift). The existing `deadline:`
+  keyword for wall-clock deadlines remains supported for backward compatibility.
+
+- **`EventLoop#stop` — drain mode and cooperative shutdown** (#233):
+  `EventLoop#stop` now accepts a `drain: true` keyword (default: `false`). When
+  set, the loop waits up to `Phronomy.configuration.event_loop_stop_grace_seconds`
+  (default: 5 s, configurable) for in-flight FSM sessions to complete before
+  joining threads. New sessions submitted while shutdown is pending are rejected
+  immediately with `Phronomy::CancellationError`. A new
+  `event_loop_stop_grace_seconds` configuration attribute is available on
+  `Phronomy::Configuration`.
+
 - **`invoke_timeout` DSL and `Phronomy::TimeoutError`**: Agents can declare a per-invoke
   timeout in seconds via `invoke_timeout N` in the class body. Exceeding the timeout raises
   `Phronomy::TimeoutError` (a subclass of `Phronomy::Error`). The default remains unlimited.
@@ -73,6 +88,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inject it into every worker task's config unless the task already supplies its own.
 
 ### Changed
+
+- **`CancellationToken` checked at granular checkpoints** (#223):
+  The cancellation token (passed via `config: { cancellation_token: token }`) is
+  now checked at multiple additional points beyond the initial LLM call boundary:
+  before each `KnowledgeSource#fetch` in `build_context` (RAG phase); after each
+  streaming chunk in `_stream_impl`; before each tool-call batch in
+  `ParallelToolChat`; and after each `before_completion` hook. This ensures that
+  long-running retrieval, streaming, and tool-dispatch phases respect cancellation
+  with minimal latency.
+
+- **`Agent::Orchestrator` uses `CancellationToken` for internal stop flag** (#224):
+  The boolean stop flag in `Orchestrator` is replaced with an internal
+  `CancellationToken`. FSM session loops perform cooperative cancellation checks
+  via `cancelled?`; `Thread#kill` is retained only as a last resort after
+  cooperative shutdown.
 
 - **Error taxonomy classes are now raised at the retry boundary** (#204): The classes
   `Phronomy::RateLimitError`, `Phronomy::AuthenticationError`, `Phronomy::ContextLengthError`,
