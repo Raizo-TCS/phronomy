@@ -64,7 +64,7 @@
       <div id="content"><h1>Class: Phronomy::Agent::FSM
   
   
-  
+  <span class="private note title">Private</span>
 </h1>
 <div class="box_info">
   
@@ -104,7 +104,11 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>EventLoop-registered execution unit for a single agent invocation.</p>
+    <p class="note private">
+  <strong>This class is part of a private API.</strong>
+  You should avoid using this class if possible, as it may be removed or be changed in the future.
+</p>
+<p>EventLoop-registered execution unit for a single agent invocation.</p>
 <p><code>AgentFSM</code> implements the minimal interface expected by <span class='object_link'><a href="../EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span>
 (+#id+, <code>#start</code>, <code>#handle</code>) so it can be managed alongside
 <span class='object_link'><a href="../FSMSession.html" title="Phronomy::FSMSession (class)">FSMSession</a></span> instances.  It is <em>not</em> a traditional finite-state
@@ -180,7 +184,7 @@ The parent <span class='object_link'><a href="../FSMSession.html" title="Phronom
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Current internal phase (:idle, :running).</p></div></span>
@@ -207,7 +211,7 @@ The parent <span class='object_link'><a href="../FSMSession.html" title="Phronom
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Unique identifier used as the EventLoop target_id.</p></div></span>
@@ -242,7 +246,7 @@ The parent <span class='object_link'><a href="../FSMSession.html" title="Phronom
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Called by <span class='object_link'><a href="../EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span> for external events dispatched to this id.</p></div></span>
@@ -266,7 +270,7 @@ The parent <span class='object_link'><a href="../FSMSession.html" title="Phronom
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of FSM.</p></div></span>
@@ -288,7 +292,7 @@ The parent <span class='object_link'><a href="../FSMSession.html" title="Phronom
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Called by <span class='object_link'><a href="../EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span> on the <code>:start</code> event.</p></div></span>
@@ -314,7 +318,11 @@ The parent <span class='object_link'><a href="../FSMSession.html" title="Phronom
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a new instance of FSM.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a new instance of FSM.</p>
 
   </div>
 </div>
@@ -462,7 +470,6 @@ happens-before guarantee.</p></div>
       <pre class="lines">
 
 
-90
 91
 92
 93
@@ -472,10 +479,11 @@ happens-before guarantee.</p></div>
 97
 98
 99
-100</pre>
+100
+101</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 90</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 91</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>agent:</span><span class='comma'>,</span> <span class='label'>input:</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>parent_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>result_writer:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span>
@@ -511,7 +519,11 @@ happens-before guarantee.</p></div>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns current internal phase (:idle, :running).</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns current internal phase (:idle, :running).</p>
 
   </div>
 </div>
@@ -540,12 +552,12 @@ happens-before guarantee.</p></div>
       <pre class="lines">
 
 
-65
 66
-67</pre>
+67
+68</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 65</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 66</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_current_phase'>current_phase</span>
   <span class='ivar'>@current_phase</span>
@@ -568,7 +580,11 @@ happens-before guarantee.</p></div>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns unique identifier used as the EventLoop target_id.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns unique identifier used as the EventLoop target_id.</p>
 
   </div>
 </div>
@@ -597,12 +613,12 @@ happens-before guarantee.</p></div>
       <pre class="lines">
 
 
-62
 63
-64</pre>
+64
+65</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 62</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 63</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_id'>id</span>
   <span class='ivar'>@id</span>
@@ -630,7 +646,11 @@ happens-before guarantee.</p></div>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Called by <span class='object_link'><a href="../EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span> for external events dispatched to this id.
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Called by <span class='object_link'><a href="../EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span> for external events dispatched to this id.
 <code>AgentFSM</code> is fully driven by its own IO thread and does not respond
 to external events after <span class='object_link'><a href="#start-instance_method" title="Phronomy::Agent::FSM#start (method)">#start</a></span>.</p>
 
@@ -645,12 +665,12 @@ to external events after <span class='object_link'><a href="#start-instance_meth
       <pre class="lines">
 
 
-112
 113
-114</pre>
+114
+115</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 112</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 113</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_handle'>handle</span><span class='lparen'>(</span><span class='id identifier rubyid__event'>_event</span><span class='rparen'>)</span>
   <span class='comment'># No-op: AgentFSM is driven entirely by its IO thread.
@@ -671,7 +691,11 @@ to external events after <span class='object_link'><a href="#start-instance_meth
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Called by <span class='object_link'><a href="../EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span> on the <code>:start</code> event.
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Called by <span class='object_link'><a href="../EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span> on the <code>:start</code> event.
 Transitions to <code>:running</code> and spawns the agent IO thread.</p>
 
   </div>
@@ -685,13 +709,13 @@ Transitions to <code>:running</code> and spawns the agent IO thread.</p>
       <pre class="lines">
 
 
-104
 105
 106
-107</pre>
+107
+108</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 104</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 105</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start'>start</span>
   <span class='ivar'>@current_phase</span> <span class='op'>=</span> <span class='symbol'>:running</span>
@@ -707,7 +731,7 @@ Transitions to <code>:running</code> and spawns the agent IO thread.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 03:28:16 2026 by
+  Generated on Sat May 23 04:55:07 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

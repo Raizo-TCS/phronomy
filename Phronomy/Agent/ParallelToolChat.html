@@ -64,7 +64,7 @@
       <div id="content"><h1>Class: Phronomy::Agent::ParallelToolChat
   
   
-  
+  <span class="private note title">Private</span>
 </h1>
 <div class="box_info">
   
@@ -106,7 +106,11 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>RubyLLM::Chat subclass that executes multiple tool calls concurrently.</p>
+    <p class="note private">
+  <strong>This class is part of a private API.</strong>
+  You should avoid using this class if possible, as it may be removed or be changed in the future.
+</p>
+<p>RubyLLM::Chat subclass that executes multiple tool calls concurrently.</p>
 <p>When the LLM returns more than one tool call in a single response, each
 tool is dispatched in a dedicated IO thread and all results are collected
 before being appended to the message history. This preserves a
@@ -138,7 +142,7 @@ thread-local flag is <code>true</code>).  It is not used for direct synchronous
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 03:28:17 2026 by
+  Generated on Sat May 23 04:55:08 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

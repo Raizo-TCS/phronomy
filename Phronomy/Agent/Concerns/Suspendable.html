@@ -64,7 +64,7 @@
       <div id="content"><h1>Module: Phronomy::Agent::Concerns::Suspendable
   
   
-  
+  <span class="private note title">Private</span>
 </h1>
 <div class="box_info">
   
@@ -93,7 +93,11 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Adds suspend/resume and tool-approval support to an agent.</p>
+    <p class="note private">
+  <strong>This module is part of a private API.</strong>
+  You should avoid using this module if possible, as it may be removed or be changed in the future.
+</p>
+<p>Adds suspend/resume and tool-approval support to an agent.</p>
 <p>Included in <span class='object_link'><a href="../Base.html" title="Phronomy::Agent::Base (class)">Base</a></span>. When a tool decorated with
 <code>requires_approval true</code> is called and no synchronous approval handler
 has been registered, the invocation is suspended and a
@@ -133,7 +137,7 @@ has been registered, the invocation is suspended and a
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Registers a callback that is invoked before executing any tool that has <code>requires_approval true</code> set.</p></div></span>
@@ -155,7 +159,7 @@ has been registered, the invocation is suspended and a
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Resumes a previously suspended invocation from a <span class='object_link'><a href="../Checkpoint.html" title="Phronomy::Agent::Checkpoint (class)">Phronomy::Agent::Checkpoint</a></span>.</p></div></span>
@@ -184,7 +188,11 @@ has been registered, the invocation is suspended and a
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Registers a callback that is invoked before executing any tool that has
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Registers a callback that is invoked before executing any tool that has
 <code>requires_approval true</code> set. The block receives the tool name (String)
 and the arguments Hash, and must return a truthy value to allow execution.
 Returning a falsy value causes the tool to return a denial message instead
@@ -229,13 +237,13 @@ obtaining an approval decision from the user or an external system.</p>
       <pre class="lines">
 
 
-28
 29
 30
-31</pre>
+31
+32</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 28</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 29</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_approval_required'>on_approval_required</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@approval_handler</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -257,7 +265,11 @@ obtaining an approval decision from the user or an external system.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Resumes a previously suspended invocation from a <span class='object_link'><a href="../Checkpoint.html" title="Phronomy::Agent::Checkpoint (class)">Phronomy::Agent::Checkpoint</a></span>.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Resumes a previously suspended invocation from a <span class='object_link'><a href="../Checkpoint.html" title="Phronomy::Agent::Checkpoint (class)">Phronomy::Agent::Checkpoint</a></span>.</p>
 <p>This method reconstructs the conversation state captured at suspension
 time, injects the tool result (executed or denied), and continues the
 LLM loop until it produces a final answer.</p>
@@ -355,7 +367,6 @@ to inject a denial message and let the LLM handle it gracefully</p></div>
       <pre class="lines">
 
 
-46
 47
 48
 49
@@ -394,10 +405,11 @@ to inject a denial message and let the LLM handle it gracefully</p></div>
 82
 83
 84
-85</pre>
+85
+86</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 46</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 47</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='id identifier rubyid_checkpoint'>checkpoint</span><span class='comma'>,</span> <span class='label'>approved:</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='comment'># Build a fresh chat with all tools registered.
@@ -449,7 +461,7 @@ to inject a denial message and let the LLM handle it gracefully</p></div>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 03:28:15 2026 by
+  Generated on Sat May 23 04:55:06 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

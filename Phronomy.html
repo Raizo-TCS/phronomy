@@ -81,7 +81,7 @@
   <dl>
     <dt>Defined in:</dt>
     <dd>lib/phronomy.rb<span class="defines">,<br>
-  lib/phronomy/eval.rb,<br> lib/phronomy/tool.rb,<br> lib/phronomy/agent.rb,<br> lib/phronomy/event.rb,<br> lib/phronomy/loader.rb,<br> lib/phronomy/context.rb,<br> lib/phronomy/version.rb,<br> lib/phronomy/runnable.rb,<br> lib/phronomy/splitter.rb,<br> lib/phronomy/workflow.rb,<br> lib/phronomy/agent/fsm.rb,<br> lib/phronomy/tool/base.rb,<br> lib/phronomy/agent/base.rb,<br> lib/phronomy/embeddings.rb,<br> lib/phronomy/event_loop.rb,<br> lib/phronomy/eval/runner.rb,<br> lib/phronomy/eval/scorer.rb,<br> lib/phronomy/fsm_session.rb,<br> lib/phronomy/loader/base.rb,<br> lib/phronomy/token_usage.rb,<br> lib/phronomy/agent/runner.rb,<br> lib/phronomy/eval/dataset.rb,<br> lib/phronomy/eval/metrics.rb,<br> lib/phronomy/tracing/base.rb,<br> lib/phronomy/vector_store.rb,<br> lib/phronomy/agent/handoff.rb,<br> lib/phronomy/configuration.rb,<br> lib/phronomy/output_parser.rb,<br> lib/phronomy/splitter/base.rb,<br> lib/phronomy/tool/mcp_tool.rb,<br> lib/phronomy/eval/eval_case.rb,<br> lib/phronomy/guardrail/base.rb,<br> lib/phronomy/embeddings/base.rb,<br> lib/phronomy/eval/comparison.rb,<br> lib/phronomy/prompt_template.rb,<br> lib/phronomy/tool/agent_tool.rb,<br> lib/phronomy/workflow_runner.rb,<br> lib/phronomy/agent/checkpoint.rb,<br> lib/phronomy/eval/eval_result.rb,<br> lib/phronomy/eval/scorer/base.rb,<br> lib/phronomy/knowledge_source.rb,<br> lib/phronomy/workflow_context.rb,<br> lib/phronomy/agent/react_agent.rb,<br> lib/phronomy/context/assembler.rb,<br> lib/phronomy/loader/csv_loader.rb,<br> lib/phronomy/vector_store/base.rb,<br> lib/phronomy/agent/orchestrator.rb,<br> lib/phronomy/agent/shared_state.rb,<br> lib/phronomy/generator_verifier.rb,<br> lib/phronomy/output_parser/base.rb,<br> lib/phronomy/tracing/null_tracer.rb,<br> lib/phronomy/agent/suspend_signal.rb,<br> lib/phronomy/context/token_budget.rb,<br> lib/phronomy/context/trim_context.rb,<br> lib/phronomy/eval/scorer/llm_judge.rb,<br> lib/phronomy/knowledge_source/base.rb,<br> lib/phronomy/vector_store/pgvector.rb,<br> lib/phronomy/agent/team_coordinator.rb,<br> lib/phronomy/loader/markdown_loader.rb,<br> lib/phronomy/vector_store/in_memory.rb,<br> lib/phronomy/context/token_estimator.rb,<br> lib/phronomy/context/trigger_context.rb,<br> lib/phronomy/eval/scorer/exact_match.rb,<br> lib/phronomy/tracing/langfuse_tracer.rb,<br> lib/phronomy/agent/concerns/retryable.rb,<br> lib/phronomy/agent/parallel_tool_chat.rb,<br> lib/phronomy/loader/plain_text_loader.rb,<br> lib/phronomy/guardrail/input_guardrail.rb,<br> lib/phronomy/output_parser/json_parser.rb,<br> lib/phronomy/vector_store/redis_search.rb,<br> lib/phronomy/agent/concerns/suspendable.rb,<br> lib/phronomy/context/compaction_context.rb,<br> lib/phronomy/guardrail/output_guardrail.rb,<br> lib/phronomy/eval/scorer/includes_scorer.rb,<br> lib/phronomy/splitter/recursive_splitter.rb,<br> lib/phronomy/agent/concerns/guardrailable.rb,<br> lib/phronomy/splitter/fixed_size_splitter.rb,<br> lib/phronomy/context/context_version_cache.rb,<br> lib/phronomy/tracing/open_telemetry_tracer.rb,<br> lib/phronomy/embeddings/ruby_llm_embeddings.rb,<br> lib/phronomy/knowledge_source/rag_knowledge.rb,<br> lib/phronomy/agent/before_completion_context.rb,<br> lib/phronomy/output_parser/structured_parser.rb,<br> lib/phronomy/agent/concerns/before_completion.rb,<br> lib/phronomy/knowledge_source/entity_knowledge.rb,<br> lib/phronomy/knowledge_source/static_knowledge.rb</span>
+  lib/phronomy/eval.rb,<br> lib/phronomy/tool.rb,<br> lib/phronomy/agent.rb,<br> lib/phronomy/event.rb,<br> lib/phronomy/loader.rb,<br> lib/phronomy/context.rb,<br> lib/phronomy/version.rb,<br> lib/phronomy/runnable.rb,<br> lib/phronomy/splitter.rb,<br> lib/phronomy/workflow.rb,<br> lib/phronomy/agent/fsm.rb,<br> lib/phronomy/tool/base.rb,<br> lib/phronomy/agent/base.rb,<br> lib/phronomy/embeddings.rb,<br> lib/phronomy/event_loop.rb,<br> lib/phronomy/eval/runner.rb,<br> lib/phronomy/eval/scorer.rb,<br> lib/phronomy/fsm_session.rb,<br> lib/phronomy/loader/base.rb,<br> lib/phronomy/token_usage.rb,<br> lib/phronomy/agent/runner.rb,<br> lib/phronomy/eval/dataset.rb,<br> lib/phronomy/eval/metrics.rb,<br> lib/phronomy/tracing/base.rb,<br> lib/phronomy/vector_store.rb,<br> lib/phronomy/agent/handoff.rb,<br> lib/phronomy/configuration.rb,<br> lib/phronomy/output_parser.rb,<br> lib/phronomy/splitter/base.rb,<br> lib/phronomy/tool/mcp_tool.rb,<br> lib/phronomy/eval/eval_case.rb,<br> lib/phronomy/guardrail/base.rb,<br> lib/phronomy/embeddings/base.rb,<br> lib/phronomy/eval/comparison.rb,<br> lib/phronomy/prompt_template.rb,<br> lib/phronomy/tool/agent_tool.rb,<br> lib/phronomy/workflow_runner.rb,<br> lib/phronomy/agent/checkpoint.rb,<br> lib/phronomy/eval/eval_result.rb,<br> lib/phronomy/eval/scorer/base.rb,<br> lib/phronomy/knowledge_source.rb,<br> lib/phronomy/workflow_context.rb,<br> lib/phronomy/agent/react_agent.rb,<br> lib/phronomy/context/assembler.rb,<br> lib/phronomy/loader/csv_loader.rb,<br> lib/phronomy/vector_store/base.rb,<br> lib/phronomy/agent/orchestrator.rb,<br> lib/phronomy/agent/shared_state.rb,<br> lib/phronomy/generator_verifier.rb,<br> lib/phronomy/output_parser/base.rb,<br> lib/phronomy/tracing/null_tracer.rb,<br> lib/phronomy/agent/suspend_signal.rb,<br> lib/phronomy/context/token_budget.rb,<br> lib/phronomy/context/trim_context.rb,<br> lib/phronomy/eval/scorer/llm_judge.rb,<br> lib/phronomy/knowledge_source/base.rb,<br> lib/phronomy/vector_store/pgvector.rb,<br> lib/phronomy/agent/team_coordinator.rb,<br> lib/phronomy/loader/markdown_loader.rb,<br> lib/phronomy/vector_store/in_memory.rb,<br> lib/phronomy/context/token_estimator.rb,<br> lib/phronomy/context/trigger_context.rb,<br> lib/phronomy/eval/scorer/exact_match.rb,<br> lib/phronomy/tracing/langfuse_tracer.rb,<br> lib/phronomy/agent/concerns/retryable.rb,<br> lib/phronomy/agent/parallel_tool_chat.rb,<br> lib/phronomy/loader/plain_text_loader.rb,<br> lib/phronomy/guardrail/input_guardrail.rb,<br> lib/phronomy/output_parser/json_parser.rb,<br> lib/phronomy/vector_store/redis_search.rb,<br> lib/phronomy/agent/concerns/suspendable.rb,<br> lib/phronomy/context/compaction_context.rb,<br> lib/phronomy/guardrail/output_guardrail.rb,<br> lib/phronomy/eval/scorer/includes_scorer.rb,<br> lib/phronomy/splitter/recursive_splitter.rb,<br> lib/phronomy/agent/concerns/guardrailable.rb,<br> lib/phronomy/splitter/fixed_size_splitter.rb,<br> lib/phronomy/context/context_version_cache.rb,<br> lib/phronomy/tracing/open_telemetry_tracer.rb,<br> lib/phronomy/embeddings/ruby_llm_embeddings.rb,<br> lib/phronomy/knowledge_source/rag_knowledge.rb,<br> lib/phronomy/agent/before_completion_context.rb,<br> lib/phronomy/output_parser/structured_parser.rb,<br> lib/phronomy/agent/concerns/before_completion.rb,<br> lib/phronomy/agent/concerns/error_translation.rb,<br> lib/phronomy/knowledge_source/entity_knowledge.rb,<br> lib/phronomy/knowledge_source/static_knowledge.rb</span>
 
 </dd>
   </dl>
@@ -193,6 +193,50 @@
 
   
     <span class="summary_desc"><div class='inline'><p>Resets the global Phronomy configuration to defaults.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#reset_runtime!-class_method" title="reset_runtime! (class method)">.<strong>reset_runtime!</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Resets all Phronomy runtime state: configuration and the EventLoop singleton (if running).</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#with_configuration-class_method" title="with_configuration (class method)">.<strong>with_configuration</strong> {|config| ... } &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Yields the current <span class='object_link'><a href="Phronomy/Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span> object, then restores the original configuration on exit (even if the block raises).</p></div></span>
   
 </li>
 
@@ -338,12 +382,139 @@ thread-based parallelism when using this method.</p>
 </table>
 </div>
     
+      <div class="method_details ">
+  <h3 class="signature " id="reset_runtime!-class_method">
+  
+    .<strong>reset_runtime!</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Resets all Phronomy runtime state: configuration and the EventLoop
+singleton (if running).</p>
+<p><strong>Intended for test suites only.</strong>  Stops any running EventLoop thread,
+clears the EventLoop singleton, and resets configuration to defaults.
+Call once before/after each example to ensure test isolation.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="examples">
+    <h4 class="tag_title">Examples:</h4>
+    
+      
+      <pre class="example code"><code><span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_around'>around</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_ex'>ex</span><span class='op'>|</span> <span class='const'><span class='object_link'><a href="" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_reset_runtime!'>reset_runtime!</span> <span class='semicolon'>;</span> <span class='id identifier rubyid_ex'>ex</span><span class='period'>.</span><span class='id identifier rubyid_run'>run</span> <span class='semicolon'>;</span> <span class='const'><span class='object_link'><a href="" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_reset_runtime!'>reset_runtime!</span> <span class='rbrace'>}</span></code></pre>
+    
+  </div>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+133
+134
+135
+136</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 133</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_reset_runtime!'>reset_runtime!</span>
+  <span class='const'><span class='object_link'><a href="" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span></span><span class='period'>.</span><span class='id identifier rubyid_reset!'><span class='object_link'><a href="Phronomy/EventLoop.html#reset!-class_method" title="Phronomy::EventLoop.reset! (method)">reset!</a></span></span>
+  <span class='ivar'>@configuration</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy/Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Configuration.html#initialize-instance_method" title="Phronomy::Configuration#initialize (method)">new</a></span></span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="with_configuration-class_method">
+  
+    .<strong>with_configuration</strong> {|config| ... } &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Yields the current <span class='object_link'><a href="Phronomy/Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span> object, then restores the original
+configuration on exit (even if the block raises).</p>
+<p>Intended for test helpers that need to temporarily override settings
+without permanently mutating the global configuration.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="examples">
+    <h4 class="tag_title">Examples:</h4>
+    
+      
+      <pre class="example code"><code><span class='const'><span class='object_link'><a href="" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_with_configuration'>with_configuration</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span>
+  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span> <span class='op'>=</span> <span class='const'>Logger</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='gvar'>$stdout</span><span class='rparen'>)</span>
+<span class='kw'>end</span></code></pre>
+    
+  </div>
+
+<p class="tag_title">Yields:</p>
+<ul class="yield">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>config</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>the current <span class='object_link'><a href="Phronomy/Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span> instance (mutable)</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+117
+118
+119
+120
+121
+122</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 117</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_with_configuration'>with_configuration</span>
+  <span class='id identifier rubyid_original'>original</span> <span class='op'>=</span> <span class='ivar'>@configuration</span><span class='op'>&amp;.</span><span class='id identifier rubyid_dup'>dup</span>
+  <span class='kw'>yield</span> <span class='id identifier rubyid_configuration'>configuration</span>
+<span class='kw'>ensure</span>
+  <span class='ivar'>@configuration</span> <span class='op'>=</span> <span class='id identifier rubyid_original'>original</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
   </div>
 
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 03:28:15 2026 by
+  Generated on Sat May 23 04:55:06 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
