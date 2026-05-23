@@ -236,4 +236,18 @@ RSpec.describe Phronomy::EventLoop do
       expect { loop_instance.stop(timeout: 1) }.not_to raise_error
     end
   end
+
+  describe "force_kill: option (Issue #235)" do
+    it "returns :clean when the loop stops cooperatively regardless of force_kill:" do
+      Phronomy.configure { |c| c.event_loop = true }
+      loop_instance = Phronomy::EventLoop.instance
+      expect(loop_instance.stop(timeout: 2, force_kill: false)).to eq(:clean)
+    end
+
+    it "returns :clean with force_kill: true when the loop stops cooperatively" do
+      Phronomy.configure { |c| c.event_loop = true }
+      loop_instance = Phronomy::EventLoop.instance
+      expect(loop_instance.stop(timeout: 2, force_kill: true)).to eq(:clean)
+    end
+  end
 end

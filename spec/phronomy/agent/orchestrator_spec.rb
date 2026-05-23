@@ -479,4 +479,56 @@ RSpec.describe Phronomy::Agent::Orchestrator do
       }.not_to raise_error
     end
   end
+
+  describe "#dispatch_parallel force_kill: option (Issue #235)" do
+    let(:orchestrator_class) { Class.new(described_class) }
+    subject(:orchestrator) { orchestrator_class.new }
+
+    let(:slow_agent_class) do
+      Class.new(Phronomy::Agent::Base) do
+        define_method(:invoke) do |_input, config: {}, thread_id: nil|
+          sleep(10)
+          {output: "never", messages: []}
+        end
+      end
+    end
+
+    it "raises TimeoutError with force_kill: false (default) and does not kill the worker" do
+      expect {
+        orchestrator.dispatch_parallel(
+          {agent: slow_agent_class, input: "x"},
+          timeout: 0.05,
+          force_kill: false
+        )
+      }.to raise_error(Phronomy::TimeoutError)
+    end
+
+    it "raises TimeoutError with force_kill: true and calls Thread#kill on still-running workers" do
+      expect {
+        orchestrator.dispatch_parallel(
+          {agent: slow_agent_class, input: "x"},
+          timeout: 0.05,
+          force_kill: true
+        )
+      }.to raise_error(Phronomy::TimeoutError)
+    end
+
+    it "defaults to force_kill: false (TimeoutError raised without force_kill: keyword)" do
+      # Verify the default is force_kill: false by omitting the keyword entirely.
+      expect {
+        orchestrator.dispatch_parallel({agent: slow_agent_class, input: "x"}, timeout: 0.05)
+      }.to raise_error(Phronomy::TimeoutError)
+    end
+
+    it "fan_out: propagates force_kill: false through to bounded_map" do
+      expect {
+        orchestrator.fan_out(
+          agent: slow_agent_class,
+          inputs: ["x"],
+          timeout: 0.05,
+          force_kill: false
+        )
+      }.to raise_error(Phronomy::TimeoutError)
+    end
+  end
 end

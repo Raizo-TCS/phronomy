@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`force_kill: false` default in `dispatch_parallel`, `fan_out`, and `EventLoop#stop`** (#235):
+  Thread#kill is now opt-in. The default `force_kill: false` leaves timed-out workers
+  running and raises `TimeoutError` immediately, avoiding the risk of interrupted
+  `ensure` blocks or corrupted database transactions. Pass `force_kill: true` to
+  restore the previous behaviour (with a `logger.warn` to make it visible).
+  `EventLoop#stop` gains the same keyword and returns `:timeout` instead of
+  `:force_killed` when `force_kill: false` and the thread is still alive.
+
 - **`CancellationToken#raise_if_cancelled!` — convenience cancellation check** (#234):
   New instance method that raises `Phronomy::CancellationError` when the token is
   cancelled, or returns `nil` otherwise. Replaces the `if cancelled? then raise`

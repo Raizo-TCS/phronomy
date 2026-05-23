@@ -117,11 +117,17 @@ module Phronomy
       # @param cancellation_token [Phronomy::CancellationToken, nil] when provided, the
       #   token is merged into each task's config (unless the task already sets one) so
       #   that every worker agent checks it before making LLM calls.
+      # @param force_kill [Boolean] when +true+, surviving worker threads are killed with
+      #   +Thread#kill+ after the grace period if they do not stop cooperatively. When
+      #   +false+ (default), workers are asked to stop cooperatively but are never killed;
+      #   the caller receives {Phronomy::TimeoutError} immediately and abandoned workers
+      #   discard their results when they eventually finish. +false+ is safer for
+      #   production because +Thread#kill+ can interrupt +ensure+ blocks.
       # @return [Array<Hash, nil>] agent results in the same order as +tasks+
       # @raise [ArgumentError] if +on_error+ is not +:raise+ or +:skip+
       # @raise [ArgumentError] if +max_concurrency+ is not a positive Integer or nil
       # @raise [Phronomy::TimeoutError] if +timeout+ is exceeded
-      def dispatch_parallel(*tasks, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil)
+      def dispatch_parallel(*tasks, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil, force_kill: false)
         unless [:raise, :skip].include?(on_error)
           raise ArgumentError, "unknown on_error: #{on_error.inspect}"
         end
@@ -129,7 +135,7 @@ module Phronomy
           raise ArgumentError, "max_concurrency must be a positive Integer"
         end
 
-        bounded_map(tasks, max_concurrency: max_concurrency, on_error: on_error, timeout: timeout, cancellation_token: cancellation_token)
+        bounded_map(tasks, max_concurrency: max_concurrency, on_error: on_error, timeout: timeout, cancellation_token: cancellation_token, force_kill: force_kill)
       end
 
       # Runs the same agent against multiple inputs in parallel (fan-out pattern).
@@ -144,13 +150,14 @@ module Phronomy
       # @param max_concurrency [Integer, nil]  forwarded to {#dispatch_parallel}
       # @param on_error        [Symbol]        forwarded to {#dispatch_parallel}
       # @return [Array<Hash, nil>] results in the same order as +inputs+
-      def fan_out(agent:, inputs:, config: {}, thread_id: nil, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil)
+      def fan_out(agent:, inputs:, config: {}, thread_id: nil, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil, force_kill: false)
         dispatch_parallel(
           *inputs.map { |input| {agent: agent, input: input, config: config, thread_id: thread_id} },
           max_concurrency: max_concurrency,
           on_error: on_error,
           timeout: timeout,
-          cancellation_token: cancellation_token
+          cancellation_token: cancellation_token,
+          force_kill: force_kill
         )
       end
 
@@ -208,7 +215,7 @@ module Phronomy
       KILL_GRACE_SECONDS = 0.5
       private_constant :KILL_GRACE_SECONDS
 
-      def bounded_map(tasks, max_concurrency:, on_error:, timeout: nil, cancellation_token: nil)
+      def bounded_map(tasks, max_concurrency:, on_error:, timeout: nil, cancellation_token: nil, force_kill: false)
         return [] if tasks.empty?
 
         results = Array.new(tasks.length)
@@ -271,16 +278,18 @@ module Phronomy
           unless alive.empty?
             # Signal workers cooperatively to stop picking up new tasks.
             internal_stop_token.cancel!
-            # Give in-flight ensure blocks a short grace period before kill.
-            alive.each { |w| w.join(KILL_GRACE_SECONDS) }
-            still_alive = alive.select(&:alive?)
-            if still_alive.any?
-              Phronomy.configuration.logger&.warn(
-                "[Phronomy] dispatch_parallel: #{still_alive.length} worker(s) did not stop " \
-                "within grace period; force-killing. Use CancellationToken (#216) for " \
-                "cooperative cancellation of long-running tasks."
-              )
-              still_alive.each(&:kill)
+            if force_kill
+              # Give in-flight ensure blocks a short grace period before kill.
+              alive.each { |w| w.join(KILL_GRACE_SECONDS) }
+              still_alive = alive.select(&:alive?)
+              if still_alive.any?
+                Phronomy.configuration.logger&.warn(
+                  "[Phronomy] dispatch_parallel: #{still_alive.length} worker(s) did not stop " \
+                  "within grace period; force-killing. Use CancellationToken for " \
+                  "cooperative cancellation of long-running tasks."
+                )
+                still_alive.each(&:kill)
+              end
             end
             raise Phronomy::TimeoutError,
               "dispatch_parallel timed out after #{timeout}s " \
