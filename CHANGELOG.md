@@ -62,6 +62,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ensure clean state between examples. `spec_helper.rb` now calls `reset_runtime!` in an
   `after(:each)` hook automatically.
 
+- **`CancellationToken` — cooperative cancellation for agent invocations** (#216):
+  New class `Phronomy::CancellationToken` enables cooperative cancellation without
+  `Thread#kill`. Tokens are passed via `config: { cancellation_token: token }`.
+  `cancel!` marks the token (thread-safe via Mutex); `cancelled?` returns `true`
+  once cancelled or once an optional `deadline: Time` has passed. Agents check the
+  token in `_invoke_impl` (fail-fast before any LLM call) and again immediately
+  before `chat.ask`. `CancellationError` is never retried by the retry policy.
+  `dispatch_parallel` and `fan_out` accept `cancellation_token:` and automatically
+  inject it into every worker task's config unless the task already supplies its own.
+
 ### Changed
 
 - **Error taxonomy classes are now raised at the retry boundary** (#204): The classes

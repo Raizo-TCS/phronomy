@@ -600,6 +600,39 @@ registry the budget is silently skipped.
 > ```
 
 
+### CancellationToken — Cooperative cancellation
+
+Pass a `CancellationToken` to any agent via `config: { cancellation_token: token }`.
+The token is checked before every LLM call; `CancellationError` is raised immediately
+and is never retried. No threads are force-killed — `ensure` blocks always execute.
+
+```ruby
+token = Phronomy::CancellationToken.new
+
+# Cancel from another thread after 5 s
+Thread.new { sleep 5; token.cancel! }
+
+begin
+  result = MyAgent.new.invoke("...", config: { cancellation_token: token })
+rescue Phronomy::CancellationError
+  puts "cancelled"
+end
+
+# Hard deadline (auto-cancel after 30 s)
+token = Phronomy::CancellationToken.new(deadline: Time.now + 30)
+result = MyAgent.new.invoke("...", config: { cancellation_token: token })
+
+# Propagate to all parallel workers via dispatch_parallel / fan_out
+token = Phronomy::CancellationToken.new
+Thread.new { sleep 10; token.cancel! }
+
+orchestrator.dispatch_parallel(
+  {agent: SearchAgent,   input: "topic A"},
+  {agent: AnalysisAgent, input: "topic B"},
+  cancellation_token: token
+)
+```
+
 ## Examples
 
 Runnable examples covering all major features are available in the
