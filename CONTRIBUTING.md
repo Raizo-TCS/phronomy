@@ -62,6 +62,37 @@ to the threading model, caching strategy, or public API shape.
 
 ---
 
+## Mutation Testing
+
+Phronomy uses [mutant](https://github.com/mbj/mutant) to verify that each test
+actually detects real code changes. Mutation tests are **not** part of the
+required CI gate (they are slow), but run nightly via `.github/workflows/nightly-mutation.yml`.
+
+### Run mutation tests locally
+
+```bash
+# All subjects defined in .mutant.yml
+bash scripts/run_mutation.sh
+
+# Single subject
+bash scripts/run_mutation.sh "Phronomy::WorkflowContext"
+```
+
+### Coverage targets
+
+| Subject | Baseline | Target |
+|---|---|---|
+| `Phronomy::WorkflowContext` | 84.85% | ≥ 80% |
+| `Phronomy::WorkflowRunner` | — | ≥ 80% |
+| `Phronomy::Tool::Base` | 55.74% | ≥ 80% |
+| `Phronomy::Context::TokenBudget` | — | ≥ 80% |
+| `Phronomy::VectorStore::InMemory` | — | ≥ 80% |
+
+When you add or modify tests for a covered subject, run mutation tests to confirm
+the score does not regress.
+
+---
+
 ## Releasing
 
 See [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) for the full pre-release quality

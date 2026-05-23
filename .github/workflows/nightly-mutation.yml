@@ -1,0 +1,46 @@
+name: Nightly — Mutation Testing
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # daily at 03:00 UTC (after real-backend nightly at 02:00)
+  workflow_dispatch:        # allow manual trigger
+
+permissions:
+  contents: read
+
+jobs:
+  mutation:
+    runs-on: ubuntu-latest
+    name: Mutation score — ${{ matrix.subject }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - subject: Phronomy::WorkflowContext
+            label: WorkflowContext
+          - subject: Phronomy::WorkflowRunner
+            label: WorkflowRunner
+          - subject: Phronomy::Tool::Base
+            label: Tool::Base
+          - subject: Phronomy::Context::TokenBudget
+            label: Context::TokenBudget
+          - subject: Phronomy::VectorStore::InMemory
+            label: VectorStore::InMemory
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Run mutation tests — ${{ matrix.label }}
+        run: |
+          bundle exec mutant run -- "${{ matrix.subject }}"
+        timeout-minutes: 30
+        continue-on-error: true
