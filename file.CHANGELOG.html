@@ -118,9 +118,41 @@ object responding to <code>#warn</code> (e.g. <code>Rails.logger</code>) can be 
 messages — starting with the unreachable-state warning from <code>Workflow.define</code> — are routed
 through this logger instead of writing directly to <code>$stderr</code> via <code>Kernel#warn</code>.</p>
 </li>
+<li>
+<p><strong><code>Phronomy.with_configuration</code> and <code>Phronomy.reset_runtime!</code></strong> (#206): Two new class
+methods for runtime isolation. <code>with_configuration</code> yields the current <code>Configuration</code>
+object and restores the original after the block — even on exception — enabling per-request
+overrides and scoped test configuration. <code>reset_runtime!</code> stops any running <code>EventLoop</code>,
+clears its singleton, and resets configuration to defaults; intended for test suites to
+ensure clean state between examples. <code>spec_helper.rb</code> now calls <code>reset_runtime!</code> in an
+<code>after(:each)</code> hook automatically.</p>
+</li>
 </ul>
 <h3 id="Changed">Changed</h3>
 <ul>
+<li>
+<p><strong>Error taxonomy classes are now raised at the retry boundary</strong> (#204): The classes
+<code>Phronomy::RateLimitError</code>, <code>Phronomy::AuthenticationError</code>, <code>Phronomy::ContextLengthError</code>,
+and <code>Phronomy::TransportError</code> (introduced in #149) are now actually raised when the
+corresponding <code>RubyLLM</code> exceptions occur. A new internal <code>ErrorTranslation</code> concern wraps
+the retry exhaust path and maps <code>RubyLLM::*</code> exceptions to their Phronomy counterparts,
+preserving the original exception as <code>#cause</code>. <strong>Migration</strong>: callers rescuing
+<code>RubyLLM::RateLimitError</code> (or other <code>RubyLLM::*</code> errors) directly should migrate to
+<code>rescue Phronomy::RateLimitError</code> / <code>Phronomy::TransportError</code> etc.</p>
+</li>
+<li>
+<p><strong><code>Orchestrator#bounded_map</code> uses cooperative cancellation before force-kill</strong> (#203):
+Workers now check a shared <code>cancelled</code> flag at each loop iteration and stop picking up new
+tasks once the timeout deadline passes. A 0.5 s grace period is given to in-flight workers
+before <code>Thread#kill</code> is used as a last resort. <code>EventLoop#stop</code> similarly logs a warning
+via <code>Phronomy.configuration.logger</code> when force-kill is triggered.</p>
+</li>
+<li>
+<p><strong><code>Orchestrator#bounded_map</code> timeout deadline uses monotonic clock</strong> (#209): Replaced
+<code>Time.now</code> deadline arithmetic with <code>Process.clock_gettime(Process::CLOCK_MONOTONIC)</code> to
+avoid sensitivity to NTP adjustments, DST transitions, and system-clock changes that could
+inflate or deflate effective timeouts.</p>
+</li>
 <li>
 <p><strong><code>EventLoop</code> warns on events for unknown <code>target_id</code></strong>: When the event loop receives an
 event whose <code>target_id</code> does not match any registered session, a warning is emitted instead
@@ -158,6 +190,15 @@ enabling accurate structured argument generation for complex tool parameters.</p
 </ul>
 <h3 id="Fixed">Fixed</h3>
 <ul>
+<li>
+<p><strong><code>EventLoop#start</code> is now idempotent; stale <code>:__stop__</code> sentinel race fixed</strong> (#203):
+Calling <code>start</code> on an already-running <code>EventLoop</code> is now a no-op. Fixed a race condition
+where <code>stop</code> setting <code>@running = false</code> before the worker thread was scheduled left the
+<code>:__stop__</code> sentinel unconsumed in the queue; a subsequent <code>start</code> would then immediately
+terminate the new thread upon popping the stale sentinel. The sentinel is now treated as a
+pure unblock signal for <code>queue.pop</code> (<code>next</code> instead of <code>break</code>) — loop termination is
+driven solely by <code>@running</code>.</p>
+</li>
 <li>
 <p><strong><code>trace_pii: false</code> now redacts both input and output</strong>: Previously only the user input
 was redacted when <code>trace_pii</code> was <code>false</code>; LLM responses and tool results were still
@@ -728,7 +769,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sat May 23 04:55:06 2026 by
+  Generated on Sat May 23 05:07:06 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

@@ -165,6 +165,14 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td><strong>MCP Tool</strong> — Model Context Protocol server integration</td>
 <td>Beta</td>
 </tr>
+<tr>
+<td><strong>Error Taxonomy</strong> — <code>RateLimitError</code>, <code>AuthenticationError</code>, <code>ContextLengthError</code>, <code>TransportError</code> (subclasses of <code>Phronomy::Error</code>) raised at the agent retry boundary</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong><code>Phronomy.with_configuration</code> / <code>Phronomy.reset_runtime!</code></strong> — Scoped configuration override and full runtime reset for test isolation</td>
+<td>Beta</td>
+</tr>
 </tbody>
 </table>
 <h2 id="Installation">Installation</h2>
@@ -801,7 +809,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat May 23 04:55:06 2026 by
+  Generated on Sat May 23 05:07:05 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
