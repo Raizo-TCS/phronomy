@@ -62,10 +62,13 @@ module Phronomy
           description "Dispatch work to the #{name} subagent (#{agent_class.name})"
           param :input, type: :string, desc: "The task or question for the subagent"
 
+          # @_orchestrator_context is injected at call time by prepare_tool_class.
+          attr_writer :_orchestrator_context
+
           define_method(:execute) do |input:|
             # Inherit the calling orchestrator's thread_id and config when
             # available so that sub-agent spans and memory stay connected.
-            ctx = Thread.current[:phronomy_orchestrator_context] || {}
+            ctx = @_orchestrator_context || {}
             result = agent_class.new.invoke(
               input,
               thread_id: ctx[:thread_id],
@@ -78,11 +81,22 @@ module Phronomy
           end
         end
 
+        # Track this tool class so prepare_tool_class can inject context.
+        @_subagent_tool_classes = (@_subagent_tool_classes || []) + [tool_class]
+
         # Append without clobbering previously registered tools or aliases.
         @tools = (@tools || []) + [tool_class]
         @tool_aliases ||= {}
 
         registered_subagents[name] = {agent_class: agent_class, on_error: on_error}
+      end
+
+      # Returns the subagent tool classes registered on this specific class.
+      # Used by {#prepare_tool_class} to inject context.
+      # @return [Array<Class>]
+      # @api private
+      def self._subagent_tool_classes
+        @_subagent_tool_classes || []
       end
 
       # Returns the subagent registry for this specific class (not inherited).
@@ -175,7 +189,7 @@ module Phronomy
       # @return [Hash]  the sub-agent's result hash (+:output+, +:messages+)
       # @api public
       def subagent(agent_class, input, config: nil, thread_id: nil)
-        ctx = Thread.current[:phronomy_orchestrator_context] || {}
+        ctx = @_orchestrator_context || {}
         agent_class.new.invoke(
           input,
           config: config || ctx[:config] || {},
@@ -185,22 +199,40 @@ module Phronomy
 
       private
 
-      # Override invoke_once to expose the current thread_id and config via a
-      # thread-local so that DSL-registered subagent tools can inherit them.
+      # Override invoke_once to expose the current thread_id and config via an
+      # instance variable so that DSL-registered subagent tools can inherit them
+      # without using Thread.current.
       def invoke_once(input, messages: [], thread_id: nil, config: {})
-        prev = Thread.current[:phronomy_orchestrator_context]
-        Thread.current[:phronomy_orchestrator_context] = {thread_id: thread_id, config: config}
+        prev = @_orchestrator_context
+        @_orchestrator_context = {thread_id: thread_id, config: config}
         super
       ensure
-        Thread.current[:phronomy_orchestrator_context] = prev
+        @_orchestrator_context = prev
+      end
+
+      # Override prepare_tool_class to inject the current orchestrator context
+      # into DSL-registered subagent tools before each call.
+      def prepare_tool_class(tool_class)
+        prepared = super
+        orch = self
+
+        # Only wrap subagent tools (those registered via the .subagent DSL).
+        return prepared unless self.class._subagent_tool_classes.include?(tool_class)
+
+        Class.new(prepared) do
+          define_method(:call) do |args|
+            self._orchestrator_context = orch.instance_variable_get(:@_orchestrator_context)
+            super(args)
+          end
+        end
       end
 
       # Worker-pool implementation shared by {#dispatch_parallel} and {#fan_out}.
       #
-      # Uses a +Queue+ as a work-stealing mechanism: each worker thread pops a
-      # task, executes it, and loops until the queue is empty.  The number of
+      # Uses a +Queue+ as a work-stealing mechanism: each worker task pops a
+      # job, executes it, and loops until the queue is empty.  The number of
       # workers is +min(max_concurrency, tasks.length)+, capped at the task count
-      # so we never spin up idle threads.
+      # so we never spin up idle tasks.
       #
       # +errors+ is indexed by task position so that the first error in *input*
       # order is deterministically re-raised when +on_error: :raise+ is used.
@@ -234,8 +266,8 @@ module Phronomy
 
         worker_count = [max_concurrency || tasks.length, tasks.length].min
 
-        workers = worker_count.times.map do
-          Thread.new do
+        workers = worker_count.times.map do |wi|
+          Phronomy::Task.spawn(name: "orchestrator-worker-#{wi}") do
             loop do
               break if internal_stop_token.cancelled?
 
@@ -270,13 +302,12 @@ module Phronomy
           end
         end
 
-        workers.each(&:join) if timeout.nil?
+        workers.each(&:await) if timeout.nil?
 
         if timeout
-          deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
+          deadline = Phronomy::Deadline.in(timeout)
           workers.each do |w|
-            remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
-            w.join([remaining, 0].max)
+            w.join([deadline.remaining_seconds, 0].max)
           end
 
           alive = workers.select(&:alive?)
@@ -284,7 +315,7 @@ module Phronomy
             # Signal workers cooperatively to stop picking up new tasks.
             internal_stop_token.cancel!
             if force_kill
-              # Give in-flight ensure blocks a short grace period before kill.
+              # Give in-flight ensure blocks a short grace period before cancel.
               alive.each { |w| w.join(KILL_GRACE_SECONDS) }
               still_alive = alive.select(&:alive?)
               if still_alive.any?
@@ -293,7 +324,7 @@ module Phronomy
                   "within grace period; force-killing. Use CancellationToken for " \
                   "cooperative cancellation of long-running tasks."
                 )
-                still_alive.each(&:kill)
+                still_alive.each(&:cancel!)
               end
             end
             raise Phronomy::TimeoutError,

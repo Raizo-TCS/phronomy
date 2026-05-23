@@ -92,11 +92,12 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
   end
 
   # -----------------------------------------------------------------------
-  # Orchestrator#invoke_once — thread-local context is cleaned up in caller's
-  # thread after invoke completes (Issue #208)
+  # Orchestrator#invoke_once — instance-variable context is cleaned up after
+  # invoke completes (Issue #208, updated for #259: replaced Thread.current key
+  # with @_orchestrator_context instance variable)
   # -----------------------------------------------------------------------
-  describe "Orchestrator#invoke_once thread-local cleanup" do
-    it "does not leave :phronomy_orchestrator_context in the calling thread after invoke" do
+  describe "Orchestrator#invoke_once context cleanup" do
+    it "resets @_orchestrator_context to nil after invoke" do
       orchestrator_class = Class.new(Phronomy::Agent::Orchestrator)
       # Override to avoid any real LLM call; just return immediately.
       orchestrator_class.define_method(:invoke) do |input, config: {}, thread_id: nil|
@@ -106,14 +107,14 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
       end
 
       orchestrator = orchestrator_class.new
-      # Calling invoke may set a thread-local; the ensure block must restore nil.
+      # Calling invoke may set @_orchestrator_context; the ensure block must restore nil.
       begin
         orchestrator.send(:invoke_once, "test", thread_id: "t1", config: {}, messages: [])
       rescue
         # Ignore invocation errors (no real LLM) — we only care about cleanup.
       end
 
-      expect(Thread.current[:phronomy_orchestrator_context]).to be_nil
+      expect(orchestrator.instance_variable_get(:@_orchestrator_context)).to be_nil
     end
   end
 

@@ -75,5 +75,21 @@ module Phronomy
       @thread.raise(Phronomy::CancellationError, "Task cancelled") if @thread.alive?
       self
     end
+
+    # Joins the underlying thread, optionally with a timeout.
+    # Returns the Thread object (nil when a non-nil limit expires before the
+    # thread finishes, matching Thread#join semantics).
+    #
+    # @param limit [Numeric, nil] seconds to wait; nil waits indefinitely
+    # @return [Thread, nil]
+    def join(limit = nil)
+      @thread.join(limit)
+    end
+
+    # Returns +true+ while the task's block is still executing.
+    # @return [Boolean]
+    def alive?
+      @thread.alive?
+    end
   end
 end
