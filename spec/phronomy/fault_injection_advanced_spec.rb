@@ -10,13 +10,12 @@ require "spec_helper"
 #   1. Embeddings#embed raises during RAG ingestion / search
 #   2. VectorStore#search raises during build_context
 #   3. VectorStore#add raises during knowledge ingestion
-#   4. result_writer hook raises during output writing
-#   5. Child FSM unhandled error — parent receives :child_failed event
-#   6. Child FSM CancellationError — parent receives :child_failed event
-#   7. before_completion hook raises during streaming (non-EventLoop path)
-#   8. Output guardrail raises during streaming output validation
-#   9. Huge tool output exceeds context budget — trimming or propagation
-#  10. Output guardrail rejection + tool retry_on interaction
+#   4. Child FSM unhandled error — parent receives :child_failed event
+#   5. Child FSM CancellationError — parent receives :child_failed event
+#   6. before_completion hook raises during streaming (non-EventLoop path)
+#   7. Output guardrail raises during streaming output validation
+#   8. Huge tool output exceeds context budget — trimming or propagation
+#   9. Output guardrail rejection + tool retry_on interaction
 # ---------------------------------------------------------------------------
 RSpec.describe "Fault injection advanced (Issue #241)" do
   # -------------------------------------------------------------------------
@@ -141,48 +140,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   end
 
   # -------------------------------------------------------------------------
-  # 4. result_writer hook raises during output writing
-  # -------------------------------------------------------------------------
-  describe "result_writer hook fault injection" do
-    # AgentFSM#start runs in a Thread; child_failed event is posted to the parent.
-    # This surface is already tested exhaustively in agent/fsm_spec.rb.
-    # Here we verify the behaviour at the public AgentFSM API level as a
-    # regression guard.
-
-    let(:fake_loop) do
-      events = []
-      loop_dbl = double("EventLoop")
-      allow(loop_dbl).to receive(:post) { |ev| events << ev }
-      [loop_dbl, events]
-    end
-
-    it "posts :child_failed to the parent when result_writer raises" do
-      loop_dbl, events = fake_loop
-      allow(Phronomy::EventLoop).to receive(:instance).and_return(loop_dbl)
-
-      result = {output: "ok", messages: [], usage: nil}
-      agent = double("Agent")
-      allow(agent).to receive(:send).and_return(result)
-
-      fsm = Phronomy::Agent::FSM.new(
-        agent: agent,
-        input: "hi",
-        thread_id: "child-1",
-        parent_id: "parent-1",
-        result_writer: ->(_r) { raise "writer exploded" }
-      )
-      fsm.start
-      sleep 0.2
-
-      fail_ev = events.find { |e| e.type == :child_failed }
-      expect(fail_ev).not_to be_nil
-      expect(fail_ev.target_id).to eq("parent-1")
-      expect(fail_ev.payload.message).to match("writer exploded")
-    end
-  end
-
-  # -------------------------------------------------------------------------
-  # 5. Child FSM unhandled error — parent receives :child_failed event
+  # 4. Child FSM unhandled error — parent receives :child_failed event
   # -------------------------------------------------------------------------
   describe "Child FSM unhandled error" do
     it "posts :child_failed to parent_id with the exception as payload" do
@@ -210,7 +168,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   end
 
   # -------------------------------------------------------------------------
-  # 6. Child FSM CancellationError — parent session behaviour
+  # 5. Child FSM CancellationError — parent session behaviour
   # -------------------------------------------------------------------------
   describe "Child FSM CancellationError" do
     it "posts :child_failed to parent_id with CancellationError as payload" do
@@ -237,7 +195,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   end
 
   # -------------------------------------------------------------------------
-  # 7. before_completion hook raises during streaming (non-EventLoop path)
+  # 6. before_completion hook raises during streaming (non-EventLoop path)
   # -------------------------------------------------------------------------
   describe "before_completion hook raises during streaming" do
     it "propagates the hook exception to the caller" do
@@ -255,7 +213,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   end
 
   # -------------------------------------------------------------------------
-  # 8. Output guardrail raises during streaming output validation
+  # 7. Output guardrail raises during streaming output validation
   # -------------------------------------------------------------------------
   describe "Output guardrail raises during streaming" do
     let(:exploding_guardrail) do
@@ -274,7 +232,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   end
 
   # -------------------------------------------------------------------------
-  # 9. Huge tool output — behavior when tool returns oversized content
+  # 8. Huge tool output — behavior when tool returns oversized content
   # -------------------------------------------------------------------------
   describe "Huge tool output" do
     # A tool returning a very large string is allowed by Phronomy::Tool::Base.
@@ -297,7 +255,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   end
 
   # -------------------------------------------------------------------------
-  # 10. Output guardrail rejection + tool retry_on interaction
+  # 9. Output guardrail rejection + tool retry_on interaction
   # -------------------------------------------------------------------------
   describe "Output guardrail rejection + tool retry_on interaction" do
     # GuardrailError is not a ToolError subclass, so retry_on ToolError does

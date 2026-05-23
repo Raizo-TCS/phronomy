@@ -72,31 +72,21 @@ module Phronomy
       #                                           auto-generated when nil
       # @param config    [Hash]                   invocation config forwarded to
       #                                           +_invoke_impl+
-      # @param parent_id    [String, nil]  EventLoop id of the parent
-      #                                     FSMSession; when set, a
-      #                                     +:child_completed+ event is posted
-      #                                     on completion
-      # @param result_writer [Proc, nil]   optional callable invoked with the
-      #                                     result hash <b>before</b>
-      #                                     +:child_completed+ is posted.
-      #                                     Use this to write the agent output
-      #                                     back into the parent WorkflowContext.
-      #                                     Thread::Queue provides the
-      #                                     happens-before guarantee.
+      # @param parent_id [String, nil]  EventLoop id of the parent FSMSession;
+      #                                  when set, a +:child_completed+ event
+      #                                  is posted on completion.  The result
+      #                                  is delivered exclusively as the event
+      #                                  payload — no cross-thread writes to the
+      #                                  parent WorkflowContext are performed.
       #
-      # @example Writing result into context
-      #   entry :run_agent, ->(ctx) {
-      #     MyAgent.new.run_as_child(ctx.query, ctx: ctx) { |r| ctx.answer = r[:output] }
-      #   }
       # @api private
-      def initialize(agent:, input:, messages: [], thread_id: nil, config: {}, parent_id: nil, result_writer: nil)
+      def initialize(agent:, input:, messages: [], thread_id: nil, config: {}, parent_id: nil)
         @agent = agent
         @input = input
         @messages = Array(messages).dup
         @thread_id = thread_id || SecureRandom.uuid
         @config = config
         @parent_id = parent_id
-        @result_writer = result_writer
         @id = @thread_id
         @current_phase = :idle
       end
@@ -128,7 +118,6 @@ module Phronomy
         config = @config
         fsm_id = @id
         parent_id = @parent_id
-        result_writer = @result_writer
 
         Phronomy::Task.spawn(name: "agent-fsm:#{fsm_id}") do
           begin
@@ -139,11 +128,9 @@ module Phronomy
               config: config)
 
             if parent_id
-              # Let the caller write the result into the context BEFORE the
-              # parent FSMSession advances.  Thread::Queue provides the
-              # happens-before guarantee — no Mutex needed.
-              result_writer&.call(result)
-
+              # Result is delivered exclusively as the :child_completed payload.
+              # The parent Workflow task is the sole owner of WorkflowContext
+              # and applies the result after receiving the event.
               Phronomy::EventLoop.instance.post(
                 Phronomy::Event.new(type: :child_completed, target_id: parent_id, payload: result)
               )

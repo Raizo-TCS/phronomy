@@ -220,30 +220,6 @@ RSpec.describe "Lifecycle invariants" do
 
       expect(fake.events.map(&:type)).not_to include(:child_failed)
     end
-
-    it "posts :child_failed when result_writer raises before :child_completed" do
-      result = {output: "ok", messages: [], usage: nil}
-      agent = stub_succeeding_agent(result)
-      writer_error = RuntimeError.new("writer exploded")
-      fsm = Phronomy::Agent::FSM.new(
-        agent: agent,
-        input: "hi",
-        thread_id: "child-fsm-4",
-        parent_id: "parent-fsm-4",
-        result_writer: ->(_r) { raise writer_error }
-      )
-
-      fake = LifecycleFakeLoop.new
-      allow(Phronomy::EventLoop).to receive(:instance).and_return(fake)
-
-      fsm.start
-      sleep 0.2
-
-      fail_ev = fake.events.find { |e| e.type == :child_failed }
-      expect(fail_ev).not_to be_nil
-      expect(fail_ev.target_id).to eq("parent-fsm-4")
-      expect(fail_ev.payload).to eq(writer_error)
-    end
   end
 
   # ===========================================================================

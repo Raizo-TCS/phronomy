@@ -108,52 +108,22 @@ RSpec.describe Phronomy::Agent::FSM do
           end
         end
 
-        it "calls result_writer with the result before posting :child_completed" do
+        it "delivers result exclusively as :child_completed event payload" do
           result = {output: "child done", messages: [], usage: nil}
           agent = stub_agent(result: result)
-          written = nil
-          writer_called_at = nil
-          child_completed_at = nil
 
           fsm = described_class.new(
             agent: agent, input: "hi", thread_id: "child_t",
-            parent_id: "parent_t",
-            result_writer: ->(r) {
-              written = r
-              writer_called_at = Process.clock_gettime(Process::CLOCK_MONOTONIC, :microsecond)
-            }
+            parent_id: "parent_t"
           )
 
           with_fake_loop do |fake|
-            # Intercept the moment :child_completed is received by the fake loop
-            allow(fake).to receive(:post).and_wrap_original do |m, ev|
-              child_completed_at = Process.clock_gettime(Process::CLOCK_MONOTONIC, :microsecond) if ev.type == :child_completed
-              m.call(ev)
-            end
-
             fsm.start
             sleep 0.2
 
-            expect(written).to eq(result)
-            expect(writer_called_at).not_to be_nil
-            expect(child_completed_at).not_to be_nil
-            # writer must be called strictly before :child_completed is posted
-            expect(writer_called_at).to be <= child_completed_at
-          end
-        end
-
-        it "does not raise when result_writer is nil" do
-          result = {output: "no writer", messages: [], usage: nil}
-          agent = stub_agent(result: result)
-          fsm = described_class.new(
-            agent: agent, input: "hi", thread_id: "child_t",
-            parent_id: "parent_t", result_writer: nil
-          )
-
-          with_fake_loop do |fake|
-            expect { fsm.start }.not_to raise_error
-            sleep 0.2
-            expect(fake.events.map(&:type)).to include(:child_completed)
+            child_ev = fake.events.find { |e| e.type == :child_completed }
+            expect(child_ev).not_to be_nil
+            expect(child_ev.payload).to eq(result)
           end
         end
       end
@@ -232,28 +202,6 @@ RSpec.describe Phronomy::Agent::FSM do
             err_ev = fake.events.find { |e| e.type == :error }
             expect(err_ev).not_to be_nil
             expect(err_ev.target_id).to eq("child_t")
-          end
-        end
-
-        it "posts :child_failed when result_writer raises" do
-          result = {output: "ok", messages: [], usage: nil}
-          agent = stub_agent(result: result)
-          error = RuntimeError.new("writer error")
-
-          fsm = described_class.new(
-            agent: agent, input: "hi", thread_id: "child_t",
-            parent_id: "parent_t",
-            result_writer: ->(_r) { raise error }
-          )
-
-          with_fake_loop do |fake|
-            fsm.start
-            sleep 0.2
-
-            fail_ev = fake.events.find { |e| e.type == :child_failed }
-            expect(fail_ev).not_to be_nil
-            expect(fail_ev.target_id).to eq("parent_t")
-            expect(fail_ev.payload).to eq(error)
           end
         end
       end
