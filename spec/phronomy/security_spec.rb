@@ -356,4 +356,81 @@ RSpec.describe "Security specs (Issue #214)" do
       expect(agent_span[:input].to_s).not_to include("123-45-6789")
     end
   end
+
+  # -------------------------------------------------------------------------
+  # Section 7: trace_pii: false redacts tool call arguments and results
+  # (Issue #252)
+  #
+  # Tool call arguments (passed as input) and tool results (returned as output)
+  # must not appear in any tracer span when trace_pii is false.
+  #
+  # Since Tool::Base does not create independent spans, this is verified via a
+  # minimal Runnable that mimics the agent.invoke span shape carrying a
+  # tool-result payload.  This guards against regressions if tool spans are
+  # added in the future.
+  # -------------------------------------------------------------------------
+  describe "trace_pii: false — tool call args and result redaction (Issue #252)" do
+    # A Runnable that simulates an agent span whose output contains a tool
+    # result with PII (credit card number in this case).
+    let(:sensitive_tool_result) { "Tool result: card 4111-1111-1111-1111" }
+
+    let(:tool_span_step) do
+      result_ref = sensitive_tool_result
+      Class.new do
+        include Phronomy::Runnable
+
+        define_method(:invoke) do |input, config: {}|
+          # Simulate the shape that agent.invoke returns: a Hash with :output
+          # and :messages keys, where :output may contain tool call data.
+          trace("agent.invoke", input: input) do
+            [{output: result_ref, messages: []}, nil]
+          end
+        end
+      end.new
+    end
+
+    before do
+      Phronomy.configure do |c|
+        c.tracer = recording_tracer
+        c.trace_pii = false
+      end
+    end
+
+    it "does not include the tool result in the agent span output" do
+      # Even though the real output contains PII from a tool call, the tracer
+      # must only see [REDACTED].
+      tool_span_step.invoke("fetch customer details")
+      span = recorded_spans.find { |s| s[:name] == "agent.invoke" }
+      expect(span).not_to be_nil
+      expect(span[:output]).to eq("[REDACTED]")
+      expect(span[:output].to_s).not_to include("4111-1111-1111-1111")
+    end
+
+    it "does not include sensitive tool arguments in the agent span input" do
+      # A sensitive query (user passes PII as tool argument / input) must not
+      # appear in the tracer span input.
+      tool_span_step.invoke("card: 4111-1111-1111-1111 please look up")
+      span = recorded_spans.find { |s| s[:name] == "agent.invoke" }
+      expect(span[:input]).to eq("[REDACTED]")
+      expect(span[:input].to_s).not_to include("4111-1111-1111-1111")
+    end
+
+    it "still returns the full tool result to the caller" do
+      # Redaction is tracer-side only; the return value must be intact.
+      result = tool_span_step.invoke("fetch customer details")
+      expect(result[:output]).to eq(sensitive_tool_result)
+    end
+
+    context "when trace_pii is true" do
+      before { Phronomy.configure { |c| c.trace_pii = true } }
+
+      it "passes the real tool result to the tracer" do
+        tool_span_step.invoke("fetch customer details")
+        span = recorded_spans.find { |s| s[:name] == "agent.invoke" }
+        # With PII recording enabled the raw result Hash is forwarded.
+        expect(span[:output]).to be_a(Hash)
+        expect(span[:output][:output]).to eq(sensitive_tool_result)
+      end
+    end
+  end
 end
