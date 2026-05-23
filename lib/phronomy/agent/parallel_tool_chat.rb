@@ -73,10 +73,11 @@ module Phronomy
             raise Phronomy::CancellationError, "invocation cancelled before tool execution"
           end
 
-          threads = batch.map do |tool_call|
-            Thread.new { {tool_call: tool_call, result: execute_tool(tool_call)} }
+          group = Phronomy::TaskGroup.new(limit: max)
+          tasks = batch.map do |tool_call|
+            group.spawn { {tool_call: tool_call, result: execute_tool(tool_call)} }
           end
-          threads.map(&:value)
+          group.await_all
         end
 
         # Phase 3 — post-execution callbacks and message recording (sequential).
