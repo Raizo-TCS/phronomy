@@ -25,12 +25,36 @@ jobs:
             label: Tool::Base
           - subject: Phronomy::Context::TokenBudget
             label: Context::TokenBudget
+          - subject: Phronomy::Context::Assembler
+            label: Context::Assembler
+          - subject: Phronomy::Context::TrimContext
+            label: Context::TrimContext
+          - subject: Phronomy::Context::CompactionContext
+            label: Context::CompactionContext
           - subject: Phronomy::VectorStore::InMemory
             label: VectorStore::InMemory
           - subject: Phronomy::CancellationToken
             label: CancellationToken
           - subject: Phronomy::Agent::Concerns::ErrorTranslation
             label: ErrorTranslation
+          - subject: Phronomy::Guardrail::InputGuardrail
+            label: Guardrail::InputGuardrail
+          - subject: Phronomy::Guardrail::OutputGuardrail
+            label: Guardrail::OutputGuardrail
+          - subject: Phronomy::Tracing::Base
+            label: Tracing::Base
+          - subject: Phronomy::Tracing::NullTracer
+            label: Tracing::NullTracer
+          - subject: Phronomy::Eval::Runner
+            label: Eval::Runner
+          - subject: Phronomy::Eval::Scorer::Base
+            label: Eval::Scorer::Base
+          - subject: Phronomy::Eval::Scorer::ExactMatch
+            label: Eval::Scorer::ExactMatch
+          - subject: Phronomy::Eval::Scorer::IncludesScorer
+            label: Eval::Scorer::IncludesScorer
+          - subject: Phronomy::Eval::Scorer::LlmJudge
+            label: Eval::Scorer::LlmJudge
 
     steps:
       - uses: actions/checkout@v4
