@@ -68,6 +68,53 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h3 id="Added">Added</h3>
 <ul>
 <li>
+<p><strong><code>VectorStore#size</code> — document count for all backends, contract coverage for RedisSearch and Pgvector</strong> (#240):
+<code>VectorStore::Base</code> gains <code>#size</code> as an abstract method; <code>InMemory</code>, <code>RedisSearch</code>,
+and <code>Pgvector</code> all implement it. <code>RedisSearch#size</code> queries <code>FT.INFO num_docs</code>;
+<code>Pgvector#size</code> delegates to <code>model_class.count</code>. The <code>a_vector_store</code> shared example
+is applied to RedisSearch and Pgvector (nightly real-backend CI); unit specs add a
+skip-guarded <code>it_behaves_like</code> reference and dedicated <code>#size</code> unit tests.
+<code>empty_store</code> override hook added to the shared example for real-backend callers.</p>
+</li>
+<li>
+<p><strong><code>force_kill: false</code> default in <code>dispatch_parallel</code>, <code>fan_out</code>, and <code>EventLoop#stop</code></strong> (#235):
+Thread#kill is now opt-in. The default <code>force_kill: false</code> leaves timed-out workers
+running and raises <code>TimeoutError</code> immediately, avoiding the risk of interrupted
+<code>ensure</code> blocks or corrupted database transactions. Pass <code>force_kill: true</code> to
+restore the previous behaviour (with a <code>logger.warn</code> to make it visible).
+<code>EventLoop#stop</code> gains the same keyword and returns <code>:timeout</code> instead of
+<code>:force_killed</code> when <code>force_kill: false</code> and the thread is still alive.</p>
+</li>
+<li>
+<p><strong>Public API compatibility snapshot spec</strong> (#236):
+<code>spec/phronomy/public_api_spec.rb</code> enumerates expected public methods for every
+<code>Stable</code>-tagged constant. The spec runs as part of the default RSpec suite; any
+accidental removal or rename of a listed method now fails CI immediately.</p>
+</li>
+<li>
+<p><strong>Nightly real-backend CI split into three independent job groups</strong> (#238):
+The nightly workflow (<code>nightly.yml</code>) now has three separately skippable jobs:
+<code>real-backend-redis</code> (Redis Stack), <code>real-backend-pgvector</code> (PostgreSQL + pgvector),
+and <code>real-backend-otel</code> (OpenTelemetry in-process SDK exporter). Each job runs only
+the relevant spec with <code>--tag real_backend:&lt;backend&gt;</code>. The existing <code>redis_search_spec</code>
+and <code>pgvector_spec</code> gain the <code>real_backend:</code> metadata tag. A new <code>otel_spec.rb</code>
+verifies span emission, attribute attachment, and error recording via
+<code>InMemorySpanExporter</code>.</p>
+</li>
+<li>
+<p><strong><code>CancellationToken#raise_if_cancelled!</code> — convenience cancellation check</strong> (#234):
+New instance method that raises <code>Phronomy::CancellationError</code> when the token is
+cancelled, or returns <code>nil</code> otherwise. Replaces the <code>if cancelled? then raise</code>
+pattern inside tools, RAG loaders, and hooks.</p>
+</li>
+<li>
+<p><strong>Tool cooperative cancellation via <code>cancellation_token:</code> keyword</strong> (#234):
+<code>Tool::Base#call</code> now injects <code>Thread.current[:phronomy_cancellation_token]</code> as
+<code>cancellation_token:</code> into <code>execute</code> when the method declares that keyword. Existing
+tools without the keyword continue to work unchanged. Tool authors can opt in:
+<code>def execute(query:, cancellation_token: nil)</code>.</p>
+</li>
+<li>
 <p><strong><code>CancellationToken.timeout_after</code> — monotonic-clock deadline</strong> (#225):
 New <code>CancellationToken.timeout_after(seconds)</code> class method creates a token that
 becomes cancelled after the specified number of seconds, measured with
@@ -814,7 +861,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sat May 23 12:47:29 2026 by
+  Generated on Sat May 23 13:38:28 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

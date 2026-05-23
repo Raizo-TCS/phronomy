@@ -126,6 +126,10 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
+<td><strong><code>VectorStore#size</code></strong> — Returns document count for all three backends (InMemory, RedisSearch, Pgvector)</td>
+<td>Beta</td>
+</tr>
+<tr>
 <td><strong>Multi-agent</strong> — Agent-as-Tool pattern and hub-and-spoke handoff routing</td>
 <td>Beta</td>
 </tr>
@@ -174,8 +178,12 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong>CancellationToken</strong> — Cooperative cancellation via <code>cancel!</code>/<code>cancelled?</code>; <code>timeout_after(seconds)</code> for monotonic-clock deadlines; optional <code>deadline:</code> (wall-clock) for backward compatibility; passed as <code>config: { cancellation_token: token }</code> to agents and <code>dispatch_parallel</code></td>
+<td><strong>CancellationToken</strong> — Cooperative cancellation via <code>cancel!</code>/<code>cancelled?</code>/<code>raise_if_cancelled!</code>; <code>timeout_after(seconds)</code> for monotonic-clock deadlines; optional <code>deadline:</code> (wall-clock) for backward compatibility; passed as <code>config: { cancellation_token: token }</code> to agents and <code>dispatch_parallel</code>; injected into <code>tool.execute</code> when the method declares a <code>cancellation_token:</code> keyword</td>
 <td>Experimental</td>
+</tr>
+<tr>
+<td><strong><code>dispatch_parallel</code> / <code>fan_out</code> <code>force_kill:</code> option</strong> — <code>force_kill: false</code> (default) leaves timed-out workers running and raises <code>TimeoutError</code> immediately; <code>force_kill: true</code> restores the old <code>Thread#kill</code> behaviour with a <code>logger.warn</code></td>
+<td>Beta</td>
 </tr>
 </tbody>
 </table>
@@ -654,6 +662,22 @@ each RAG knowledge-source fetch, after each streaming chunk, before each paralle
 tool-call batch, and after each <code>before_completion</code> hook. <code>CancellationError</code> is
 raised immediately and is never retried. No threads are force-killed — <code>ensure</code>
 blocks always execute.</p>
+<blockquote>
+<p><strong>Cooperative cancellation — not preemptive</strong></p>
+<p>Phronomy uses <em>cooperative boundary cancellation</em>. The token is polled at the
+checkpoints listed above; it is <strong>not</strong> injected as a signal into a running
+operation. This means the following are <strong>not</strong> interrupted mid-execution:</p>
+<ul>
+<li>A single <code>KnowledgeSource#fetch</code> that is already blocking (e.g. HTTP call)</li>
+<li>A single <code>chat.ask</code> call that is not streaming</li>
+<li>A single <code>tool.execute</code> call that is already running</li>
+<li>Any external I/O (database query, vector search, HTTP request) inside those calls</li>
+</ul>
+<p>For deep in-flight safety, complement <code>CancellationToken</code> with per-source or
+per-tool timeouts (e.g. <code>Net::HTTP#read_timeout</code>, <code>Timeout.timeout</code>, connection
+pool limits). Ruby's GVL prevents fully preemptive cancellation without
+<code>Thread#kill</code>, which Phronomy avoids by default due to resource safety concerns.</p>
+</blockquote>
 <pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/CancellationToken.html" title="Phronomy::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/CancellationToken.html#initialize-instance_method" title="Phronomy::CancellationToken#initialize (method)">new</a></span></span>
 
 <span class='comment'># Cancel from another thread after 5 s
@@ -850,7 +874,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat May 23 12:47:28 2026 by
+  Generated on Sat May 23 13:38:28 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
