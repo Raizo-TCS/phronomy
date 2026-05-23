@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `EventLoop#stop` gains the same keyword and returns `:timeout` instead of
   `:force_killed` when `force_kill: false` and the thread is still alive.
 
+- **Public API compatibility snapshot spec** (#236):
+  `spec/phronomy/public_api_spec.rb` enumerates expected public methods for every
+  `Stable`-tagged constant. The spec runs as part of the default RSpec suite; any
+  accidental removal or rename of a listed method now fails CI immediately.
+
 - **`CancellationToken#raise_if_cancelled!` — convenience cancellation check** (#234):
   New instance method that raises `Phronomy::CancellationError` when the token is
   cancelled, or returns `nil` otherwise. Replaces the `if cancelled? then raise`
