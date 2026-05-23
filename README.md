@@ -42,6 +42,8 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **Eval Framework** — Dataset-driven evaluation with multiple scorer types | Beta |
 | **Tracing** — Pluggable span-based observability | Stable |
 | **MCP Tool** — Model Context Protocol server integration | Beta |
+| **Error Taxonomy** — `RateLimitError`, `AuthenticationError`, `ContextLengthError`, `TransportError` (subclasses of `Phronomy::Error`) raised at the agent retry boundary | Beta |
+| **`Phronomy.with_configuration` / `Phronomy.reset_runtime!`** — Scoped configuration override and full runtime reset for test isolation | Beta |
 
 ## Installation
 

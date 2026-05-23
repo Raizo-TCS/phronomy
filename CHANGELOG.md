@@ -54,7 +54,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   messages — starting with the unreachable-state warning from `Workflow.define` — are routed
   through this logger instead of writing directly to `$stderr` via `Kernel#warn`.
 
+- **`Phronomy.with_configuration` and `Phronomy.reset_runtime!`** (#206): Two new class
+  methods for runtime isolation. `with_configuration` yields the current `Configuration`
+  object and restores the original after the block — even on exception — enabling per-request
+  overrides and scoped test configuration. `reset_runtime!` stops any running `EventLoop`,
+  clears its singleton, and resets configuration to defaults; intended for test suites to
+  ensure clean state between examples. `spec_helper.rb` now calls `reset_runtime!` in an
+  `after(:each)` hook automatically.
+
 ### Changed
+
+- **Error taxonomy classes are now raised at the retry boundary** (#204): The classes
+  `Phronomy::RateLimitError`, `Phronomy::AuthenticationError`, `Phronomy::ContextLengthError`,
+  and `Phronomy::TransportError` (introduced in #149) are now actually raised when the
+  corresponding `RubyLLM` exceptions occur. A new internal `ErrorTranslation` concern wraps
+  the retry exhaust path and maps `RubyLLM::*` exceptions to their Phronomy counterparts,
+  preserving the original exception as `#cause`. **Migration**: callers rescuing
+  `RubyLLM::RateLimitError` (or other `RubyLLM::*` errors) directly should migrate to
+  `rescue Phronomy::RateLimitError` / `Phronomy::TransportError` etc.
+
+- **`Orchestrator#bounded_map` uses cooperative cancellation before force-kill** (#203):
+  Workers now check a shared `cancelled` flag at each loop iteration and stop picking up new
+  tasks once the timeout deadline passes. A 0.5 s grace period is given to in-flight workers
+  before `Thread#kill` is used as a last resort. `EventLoop#stop` similarly logs a warning
+  via `Phronomy.configuration.logger` when force-kill is triggered.
+
+- **`Orchestrator#bounded_map` timeout deadline uses monotonic clock** (#209): Replaced
+  `Time.now` deadline arithmetic with `Process.clock_gettime(Process::CLOCK_MONOTONIC)` to
+  avoid sensitivity to NTP adjustments, DST transitions, and system-clock changes that could
+  inflate or deflate effective timeouts.
 
 - **`EventLoop` warns on events for unknown `target_id`**: When the event loop receives an
   event whose `target_id` does not match any registered session, a warning is emitted instead
@@ -85,6 +113,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   enabling accurate structured argument generation for complex tool parameters.
 
 ### Fixed
+
+- **`EventLoop#start` is now idempotent; stale `:__stop__` sentinel race fixed** (#203):
+  Calling `start` on an already-running `EventLoop` is now a no-op. Fixed a race condition
+  where `stop` setting `@running = false` before the worker thread was scheduled left the
+  `:__stop__` sentinel unconsumed in the queue; a subsequent `start` would then immediately
+  terminate the new thread upon popping the stale sentinel. The sentinel is now treated as a
+  pure unblock signal for `queue.pop` (`next` instead of `break`) — loop termination is
+  driven solely by `@running`.
 
 - **`trace_pii: false` now redacts both input and output**: Previously only the user input
   was redacted when `trace_pii` was `false`; LLM responses and tool results were still

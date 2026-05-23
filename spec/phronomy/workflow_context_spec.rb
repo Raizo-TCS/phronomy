@@ -295,21 +295,30 @@ RSpec.describe Phronomy::WorkflowContext do
     let(:klass) do
       Class.new do
         include Phronomy::WorkflowContext
+
         field :callback, type: :replace, default: nil
       end
     end
 
-    it "does not raise TypeError when a non-dupable object (Method) is stored in a field" do
-      m = method(:puts)  # Method objects raise TypeError on dup
-      ctx = klass.new(callback: m)
+    # An object whose #dup raises TypeError unconditionally, regardless of Ruby version.
+    let(:undupable_value) do
+      Class.new do
+        def dup
+          raise TypeError, "cannot dup"
+        end
+      end.new
+    end
+
+    it "does not raise TypeError when a non-dupable object is stored in a field" do
+      ctx = klass.new(callback: undupable_value)
       expect { ctx.merge({}) }.not_to raise_error
     end
 
     it "returns the original object when dup raises TypeError" do
-      m = method(:puts)
-      ctx = klass.new(callback: m)
+      obj = undupable_value
+      ctx = klass.new(callback: obj)
       new_ctx = ctx.merge({})
-      expect(new_ctx.callback).to be(m)
+      expect(new_ctx.callback).to be(obj)
     end
   end
 end
