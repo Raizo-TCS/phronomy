@@ -1,0 +1,116 @@
+# frozen_string_literal: true
+
+module Phronomy
+  # Carries all per-invocation context values through the call stack.
+  #
+  # +InvocationContext+ is a plain value object (struct-like, frozen on
+  # creation) that replaces ad-hoc +Thread.current[...]+ propagation.
+  # Pass it explicitly wherever context needs to cross a method boundary
+  # or be handed to a child {Task} / {TaskGroup}.
+  #
+  # @example Build a context for a new agent invocation
+  #   ctx = Phronomy::InvocationContext.new(
+  #     thread_id:         "conv-123",
+  #     cancellation_token: Phronomy::CancellationToken.timeout_after(30),
+  #     max_parallel_tools: 5
+  #   )
+  #   agent.invoke("Hello", invocation_context: ctx)
+  class InvocationContext
+    # @return [String, nil] conversation / workflow thread identifier
+    attr_reader :thread_id
+
+    # @return [String, nil] session identifier (e.g. Rails session id)
+    attr_reader :session_id
+
+    # @return [String, nil] end-user identifier for tracing / audit
+    attr_reader :user_id
+
+    # @return [CancellationToken, nil]
+    attr_reader :cancellation_token
+
+    # @return [Deadline, nil]
+    attr_reader :deadline
+
+    # @return [Object, nil] OpenTelemetry / tracing span
+    attr_reader :tracer_span
+
+    # @return [Integer, nil] max tokens the agent may consume this invocation
+    attr_reader :token_budget
+
+    # @return [Integer] maximum simultaneous tool calls (default: 10)
+    attr_reader :max_parallel_tools
+
+    # @return [Object, nil] approval policy applied before write-scope tools
+    attr_reader :approval_policy
+
+    # @return [Object, nil] redaction policy applied to tool args / results
+    attr_reader :redaction_policy
+
+    # @return [Hash, nil] per-provider concurrency / rate-limit overrides
+    attr_reader :provider_limits
+
+    # @param thread_id [String, nil]
+    # @param session_id [String, nil]
+    # @param user_id [String, nil]
+    # @param cancellation_token [CancellationToken, nil]
+    # @param deadline [Deadline, nil]
+    # @param tracer_span [Object, nil]
+    # @param token_budget [Integer, nil]
+    # @param max_parallel_tools [Integer]
+    # @param approval_policy [Object, nil]
+    # @param redaction_policy [Object, nil]
+    # @param provider_limits [Hash, nil]
+    def initialize(
+      thread_id: nil,
+      session_id: nil,
+      user_id: nil,
+      cancellation_token: nil,
+      deadline: nil,
+      tracer_span: nil,
+      token_budget: nil,
+      max_parallel_tools: 10,
+      approval_policy: nil,
+      redaction_policy: nil,
+      provider_limits: nil
+    )
+      @thread_id          = thread_id
+      @session_id         = session_id
+      @user_id            = user_id
+      @cancellation_token = cancellation_token
+      @deadline           = deadline
+      @tracer_span        = tracer_span
+      @token_budget       = token_budget
+      @max_parallel_tools = max_parallel_tools
+      @approval_policy    = approval_policy
+      @redaction_policy   = redaction_policy
+      @provider_limits    = provider_limits
+    end
+
+    # Returns a new +InvocationContext+ with the given attributes merged in.
+    # All other attributes are carried over unchanged.
+    #
+    # @param overrides [Hash] keyword arguments to override
+    # @return [InvocationContext]
+    def merge(**overrides)
+      InvocationContext.new(
+        thread_id:          overrides.fetch(:thread_id, @thread_id),
+        session_id:         overrides.fetch(:session_id, @session_id),
+        user_id:            overrides.fetch(:user_id, @user_id),
+        cancellation_token: overrides.fetch(:cancellation_token, @cancellation_token),
+        deadline:           overrides.fetch(:deadline, @deadline),
+        tracer_span:        overrides.fetch(:tracer_span, @tracer_span),
+        token_budget:       overrides.fetch(:token_budget, @token_budget),
+        max_parallel_tools: overrides.fetch(:max_parallel_tools, @max_parallel_tools),
+        approval_policy:    overrides.fetch(:approval_policy, @approval_policy),
+        redaction_policy:   overrides.fetch(:redaction_policy, @redaction_policy),
+        provider_limits:    overrides.fetch(:provider_limits, @provider_limits)
+      )
+    end
+
+    # Convenience: returns the cancellation token or a new never-cancelled token.
+    # @return [CancellationToken]
+    def effective_cancellation_token
+      @cancellation_token || CancellationToken.new
+    end
+  end
+end
