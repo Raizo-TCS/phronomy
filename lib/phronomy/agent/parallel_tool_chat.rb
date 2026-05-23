@@ -104,6 +104,11 @@ module Phronomy
 
       # Overrides RubyLLM::Chat#execute_tool to forward the cancellation token
       # explicitly so that Tool::Base#call does not need Thread.current.
+      #
+      # When the tool declares execution_mode :cooperative, the call is made
+      # directly.  For :blocking_io (the default) the call is delegated to the
+      # BlockingAdapterPool when a Runtime is available so that blocking
+      # network / DB calls do not occupy a scheduler task slot.
       def execute_tool(tool_call)
         tool = tools[tool_call.name.to_sym]
         unless tool
@@ -112,7 +117,27 @@ module Phronomy
                    "Available tools: #{tools.keys.to_json}."
           }
         end
-        tool.call(tool_call.arguments, cancellation_token: @cancellation_token)
+
+        mode = tool.class.execution_mode
+        ct   = @cancellation_token
+
+        if mode == :cooperative
+          tool.call(tool_call.arguments, cancellation_token: ct)
+        else
+          # :blocking_io (default), :cpu_bound, :external_process
+          # Delegate to BlockingAdapterPool when a Runtime is available so that
+          # blocking I/O does not occupy a scheduler task.
+          pool = begin; Phronomy::Runtime.instance&.blocking_io; rescue; nil; end
+          if pool
+            op = pool.submit(cancellation_token: ct) do
+              tool.call(tool_call.arguments, cancellation_token: ct)
+            end
+            op.await
+          else
+            # No pool configured — fall back to direct call (non-EventLoop mode).
+            tool.call(tool_call.arguments, cancellation_token: ct)
+          end
+        end
       end
     end
   end

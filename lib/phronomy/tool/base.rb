@@ -97,6 +97,32 @@ module Phronomy
           @scope = value
         end
 
+        # Sets or reads the execution mode for this tool.
+        #
+        # Execution mode controls which runtime resource is used to run the tool:
+        # - +:cooperative+       — runs directly as a scheduler task (no blocking I/O)
+        # - +:blocking_io+       — delegated to {Phronomy::BlockingAdapterPool} (default)
+        # - +:cpu_bound+         — reserved for future process-pool routing
+        # - +:external_process+  — reserved for future process-manager routing
+        #
+        # Tools that perform network calls, file I/O, or database queries should use
+        # +:blocking_io+ (the default).  Tools that only perform in-memory computation
+        # may declare +:cooperative+ for lower overhead.
+        #
+        # @param value [Symbol, nil] when nil, returns the current value
+        # @return [Symbol] the current execution mode (default :blocking_io)
+        # @api public
+        def execution_mode(value = nil)
+          return @execution_mode || :blocking_io if value.nil?
+
+          valid = %i[cooperative blocking_io cpu_bound external_process]
+          unless valid.include?(value)
+            raise ArgumentError, "execution_mode must be one of #{valid.inspect}, got #{value.inspect}"
+          end
+
+          @execution_mode = value
+        end
+
         # Configures error-handling behavior when +execute+ raises an unexpected error.
         #
         # @param behavior [Symbol]
