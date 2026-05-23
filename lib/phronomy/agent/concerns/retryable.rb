@@ -49,12 +49,19 @@ module Phronomy
 
         # Retry loop for #invoke. Separated so that ReactAgent can override #invoke_once.
         def _invoke_impl(input, messages: [], thread_id: nil, config: {})
+          # Fail fast when the token is already cancelled before any LLM call.
+          if (token = config[:cancellation_token]) && token.cancelled?
+            raise Phronomy::CancellationError, "invocation cancelled"
+          end
+
           policy = self.class._retry_policy
           attempt = 0
           begin
             invoke_once(input, messages: messages, thread_id: thread_id, config: config)
           rescue Phronomy::GuardrailError
             raise
+          rescue Phronomy::CancellationError
+            raise # Never retry after cancellation.
           rescue
             if policy && attempt < policy[:times]
               wait = compute_agent_retry_wait(policy[:wait], policy[:base], attempt)

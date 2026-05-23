@@ -108,17 +108,20 @@ module Phronomy
       # @option task [String]  :input  input string for the agent (required)
       # @option task [Hash]    :config forwarded to +agent#invoke+ (default: +{}+)
       # @option task [String]  :thread_id forwarded to +agent#invoke+ (default: nil)
-      # @param max_concurrency [Integer, nil] maximum number of concurrent threads;
+      # @param max_concurrency    [Integer, nil] maximum number of concurrent threads;
       #   nil means no limit (all tasks run simultaneously)
-      # @param on_error        [Symbol] +:raise+ or +:skip+
-      # @param timeout         [Numeric, nil] maximum seconds to wait for all workers;
+      # @param on_error            [Symbol] +:raise+ or +:skip+
+      # @param timeout             [Numeric, nil] maximum seconds to wait for all workers;
       #   nil means wait indefinitely. When the deadline is exceeded,
       #   {Phronomy::TimeoutError} is raised and all surviving worker threads are killed.
+      # @param cancellation_token [Phronomy::CancellationToken, nil] when provided, the
+      #   token is merged into each task's config (unless the task already sets one) so
+      #   that every worker agent checks it before making LLM calls.
       # @return [Array<Hash, nil>] agent results in the same order as +tasks+
       # @raise [ArgumentError] if +on_error+ is not +:raise+ or +:skip+
       # @raise [ArgumentError] if +max_concurrency+ is not a positive Integer or nil
       # @raise [Phronomy::TimeoutError] if +timeout+ is exceeded
-      def dispatch_parallel(*tasks, max_concurrency: nil, on_error: :raise, timeout: nil)
+      def dispatch_parallel(*tasks, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil)
         unless [:raise, :skip].include?(on_error)
           raise ArgumentError, "unknown on_error: #{on_error.inspect}"
         end
@@ -126,7 +129,7 @@ module Phronomy
           raise ArgumentError, "max_concurrency must be a positive Integer"
         end
 
-        bounded_map(tasks, max_concurrency: max_concurrency, on_error: on_error, timeout: timeout)
+        bounded_map(tasks, max_concurrency: max_concurrency, on_error: on_error, timeout: timeout, cancellation_token: cancellation_token)
       end
 
       # Runs the same agent against multiple inputs in parallel (fan-out pattern).
@@ -141,12 +144,13 @@ module Phronomy
       # @param max_concurrency [Integer, nil]  forwarded to {#dispatch_parallel}
       # @param on_error        [Symbol]        forwarded to {#dispatch_parallel}
       # @return [Array<Hash, nil>] results in the same order as +inputs+
-      def fan_out(agent:, inputs:, config: {}, thread_id: nil, max_concurrency: nil, on_error: :raise, timeout: nil)
+      def fan_out(agent:, inputs:, config: {}, thread_id: nil, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil)
         dispatch_parallel(
           *inputs.map { |input| {agent: agent, input: input, config: config, thread_id: thread_id} },
           max_concurrency: max_concurrency,
           on_error: on_error,
-          timeout: timeout
+          timeout: timeout,
+          cancellation_token: cancellation_token
         )
       end
 
@@ -204,7 +208,7 @@ module Phronomy
       KILL_GRACE_SECONDS = 0.5
       private_constant :KILL_GRACE_SECONDS
 
-      def bounded_map(tasks, max_concurrency:, on_error:, timeout: nil)
+      def bounded_map(tasks, max_concurrency:, on_error:, timeout: nil, cancellation_token: nil)
         return [] if tasks.empty?
 
         results = Array.new(tasks.length)
@@ -228,10 +232,17 @@ module Phronomy
                 break # queue is empty; this worker is done
               end
 
+              # Merge the shared cancellation token into the task's config unless
+              # the task already supplies its own token.
+              task_config = task.fetch(:config, {})
+              if cancellation_token && !task_config[:cancellation_token]
+                task_config = task_config.merge(cancellation_token: cancellation_token)
+              end
+
               begin
                 results[i] = task[:agent].new.invoke(
                   task[:input],
-                  config: task.fetch(:config, {}),
+                  config: task_config,
                   thread_id: task[:thread_id]
                 )
               rescue => e

@@ -44,6 +44,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **MCP Tool** — Model Context Protocol server integration | Beta |
 | **Error Taxonomy** — `RateLimitError`, `AuthenticationError`, `ContextLengthError`, `TransportError` (subclasses of `Phronomy::Error`) raised at the agent retry boundary | Beta |
 | **`Phronomy.with_configuration` / `Phronomy.reset_runtime!`** — Scoped configuration override and full runtime reset for test isolation | Beta |
+| **CancellationToken** — Cooperative cancellation via `cancel!`/`cancelled?`; optional `deadline:` for time-based expiry; passed as `config: { cancellation_token: token }` to agents and `dispatch_parallel` | Experimental |
 
 ## Installation
 

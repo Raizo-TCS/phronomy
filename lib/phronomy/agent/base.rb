@@ -763,6 +763,11 @@ module Phronomy
           # synchronous on_approval_required handler is already registered).
           _register_suspension_hook!(chat)
 
+          # Check for cancellation immediately before the LLM call.
+          if (ct = config[:cancellation_token]) && ct.cancelled?
+            raise Phronomy::CancellationError, "invocation cancelled before LLM call"
+          end
+
           begin
             response = chat.ask(user_message)
           rescue SuspendSignal => signal
