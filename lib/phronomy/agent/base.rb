@@ -544,6 +544,27 @@ module Phronomy
         # No per-thread cleanup needed: context caches are instance variables.
       end
 
+      # Invokes this agent asynchronously and returns a {Phronomy::Task}.
+      #
+      # The task can be awaited with {Phronomy::Task#await} or composed with other
+      # tasks inside a {Phronomy::TaskGroup}.
+      #
+      # @example
+      #   task = agent.invoke_async("Hello!")
+      #   result = task.await   # => { output: "...", messages: [...], usage: ... }
+      #
+      # @param input    [String, Hash]
+      # @param messages [Array]
+      # @param thread_id [String, nil]
+      # @param config   [Hash]
+      # @return [Phronomy::Task]
+      # @api public
+      def invoke_async(input, messages: [], thread_id: nil, config: {})
+        Phronomy::Task.spawn do
+          invoke(input, messages: messages, thread_id: thread_id, config: config)
+        end
+      end
+
       # Registers this agent as a child {AgentFSM} inside the given Workflow context.
       #
       # Use this method from a Workflow entry action (running on the EventLoop thread)

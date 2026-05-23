@@ -307,6 +307,18 @@ module Phronomy
         end
       end
 
+      # Invokes this tool asynchronously and returns a {Phronomy::Task}.
+      #
+      # @param args               [Hash]
+      # @param cancellation_token [Phronomy::CancellationToken, nil]
+      # @return [Phronomy::Task]
+      # @api public
+      def call_async(args, cancellation_token: nil)
+        Phronomy::Task.spawn do
+          call(args, cancellation_token: cancellation_token)
+        end
+      end
+
       # Instance method accessor — delegates to the class-level flag.
       def requires_approval
         self.class.requires_approval

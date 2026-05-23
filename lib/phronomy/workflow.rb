@@ -87,6 +87,18 @@ module Phronomy
       @runner.invoke(input, config: config)
     end
 
+    # Invokes this workflow asynchronously and returns a {Phronomy::Task}.
+    #
+    # @param input  [Hash]
+    # @param config [Hash]
+    # @return [Phronomy::Task]
+    # @api public
+    def invoke_async(input, config: {})
+      Phronomy::Task.spawn do
+        invoke(input, config: config)
+      end
+    end
+
     # Resumes a halted workflow. Generic resume that works for all halt types.
     # @param state [Object] halted context
     # @param input [Hash, nil] optional field updates to merge before resuming
