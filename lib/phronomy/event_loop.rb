@@ -37,8 +37,14 @@ module Phronomy
 
     def initialize
       @queue = Thread::Queue.new  # global event queue (thread-safe; no Mutex needed)
-      @fsms = {}                 # { id => FSMSession }     — EventLoop thread only
-      @waiting = {}                 # { id => completion_queue } — EventLoop thread only
+      @fsms = {}                  # { id => FSMSession }     — EventLoop thread only
+      @waiting = {}               # { id => completion_queue } — EventLoop thread only
+      # Mutex-backed FSM count for drain-mode shutdown.
+      @fsm_count_mutex = Mutex.new
+      @fsm_count_cond = ConditionVariable.new
+      @fsm_count = 0
+      # Token cancelled when shutdown is requested; new child sessions receive it.
+      @shutdown_token = Phronomy::CancellationToken.new
     end
 
     # Registers an FSMSession for execution and returns a completion queue.
@@ -96,6 +102,9 @@ module Phronomy
     def start
       return self if @thread&.alive?
 
+      # Reset shutdown state so the loop can be restarted after a stop.
+      @shutdown_token = Phronomy::CancellationToken.new
+      @fsm_count_mutex.synchronize { @fsm_count = 0 }
       @running = true
       @thread = Thread.new do
         Thread.current[:phronomy_event_loop_thread] = true
@@ -112,9 +121,34 @@ module Phronomy
     # to +timeout+ seconds for a clean shutdown; if the thread is still alive
     # afterwards it is force-killed as a last resort.
     #
-    # @param timeout [Numeric] seconds to wait for cooperative shutdown (default 5)
+    # @param timeout [Numeric] seconds to wait for cooperative shutdown. Defaults
+    #   to +Phronomy.configuration.event_loop_stop_grace_seconds+ (5 s).
+    # @param drain [Boolean] when +true+, wait for all active FSMSessions to
+    #   complete before signalling the loop to stop.  Bounded by +timeout+.
+    #   Defaults to +false+.
+    # @return [Symbol] shutdown status:
+    #   - +:clean+ — loop exited cooperatively with no active sessions discarded
+    #   - +:drained_with_discards+ — drain mode requested but sessions remained;
+    #     they were discarded and the loop was stopped
+    #   - +:force_killed+ — the worker thread did not stop in time and was killed
     # @api private
-    def stop(timeout: 5)
+    def stop(timeout: Phronomy.configuration.event_loop_stop_grace_seconds, drain: false)
+      @shutdown_token.cancel!
+      status = :clean
+
+      if drain
+        # Wait for active sessions to finish, bounded by timeout.
+        deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
+        @fsm_count_mutex.synchronize do
+          while @fsm_count > 0
+            remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+            break if remaining <= 0
+            @fsm_count_cond.wait(@fsm_count_mutex, remaining)
+          end
+          status = :drained_with_discards if @fsm_count > 0
+        end
+      end
+
       @running = false
       @queue.push(:__stop__)   # unblock queue.pop so the worker can see @running = false
       begin
@@ -130,8 +164,10 @@ module Phronomy
           "This is a last resort — check for blocking operations in event handlers."
         )
         @thread.kill
+        status = :force_killed
       end
       @thread = nil
+      status
     end
 
     private
@@ -153,15 +189,31 @@ module Phronomy
           @fsms.delete(event.target_id)
           cq = @waiting.delete(event.target_id)
           cq&.push(event.payload)
+          # Decrement active FSM count and signal drain waiters.
+          @fsm_count_mutex.synchronize do
+            @fsm_count -= 1
+            @fsm_count_cond.signal if @fsm_count <= 0
+          end
 
         when :start
           # session and completion_queue arrive together in the payload so that
           # this thread is the sole writer of @fsms and @waiting.
           # completion may be nil for fire-and-forget child sessions (AgentFSM).
-          @fsms[event.target_id] = event.payload[:session]
+          session = event.payload[:session]
           cq = event.payload[:completion]
+
+          # When shutdown has been requested, reject new sessions with a
+          # CancellationError rather than starting new LLM calls that would
+          # be interrupted by force-kill.
+          if @shutdown_token.cancelled? && cq
+            cq.push(Phronomy::CancellationError.new("EventLoop is shutting down"))
+            next
+          end
+
+          @fsms[event.target_id] = session
           @waiting[event.target_id] = cq if cq
-          event.payload[:session].start
+          @fsm_count_mutex.synchronize { @fsm_count += 1 }
+          session.start
 
         else
           fsm = @fsms[event.target_id]

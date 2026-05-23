@@ -46,11 +46,19 @@ module Phronomy
     #   Phronomy.configure { |c| c.logger = Rails.logger }
     attr_accessor :logger
 
+    # Grace period (in seconds) before the EventLoop background thread is force-killed
+    # after a cooperative stop request.  Applies both to the overall thread join
+    # and to the drain-and-cancel phase when +stop(drain: true)+ is used.
+    # Default: 5 seconds.
+    # @see Phronomy::EventLoop#stop
+    attr_accessor :event_loop_stop_grace_seconds
+
     def initialize
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new
       @trace_pii = false
       @event_loop = false
+      @event_loop_stop_grace_seconds = 5
     end
   end
 end
