@@ -137,7 +137,7 @@ Each chunk Hash must contain:</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#fetch-instance_method" title="#fetch (instance method)">#<strong>fetch</strong>(query: nil)  &#x21d2; Array&lt;Hash&gt; </a>
+      <a href="#fetch-instance_method" title="#fetch (instance method)">#<strong>fetch</strong>(query: nil, cancellation_token: nil)  &#x21d2; Array&lt;Hash&gt; </a>
     
 
     
@@ -191,7 +191,7 @@ Each chunk Hash must contain:</p>
       <div class="method_details first">
   <h3 class="signature first" id="fetch-instance_method">
   
-    #<strong>fetch</strong>(query: nil)  &#x21d2; <tt>Array&lt;Hash&gt;</tt> 
+    #<strong>fetch</strong>(query: nil, cancellation_token: nil)  &#x21d2; <tt>Array&lt;Hash&gt;</tt> 
   
 
   
@@ -220,6 +220,22 @@ Each chunk Hash must contain:</p>
       
         &mdash;
         <div class='inline'><p>the current user input used to select relevant chunks</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>cancellation_token</span>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="../CancellationToken.html" title="Phronomy::CancellationToken (class)">Phronomy::CancellationToken</a></span></tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>optional token; raises CancellationError when cancelled</p></div>
       
     </li>
   
@@ -261,14 +277,16 @@ Each chunk Hash must contain:</p>
       <pre class="lines">
 
 
-16
-17
-18</pre>
+18
+19
+20
+21</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/knowledge_source/base.rb', line 16</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/knowledge_source/base.rb', line 18</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='label'>query:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='label'>query:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#fetch is not implemented</span><span class='tstring_end'>&quot;</span></span>
 <span class='kw'>end</span></pre>
     </td>
@@ -316,12 +334,12 @@ fingerprint-based caching in ContextVersionCache.</p>
       <pre class="lines">
 
 
-27
-28
-29</pre>
+31
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/knowledge_source/base.rb', line 27</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/knowledge_source/base.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_static?'>static?</span>
   <span class='kw'>false</span>
@@ -336,7 +354,7 @@ fingerprint-based caching in ContextVersionCache.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:30 2026 by
+  Generated on Sat May 23 15:57:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

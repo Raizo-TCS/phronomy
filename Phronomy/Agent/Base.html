@@ -182,7 +182,7 @@ and retry behaviour. Instance methods handle invocation.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -204,7 +204,7 @@ and retry behaviour. Instance methods handle invocation.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -226,7 +226,7 @@ and retry behaviour. Instance methods handle invocation.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -698,7 +698,7 @@ and retry behaviour. Instance methods handle invocation.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Registers an anonymous handoff tool class on this agent instance.</p></div></span>
@@ -720,7 +720,7 @@ and retry behaviour. Instance methods handle invocation.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns handoff tool classes registered on this instance by Runner.</p></div></span>
@@ -904,7 +904,11 @@ and retry behaviour. Instance methods handle invocation.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
 
   </div>
 </div>
@@ -930,12 +934,12 @@ and retry behaviour. Instance methods handle invocation.</p>
       <pre class="lines">
 
 
-360
-361
-362</pre>
+379
+380
+381</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 360</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 379</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__on_compact_callback'>_on_compact_callback</span>
   <span class='ivar'>@on_compact_callback</span>
@@ -956,7 +960,11 @@ and retry behaviour. Instance methods handle invocation.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
 
   </div>
 </div>
@@ -982,12 +990,12 @@ and retry behaviour. Instance methods handle invocation.</p>
       <pre class="lines">
 
 
-338
-339
-340</pre>
+355
+356
+357</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 338</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 355</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__on_compaction_trigger_callback'>_on_compaction_trigger_callback</span>
   <span class='ivar'>@on_compaction_trigger_callback</span>
@@ -1008,7 +1016,11 @@ and retry behaviour. Instance methods handle invocation.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
 
   </div>
 </div>
@@ -1034,12 +1046,12 @@ and retry behaviour. Instance methods handle invocation.</p>
       <pre class="lines">
 
 
-315
-316
-317</pre>
+330
+331
+332</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 315</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 330</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__on_trim_callback'>_on_trim_callback</span>
   <span class='ivar'>@on_trim_callback</span>
@@ -1091,16 +1103,16 @@ the model name.</p>
       <pre class="lines">
 
 
-379
-380
-381
-382
-383
-384
-385</pre>
+399
+400
+401
+402
+403
+404
+405</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 379</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 399</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cache_instructions'>cache_instructions</span><span class='lparen'>(</span><span class='id identifier rubyid_enabled'>enabled</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_enabled'>enabled</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1149,16 +1161,16 @@ Subtract this from the context window before computing the memory budget.</p>
       <pre class="lines">
 
 
-426
-427
-428
-429
-430
-431
-432</pre>
+449
+450
+451
+452
+453
+454
+455</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 426</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 449</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_context_overhead'>context_overhead</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1209,16 +1221,16 @@ actually-loaded context length may differ from the catalogue value.</p>
       <pre class="lines">
 
 
-411
-412
-413
-414
-415
-416
-417</pre>
+433
+434
+435
+436
+437
+438
+439</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 411</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 433</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_context_window'>context_window</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1323,17 +1335,17 @@ When used as a reader (no argument, no block), returns the stored value.</p>
       <pre class="lines">
 
 
-77
-78
 79
 80
 81
 82
 83
-84</pre>
+84
+85
+86</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 77</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 79</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_instructions'>instructions</span><span class='lparen'>(</span><span class='id identifier rubyid_text'>text</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_text'>text</span> <span class='op'>||</span> <span class='id identifier rubyid_block_given?'>block_given?</span>
@@ -1424,21 +1436,21 @@ the error.  True cancellation is not yet supported.</p>
       <pre class="lines">
 
 
-235
-236
-237
-238
-239
-240
-241
-242
-243
 244
 245
-246</pre>
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 235</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 244</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke_timeout'>invoke_timeout</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1522,16 +1534,16 @@ Each tool call and follow-up counts as one iteration. Defaults to 10.</p>
       <pre class="lines">
 
 
-179
-180
-181
-182
-183
-184
-185</pre>
+186
+187
+188
+189
+190
+191
+192</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 179</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 186</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_iterations'>max_iterations</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span>
@@ -1580,16 +1592,16 @@ When nil, the model's max_output_tokens from the registry is used.</p>
       <pre class="lines">
 
 
-394
-395
-396
-397
-398
-399
-400</pre>
+415
+416
+417
+418
+419
+420
+421</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 394</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 415</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_output_tokens'>max_output_tokens</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1671,21 +1683,21 @@ Inherited by subclasses; the most-specific definition wins.</p>
       <pre class="lines">
 
 
-200
-201
-202
-203
-204
-205
-206
-207
 208
 209
 210
-211</pre>
+211
+212
+213
+214
+215
+216
+217
+218
+219</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 200</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 208</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_parallel_tools'>max_parallel_tools</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1776,16 +1788,16 @@ global default from <span class='object_link'><a href="../../Phronomy.html#confi
       <pre class="lines">
 
 
-54
 55
 56
 57
 58
 59
-60</pre>
+60
+61</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 55</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_model'>model</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_name'>name</span>
@@ -1857,12 +1869,12 @@ to specify which messages to summarise.</p>
       <pre class="lines">
 
 
-355
-356
-357</pre>
+373
+374
+375</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 355</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 373</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_compact'>on_compact</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@on_compact_callback</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -1945,12 +1957,12 @@ pipeline is executed.</p>
       <pre class="lines">
 
 
-333
-334
-335</pre>
+349
+350
+351</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 333</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 349</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_compaction_trigger'>on_compaction_trigger</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@on_compaction_trigger_callback</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -2018,12 +2030,12 @@ only the current invocation; the underlying memory store is unchanged.</p>
       <pre class="lines">
 
 
-310
-311
-312</pre>
+324
+325
+326</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 310</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 324</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_trim'>on_trim</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@on_trim_callback</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -2103,17 +2115,17 @@ Required when using a model not registered in RubyLLM's model registry
       <pre class="lines">
 
 
-144
-145
-146
-147
-148
 149
 150
-151</pre>
+151
+152
+153
+154
+155
+156</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 144</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 149</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_provider'>provider</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_name'>name</span>
@@ -2180,15 +2192,15 @@ of the process; call <span class='object_link'><a href="#static_knowledge_refres
       <pre class="lines">
 
 
-258
-259
-260
-261
-262
-263</pre>
+268
+269
+270
+271
+272
+273</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 258</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 268</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_static_knowledge'>static_knowledge</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_sources'>sources</span><span class='rparen'>)</span>
   <span class='ivar'>@static_knowledge_sources</span> <span class='op'>=</span> <span class='id identifier rubyid_sources'>sources</span><span class='period'>.</span><span class='id identifier rubyid_flatten'>flatten</span>
@@ -2240,14 +2252,14 @@ only once regardless of how many times the agent is invoked.</p>
       <pre class="lines">
 
 
-275
-276
-277
-278
-279</pre>
+287
+288
+289
+290
+291</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 275</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 287</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_static_knowledge_chunks'>static_knowledge_chunks</span>
   <span class='ivar'>@static_knowledge_chunks</span> <span class='op'>||=</span> <span class='id identifier rubyid_static_knowledge_sources'>static_knowledge_sources</span><span class='period'>.</span><span class='id identifier rubyid_flat_map'>flat_map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_ks'>ks</span><span class='op'>|</span>
@@ -2311,12 +2323,12 @@ process.</p>
       <pre class="lines">
 
 
-292
-293
-294</pre>
+305
+306
+307</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 292</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 305</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_static_knowledge_refresh!'>static_knowledge_refresh!</span>
   <span class='ivar'>@static_knowledge_chunks</span> <span class='op'>=</span> <span class='kw'>nil</span>
@@ -2363,12 +2375,12 @@ process.</p>
       <pre class="lines">
 
 
-267
-268
-269</pre>
+278
+279
+280</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 267</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 278</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_static_knowledge_sources'>static_knowledge_sources</span>
   <span class='ivar'>@static_knowledge_sources</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -2446,16 +2458,16 @@ When nil, the provider's default is used.</p>
       <pre class="lines">
 
 
-162
-163
-164
-165
-166
-167
-168</pre>
+168
+169
+170
+171
+172
+173
+174</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 162</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 168</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_temperature'>temperature</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span>
@@ -2508,17 +2520,17 @@ Subclass-specific aliases take precedence over parent aliases.</p>
       <pre class="lines">
 
 
-124
-125
-126
-127
 128
 129
 130
-131</pre>
+131
+132
+133
+134
+135</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 124</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 128</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_aliases'>tool_aliases</span>
   <span class='id identifier rubyid_own'>own</span> <span class='op'>=</span> <span class='ivar'>@tool_aliases</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
@@ -2580,9 +2592,6 @@ The alias form is useful when two tools share the same auto-generated name
       <pre class="lines">
 
 
-102
-103
-104
 105
 106
 107
@@ -2596,10 +2605,13 @@ The alias form is useful when two tools share the same auto-generated name
 115
 116
 117
-118</pre>
+118
+119
+120
+121</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 102</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 105</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tools'>tools</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_args'>args</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_args'>args</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
@@ -2640,7 +2652,11 @@ The alias form is useful when two tools share the same auto-generated name
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Registers an anonymous handoff tool class on this agent instance.
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Registers an anonymous handoff tool class on this agent instance.
 Called by Runner during construction when routes are configured.</p>
 
   </div>
@@ -2682,14 +2698,14 @@ Called by Runner during construction when routes are configured.</p>
       <pre class="lines">
 
 
-439
-440
-441
-442
-443</pre>
+463
+464
+465
+466
+467</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 439</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 463</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__add_handoff_tool'>_add_handoff_tool</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_class'>tool_class</span><span class='rparen'>)</span>
   <span class='ivar'>@_handoff_tools</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -2712,7 +2728,11 @@ Called by Runner during construction when routes are configured.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns handoff tool classes registered on this instance by Runner.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns handoff tool classes registered on this instance by Runner.</p>
 
   </div>
 </div>
@@ -2738,12 +2758,12 @@ Called by Runner during construction when routes are configured.</p>
       <pre class="lines">
 
 
-447
-448
-449</pre>
+472
+473
+474</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 447</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 472</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__handoff_tools'>_handoff_tools</span>
   <span class='ivar'>@_handoff_tools</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -2789,12 +2809,12 @@ thread.</p>
       <pre class="lines">
 
 
-613
-614
-615</pre>
+641
+642
+643</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 613</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 641</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_context_version_cache'>context_version_cache</span>
   <span class='ivar'>@last_context_version_cache</span>
@@ -2964,32 +2984,6 @@ messages: Array }+ when the invocation was suspended awaiting tool approval.</p>
       <pre class="lines">
 
 
-483
-484
-485
-486
-487
-488
-489
-490
-491
-492
-493
-494
-495
-496
-497
-498
-499
-500
-501
-502
-503
-504
-505
-506
-507
-508
 509
 510
 511
@@ -3002,10 +2996,36 @@ messages: Array }+ when the invocation was suspended awaiting tool approval.</p>
 518
 519
 520
-521</pre>
+521
+522
+523
+524
+525
+526
+527
+528
+529
+530
+531
+532
+533
+534
+535
+536
+537
+538
+539
+540
+541
+542
+543
+544
+545
+546
+547</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 483</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 509</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span>
@@ -3218,28 +3238,28 @@ the result arrives as a <code>:child_completed</code> event</p></div>
       <pre class="lines">
 
 
-557
-558
-559
-560
-561
-562
-563
-564
-565
-566
-567
-568
-569
-570
-571
-572
-573
-574
-575</pre>
+584
+585
+586
+587
+588
+589
+590
+591
+592
+593
+594
+595
+596
+597
+598
+599
+600
+601
+602</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 557</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 584</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_run_as_child'>run_as_child</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>ctx:</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_result_writer'>result_writer</span><span class='rparen'>)</span>
   <span class='kw'>unless</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span>
@@ -3391,17 +3411,17 @@ as they are produced by the underlying LLM.</p>
       <pre class="lines">
 
 
-593
-594
-595
-596
-597
-598
-599
-600</pre>
+621
+622
+623
+624
+625
+626
+627
+628</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 593</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 621</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
@@ -3421,7 +3441,7 @@ as they are produced by the underlying LLM.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:28 2026 by
+  Generated on Sat May 23 15:57:55 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

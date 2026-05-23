@@ -425,12 +425,12 @@ When omitted, <code>store.read_all</code> is used as-is.</p>
       <pre class="lines">
 
 
-139
-140
-141</pre>
+149
+150
+151</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 139</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 149</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_aggregate'>aggregate</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_block'>block</span> <span class='op'>?</span> <span class='ivar'>@aggregator</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span> <span class='op'>:</span> <span class='ivar'>@aggregator</span>
@@ -487,12 +487,12 @@ workflow. Override this when you need a different protocol or tone.</p>
       <pre class="lines">
 
 
-107
-108
-109</pre>
+113
+114
+115</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 107</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 113</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_coordination'>coordination</span><span class='lparen'>(</span><span class='id identifier rubyid_text'>text</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_text'>text</span> <span class='op'>?</span> <span class='ivar'>@coordination</span> <span class='op'>=</span> <span class='id identifier rubyid_text'>text</span> <span class='op'>:</span> <span class='ivar'>@coordination</span>
@@ -544,12 +544,12 @@ At least one of <code>max_cycles</code> or <code>timeout</code> must be configur
       <pre class="lines">
 
 
-115
-116
-117</pre>
+122
+123
+124</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 115</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 122</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_cycles'>max_cycles</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>?</span> <span class='ivar'>@max_cycles</span> <span class='op'>=</span> <span class='const'>Integer</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='ivar'>@max_cycles</span>
@@ -619,13 +619,13 @@ appended to the team coordination text in this agent's prompt</p></div>
       <pre class="lines">
 
 
-88
-89
-90
-91</pre>
+92
+93
+94
+95</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 88</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 92</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_member'>member</span><span class='lparen'>(</span><span class='id identifier rubyid_klass'>klass</span><span class='comma'>,</span> <span class='label'>instruction:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@members</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -679,12 +679,12 @@ per-agent instruction. Prefer <span class='object_link'><a href="#member-class_m
       <pre class="lines">
 
 
-97
-98
-99</pre>
+102
+103
+104</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 97</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 102</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_researchers'>researchers</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_classes'>classes</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_classes'>classes</span><span class='period'>.</span><span class='id identifier rubyid_flatten'>flatten</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_klass'>klass</span><span class='op'>|</span> <span class='id identifier rubyid_member'>member</span><span class='lparen'>(</span><span class='id identifier rubyid_klass'>klass</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
@@ -735,12 +735,12 @@ cycle; when it returns <code>true</code> the loop terminates early.</p>
       <pre class="lines">
 
 
-131
-132
-133</pre>
+140
+141
+142</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 131</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 140</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_terminate_when'>terminate_when</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_block'>block</span> <span class='op'>?</span> <span class='ivar'>@terminate_when</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span> <span class='op'>:</span> <span class='ivar'>@terminate_when</span>
@@ -792,12 +792,12 @@ At least one of <code>max_cycles</code> or <code>timeout</code> must be configur
       <pre class="lines">
 
 
-123
-124
-125</pre>
+131
+132
+133</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 123</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 131</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_value'>value</span> <span class='op'>?</span> <span class='ivar'>@timeout</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span> <span class='op'>:</span> <span class='ivar'>@timeout</span>
@@ -903,17 +903,6 @@ At least one of <code>max_cycles</code> or <code>timeout</code> must be configur
       <pre class="lines">
 
 
-165
-166
-167
-168
-169
-170
-171
-172
-173
-174
-175
 176
 177
 178
@@ -940,10 +929,21 @@ At least one of <code>max_cycles</code> or <code>timeout</code> must be configur
 199
 200
 201
-202</pre>
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 165</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 176</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_validate_termination!'>validate_termination!</span>
@@ -993,7 +993,7 @@ At least one of <code>max_cycles</code> or <code>timeout</code> must be configur
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:29 2026 by
+  Generated on Sat May 23 15:57:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

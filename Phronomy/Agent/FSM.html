@@ -470,7 +470,6 @@ happens-before guarantee.</p></div>
       <pre class="lines">
 
 
-91
 92
 93
 94
@@ -480,10 +479,11 @@ happens-before guarantee.</p></div>
 98
 99
 100
-101</pre>
+101
+102</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 91</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 92</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>agent:</span><span class='comma'>,</span> <span class='label'>input:</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>parent_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>result_writer:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span>
@@ -665,12 +665,12 @@ to external events after <span class='object_link'><a href="#start-instance_meth
       <pre class="lines">
 
 
-113
 114
-115</pre>
+115
+116</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 113</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 114</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_handle'>handle</span><span class='lparen'>(</span><span class='id identifier rubyid__event'>_event</span><span class='rparen'>)</span>
   <span class='comment'># No-op: AgentFSM is driven entirely by its IO thread.
@@ -709,13 +709,13 @@ Transitions to <code>:running</code> and spawns the agent IO thread.</p>
       <pre class="lines">
 
 
-105
 106
 107
-108</pre>
+108
+109</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 105</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 106</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start'>start</span>
   <span class='ivar'>@current_phase</span> <span class='op'>=</span> <span class='symbol'>:running</span>
@@ -731,7 +731,7 @@ Transitions to <code>:running</code> and spawns the agent IO thread.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:28 2026 by
+  Generated on Sat May 23 15:57:55 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

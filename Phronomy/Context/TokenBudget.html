@@ -258,7 +258,7 @@ and injected knowledge within a single LLM request.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Tokens still available after <code>used</code> tokens have been allocated.</p></div></span>
@@ -280,7 +280,7 @@ and injected knowledge within a single LLM request.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Tokens available for conversation history and knowledge after reservations.</p></div></span>
@@ -304,7 +304,7 @@ and injected knowledge within a single LLM request.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of TokenBudget.</p></div></span>
@@ -330,7 +330,11 @@ and injected knowledge within a single LLM request.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a new instance of TokenBudget.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a new instance of TokenBudget.</p>
 
   </div>
 </div>
@@ -412,7 +416,6 @@ and model is given, uses max_output_tokens</p></div>
       <pre class="lines">
 
 
-48
 49
 50
 51
@@ -426,10 +429,11 @@ and model is given, uses max_output_tokens</p></div>
 59
 60
 61
-62</pre>
+62
+63</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/token_budget.rb', line 48</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/token_budget.rb', line 49</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>model:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>context_window:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>max_output_tokens:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>overhead:</span> <span class='int'>0</span><span class='rparen'>)</span>
   <span class='ivar'>@overhead</span> <span class='op'>=</span> <span class='id identifier rubyid_overhead'>overhead</span><span class='period'>.</span><span class='id identifier rubyid_to_i'>to_i</span>
@@ -645,7 +649,11 @@ and model is given, uses max_output_tokens</p></div>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Tokens still available after <code>used</code> tokens have been allocated.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Tokens still available after <code>used</code> tokens have been allocated.</p>
 
   </div>
 </div>
@@ -694,12 +702,12 @@ and model is given, uses max_output_tokens</p></div>
       <pre class="lines">
 
 
-76
-77
-78</pre>
+79
+80
+81</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/token_budget.rb', line 76</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/token_budget.rb', line 79</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_available'>available</span><span class='lparen'>(</span><span class='label'>used:</span> <span class='int'>0</span><span class='rparen'>)</span>
   <span class='lbracket'>[</span><span class='id identifier rubyid_effective_input_limit'>effective_input_limit</span> <span class='op'>-</span> <span class='id identifier rubyid_used'>used</span><span class='period'>.</span><span class='id identifier rubyid_to_i'>to_i</span><span class='comma'>,</span> <span class='int'>0</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_max'>max</span>
@@ -720,7 +728,11 @@ and model is given, uses max_output_tokens</p></div>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Tokens available for conversation history and knowledge after reservations.
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Tokens available for conversation history and knowledge after reservations.
 Always &gt;= 0.</p>
 
   </div>
@@ -747,12 +759,12 @@ Always &gt;= 0.</p>
       <pre class="lines">
 
 
-68
-69
-70</pre>
+70
+71
+72</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/token_budget.rb', line 68</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/token_budget.rb', line 70</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_effective_input_limit'>effective_input_limit</span>
   <span class='lbracket'>[</span><span class='ivar'>@context_window</span> <span class='op'>-</span> <span class='ivar'>@max_output_tokens</span> <span class='op'>-</span> <span class='ivar'>@overhead</span><span class='comma'>,</span> <span class='int'>0</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_max'>max</span>
@@ -767,7 +779,7 @@ Always &gt;= 0.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:30 2026 by
+  Generated on Sat May 23 15:57:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

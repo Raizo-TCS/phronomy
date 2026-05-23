@@ -279,7 +279,7 @@ as the new message list for this invocation.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Replace a range of messages with a summary produced by the block.</p></div></span>
@@ -303,7 +303,7 @@ as the new message list for this invocation.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of CompactionContext.</p></div></span>
@@ -329,7 +329,11 @@ as the new message list for this invocation.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a new instance of CompactionContext.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a new instance of CompactionContext.</p>
 
   </div>
 </div>
@@ -404,17 +408,17 @@ for compaction records to be persisted</p></div>
       <pre class="lines">
 
 
-48
 49
 50
 51
 52
 53
 54
-55</pre>
+55
+56</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 48</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 49</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>message_elements:</span><span class='comma'>,</span> <span class='label'>budget:</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>memory:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@message_elements</span> <span class='op'>=</span> <span class='id identifier rubyid_message_elements'>message_elements</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
@@ -675,7 +679,11 @@ Updated by each call to #compact.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Replace a range of messages with a summary produced by the block.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Replace a range of messages with a summary produced by the block.</p>
 <p>The block receives the selected Array<Hash> elements and must return a
 String that serves as the summary text. After the call, #result_messages
 reflects the replacement.</p>
@@ -761,8 +769,6 @@ reflects the replacement.</p>
       <pre class="lines">
 
 
-70
-71
 72
 73
 74
@@ -797,10 +803,12 @@ reflects the replacement.</p>
 103
 104
 105
-106</pre>
+106
+107
+108</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 70</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 72</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_compact'>compact</span><span class='lparen'>(</span><span class='id identifier rubyid_range'>range</span><span class='rparen'>)</span>
   <span class='comment'># Normalise: Integer index → single-element Array; Range → Array slice.
@@ -849,7 +857,7 @@ reflects the replacement.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:30 2026 by
+  Generated on Sat May 23 15:57:57 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

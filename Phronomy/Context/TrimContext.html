@@ -221,7 +221,7 @@ sequentially (0-based) when messages are loaded from memory each turn.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of TrimContext.</p></div></span>
@@ -243,7 +243,7 @@ sequentially (0-based) when messages are loaded from memory each turn.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns a snapshot of the current message elements (defensive copy).</p></div></span>
@@ -265,7 +265,7 @@ sequentially (0-based) when messages are loaded from memory each turn.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Convenience: returns the plain message objects (without element metadata).</p></div></span>
@@ -287,7 +287,7 @@ sequentially (0-based) when messages are loaded from memory each turn.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Remove messages identified by seq numbers.</p></div></span>
@@ -313,7 +313,11 @@ sequentially (0-based) when messages are loaded from memory each turn.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a new instance of TrimContext.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a new instance of TrimContext.</p>
 
   </div>
 </div>
@@ -355,14 +359,14 @@ sequentially (0-based) when messages are loaded from memory each turn.</p>
       <pre class="lines">
 
 
-31
 32
 33
 34
-35</pre>
+35
+36</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 31</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 32</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>message_elements:</span><span class='comma'>,</span> <span class='label'>budget:</span><span class='rparen'>)</span>
   <span class='ivar'>@message_elements</span> <span class='op'>=</span> <span class='id identifier rubyid_message_elements'>message_elements</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
@@ -511,7 +515,11 @@ sequentially (0-based) when messages are loaded from memory each turn.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a snapshot of the current message elements (defensive copy).
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a snapshot of the current message elements (defensive copy).
 Each element is a Hash with <code>:seq</code>, <code>:message</code>, <code>:tokens</code>, and <code>:role</code>.</p>
 
   </div>
@@ -538,12 +546,12 @@ Each element is a Hash with <code>:seq</code>, <code>:message</code>, <code>:tok
       <pre class="lines">
 
 
-41
-42
-43</pre>
+43
+44
+45</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 43</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_message_elements'>message_elements</span>
   <span class='ivar'>@message_elements</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
@@ -564,7 +572,11 @@ Each element is a Hash with <code>:seq</code>, <code>:message</code>, <code>:tok
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Convenience: returns the plain message objects (without element metadata).</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Convenience: returns the plain message objects (without element metadata).</p>
 
   </div>
 </div>
@@ -590,12 +602,12 @@ Each element is a Hash with <code>:seq</code>, <code>:message</code>, <code>:tok
       <pre class="lines">
 
 
-60
-61
-62</pre>
+64
+65
+66</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 60</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 64</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_messages'>messages</span>
   <span class='ivar'>@message_elements</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_e'>e</span><span class='op'>|</span> <span class='id identifier rubyid_e'>e</span><span class='lbracket'>[</span><span class='symbol'>:message</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
@@ -616,7 +628,11 @@ Each element is a Hash with <code>:seq</code>, <code>:message</code>, <code>:tok
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Remove messages identified by seq numbers.
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Remove messages identified by seq numbers.
 Calling this multiple times accumulates removals.</p>
 
   </div>
@@ -661,15 +677,15 @@ Calling this multiple times accumulates removals.</p>
       <pre class="lines">
 
 
-50
-51
-52
 53
 54
-55</pre>
+55
+56
+57
+58</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 50</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trim_context.rb', line 53</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remove'>remove</span><span class='lparen'>(</span><span class='id identifier rubyid_seqs'>seqs</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_seqs_set'>seqs_set</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_seqs'>seqs</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_to_set'>to_set</span>
@@ -687,7 +703,7 @@ Calling this multiple times accumulates removals.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:30 2026 by
+  Generated on Sat May 23 15:57:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

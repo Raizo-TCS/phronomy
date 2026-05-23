@@ -244,7 +244,7 @@ end</code></pre>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of GeneratorVerifier.</p></div></span>
@@ -266,7 +266,7 @@ end</code></pre>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Run the generator-verifier pipeline.</p></div></span>
@@ -292,7 +292,11 @@ end</code></pre>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a new instance of GeneratorVerifier.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a new instance of GeneratorVerifier.</p>
 
   </div>
 </div>
@@ -458,7 +462,6 @@ confidence threshold (default: false)</p></div>
       <pre class="lines">
 
 
-116
 117
 118
 119
@@ -479,10 +482,11 @@ confidence threshold (default: false)</p></div>
 134
 135
 136
-137</pre>
+137
+138</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/generator_verifier.rb', line 116</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/generator_verifier.rb', line 117</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>draft_agent:</span><span class='comma'>,</span>
@@ -529,7 +533,11 @@ confidence threshold (default: false)</p></div>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Run the generator-verifier pipeline.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Run the generator-verifier pipeline.</p>
 
   </div>
 </div>
@@ -606,8 +614,6 @@ and the result does not meet the confidence threshold</p></div>
       <pre class="lines">
 
 
-146
-147
 148
 149
 150
@@ -621,10 +627,12 @@ and the result does not meet the confidence threshold</p></div>
 158
 159
 160
-161</pre>
+161
+162
+163</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/generator_verifier.rb', line 146</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/generator_verifier.rb', line 148</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_app'>app</span> <span class='op'>=</span> <span class='id identifier rubyid_compiled_workflow'>compiled_workflow</span>
@@ -652,7 +660,7 @@ and the result does not meet the confidence threshold</p></div>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:29 2026 by
+  Generated on Sat May 23 15:57:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

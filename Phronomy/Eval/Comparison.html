@@ -246,12 +246,12 @@ packages the paired results for side-by-side comparison.</p>
       <pre class="lines">
 
 
-22
 23
-24</pre>
+24
+25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/comparison.rb', line 22</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/comparison.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>scorer:</span> <span class='const'><span class='object_link'><a href="Scorer.html" title="Phronomy::Eval::Scorer (module)">Scorer</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Scorer/ExactMatch.html" title="Phronomy::Eval::Scorer::ExactMatch (class)">ExactMatch</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Scorer/ExactMatch.html#initialize-instance_method" title="Phronomy::Eval::Scorer::ExactMatch#initialize (method)">new</a></span></span><span class='rparen'>)</span>
   <span class='ivar'>@scorer</span> <span class='op'>=</span> <span class='id identifier rubyid_scorer'>scorer</span>
@@ -342,8 +342,6 @@ packages the paired results for side-by-side comparison.</p>
       <pre class="lines">
 
 
-32
-33
 34
 35
 36
@@ -352,10 +350,12 @@ packages the paired results for side-by-side comparison.</p>
 39
 40
 41
-42</pre>
+42
+43
+44</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/comparison.rb', line 32</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/comparison.rb', line 34</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_compare'>compare</span><span class='lparen'>(</span><span class='id identifier rubyid_dataset'>dataset</span><span class='comma'>,</span> <span class='id identifier rubyid_callable_a'>callable_a</span><span class='comma'>,</span> <span class='id identifier rubyid_callable_b'>callable_b</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_runner_a'>runner_a</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Runner.html" title="Phronomy::Eval::Runner (class)">Runner</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Runner.html#initialize-instance_method" title="Phronomy::Eval::Runner#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>scorer:</span> <span class='ivar'>@scorer</span><span class='rparen'>)</span>
@@ -378,7 +378,7 @@ packages the paired results for side-by-side comparison.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:29 2026 by
+  Generated on Sat May 23 15:57:55 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

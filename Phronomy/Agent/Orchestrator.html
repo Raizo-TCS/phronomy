@@ -434,12 +434,12 @@ agents.</li>
       <pre class="lines">
 
 
-90
-91
-92</pre>
+92
+93
+94</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/orchestrator.rb', line 90</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/orchestrator.rb', line 92</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_registered_subagents'>registered_subagents</span>
   <span class='ivar'>@registered_subagents</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
@@ -528,7 +528,6 @@ proceed</p></div>
       <pre class="lines">
 
 
-58
 59
 60
 61
@@ -555,10 +554,11 @@ proceed</p></div>
 82
 83
 84
-85</pre>
+85
+86</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/orchestrator.rb', line 58</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/orchestrator.rb', line 59</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_subagent'>subagent</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_agent_class'>agent_class</span><span class='comma'>,</span> <span class='label'>on_error:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_tool_class'>tool_class</span> <span class='op'>=</span> <span class='const'>Class</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Tool.html" title="Phronomy::Tool (module)">Tool</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Tool/Base.html" title="Phronomy::Tool::Base (class)">Base</a></span></span><span class='rparen'>)</span> <span class='kw'>do</span>
@@ -822,19 +822,19 @@ production because <code>Thread#kill</code> can interrupt <code>ensure</code> bl
       <pre class="lines">
 
 
-130
-131
-132
 133
 134
 135
 136
 137
 138
-139</pre>
+139
+140
+141
+142</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/orchestrator.rb', line 130</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/orchestrator.rb', line 133</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_dispatch_parallel'>dispatch_parallel</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_tasks'>tasks</span><span class='comma'>,</span> <span class='label'>max_concurrency:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on_error:</span> <span class='symbol'>:raise</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>force_kill:</span> <span class='kw'>false</span><span class='rparen'>)</span>
   <span class='kw'>unless</span> <span class='lbracket'>[</span><span class='symbol'>:raise</span><span class='comma'>,</span> <span class='symbol'>:skip</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_on_error'>on_error</span><span class='rparen'>)</span>
@@ -989,19 +989,19 @@ production because <code>Thread#kill</code> can interrupt <code>ensure</code> bl
       <pre class="lines">
 
 
-153
-154
-155
-156
 157
 158
 159
 160
 161
-162</pre>
+162
+163
+164
+165
+166</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/orchestrator.rb', line 153</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/orchestrator.rb', line 157</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fan_out'>fan_out</span><span class='lparen'>(</span><span class='label'>agent:</span><span class='comma'>,</span> <span class='label'>inputs:</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>max_concurrency:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on_error:</span> <span class='symbol'>:raise</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>force_kill:</span> <span class='kw'>false</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_dispatch_parallel'>dispatch_parallel</span><span class='lparen'>(</span>
@@ -1123,17 +1123,17 @@ instance, inheriting the parent's <code>thread_id</code> and <code>config</code>
       <pre class="lines">
 
 
-172
-173
-174
-175
-176
 177
 178
-179</pre>
+179
+180
+181
+182
+183
+184</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/orchestrator.rb', line 172</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/orchestrator.rb', line 177</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_subagent'>subagent</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_class'>agent_class</span><span class='comma'>,</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ctx'>ctx</span> <span class='op'>=</span> <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='lbracket'>[</span><span class='symbol'>:phronomy_orchestrator_context</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
@@ -1153,7 +1153,7 @@ instance, inheriting the parent's <code>thread_id</code> and <code>config</code>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:29 2026 by
+  Generated on Sat May 23 15:57:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

@@ -333,15 +333,15 @@ breaks the application.</p>
       <pre class="lines">
 
 
-34
 35
 36
 37
 38
-39</pre>
+39
+40</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/langfuse_tracer.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/langfuse_tracer.rb', line 35</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>public_key:</span><span class='comma'>,</span> <span class='label'>secret_key:</span><span class='comma'>,</span> <span class='label'>host:</span> <span class='const'><span class='object_link'><a href="#DEFAULT_HOST-constant" title="Phronomy::Tracing::LangfuseTracer::DEFAULT_HOST (constant)">DEFAULT_HOST</a></span></span><span class='rparen'>)</span>
   <span class='ivar'>@public_key</span> <span class='op'>=</span> <span class='id identifier rubyid_public_key'>public_key</span>
@@ -385,8 +385,6 @@ breaks the application.</p>
       <pre class="lines">
 
 
-56
-57
 58
 59
 60
@@ -406,10 +404,12 @@ breaks the application.</p>
 74
 75
 76
-77</pre>
+77
+78
+79</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/langfuse_tracer.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/langfuse_tracer.rb', line 58</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_finish_span'>finish_span</span><span class='lparen'>(</span><span class='id identifier rubyid_span'>span</span><span class='comma'>,</span> <span class='label'>output:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>usage:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_body'>body</span> <span class='op'>=</span> <span class='lbrace'>{</span>
@@ -478,8 +478,6 @@ breaks the application.</p>
       <pre class="lines">
 
 
-44
-45
 46
 47
 48
@@ -487,10 +485,12 @@ breaks the application.</p>
 50
 51
 52
-53</pre>
+53
+54
+55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/langfuse_tracer.rb', line 44</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/langfuse_tracer.rb', line 46</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start_span'>start_span</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_meta'>meta</span><span class='rparen'>)</span>
   <span class='lbrace'>{</span>
@@ -512,7 +512,7 @@ breaks the application.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:30 2026 by
+  Generated on Sat May 23 15:57:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

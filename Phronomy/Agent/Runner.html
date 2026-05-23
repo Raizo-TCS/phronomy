@@ -330,17 +330,17 @@ when omitted no handoffs are configured and the entry agent handles everything</
       <pre class="lines">
 
 
-33
 34
 35
 36
 37
 38
 39
-40</pre>
+40
+41</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/runner.rb', line 33</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/runner.rb', line 34</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>agents:</span><span class='comma'>,</span> <span class='label'>routes:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='ivar'>@agents</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_agents'>agents</span><span class='rparen'>)</span>
@@ -500,8 +500,6 @@ is reached (raises HandoffError in that case).</p>
       <pre class="lines">
 
 
-50
-51
 52
 53
 54
@@ -518,10 +516,12 @@ is reached (raises HandoffError in that case).</p>
 65
 66
 67
-68</pre>
+68
+69
+70</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/runner.rb', line 50</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/runner.rb', line 52</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='ivar'>@entry_agent</span>
@@ -552,7 +552,7 @@ is reached (raises HandoffError in that case).</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:29 2026 by
+  Generated on Sat May 23 15:57:55 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

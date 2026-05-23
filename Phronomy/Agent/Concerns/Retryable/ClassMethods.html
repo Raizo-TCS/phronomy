@@ -244,12 +244,12 @@
       <pre class="lines">
 
 
-35
 36
-37</pre>
+37
+38</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/retryable.rb', line 35</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/retryable.rb', line 36</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__retry_policy'>_retry_policy</span>
   <span class='ivar'>@_retry_policy</span>
@@ -302,12 +302,12 @@
       <pre class="lines">
 
 
-39
-40
-41</pre>
+41
+42
+43</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/retryable.rb', line 39</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/retryable.rb', line 41</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__sleep_proc'>_sleep_proc</span>
   <span class='ivar'>@_sleep_proc</span> <span class='op'>||</span> <span class='id identifier rubyid_method'>method</span><span class='lparen'>(</span><span class='symbol'>:sleep</span><span class='rparen'>)</span>
@@ -415,12 +415,12 @@ GuardrailError is never retried regardless of this setting.</p>
       <pre class="lines">
 
 
-29
 30
-31</pre>
+31
+32</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/retryable.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/retryable.rb', line 30</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_retry_policy'>retry_policy</span><span class='lparen'>(</span><span class='label'>times:</span> <span class='int'>0</span><span class='comma'>,</span> <span class='label'>wait:</span> <span class='int'>0</span><span class='comma'>,</span> <span class='label'>base:</span> <span class='float'>1.0</span><span class='rparen'>)</span>
   <span class='ivar'>@_retry_policy</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='label'>times:</span> <span class='id identifier rubyid_times'>times</span><span class='comma'>,</span> <span class='label'>wait:</span> <span class='id identifier rubyid_wait'>wait</span><span class='comma'>,</span> <span class='label'>base:</span> <span class='id identifier rubyid_base'>base</span><span class='rbrace'>}</span>
@@ -435,7 +435,7 @@ GuardrailError is never retried regardless of this setting.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:28 2026 by
+  Generated on Sat May 23 15:57:54 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

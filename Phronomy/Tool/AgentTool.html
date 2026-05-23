@@ -305,7 +305,6 @@ defaults to &quot;Delegates to <AgentClassName>&quot;</p></div>
       <pre class="lines">
 
 
-38
 39
 40
 41
@@ -322,10 +321,11 @@ defaults to &quot;Delegates to <AgentClassName>&quot;</p></div>
 52
 53
 54
-55</pre>
+55
+56</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/agent_tool.rb', line 38</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/agent_tool.rb', line 39</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_from_agent'>from_agent</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_class'>agent_class</span><span class='comma'>,</span> <span class='label'>tool_name:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>description:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent_class must be a Class</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_agent_class'>agent_class</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Class</span><span class='rparen'>)</span>
@@ -355,7 +355,7 @@ defaults to &quot;Delegates to <AgentClassName>&quot;</p></div>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:29 2026 by
+  Generated on Sat May 23 15:57:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

@@ -237,13 +237,13 @@ obtaining an approval decision from the user or an external system.</p>
       <pre class="lines">
 
 
-29
 30
 31
-32</pre>
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 30</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_approval_required'>on_approval_required</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@approval_handler</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -367,8 +367,6 @@ to inject a denial message and let the LLM handle it gracefully</p></div>
       <pre class="lines">
 
 
-47
-48
 49
 50
 51
@@ -406,10 +404,12 @@ to inject a denial message and let the LLM handle it gracefully</p></div>
 83
 84
 85
-86</pre>
+86
+87
+88</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 47</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 49</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='id identifier rubyid_checkpoint'>checkpoint</span><span class='comma'>,</span> <span class='label'>approved:</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='comment'># Build a fresh chat with all tools registered.
@@ -461,7 +461,7 @@ to inject a denial message and let the LLM handle it gracefully</p></div>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:28 2026 by
+  Generated on Sat May 23 15:57:54 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

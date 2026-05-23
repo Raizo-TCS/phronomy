@@ -399,7 +399,6 @@ the caller — only the copy sent to the tracer is redacted.</p>
       <pre class="lines">
 
 
-35
 36
 37
 38
@@ -415,10 +414,11 @@ the caller — only the copy sent to the tracer is redacted.</p>
 48
 49
 50
-51</pre>
+51
+52</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runnable.rb', line 35</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runnable.rb', line 36</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_meta'>meta</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_traced_input'>traced_input</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_trace_pii'>trace_pii</span> <span class='op'>?</span> <span class='id identifier rubyid_input'>input</span> <span class='op'>:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[REDACTED]</span><span class='tstring_end'>&quot;</span></span>
@@ -447,7 +447,7 @@ the caller — only the copy sent to the tracer is redacted.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:28 2026 by
+  Generated on Sat May 23 15:57:54 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

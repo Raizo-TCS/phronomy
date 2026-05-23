@@ -208,7 +208,7 @@ back to the EventLoop).</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Enqueues an AgentFSM as a fire-and-forget child session.</p></div></span>
@@ -254,7 +254,7 @@ back to the EventLoop).</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Posts an event to the loop.</p></div></span>
@@ -276,7 +276,7 @@ back to the EventLoop).</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Registers an FSMSession for execution and returns a completion queue.</p></div></span>
@@ -298,7 +298,7 @@ back to the EventLoop).</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Starts the background event loop thread.</p></div></span>
@@ -498,7 +498,11 @@ back to the EventLoop).</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Enqueues an AgentFSM as a fire-and-forget child session.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Enqueues an AgentFSM as a fire-and-forget child session.</p>
 <p>Unlike <span class='object_link'><a href="#register-instance_method" title="Phronomy::EventLoop#register (method)">#register</a></span>, this method:</p>
 <ul>
 <li>Is safe to call from the EventLoop thread (entry actions).</li>
@@ -545,14 +549,14 @@ back to the EventLoop).</p>
       <pre class="lines">
 
 
-87
-88
 89
 90
-91</pre>
+91
+92
+93</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 87</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 89</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_enqueue_child'>enqueue_child</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_fsm'>agent_fsm</span><span class='rparen'>)</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="Event.html" title="Phronomy::Event (class)">Event</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>type:</span> <span class='symbol'>:start</span><span class='comma'>,</span> <span class='label'>target_id:</span> <span class='id identifier rubyid_agent_fsm'>agent_fsm</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='comma'>,</span>
@@ -575,7 +579,11 @@ back to the EventLoop).</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Posts an event to the loop. Safe to call from any thread (including IO threads).</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Posts an event to the loop. Safe to call from any thread (including IO threads).</p>
 
   </div>
 </div>
@@ -603,12 +611,12 @@ back to the EventLoop).</p>
       <pre class="lines">
 
 
-96
-97
-98</pre>
+99
+100
+101</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 96</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 99</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_post'>post</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
@@ -629,7 +637,11 @@ back to the EventLoop).</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Registers an FSMSession for execution and returns a completion queue.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Registers an FSMSession for execution and returns a completion queue.</p>
 <p>The session and its completion queue are handed off to the EventLoop thread
 via the queue payload, so <code>@fsms</code> and <code>@waiting</code> are exclusively written
 and read by the EventLoop thread. No Mutex is required.</p>
@@ -679,7 +691,6 @@ the popped value will be an Exception — callers are responsible for re-raising
       <pre class="lines">
 
 
-62
 63
 64
 65
@@ -693,10 +704,11 @@ the popped value will be an Exception — callers are responsible for re-raising
 73
 74
 75
-76</pre>
+76
+77</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 62</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 63</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_register'>register</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='lbracket'>[</span><span class='symbol'>:phronomy_event_loop_thread</span><span class='rbracket'>]</span>
@@ -729,7 +741,11 @@ the popped value will be an Exception — callers are responsible for re-raising
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Starts the background event loop thread.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Starts the background event loop thread.</p>
 
   </div>
 </div>
@@ -755,10 +771,6 @@ the popped value will be an Exception — callers are responsible for re-raising
       <pre class="lines">
 
 
-102
-103
-104
-105
 106
 107
 108
@@ -768,10 +780,14 @@ the popped value will be an Exception — callers are responsible for re-raising
 112
 113
 114
-115</pre>
+115
+116
+117
+118
+119</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 102</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 106</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start'>start</span>
   <span class='kw'>return</span> <span class='kw'>self</span> <span class='kw'>if</span> <span class='ivar'>@thread</span><span class='op'>&amp;.</span><span class='id identifier rubyid_alive?'>alive?</span>
@@ -906,10 +922,6 @@ they were discarded and the loop was stopped</li>
       <pre class="lines">
 
 
-141
-142
-143
-144
 145
 146
 147
@@ -950,10 +962,14 @@ they were discarded and the loop was stopped</li>
 182
 183
 184
-185</pre>
+185
+186
+187
+188
+189</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 141</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 145</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stop'>stop</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span><span class='comma'>,</span> <span class='label'>drain:</span> <span class='kw'>false</span><span class='comma'>,</span> <span class='label'>force_kill:</span> <span class='kw'>false</span><span class='rparen'>)</span>
   <span class='ivar'>@shutdown_token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span>
@@ -1010,7 +1026,7 @@ they were discarded and the loop was stopped</li>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:28 2026 by
+  Generated on Sat May 23 15:57:55 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

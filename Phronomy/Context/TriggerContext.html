@@ -245,7 +245,7 @@ a truthy value to trigger compaction or a falsy value to skip it.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of TriggerContext.</p></div></span>
@@ -271,7 +271,11 @@ a truthy value to trigger compaction or a falsy value to skip it.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a new instance of TriggerContext.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a new instance of TriggerContext.</p>
 
   </div>
 </div>
@@ -310,14 +314,14 @@ a truthy value to trigger compaction or a falsy value to skip it.</p>
       <pre class="lines">
 
 
-31
 32
 33
 34
-35</pre>
+35
+36</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trigger_context.rb', line 31</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/trigger_context.rb', line 32</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>message_elements:</span><span class='comma'>,</span> <span class='label'>budget:</span><span class='rparen'>)</span>
   <span class='ivar'>@message_elements</span> <span class='op'>=</span> <span class='id identifier rubyid_message_elements'>message_elements</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
@@ -513,7 +517,7 @@ each element: { seq: Integer, message: Object, tokens: Integer, role: Symbol }</
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:30 2026 by
+  Generated on Sat May 23 15:57:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

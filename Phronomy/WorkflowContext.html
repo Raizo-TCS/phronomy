@@ -372,12 +372,12 @@ These are preserved through merge but excluded from to_h.</p>
       <pre class="lines">
 
 
-54
 55
-56</pre>
+56
+57</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 55</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
   <span class='ivar'>@thread_id</span>
@@ -469,12 +469,12 @@ These are preserved through merge but excluded from to_h.</p>
       <pre class="lines">
 
 
-68
-69
-70</pre>
+71
+72
+73</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 68</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 71</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_halted?'>halted?</span>
   <span class='id identifier rubyid_phase'>phase</span> <span class='op'>!=</span> <span class='symbol'>:__end__</span>
@@ -521,20 +521,20 @@ These are preserved through merge but excluded from to_h.</p>
       <pre class="lines">
 
 
-81
-82
-83
-84
 85
 86
 87
 88
 89
 90
-91</pre>
+91
+92
+93
+94
+95</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 81</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 85</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_attrs'>attrs</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_unknown'>unknown</span> <span class='op'>=</span> <span class='id identifier rubyid_attrs'>attrs</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span> <span class='op'>-</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span>
@@ -630,11 +630,6 @@ by reference. Internal workflow metadata (thread_id, phase) is preserved.</p>
       <pre class="lines">
 
 
-101
-102
-103
-104
-105
 106
 107
 108
@@ -656,10 +651,15 @@ by reference. Internal workflow metadata (thread_id, phase) is preserved.</p>
 124
 125
 126
-127</pre>
+127
+128
+129
+130
+131
+132</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 101</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 106</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='id identifier rubyid_updates'>updates</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_unknown'>unknown</span> <span class='op'>=</span> <span class='id identifier rubyid_updates'>updates</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span> <span class='op'>-</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span>
@@ -734,12 +734,12 @@ Encoding:</p>
       <pre class="lines">
 
 
-62
-63
-64</pre>
+64
+65
+66</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 62</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 64</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_phase'>phase</span>
   <span class='ivar'>@phase</span> <span class='op'>||</span> <span class='symbol'>:__end__</span>
@@ -803,14 +803,14 @@ Encoding:</p>
       <pre class="lines">
 
 
-75
-76
-77
-78
-79</pre>
+79
+80
+81
+82
+83</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 75</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 79</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>phase:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='kw'>unless</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -859,14 +859,14 @@ Encoding:</p>
       <pre class="lines">
 
 
-131
-132
-133
-134
-135</pre>
+137
+138
+139
+140
+141</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 131</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 137</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_to_h'>to_h</span>
   <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span><span class='period'>.</span><span class='id identifier rubyid_each_with_object'>each_with_object</span><span class='lparen'>(</span><span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_h'>h</span><span class='op'>|</span>
@@ -883,7 +883,7 @@ Encoding:</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 13:51:28 2026 by
+  Generated on Sat May 23 15:57:54 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
