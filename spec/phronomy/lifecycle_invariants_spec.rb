@@ -1,0 +1,399 @@
+# frozen_string_literal: true
+
+require "spec_helper"
+
+# Lifecycle invariant tests for Phronomy::FSMSession and Phronomy::EventLoop.
+#
+# These specs validate four core lifecycle contracts:
+#
+#   1. Double-completion guard  — a completed (or halted) FSMSession silently
+#      ignores any event posted after @done = true.
+#   2. child_failed propagation — when an AgentFSM fails with a parent_id set,
+#      :child_failed is posted to the parent FSMSession.  The parent can
+#      declare an `on: :child_failed` transition to handle the error.
+#   3. Unknown event handling  — an event whose type is not declared on the
+#      phase machine causes FSMSession to call finish_with_error (posts :error)
+#      rather than silently dying or corrupting state.
+#   4. Shutdown propagation     — when EventLoop#stop is called while sessions
+#      are still registered, pending completion queues are unblocked.
+
+RSpec.describe "Lifecycle invariants" do
+  # ---------------------------------------------------------------------------
+  # Minimal fake EventLoop: captures posted events synchronously without
+  # starting a background thread.  FSMSession calls EventLoop.instance so we
+  # stub that to return this object.
+  # ---------------------------------------------------------------------------
+  class LifecycleFakeLoop
+    attr_reader :events
+
+    def initialize
+      @events = []
+    end
+
+    def post(event)
+      @events << event
+    end
+  end
+
+  def with_fake_loop
+    fake = LifecycleFakeLoop.new
+    allow(Phronomy::EventLoop).to receive(:instance).and_return(fake)
+    yield fake
+  end
+
+  def runner_from(workflow)
+    workflow.instance_variable_get(:@runner)
+  end
+
+  # Drive a FSMSession forward using a FakeLoop until @done or no
+  # :state_completed event is pending.
+  def drain_session(session, fake, thread_id:, max_steps: 20)
+    max_steps.times do
+      break if session.instance_variable_get(:@done)
+      ev = fake.events.last
+      break unless ev&.type == :state_completed
+      session.handle(Phronomy::Event.new(type: :state_completed, target_id: thread_id, payload: nil))
+    end
+  end
+
+  let(:simple_ctx_class) do
+    Class.new do
+      include Phronomy::WorkflowContext
+
+      field :value, type: :replace, default: 0
+    end
+  end
+
+  # ===========================================================================
+  # 1. Double-completion guard
+  # ===========================================================================
+  describe "double-completion guard (FSMSession ignores events after @done)" do
+    # A linear single-state workflow that finishes immediately.
+    let(:app) do
+      Phronomy::Workflow.define(simple_ctx_class) do
+        initial :step
+        state :step
+        entry :step, ->(s) { s.value = s.value + 1 }
+        transition from: :step, to: :__finish__
+      end
+    end
+
+    it "does not post a second :finished event when handle is called after completion" do
+      runner = runner_from(app)
+      ctx = simple_ctx_class.new(value: 0)
+      ctx.set_graph_metadata(thread_id: "lc-double-1")
+
+      with_fake_loop do |fake|
+        session = runner.send(:build_session_for, context: ctx, recursion_limit: 25)
+        session.start
+        drain_session(session, fake, thread_id: "lc-double-1")
+
+        # Confirm the session finished.
+        expect(session.instance_variable_get(:@done)).to be(true)
+        finished_count_before = fake.events.count { |e| e.type == :finished }
+
+        # Post a spurious :state_completed after completion.
+        session.handle(Phronomy::Event.new(type: :state_completed, target_id: "lc-double-1", payload: nil))
+        session.handle(Phronomy::Event.new(type: :some_custom_event, target_id: "lc-double-1", payload: nil))
+
+        # No additional :finished events must have been posted.
+        finished_count_after = fake.events.count { |e| e.type == :finished }
+        expect(finished_count_after).to eq(finished_count_before)
+      end
+    end
+
+    it "does not post :error when handle is called after a wait-state halt" do
+      wait_app = Phronomy::Workflow.define(simple_ctx_class) do
+        initial :prepare
+        state :prepare
+        wait_state :awaiting
+        transition from: :prepare, to: :awaiting
+        transition from: :awaiting, on: :approve, to: :__finish__
+      end
+
+      runner = runner_from(wait_app)
+      ctx = simple_ctx_class.new(value: 0)
+      ctx.set_graph_metadata(thread_id: "lc-double-2")
+
+      with_fake_loop do |fake|
+        session = runner.send(:build_session_for, context: ctx, recursion_limit: 25)
+        session.start
+        drain_session(session, fake, thread_id: "lc-double-2")
+
+        # Session must be halted (done) at the wait state.
+        expect(session.instance_variable_get(:@done)).to be(true)
+        expect(fake.events.any? { |e| e.type == :halted }).to be(true)
+
+        error_count_before = fake.events.count { |e| e.type == :error }
+
+        # Spurious event after halt must be silently dropped.
+        session.handle(Phronomy::Event.new(type: :approve, target_id: "lc-double-2", payload: nil))
+        session.handle(Phronomy::Event.new(type: :state_completed, target_id: "lc-double-2", payload: nil))
+
+        error_count_after = fake.events.count { |e| e.type == :error }
+        expect(error_count_after).to eq(error_count_before)
+      end
+    end
+  end
+
+  # ===========================================================================
+  # 2. child_failed propagation
+  # ===========================================================================
+  describe "child_failed propagation (AgentFSM → parent FSMSession)" do
+    # Stub a failing agent: _invoke_impl raises RuntimeError.
+    def stub_failing_agent(error)
+      agent = double("FailingAgent")
+      allow(agent).to receive(:send) { raise error }
+      allow(agent).to receive(:class).and_return(double(respond_to?: false))
+      agent
+    end
+
+    # Stub a succeeding agent: _invoke_impl returns a fixed hash.
+    def stub_succeeding_agent(result = {output: "ok", messages: [], usage: nil})
+      agent = double("SucceedingAgent")
+      allow(agent).to receive(:send) do |meth, *|
+        expect(meth).to eq(:_invoke_impl)
+        result
+      end
+      allow(agent).to receive(:class).and_return(double(respond_to?: false))
+      agent
+    end
+
+    it "posts :child_failed to parent_id when the agent raises" do
+      error = RuntimeError.new("child crashed")
+      agent = stub_failing_agent(error)
+      fsm = Phronomy::Agent::FSM.new(
+        agent: agent,
+        input: "hi",
+        thread_id: "child-fsm-1",
+        parent_id: "parent-fsm-1"
+      )
+
+      fake = LifecycleFakeLoop.new
+      allow(Phronomy::EventLoop).to receive(:instance).and_return(fake)
+
+      fsm.start
+      sleep 0.2  # allow the IO thread to finish
+
+      fail_ev = fake.events.find { |e| e.type == :child_failed }
+      expect(fail_ev).not_to be_nil
+      expect(fail_ev.target_id).to eq("parent-fsm-1")
+      expect(fail_ev.payload).to eq(error)
+    end
+
+    it "still posts :error to the child FSM id alongside :child_failed" do
+      error = RuntimeError.new("child crashed")
+      agent = stub_failing_agent(error)
+      fsm = Phronomy::Agent::FSM.new(
+        agent: agent,
+        input: "hi",
+        thread_id: "child-fsm-2",
+        parent_id: "parent-fsm-2"
+      )
+
+      fake = LifecycleFakeLoop.new
+      allow(Phronomy::EventLoop).to receive(:instance).and_return(fake)
+
+      fsm.start
+      sleep 0.2
+
+      err_ev = fake.events.find { |e| e.type == :error }
+      expect(err_ev).not_to be_nil
+      expect(err_ev.target_id).to eq("child-fsm-2")
+    end
+
+    it "does NOT post :child_failed when parent_id is nil" do
+      error = RuntimeError.new("orphan error")
+      agent = stub_failing_agent(error)
+      fsm = Phronomy::Agent::FSM.new(
+        agent: agent,
+        input: "hi",
+        thread_id: "child-fsm-3",
+        parent_id: nil
+      )
+
+      fake = LifecycleFakeLoop.new
+      allow(Phronomy::EventLoop).to receive(:instance).and_return(fake)
+
+      fsm.start
+      sleep 0.2
+
+      expect(fake.events.map(&:type)).not_to include(:child_failed)
+    end
+
+    it "posts :child_failed when result_writer raises before :child_completed" do
+      result = {output: "ok", messages: [], usage: nil}
+      agent = stub_succeeding_agent(result)
+      writer_error = RuntimeError.new("writer exploded")
+      fsm = Phronomy::Agent::FSM.new(
+        agent: agent,
+        input: "hi",
+        thread_id: "child-fsm-4",
+        parent_id: "parent-fsm-4",
+        result_writer: ->(_r) { raise writer_error }
+      )
+
+      fake = LifecycleFakeLoop.new
+      allow(Phronomy::EventLoop).to receive(:instance).and_return(fake)
+
+      fsm.start
+      sleep 0.2
+
+      fail_ev = fake.events.find { |e| e.type == :child_failed }
+      expect(fail_ev).not_to be_nil
+      expect(fail_ev.target_id).to eq("parent-fsm-4")
+      expect(fail_ev.payload).to eq(writer_error)
+    end
+  end
+
+  # ===========================================================================
+  # 3. Unknown event handling
+  # ===========================================================================
+  describe "unknown event handling (undeclared event type → :error posted)" do
+    # A workflow that halts at a wait state awaiting :approve only.
+    # Firing any other event type is undeclared on the phase machine.
+    let(:wait_app) do
+      Phronomy::Workflow.define(simple_ctx_class) do
+        initial :prepare
+        state :prepare
+        wait_state :awaiting
+        transition from: :prepare, to: :awaiting
+        transition from: :awaiting, on: :approve, to: :__finish__
+      end
+    end
+
+    # A workflow with no external events at all — any event fired after
+    # :state_completed is undeclared.
+    let(:linear_app) do
+      Phronomy::Workflow.define(simple_ctx_class) do
+        initial :step
+        state :step
+        transition from: :step, to: :__finish__
+      end
+    end
+
+    it "posts :error when an undeclared event is fired at a running FSMSession" do
+      runner = runner_from(wait_app)
+      ctx = simple_ctx_class.new(value: 0)
+      ctx.set_graph_metadata(thread_id: "lc-unknown-1", phase: :awaiting)
+
+      with_fake_loop do |fake|
+        # Build a resume session positioned at :awaiting, ready to receive events.
+        session = runner.send(:build_session_for,
+          context: ctx, recursion_limit: 25,
+          resume_event: :approve, resume_phase: :awaiting)
+
+        # Fire a completely unknown event instead of :approve.
+        # We reset @done so the guard is bypassed and we can test the handler.
+        session.instance_variable_set(:@done, false)
+        session.instance_variable_set(:@current_state, :awaiting)
+        session.instance_variable_set(:@tracker,
+          session.send(:build_tracker, :awaiting))
+
+        session.handle(Phronomy::Event.new(type: :unknown_event_xyz, target_id: "lc-unknown-1", payload: nil))
+
+        err_ev = fake.events.find { |e| e.type == :error }
+        expect(err_ev).not_to be_nil
+        expect(err_ev.target_id).to eq("lc-unknown-1")
+        # The payload must be an exception, not nil.
+        expect(err_ev.payload).to be_a(Exception)
+      end
+    end
+
+    it "sets @done = true after posting :error for an unknown event" do
+      runner = runner_from(wait_app)
+      ctx = simple_ctx_class.new(value: 0)
+      ctx.set_graph_metadata(thread_id: "lc-unknown-2", phase: :awaiting)
+
+      with_fake_loop do |fake|
+        session = runner.send(:build_session_for,
+          context: ctx, recursion_limit: 25,
+          resume_event: :approve, resume_phase: :awaiting)
+
+        session.instance_variable_set(:@done, false)
+        session.instance_variable_set(:@current_state, :awaiting)
+        session.instance_variable_set(:@tracker,
+          session.send(:build_tracker, :awaiting))
+
+        session.handle(Phronomy::Event.new(type: :never_declared, target_id: "lc-unknown-2", payload: nil))
+
+        expect(session.instance_variable_get(:@done)).to be(true)
+      end
+    end
+
+    it "WorkflowRunner#send_event raises ArgumentError for unregistered event names" do
+      app = Phronomy::Workflow.define(simple_ctx_class) do
+        initial :prepare
+        state :prepare
+        wait_state :awaiting
+        transition from: :prepare, to: :awaiting
+        transition from: :awaiting, on: :approve, to: :__finish__
+      end
+      halted = app.invoke({value: 0}, config: {thread_id: "lc-unknown-3"})
+      expect(halted.halted?).to be(true)
+
+      expect do
+        app.send_event(state: halted, event: :not_registered)
+      end.to raise_error(ArgumentError, /Unknown event/)
+    end
+  end
+
+  # ===========================================================================
+  # 4. Shutdown propagation (EventLoop crash unblocks waiting callers)
+  # ===========================================================================
+  describe "shutdown propagation (EventLoop#stop unblocks all waiting callers)" do
+    after do
+      Phronomy::EventLoop.reset!
+      Phronomy.reset_configuration!
+    end
+
+    it "stops the background thread cleanly when no sessions are active" do
+      Phronomy.configure { |c| c.event_loop = true }
+      el = Phronomy::EventLoop.instance
+      thread = el.instance_variable_get(:@thread)
+      expect(thread).to be_alive
+
+      el.stop(timeout: 2)
+
+      expect(thread).not_to be_alive
+      expect(el.instance_variable_get(:@thread)).to be_nil
+    end
+
+    it "unblocks a waiting caller with an Exception when the loop crashes" do
+      Phronomy.configure { |c| c.event_loop = true }
+      el = Phronomy::EventLoop.instance
+
+      # Register a fake session that never posts a completion event —
+      # its completion_queue will block until the loop crashes.
+      cq = Thread::Queue.new
+
+      # Directly inject a waiting entry into the EventLoop internals so we can
+      # simulate an unblocked caller without a real FSMSession.
+      el.instance_variable_get(:@waiting)["lc-shutdown-orphan"] = cq
+
+      # Kill the loop thread to simulate a crash.
+      # Thread#join re-raises any exception the thread terminated with, so we
+      # suppress it here — we only need to wait for the thread to actually die.
+      loop_thread = el.instance_variable_get(:@thread)
+      # Wait until the loop thread is blocked in @queue.pop (status == "sleep").
+      # Without this barrier, Thread#raise can be delivered before run_loop is
+      # entered (at Thread.current[:phronomy_event_loop_thread]=true), meaning
+      # the rescue block in run_loop never runs and @waiting is never flushed.
+      sleep 0.001 while loop_thread.status != "sleep"
+      loop_thread.raise(RuntimeError, "simulated loop crash")
+      begin
+        loop_thread.join(2)
+      rescue RuntimeError
+        nil
+      end
+
+      # The waiting caller must be unblocked within a short window.
+      received = nil
+      t = Thread.new { received = cq.pop }
+      t.join(1)
+
+      expect(t.alive?).to be(false), "completion_queue.pop should have unblocked"
+      expect(received).to be_a(Exception)
+    end
+  end
+end

@@ -117,7 +117,13 @@ module Phronomy
     def stop(timeout: 5)
       @running = false
       @queue.push(:__stop__)   # unblock queue.pop so the worker can see @running = false
-      @thread&.join(timeout)
+      begin
+        @thread&.join(timeout)
+      rescue
+        # Thread may have terminated with an exception (e.g. simulated crash in
+        # tests). Suppress the re-raise so the cleanup below always runs.
+        nil
+      end
       if @thread&.alive?
         Phronomy.configuration.logger&.warn(
           "[Phronomy] EventLoop thread did not stop within #{timeout}s; force-killing. " \
