@@ -45,7 +45,7 @@ module Phronomy
     # Sentinel value for the terminal state of a workflow.
     FINISH = :__end__
 
-    def initialize(state_class:, entry_actions:, declared_states:, auto_transitions:, external_events:, entry_point:, exit_actions: {}, wait_state_names: [])
+    def initialize(state_class:, entry_actions:, declared_states:, auto_transitions:, external_events:, entry_point:, exit_actions: {}, wait_state_names: [], state_store: nil)
       @state_class = state_class
       @entry_actions = entry_actions   # { state_name => [callable, ...] }
       @declared_states = declared_states
@@ -54,12 +54,13 @@ module Phronomy
       @external_events = external_events    # { name => [{from:, to:, guard:}, ...] }
       @entry_point = entry_point
       @wait_state_names = wait_state_names
+      @state_store = state_store
       @phase_machine_class = build_phase_machine_class(auto_transitions, exit_actions)
     end
 
     # Executes the workflow from the initial state.
     # @param input [Hash] initial context field values
-    # @param config [Hash] { thread_id:, recursion_limit:, user_id:, session_id: }
+    # @param config [Hash] { thread_id:, recursion_limit:, user_id:, session_id:, state_store: }
     # @return [Object] final context (includes Phronomy::WorkflowContext)
     # @api private
     def invoke(input, config: {})
@@ -70,13 +71,23 @@ module Phronomy
       trace("workflow.invoke", input: input.inspect, **caller_meta) do |_span|
         thread_id = config[:thread_id] || SecureRandom.uuid
         recursion_limit = config.fetch(:recursion_limit, Phronomy.configuration.recursion_limit)
-        state = @state_class.new(**input)
+
+        store = config.fetch(:state_store, @state_store) || Phronomy.configuration.state_store
+        snapshot = (store && config[:thread_id]) ? store.load(thread_id) : nil
+        initial_fields = if snapshot && snapshot[:fields]
+          snapshot[:fields].transform_keys(&:to_sym).merge(input.transform_keys(&:to_sym))
+        else
+          input
+        end
+
+        state = @state_class.new(**initial_fields)
         state.set_graph_metadata(thread_id: thread_id)
         result = if Phronomy.configuration.event_loop
           run_via_event_loop(state, recursion_limit: recursion_limit)
         else
           run_workflow(state, recursion_limit: recursion_limit)
         end
+        store&.save(thread_id, {fields: result.to_h, phase: result.phase.to_s}) if config[:thread_id]
         [result, nil]
       end
     end

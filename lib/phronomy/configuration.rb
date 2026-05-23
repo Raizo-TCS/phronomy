@@ -53,6 +53,14 @@ module Phronomy
     # @see Phronomy::EventLoop#stop
     attr_accessor :event_loop_stop_grace_seconds
 
+    # Global state store for workflow persistence.
+    # When set, WorkflowRunner routes all state reads and writes through this store.
+    # Must be an instance of a class that inherits from Phronomy::StateStore::Base.
+    # Defaults to +nil+ (no persistence — state lives only for the duration of invoke).
+    # @example
+    #   Phronomy.configure { |c| c.state_store = Phronomy::StateStore::InMemory.new }
+    attr_accessor :state_store
+
     def initialize
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new

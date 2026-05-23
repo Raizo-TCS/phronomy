@@ -213,4 +213,61 @@ RSpec.describe Phronomy::Workflow do
       }.not_to raise_error
     end
   end
+
+  describe "StateStore integration (Issue #250)" do
+    let(:simple_ctx) do
+      Class.new do
+        include Phronomy::WorkflowContext
+
+        field :counter, default: 0
+      end
+    end
+
+    let(:increment_action) { ->(s) { s.merge(counter: s.counter + 1) } }
+
+    let(:store) { Phronomy::StateStore::InMemory.new }
+
+    let(:app) do
+      action = increment_action
+      Phronomy::Workflow.define(simple_ctx, state_store: store) do
+        initial :step
+        state :step, action: action
+        transition from: :step, to: :__finish__
+      end
+    end
+
+    it "saves the final context snapshot after invoke" do
+      app.invoke({counter: 0}, config: {thread_id: "t1"})
+      snapshot = store.load("t1")
+      expect(snapshot).not_to be_nil
+      expect(snapshot[:phase]).to eq("__end__")
+      expect(snapshot[:fields][:counter]).to eq(1)
+    end
+
+    it "loads stored fields as the initial context on re-invocation" do
+      app.invoke({counter: 0}, config: {thread_id: "t1"})
+      app.invoke({}, config: {thread_id: "t1"})
+      snapshot = store.load("t1")
+      expect(snapshot[:fields][:counter]).to eq(2)
+    end
+
+    it "uses input to override stored fields on re-invocation" do
+      app.invoke({counter: 10}, config: {thread_id: "t1"})
+      app.invoke({counter: 0}, config: {thread_id: "t1"})
+      snapshot = store.load("t1")
+      expect(snapshot[:fields][:counter]).to eq(1)
+    end
+
+    it "does not save state when no thread_id is given" do
+      app.invoke({counter: 0})
+      expect(store.load("t1")).to be_nil
+    end
+
+    it "config[:state_store] takes precedence over the workflow-level store" do
+      per_call_store = Phronomy::StateStore::InMemory.new
+      app.invoke({counter: 5}, config: {thread_id: "t1", state_store: per_call_store})
+      expect(per_call_store.load("t1")).not_to be_nil
+      expect(store.load("t1")).to be_nil
+    end
+  end
 end
