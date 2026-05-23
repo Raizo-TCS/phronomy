@@ -610,6 +610,22 @@ tool-call batch, and after each `before_completion` hook. `CancellationError` is
 raised immediately and is never retried. No threads are force-killed — `ensure`
 blocks always execute.
 
+> **Cooperative cancellation — not preemptive**
+>
+> Phronomy uses _cooperative boundary cancellation_. The token is polled at the
+> checkpoints listed above; it is **not** injected as a signal into a running
+> operation. This means the following are **not** interrupted mid-execution:
+>
+> - A single `KnowledgeSource#fetch` that is already blocking (e.g. HTTP call)
+> - A single `chat.ask` call that is not streaming
+> - A single `tool.execute` call that is already running
+> - Any external I/O (database query, vector search, HTTP request) inside those calls
+>
+> For deep in-flight safety, complement `CancellationToken` with per-source or
+> per-tool timeouts (e.g. `Net::HTTP#read_timeout`, `Timeout.timeout`, connection
+> pool limits). Ruby's GVL prevents fully preemptive cancellation without
+> `Thread#kill`, which Phronomy avoids by default due to resource safety concerns.
+
 ```ruby
 token = Phronomy::CancellationToken.new
 
