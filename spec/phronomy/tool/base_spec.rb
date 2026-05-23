@@ -17,6 +17,10 @@ RSpec.describe Phronomy::Tool::Base do
 
   let(:hello_tool) { hello_tool_class.new }
 
+  it_behaves_like "a tool" do
+    let(:tool) { hello_tool }
+  end
+
   describe "DSL" do
     describe ".description" do
       it "sets and retrieves the description" do

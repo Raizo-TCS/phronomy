@@ -37,6 +37,12 @@ RSpec.describe Phronomy::OutputParser::Base do
 end
 
 RSpec.describe Phronomy::OutputParser::JsonParser do
+  it_behaves_like "an output parser" do
+    let(:parser) { described_class.new }
+    let(:valid_input) { '{"result":"ok"}' }
+    let(:invalid_input) { "not json at all <<<" }
+  end
+
   let(:parser) { described_class.new }
 
   describe "#parse" do
