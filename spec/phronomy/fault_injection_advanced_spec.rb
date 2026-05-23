@@ -494,4 +494,75 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
       expect(guardrail_invoked).to be(false)
     end
   end
+
+  # -------------------------------------------------------------------------
+  # 16. on_chunk streaming callback raises mid-stream (Issue #254)
+  # -------------------------------------------------------------------------
+  describe "streaming on_chunk callback raises mid-stream (Issue #254)" do
+    let(:chunk1) { double("Chunk1", content: "Hello") }
+    let(:chunk2) { double("Chunk2", content: " World") }
+    let(:chunk3) { double("Chunk3", content: "!") }
+
+    let(:streaming_chat) do
+      dbl = double("StreamingChat")
+      allow(dbl).to receive(:with_instructions).and_return(dbl)
+      allow(dbl).to receive(:with_tool).and_return(dbl)
+      allow(dbl).to receive(:with_temperature).and_return(dbl)
+      allow(dbl).to receive(:on_tool_call)
+      allow(dbl).to receive(:on_tool_result)
+      allow(dbl).to receive(:ask)
+        .and_yield(chunk1).and_yield(chunk2).and_yield(chunk3)
+        .and_return(fake_message)
+      allow(dbl).to receive(:messages).and_return([])
+      dbl
+    end
+
+    let(:streaming_agent_class) { Class.new(Phronomy::Agent::Base) { model "test-model" } }
+    let(:streaming_agent) { streaming_agent_class.new }
+
+    before do
+      allow(streaming_agent).to receive(:build_chat).and_return(streaming_chat)
+    end
+
+    it "propagates the callback exception to the stream caller" do
+      chunk_count = 0
+      received_event_types = []
+
+      expect {
+        streaming_agent.stream("trigger streaming") do |event|
+          received_event_types << event.type
+          if event.type == :token
+            chunk_count += 1
+            raise "callback exploded on chunk #{chunk_count}" if chunk_count == 2
+          end
+        end
+      }.to raise_error(RuntimeError, "callback exploded on chunk 2")
+
+      # An :error StreamEvent is delivered to the block before the exception re-raises.
+      expect(received_event_types).to include(:error)
+    end
+
+    it "does not leave the agent in a bad state; a subsequent invoke succeeds" do
+      # First call: the callback raises on the very first token event.
+      expect {
+        streaming_agent.stream("trigger streaming") do |event|
+          raise "boom" if event.type == :token
+        end
+      }.to raise_error(RuntimeError, "boom")
+
+      # Prepare a non-raising chat double for the follow-up invoke.
+      calm_chat = double("CalmChat")
+      allow(calm_chat).to receive(:with_instructions).and_return(calm_chat)
+      allow(calm_chat).to receive(:with_tool).and_return(calm_chat)
+      allow(calm_chat).to receive(:with_temperature).and_return(calm_chat)
+      allow(calm_chat).to receive(:on_tool_call)
+      allow(calm_chat).to receive(:on_tool_result)
+      allow(calm_chat).to receive(:ask).and_return(fake_message)
+      allow(calm_chat).to receive(:messages).and_return([])
+      allow(streaming_agent).to receive(:build_chat).and_return(calm_chat)
+
+      result = streaming_agent.invoke("hello again")
+      expect(result[:output]).to eq("LLM response")
+    end
+  end
 end
