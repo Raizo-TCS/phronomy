@@ -8,6 +8,15 @@ RSpec.describe Phronomy::Embeddings::RubyLLMEmbeddings do
   # Minimal stand-in for the RubyLLM::EmbeddingResponse duck-type.
   let(:stub_response) { instance_double("RubyLLM::EmbeddingResponse", vectors: vector) }
 
+  # Contract tests: verify RubyLLMEmbeddings satisfies the embeddings adapter interface (Issue #212).
+  it_behaves_like "an embeddings adapter" do
+    let(:stub_response_inner) { instance_double("RubyLLM::EmbeddingResponse", vectors: [0.1, 0.2, 0.3]) }
+
+    before { allow(RubyLLM).to receive(:embed).and_return(stub_response_inner) }
+
+    let(:adapter) { described_class.new }
+  end
+
   describe "#embed" do
     context "with no model or provider specified" do
       subject(:adapter) { described_class.new }

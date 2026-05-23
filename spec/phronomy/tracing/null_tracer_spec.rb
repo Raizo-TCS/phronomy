@@ -5,6 +5,11 @@ require "spec_helper"
 RSpec.describe Phronomy::Tracing::NullTracer do
   subject(:tracer) { described_class.new }
 
+  # Contract tests: verify that NullTracer satisfies the tracer interface (Issue #212).
+  it_behaves_like "a tracer" do
+    let(:tracer) { described_class.new }
+  end
+
   it "is a subclass of Tracing::Base" do
     expect(described_class).to be < Phronomy::Tracing::Base
   end

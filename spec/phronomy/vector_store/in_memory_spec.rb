@@ -5,6 +5,11 @@ require "spec_helper"
 RSpec.describe Phronomy::VectorStore::InMemory do
   subject(:store) { described_class.new }
 
+  # Contract tests: verify that InMemory satisfies the vector store interface (Issue #212).
+  it_behaves_like "a vector store" do
+    let(:store) { described_class.new(dimension: 3) }
+  end
+
   describe "#add and #size" do
     it "starts empty" do
       expect(store.size).to eq(0)

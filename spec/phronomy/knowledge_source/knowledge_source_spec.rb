@@ -1,9 +1,16 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "ostruct"
 
 RSpec.describe Phronomy::KnowledgeSource::StaticKnowledge do
   subject(:ks) { described_class.new("Ruby is a dynamic language.") }
+
+  # Contract tests: verify StaticKnowledge satisfies the knowledge source interface (Issue #212).
+  it_behaves_like "a knowledge source" do
+    let(:source) { described_class.new("Ruby is a dynamic language.") }
+    let(:expected_static) { true }
+  end
 
   it "returns a chunk with :content and :type" do
     chunks = ks.fetch
@@ -32,6 +39,12 @@ RSpec.describe Phronomy::KnowledgeSource::StaticKnowledge do
 end
 
 RSpec.describe Phronomy::KnowledgeSource::EntityKnowledge do
+  # Contract tests: verify EntityKnowledge satisfies the knowledge source interface (Issue #212).
+  it_behaves_like "a knowledge source" do
+    let(:source) { described_class.new }
+    let(:expected_static) { false }
+  end
+
   def make_msg(role, content)
     OpenStruct.new(role: role, content: content)
   end

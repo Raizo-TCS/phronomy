@@ -1,0 +1,376 @@
+[
+  {
+    "name": "Phronomy::Agent::Base",
+    "type": "class",
+    "public_instance_methods": [
+      "_add_handoff_tool",
+      "_handoff_tools",
+      "add_input_guardrail",
+      "add_output_guardrail",
+      "batch",
+      "before_completion",
+      "before_completion=",
+      "context_version_cache",
+      "invoke",
+      "on_approval_required",
+      "resume",
+      "run_as_child",
+      "stream",
+      "trace"
+    ],
+    "public_class_methods": [
+      "_before_completion",
+      "_on_compact_callback",
+      "_on_compaction_trigger_callback",
+      "_on_trim_callback",
+      "_retry_policy",
+      "_sleep_proc",
+      "_sleep_proc=",
+      "before_completion",
+      "cache_instructions",
+      "context_overhead",
+      "context_window",
+      "instructions",
+      "invoke_timeout",
+      "max_iterations",
+      "max_output_tokens",
+      "max_parallel_tools",
+      "model",
+      "on_compact",
+      "on_compaction_trigger",
+      "on_trim",
+      "provider",
+      "retry_policy",
+      "static_knowledge",
+      "static_knowledge_chunks",
+      "static_knowledge_refresh!",
+      "static_knowledge_sources",
+      "temperature",
+      "tool_aliases",
+      "tools"
+    ]
+  },
+  {
+    "name": "Phronomy::Tool::Base",
+    "type": "class",
+    "public_instance_methods": [
+      "call",
+      "description",
+      "execute",
+      "name",
+      "parameters",
+      "params_schema",
+      "provider_params",
+      "requires_approval",
+      "requires_approval?"
+    ],
+    "public_class_methods": [
+      "_sleep_proc",
+      "_sleep_proc=",
+      "description",
+      "on_error",
+      "on_schema_error",
+      "param",
+      "param_enums",
+      "param_schemas",
+      "parameters",
+      "params",
+      "params_schema_definition",
+      "provider_params",
+      "requires_approval",
+      "retry_on",
+      "retry_policies",
+      "scope",
+      "tool_name",
+      "with_params"
+    ]
+  },
+  {
+    "name": "Phronomy::Workflow",
+    "type": "class",
+    "public_instance_methods": [
+      "batch",
+      "invoke",
+      "resume",
+      "send_event",
+      "stream",
+      "trace"
+    ],
+    "public_class_methods": [
+      "define"
+    ]
+  },
+  {
+    "name": "Phronomy::WorkflowContext",
+    "type": "module",
+    "public_instance_methods": [
+      "halted?",
+      "merge",
+      "phase",
+      "set_graph_metadata",
+      "thread_id",
+      "to_h"
+    ]
+  },
+  {
+    "name": "Phronomy::Runnable",
+    "type": "module",
+    "public_instance_methods": [
+      "batch",
+      "invoke",
+      "stream",
+      "trace"
+    ]
+  },
+  {
+    "name": "Phronomy::PromptTemplate",
+    "type": "class",
+    "public_instance_methods": [
+      "batch",
+      "format",
+      "format_system",
+      "invoke",
+      "stream",
+      "system_template",
+      "template",
+      "trace",
+      "variables"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Agent::ReactAgent",
+    "type": "class",
+    "public_instance_methods": [
+      "_add_handoff_tool",
+      "_handoff_tools",
+      "add_input_guardrail",
+      "add_output_guardrail",
+      "batch",
+      "before_completion",
+      "before_completion=",
+      "context_version_cache",
+      "invoke",
+      "on_approval_required",
+      "resume",
+      "run_as_child",
+      "stream",
+      "trace"
+    ],
+    "public_class_methods": [
+      "_before_completion",
+      "_on_compact_callback",
+      "_on_compaction_trigger_callback",
+      "_on_trim_callback",
+      "_retry_policy",
+      "_sleep_proc",
+      "_sleep_proc=",
+      "before_completion",
+      "cache_instructions",
+      "context_overhead",
+      "context_window",
+      "instructions",
+      "invoke_timeout",
+      "max_iterations",
+      "max_output_tokens",
+      "max_parallel_tools",
+      "model",
+      "on_compact",
+      "on_compaction_trigger",
+      "on_trim",
+      "provider",
+      "retry_policy",
+      "static_knowledge",
+      "static_knowledge_chunks",
+      "static_knowledge_refresh!",
+      "static_knowledge_sources",
+      "temperature",
+      "tool_aliases",
+      "tools"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::Orchestrator",
+    "type": "class",
+    "public_instance_methods": [
+      "_add_handoff_tool",
+      "_handoff_tools",
+      "add_input_guardrail",
+      "add_output_guardrail",
+      "batch",
+      "before_completion",
+      "before_completion=",
+      "context_version_cache",
+      "dispatch_parallel",
+      "fan_out",
+      "invoke",
+      "on_approval_required",
+      "resume",
+      "run_as_child",
+      "stream",
+      "subagent",
+      "trace"
+    ],
+    "public_class_methods": [
+      "_before_completion",
+      "_on_compact_callback",
+      "_on_compaction_trigger_callback",
+      "_on_trim_callback",
+      "_retry_policy",
+      "_sleep_proc",
+      "_sleep_proc=",
+      "before_completion",
+      "cache_instructions",
+      "context_overhead",
+      "context_window",
+      "instructions",
+      "invoke_timeout",
+      "max_iterations",
+      "max_output_tokens",
+      "max_parallel_tools",
+      "model",
+      "on_compact",
+      "on_compaction_trigger",
+      "on_trim",
+      "provider",
+      "registered_subagents",
+      "retry_policy",
+      "static_knowledge",
+      "static_knowledge_chunks",
+      "static_knowledge_refresh!",
+      "static_knowledge_sources",
+      "subagent",
+      "temperature",
+      "tool_aliases",
+      "tools"
+    ]
+  },
+  {
+    "name": "Phronomy::Agent::TeamCoordinator",
+    "type": "class",
+    "public_instance_methods": [
+      "invoke",
+      "stream"
+    ],
+    "public_class_methods": [
+      "_aggregator",
+      "_coordinator_instructions",
+      "_coordinator_model",
+      "_coordinator_provider",
+      "_on_error",
+      "_pool_size",
+      "_scheduler",
+      "_worker_agent",
+      "aggregate",
+      "coordinator_instructions",
+      "coordinator_model",
+      "coordinator_provider",
+      "pool",
+      "schedule"
+    ]
+  },
+  {
+    "name": "Phronomy::Guardrail::InputGuardrail",
+    "type": "class",
+    "public_instance_methods": [
+      "check",
+      "run!"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Guardrail::OutputGuardrail",
+    "type": "class",
+    "public_instance_methods": [
+      "check",
+      "run!"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::VectorStore::Base",
+    "type": "class",
+    "public_instance_methods": [
+      "add",
+      "clear",
+      "remove",
+      "search"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::VectorStore::InMemory",
+    "type": "class",
+    "public_instance_methods": [
+      "add",
+      "clear",
+      "remove",
+      "search",
+      "size"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Embeddings::Base",
+    "type": "class",
+    "public_instance_methods": [
+      "embed"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::KnowledgeSource::Base",
+    "type": "class",
+    "public_instance_methods": [
+      "fetch",
+      "static?"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::KnowledgeSource::StaticKnowledge",
+    "type": "class",
+    "public_instance_methods": [
+      "fetch",
+      "static?"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::KnowledgeSource::RAGKnowledge",
+    "type": "class",
+    "public_instance_methods": [
+      "fetch",
+      "static?"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Tracing::Base",
+    "type": "class",
+    "public_instance_methods": [
+      "finish_span",
+      "start_span",
+      "trace"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Tracing::NullTracer",
+    "type": "class",
+    "public_instance_methods": [
+      "finish_span",
+      "start_span",
+      "trace"
+    ],
+    "public_class_methods": []
+  },
+  {
+    "name": "Phronomy::Eval::Runner",
+    "type": "class",
+    "public_instance_methods": [
+      "run"
+    ],
+    "public_class_methods": []
+  }
+]
