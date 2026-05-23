@@ -22,7 +22,7 @@ end
 
 PGVECTOR_AVAILABLE = defined?(ActiveRecord) && defined?(Pgvector) && ENV["PGVECTOR_DATABASE_URL"]
 
-RSpec.describe "Nightly: VectorStore::Pgvector against real PostgreSQL", :nightly do
+RSpec.describe "Nightly: VectorStore::Pgvector against real PostgreSQL", :nightly, real_backend: :pgvector do
   before(:all) do
     skip "Skipped: PGVECTOR_DATABASE_URL not set or required gems missing" unless PGVECTOR_AVAILABLE
 

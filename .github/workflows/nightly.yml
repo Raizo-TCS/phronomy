@@ -10,11 +10,62 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # 1. Real-backend tests (pgvector, Redis Stack, OpenTelemetry)
+  # 1a. Redis Stack — VectorStore::RedisSearch real-backend tests
   # ---------------------------------------------------------------------------
-  real-backends:
+  real-backend-redis:
     runs-on: ubuntu-latest
-    name: Real backends (${{ matrix.ruby }})
+    name: Redis Stack (${{ matrix.ruby }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ['3.2', '3.3']
+
+    services:
+      redis:
+        image: redis/redis-stack:latest
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      REDIS_URL: redis://localhost:6379
+      NIGHTLY: '1'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby ${{ matrix.ruby }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: false
+
+      - name: Install base dependencies
+        run: bundle install --jobs 4
+
+      - name: Install Redis optional gem
+        run: gem install redis --no-document
+
+      - name: Run Redis real-backend specs
+        run: |
+          bundle exec rspec spec/integration/nightly/redis_search_spec.rb \
+            --require spec_helper \
+            --format documentation \
+            --tag real_backend:redis
+
+  # ---------------------------------------------------------------------------
+  # 1b. PostgreSQL + pgvector — VectorStore::Pgvector real-backend tests
+  # ---------------------------------------------------------------------------
+  real-backend-pgvector:
+    runs-on: ubuntu-latest
+    name: pgvector (${{ matrix.ruby }})
 
     strategy:
       fail-fast: false
@@ -36,19 +87,8 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-      redis:
-        image: redis/redis-stack:latest
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     env:
       PGVECTOR_DATABASE_URL: postgresql://phronomy:phronomy@localhost:5432/phronomy_test
-      REDIS_URL: redis://localhost:6379
       NIGHTLY: '1'
 
     steps:
@@ -65,18 +105,54 @@ jobs:
       - name: Install base dependencies
         run: bundle install --jobs 4
 
-      - name: Install optional nightly dependencies
-        run: |
-          gem install pg --no-document
-          gem install redis --no-document
-          gem install pgvector --no-document
+      - name: Install pgvector optional gems
+        run: gem install pg pgvector --no-document
 
-      - name: Run nightly real-backend specs
+      - name: Run pgvector real-backend specs
         run: |
-          bundle exec rspec spec/integration/nightly \
+          bundle exec rspec spec/integration/nightly/pgvector_spec.rb \
             --require spec_helper \
             --format documentation \
-            --tag nightly
+            --tag real_backend:pgvector
+
+  # ---------------------------------------------------------------------------
+  # 1c. OpenTelemetry — span export verification (in-process SDK exporter)
+  # ---------------------------------------------------------------------------
+  real-backend-otel:
+    runs-on: ubuntu-latest
+    name: OpenTelemetry (${{ matrix.ruby }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ['3.2', '3.3']
+
+    env:
+      NIGHTLY: '1'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby ${{ matrix.ruby }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: false
+
+      - name: Install base dependencies
+        run: bundle install --jobs 4
+
+      - name: Install OpenTelemetry SDK gem
+        run: gem install opentelemetry-sdk --no-document
+
+      - name: Run OTEL real-backend specs
+        run: |
+          bundle exec rspec spec/integration/nightly/otel_spec.rb \
+            --require spec_helper \
+            --format documentation \
+            --tag real_backend:otel
 
   # ---------------------------------------------------------------------------
   # 2. Optional-dependency absence tests
@@ -105,3 +181,4 @@ jobs:
           bundle exec rspec spec/integration/nightly/optional_absence_spec.rb \
             --format documentation \
             --tag nightly
+

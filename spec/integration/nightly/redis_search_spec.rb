@@ -21,7 +21,7 @@ end
 
 REDIS_AVAILABLE = defined?(Redis) && ENV["REDIS_URL"]
 
-RSpec.describe "Nightly: VectorStore::RedisSearch against real Redis Stack", :nightly do
+RSpec.describe "Nightly: VectorStore::RedisSearch against real Redis Stack", :nightly, real_backend: :redis do
   let(:redis) { Redis.new(url: ENV.fetch("REDIS_URL", "redis://localhost:6379")) }
   let(:index_name) { "phronomy_nightly_#{SecureRandom.hex(4)}" }
   let(:store) do

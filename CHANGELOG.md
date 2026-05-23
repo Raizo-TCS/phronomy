@@ -24,6 +24,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Stable`-tagged constant. The spec runs as part of the default RSpec suite; any
   accidental removal or rename of a listed method now fails CI immediately.
 
+- **Nightly real-backend CI split into three independent job groups** (#238):
+  The nightly workflow (`nightly.yml`) now has three separately skippable jobs:
+  `real-backend-redis` (Redis Stack), `real-backend-pgvector` (PostgreSQL + pgvector),
+  and `real-backend-otel` (OpenTelemetry in-process SDK exporter). Each job runs only
+  the relevant spec with `--tag real_backend:<backend>`. The existing `redis_search_spec`
+  and `pgvector_spec` gain the `real_backend:` metadata tag. A new `otel_spec.rb`
+  verifies span emission, attribute attachment, and error recording via
+  `InMemorySpanExporter`.
+
 - **`CancellationToken#raise_if_cancelled!` — convenience cancellation check** (#234):
   New instance method that raises `Phronomy::CancellationError` when the token is
   cancelled, or returns `nil` otherwise. Replaces the `if cancelled? then raise`
