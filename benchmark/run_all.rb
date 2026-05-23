@@ -24,6 +24,7 @@ SCRIPTS = %w[
   bench_vector_store.rb
   bench_workflow.rb
   bench_tool_schema.rb
+  bench_agent_invoke.rb
   bench_regression.rb
 ].freeze
 

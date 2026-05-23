@@ -1,7 +1,9 @@
 {
-  "workflow_context_merge": 217146.76822680654,
-  "workflow_define": 2130.0731965180125,
-  "tool_params_schema_definition": 20731568.293540005,
-  "dispatch_parallel_10": 1590.5961403263043,
-  "cancellation_token_cancelled": 4238198.167887976
+  "workflow_context_merge": 124364.81010472385,
+  "workflow_define": 2179.945274115319,
+  "tool_params_schema_definition": 19534379.159046534,
+  "dispatch_parallel_10": 1483.2255243486482,
+  "cancellation_token_cancelled": 4335060.97443425,
+  "cancellation_token_raise_if_cancelled_noop": 3566903.189098373,
+  "trim_context_remove_2000": 1761.5700678986254
 }
