@@ -8,6 +8,7 @@ module Phronomy
       # Included in {Phronomy::Agent::Base}. Hooks are executed just before every
       # LLM call (global → class → instance order) and may inject or override
       # LLM parameters such as temperature or model.
+      # @api private
       module BeforeCompletion
         def self.included(base)
           base.extend(ClassMethods)

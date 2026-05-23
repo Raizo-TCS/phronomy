@@ -9,6 +9,10 @@ gem "rake", "~> 13.0"
 
 gem "rspec", "~> 3.0"
 
+# Code coverage with branch tracking
+gem "simplecov", require: false
+gem "simplecov-lcov", require: false
+
 gem "webrick", "~> 1.8"
 gem "ostruct"  # removed from Ruby stdlib in Ruby 3.5+ / JRuby 10 (Ruby 4.0)
 gem "csv"      # removed from Ruby stdlib in Ruby 3.4+

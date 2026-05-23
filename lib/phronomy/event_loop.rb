@@ -94,6 +94,8 @@ module Phronomy
     # Starts the background event loop thread.
     # @return [self]
     def start
+      return self if @thread&.alive?
+
       @running = true
       @thread = Thread.new do
         Thread.current[:phronomy_event_loop_thread] = true
@@ -116,7 +118,13 @@ module Phronomy
       @running = false
       @queue.push(:__stop__)   # unblock queue.pop so the worker can see @running = false
       @thread&.join(timeout)
-      @thread&.kill if @thread&.alive?  # fallback after timeout
+      if @thread&.alive?
+        Phronomy.configuration.logger&.warn(
+          "[Phronomy] EventLoop thread did not stop within #{timeout}s; force-killing. " \
+          "This is a last resort — check for blocking operations in event handlers."
+        )
+        @thread.kill
+      end
       @thread = nil
     end
 
@@ -125,7 +133,12 @@ module Phronomy
     def run_loop
       while @running
         event = @queue.pop
-        break if event == :__stop__  # cooperative shutdown sentinel
+        # :__stop__ is used purely as an unblock signal for @queue.pop; the
+        # actual stop condition is @running == false (set before the push).
+        # Treating it as `next` instead of `break` prevents a stale sentinel
+        # (left by a previous stop call that raced with thread start) from
+        # immediately terminating a freshly restarted EventLoop.
+        next if event == :__stop__
 
         case event.type
         when :finished, :halted, :error

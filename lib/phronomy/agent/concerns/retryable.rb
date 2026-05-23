@@ -7,6 +7,7 @@ module Phronomy
       #
       # Included in {Phronomy::Agent::Base}. The retry loop wraps the full
       # #invoke_once call; {Phronomy::GuardrailError} is never retried.
+      # @api private
       module Retryable
         def self.included(base)
           base.extend(ClassMethods)
@@ -61,7 +62,7 @@ module Phronomy
               attempt += 1
               retry
             end
-            raise
+            translate_and_reraise!($!)
           end
         end
 

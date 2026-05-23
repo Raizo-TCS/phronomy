@@ -8,6 +8,7 @@ module Phronomy
     # suspended result hash containing a Checkpoint.
     #
     # This class is intentionally NOT part of the public API.  Callers should
+    # @api private
     # inspect the +:suspended+ key in the result hash returned by #invoke.
     #
     # @api private

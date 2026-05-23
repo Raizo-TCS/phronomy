@@ -18,6 +18,7 @@ module Phronomy
     # {AgentFSM} IO thread (i.e. when the +:phronomy_agent_parallel_tools+
     # thread-local flag is +true+).  It is not used for direct synchronous
     # +invoke+ calls so that the streaming callback state remains single-threaded.
+    # @api private
     class ParallelToolChat < RubyLLM::Chat
       private
 

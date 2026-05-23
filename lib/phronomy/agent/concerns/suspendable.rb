@@ -8,6 +8,7 @@ module Phronomy
       # Included in {Phronomy::Agent::Base}. When a tool decorated with
       # +requires_approval true+ is called and no synchronous approval handler
       # has been registered, the invocation is suspended and a
+      # @api private
       # {Phronomy::Agent::Checkpoint} is returned so the caller can resume later.
       module Suspendable
         # Registers a callback that is invoked before executing any tool that has

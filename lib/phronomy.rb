@@ -102,5 +102,37 @@ module Phronomy
     def reset_configuration!
       @configuration = Configuration.new
     end
+
+    # Yields the current {Configuration} object, then restores the original
+    # configuration on exit (even if the block raises).
+    #
+    # Intended for test helpers that need to temporarily override settings
+    # without permanently mutating the global configuration.
+    #
+    # @yield [config] the current {Configuration} instance (mutable)
+    # @example
+    #   Phronomy.with_configuration do |c|
+    #     c.logger = Logger.new($stdout)
+    #   end
+    def with_configuration
+      original = @configuration&.dup
+      yield configuration
+    ensure
+      @configuration = original
+    end
+
+    # Resets all Phronomy runtime state: configuration and the EventLoop
+    # singleton (if running).
+    #
+    # **Intended for test suites only.**  Stops any running EventLoop thread,
+    # clears the EventLoop singleton, and resets configuration to defaults.
+    # Call once before/after each example to ensure test isolation.
+    #
+    # @example
+    #   config.around { |ex| Phronomy.reset_runtime! ; ex.run ; Phronomy.reset_runtime! }
+    def reset_runtime!
+      Phronomy::EventLoop.reset!
+      @configuration = Configuration.new
+    end
   end
 end

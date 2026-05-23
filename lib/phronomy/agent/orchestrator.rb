@@ -191,12 +191,26 @@ module Phronomy
       # A +Mutex+ guards concurrent writes to +errors+ even though Array element
       # assignment at different indices is safe in MRI; this keeps the code
       # correct across alternative Ruby runtimes.
+      #
+      # When +timeout+ is given, workers are first asked to stop cooperatively
+      # via a cancellation flag (so they do not pick up new tasks) and then given
+      # +KILL_GRACE_SECONDS+ to finish any in-flight +ensure+ blocks.  Only
+      # workers that are still alive after the grace period are force-killed, and
+      # a warning is logged in that case.  Use a +CancellationToken+ (see #216)
+      # for full cooperative cancellation of long-running tasks.
+      #
+      # Deadline tracking uses +Process.clock_gettime(Process::CLOCK_MONOTONIC)+
+      # to avoid sensitivity to NTP adjustments and system-clock changes.
+      KILL_GRACE_SECONDS = 0.5
+      private_constant :KILL_GRACE_SECONDS
+
       def bounded_map(tasks, max_concurrency:, on_error:, timeout: nil)
         return [] if tasks.empty?
 
         results = Array.new(tasks.length)
         errors = Array.new(tasks.length)
         errors_mutex = Mutex.new
+        cancelled = [false] # cooperative stop flag; workers check before each task
 
         queue = Queue.new
         tasks.each_with_index { |task, i| queue << [i, task] }
@@ -206,6 +220,8 @@ module Phronomy
         workers = worker_count.times.map do
           Thread.new do
             loop do
+              break if cancelled[0]
+
               i, task = begin
                 queue.pop(true)
               rescue ThreadError
@@ -233,15 +249,27 @@ module Phronomy
         workers.each(&:join) if timeout.nil?
 
         if timeout
-          deadline = Time.now + timeout
+          deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
           workers.each do |w|
-            remaining = deadline - Time.now
+            remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
             w.join([remaining, 0].max)
           end
 
           alive = workers.select(&:alive?)
           unless alive.empty?
-            alive.each(&:kill)
+            # Signal workers cooperatively to stop picking up new tasks.
+            cancelled[0] = true
+            # Give in-flight ensure blocks a short grace period before kill.
+            alive.each { |w| w.join(KILL_GRACE_SECONDS) }
+            still_alive = alive.select(&:alive?)
+            if still_alive.any?
+              Phronomy.configuration.logger&.warn(
+                "[Phronomy] dispatch_parallel: #{still_alive.length} worker(s) did not stop " \
+                "within grace period; force-killing. Use CancellationToken (#216) for " \
+                "cooperative cancellation of long-running tasks."
+              )
+              still_alive.each(&:kill)
+            end
             raise Phronomy::TimeoutError,
               "dispatch_parallel timed out after #{timeout}s " \
               "(#{alive.length} of #{workers.length} workers still running)"

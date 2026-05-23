@@ -47,7 +47,7 @@ RSpec.describe "Group 22: LLM-Path Retry", :integration do
   #         No retry — RateLimitError propagates immediately.
   # ---------------------------------------------------------------------------
   describe "TC-001: RateLimitError; times=0 — immediate propagation" do
-    it "raises RubyLLM::RateLimitError without any sleep" do
+    it "raises Phronomy::RateLimitError without any sleep" do
       stub_chat_setup
       stub_llm_ask(error_class: RubyLLM::RateLimitError, fail_times: 1)
 
@@ -55,7 +55,7 @@ RSpec.describe "Group 22: LLM-Path Retry", :integration do
         times: 0, wait: :exponential, sleep_log: sleep_log
       ).new
 
-      expect { agent.invoke("hello") }.to raise_error(RubyLLM::RateLimitError)
+      expect { agent.invoke("hello") }.to raise_error(Phronomy::RateLimitError)
       expect(sleep_log).to be_empty
     end
   end
@@ -87,7 +87,7 @@ RSpec.describe "Group 22: LLM-Path Retry", :integration do
         times: 1, wait: :linear, base: 1.0, sleep_log: sleep_log
       ).new
 
-      expect { agent.invoke("hello") }.to raise_error(RubyLLM::RateLimitError)
+      expect { agent.invoke("hello") }.to raise_error(Phronomy::RateLimitError)
       expect(sleep_log).to eq([1.0])
     end
   end
@@ -118,7 +118,7 @@ RSpec.describe "Group 22: LLM-Path Retry", :integration do
         times: 2, wait: 0.5, sleep_log: sleep_log
       ).new
 
-      expect { agent.invoke("hello") }.to raise_error(RubyLLM::RateLimitError)
+      expect { agent.invoke("hello") }.to raise_error(Phronomy::RateLimitError)
       expect(sleep_log).to eq([0.5, 0.5])
     end
   end
@@ -128,7 +128,7 @@ RSpec.describe "Group 22: LLM-Path Retry", :integration do
   #         No retry — ServiceUnavailableError propagates immediately.
   # ---------------------------------------------------------------------------
   describe "TC-004: ServiceUnavailableError; times=0 — immediate propagation" do
-    it "raises RubyLLM::ServiceUnavailableError without any sleep" do
+    it "raises Phronomy::TransportError without any sleep" do
       stub_chat_setup
       stub_llm_ask(error_class: RubyLLM::ServiceUnavailableError, fail_times: 1)
 
@@ -136,7 +136,7 @@ RSpec.describe "Group 22: LLM-Path Retry", :integration do
         times: 0, wait: :linear, sleep_log: sleep_log
       ).new
 
-      expect { agent.invoke("hello") }.to raise_error(RubyLLM::ServiceUnavailableError)
+      expect { agent.invoke("hello") }.to raise_error(Phronomy::TransportError)
       expect(sleep_log).to be_empty
     end
   end
@@ -174,7 +174,7 @@ RSpec.describe "Group 22: LLM-Path Retry", :integration do
         times: 2, wait: :exponential, base: 1.0, sleep_log: sleep_log
       ).new
 
-      expect { agent.invoke("hello") }.to raise_error(RubyLLM::ServiceUnavailableError)
+      expect { agent.invoke("hello") }.to raise_error(Phronomy::TransportError)
       # attempt=0 → 1.0, attempt=1 → 2.0
       expect(sleep_log).to eq([1.0, 2.0])
     end
@@ -194,7 +194,7 @@ RSpec.describe "Group 22: LLM-Path Retry", :integration do
   #         No retry — ServerError propagates immediately.
   # ---------------------------------------------------------------------------
   describe "TC-008: ServerError; times=0 — immediate propagation" do
-    it "raises RubyLLM::ServerError without any sleep" do
+    it "raises Phronomy::TransportError without any sleep" do
       stub_chat_setup
       stub_llm_ask(error_class: RubyLLM::ServerError, fail_times: 1)
 
@@ -202,7 +202,7 @@ RSpec.describe "Group 22: LLM-Path Retry", :integration do
         times: 0, wait: :exponential, sleep_log: sleep_log
       ).new
 
-      expect { agent.invoke("hello") }.to raise_error(RubyLLM::ServerError)
+      expect { agent.invoke("hello") }.to raise_error(Phronomy::TransportError)
       expect(sleep_log).to be_empty
     end
   end
@@ -239,7 +239,7 @@ RSpec.describe "Group 22: LLM-Path Retry", :integration do
         times: 2, wait: :linear, base: 1.0, sleep_log: sleep_log
       ).new
 
-      expect { agent.invoke("hello") }.to raise_error(RubyLLM::ServerError)
+      expect { agent.invoke("hello") }.to raise_error(Phronomy::TransportError)
       # attempt=0 → 1.0, attempt=1 → 2.0
       expect(sleep_log).to eq([1.0, 2.0])
     end

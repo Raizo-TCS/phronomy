@@ -57,6 +57,7 @@ module Phronomy
     # {Agent::Base#run_as_child} creates an +AgentFSM+ with +parent_id+ set to
     # +ctx.thread_id+, registers it with the EventLoop, and returns immediately.
     # The parent {FSMSession} waits for the +:child_completed+ event.
+    # @api private
     class FSM
       # @return [String] unique identifier used as the EventLoop target_id
       attr_reader :id

@@ -7,6 +7,7 @@ require_relative "concerns/retryable"
 require_relative "concerns/guardrailable"
 require_relative "concerns/before_completion"
 require_relative "concerns/suspendable"
+require_relative "concerns/error_translation"
 
 module Phronomy
   module Agent
@@ -37,6 +38,7 @@ module Phronomy
       include Concerns::Guardrailable
       include Concerns::BeforeCompletion
       include Concerns::Suspendable
+      include Concerns::ErrorTranslation
 
       class << self
         # Sets or reads the LLM model identifier for this agent.

@@ -38,6 +38,7 @@ module Phronomy
   #   2. <event_name>    — external events triggered by human input, originating
   #                        from wait states
   #                        (declared with +transition from: :awaiting, on: :approve, to: :run+)
+  # @api private
   class WorkflowRunner
     include Phronomy::Runnable
 

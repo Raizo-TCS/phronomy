@@ -8,6 +8,7 @@ module Phronomy
       # Included in {Phronomy::Agent::Base}. Guardrails are run on the raw
       # input string before the LLM is called, and on the raw output string
       # before the result is returned to the caller.
+      # @api private
       module Guardrailable
         # Attach a guardrail that validates input before every #invoke call.
         # @param guardrail [Phronomy::Guardrail::InputGuardrail]
