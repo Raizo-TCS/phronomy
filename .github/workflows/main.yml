@@ -41,6 +41,10 @@ jobs:
         run: bundle exec rake
       - name: Run all integration tests (stub-based, no LM Studio required)
         run: bundle exec rspec --tag integration --format progress
+      - name: Benchmark smoke check
+        run: bundle exec ruby benchmark/run_all.rb
+        env:
+          BENCHMARK_MAX_SECONDS: "60"
 
   deprecated-api-check:
     runs-on: ubuntu-latest
