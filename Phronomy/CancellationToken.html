@@ -127,7 +127,13 @@ all access to internal state is protected by a Mutex.</p>
 <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>...</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_token'>token</span> <span class='rbrace'>}</span><span class='rparen'>)</span></code></pre>
     
       
-        <h5 class="example_title"><div class='inline'><p>Hard deadline (auto-cancel after 30 s)</p></div></h5>
+        <h5 class="example_title"><div class='inline'><p>Hard deadline via monotonic clock (recommended)</p></div></h5>
+      
+      <pre class="example code"><code><span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>CancellationToken</span><span class='period'>.</span><span class='id identifier rubyid_timeout_after'><span class='object_link'><a href="#timeout_after-class_method" title="Phronomy::CancellationToken.timeout_after (method)">timeout_after</a></span></span><span class='lparen'>(</span><span class='int'>30</span><span class='rparen'>)</span>
+<span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>...</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_token'>token</span> <span class='rbrace'>}</span><span class='rparen'>)</span></code></pre>
+    
+      
+        <h5 class="example_title"><div class='inline'><p>Hard deadline via wall-clock (legacy)</p></div></h5>
       
       <pre class="example code"><code><span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>CancellationToken</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::CancellationToken#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>deadline:</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span> <span class='op'>+</span> <span class='int'>30</span><span class='rparen'>)</span>
 <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>...</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_token'>token</span> <span class='rbrace'>}</span><span class='rparen'>)</span></code></pre>
@@ -170,7 +176,7 @@ all access to internal state is protected by a Mutex.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>The deadline passed to <span class='object_link'><a href="#initialize-instance_method" title="Phronomy::CancellationToken#initialize (method)">#initialize</a></span>, or <code>nil</code>.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>The wall-clock deadline passed to <span class='object_link'><a href="#initialize-instance_method" title="Phronomy::CancellationToken#initialize (method)">#initialize</a></span>, or <code>nil</code>.</p></div></span>
   
 </li>
 
@@ -180,6 +186,38 @@ all access to internal state is protected by a Mutex.</p>
 
 
 
+  
+    <h2>
+      Class Method Summary
+      <small><a href="#" class="summary_toggle">collapse</a></small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#timeout_after-class_method" title="timeout_after (class method)">.<strong>timeout_after</strong>(seconds)  &#x21d2; CancellationToken </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns a new token that will expire after <code>seconds</code> seconds, measured with the monotonic clock (+Process::CLOCK_MONOTONIC+).</p></div></span>
+  
+</li>
+
+      
+    </ul>
+    
   
     <h2>
       Instance Method Summary
@@ -227,7 +265,7 @@ all access to internal state is protected by a Mutex.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns <code>true</code> when the token has been explicitly cancelled via <span class='object_link'><a href="#cancel!-instance_method" title="Phronomy::CancellationToken#cancel! (method)">#cancel!</a></span> or when the deadline has passed.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns <code>true</code> when the token has been explicitly cancelled via <span class='object_link'><a href="#cancel!-instance_method" title="Phronomy::CancellationToken#cancel! (method)">#cancel!</a></span>, when the wall-clock deadline has passed, or when the monotonic deadline (set by <span class='object_link'><a href="#timeout_after-class_method" title="Phronomy::CancellationToken.timeout_after (method)">CancellationToken.timeout_after</a></span>) has elapsed.</p></div></span>
   
 </li>
 
@@ -235,7 +273,7 @@ all access to internal state is protected by a Mutex.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(deadline: nil)  &#x21d2; CancellationToken </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(deadline: nil, monotonic_deadline: nil)  &#x21d2; CancellationToken </a>
     
 
     
@@ -266,7 +304,7 @@ all access to internal state is protected by a Mutex.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(deadline: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::CancellationToken (class)">CancellationToken</a></span></tt> 
+    #<strong>initialize</strong>(deadline: nil, monotonic_deadline: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::CancellationToken (class)">CancellationToken</a></span></tt> 
   
 
   
@@ -294,8 +332,26 @@ all access to internal state is protected by a Mutex.</p>
       
       
         &mdash;
-        <div class='inline'><p>optional hard deadline; the token reports
-<code>cancelled?</code> as <code>true</code> once <code>Time.now &gt;= deadline</code>.</p></div>
+        <div class='inline'><p>optional wall-clock deadline; the token reports
+<code>cancelled?</code> as <code>true</code> once <code>Time.now &gt;= deadline</code>.  Prefer
+<span class='object_link'><a href="#timeout_after-class_method" title="Phronomy::CancellationToken.timeout_after (method)">timeout_after</a></span> for duration-based cancellation.</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>monotonic_deadline</span>
+      
+      
+        <span class='type'>(<tt>Float</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>internal monotonic timestamp set by
+<span class='object_link'><a href="#timeout_after-class_method" title="Phronomy::CancellationToken.timeout_after (method)">timeout_after</a></span>; prefer that factory method over passing this directly.</p></div>
       
     </li>
   
@@ -308,18 +364,20 @@ all access to internal state is protected by a Mutex.</p>
       <pre class="lines">
 
 
-29
-30
-31
-32
-33</pre>
+48
+49
+50
+51
+52
+53</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_token.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_token.rb', line 48</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>deadline:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>deadline:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>monotonic_deadline:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@cancelled</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@deadline</span> <span class='op'>=</span> <span class='id identifier rubyid_deadline'>deadline</span>
+  <span class='ivar'>@monotonic_deadline</span> <span class='op'>=</span> <span class='id identifier rubyid_monotonic_deadline'>monotonic_deadline</span>
   <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -345,7 +403,7 @@ all access to internal state is protected by a Mutex.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the deadline passed to <span class='object_link'><a href="#initialize-instance_method" title="Phronomy::CancellationToken#initialize (method)">#initialize</a></span>, or <code>nil</code>.</p>
+    <p>Returns the wall-clock deadline passed to <span class='object_link'><a href="#initialize-instance_method" title="Phronomy::CancellationToken#initialize (method)">#initialize</a></span>, or <code>nil</code>.</p>
 
   </div>
 </div>
@@ -362,7 +420,7 @@ all access to internal state is protected by a Mutex.</p>
       
       
         &mdash;
-        <div class='inline'><p>the deadline passed to <span class='object_link'><a href="#initialize-instance_method" title="Phronomy::CancellationToken#initialize (method)">#initialize</a></span>, or <code>nil</code>.</p></div>
+        <div class='inline'><p>the wall-clock deadline passed to <span class='object_link'><a href="#initialize-instance_method" title="Phronomy::CancellationToken#initialize (method)">#initialize</a></span>, or <code>nil</code>.</p></div>
       
     </li>
   
@@ -374,12 +432,12 @@ all access to internal state is protected by a Mutex.</p>
       <pre class="lines">
 
 
-36
-37
-38</pre>
+56
+57
+58</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_token.rb', line 36</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_token.rb', line 56</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_deadline'>deadline</span>
   <span class='ivar'>@deadline</span>
@@ -391,6 +449,87 @@ all access to internal state is protected by a Mutex.</p>
     
   </div>
 
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="timeout_after-class_method">
+  
+    .<strong>timeout_after</strong>(seconds)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::CancellationToken (class)">CancellationToken</a></span></tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns a new token that will expire after <code>seconds</code> seconds, measured
+with the monotonic clock (+Process::CLOCK_MONOTONIC+). Unlike constructing
+a token with +deadline: Time.now + seconds+, this factory is immune to NTP
+adjustments and DST transitions.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>seconds</span>
+      
+      
+        <span class='type'>(<tt>Numeric</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>duration in seconds until the token expires.</p></div>
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="" title="Phronomy::CancellationToken (class)">CancellationToken</a></span></tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+38
+39
+40
+41</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_token.rb', line 38</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_timeout_after'>timeout_after</span><span class='lparen'>(</span><span class='id identifier rubyid_seconds'>seconds</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_monotonic_deadline'>monotonic_deadline</span> <span class='op'>=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='id identifier rubyid_seconds'>seconds</span>
+  <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>monotonic_deadline:</span> <span class='id identifier rubyid_monotonic_deadline'>monotonic_deadline</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
 
   <div id="instance_method_details" class="method_details_list">
     <h2>Instance Method Details</h2>
@@ -433,13 +572,13 @@ all access to internal state is protected by a Mutex.</p>
       <pre class="lines">
 
 
-40
-41
-42
-43</pre>
+60
+61
+62
+63</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_token.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_token.rb', line 60</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancel!'>cancel!</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@cancelled</span> <span class='op'>=</span> <span class='kw'>true</span> <span class='rbrace'>}</span>
@@ -461,8 +600,9 @@ all access to internal state is protected by a Mutex.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns <code>true</code> when the token has been explicitly cancelled via <span class='object_link'><a href="#cancel!-instance_method" title="Phronomy::CancellationToken#cancel! (method)">#cancel!</a></span>
-or when the deadline has passed. Thread-safe.</p>
+    <p>Returns <code>true</code> when the token has been explicitly cancelled via <span class='object_link'><a href="#cancel!-instance_method" title="Phronomy::CancellationToken#cancel! (method)">#cancel!</a></span>,
+when the wall-clock deadline has passed, or when the monotonic deadline
+(set by <span class='object_link'><a href="#timeout_after-class_method" title="Phronomy::CancellationToken.timeout_after (method)">timeout_after</a></span>) has elapsed. Thread-safe.</p>
 
   </div>
 </div>
@@ -488,17 +628,21 @@ or when the deadline has passed. Thread-safe.</p>
       <pre class="lines">
 
 
-48
-49
-50
-51</pre>
+69
+70
+71
+72
+73
+74</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_token.rb', line 48</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_token.rb', line 69</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancelled?'>cancelled?</span>
   <span class='kw'>return</span> <span class='kw'>true</span> <span class='kw'>if</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@cancelled</span> <span class='rbrace'>}</span>
-  <span class='op'>!</span><span class='ivar'>@deadline</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span> <span class='op'>&amp;&amp;</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span> <span class='op'>&gt;=</span> <span class='ivar'>@deadline</span>
+  <span class='kw'>return</span> <span class='kw'>true</span> <span class='kw'>if</span> <span class='op'>!</span><span class='ivar'>@deadline</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span> <span class='op'>&amp;&amp;</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span> <span class='op'>&gt;=</span> <span class='ivar'>@deadline</span>
+  <span class='op'>!</span><span class='ivar'>@monotonic_deadline</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span> <span class='op'>&amp;&amp;</span>
+    <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>&gt;=</span> <span class='ivar'>@monotonic_deadline</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -510,7 +654,7 @@ or when the deadline has passed. Thread-safe.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 11:30:54 2026 by
+  Generated on Sat May 23 12:42:50 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

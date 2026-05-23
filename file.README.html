@@ -174,7 +174,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong>CancellationToken</strong> — Cooperative cancellation via <code>cancel!</code>/<code>cancelled?</code>; optional <code>deadline:</code> for time-based expiry; passed as <code>config: { cancellation_token: token }</code> to agents and <code>dispatch_parallel</code></td>
+<td><strong>CancellationToken</strong> — Cooperative cancellation via <code>cancel!</code>/<code>cancelled?</code>; <code>timeout_after(seconds)</code> for monotonic-clock deadlines; optional <code>deadline:</code> (wall-clock) for backward compatibility; passed as <code>config: { cancellation_token: token }</code> to agents and <code>dispatch_parallel</code></td>
 <td>Experimental</td>
 </tr>
 </tbody>
@@ -661,7 +661,11 @@ and is never retried. No threads are force-killed — <code>ensure</code> blocks
   <span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cancelled</span><span class='tstring_end'>&quot;</span></span>
 <span class='kw'>end</span>
 
-<span class='comment'># Hard deadline (auto-cancel after 30 s)
+<span class='comment'># Hard deadline via monotonic clock (recommended — immune to NTP/DST changes)
+</span><span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/CancellationToken.html" title="Phronomy::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_timeout_after'><span class='object_link'><a href="Phronomy/CancellationToken.html#timeout_after-class_method" title="Phronomy::CancellationToken.timeout_after (method)">timeout_after</a></span></span><span class='lparen'>(</span><span class='int'>30</span><span class='rparen'>)</span>
+<span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>...</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_token'>token</span> <span class='rbrace'>}</span><span class='rparen'>)</span>
+
+<span class='comment'># Hard deadline via wall-clock (legacy — still supported)
 </span><span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/CancellationToken.html" title="Phronomy::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/CancellationToken.html#initialize-instance_method" title="Phronomy::CancellationToken#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>deadline:</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span> <span class='op'>+</span> <span class='int'>30</span><span class='rparen'>)</span>
 <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>...</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_token'>token</span> <span class='rbrace'>}</span><span class='rparen'>)</span>
 
@@ -842,7 +846,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat May 23 11:30:53 2026 by
+  Generated on Sat May 23 12:42:48 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
