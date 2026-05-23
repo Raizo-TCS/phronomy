@@ -27,9 +27,11 @@ module Phronomy
 
       # Embed text via RubyLLM.
       #
-      # @param text [String]
+      # @param text               [String]
+      # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
       # @return [Array<Float>]
-      def embed(text)
+      def embed(text, cancellation_token = nil)
+        cancellation_token&.raise_if_cancelled!
         opts = {}
         opts[:model] = @model if @model
         opts[:provider] = @provider if @provider

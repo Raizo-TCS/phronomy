@@ -27,9 +27,11 @@ module Phronomy
 
       # Returns the fixed text as a single chunk, regardless of query.
       #
-      # @param query [String, nil] ignored for static knowledge
+      # @param query              [String, nil]                    ignored for static knowledge
+      # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
       # @return [Array<Hash>]
-      def fetch(query: nil)
+      def fetch(query: nil, cancellation_token: nil)
+        cancellation_token&.raise_if_cancelled!
         return [] if @text.empty?
 
         chunk = {content: @text, type: @type}

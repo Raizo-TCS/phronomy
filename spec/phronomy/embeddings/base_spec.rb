@@ -9,5 +9,11 @@ RSpec.describe Phronomy::Embeddings::Base do
     it "raises NotImplementedError" do
       expect { adapter.embed("hello") }.to raise_error(NotImplementedError, /embed/)
     end
+
+    it "raises CancellationError immediately when a cancelled token is passed (#242)" do
+      token = Phronomy::CancellationToken.new
+      token.cancel!
+      expect { adapter.embed("hello", token) }.to raise_error(Phronomy::CancellationError)
+    end
   end
 end

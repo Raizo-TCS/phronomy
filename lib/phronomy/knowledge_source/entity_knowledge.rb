@@ -54,9 +54,11 @@ module Phronomy
       # Returns a single chunk containing all known entity facts in XML context format.
       # Returns an empty array when no entities have been discovered.
       #
-      # @param query [String, nil] unused — entity knowledge is always fully injected
+      # @param query              [String, nil]                    unused — entity knowledge is always fully injected
+      # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
       # @return [Array<Hash>]
-      def fetch(query: nil)
+      def fetch(query: nil, cancellation_token: nil)
+        cancellation_token&.raise_if_cancelled!
         return [] if @entities.empty?
 
         lines = @entities.map { |key, value| "- #{key}: #{value}" }.join("\n")

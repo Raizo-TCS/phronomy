@@ -227,11 +227,17 @@ module Phronomy
       # the on_error policy, and wrap errors as ToolError.
       #
       # Execution order:
-      #   1. Schema validation (type + enum checks).
-      #   2. Inject +cancellation_token:+ into args when +execute+ opts in.
-      #   3. Call super(validated_args) inside a retry loop.
-      #   4. On persistent failure, apply on_error policy.
-      def call(args)
+      #   1. Early cancellation check (kwarg token takes precedence over thread-local).
+      #   2. Schema validation (type + enum checks).
+      #   3. Inject +cancellation_token:+ into args when +execute+ opts in.
+      #   4. Call super(validated_args) inside a retry loop.
+      #   5. On persistent failure, apply on_error policy.
+      #
+      # @param args               [Hash]
+      # @param cancellation_token [Phronomy::CancellationToken, nil] optional; takes precedence over the thread-local token
+      def call(args, cancellation_token: nil)
+        ct = cancellation_token || Thread.current[:phronomy_cancellation_token]
+        ct&.raise_if_cancelled!
         validated_args, schema_error = validate_and_coerce(args)
         if schema_error
           case self.class.on_schema_error
@@ -242,7 +248,6 @@ module Phronomy
             return "Schema validation failed: #{schema_error}"
           end
         end
-        ct = Thread.current[:phronomy_cancellation_token]
         validated_args = validated_args.merge(cancellation_token: ct) if ct && execute_accepts_cancellation_token?
         with_tool_retry { super(validated_args) }
       rescue Phronomy::ToolError

@@ -695,5 +695,40 @@ RSpec.describe Phronomy::Tool::Base do
     ensure
       Thread.current[:phronomy_cancellation_token] = nil
     end
+
+    it "raises CancellationError at call entry when a cancelled token is passed as kwarg (#242)" do
+      token = Phronomy::CancellationToken.new
+      token.cancel!
+      plain_class = Class.new(described_class) do
+        description "plain tool"
+        param :msg, type: :string, desc: "message"
+
+        def execute(msg:)
+          "should not reach"
+        end
+      end
+      expect { plain_class.new.call({"msg" => "hi"}, cancellation_token: token) }
+        .to raise_error(Phronomy::CancellationError)
+    end
+
+    it "kwarg token takes precedence over thread-local token (#242)" do
+      active_token = Phronomy::CancellationToken.new
+      cancelled_kwarg_token = Phronomy::CancellationToken.new
+      cancelled_kwarg_token.cancel!
+      Thread.current[:phronomy_cancellation_token] = active_token
+
+      plain_class = Class.new(described_class) do
+        description "plain tool"
+        param :msg, type: :string, desc: "message"
+
+        def execute(msg:)
+          "ok"
+        end
+      end
+      expect { plain_class.new.call({"msg" => "hi"}, cancellation_token: cancelled_kwarg_token) }
+        .to raise_error(Phronomy::CancellationError)
+    ensure
+      Thread.current[:phronomy_cancellation_token] = nil
+    end
   end
 end

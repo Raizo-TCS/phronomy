@@ -316,7 +316,7 @@ module IntegrationFactors
   # different texts produce different (but stable) vectors.
   # ---------------------------------------------------------------------------
   class StubEmbeddings < Phronomy::Embeddings::Base
-    def embed(text)
+    def embed(text, _cancellation_token = nil)
       h = text.chars.sum(&:ord).to_f
       norm = Math.sqrt(3) * (h + 1)
       [h / norm, 1.0 / norm, 1.0 / norm]

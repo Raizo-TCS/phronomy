@@ -41,7 +41,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   describe "Embeddings#embed fault injection" do
     let(:exploding_embeddings) do
       Class.new(Phronomy::Embeddings::Base) do
-        def embed(_text)
+        def embed(_text, _cancellation_token = nil)
           raise "embedding API unavailable"
         end
       end.new
@@ -88,7 +88,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
 
     let(:stub_embeddings) do
       Class.new(Phronomy::Embeddings::Base) do
-        def embed(_text) = [1.0, 0.0, 0.0]
+        def embed(_text, _cancellation_token = nil) = [1.0, 0.0, 0.0]
       end.new
     end
 

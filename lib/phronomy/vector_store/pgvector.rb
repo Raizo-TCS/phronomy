@@ -34,10 +34,12 @@ module Phronomy
         @dimension = dimension
       end
 
-      # @param id        [String]
-      # @param embedding [Array<Float>]
-      # @param metadata  [Hash]
-      def add(id:, embedding:, metadata: {})
+      # @param id                 [String]
+      # @param embedding          [Array<Float>]
+      # @param metadata           [Hash]
+      # @param cancellation_token [Phronomy::CancellationToken, nil]
+      def add(id:, embedding:, metadata: {}, cancellation_token: nil)
+        cancellation_token&.raise_if_cancelled!
         validate_embedding_dimension!(embedding, @dimension)
         @model_class.upsert(
           {id: id, embedding: safe_vector(embedding), metadata: metadata.to_json},
@@ -46,10 +48,12 @@ module Phronomy
         self
       end
 
-      # @param query_embedding [Array<Float>]
-      # @param k               [Integer]
+      # @param query_embedding    [Array<Float>]
+      # @param k                  [Integer]
+      # @param cancellation_token [Phronomy::CancellationToken, nil]
       # @return [Array<Hash>] sorted by descending similarity score
-      def search(query_embedding:, k: 5)
+      def search(query_embedding:, k: 5, cancellation_token: nil)
+        cancellation_token&.raise_if_cancelled!
         k_safe = validate_k!(k)
         validate_embedding_dimension!(query_embedding, @dimension)
         vec = safe_vector_literal(query_embedding)

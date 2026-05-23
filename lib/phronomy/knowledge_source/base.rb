@@ -11,9 +11,11 @@ module Phronomy
     class Base
       # Retrieve knowledge chunks relevant to the given query.
       #
-      # @param query [String, nil] the current user input used to select relevant chunks
+      # @param query              [String, nil]                    the current user input used to select relevant chunks
+      # @param cancellation_token [Phronomy::CancellationToken, nil] optional token; raises CancellationError when cancelled
       # @return [Array<Hash>] array of { content: String, type: Symbol }
-      def fetch(query: nil)
+      def fetch(query: nil, cancellation_token: nil)
+        cancellation_token&.raise_if_cancelled!
         raise NotImplementedError, "#{self.class}#fetch is not implemented"
       end
 

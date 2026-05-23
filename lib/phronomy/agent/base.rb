@@ -688,7 +688,7 @@ module Phronomy
 
         Array(config[:knowledge_sources]).each do |ks|
           check_cancellation!(config, "invocation cancelled during RAG fetch")
-          ks.fetch(query: user_message).each do |chunk|
+          ks.fetch(query: user_message, cancellation_token: config[:cancellation_token]).each do |chunk|
             assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
           end
         end

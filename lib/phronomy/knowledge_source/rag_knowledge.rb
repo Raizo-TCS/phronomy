@@ -34,13 +34,15 @@ module Phronomy
       #
       # Returns an empty array when query is nil or blank.
       #
-      # @param query [String, nil]
+      # @param query              [String, nil]
+      # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
       # @return [Array<Hash>]
-      def fetch(query: nil)
+      def fetch(query: nil, cancellation_token: nil)
+        cancellation_token&.raise_if_cancelled!
         return [] if query.nil? || query.strip.empty?
 
-        vector = @embeddings.embed(query)
-        results = @store.search(query_embedding: vector, k: @k)
+        vector = @embeddings.embed(query, cancellation_token)
+        results = @store.search(query_embedding: vector, k: @k, cancellation_token: cancellation_token)
         results.map do |doc|
           chunk = {content: doc[:metadata][:content], type: @type}
           src = @source || doc[:metadata][:source]

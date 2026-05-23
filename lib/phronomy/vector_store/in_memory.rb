@@ -21,10 +21,12 @@ module Phronomy
         @expected_dimension = dimension
       end
 
-      # @param id        [String]
-      # @param embedding [Array<Float>]
-      # @param metadata  [Hash]
-      def add(id:, embedding:, metadata: {})
+      # @param id                 [String]
+      # @param embedding          [Array<Float>]
+      # @param metadata           [Hash]
+      # @param cancellation_token [Phronomy::CancellationToken, nil]
+      def add(id:, embedding:, metadata: {}, cancellation_token: nil)
+        cancellation_token&.raise_if_cancelled!
         # Establish expected dimension on first add, then validate.
         @expected_dimension ||= embedding.size
         validate_embedding_dimension!(embedding, @expected_dimension)
@@ -32,10 +34,12 @@ module Phronomy
         self
       end
 
-      # @param query_embedding [Array<Float>]
-      # @param k               [Integer]
+      # @param query_embedding    [Array<Float>]
+      # @param k                  [Integer]
+      # @param cancellation_token [Phronomy::CancellationToken, nil]
       # @return [Array<Hash>] sorted by descending score
-      def search(query_embedding:, k: 5)
+      def search(query_embedding:, k: 5, cancellation_token: nil)
+        cancellation_token&.raise_if_cancelled!
         k = validate_k!(k)
         # search never establishes dimension; validate only when dimension is known.
         validate_embedding_dimension!(query_embedding, @expected_dimension)

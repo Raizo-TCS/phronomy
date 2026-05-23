@@ -9,19 +9,23 @@ module Phronomy
     class Base
       # Add a document with its vector embedding.
       #
-      # @param id        [String]  unique document identifier
-      # @param embedding [Array<Float>] vector embedding
-      # @param metadata  [Hash]    arbitrary metadata (e.g. the original message object)
-      def add(id:, embedding:, metadata: {})
+      # @param id                 [String]                         unique document identifier
+      # @param embedding          [Array<Float>]                   vector embedding
+      # @param metadata           [Hash]                           arbitrary metadata (e.g. the original message object)
+      # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
+      def add(id:, embedding:, metadata: {}, cancellation_token: nil)
+        cancellation_token&.raise_if_cancelled!
         raise NotImplementedError, "#{self.class}#add is not implemented"
       end
 
       # Return the k most similar documents to the query embedding.
       #
-      # @param query_embedding [Array<Float>]
-      # @param k               [Integer]       number of results
+      # @param query_embedding    [Array<Float>]
+      # @param k                  [Integer]                        number of results
+      # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
       # @return [Array<Hash>] each element: { id:, score:, metadata: }
-      def search(query_embedding:, k: 5)
+      def search(query_embedding:, k: 5, cancellation_token: nil)
+        cancellation_token&.raise_if_cancelled!
         raise NotImplementedError, "#{self.class}#search is not implemented"
       end
 

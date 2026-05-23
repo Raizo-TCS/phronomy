@@ -45,10 +45,12 @@ module Phronomy
         @mutex = Mutex.new
       end
 
-      # @param id        [String]
-      # @param embedding [Array<Float>]
-      # @param metadata  [Hash]
-      def add(id:, embedding:, metadata: {})
+      # @param id                 [String]
+      # @param embedding          [Array<Float>]
+      # @param metadata           [Hash]
+      # @param cancellation_token [Phronomy::CancellationToken, nil]
+      def add(id:, embedding:, metadata: {}, cancellation_token: nil)
+        cancellation_token&.raise_if_cancelled!
         # Establish expected dimension on first add (not race-free for concurrent
         # first adds), then validate, then create/reuse the index.
         @dimension ||= embedding.size
@@ -62,10 +64,12 @@ module Phronomy
         self
       end
 
-      # @param query_embedding [Array<Float>]
-      # @param k               [Integer]
+      # @param query_embedding    [Array<Float>]
+      # @param k                  [Integer]
+      # @param cancellation_token [Phronomy::CancellationToken, nil]
       # @return [Array<Hash>] sorted by descending similarity score
-      def search(query_embedding:, k: 5)
+      def search(query_embedding:, k: 5, cancellation_token: nil)
+        cancellation_token&.raise_if_cancelled!
         # search never establishes dimension.  If dimension is unknown and the
         # index has not been created yet, there are no documents to return.
         return [] if @dimension.nil? && !@index_created

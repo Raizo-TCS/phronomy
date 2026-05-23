@@ -885,7 +885,7 @@ RSpec.describe "Agent static_knowledge caching (issue #127)" do
       @fetch_count = 0
     end
 
-    def fetch(query: nil)
+    def fetch(query: nil, cancellation_token: nil)
       @fetch_count += 1
       [{content: @text, metadata: {}}]
     end

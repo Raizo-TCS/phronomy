@@ -213,4 +213,18 @@ RSpec.describe Phronomy::VectorStore::InMemory do
       end
     end
   end
+
+  describe "CancellationToken propagation (#242)" do
+    let(:cancelled_token) { Phronomy::CancellationToken.new.tap(&:cancel!) }
+
+    it "#add raises CancellationError when token is cancelled" do
+      expect { store.add(id: "x", embedding: [1.0, 0.0], cancellation_token: cancelled_token) }
+        .to raise_error(Phronomy::CancellationError)
+    end
+
+    it "#search raises CancellationError when token is cancelled" do
+      expect { store.search(query_embedding: [1.0, 0.0], cancellation_token: cancelled_token) }
+        .to raise_error(Phronomy::CancellationError)
+    end
+  end
 end

@@ -86,3 +86,24 @@ RSpec.describe Phronomy::KnowledgeSource::EntityKnowledge do
     end
   end
 end
+
+RSpec.describe "KnowledgeSource CancellationToken propagation (#242)" do
+  let(:cancelled_token) do
+    Phronomy::CancellationToken.new.tap(&:cancel!)
+  end
+
+  it "StaticKnowledge#fetch raises CancellationError when token is cancelled" do
+    ks = Phronomy::KnowledgeSource::StaticKnowledge.new("some text")
+    expect { ks.fetch(cancellation_token: cancelled_token) }.to raise_error(Phronomy::CancellationError)
+  end
+
+  it "EntityKnowledge#fetch raises CancellationError when token is cancelled" do
+    ks = Phronomy::KnowledgeSource::EntityKnowledge.new
+    expect { ks.fetch(cancellation_token: cancelled_token) }.to raise_error(Phronomy::CancellationError)
+  end
+
+  it "KnowledgeSource::Base#fetch raises CancellationError when token is cancelled" do
+    ks = Phronomy::KnowledgeSource::Base.new
+    expect { ks.fetch(cancellation_token: cancelled_token) }.to raise_error(Phronomy::CancellationError)
+  end
+end
