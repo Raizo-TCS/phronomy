@@ -91,22 +91,51 @@ module Phronomy
         @tracker.context = @ctx
         (@entry_actions[@current_state] || []).each do |c|
           result = c.call(@ctx)
-          @ctx = result if result.is_a?(Phronomy::WorkflowContext)
+          if result.is_a?(Phronomy::Task)
+            # Awaitable action: spawn a thread to await without blocking EventLoop.
+            @tracker.async_pending = true
+            ctx_ref = @ctx
+            session_id = @id
+            Thread.new do
+              begin
+                task_result = result.await
+                if task_result.is_a?(Phronomy::WorkflowContext)
+                  event_loop.post(Event.new(type: :action_completed, target_id: session_id, payload: task_result))
+                else
+                  event_loop.post(Event.new(type: :state_completed, target_id: session_id, payload: nil))
+                end
+              rescue => e
+                event_loop.post(Event.new(type: :error, target_id: session_id, payload: e))
+              end
+            end
+            break # Only one async action at a time per state
+          else
+            @ctx = result if result.is_a?(Phronomy::WorkflowContext)
+          end
         end
         @tracker.context = @ctx
-        advance_or_halt
+        advance_or_halt unless @tracker.async_pending
       end
     rescue => e
       finish_with_error(e)
     end
 
     # Processes an event dispatched from EventLoop.
-    # Called for :state_completed and all user-defined external events.
+    # Called for :state_completed, :action_completed, and all user-defined external events.
     #
     # @param event [Phronomy::Event]
     # @api private
     def handle(event)
       return if @done
+
+      if event.type == :action_completed
+        # An awaitable entry action completed: update context and advance.
+        @ctx = event.payload if event.payload.is_a?(Phronomy::WorkflowContext)
+        @tracker.context = @ctx
+        @tracker.async_pending = false  # Reset flag set by start or fire_and_advance!
+        advance_or_halt
+        return
+      end
 
       fire_and_advance!(event.type)
     rescue => e
@@ -129,6 +158,15 @@ module Phronomy
       # When next_phase == @current_state, no transition matched → treat as terminal.
       @current_state = (next_phase == @current_state) ? FINISH : next_phase
       @step += 1
+
+      # If an entry action returned a Task, the after_transition callback set
+      # async_pending = true and spawned a thread. Skip advance_or_halt — the
+      # background thread will post :action_completed or :state_completed.
+      if @tracker.async_pending
+        @tracker.async_pending = false
+        return
+      end
+
       advance_or_halt
     end
 

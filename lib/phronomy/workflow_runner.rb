@@ -211,7 +211,12 @@ module Phronomy
         # The entry point has no prior transition, so we invoke its entry actions directly.
         @entry_actions[current_state]&.each do |c|
           result = c.call(ctx)
-          ctx = result if result.is_a?(Phronomy::WorkflowContext)
+          if result.is_a?(Phronomy::Task)
+            task_result = result.await
+            ctx = task_result if task_result.is_a?(Phronomy::WorkflowContext)
+          else
+            ctx = result if result.is_a?(Phronomy::WorkflowContext)
+          end
         end
         tracker.context = ctx
       end
@@ -307,6 +312,11 @@ module Phronomy
         # Holds the current WorkflowContext so guards and callbacks can read it.
         attr_accessor :context
 
+        # Set to true by an entry action that returned an awaitable Task.
+        # When true, FSMSession skips the automatic advance_or_halt step and
+        # waits for the async worker thread to post a state_completed event back.
+        attr_accessor :async_pending
+
         state_machine :phase, initial: entry do
           all_states.each { |s| state s }
 
@@ -347,7 +357,44 @@ module Phronomy
             callables.each do |callable|
               after_transition to: state_name do |machine|
                 result = callable.call(machine.context)
-                machine.context = result if result.is_a?(Phronomy::WorkflowContext)
+                if result.is_a?(Phronomy::Task)
+                  if Phronomy.configuration.event_loop
+                    # EventLoop mode: await in a background thread so the EventLoop
+                    # thread is not blocked. Signal async_pending so FSMSession
+                    # skips the automatic advance_or_halt step.
+                    machine.async_pending = true
+                    ctx_ref = machine.context
+                    thread_id = ctx_ref.thread_id
+                    Thread.new do
+                      begin
+                        task_result = result.await
+                        if task_result.is_a?(Phronomy::WorkflowContext)
+                          Phronomy::EventLoop.instance.post(
+                            Phronomy::Event.new(
+                              type: :action_completed,
+                              target_id: thread_id,
+                              payload: task_result
+                            )
+                          )
+                        else
+                          Phronomy::EventLoop.instance.post(
+                            Phronomy::Event.new(type: :state_completed, target_id: thread_id, payload: nil)
+                          )
+                        end
+                      rescue => e
+                        Phronomy::EventLoop.instance.post(
+                          Phronomy::Event.new(type: :error, target_id: thread_id, payload: e)
+                        )
+                      end
+                    end
+                  else
+                    # Non-EventLoop mode: block synchronously on the task result.
+                    task_result = result.await
+                    machine.context = task_result if task_result.is_a?(Phronomy::WorkflowContext)
+                  end
+                else
+                  machine.context = result if result.is_a?(Phronomy::WorkflowContext)
+                end
               end
             end
           end
