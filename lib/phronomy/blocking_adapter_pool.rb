@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "timeout"
-
 module Phronomy
   # A bounded, observable thread pool for blocking I/O operations.
   #
@@ -44,23 +42,42 @@ module Phronomy
       end
 
       # Blocks until the operation completes and returns its value.
-      # Re-raises any error from the block, including {Phronomy::TimeoutError}
-      # and {Phronomy::CancellationError}.
+      # If a +timeout+ was given to {BlockingAdapterPool#submit}, the caller
+      # stops waiting after that many seconds and a {Phronomy::TimeoutError}
+      # is raised.  The worker thread is NOT interrupted — it runs to
+      # completion on its own, which avoids the data-corruption risk of
+      # async +Thread#raise+ from +Timeout.timeout+.
       #
       # @return [Object]
       # @raise [Exception]
       def await
-        @mutex.synchronize { @cond.wait(@mutex) until @done }
+        if @timeout
+          deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + @timeout
+          @mutex.synchronize do
+            until @done
+              remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+              if remaining <= 0
+                @abandoned = true
+                @on_abandoned&.call
+                raise Phronomy::TimeoutError, "blocking operation timed out after #{@timeout}s"
+              end
+              @cond.wait(@mutex, remaining)
+            end
+          end
+        else
+          @mutex.synchronize { @cond.wait(@mutex) until @done }
+        end
         raise @error if @error
 
         @value
       end
 
       # @api private
-      def initialize(block, timeout: nil, cancellation_token: nil)
+      def initialize(block, timeout: nil, cancellation_token: nil, on_abandoned: nil)
         @block              = block
         @timeout            = timeout
         @cancellation_token = cancellation_token
+        @on_abandoned       = on_abandoned
         @value              = nil
         @error              = nil
         @done               = false
@@ -80,17 +97,13 @@ module Phronomy
           return
         end
 
+        # Do NOT use Timeout.timeout here — it delivers an async Thread#raise
+        # that can corrupt external library state (mutexes, C extensions, etc.).
+        # Timeout enforcement is handled cooperatively in #await instead.
+        # Each blocking library (Net::HTTP, pg, redis, etc.) should set its
+        # own native connection/read timeouts.
         begin
-          if @timeout
-            result = ::Timeout.timeout(@timeout, Phronomy::TimeoutError,
-              "blocking operation timed out after #{@timeout}s") { @block.call }
-            complete_with_value!(result)
-          else
-            complete_with_value!(@block.call)
-          end
-        rescue Phronomy::TimeoutError => e
-          @abandoned = true
-          complete_with_error!(e)
+          complete_with_value!(@block.call)
         rescue => e
           complete_with_error!(e)
         end
@@ -145,7 +158,8 @@ module Phronomy
     def submit(timeout: nil, cancellation_token: nil, on_full: :wait, full_timeout: nil, &block)
       raise Phronomy::PoolShutdownError, "pool has been shut down" if @shutdown
 
-      op = PendingOperation.new(block, timeout: timeout, cancellation_token: cancellation_token)
+      op = PendingOperation.new(block, timeout: timeout, cancellation_token: cancellation_token,
+        on_abandoned: timeout ? -> { @mutex.synchronize { @abandoned_count += 1 } } : nil)
       case on_full
       when :raise
         begin
@@ -244,8 +258,7 @@ module Phronomy
           @active_count -= 1
 
           if op.abandoned?
-            @abandoned_count += 1
-            @logger&.warn { "BlockingAdapterPool: operation abandoned after timeout" }
+            @logger&.warn { "BlockingAdapterPool: worker finished operation after caller timed out" }
           end
 
           @total_wait_ns    += (op.wait_time * 1_000_000_000).to_i

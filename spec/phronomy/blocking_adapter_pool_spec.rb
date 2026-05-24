@@ -53,6 +53,32 @@ RSpec.describe Phronomy::BlockingAdapterPool do
     end
   end
 
+  # Issue #287 — Timeout.timeout uses async Thread#raise and can corrupt
+  # library state mid-call.  The pool must NOT use Timeout.timeout; instead,
+  # #await enforces the deadline and the worker thread is allowed to run to
+  # completion on its own.
+  describe "timeout safety (Issue #287 — no Timeout.timeout)", :issue_287 do
+    it "does not interrupt the worker thread when the caller times out" do
+      mutex    = Mutex.new
+      done_flag = false
+
+      # Block takes 0.15 s but the caller timeout is only 0.05 s.
+      # With Timeout.timeout the sleep would be killed by async Thread#raise
+      # and done_flag would never be set to true.
+      op = pool.submit(timeout: 0.05) do
+        sleep 0.15
+        mutex.synchronize { done_flag = true }
+        :completed
+      end
+
+      expect { op.await }.to raise_error(Phronomy::TimeoutError)
+
+      # Worker thread must be allowed to finish on its own; wait a bit longer.
+      sleep 0.3
+      expect(mutex.synchronize { done_flag }).to be(true)
+    end
+  end
+
   describe "cancellation" do
     it "raises CancellationError when the token is already cancelled" do
       token = Phronomy::CancellationToken.new
