@@ -54,6 +54,22 @@ module Phronomy
   # Separate from TimeoutError (deadline exceeded) — this is an intentional stop.
   class CancellationError < Error; end
 
+  # Raised when {Agent#invoke} (a synchronous, blocking call) is attempted from
+  # inside an active scheduler task and +strict_runtime_guards+ is enabled.
+  #
+  # Calling a blocking invocation from within a scheduler task stalls the
+  # scheduler until the inner invocation completes, preventing other tasks from
+  # making progress (hidden deadlock risk).  Use {Agent#invoke_async} followed by
+  # +#await+ inside scheduler tasks instead.
+  #
+  # This error is only raised when:
+  #   Phronomy.configure { |c| c.strict_runtime_guards = true }
+  #
+  # By default a warning is logged and execution continues.
+  #
+  # @see Phronomy::Runtime.in_scheduler_context?
+  class SchedulerReentrancyError < Error; end
+
   # Raised by {Phronomy::GeneratorVerifier#invoke} when +raise_if_untrusted: true+
   # and the pipeline's combined confidence score falls below the configured threshold.
   #

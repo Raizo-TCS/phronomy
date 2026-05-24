@@ -12,9 +12,11 @@
       "before_completion=",
       "context_version_cache",
       "invoke",
+      "invoke_async",
       "on_approval_required",
       "resume",
       "run_as_child",
+      "scope_policy=",
       "stream",
       "trace"
     ],
@@ -55,6 +57,7 @@
     "type": "class",
     "public_instance_methods": [
       "call",
+      "call_async",
       "description",
       "execute",
       "name",
@@ -68,6 +71,8 @@
       "_sleep_proc",
       "_sleep_proc=",
       "description",
+      "execution_mode",
+      "max_result_size",
       "on_error",
       "on_schema_error",
       "param",
@@ -77,6 +82,7 @@
       "params",
       "params_schema_definition",
       "provider_params",
+      "redact_params",
       "requires_approval",
       "retry_on",
       "retry_policies",
@@ -91,6 +97,7 @@
     "public_instance_methods": [
       "batch",
       "invoke",
+      "invoke_async",
       "resume",
       "send_event",
       "stream",
@@ -151,9 +158,11 @@
       "before_completion=",
       "context_version_cache",
       "invoke",
+      "invoke_async",
       "on_approval_required",
       "resume",
       "run_as_child",
+      "scope_policy=",
       "stream",
       "trace"
     ],
@@ -204,9 +213,11 @@
       "dispatch_parallel",
       "fan_out",
       "invoke",
+      "invoke_async",
       "on_approval_required",
       "resume",
       "run_as_child",
+      "scope_policy=",
       "stream",
       "subagent",
       "trace"
@@ -219,6 +230,7 @@
       "_retry_policy",
       "_sleep_proc",
       "_sleep_proc=",
+      "_subagent_tool_classes",
       "before_completion",
       "cache_instructions",
       "context_overhead",
@@ -292,9 +304,14 @@
     "type": "class",
     "public_instance_methods": [
       "add",
+      "add_async",
       "clear",
+      "clear_async",
       "remove",
-      "search"
+      "remove_async",
+      "search",
+      "search_async",
+      "size"
     ],
     "public_class_methods": []
   },
@@ -303,9 +320,13 @@
     "type": "class",
     "public_instance_methods": [
       "add",
+      "add_async",
       "clear",
+      "clear_async",
       "remove",
+      "remove_async",
       "search",
+      "search_async",
       "size"
     ],
     "public_class_methods": []
@@ -314,7 +335,8 @@
     "name": "Phronomy::Embeddings::Base",
     "type": "class",
     "public_instance_methods": [
-      "embed"
+      "embed",
+      "embed_async"
     ],
     "public_class_methods": []
   },
@@ -323,6 +345,7 @@
     "type": "class",
     "public_instance_methods": [
       "fetch",
+      "fetch_async",
       "static?"
     ],
     "public_class_methods": []
@@ -332,6 +355,7 @@
     "type": "class",
     "public_instance_methods": [
       "fetch",
+      "fetch_async",
       "static?"
     ],
     "public_class_methods": []
@@ -341,6 +365,7 @@
     "type": "class",
     "public_instance_methods": [
       "fetch",
+      "fetch_async",
       "static?"
     ],
     "public_class_methods": []

@@ -59,8 +59,10 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **`PromptInjectionGuardrail`** — Built-in `InputGuardrail` subclass that detects prompt-injection patterns; usable standalone or as part of a guardrail chain | Beta |
 | **`Tool::Base.redact_params` / `.max_result_size`** — Class-level DSL: `redact_params` masks parameter values in log/trace output; `max_result_size` truncates oversized tool results before they reach the LLM | Beta |
 | **`Phronomy::Metrics`** — `Phronomy::Metrics.snapshot` returns task-tree and pool counters; task-centric keys: `active_agent_tasks`, `active_tool_tasks`, `active_workflow_tasks`, `active_rag_tasks`, `active_llm_tasks`, `task_wait_time_p50_ms`, `task_wait_time_p95_ms`, `task_run_time_p50_ms`, `task_run_time_p95_ms`, `cancelled_tasks`, `failed_tasks`, `non_yield_duration_max_ms`; pool/event-loop keys remain for backward compatibility; `Runtime#task_snapshot` exposes task-centric metrics directly | Beta |
-| **`Phronomy::Diagnostics`** — Snapshot of scheduler internals for debug/monitoring; `SchedulerReentrancyError` raised on invalid re-entrant scheduler use | Experimental |
-| **`Phronomy::Testing::FakeClock` / `FakeScheduler`** — Test helpers for deterministic concurrency specs: `FakeClock#advance(seconds)` controls time; `FakeScheduler#flush` / `#drain` drives task completion synchronously | Experimental |
+| **`Phronomy::Diagnostics`** — Snapshot of scheduler internals for debug/monitoring; `SchedulerReentrancyError` raised on invalid re-entrant scheduler use; `Runtime.in_scheduler_context?` returns `true` when called from inside a scheduler task | Experimental |
+| **`Phronomy::Testing::FakeClock` / `FakeScheduler` / `SchedulerHelpers`** — Test helpers for deterministic concurrency specs: `FakeClock#advance(seconds)` controls time; `FakeScheduler` runs tasks synchronously and records `event_log`; `FakeScheduler#assert_order` / `#assert_cancelled` for ordering assertions; `FakeClock#advance_to_next_timer` fires the next pending callback; `Testing::SchedulerHelpers#with_fake_scheduler` replaces the global Runtime for the duration of a block | Beta |
+| **`Configuration#runtime_backend`** — `:thread` (default, uses `ThreadScheduler`) or `:deterministic` (uses `FakeScheduler`; for tests that must not create new Threads) | Beta |
+| **`Configuration#strict_runtime_guards`** — When `true`, calling `Agent#invoke` from inside a scheduler task raises `SchedulerReentrancyError`; when `false` (default) a warning is logged instead | Beta |
 
 ## Installation
 
@@ -552,6 +554,8 @@ Phronomy.configure do |c|
   c.trace_pii                       = false # default; set to true only when trace data contains no PII
   c.logger                          = nil   # optional; any object responding to #warn (e.g. Rails.logger)
   c.event_loop_stop_grace_seconds   = 5     # seconds to wait for sessions to drain on EventLoop#stop(drain: true)
+  c.runtime_backend                 = :thread        # :thread (default) or :deterministic (tests)
+  c.strict_runtime_guards           = false          # when true, raises on invoke-inside-task
 end
 ```
 
@@ -562,6 +566,64 @@ end
 > responses and tool results) are replaced with `[REDACTED]` in trace spans.
 > The default is `false` (PII protection enabled). Set to `true` only when
 > trace data does not contain sensitive information.
+
+## Sync vs Async API
+
+Phronomy provides both synchronous and asynchronous invocation APIs.
+Understanding when to use each prevents scheduler stalls and hidden deadlocks.
+
+| Context | Recommended API |
+|---------|----------------|
+| Top-level application code, Rails controller, background job | `agent.invoke(input)` — blocks the calling thread until done |
+| Inside a `Runtime#spawn` block, `TaskGroup`, Workflow action, Tool `execute` | `agent.invoke_async(input).await` — non-blocking within the scheduler |
+
+### Why this matters
+
+`invoke` is a synchronous wrapper that calls `invoke_async` and then _blocks_ the calling
+thread until the task completes. When called from **inside** an active scheduler task, the
+calling task blocks the scheduler thread, preventing other tasks from making progress — a
+hidden deadlock when all scheduler threads are occupied.
+
+### Runtime guard
+
+Phronomy detects this pattern automatically:
+
+```ruby
+# Default (soft mode): logs a warning and continues
+Phronomy.configure { |c| c.strict_runtime_guards = false }
+
+# Strict mode: raises SchedulerReentrancyError immediately
+Phronomy.configure { |c| c.strict_runtime_guards = true }
+```
+
+You can also query the current context directly:
+
+```ruby
+Phronomy::Runtime.in_scheduler_context?  # => true if called from inside a task
+```
+
+### Migration: invoke → invoke_async
+
+```ruby
+# Before (blocks scheduler if called from inside a task)
+result = my_agent.invoke("Hello")
+
+# After (safe inside tasks and TaskGroups)
+result = my_agent.invoke_async("Hello").await
+```
+
+### Deterministic test backend
+
+For unit tests that must not create new Threads:
+
+```ruby
+Phronomy.configure { |c| c.runtime_backend = :deterministic }
+# or per-example using SchedulerHelpers:
+include Phronomy::Testing::SchedulerHelpers
+with_fake_scheduler do |sched|
+  # all spawns run synchronously; sched.event_log records every lifecycle event
+end
+```
 
 ## Context Management
 

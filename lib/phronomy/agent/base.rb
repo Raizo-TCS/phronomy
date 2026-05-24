@@ -562,9 +562,16 @@ module Phronomy
           # against itself when using a cooperative backend.  Use invoke_async
           # instead to compose agents without introducing a blocking wait.
           if Phronomy::Task.current
-            raise Phronomy::SchedulerReentrancyError,
-              "Cannot call #{self.class.name}#invoke from inside a scheduler task. " \
-              "Use invoke_async instead."
+            msg = "#{self.class.name}#invoke called from inside a scheduler task. " \
+              "This blocks the scheduler until the inner invocation completes, preventing " \
+              "other tasks from making progress. Use invoke_async + await instead."
+            if Phronomy.configuration.strict_runtime_guards
+              raise Phronomy::SchedulerReentrancyError, msg
+            elsif Phronomy.configuration.logger
+              Phronomy.configuration.logger.warn(msg)
+            else
+              Kernel.warn("[phronomy] WARNING: #{msg}")
+            end
           end
           invoke_async(input, messages: messages, thread_id: thread_id, config: config).await
         end

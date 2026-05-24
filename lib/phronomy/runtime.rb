@@ -30,9 +30,23 @@ module Phronomy
   #   expect(task.await).to eq(42)
   class Runtime
     # Returns the process-wide default Runtime.
+    #
+    # Auto-creates an instance using the scheduler backend specified by
+    # +Phronomy.configuration.runtime_backend+:
+    # - +:thread+ (default) — {ThreadScheduler}
+    # - +:deterministic+ — {FakeScheduler}
+    #
     # @return [Runtime]
     def self.instance
-      @instance ||= new
+      @instance ||= begin
+        scheduler = case Phronomy.configuration.runtime_backend
+        when :deterministic
+          FakeScheduler.new
+        else
+          ThreadScheduler.new
+        end
+        new(scheduler: scheduler)
+      end
     end
 
     # Replaces the process-wide default Runtime.  Useful in tests.
@@ -40,6 +54,20 @@ module Phronomy
     # @return [Runtime]
     def self.instance=(runtime)
       @instance = runtime
+    end
+
+    # Returns +true+ when the calling thread is executing inside an active
+    # scheduler task (i.e. {Task.current} is non-nil).  Code running inside
+    # a {Runtime#spawn} block is always in a scheduler context.
+    #
+    # Use this to detect potential scheduler-blocking calls:
+    #   if Phronomy::Runtime.in_scheduler_context?
+    #     Phronomy.configuration.logger&.warn("blocking call inside scheduler task")
+    #   end
+    #
+    # @return [Boolean]
+    def self.in_scheduler_context?
+      !Task.current.nil?
     end
 
     # The scheduler backing this runtime instance.

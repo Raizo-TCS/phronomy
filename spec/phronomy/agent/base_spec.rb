@@ -183,6 +183,13 @@ RSpec.describe Phronomy::Agent::Base do
       end.new
     end
 
+    around do |ex|
+      Phronomy.configure { |c| c.strict_runtime_guards = true }
+      ex.run
+    ensure
+      Phronomy.reset_configuration!
+    end
+
     it "raises SchedulerReentrancyError when called from inside a Task" do
       error = nil
       Phronomy::Task.spawn do
@@ -197,6 +204,25 @@ RSpec.describe Phronomy::Agent::Base do
     it "does not raise when called outside a Task" do
       allow_any_instance_of(Phronomy::Agent::Base).to receive(:_invoke_impl).and_return({output: "ok"})
       expect { agent.invoke("hi") }.not_to raise_error
+    end
+
+    context "when strict_runtime_guards is false (default)" do
+      around do |ex|
+        Phronomy.configure { |c| c.strict_runtime_guards = false }
+        ex.run
+      ensure
+        Phronomy.reset_configuration!
+      end
+
+      it "logs a warning instead of raising" do
+        logged = nil
+        fake_logger = double("logger")
+        allow(fake_logger).to receive(:warn) { |msg| logged = msg }
+        Phronomy.configure { |c| c.logger = fake_logger }
+        allow_any_instance_of(Phronomy::Agent::Base).to receive(:_invoke_impl).and_return({output: "ok"})
+        Phronomy::Task.spawn { agent.invoke("hi") }.await
+        expect(logged).to include("invoke_async")
+      end
     end
   end
 

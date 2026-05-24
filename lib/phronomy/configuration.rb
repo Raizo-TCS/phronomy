@@ -153,6 +153,27 @@ module Phronomy
     # @return [Numeric]
     attr_accessor :starvation_threshold_ms
 
+    # Scheduler backend to use for new {Phronomy::Runtime} instances.
+    #
+    # | Value | Scheduler | Typical use |
+    # |-------|-----------|-------------|
+    # | +:thread+ | {Runtime::ThreadScheduler} | Production (default) |
+    # | +:deterministic+ | {Runtime::FakeScheduler} | Unit tests |
+    #
+    # When this setting is changed, the change only takes effect on the NEXT
+    # call to {Runtime.instance} that auto-creates a new instance (i.e. after the
+    # previous instance has been replaced or reset).  To replace the current
+    # instance immediately call +Phronomy::Runtime.instance = nil+ first.
+    #
+    # @return [:thread, :deterministic]
+    attr_accessor :runtime_backend
+
+    # When +true+, calling {Agent#invoke} from inside a scheduler task
+    # raises {SchedulerReentrancyError}.  When +false+ (default), a warning
+    # is logged instead so that existing callers have time to migrate.
+    # @return [Boolean]
+    attr_accessor :strict_runtime_guards
+
     def initialize
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new
@@ -173,6 +194,8 @@ module Phronomy
       @max_concurrent_rag_fetches = nil
       @max_concurrent_vector_searches = nil
       @starvation_threshold_ms = 50
+      @runtime_backend = :thread
+      @strict_runtime_guards = false
     end
   end
 end

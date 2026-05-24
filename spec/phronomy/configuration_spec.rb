@@ -78,4 +78,30 @@ RSpec.describe "Phronomy.configure" do
     config = Phronomy::Configuration.new
     expect(config.trace_pii).to be false
   end
+
+  # Issue #313: runtime_backend configuration
+  describe "runtime_backend" do
+    it "defaults to :thread" do
+      expect(Phronomy::Configuration.new.runtime_backend).to eq(:thread)
+    end
+
+    it "can be set to :deterministic" do
+      config = Phronomy::Configuration.new
+      config.runtime_backend = :deterministic
+      expect(config.runtime_backend).to eq(:deterministic)
+    end
+  end
+
+  # Issue #312: strict_runtime_guards configuration
+  describe "strict_runtime_guards" do
+    it "defaults to false" do
+      expect(Phronomy::Configuration.new.strict_runtime_guards).to be(false)
+    end
+
+    it "can be set to true" do
+      config = Phronomy::Configuration.new
+      config.strict_runtime_guards = true
+      expect(config.strict_runtime_guards).to be(true)
+    end
+  end
 end

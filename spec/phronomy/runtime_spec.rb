@@ -172,4 +172,47 @@ RSpec.describe Phronomy::Runtime do
       expect(task.status).to eq(:completed)
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Runtime.in_scheduler_context? (Issue #312)
+  # ---------------------------------------------------------------------------
+
+  describe ".in_scheduler_context?" do
+    it "returns false when called outside any task" do
+      expect(described_class.in_scheduler_context?).to be(false)
+    end
+
+    it "returns true when called from inside a spawned task" do
+      result = nil
+      runtime = described_class.new(scheduler: described_class::FakeScheduler.new)
+      runtime.spawn { result = described_class.in_scheduler_context? }
+      expect(result).to be(true)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Runtime.instance respects runtime_backend (Issue #313)
+  # ---------------------------------------------------------------------------
+
+  describe ".instance respects runtime_backend configuration" do
+    around do |ex|
+      Phronomy.reset_configuration!
+      original_instance = described_class.instance_variable_get(:@instance)
+      described_class.instance_variable_set(:@instance, nil)
+      ex.run
+    ensure
+      Phronomy.reset_configuration!
+      described_class.instance_variable_set(:@instance, original_instance)
+    end
+
+    it "uses ThreadScheduler by default (:thread backend)" do
+      Phronomy.configure { |c| c.runtime_backend = :thread }
+      expect(described_class.instance.scheduler).to be_a(Phronomy::Runtime::ThreadScheduler)
+    end
+
+    it "uses FakeScheduler for :deterministic backend" do
+      Phronomy.configure { |c| c.runtime_backend = :deterministic }
+      expect(described_class.instance.scheduler).to be_a(Phronomy::Runtime::FakeScheduler)
+    end
+  end
 end
