@@ -63,6 +63,7 @@ module Phronomy
       # @param meta [Hash] additional metadata (e.g. task_id, user_id)
       # @yield [span] the active OTel span
       # @return [Object] the block's return value
+      # @api private
       def trace(name, input: nil, **meta)
         attrs = {}
         attrs["phronomy.input"] = input.to_s if input

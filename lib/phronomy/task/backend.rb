@@ -13,6 +13,7 @@ module Phronomy
     class Backend
       # @param task  [Task] the owning Task (used for status callbacks)
       # @param block [Proc] the work to execute
+      # @api private
       def initialize(task:, &block)
         @task = task
         @block = block
@@ -22,12 +23,14 @@ module Phronomy
       # Re-raises errors from the block.
       # @return [Object]
       # @raise [Exception]
+      # @api private
       def await
         raise NotImplementedError, "#{self.class}#await not implemented"
       end
 
       # Returns +true+ while execution is still ongoing.
       # @return [Boolean]
+      # @api private
       def alive?
         raise NotImplementedError, "#{self.class}#alive? not implemented"
       end
@@ -36,6 +39,7 @@ module Phronomy
       # Thread-based backends may use +Thread#raise+; cooperative backends
       # should mark the task cancelled and rely on {Task.checkpoint!}.
       # @return [self]
+      # @api private
       def cancel!
         raise NotImplementedError, "#{self.class}#cancel! not implemented"
       end
@@ -45,6 +49,7 @@ module Phronomy
       # matching +Thread#join+ semantics.
       # @param limit [Numeric, nil]
       # @return [Object, nil]
+      # @api private
       def join(limit = nil)
         raise NotImplementedError, "#{self.class}#join not implemented"
       end

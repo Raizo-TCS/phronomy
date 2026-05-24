@@ -41,6 +41,7 @@ module Phronomy
       #   and event timestamping.
       # @yield [scheduler, clock] the {Runtime::FakeScheduler} and the clock
       # @return [Object] the return value of the block
+      # @api private
       def with_fake_scheduler(clock: nil)
         scheduler = Phronomy::Runtime::FakeScheduler.new
         scheduler.clock = clock if clock

@@ -40,6 +40,7 @@ module Phronomy
 
       # @return [Object]
       # @raise [Exception]
+      # @api private
       def await
         @thread.join
         raise @error if @error
@@ -48,11 +49,13 @@ module Phronomy
       end
 
       # @return [Boolean]
+      # @api private
       def alive?
         @thread.alive?
       end
 
       # @return [self]
+      # @api private
       def cancel!
         @thread.raise(CancellationError, "Task cancelled") if @thread.alive?
         self
@@ -60,6 +63,7 @@ module Phronomy
 
       # @param limit [Numeric, nil]
       # @return [Thread, nil]
+      # @api private
       def join(limit = nil)
         @thread.join(limit)
       end

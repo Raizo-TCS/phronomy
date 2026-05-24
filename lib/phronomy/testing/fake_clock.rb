@@ -27,6 +27,7 @@ module Phronomy
       #
       # @param seconds [Numeric]
       # @return [self]
+      # @api private
       def advance(seconds)
         @mutex.synchronize do
           @now += seconds.to_f
@@ -40,6 +41,7 @@ module Phronomy
       # @param at [Numeric] logical time to fire
       # @yield called with no arguments when the clock reaches +at+
       # @return [self]
+      # @api private
       def at(at, &block)
         @mutex.synchronize { @callbacks << [at.to_f, block] }
         self
@@ -52,12 +54,14 @@ module Phronomy
       # @param seconds [Numeric] delay in logical seconds
       # @yield called when the clock reaches the scheduled time
       # @return [self]
+      # @api private
       def schedule(seconds:, &block)
         at(@now + seconds.to_f, &block)
       end
 
       # Returns the number of pending (un-fired) callbacks.
       # @return [Integer]
+      # @api private
       def pending_callbacks
         @mutex.synchronize { @callbacks.size }
       end
@@ -66,6 +70,7 @@ module Phronomy
       # there are no pending callbacks.
       #
       # @return [Float, nil]
+      # @api private
       def next_timer_at
         @mutex.synchronize { @callbacks.min_by { |(t, _)| t }&.first }
       end
@@ -74,6 +79,7 @@ module Phronomy
       # Raises +RuntimeError+ when there are no pending callbacks.
       #
       # @return [self]
+      # @api private
       def advance_to_next_timer
         target = next_timer_at
         raise "No pending timers to advance to" unless target
@@ -85,6 +91,7 @@ module Phronomy
       # Used by {Phronomy::Runtime::FakeScheduler#pending_timers}.
       #
       # @return [Array<Hash>] each entry: +{ fire_at:, description: nil }+
+      # @api private
       def pending_timer_entries
         @mutex.synchronize do
           @callbacks.sort_by { |(t, _)| t }.map { |(t, _)| {fire_at: t, description: nil} }

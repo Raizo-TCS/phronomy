@@ -23,6 +23,7 @@ module Phronomy
       # @param max_parallel_tools [Integer] maximum simultaneous tool executions
       # @param cancellation_token [Phronomy::CancellationToken, nil] token observed before each batch
       # @param opts [Hash] remaining kwargs forwarded to RubyLLM::Chat
+      # @api private
       def initialize(max_parallel_tools: 10, cancellation_token: nil, **opts)
         super(**opts)
         @max_parallel_tools = max_parallel_tools
@@ -72,7 +73,7 @@ module Phronomy
         #
         # Both Phronomy::Task and BlockingAdapterPool::PendingOperation support
         # #await, so results are collected uniformly below.
-        ct  = @cancellation_token
+        ct = @cancellation_token
         max = @max_parallel_tools
         thread_results = tool_calls.each_slice(max).flat_map do |batch|
           if ct&.cancelled?
@@ -142,7 +143,7 @@ module Phronomy
         end
 
         mode = tool.class.execution_mode
-        ct   = @cancellation_token
+        ct = @cancellation_token
 
         if mode == :cooperative
           tool.call(tool_call.arguments, cancellation_token: ct)

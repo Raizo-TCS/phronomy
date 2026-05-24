@@ -17,6 +17,7 @@ module Phronomy
       #
       # @param task  [Task]
       # @yieldreturn [Object]
+      # @api private
       def initialize(task:, &block)
         super
         @value = nil
@@ -42,6 +43,7 @@ module Phronomy
       # Returns the block's return value, or re-raises its exception.
       # @return [Object]
       # @raise [Exception]
+      # @api private
       def await
         raise @error if @error
 
@@ -51,12 +53,14 @@ module Phronomy
       # Always +false+ — block has already completed by the time the task
       # is visible to callers.
       # @return [Boolean]
+      # @api private
       def alive?
         false
       end
 
       # No-op: the block has already completed.
       # @return [self]
+      # @api private
       def cancel!
         self
       end
@@ -64,6 +68,7 @@ module Phronomy
       # Returns immediately — nothing to wait for.
       # @param limit [Numeric, nil] ignored
       # @return [self]
+      # @api private
       def join(_limit = nil)
         self
       end

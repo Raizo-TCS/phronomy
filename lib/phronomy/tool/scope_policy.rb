@@ -35,6 +35,7 @@ module Phronomy
       # @param scope [Symbol, nil]
       # @param _agent [Object]
       # @return [:allow, :approve, :reject]
+      # @api private
       def call(_tool_class, scope, _agent)
         return :allow if scope.nil? || ALWAYS_ALLOWED_SCOPES.include?(scope)
         return :approve if APPROVAL_REQUIRED_SCOPES.include?(scope)

@@ -68,6 +68,7 @@ module Phronomy
     # @param provider_limits [Hash, nil]
     # @param task_id [String, nil]
     # @param parent_task_id [String, nil]
+    # @api private
     def initialize(
       thread_id: nil,
       session_id: nil,
@@ -103,6 +104,7 @@ module Phronomy
     #
     # @param overrides [Hash] keyword arguments to override
     # @return [InvocationContext]
+    # @api private
     def merge(**overrides)
       InvocationContext.new(
         thread_id: overrides.fetch(:thread_id, @thread_id),
@@ -123,6 +125,7 @@ module Phronomy
 
     # Convenience: returns the cancellation token or a new never-cancelled token.
     # @return [CancellationToken]
+    # @api private
     def effective_cancellation_token
       @cancellation_token || CancellationToken.new
     end
@@ -136,6 +139,7 @@ module Phronomy
     # - When neither is set, returns +nil+.
     #
     # @return [CancellationToken, nil]
+    # @api private
     def effective_timeout_token
       return @cancellation_token if @cancellation_token
       return nil if @deadline.nil?

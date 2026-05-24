@@ -27,16 +27,19 @@ module Phronomy
     # wait for the result.
     class PendingOperation
       # @return [Boolean] true when the operation has finished (success or error)
+      # @api private
       def done?
         @mutex.synchronize { @done }
       end
 
       # @return [Boolean] true when the operation was abandoned due to timeout
+      # @api private
       def abandoned?
         @abandoned
       end
 
       # @return [Float] seconds spent in the queue before execution started
+      # @api private
       def wait_time
         @wait_time || 0.0
       end
@@ -58,6 +61,7 @@ module Phronomy
       # @raise [Phronomy::TimeoutError]
       # @raise [Phronomy::CancellationError]
       # @raise [Exception] error raised inside the submitted block
+      # @api private
       def await(timeout: nil, cancellation_token: nil)
         effective_timeout = [timeout, @timeout].compact.min
         effective_token = cancellation_token || @cancellation_token
@@ -106,6 +110,7 @@ module Phronomy
       #
       # @yield [result, error]
       # @return [self]
+      # @api private
       def on_complete(&callback)
         fire_args = nil
         @mutex.synchronize do
@@ -188,6 +193,7 @@ module Phronomy
     # @param queue_size [Integer] maximum pending operations waiting for a worker
     # @param name       [String, Symbol, nil] optional pool name used in thread labels
     # @param logger     [Logger, nil] optional logger for warnings
+    # @api private
     def initialize(pool_size: 10, queue_size: 100, name: nil, logger: nil)
       @pool_size = pool_size
       @queue_size = queue_size
@@ -213,6 +219,7 @@ module Phronomy
     # @raise [Phronomy::PoolShutdownError] when the pool has been shut down
     # @raise [Phronomy::BackpressureError] when +on_full: :raise+ and queue is full
     # @raise [Phronomy::TimeoutError] when +on_full: :timeout+ and wait exceeds +full_timeout+
+    # @api private
     def submit(timeout: nil, cancellation_token: nil, on_full: :wait, full_timeout: nil, &block)
       raise Phronomy::PoolShutdownError, "pool has been shut down" if @shutdown
 
@@ -247,6 +254,7 @@ module Phronomy
     #
     # @param drain_timeout [Numeric] seconds to wait for workers to finish
     # @return [self]
+    # @api private
     def shutdown(drain_timeout: 30)
       @shutdown = true
       @pool_size.times { @queue.push(:shutdown) }
@@ -257,16 +265,19 @@ module Phronomy
     # --- Metrics ----------------------------------------------------------
 
     # @return [Integer] number of operations currently executing on workers
+    # @api private
     def active_count
       @mutex.synchronize { @active_count }
     end
 
     # @return [Integer] number of operations waiting in the queue
+    # @api private
     def queue_depth
       @queue.size
     end
 
     # @return [Integer] number of operations that were abandoned due to timeout
+    # @api private
     def abandoned_count
       @mutex.synchronize { @abandoned_count }
     end
@@ -274,6 +285,7 @@ module Phronomy
     # Average time (in seconds) that completed operations spent in the queue
     # waiting for a worker.  Returns 0.0 when no operations have completed yet.
     # @return [Float]
+    # @api private
     def average_wait_seconds
       @mutex.synchronize do
         return 0.0 if @completed_count.zero?

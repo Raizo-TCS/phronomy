@@ -34,10 +34,11 @@ module Phronomy
         /you\s+are\s+now\s+(a|an)\b/i,
         /\bact\s+as\s+(a|an)\b/i,
         /\bpretend\s+(you\s+are|to\s+be)\b/i,
-        /\bdo\s+not\s+follow\s+(your|the)\s+instructions?\b/i,
+        /\bdo\s+not\s+follow\s+(your|the)\s+instructions?\b/i
       ].freeze
 
       # @param extra_patterns [Array<Regexp>] additional patterns to scan for
+      # @api private
       def initialize(extra_patterns: [])
         super()
         @patterns = DEFAULT_PATTERNS + extra_patterns
@@ -45,6 +46,7 @@ module Phronomy
 
       # Scans the input string for injection patterns.
       # @param input [String, Hash]
+      # @api private
       def check(input)
         text = input.is_a?(Hash) ? input.values.join(" ") : input.to_s
         @patterns.each do |pattern|

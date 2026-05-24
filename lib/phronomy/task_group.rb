@@ -30,6 +30,7 @@ module Phronomy
 
     # @param limit          [Integer, Float::INFINITY] maximum simultaneous active tasks
     # @param failure_policy [Symbol] one of {FAILURE_POLICIES} (default +:fail_fast+)
+    # @api private
     def initialize(limit: Float::INFINITY, failure_policy: :fail_fast)
       raise ArgumentError, "unknown failure_policy: #{failure_policy}" unless FAILURE_POLICIES.include?(failure_policy)
 
@@ -46,6 +47,7 @@ module Phronomy
     #
     # @yield block to execute concurrently
     # @return [Task] the spawned task
+    # @api private
     def spawn(&block)
       wait_for_slot!
 
@@ -70,6 +72,7 @@ module Phronomy
     #
     # @return [Array] results in spawn order (or successful-only for :skip_failed)
     # @raise [Exception] when any task failed (except :skip_failed)
+    # @api private
     def await_all
       tasks = @mutex.synchronize { @tasks.dup }
       return [] if tasks.empty?
@@ -102,6 +105,7 @@ module Phronomy
     # reset explicitly after all tasks are joined.
     #
     # @return [self]
+    # @api private
     def cancel_all!
       tasks = @mutex.synchronize { @tasks.dup }
       tasks.each(&:cancel!)
@@ -121,6 +125,7 @@ module Phronomy
 
     # Returns the number of currently executing child tasks.
     # @return [Integer]
+    # @api private
     def active_task_count
       @mutex.synchronize { @active }
     end

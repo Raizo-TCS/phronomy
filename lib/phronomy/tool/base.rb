@@ -429,6 +429,7 @@ module Phronomy
       # +"[REDACTED]"+.  Used for logging and tracing.
       # @param args [Hash]
       # @return [Hash]
+      # @api private
       def redacted_args(args)
         redacted = self.class.redact_params
         return args if redacted.empty?

@@ -22,6 +22,7 @@ module Phronomy
   class ConcurrencyGate
     # @param max_concurrent [Integer, nil] concurrency cap; nil = unlimited
     # @param name [Symbol, String, nil] human-readable label used in error messages
+    # @api private
     def initialize(max_concurrent:, name: nil)
       @max = max_concurrent
       @name = name
@@ -49,6 +50,7 @@ module Phronomy
     # @yield
     # @return block return value
     # @raise [Phronomy::BackpressureError] when +:reject+ or +:timeout+ fires
+    # @api private
     def acquire(on_full: :wait, timeout: nil, &block)
       return block.call if @max.nil?
 

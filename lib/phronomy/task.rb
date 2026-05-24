@@ -32,12 +32,14 @@ module Phronomy
     # Defaults to {ThreadBackend}.
     # Override in tests or to enable a cooperative scheduler backend.
     # @return [Class<Backend>]
+    # @api private
     def self.default_backend_class
       @default_backend_class || ThreadBackend
     end
 
     # Sets the process-wide default backend class.
     # @param klass [Class<Backend>]
+    # @api private
     def self.default_backend_class=(klass)
       @default_backend_class = klass
     end
@@ -45,6 +47,7 @@ module Phronomy
     # Returns the {Task} currently executing on this thread, or +nil+.
     # Returns +nil+ when called from outside a task-managed execution context.
     # @return [Task, nil]
+    # @api private
     def self.current
       Thread.current[:phronomy_current_task]
     end
@@ -90,6 +93,7 @@ module Phronomy
     # Safe to call from outside a task context (no-op when no current task).
     # @return [void]
     # @raise [CancellationError] if the current task has been cancelled
+    # @api private
     def self.checkpoint!
       ct = current
       return unless ct
@@ -105,6 +109,7 @@ module Phronomy
     # @param backend_class [Class<Backend>] backend to use
     # @yieldreturn [Object] the task result
     # @return [Task]
+    # @api private
     def self.spawn(name: nil, parent: current, backend_class: default_backend_class, &block)
       new(name: name, parent: parent, backend_class: backend_class, &block)
     end
@@ -131,6 +136,7 @@ module Phronomy
 
     # Returns the current lifecycle state.
     # @return [Symbol] one of {STATES}
+    # @api private
     def status
       @mutex.synchronize { @status }
     end
@@ -140,12 +146,14 @@ module Phronomy
     #
     # @return [Object] the result produced by the block
     # @raise [Exception] if the block raised an error
+    # @api private
     def await
       @backend.await
     end
 
     # Returns +true+ once the task has finished (success, error, or cancellation).
     # @return [Boolean]
+    # @api private
     def done?
       %i[completed failed cancelled].include?(status)
     end
@@ -154,6 +162,7 @@ module Phronomy
     # Sets status to :cancelled immediately so that even tasks that have not
     # started executing yet are correctly marked as cancelled after join.
     # @return [self]
+    # @api private
     def cancel!
       transition!(:cancelled)
       @backend.cancel!
@@ -167,12 +176,14 @@ module Phronomy
     #
     # @param limit [Numeric, nil] seconds to wait; nil waits indefinitely
     # @return [Object, nil]
+    # @api private
     def join(limit = nil)
       @backend.join(limit)
     end
 
     # Returns +true+ while the task's block is still executing.
     # @return [Boolean]
+    # @api private
     def alive?
       @backend.alive?
     end

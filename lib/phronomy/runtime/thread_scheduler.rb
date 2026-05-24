@@ -13,12 +13,14 @@ module Phronomy
       # @param name   [String, nil]
       # @param parent [Task, nil]
       # @return [Task]
+      # @api private
       def spawn(name:, parent:, &block)
         Task.spawn(name: name, parent: parent, &block)
       end
 
       # Yields the current thread's time slice to other runnable threads.
       # @return [void]
+      # @api private
       def yield
         Thread.pass
       end

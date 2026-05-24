@@ -14,14 +14,16 @@ module Phronomy
   class AsyncQueue
     # @param max_size [Integer, nil] optional upper bound on queue depth.
     #   When set, {#push} blocks the caller until a slot is available.
+    # @api private
     def initialize(max_size: nil)
-      @queue    = max_size ? SizedQueue.new(max_size) : Thread::Queue.new
+      @queue = max_size ? SizedQueue.new(max_size) : Thread::Queue.new
       @max_size = max_size
     end
 
     # Enqueues +item+.  Blocks when +max_size+ is set and the queue is full.
     # @param item [Object] value to enqueue
     # @return [self]
+    # @api private
     def push(item)
       @queue.push(item)
       self
@@ -32,6 +34,7 @@ module Phronomy
     # seconds.  (Requires Ruby 3.2+, which added +Thread::Queue#pop(timeout:)+.)
     # @param timeout [Numeric, nil] seconds to wait before returning nil
     # @return [Object, nil] the next item, or nil when timeout expires
+    # @api private
     def pop(timeout: nil)
       if timeout
         @queue.pop(timeout: timeout)
@@ -42,18 +45,21 @@ module Phronomy
 
     # Returns the current number of items in the queue.
     # @return [Integer]
+    # @api private
     def size
       @queue.size
     end
 
     # Returns +true+ when the queue contains no items.
     # @return [Boolean]
+    # @api private
     def empty?
       @queue.empty?
     end
 
     # Closes the queue.  Subsequent {#pop} calls raise +ClosedQueueError+.
     # @return [self]
+    # @api private
     def close
       @queue.close
       self

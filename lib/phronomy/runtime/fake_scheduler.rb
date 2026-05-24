@@ -62,6 +62,7 @@ module Phronomy
       # @param name   [String, nil]
       # @param parent [Task, nil]
       # @return [Task]
+      # @api private
       def spawn(name:, parent:, &block)
         _log_event(:spawned, name)
         task = Task.spawn(name: name, parent: parent, backend_class: Task::ImmediateBackend) do
@@ -90,6 +91,7 @@ module Phronomy
       # compatibility with cooperative scheduler interfaces.
       #
       # @return [self]
+      # @api private
       def tick
         self
       end
@@ -101,6 +103,7 @@ module Phronomy
       # @param max_ticks [Integer] safety bound (default: 1000)
       # @yield condition evaluated after each tick
       # @return [Boolean] +true+ if condition was satisfied
+      # @api private
       def tick_until(max_ticks: 1000)
         max_ticks.times do
           return true if yield
@@ -113,6 +116,7 @@ module Phronomy
       # {clock}.  Returns an empty array when no clock is set.
       #
       # @return [Array<Hash>] each entry: +{ fire_at:, description: }+
+      # @api private
       def pending_timers
         return [] unless @clock
 
@@ -125,6 +129,7 @@ module Phronomy
       #
       # @param names [Array<String, nil>] task names in expected order
       # @return [void]
+      # @api private
       def assert_order(*names)
         completed = @event_log.select { |e| e[:type] == :completed }.map { |e| e[:task_name] }
         indices = names.map { |n| completed.index(n) }
@@ -138,6 +143,7 @@ module Phronomy
       #
       # @param names [Array<String, nil>] task names expected to be cancelled
       # @return [void]
+      # @api private
       def assert_cancelled(*names)
         cancelled = @event_log.select { |e| e[:type] == :cancelled }.map { |e| e[:task_name] }
         missing = names.reject { |n| cancelled.include?(n) }

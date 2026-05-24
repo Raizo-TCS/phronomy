@@ -15,6 +15,7 @@ module Phronomy
       # @param clock [#call] zero-argument callable that returns the current
       #   monotonic time in seconds (defaults to +Process::CLOCK_MONOTONIC+).
       #   Override in tests to inject a fake clock.
+      # @api private
       def initialize(clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) })
         @clock = clock
         @heap = [] # [[fire_at, callback], ...]
@@ -30,6 +31,7 @@ module Phronomy
       # @param seconds [Numeric] delay before the callback fires
       # @yield called (in the timer thread) when the deadline is reached
       # @return [self]
+      # @api private
       def schedule(seconds:, &callback)
         fire_at = @clock.call + seconds.to_f
         @mutex.synchronize do
@@ -42,6 +44,7 @@ module Phronomy
       # Stop the background thread.  Pending (un-fired) callbacks are discarded.
       #
       # @return [self]
+      # @api private
       def shutdown
         @mutex.synchronize do
           @stopped = true
@@ -53,6 +56,7 @@ module Phronomy
 
       # Number of pending (not yet fired) callbacks.  Primarily for testing.
       # @return [Integer]
+      # @api private
       def pending_count
         @mutex.synchronize { @heap.size }
       end

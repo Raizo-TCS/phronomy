@@ -18,6 +18,7 @@ module Phronomy
       # @yield block to execute concurrently (or synchronously, depending on
       #   the concrete scheduler)
       # @return [Task]
+      # @api private
       def spawn(name:, parent:, &block)
         raise NotImplementedError, "#{self.class}#spawn is not implemented"
       end
@@ -28,6 +29,7 @@ module Phronomy
       # override with +Thread.pass+; fiber-based subclasses should switch to the
       # next runnable fiber.
       # @return [void]
+      # @api private
       def yield
         # no-op by default; subclasses override
       end

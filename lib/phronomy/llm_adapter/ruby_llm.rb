@@ -20,6 +20,7 @@ module Phronomy
       # @param message [String] user message
       # @param config  [Hash]   invocation config (not used directly by this impl)
       # @return [Object] RubyLLM response
+      # @api private
       def complete(chat, message, config: {})
         chat.ask(message)
       end
@@ -31,6 +32,7 @@ module Phronomy
       # @param config  [Hash]   invocation config
       # @yield [chunk] streaming chunk forwarded from +chat.ask+
       # @return [Object] RubyLLM response
+      # @api private
       def stream(chat, message, config: {}, &block)
         chat.ask(message, &block)
       end

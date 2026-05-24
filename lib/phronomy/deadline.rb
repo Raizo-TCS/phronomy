@@ -16,23 +16,27 @@ module Phronomy
     #
     # @param seconds [Numeric] seconds from now until expiry
     # @return [Deadline]
+    # @api private
     def self.in(seconds)
       new(Process.clock_gettime(Process::CLOCK_MONOTONIC) + seconds)
     end
 
     # @param monotonic_at [Float] absolute monotonic timestamp of expiry
+    # @api private
     def initialize(monotonic_at)
       @monotonic_at = monotonic_at
     end
 
     # Returns +true+ when the deadline has passed.
     # @return [Boolean]
+    # @api private
     def expired?
       Process.clock_gettime(Process::CLOCK_MONOTONIC) >= @monotonic_at
     end
 
     # Seconds remaining until expiry.  Returns 0 when already expired.
     # @return [Float]
+    # @api private
     def remaining_seconds
       remaining = @monotonic_at - Process.clock_gettime(Process::CLOCK_MONOTONIC)
       [remaining, 0.0].max
@@ -47,6 +51,7 @@ module Phronomy
     # @param timer_queue [Runtime::TimerQueue, nil] queue to register with;
     #   defaults to +Phronomy::Runtime.instance.timer_queue+
     # @return [self]
+    # @api private
     def attach_to(token, timer_queue: Phronomy::Runtime.instance.timer_queue)
       seconds = remaining_seconds
       return self if seconds <= 0

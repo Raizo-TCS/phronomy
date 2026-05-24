@@ -31,6 +31,7 @@ module Phronomy
       #
       # @param event [Object]
       # @return [self]
+      # @api private
       def post(event)
         @queue.push(event)
         self
@@ -41,10 +42,15 @@ module Phronomy
       # Returns the dispatched event, or +nil+ if the queue is empty.
       #
       # @return [Object, nil]
+      # @api private
       def tick
         return nil if @queue.empty?
 
-        event = @queue.pop(true) rescue nil
+        event = begin
+          @queue.pop(true)
+        rescue
+          nil
+        end
         return nil unless event
 
         @dispatched << event
@@ -58,6 +64,7 @@ module Phronomy
       #
       # @param max_ticks [Integer]
       # @return [Integer] number of events dispatched
+      # @api private
       def tick_until_idle(max_ticks: 1000)
         count = 0
         while !@queue.empty? && count < max_ticks
@@ -69,6 +76,7 @@ module Phronomy
 
       # Returns the number of events waiting to be dispatched.
       # @return [Integer]
+      # @api private
       def queue_depth
         @queue.size
       end
@@ -79,6 +87,7 @@ module Phronomy
       # @param klass [Class, :any]
       # @yield [event]
       # @return [self]
+      # @api private
       def on(klass, &block)
         @handlers[klass] = block
         self
@@ -86,6 +95,7 @@ module Phronomy
 
       # Returns true when the queue is empty.
       # @return [Boolean]
+      # @api private
       def idle?
         @queue.empty?
       end

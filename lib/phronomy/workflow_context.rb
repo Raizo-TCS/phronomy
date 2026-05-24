@@ -157,9 +157,10 @@ module Phronomy
     # No-op when EventLoop mode is disabled.
     # @raise [Phronomy::WorkflowContextOwnershipError] when called from a
     #   non-EventLoop thread in EventLoop mode.
+    # @api private
     def _assert_write_permitted!
       return unless defined?(Phronomy::EventLoop) &&
-                    Phronomy.configuration.event_loop
+        Phronomy.configuration.event_loop
       return if Phronomy::EventLoop.current?
 
       raise Phronomy::WorkflowContextOwnershipError,

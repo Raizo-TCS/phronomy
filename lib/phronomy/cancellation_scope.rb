@@ -33,6 +33,7 @@ module Phronomy
     #   the parent token is propagated to this scope's token via a callback
     #   (for explicit cancel) and/or the Runtime timer queue (for monotonic
     #   deadline expiry).  No polling thread is spawned.
+    # @api private
     def initialize(parent_token: nil)
       @token = Phronomy::CancellationToken.new
       @deadline = nil
@@ -60,6 +61,7 @@ module Phronomy
     #
     # @param seconds [Numeric] timeout duration
     # @return [self]
+    # @api private
     def deadline_in(seconds)
       @deadline = Phronomy::Deadline.in(seconds)
       @deadline.attach_to(@token)
@@ -68,12 +70,14 @@ module Phronomy
 
     # Cancels this scope immediately.
     # @return [void]
+    # @api private
     def cancel!
       @token.cancel!
     end
 
     # Returns +true+ if this scope has been cancelled.
     # @return [Boolean]
+    # @api private
     def cancelled?
       @token.cancelled?
     end
@@ -81,6 +85,7 @@ module Phronomy
     # Returns the remaining time in seconds before the deadline expires,
     # or +nil+ when no deadline is set.
     # @return [Float, nil]
+    # @api private
     def remaining_seconds
       @deadline&.remaining_seconds
     end
@@ -94,6 +99,7 @@ module Phronomy
     # @yield called when the operation times out
     # @raise [Phronomy::TimeoutError] when no block is given and a timeout occurs
     # @return [Object] the popped value
+    # @api private
     def pop_queue(queue, fallback_timeout: nil)
       timeout = @deadline&.remaining_seconds || fallback_timeout
       result = if timeout

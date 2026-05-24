@@ -68,6 +68,7 @@ module Phronomy
     # Lag is the wall-clock time between {#post} and the moment the event
     # is dequeued for dispatch.  Thread-safe.
     # @return [Float]
+    # @api private
     def last_lag_seconds
       @lag_mutex.synchronize { @last_lag_ns } / 1_000_000_000.0
     end
@@ -75,6 +76,7 @@ module Phronomy
     # Returns the maximum event-loop lag seen since the loop was started.
     # Thread-safe.
     # @return [Float]
+    # @api private
     def max_lag_seconds
       @lag_mutex.synchronize { @max_lag_ns } / 1_000_000_000.0
     end
@@ -83,6 +85,7 @@ module Phronomy
     # loop was started.  Returns 0.0 when no events have been dispatched.
     # Thread-safe.
     # @return [Float]
+    # @api private
     def average_lag_seconds
       @lag_mutex.synchronize do
         return 0.0 if @dispatch_count.zero?

@@ -37,6 +37,7 @@ module Phronomy
     # - +:deterministic+ — {FakeScheduler}
     #
     # @return [Runtime]
+    # @api private
     def self.instance
       @instance ||= begin
         scheduler = case Phronomy.configuration.runtime_backend
@@ -52,6 +53,7 @@ module Phronomy
     # Replaces the process-wide default Runtime.  Useful in tests.
     # @param runtime [Runtime]
     # @return [Runtime]
+    # @api private
     def self.instance=(runtime)
       @instance = runtime
     end
@@ -66,6 +68,7 @@ module Phronomy
     #   end
     #
     # @return [Boolean]
+    # @api private
     def self.in_scheduler_context?
       !Task.current.nil?
     end
@@ -75,6 +78,7 @@ module Phronomy
     attr_reader :scheduler
 
     # @param scheduler [Scheduler] execution backend (default: {ThreadScheduler})
+    # @api private
     def initialize(scheduler: ThreadScheduler.new)
       @scheduler = scheduler
       @task_mutex = Mutex.new
@@ -105,6 +109,7 @@ module Phronomy
     #
     # @param name [:agent, :tool, :workflow, :llm, :rag, :vector] resource name
     # @return [ConcurrencyGate]
+    # @api private
     def gate(name)
       @gate_mutex.synchronize do
         @gates[name.to_sym] ||= _build_gate(name.to_sym)
@@ -116,6 +121,7 @@ module Phronomy
     #
     # @param name [Symbol]
     # @return [void]
+    # @api private
     def reset_gate(name)
       @gate_mutex.synchronize { @gates.delete(name.to_sym) }
     end
@@ -136,6 +142,7 @@ module Phronomy
     # methods and Workflow actions to keep the scheduler responsive.
     #
     # @return [void]
+    # @api private
     def yield
       if (threshold = Phronomy.configuration.blocking_detect_threshold_ms)
         slice_start = Task.current_cpu_slice_start_ms
@@ -159,6 +166,7 @@ module Phronomy
     # (i.e. ran longer than +blocking_detect_threshold_ms+ without yielding).
     # Resets to 0 when the Runtime is recreated.
     # @return [Integer]
+    # @api private
     def tasks_waiting_over_threshold
       @starvation_mutex.synchronize { @tasks_waiting_over_threshold }
     end
@@ -178,6 +186,7 @@ module Phronomy
     #
     # @param every [Integer] yield once every N calls (default: 1000)
     # @return [void]
+    # @api private
     def yield_if_needed(every: 1000)
       # Delegate Thread.current access to Task so that runtime.rb stays outside
       # the Thread.current allowlist (Issue #302).
@@ -189,6 +198,7 @@ module Phronomy
     # @param limit          [Integer, Float::INFINITY] max simultaneous tasks
     # @param failure_policy [Symbol] one of :fail_fast, :collect_all, :skip_failed (default :fail_fast)
     # @return [TaskGroup]
+    # @api private
     def task_group(limit: Float::INFINITY, failure_policy: :fail_fast)
       TaskGroup.new(limit: limit, failure_policy: failure_policy)
     end
@@ -208,6 +218,7 @@ module Phronomy
     # @yield block to execute (concurrently or synchronously, depending on
     #   the configured scheduler)
     # @return [Task]
+    # @api private
     def spawn(name: nil, &block)
       type = _task_type(name)
       spawn_at = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
@@ -253,6 +264,7 @@ module Phronomy
     # | `non_yield_duration_max_ms` | max observed CPU-slice duration (ms) |
     #
     # @return [Hash{Symbol => Numeric}]
+    # @api private
     def task_snapshot
       @metrics_mutex.synchronize do
         active = @active_tasks_by_type.dup
@@ -289,6 +301,7 @@ module Phronomy
     # @param pool_size  [Integer] worker thread count (default: 10)
     # @param queue_size [Integer] max pending operations (default: 100)
     # @return [BlockingAdapterPool]
+    # @api private
     def blocking_io(pool_size: 10, queue_size: 100)
       @blocking_io ||= BlockingAdapterPool.new(name: :default, pool_size: pool_size, queue_size: queue_size)
     end
@@ -307,6 +320,7 @@ module Phronomy
     # @param size      [Integer] worker thread count (default: 10)
     # @param queue_size [Integer] max pending operations (default: 100)
     # @return [BlockingAdapterPool]
+    # @api private
     def pool(name, size: 10, queue_size: 100)
       @pool_mutex.synchronize do
         @pools[name.to_sym] ||= BlockingAdapterPool.new(
@@ -323,6 +337,7 @@ module Phronomy
     # spawning one-off sleep threads.  Lazily created on first access.
     #
     # @return [TimerQueue]
+    # @api private
     def timer_queue
       @timer_mutex.synchronize { @timer_queue ||= TimerQueue.new }
     end
@@ -339,6 +354,7 @@ module Phronomy
     # pending work items.
     #
     # @return [void]
+    # @api private
     def shutdown
       tasks = @task_mutex.synchronize { @tasks.dup }
       tasks.each do |t|

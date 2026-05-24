@@ -17,6 +17,7 @@ module Phronomy
       # @param config  [Hash]  the invocation config (e.g. +:cancellation_token+)
       # @return [Object] LLM response object
       # @raise [NotImplementedError]
+      # @api private
       def complete(chat, message, config: {})
         raise NotImplementedError, "#{self.class}#complete is not implemented"
       end
@@ -31,6 +32,7 @@ module Phronomy
       # @yield [chunk] streaming chunk from the LLM
       # @return [Object] LLM response object
       # @raise [NotImplementedError]
+      # @api private
       def stream(chat, message, config: {}, &block)
         raise NotImplementedError, "#{self.class}#stream is not implemented"
       end
@@ -43,6 +45,7 @@ module Phronomy
       # @param config  [Hash]  invocation config
       # @param pool    [BlockingAdapterPool] pool to submit to
       # @return [BlockingAdapterPool::PendingOperation]
+      # @api private
       def complete_async(chat, message, config: {}, pool: default_pool)
         token = config[:cancellation_token]
         timeout = config[:llm_timeout]
@@ -72,6 +75,7 @@ module Phronomy
       #   calling the block on the worker thread
       # @yield [chunk] streaming chunk — only used when +enqueue_to:+ is nil
       # @return [BlockingAdapterPool::PendingOperation]
+      # @api private
       def stream_async(chat, message, config: {}, pool: default_pool, enqueue_to: nil, &block)
         token = config[:cancellation_token]
         timeout = config[:llm_timeout]
