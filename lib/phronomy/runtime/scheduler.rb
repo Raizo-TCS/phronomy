@@ -21,6 +21,16 @@ module Phronomy
       def spawn(name:, parent:, &block)
         raise NotImplementedError, "#{self.class}#spawn is not implemented"
       end
+
+      # Cooperative yield point.
+      #
+      # Default implementation is a no-op.  Thread-based subclasses should
+      # override with +Thread.pass+; fiber-based subclasses should switch to the
+      # next runnable fiber.
+      # @return [void]
+      def yield
+        # no-op by default; subclasses override
+      end
     end
   end
 end

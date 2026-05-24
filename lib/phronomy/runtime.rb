@@ -53,6 +53,8 @@ module Phronomy
       @pool_mutex = Mutex.new
       @gates = {}
       @gate_mutex = Mutex.new
+      @starvation_mutex = Mutex.new
+      @tasks_waiting_over_threshold = 0
     end
 
     # Returns (or lazily creates) the {ConcurrencyGate} for the named resource.
@@ -76,6 +78,70 @@ module Phronomy
     # @return [void]
     def reset_gate(name)
       @gate_mutex.synchronize { @gates.delete(name.to_sym) }
+    end
+
+    # Cooperative yield point.
+    #
+    # Signals the scheduler that the current task is willing to give up CPU time
+    # so that other ready tasks can run.  On the default {ThreadScheduler} this
+    # calls +Thread.pass+.  On a future fiber-based scheduler this would switch
+    # to the next runnable fiber.
+    #
+    # When +blocking_detect_threshold_ms+ is configured, checks whether the
+    # current task has exceeded that threshold without yielding; if so, emits a
+    # warning via the configured logger and increments
+    # +tasks_waiting_over_threshold+.
+    #
+    # Call this inside tight loops or CPU-intensive sections of tool +execute+
+    # methods and Workflow actions to keep the scheduler responsive.
+    #
+    # @return [void]
+    def yield
+      if (threshold = Phronomy.configuration.blocking_detect_threshold_ms)
+        slice_start = Task.current_cpu_slice_start_ms
+        if slice_start
+          elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond) - slice_start
+          if elapsed > threshold
+            name = Task.current&.name || "unknown"
+            Phronomy.configuration.logger&.warn(
+              "[Phronomy] CPU-bound task detected: '#{name}' ran #{elapsed.round}ms " \
+              "without yielding (threshold: #{threshold}ms)"
+            )
+            @starvation_mutex.synchronize { @tasks_waiting_over_threshold += 1 }
+          end
+        end
+      end
+      Task.record_yield!
+      @scheduler.yield
+    end
+
+    # Number of times a task has exceeded the CPU-bound detection threshold
+    # (i.e. ran longer than +blocking_detect_threshold_ms+ without yielding).
+    # Resets to 0 when the Runtime is recreated.
+    # @return [Integer]
+    def tasks_waiting_over_threshold
+      @starvation_mutex.synchronize { @tasks_waiting_over_threshold }
+    end
+
+    # Cooperative yield point with a call-count gate.
+    #
+    # Increments a per-thread counter and calls {#yield} when the counter
+    # reaches a multiple of +every+.  The counter is thread-local so concurrent
+    # tasks each maintain their own independent loop counter without requiring
+    # a mutex.
+    #
+    # @example
+    #   data.each_with_index do |row, i|
+    #     process(row)
+    #     Phronomy::Runtime.instance.yield_if_needed(every: 500)
+    #   end
+    #
+    # @param every [Integer] yield once every N calls (default: 1000)
+    # @return [void]
+    def yield_if_needed(every: 1000)
+      # Delegate Thread.current access to Task so that runtime.rb stays outside
+      # the Thread.current allowlist (Issue #302).
+      self.yield if (Task.increment_yield_counter! % every).zero?
     end
 
     # Creates a new {TaskGroup} with an optional concurrency cap.

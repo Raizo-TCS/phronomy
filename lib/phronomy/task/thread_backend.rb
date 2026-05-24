@@ -20,6 +20,8 @@ module Phronomy
         @thread = Thread.new do
           Thread.current.name = task.name if task.name
           Thread.current[:phronomy_current_task] = task
+          Thread.current[:phronomy_task_cpu_slice_start_ms] =
+            Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
           task.transition!(:running)
           @value = block.call
           task.transition!(:completed)

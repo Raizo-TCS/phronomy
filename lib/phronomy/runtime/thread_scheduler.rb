@@ -16,6 +16,12 @@ module Phronomy
       def spawn(name:, parent:, &block)
         Task.spawn(name: name, parent: parent, &block)
       end
+
+      # Yields the current thread's time slice to other runnable threads.
+      # @return [void]
+      def yield
+        Thread.pass
+      end
     end
   end
 end

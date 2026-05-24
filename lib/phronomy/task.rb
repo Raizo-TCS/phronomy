@@ -49,6 +49,37 @@ module Phronomy
       Thread.current[:phronomy_current_task]
     end
 
+    # Returns the monotonic clock value (ms) when the current task last recorded
+    # a yield (or when the task started), or +nil+ when not inside a task context.
+    # Used by {Runtime#yield} for CPU-bound detection without placing
+    # +Thread.current+ in files outside the allowlist.
+    # @return [Integer, nil]
+    # @api private
+    def self.current_cpu_slice_start_ms
+      Thread.current[:phronomy_task_cpu_slice_start_ms]
+    end
+
+    # Resets the CPU slice start clock for the current task to +now+.
+    # Call this immediately after the cooperative yield has been performed so
+    # that the next yield correctly measures only the time since the last yield.
+    # @api private
+    def self.record_yield!
+      Thread.current[:phronomy_task_cpu_slice_start_ms] =
+        Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
+    end
+
+    # Returns and increments a per-thread yield-if-needed counter.
+    # Used by {Runtime#yield_if_needed} so that the counter is thread-local
+    # without putting +Thread.current+ in runtime.rb (which is outside the
+    # Thread.current allowlist).
+    # @return [Integer] the new counter value
+    # @api private
+    def self.increment_yield_counter!
+      count = (Thread.current[:phronomy_yield_if_needed_counter] || 0) + 1
+      Thread.current[:phronomy_yield_if_needed_counter] = count
+      count
+    end
+
     # Cooperative cancellation checkpoint.
     #
     # Raises {CancellationError} if the current task's status is +:cancelled+.

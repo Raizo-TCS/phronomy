@@ -144,6 +144,15 @@ module Phronomy
     # @return [Integer, nil]
     attr_accessor :max_concurrent_vector_searches
 
+    # Scheduler starvation threshold (milliseconds).
+    # When a task waits more than this many milliseconds after calling
+    # +runtime.yield+ before being resumed, the wait is counted as a starvation
+    # event.  Used by the fairness regression test and by the
+    # +tasks_waiting_over_threshold+ metric on {Phronomy::Runtime}.
+    # Default: 50ms.
+    # @return [Numeric]
+    attr_accessor :starvation_threshold_ms
+
     def initialize
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new
@@ -163,6 +172,7 @@ module Phronomy
       @max_concurrent_llm_calls = nil
       @max_concurrent_rag_fetches = nil
       @max_concurrent_vector_searches = nil
+      @starvation_threshold_ms = 50
     end
   end
 end
