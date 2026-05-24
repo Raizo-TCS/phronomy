@@ -711,12 +711,23 @@ module Phronomy
           # Run before_completion hooks (global → class → instance) before the LLM call.
           run_before_completion_hooks!(chat, config)
 
-          # Route the LLM call through the configured LLMAdapter.
+          # Route the LLM streaming call through the configured LLMAdapter.
+          # Chunks are pushed into a token queue by the pool worker thread and
+          # drained here (on the caller's side) so that the user block is never
+          # executed on a BlockingAdapterPool worker thread.
           adapter = Phronomy.configuration.llm_adapter
-          response = adapter.stream_async(chat, user_message, config: config) do |chunk|
+          chunk_queue = Phronomy::AsyncQueue.new
+          pending = adapter.stream_async(chat, user_message, config: config, enqueue_to: chunk_queue)
+
+          # Drain the chunk queue on this side (scheduler task / caller thread).
+          loop do
+            chunk = chunk_queue.pop
+            break if chunk.nil? # queue closed — LLM streaming complete
             block.call(StreamEvent.new(type: :token, payload: {content: chunk.content}))
             check_cancellation!(config, "invocation cancelled during streaming")
-          end.await
+          end
+
+          response = pending.await
 
           output = response.content
           usage = Phronomy::TokenUsage.from_tokens(response.tokens)

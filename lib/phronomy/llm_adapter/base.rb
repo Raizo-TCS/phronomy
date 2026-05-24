@@ -44,7 +44,7 @@ module Phronomy
       # @param pool    [BlockingAdapterPool] pool to submit to
       # @return [BlockingAdapterPool::PendingOperation]
       def complete_async(chat, message, config: {}, pool: default_pool)
-        token   = config[:cancellation_token]
+        token = config[:cancellation_token]
         timeout = config[:llm_timeout]
         pool.submit(timeout: timeout, cancellation_token: token) do
           complete(chat, message, config: config)
@@ -54,17 +54,39 @@ module Phronomy
       # Submits a streaming LLM call to {BlockingAdapterPool} and returns
       # a {BlockingAdapterPool::PendingOperation}.
       #
-      # @param chat    [Object] configured chat session
-      # @param message [String] user message
-      # @param config  [Hash]  invocation config
-      # @param pool    [BlockingAdapterPool] pool to submit to
-      # @yield [chunk] streaming chunk (called from the worker thread)
+      # When +enqueue_to:+ is given, streaming chunks are pushed into that
+      # {AsyncQueue} from the worker thread instead of being passed directly
+      # to the caller's block.  The queue is closed (via +ensure+) after the
+      # LLM call finishes so the consumer's drain loop terminates naturally.
+      # This keeps user-supplied blocks off the blocking-pool worker thread.
+      #
+      # When +enqueue_to:+ is nil and a block is given, the block is invoked
+      # directly from the worker thread (legacy behaviour, preserved for
+      # backward compatibility).
+      #
+      # @param chat       [Object] configured chat session
+      # @param message    [String] user message
+      # @param config     [Hash]   invocation config
+      # @param pool       [BlockingAdapterPool] pool to submit to
+      # @param enqueue_to [AsyncQueue, nil] when set, push chunks here instead of
+      #   calling the block on the worker thread
+      # @yield [chunk] streaming chunk — only used when +enqueue_to:+ is nil
       # @return [BlockingAdapterPool::PendingOperation]
-      def stream_async(chat, message, config: {}, pool: default_pool, &block)
-        token   = config[:cancellation_token]
+      def stream_async(chat, message, config: {}, pool: default_pool, enqueue_to: nil, &block)
+        token = config[:cancellation_token]
         timeout = config[:llm_timeout]
-        pool.submit(timeout: timeout, cancellation_token: token) do
-          stream(chat, message, config: config, &block)
+        if enqueue_to
+          pool.submit(timeout: timeout, cancellation_token: token) do
+            stream(chat, message, config: config) do |chunk|
+              enqueue_to.push(chunk)
+            end
+          ensure
+            enqueue_to.close
+          end
+        else
+          pool.submit(timeout: timeout, cancellation_token: token) do
+            stream(chat, message, config: config, &block)
+          end
         end
       end
 

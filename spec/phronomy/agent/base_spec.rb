@@ -199,4 +199,66 @@ RSpec.describe Phronomy::Agent::Base do
       expect { agent.invoke("hi") }.not_to raise_error
     end
   end
+
+  describe "#stream token callback via AsyncQueue (Issue #292)" do
+    let(:agent) do
+      Class.new(Phronomy::Agent::Base) do
+        instructions "test"
+        model "gpt-4o-mini"
+      end.new
+    end
+
+    it "delivers :token StreamEvents to the caller block without running the block on a pool worker thread" do
+      pool = Phronomy::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
+      worker_thread = nil
+      chunk_stub = Struct.new(:content)
+      fake_adapter = Class.new(Phronomy::LLMAdapter::Base) do
+        define_method(:stream) do |chat, message, config: {}, &blk|
+          worker_thread = Thread.current
+          blk.call(chunk_stub.new("hello"))
+          blk.call(chunk_stub.new(" world"))
+          tokens = Struct.new(:input, :output, :cached, :cache_creation).new(1, 2, 0, 0)
+          Struct.new(:content, :tokens).new("hello world", tokens)
+        end
+      end.new
+
+      allow(Phronomy.configuration).to receive(:llm_adapter).and_return(fake_adapter)
+      allow(fake_adapter).to receive(:complete_async).and_call_original
+      allow(fake_adapter).to receive(:stream_async).and_call_original
+      allow(Phronomy::Runtime.instance).to receive(:blocking_io).and_return(pool)
+
+      # Stub out the parts of _stream_impl that require a real LLM chat object
+      allow(agent).to receive(:build_chat).and_return(
+        double("chat",
+          messages: [],
+          on_tool_call: nil,
+          on_tool_result: nil)
+      )
+      allow(agent).to receive(:extract_message).and_return("hi")
+      allow(agent).to receive(:build_context).and_return({system: nil, messages: []})
+      allow(agent).to receive(:apply_instructions)
+      allow(agent).to receive(:run_input_guardrails!)
+      allow(agent).to receive(:run_output_guardrails!)
+      allow(agent).to receive(:run_before_completion_hooks!)
+      allow(agent).to receive(:trace).and_yield(nil)
+
+      caller_thread = Thread.current
+      received_on_threads = []
+      events = []
+
+      agent.stream("hi") do |event|
+        events << event
+        received_on_threads << Thread.current if event.type == :token
+      end
+
+      token_events = events.select { |e| e.type == :token }
+      expect(token_events.map { |e| e.payload[:content] }).to eq(["hello", " world"])
+      # The token callbacks must have run on the caller's thread, not the pool worker
+      expect(received_on_threads).not_to be_empty
+      expect(received_on_threads).not_to include(worker_thread)
+      expect(received_on_threads.uniq).to eq([caller_thread])
+    ensure
+      pool.shutdown
+    end
+  end
 end

@@ -58,12 +58,75 @@ RSpec.describe "LLMAdapter abstraction" do
         pool.shutdown
       end
     end
+
+    describe "#stream_async with enqueue_to: (Issue #292)" do
+      it "pushes chunks into the given AsyncQueue and does not call the block on the worker thread" do
+        pool = Phronomy::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
+        chunk_queue = Phronomy::AsyncQueue.new
+        worker_threads = []
+        concrete = Class.new(described_class) do
+          define_method(:stream) do |chat, message, config: {}, &blk|
+            worker_threads << Thread.current
+            blk.call("c1")
+            blk.call("c2")
+            "done"
+          end
+        end.new
+
+        pending = concrete.stream_async(double, "ping", config: {}, pool: pool, enqueue_to: chunk_queue)
+
+        # Drain the queue on the caller's side
+        received = []
+        caller_thread = Thread.current
+        loop do
+          chunk = chunk_queue.pop
+          break if chunk.nil?
+          received << chunk
+        end
+        result = pending.await
+
+        expect(result).to eq("done")
+        expect(received).to eq(%w[c1 c2])
+        # Chunks were enqueued by the worker — caller consumed them on its own thread
+        expect(worker_threads).not_to be_empty
+        expect(worker_threads).not_to include(caller_thread)
+      ensure
+        pool.shutdown
+      end
+
+      it "closes the queue after the stream completes so the drain loop terminates" do
+        pool = Phronomy::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
+        chunk_queue = Phronomy::AsyncQueue.new
+        concrete = Class.new(described_class) do
+          def stream(chat, message, config: {}, &blk)
+            blk.call("only_chunk")
+            "response"
+          end
+        end.new
+
+        pending = concrete.stream_async(double, "ping", config: {}, pool: pool, enqueue_to: chunk_queue)
+        result = pending.await
+
+        # Drain; after all items are consumed the closed queue must return nil
+        items = []
+        loop do
+          item = chunk_queue.pop
+          break if item.nil?
+          items << item
+        end
+        expect(items).to eq(["only_chunk"])
+        expect(chunk_queue.pop).to be_nil
+        expect(result).to eq("response")
+      ensure
+        pool.shutdown
+      end
+    end
   end
 
   describe Phronomy::LLMAdapter::RubyLLM do
     subject(:adapter) { described_class.new }
 
-    let(:chat)     { double("chat") }
+    let(:chat) { double("chat") }
     let(:response) { double("response", content: "hello", tokens: nil) }
 
     describe "#complete" do
@@ -77,7 +140,7 @@ RSpec.describe "LLMAdapter abstraction" do
       it "delegates to chat.ask(message) with a block" do
         chunks = []
         expect(chat).to receive(:ask).with("ping") do |_msg, &blk|
-          blk.call("token1") if blk
+          blk&.call("token1")
           response
         end
         result = adapter.stream(chat, "ping") { |c| chunks << c }
