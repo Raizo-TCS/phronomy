@@ -80,8 +80,11 @@ module Phronomy
 
               remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
               if remaining <= 0
-                @abandoned = true
-                @on_abandoned&.call
+                # Guard against double-counting when await is called multiple times.
+                unless @abandoned
+                  @abandoned = true
+                  @on_abandoned&.call
+                end
                 raise Phronomy::TimeoutError, "blocking operation timed out after #{effective_timeout}s"
               end
               @cond.wait(@mutex, remaining)

@@ -73,6 +73,18 @@ RSpec.describe Phronomy::BlockingAdapterPool do
       end
       expect(pool.abandoned_count).to be >= 1
     end
+
+    it "does not double-count abandoned_count when await is called multiple times (Issue #317)" do
+      op = pool.submit(timeout: 0.05) { sleep 10 }
+
+      # First await — should time out and increment abandoned_count once.
+      expect { op.await }.to raise_error(Phronomy::TimeoutError)
+
+      # Second await with a fresh timeout — must NOT increment abandoned_count again.
+      expect { op.await(timeout: 0.05) }.to raise_error(Phronomy::TimeoutError)
+
+      expect(pool.abandoned_count).to eq(1)
+    end
   end
 
   # Issue #287 — Timeout.timeout uses async Thread#raise and can corrupt
