@@ -326,3 +326,12 @@ Group36,TC-006,"one / skip / all_fail","serial; all fail with skip returns all-n
 Group36,TC-007,"gt_tasks / raise / all_succeed","concurrency cap above task count; behaves like nil","dispatch_parallel all_succeed; max_concurrency:8 on_error::raise","outputs==['ok:t0','ok:t1','ok:t2']",PASS,
 Group36,TC-008,"gt_tasks / skip / some_fail","high cap; failed slot nil; no exception","dispatch_parallel some_fail; max_concurrency:8 on_error::skip","results[1]==nil; others populated",PASS,
 Group36,TC-009,"gt_tasks / raise / all_fail","high cap; first error re-raised","dispatch_parallel all_fail; max_concurrency:8 on_error::raise","raises RuntimeError 'task_error'",PASS,
+Group37,TC-001,"agent_llm","Agent LLM call routes through BlockingAdapterPool","event_loop:false; LLMStub; PoolSpy","counts.size >= 1",PASS,
+Group37,TC-002,"blocking_io_tool","blocking_io tool routes through BlockingAdapterPool","event_loop:true; LLMStub two_calls; PoolSpy","counts.size >= 2",PASS,
+Group37,TC-003,"cooperative_tool","cooperative tool does NOT use BlockingAdapterPool","event_loop:true; LLMStub single cooperative call; PoolSpy","counts.size == 1 (LLM only)",PASS,
+Group37,TC-004,"rag_fetch","KnowledgeSource#fetch_async routes through pool","PoolSpy; fetch_async called","counts.size == 1",PASS,
+Group37,TC-005,"vector_store","VectorStore::Base#search_async routes through pool","PoolSpy; search_async called","counts.size == 1",PASS,
+Group37,TC-006,"queue_full","pool queue full raises BackpressureError","capacity:0 on_full::raise","raises Phronomy::BlockingAdapterPool::BackpressureError",PASS,
+Group37,TC-007,"pool_shutdown","submit after shutdown raises PoolShutdownError","pool.shutdown; pool.submit","raises Phronomy::BlockingAdapterPool::PoolShutdownError",PASS,
+Group37,TC-008,"operation_timeout","timed-out operation is tracked as abandoned","invoke_timeout:0.001; pool.submit","op.abandoned? == true",PASS,
+Group37,TC-009,"stream_callback","stream callback not on pool worker thread","depends on Issue #292",N/A,SKIP,Depends on Issue #292

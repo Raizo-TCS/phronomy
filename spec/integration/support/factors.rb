@@ -1436,4 +1436,34 @@ module IntegrationFactors
   def self.bp_orchestrator_class
     Class.new(Phronomy::Agent::Orchestrator)
   end
+
+  # ---------------------------------------------------------------------------
+  # Group 37: BlockingAdapterPool boundary fixtures
+  # ---------------------------------------------------------------------------
+
+  # A tool with execution_mode :blocking_io (default).
+  # Used to verify that blocking tools route through BlockingAdapterPool.
+  class BbBlockingTool < Phronomy::Tool::Base
+    tool_name "bb_blocking_tool"
+    description "A blocking_io tool used to verify pool routing"
+    param :input, type: :string, desc: "Any string input"
+    execution_mode :blocking_io
+
+    def execute(input:)
+      "blocking:#{input}"
+    end
+  end
+
+  # A tool with execution_mode :cooperative.
+  # Used to verify that cooperative tools do NOT use BlockingAdapterPool.
+  class BbCooperativeTool < Phronomy::Tool::Base
+    tool_name "bb_cooperative_tool"
+    description "A cooperative tool used to verify it bypasses the pool"
+    param :input, type: :string, desc: "Any string input"
+    execution_mode :cooperative
+
+    def execute(input:)
+      "cooperative:#{input}"
+    end
+  end
 end
