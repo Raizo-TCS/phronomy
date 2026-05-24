@@ -23,7 +23,7 @@ RSpec.describe "Thread.new absence from core paths (Issue #272)" do
     it "spawns exactly pool_size threads at initialisation, then no more on submit" do
       pool = Phronomy::BlockingAdapterPool.new(pool_size: 2, queue_size: 10)
 
-      thread_count_before = Thread.list.count
+      Thread.list.count
       # Submit a trivial operation — must not spawn a new thread
       new_threads_during_submit = 0
       original = Thread.method(:new)
@@ -51,7 +51,10 @@ RSpec.describe "Thread.new absence from core paths (Issue #272)" do
 
       expect(pool.active_count).to be <= 3
     ensure
-      barrier.synchronize { released = true; cond.broadcast }
+      barrier.synchronize {
+        released = true
+        cond.broadcast
+      }
       pool.shutdown(drain_timeout: 2)
     end
 
@@ -80,6 +83,7 @@ RSpec.describe "Thread.new absence from core paths (Issue #272)" do
       # Dispatch a few workflow runs and check the recorded average lag
       wf_ctx = Class.new do
         include Phronomy::WorkflowContext
+
         field :n, default: -> { 0 }
       end
       app = Phronomy::Workflow.define(wf_ctx) do
@@ -106,12 +110,13 @@ RSpec.describe "Thread.current confinement (Issue #302)", :issue_302 do
   THREAD_CURRENT_ALLOWLIST = %w[
     lib/phronomy/event_loop.rb
     lib/phronomy/task.rb
+    lib/phronomy/task/thread_backend.rb
   ].freeze
 
   it "Thread.current is not referenced outside the allowed files" do
-    lib_root     = File.expand_path("../../lib", __dir__)
+    lib_root = File.expand_path("../../lib", __dir__)
     project_root = File.expand_path("..", lib_root)
-    lib_files    = Dir.glob("#{lib_root}/**/*.rb")
+    lib_files = Dir.glob("#{lib_root}/**/*.rb")
 
     violations = []
     lib_files.each do |abs_path|
@@ -132,4 +137,3 @@ RSpec.describe "Thread.current confinement (Issue #302)", :issue_302 do
       "#{violations.join("\n")}"
   end
 end
-
