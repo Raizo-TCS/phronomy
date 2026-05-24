@@ -242,7 +242,10 @@ module Phronomy
           @task_mutex.synchronize { @tasks.delete(current) } if current
         end
       end
-      @task_mutex.synchronize { @tasks << task }
+      # Skip registration for tasks that already completed synchronously
+      # (e.g. ImmediateBackend used in tests runs the block inline, so
+      # `ensure` fires before we reach this line and the delete is a no-op).
+      @task_mutex.synchronize { @tasks << task unless task.done? }
       task
     end
 

@@ -94,6 +94,19 @@ RSpec.describe Phronomy::Runtime do
       task = runtime.spawn { 42 }
       expect(task.status).to eq(:completed)
     end
+
+    it "does not leak completed tasks in the registry (Issue #314)" do
+      runtime = Phronomy::Runtime.new(scheduler: Phronomy::Runtime::FakeScheduler.new)
+
+      # FakeScheduler runs synchronously — task is done before spawn returns.
+      # Before the fix, @tasks << task was added AFTER ensure fired, so the
+      # task was never removed and the registry kept growing.
+      3.times { runtime.spawn { :result } }
+
+      tasks = runtime.instance_variable_get(:@tasks)
+      # All tasks completed synchronously; registry must be empty.
+      expect(tasks).to be_empty
+    end
   end
 
   # ---------------------------------------------------------------------------
