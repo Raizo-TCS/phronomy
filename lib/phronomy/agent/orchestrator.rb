@@ -219,7 +219,12 @@ module Phronomy
         # Only wrap subagent tools (those registered via the .subagent DSL).
         return prepared unless self.class._subagent_tool_classes.include?(tool_class)
 
+        # Capture the effective tool name before building the anonymous subclass.
+        # Class-level instance variables (@tool_name) are not inherited through
+        # subclassing, so the wrapper must set it explicitly.
+        effective_name = prepared.new.name
         Class.new(prepared) do
+          tool_name effective_name
           define_method(:call) do |args|
             self._orchestrator_context = orch.instance_variable_get(:@_orchestrator_context)
             super(args)

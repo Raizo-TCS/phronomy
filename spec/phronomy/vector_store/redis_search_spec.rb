@@ -204,14 +204,4 @@ RSpec.describe Phronomy::VectorStore::RedisSearch do
     end
   end
 
-  # Contract: structural expectations without a live backend.
-  # Full data-operation contract runs in spec/integration/nightly/redis_search_spec.rb.
-  describe "a_vector_store contract (live backend required)" do
-    before { skip "Requires live Redis backend; see spec/integration/nightly/redis_search_spec.rb" }
-
-    it_behaves_like "a vector store" do
-      let(:store) { described_class.new(redis: redis, index_name: "test_idx", dimension: 3) }
-      let(:empty_store) { described_class.new(redis: redis, index_name: "test_idx", dimension: nil) }
-    end
-  end
 end
