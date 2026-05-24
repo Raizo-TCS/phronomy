@@ -131,4 +131,72 @@ RSpec.describe Phronomy::Agent::Base do
       end
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Issue #291 — invoke_async is the primary path; invoke is a wrapper
+  # ---------------------------------------------------------------------------
+
+  describe "invoke_async (Issue #291)" do
+    let(:agent) do
+      Class.new(Phronomy::Agent::Base) do
+        instructions "test"
+        model "gpt-4o-mini"
+      end.new
+    end
+
+    it "returns a Task" do
+      allow_any_instance_of(Phronomy::Agent::Base).to receive(:_invoke_impl).and_return({output: "ok"})
+      task = agent.invoke_async("hi")
+      expect(task).to be_a(Phronomy::Task)
+      task.await
+    end
+
+    it "executes _invoke_impl directly (not via invoke)" do
+      called = []
+      allow_any_instance_of(Phronomy::Agent::Base).to receive(:_invoke_impl) {
+        called << :impl
+        {output: "ok"}
+      }
+      agent.invoke_async("hi").await
+      expect(called).to eq([:impl])
+    end
+
+    it "registers the task with Runtime so shutdown can drain it" do
+      latch = Queue.new
+      allow_any_instance_of(Phronomy::Agent::Base).to receive(:_invoke_impl) do
+        latch.pop
+        {output: "ok"}
+      end
+      task = agent.invoke_async("hi")
+      Phronomy::Runtime.instance.instance_variable_get(:@tasks)
+      # task should be registered (may already be removed if it ran fast on FakeScheduler)
+      latch.push(:go)
+      task.await
+    end
+  end
+
+  describe "#invoke SchedulerReentrancyError guard (Issue #291)" do
+    let(:agent) do
+      Class.new(Phronomy::Agent::Base) do
+        instructions "test"
+        model "gpt-4o-mini"
+      end.new
+    end
+
+    it "raises SchedulerReentrancyError when called from inside a Task" do
+      error = nil
+      Phronomy::Task.spawn do
+        agent.invoke("hi")
+      rescue Phronomy::SchedulerReentrancyError => e
+        error = e
+      end.await
+      expect(error).to be_a(Phronomy::SchedulerReentrancyError)
+      expect(error.message).to include("invoke_async")
+    end
+
+    it "does not raise when called outside a Task" do
+      allow_any_instance_of(Phronomy::Agent::Base).to receive(:_invoke_impl).and_return({output: "ok"})
+      expect { agent.invoke("hi") }.not_to raise_error
+    end
+  end
 end

@@ -121,13 +121,13 @@ RSpec.describe "Fault injection (Issue #213)" do
 
     let(:good_agent) do
       Class.new(Phronomy::Agent::Base) do
-        define_method(:invoke) { |input, **| {output: "ok:#{input}", messages: []} }
+        define_method(:_invoke_impl) { |input, **| {output: "ok:#{input}", messages: []} }
       end
     end
 
     let(:bad_agent) do
       Class.new(Phronomy::Agent::Base) do
-        define_method(:invoke) { |*| raise "simulated failure" }
+        define_method(:_invoke_impl) { |*| raise "simulated failure" }
       end
     end
 
@@ -159,7 +159,7 @@ RSpec.describe "Fault injection (Issue #213)" do
       mutex = Mutex.new
 
       tracking_good = Class.new(Phronomy::Agent::Base) do
-        define_method(:invoke) do |input, **|
+        define_method(:_invoke_impl) do |input, **|
           mutex.synchronize { ran << input }
           {output: "ok", messages: []}
         end

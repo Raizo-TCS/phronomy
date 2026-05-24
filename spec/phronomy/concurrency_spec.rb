@@ -9,7 +9,7 @@ require "spec_helper"
 RSpec.describe "Race / Concurrency (Issue #208)" do
   def stub_agent(output)
     Class.new(Phronomy::Agent::Base) do
-      define_method(:invoke) { |*| {output: output, messages: []} }
+      define_method(:_invoke_impl) { |*| {output: output, messages: []} }
     end
   end
 
@@ -25,7 +25,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
       agents = (1..5).map do |i|
         delay = (5 - i) * 0.01
         Class.new(Phronomy::Agent::Base) do
-          define_method(:invoke) do |*|
+          define_method(:_invoke_impl) do |*|
             sleep delay
             {output: "task#{i}", messages: []}
           end
@@ -46,14 +46,14 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
 
       slow_fail = Class.new(Phronomy::Agent::Base) do
         e = error_0
-        define_method(:invoke) { |*|
+        define_method(:_invoke_impl) { |*|
           sleep 0.03
           raise e
         }
       end
       fast_fail = Class.new(Phronomy::Agent::Base) do
         e = error_2
-        define_method(:invoke) { |*| raise e }
+        define_method(:_invoke_impl) { |*| raise e }
       end
       good = stub_agent("ok")
 
@@ -73,7 +73,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
       state_mutex = Mutex.new
 
       throttled = Class.new(Phronomy::Agent::Base) do
-        define_method(:invoke) do |*|
+        define_method(:_invoke_impl) do |*|
           state_mutex.synchronize do
             active += 1
             peak_active = active if active > peak_active
@@ -100,7 +100,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
     it "resets @_orchestrator_context to nil after invoke" do
       orchestrator_class = Class.new(Phronomy::Agent::Orchestrator)
       # Override to avoid any real LLM call; just return immediately.
-      orchestrator_class.define_method(:invoke) do |input, config: {}, thread_id: nil|
+      orchestrator_class.define_method(:_invoke_impl) do |input, config: {}, thread_id: nil, **|
         super(input, config: config, thread_id: thread_id)
       rescue
         {output: "done", messages: []}

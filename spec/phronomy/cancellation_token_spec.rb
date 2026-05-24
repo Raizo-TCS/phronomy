@@ -133,7 +133,7 @@ RSpec.describe Phronomy::CancellationToken do
     # An agent that short-circuits invoke to avoid real LLM calls.
     let(:success_agent_class) do
       Class.new(Phronomy::Agent::Base) do
-        define_method(:invoke) do |_input, messages: [], thread_id: nil, config: {}|
+        define_method(:_invoke_impl) do |_input, messages: [], thread_id: nil, config: {}|
           {output: "ok", messages: []}
         end
       end
@@ -188,7 +188,7 @@ RSpec.describe Phronomy::CancellationToken do
     def token_capturing_agent
       received_tokens = []
       agent_class = Class.new(Phronomy::Agent::Base) do
-        define_method(:invoke) do |_input, config: {}, thread_id: nil, messages: []|
+        define_method(:_invoke_impl) do |_input, config: {}, thread_id: nil, messages: []|
           received_tokens << config[:cancellation_token]
           {output: "ok", messages: []}
         end
@@ -215,7 +215,7 @@ RSpec.describe Phronomy::CancellationToken do
       received_tokens = []
 
       agent_class = Class.new(Phronomy::Agent::Base) do
-        define_method(:invoke) do |_input, config: {}, thread_id: nil, messages: []|
+        define_method(:_invoke_impl) do |_input, config: {}, thread_id: nil, messages: []|
           received_tokens << config[:cancellation_token]
           {output: "ok", messages: []}
         end

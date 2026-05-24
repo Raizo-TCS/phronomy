@@ -88,8 +88,9 @@ module Phronomy
   # strategy is +:raise+. The caller should back off and retry.
   class BackpressureError < Error; end
 
-  # Raised when a blocking +invoke+ is called from inside an EventLoop action.
-  # Use +invoke_async+ instead to avoid stalling the scheduler.
+  # Raised when a blocking +invoke+ is called from inside an EventLoop action or
+  # from within an active Runtime scheduler task.
+  # Use +invoke_async+ instead to compose agents without blocking the scheduler.
   class SchedulerReentrancyError < Error; end
 
   # Raised by {CancellationScope#pop_queue} when the deadline expires before a

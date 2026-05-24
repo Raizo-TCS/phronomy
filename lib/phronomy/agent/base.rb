@@ -543,14 +543,28 @@ module Phronomy
           raise result if result.is_a?(Exception)
           result
         else
-          _invoke_impl(input, messages: messages, thread_id: thread_id, config: config)
+          # Guard: calling invoke from inside a scheduler task would block the task
+          # against itself when using a cooperative backend.  Use invoke_async
+          # instead to compose agents without introducing a blocking wait.
+          if Phronomy::Task.current
+            raise Phronomy::SchedulerReentrancyError,
+              "Cannot call #{self.class.name}#invoke from inside a scheduler task. " \
+              "Use invoke_async instead."
+          end
+          invoke_async(input, messages: messages, thread_id: thread_id, config: config).await
         end
       end
 
       # Invokes this agent asynchronously and returns a {Phronomy::Task}.
       #
-      # The task can be awaited with {Phronomy::Task#await} or composed with other
-      # tasks inside a {Phronomy::TaskGroup}.
+      # This is the primary async entry point.  {#invoke} is a synchronous wrapper
+      # that calls this method and blocks the caller until the task completes.
+      # Calling {#invoke} from inside an active scheduler task raises
+      # {Phronomy::SchedulerReentrancyError}; use +invoke_async+ directly in that
+      # context.
+      #
+      # The task is registered with the Runtime task registry so {Runtime#shutdown}
+      # drains in-flight invocations before process exit.
       #
       # @example
       #   task = agent.invoke_async("Hello!")
@@ -563,8 +577,8 @@ module Phronomy
       # @return [Phronomy::Task]
       # @api public
       def invoke_async(input, messages: [], thread_id: nil, config: {})
-        Phronomy::Task.spawn do
-          invoke(input, messages: messages, thread_id: thread_id, config: config)
+        Phronomy::Runtime.instance.spawn(name: "agent-#{(self.class.name || "anonymous").downcase}-async") do
+          _invoke_impl(input, messages: messages, thread_id: thread_id, config: config)
         end
       end
 

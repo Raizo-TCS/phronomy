@@ -69,11 +69,11 @@ module Phronomy
             # Inherit the calling orchestrator's thread_id and config when
             # available so that sub-agent spans and memory stay connected.
             ctx = @_orchestrator_context || {}
-            result = agent_class.new.invoke(
+            result = agent_class.new.invoke_async(
               input,
               thread_id: ctx[:thread_id],
               config: ctx[:config] || {}
-            )
+            ).await
             result[:output]
           rescue
             raise if on_error == :raise
@@ -190,11 +190,11 @@ module Phronomy
       # @api public
       def subagent(agent_class, input, config: nil, thread_id: nil)
         ctx = @_orchestrator_context || {}
-        agent_class.new.invoke(
+        agent_class.new.invoke_async(
           input,
           config: config || ctx[:config] || {},
           thread_id: thread_id || ctx[:thread_id]
-        )
+        ).await
       end
 
       private
@@ -290,11 +290,11 @@ module Phronomy
               end
 
               begin
-                results[i] = task[:agent].new.invoke(
+                results[i] = task[:agent].new.invoke_async(
                   task[:input],
                   config: task_config,
                   thread_id: task[:thread_id]
-                )
+                ).await
               rescue => e
                 case on_error
                 when :skip
