@@ -20,6 +20,24 @@ module Phronomy
         raise NotImplementedError, "#{self.class}#fetch is not implemented"
       end
 
+      # Submits a {#fetch} call to {BlockingAdapterPool} and returns a
+      # {BlockingAdapterPool::PendingOperation}.
+      # Callers can fan out multiple fetches in parallel and await them all.
+      #
+      # @param query              [String, nil]
+      # @param cancellation_token [Phronomy::CancellationToken, nil]
+      # @param timeout            [Numeric, nil] seconds before the operation is abandoned
+      # @return [BlockingAdapterPool::PendingOperation]
+      # @api public
+      def fetch_async(query: nil, cancellation_token: nil, timeout: nil)
+        Phronomy::Runtime.instance.blocking_io.submit(
+          timeout: timeout,
+          cancellation_token: cancellation_token
+        ) do
+          fetch(query: query, cancellation_token: cancellation_token)
+        end
+      end
+
       # Returns true when this source's content is considered static (i.e. does
       # not change between agent invocations). Static sources are eligible for
       # fingerprint-based caching in ContextVersionCache.

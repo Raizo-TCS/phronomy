@@ -105,7 +105,7 @@ RSpec.describe Phronomy::Agent::Base do
     context "build_context cancellation (Issue #223)" do
       it "raises CancellationError before fetching a knowledge source when pre-cancelled" do
         ks = double("KnowledgeSource")
-        expect(ks).not_to receive(:fetch)
+        expect(ks).not_to receive(:fetch_async)
 
         token = Phronomy::CancellationToken.new
         token.cancel!
@@ -118,7 +118,9 @@ RSpec.describe Phronomy::Agent::Base do
 
       it "proceeds normally when token is not cancelled" do
         ks = double("KnowledgeSource")
-        allow(ks).to receive(:fetch).and_return([])
+        pool = Phronomy::Runtime.instance.blocking_io
+        pending_op = pool.submit { [] }
+        allow(ks).to receive(:fetch_async).and_return(pending_op)
 
         token = Phronomy::CancellationToken.new
 

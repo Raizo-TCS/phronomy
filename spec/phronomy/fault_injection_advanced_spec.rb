@@ -305,7 +305,9 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
 
     it "propagates NoMethodError when KnowledgeSource#fetch returns [nil]" do
       nil_ks = double("NilKnowledgeSource")
-      allow(nil_ks).to receive(:fetch).and_return([nil])
+      pool = Phronomy::Runtime.instance.blocking_io
+      pending_op = pool.submit { [nil] }
+      allow(nil_ks).to receive(:fetch_async).and_return(pending_op)
 
       expect {
         agent.send(:build_context, "hello",
@@ -317,7 +319,9 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
 
     it "propagates TypeError when KnowledgeSource#fetch returns [42] (non-Hash chunk)" do
       int_ks = double("IntKnowledgeSource")
-      allow(int_ks).to receive(:fetch).and_return([42])
+      pool = Phronomy::Runtime.instance.blocking_io
+      pending_op = pool.submit { [42] }
+      allow(int_ks).to receive(:fetch_async).and_return(pending_op)
 
       expect {
         agent.send(:build_context, "hello",
