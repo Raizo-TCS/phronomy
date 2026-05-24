@@ -45,6 +45,17 @@ module Phronomy
         self
       end
 
+      # Schedule a one-shot callback to fire after +seconds+ from the current
+      # logical time.  This is the same interface as {Runtime::TimerQueue#schedule}
+      # so that a +FakeClock+ can be passed as a +timer_queue:+ argument in tests.
+      #
+      # @param seconds [Numeric] delay in logical seconds
+      # @yield called when the clock reaches the scheduled time
+      # @return [self]
+      def schedule(seconds:, &block)
+        at(@now + seconds.to_f, &block)
+      end
+
       # Returns the number of pending (un-fired) callbacks.
       # @return [Integer]
       def pending_callbacks

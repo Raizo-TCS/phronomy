@@ -30,16 +30,28 @@ module Phronomy
     attr_reader :deadline
 
     # @param parent_token [CancellationToken, nil] when provided, cancellation of
-    #   the parent token is propagated to this scope's token via a background Task.
+    #   the parent token is propagated to this scope's token via a callback
+    #   (for explicit cancel) and/or the Runtime timer queue (for monotonic
+    #   deadline expiry).  No polling thread is spawned.
     def initialize(parent_token: nil)
-      @token    = Phronomy::CancellationToken.new
+      @token = Phronomy::CancellationToken.new
       @deadline = nil
 
-      # Propagate parent cancellation to this scope asynchronously.
       if parent_token
-        Phronomy::Task.spawn(name: "cancellation-scope-propagator") do
-          sleep 0.05 until parent_token.cancelled? || @token.cancelled?
-          @token.cancel! if parent_token.cancelled? && !@token.cancelled?
+        # Propagate explicit cancel() from parent to child via callback.
+        parent_token.on_cancel { @token.cancel! }
+
+        # Propagate monotonic-deadline expiry from parent to child via the
+        # timer queue (avoids a polling thread).
+        remaining = parent_token.remaining_monotonic_seconds
+        if !remaining.nil?
+          if remaining <= 0
+            @token.cancel!
+          else
+            Phronomy::Runtime.instance.timer_queue.schedule(seconds: remaining) do
+              @token.cancel!
+            end
+          end
         end
       end
     end

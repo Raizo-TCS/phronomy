@@ -3,6 +3,7 @@
 require_relative "runtime/scheduler"
 require_relative "runtime/thread_scheduler"
 require_relative "runtime/fake_scheduler"
+require_relative "runtime/timer_queue"
 
 module Phronomy
   # Central authority for concurrent primitives.
@@ -46,6 +47,8 @@ module Phronomy
       @scheduler = scheduler
       @task_mutex = Mutex.new
       @tasks = []
+      @timer_queue = nil
+      @timer_mutex = Mutex.new
     end
 
     # Creates a new {TaskGroup} with an optional concurrency cap.
@@ -86,8 +89,18 @@ module Phronomy
       @blocking_io ||= BlockingAdapterPool.new(pool_size: pool_size, queue_size: queue_size)
     end
 
+    # Returns the shared {TimerQueue} for this Runtime.
+    #
+    # All deadline-based cancellation should be registered here instead of
+    # spawning one-off sleep threads.  Lazily created on first access.
+    #
+    # @return [TimerQueue]
+    def timer_queue
+      @timer_mutex.synchronize { @timer_queue ||= TimerQueue.new }
+    end
+
     # Waits for all registered tasks to finish, then shuts down the
-    # blocking adapter pool (if it was started).
+    # blocking adapter pool and timer queue (if they were started).
     #
     # Call this before process exit to avoid leaving orphaned threads or
     # pending work items.
@@ -101,6 +114,7 @@ module Phronomy
         nil
       end
       @blocking_io&.shutdown
+      @timer_mutex.synchronize { @timer_queue&.shutdown }
     end
   end
 end

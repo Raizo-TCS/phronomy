@@ -52,16 +52,57 @@ module Phronomy
       @deadline = deadline
       @monotonic_deadline = monotonic_deadline
       @mutex = Mutex.new
+      @cancel_callbacks = []
     end
 
     # @return [Time, nil] the wall-clock deadline passed to {#initialize}, or +nil+.
     attr_reader :deadline
 
-    # Mark the token as cancelled. Thread-safe; may be called from any thread.
+    # Returns the remaining seconds until the monotonic deadline fires, or +nil+
+    # when no monotonic deadline is set.  Returns 0.0 if already past.
+    # @return [Float, nil]
+    # @api public
+    def remaining_monotonic_seconds
+      return nil if @monotonic_deadline.nil?
+      remaining = @monotonic_deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      [remaining, 0.0].max
+    end
+
+    # Registers a one-shot callback invoked when this token is explicitly
+    # cancelled via {#cancel!}.  If the token is already cancelled, the block
+    # is called immediately (still within the caller's thread).
+    #
+    # Callbacks are NOT fired for deadline-based cancellation (i.e. when
+    # {#cancelled?} returns +true+ due to +@monotonic_deadline+ expiry).  Use
+    # {Runtime#timer_queue} to schedule deadline callbacks.
+    #
+    # @yield called with no arguments when (or if) the token is cancelled
+    # @return [self]
+    # @api public
+    def on_cancel(&block)
+      already_cancelled = @mutex.synchronize do
+        if @cancelled
+          true
+        else
+          @cancel_callbacks << block
+          false
+        end
+      end
+      block.call if already_cancelled
+      self
+    end
+
+    # Mark the token as cancelled and fire any registered {#on_cancel} callbacks.
+    # Thread-safe; idempotent — calling multiple times has no additional effect.
     # @return [self]
     # @api public
     def cancel!
-      @mutex.synchronize { @cancelled = true }
+      callbacks = @mutex.synchronize do
+        return self if @cancelled
+        @cancelled = true
+        @cancel_callbacks.dup
+      end
+      callbacks.each(&:call)
       self
     end
 

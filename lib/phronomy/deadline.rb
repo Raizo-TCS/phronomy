@@ -39,19 +39,19 @@ module Phronomy
     end
 
     # Attaches this deadline to a {CancellationToken} by cancelling the token
-    # when the deadline expires.  Spawns a background thread that sleeps for
-    # the remaining duration and then calls +token.cancel!+.
+    # when the deadline expires.  Uses the Runtime timer queue (a single
+    # background thread shared by all deadlines) instead of spawning one thread
+    # per deadline.
     #
     # @param token [CancellationToken]
+    # @param timer_queue [Runtime::TimerQueue, nil] queue to register with;
+    #   defaults to +Phronomy::Runtime.instance.timer_queue+
     # @return [self]
-    def attach_to(token)
+    def attach_to(token, timer_queue: Phronomy::Runtime.instance.timer_queue)
       seconds = remaining_seconds
       return self if seconds <= 0
 
-      Thread.new do
-        sleep(seconds)
-        token.cancel!
-      end
+      timer_queue.schedule(seconds: seconds) { token.cancel! }
       self
     end
   end
