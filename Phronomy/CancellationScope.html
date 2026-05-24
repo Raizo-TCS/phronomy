@@ -386,7 +386,9 @@ token is cancelled and all child tasks that check it will stop.</p>
       
         &mdash;
         <div class='inline'><p>when provided, cancellation of
-the parent token is propagated to this scope's token via a background Task.</p></div>
+the parent token is propagated to this scope's token via a callback
+(for explicit cancel) and/or the Runtime timer queue (for monotonic
+deadline expiry).  No polling thread is spawned.</p></div>
       
     </li>
   
@@ -399,8 +401,6 @@ the parent token is propagated to this scope's token via a background Task.</p><
       <pre class="lines">
 
 
-34
-35
 36
 37
 38
@@ -410,20 +410,42 @@ the parent token is propagated to this scope's token via a background Task.</p><
 42
 43
 44
-45</pre>
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 36</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>parent_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='ivar'>@token</span>    <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="CancellationToken.html" title="Phronomy::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="CancellationToken.html#initialize-instance_method" title="Phronomy::CancellationToken#initialize (method)">new</a></span></span>
+  <span class='ivar'>@token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="CancellationToken.html" title="Phronomy::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="CancellationToken.html#initialize-instance_method" title="Phronomy::CancellationToken#initialize (method)">new</a></span></span>
   <span class='ivar'>@deadline</span> <span class='op'>=</span> <span class='kw'>nil</span>
 
-  <span class='comment'># Propagate parent cancellation to this scope asynchronously.
-</span>  <span class='kw'>if</span> <span class='id identifier rubyid_parent_token'>parent_token</span>
-    <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_spawn'><span class='object_link'><a href="Task.html#spawn-class_method" title="Phronomy::Task.spawn (method)">spawn</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cancellation-scope-propagator</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span>
-      <span class='id identifier rubyid_sleep'>sleep</span> <span class='float'>0.05</span> <span class='kw'>until</span> <span class='id identifier rubyid_parent_token'>parent_token</span><span class='period'>.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span> <span class='op'>||</span> <span class='ivar'>@token</span><span class='period'>.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
-      <span class='ivar'>@token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span> <span class='kw'>if</span> <span class='id identifier rubyid_parent_token'>parent_token</span><span class='period'>.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='ivar'>@token</span><span class='period'>.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_parent_token'>parent_token</span>
+    <span class='comment'># Propagate explicit cancel() from parent to child via callback.
+</span>    <span class='id identifier rubyid_parent_token'>parent_token</span><span class='period'>.</span><span class='id identifier rubyid_on_cancel'>on_cancel</span> <span class='lbrace'>{</span> <span class='ivar'>@token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span> <span class='rbrace'>}</span>
+
+    <span class='comment'># Propagate monotonic-deadline expiry from parent to child via the
+</span>    <span class='comment'># timer queue (avoids a polling thread).
+</span>    <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>=</span> <span class='id identifier rubyid_parent_token'>parent_token</span><span class='period'>.</span><span class='id identifier rubyid_remaining_monotonic_seconds'>remaining_monotonic_seconds</span>
+    <span class='kw'>if</span> <span class='op'>!</span><span class='id identifier rubyid_remaining'>remaining</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
+      <span class='kw'>if</span> <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>&lt;=</span> <span class='int'>0</span>
+        <span class='ivar'>@token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span>
+      <span class='kw'>else</span>
+        <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_timer_queue'><span class='object_link'><a href="Runtime.html#timer_queue-instance_method" title="Phronomy::Runtime#timer_queue (method)">timer_queue</a></span></span><span class='period'>.</span><span class='id identifier rubyid_schedule'><span class='object_link'><a href="Runtime/TimerQueue.html#schedule-instance_method" title="Phronomy::Runtime::TimerQueue#schedule (method)">schedule</a></span></span><span class='lparen'>(</span><span class='label'>seconds:</span> <span class='id identifier rubyid_remaining'>remaining</span><span class='rparen'>)</span> <span class='kw'>do</span>
+          <span class='ivar'>@token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span>
+        <span class='kw'>end</span>
+      <span class='kw'>end</span>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
@@ -582,12 +604,12 @@ the parent token is propagated to this scope's token via a background Task.</p><
       <pre class="lines">
 
 
-59
-60
-61</pre>
+71
+72
+73</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 59</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 71</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancel!'>cancel!</span>
   <span class='ivar'>@token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span>
@@ -634,12 +656,12 @@ the parent token is propagated to this scope's token via a background Task.</p><
       <pre class="lines">
 
 
-65
-66
-67</pre>
+77
+78
+79</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 65</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 77</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancelled?'>cancelled?</span>
   <span class='ivar'>@token</span><span class='period'>.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
@@ -704,14 +726,14 @@ the parent token is propagated to this scope's token via a background Task.</p><
       <pre class="lines">
 
 
-51
-52
-53
-54
-55</pre>
+63
+64
+65
+66
+67</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 51</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 63</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_deadline_in'>deadline_in</span><span class='lparen'>(</span><span class='id identifier rubyid_seconds'>seconds</span><span class='rparen'>)</span>
   <span class='ivar'>@deadline</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Deadline.html" title="Phronomy::Deadline (class)">Deadline</a></span></span><span class='period'>.</span><span class='id identifier rubyid_in'><span class='object_link'><a href="Deadline.html#in-class_method" title="Phronomy::Deadline.in (method)">in</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_seconds'>seconds</span><span class='rparen'>)</span>
@@ -749,7 +771,7 @@ the scope is cancelled and the block is called (or a <span class='object_link'><
         <span class='name'>queue</span>
       
       
-        <span class='type'>(<tt>Thread::Queue</tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="AsyncQueue.html" title="Phronomy::AsyncQueue (class)">Phronomy::AsyncQueue</a></span></tt>)</span>
       
       
       
@@ -831,28 +853,28 @@ the scope is cancelled and the block is called (or a <span class='object_link'><
       <pre class="lines">
 
 
-85
-86
-87
-88
-89
-90
-91
-92
-93
-94
-95
-96
 97
 98
 99
 100
 101
 102
-103</pre>
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 85</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 97</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pop_queue'>pop_queue</span><span class='lparen'>(</span><span class='id identifier rubyid_queue'>queue</span><span class='comma'>,</span> <span class='label'>fallback_timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_timeout'>timeout</span> <span class='op'>=</span> <span class='ivar'>@deadline</span><span class='op'>&amp;.</span><span class='id identifier rubyid_remaining_seconds'>remaining_seconds</span> <span class='op'>||</span> <span class='id identifier rubyid_fallback_timeout'>fallback_timeout</span>
@@ -916,12 +938,12 @@ or <code>nil</code> when no deadline is set.</p>
       <pre class="lines">
 
 
-72
-73
-74</pre>
+84
+85
+86</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 72</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 84</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remaining_seconds'>remaining_seconds</span>
   <span class='ivar'>@deadline</span><span class='op'>&amp;.</span><span class='id identifier rubyid_remaining_seconds'>remaining_seconds</span>
@@ -936,7 +958,7 @@ or <code>nil</code> when no deadline is set.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 02:32:21 2026 by
+  Generated on Sun May 24 15:02:58 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

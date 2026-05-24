@@ -88,10 +88,10 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Task-centric observability snapshot (Issue #276).</p>
+    <p>Task-centric observability snapshot (Issue #276, extended in #307).</p>
 <p>Collects live metrics from the shared Runtime components
-(BlockingAdapterPool and EventLoop) and returns them as a plain
-Hash so they can be forwarded to any monitoring backend
+(BlockingAdapterPool, EventLoop, and Runtime task registry) and returns
+them as a plain Hash so they can be forwarded to any monitoring backend
 (Prometheus, OpenTelemetry, StatsD, etc.).</p>
 <p>All metrics are read at the moment <span class='object_link'><a href="#snapshot-class_method" title="Phronomy::Metrics.snapshot (method)">Metrics.snapshot</a></span> is called; no
 persistent state is held here.</p>
@@ -107,7 +107,7 @@ persistent state is held here.</p>
         <h5 class="example_title"><div class='inline'><p>Exporting to a metrics endpoint</p></div></h5>
       
       <pre class="example code"><code><span class='id identifier rubyid_data'>data</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>Metrics</span><span class='period'>.</span><span class='id identifier rubyid_snapshot'><span class='object_link'><a href="#snapshot-class_method" title="Phronomy::Metrics.snapshot (method)">snapshot</a></span></span>
-<span class='comment'># =&gt; { blocking_pool_active: 2, blocking_pool_queue_length: 5, ... }</span></code></pre>
+<span class='comment'># =&gt; { blocking_pool_active: 2, active_agent_tasks: 1, ... }</span></code></pre>
     
   </div>
 
@@ -171,53 +171,6 @@ persistent state is held here.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Returns a Hash of current observability metrics.</p>
-<p>Keys and their sources:</p>
-<table>
-<thead>
-<tr>
-<th>Key</th>
-<th>Source</th>
-<th>Units</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>blocking_pool_active</code></td>
-<td>BlockingAdapterPool#active_count</td>
-<td>tasks</td>
-</tr>
-<tr>
-<td><code>blocking_pool_queue_length</code></td>
-<td>BlockingAdapterPool#queue_depth</td>
-<td>tasks</td>
-</tr>
-<tr>
-<td><code>blocking_pool_abandoned_total</code></td>
-<td>BlockingAdapterPool#abandoned_count</td>
-<td>tasks</td>
-</tr>
-<tr>
-<td><code>blocking_pool_size</code></td>
-<td>BlockingAdapterPool#pool_size</td>
-<td>workers</td>
-</tr>
-<tr>
-<td><code>event_loop_lag_last_ms</code></td>
-<td>EventLoop#last_lag_seconds * 1000</td>
-<td>ms</td>
-</tr>
-<tr>
-<td><code>event_loop_lag_max_ms</code></td>
-<td>EventLoop#max_lag_seconds * 1000</td>
-<td>ms</td>
-</tr>
-<tr>
-<td><code>event_loop_lag_average_ms</code></td>
-<td>EventLoop#average_lag_seconds * 1000</td>
-<td>ms</td>
-</tr>
-</tbody>
-</table>
 
   </div>
 </div>
@@ -243,37 +196,39 @@ persistent state is held here.</p>
       <pre class="lines">
 
 
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
 34
 35
-36
-37
-38
-39
-40
-41
-42
-43
-44
-45
-46
-47</pre>
+36</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/metrics.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/metrics.rb', line 22</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_snapshot'>snapshot</span>
   <span class='id identifier rubyid_pool'>pool</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_blocking_io'><span class='object_link'><a href="Runtime.html#blocking_io-instance_method" title="Phronomy::Runtime#blocking_io (method)">blocking_io</a></span></span>
-  <span class='id identifier rubyid_el'>el</span>   <span class='op'>=</span> <span class='const'><span class='object_link'><a href="EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="EventLoop.html#instance-class_method" title="Phronomy::EventLoop.instance (method)">instance</a></span></span>
+  <span class='id identifier rubyid_el'>el</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="EventLoop.html#instance-class_method" title="Phronomy::EventLoop.instance (method)">instance</a></span></span>
+  <span class='id identifier rubyid_task_snap'>task_snap</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_task_snapshot'><span class='object_link'><a href="Runtime.html#task_snapshot-instance_method" title="Phronomy::Runtime#task_snapshot (method)">task_snapshot</a></span></span>
 
   <span class='lbrace'>{</span>
-    <span class='label'>blocking_pool_active:</span>          <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_active_count'>active_count</span><span class='comma'>,</span>
-    <span class='label'>blocking_pool_queue_length:</span>    <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_queue_depth'>queue_depth</span><span class='comma'>,</span>
+    <span class='label'>blocking_pool_active:</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_active_count'>active_count</span><span class='comma'>,</span>
+    <span class='label'>blocking_pool_queue_length:</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_queue_depth'>queue_depth</span><span class='comma'>,</span>
     <span class='label'>blocking_pool_abandoned_total:</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_abandoned_count'>abandoned_count</span><span class='comma'>,</span>
-    <span class='label'>blocking_pool_size:</span>            <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_pool_size'>pool_size</span><span class='comma'>,</span>
-    <span class='label'>event_loop_lag_last_ms:</span>        <span class='lparen'>(</span><span class='id identifier rubyid_el'>el</span><span class='period'>.</span><span class='id identifier rubyid_last_lag_seconds'>last_lag_seconds</span> <span class='op'>*</span> <span class='int'>1000</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_round'>round</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>event_loop_lag_max_ms:</span>         <span class='lparen'>(</span><span class='id identifier rubyid_el'>el</span><span class='period'>.</span><span class='id identifier rubyid_max_lag_seconds'>max_lag_seconds</span> <span class='op'>*</span> <span class='int'>1000</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_round'>round</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>event_loop_lag_average_ms:</span>     <span class='lparen'>(</span><span class='id identifier rubyid_el'>el</span><span class='period'>.</span><span class='id identifier rubyid_average_lag_seconds'>average_lag_seconds</span> <span class='op'>*</span> <span class='int'>1000</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_round'>round</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span>
-  <span class='rbrace'>}</span>
+    <span class='label'>blocking_pool_size:</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_pool_size'>pool_size</span><span class='comma'>,</span>
+    <span class='label'>event_loop_lag_last_ms:</span> <span class='lparen'>(</span><span class='id identifier rubyid_el'>el</span><span class='period'>.</span><span class='id identifier rubyid_last_lag_seconds'>last_lag_seconds</span> <span class='op'>*</span> <span class='int'>1000</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_round'>round</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>event_loop_lag_max_ms:</span> <span class='lparen'>(</span><span class='id identifier rubyid_el'>el</span><span class='period'>.</span><span class='id identifier rubyid_max_lag_seconds'>max_lag_seconds</span> <span class='op'>*</span> <span class='int'>1000</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_round'>round</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>event_loop_lag_average_ms:</span> <span class='lparen'>(</span><span class='id identifier rubyid_el'>el</span><span class='period'>.</span><span class='id identifier rubyid_average_lag_seconds'>average_lag_seconds</span> <span class='op'>*</span> <span class='int'>1000</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_round'>round</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span>
+  <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='id identifier rubyid_task_snap'>task_snap</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -285,7 +240,7 @@ persistent state is held here.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 02:32:19 2026 by
+  Generated on Sun May 24 15:02:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

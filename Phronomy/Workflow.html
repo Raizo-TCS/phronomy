@@ -243,7 +243,7 @@ final  = app.send_event(state: halted, event: :approve)
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#invoke-instance_method" title="#invoke (instance method)">#<strong>invoke</strong>(input, config: {})  &#x21d2; Object </a>
+      <a href="#invoke-instance_method" title="#invoke (instance method)">#<strong>invoke</strong>(input, config: {}, invocation_context: nil)  &#x21d2; Object </a>
     
 
     
@@ -265,7 +265,7 @@ final  = app.send_event(state: halted, event: :approve)
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#invoke_async-instance_method" title="#invoke_async (instance method)">#<strong>invoke_async</strong>(input, config: {})  &#x21d2; Phronomy::Task </a>
+      <a href="#invoke_async-instance_method" title="#invoke_async (instance method)">#<strong>invoke_async</strong>(input, config: {}, invocation_context: nil)  &#x21d2; Phronomy::Task </a>
     
 
     
@@ -577,7 +577,7 @@ Takes precedence over the global <code>Phronomy.configuration.state_store</code>
       <div class="method_details first">
   <h3 class="signature first" id="invoke-instance_method">
   
-    #<strong>invoke</strong>(input, config: {})  &#x21d2; <tt>Object</tt> 
+    #<strong>invoke</strong>(input, config: {}, invocation_context: nil)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -623,6 +623,25 @@ Takes precedence over the global <code>Phronomy.configuration.state_store</code>
       
     </li>
   
+    <li>
+      
+        <span class='name'>invocation_context</span>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="InvocationContext.html" title="Phronomy::InvocationContext (class)">Phronomy::InvocationContext</a></span></tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>optional first-class context
+object.  When present, <code>thread_id</code>, <code>cancellation_token</code>, and <code>deadline</code> are
+derived from it (existing <code>config:</code> keys take precedence).  The object is also
+stored in <code>config[:invocation_context]</code> for downstream tracing.</p></div>
+      
+    </li>
+  
 </ul>
 
 <p class="tag_title">Returns:</p>
@@ -648,14 +667,20 @@ Takes precedence over the global <code>Phronomy.configuration.state_store</code>
       <pre class="lines">
 
 
-86
-87
-88</pre>
+90
+91
+92
+93
+94
+95</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 86</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 90</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span>
+    <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid__apply_invocation_context'>_apply_invocation_context</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
   <span class='ivar'>@runner</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -666,7 +691,7 @@ Takes precedence over the global <code>Phronomy.configuration.state_store</code>
       <div class="method_details ">
   <h3 class="signature " id="invoke_async-instance_method">
   
-    #<strong>invoke_async</strong>(input, config: {})  &#x21d2; <tt><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt> 
+    #<strong>invoke_async</strong>(input, config: {}, invocation_context: nil)  &#x21d2; <tt><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt> 
   
 
   
@@ -706,6 +731,19 @@ Takes precedence over the global <code>Phronomy.configuration.state_store</code>
       
     </li>
   
+    <li>
+      
+        <span class='name'>invocation_context</span>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="InvocationContext.html" title="Phronomy::InvocationContext (class)">Phronomy::InvocationContext</a></span></tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+    </li>
+  
 </ul>
 
 <p class="tag_title">Returns:</p>
@@ -728,16 +766,22 @@ Takes precedence over the global <code>Phronomy.configuration.state_store</code>
       <pre class="lines">
 
 
-96
-97
-98
-99
-100</pre>
+104
+105
+106
+107
+108
+109
+110
+111</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 96</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 104</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span>
+    <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid__apply_invocation_context'>_apply_invocation_context</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
   <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_spawn'><span class='object_link'><a href="Task.html#spawn-class_method" title="Phronomy::Task.spawn (method)">spawn</a></span></span> <span class='kw'>do</span>
     <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
@@ -821,12 +865,12 @@ Takes precedence over the global <code>Phronomy.configuration.state_store</code>
       <pre class="lines">
 
 
-107
-108
-109</pre>
+118
+119
+120</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 107</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 118</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='label'>state:</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@runner</span><span class='period'>.</span><span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='label'>state:</span> <span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
@@ -924,12 +968,12 @@ Takes precedence over the global <code>Phronomy.configuration.state_store</code>
       <pre class="lines">
 
 
-117
-118
-119</pre>
+128
+129
+130</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 117</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 128</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_send_event'>send_event</span><span class='lparen'>(</span><span class='label'>state:</span><span class='comma'>,</span> <span class='label'>event:</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@runner</span><span class='period'>.</span><span class='id identifier rubyid_send_event'>send_event</span><span class='lparen'>(</span><span class='label'>state:</span> <span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>event:</span> <span class='id identifier rubyid_event'>event</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
@@ -1020,12 +1064,12 @@ Takes precedence over the global <code>Phronomy.configuration.state_store</code>
       <pre class="lines">
 
 
-127
-128
-129</pre>
+138
+139
+140</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 127</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 138</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@runner</span><span class='period'>.</span><span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
@@ -1040,7 +1084,7 @@ Takes precedence over the global <code>Phronomy.configuration.state_store</code>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 02:32:19 2026 by
+  Generated on Sun May 24 15:02:57 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

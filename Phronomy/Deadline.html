@@ -176,7 +176,7 @@ skew from NTP adjustments or DST transitions.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#attach_to-instance_method" title="#attach_to (instance method)">#<strong>attach_to</strong>(token)  &#x21d2; self </a>
+      <a href="#attach_to-instance_method" title="#attach_to (instance method)">#<strong>attach_to</strong>(token, timer_queue: Phronomy::Runtime.instance.timer_queue)  &#x21d2; self </a>
     
 
     
@@ -413,7 +413,7 @@ skew from NTP adjustments or DST transitions.</p>
       <div class="method_details first">
   <h3 class="signature first" id="attach_to-instance_method">
   
-    #<strong>attach_to</strong>(token)  &#x21d2; <tt>self</tt> 
+    #<strong>attach_to</strong>(token, timer_queue: Phronomy::Runtime.instance.timer_queue)  &#x21d2; <tt>self</tt> 
   
 
   
@@ -422,8 +422,9 @@ skew from NTP adjustments or DST transitions.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Attaches this deadline to a <span class='object_link'><a href="CancellationToken.html" title="Phronomy::CancellationToken (class)">CancellationToken</a></span> by cancelling the token
-when the deadline expires.  Spawns a background thread that sleeps for
-the remaining duration and then calls <code>token.cancel!</code>.</p>
+when the deadline expires.  Uses the Runtime timer queue (a single
+background thread shared by all deadlines) instead of spawning one thread
+per deadline.</p>
 
   </div>
 </div>
@@ -439,6 +440,23 @@ the remaining duration and then calls <code>token.cancel!</code>.</p>
         <span class='type'>(<tt><span class='object_link'><a href="CancellationToken.html" title="Phronomy::CancellationToken (class)">CancellationToken</a></span></tt>)</span>
       
       
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>timer_queue</span>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Runtime/TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">Runtime::TimerQueue</a></span></tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>Phronomy::Runtime.instance.timer_queue</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>queue to register with;
+defaults to <code>Phronomy::Runtime.instance.timer_queue</code></p></div>
       
     </li>
   
@@ -464,9 +482,6 @@ the remaining duration and then calls <code>token.cancel!</code>.</p>
       <pre class="lines">
 
 
-47
-48
-49
 50
 51
 52
@@ -476,16 +491,13 @@ the remaining duration and then calls <code>token.cancel!</code>.</p>
 56</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/deadline.rb', line 47</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/deadline.rb', line 50</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_attach_to'>attach_to</span><span class='lparen'>(</span><span class='id identifier rubyid_token'>token</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_attach_to'>attach_to</span><span class='lparen'>(</span><span class='id identifier rubyid_token'>token</span><span class='comma'>,</span> <span class='label'>timer_queue:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_timer_queue'><span class='object_link'><a href="Runtime.html#timer_queue-instance_method" title="Phronomy::Runtime#timer_queue (method)">timer_queue</a></span></span><span class='rparen'>)</span>
   <span class='id identifier rubyid_seconds'>seconds</span> <span class='op'>=</span> <span class='id identifier rubyid_remaining_seconds'>remaining_seconds</span>
   <span class='kw'>return</span> <span class='kw'>self</span> <span class='kw'>if</span> <span class='id identifier rubyid_seconds'>seconds</span> <span class='op'>&lt;=</span> <span class='int'>0</span>
 
-  <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_sleep'>sleep</span><span class='lparen'>(</span><span class='id identifier rubyid_seconds'>seconds</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_token'>token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span>
-  <span class='kw'>end</span>
+  <span class='id identifier rubyid_timer_queue'>timer_queue</span><span class='period'>.</span><span class='id identifier rubyid_schedule'>schedule</span><span class='lparen'>(</span><span class='label'>seconds:</span> <span class='id identifier rubyid_seconds'>seconds</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_token'>token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span> <span class='rbrace'>}</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -604,7 +616,7 @@ the remaining duration and then calls <code>token.cancel!</code>.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 02:32:19 2026 by
+  Generated on Sun May 24 15:02:57 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

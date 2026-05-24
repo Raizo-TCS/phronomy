@@ -433,6 +433,156 @@ Configure via the Phronomy.configure block.</p>
       <li class="public ">
   <span class="summary_signature">
     
+      <a href="#max_concurrent_agent_tasks-instance_method" title="#max_concurrent_agent_tasks (instance method)">#<strong>max_concurrent_agent_tasks</strong>  &#x21d2; Integer<sup>?</sup> </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Maximum number of concurrent agent tasks (invoke_async calls in-flight).</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#max_concurrent_llm_calls-instance_method" title="#max_concurrent_llm_calls (instance method)">#<strong>max_concurrent_llm_calls</strong>  &#x21d2; Integer<sup>?</sup> </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Maximum number of concurrent LLM calls in-flight.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#max_concurrent_rag_fetches-instance_method" title="#max_concurrent_rag_fetches (instance method)">#<strong>max_concurrent_rag_fetches</strong>  &#x21d2; Integer<sup>?</sup> </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Maximum number of concurrent RAG knowledge-source fetches in-flight.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#max_concurrent_tool_tasks-instance_method" title="#max_concurrent_tool_tasks (instance method)">#<strong>max_concurrent_tool_tasks</strong>  &#x21d2; Integer<sup>?</sup> </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Maximum number of concurrent tool tasks (parallel tool calls in-flight).</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#max_concurrent_vector_searches-instance_method" title="#max_concurrent_vector_searches (instance method)">#<strong>max_concurrent_vector_searches</strong>  &#x21d2; Integer<sup>?</sup> </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Maximum number of concurrent vector-store searches in-flight.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#max_concurrent_workflow_tasks-instance_method" title="#max_concurrent_workflow_tasks (instance method)">#<strong>max_concurrent_workflow_tasks</strong>  &#x21d2; Integer<sup>?</sup> </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Maximum number of concurrent workflow tasks.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#recursion_limit-instance_method" title="#recursion_limit (instance method)">#<strong>recursion_limit</strong>  &#x21d2; Object </a>
     
 
@@ -451,6 +601,31 @@ Configure via the Phronomy.configure block.</p>
 
   
     <span class="summary_desc"><div class='inline'><p>Recursion limit for graph execution (default: 25).</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#runtime_backend-instance_method" title="#runtime_backend (instance method)">#<strong>runtime_backend</strong>  &#x21d2; :thread, :deterministic </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Scheduler backend to use for new <span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span> instances.</p></div></span>
   
 </li>
 
@@ -483,6 +658,31 @@ Configure via the Phronomy.configure block.</p>
       <li class="public ">
   <span class="summary_signature">
     
+      <a href="#starvation_threshold_ms-instance_method" title="#starvation_threshold_ms (instance method)">#<strong>starvation_threshold_ms</strong>  &#x21d2; Numeric </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Scheduler starvation threshold (milliseconds).</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#state_store-instance_method" title="#state_store (instance method)">#<strong>state_store</strong>  &#x21d2; Object </a>
     
 
@@ -501,6 +701,31 @@ Configure via the Phronomy.configure block.</p>
 
   
     <span class="summary_desc"><div class='inline'><p>Global state store for workflow persistence.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#strict_runtime_guards-instance_method" title="#strict_runtime_guards (instance method)">#<strong>strict_runtime_guards</strong>  &#x21d2; Boolean </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>When <code>true</code>, calling Agent#invoke from inside a scheduler task raises <span class='object_link'><a href="SchedulerReentrancyError.html" title="Phronomy::SchedulerReentrancyError (class)">SchedulerReentrancyError</a></span>.</p></div></span>
   
 </li>
 
@@ -648,23 +873,32 @@ Configure via the Phronomy.configure block.</p>
       <pre class="lines">
 
 
-116
-117
-118
-119
-120
-121
-122
-123
-124
-125
-126
-127
-128
-129</pre>
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 116</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 177</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@recursion_limit</span> <span class='op'>=</span> <span class='int'>25</span>
@@ -679,6 +913,15 @@ Configure via the Phronomy.configure block.</p>
   <span class='ivar'>@event_loop_dispatch_threshold_seconds</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@scheduler_debug</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@blocking_detect_threshold_ms</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@max_concurrent_agent_tasks</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@max_concurrent_tool_tasks</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@max_concurrent_workflow_tasks</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@max_concurrent_llm_calls</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@max_concurrent_rag_fetches</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@max_concurrent_vector_searches</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@starvation_threshold_ms</span> <span class='op'>=</span> <span class='int'>50</span>
+  <span class='ivar'>@runtime_backend</span> <span class='op'>=</span> <span class='symbol'>:thread</span>
+  <span class='ivar'>@strict_runtime_guards</span> <span class='op'>=</span> <span class='kw'>false</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1302,6 +1545,337 @@ via <code>Kernel#warn</code>.</p>
 </div>
     
       
+      <span id="max_concurrent_agent_tasks=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="max_concurrent_agent_tasks-instance_method">
+  
+    #<strong>max_concurrent_agent_tasks</strong>  &#x21d2; <tt>Integer</tt><sup>?</sup> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Maximum number of concurrent agent tasks (invoke_async calls in-flight).
+nil = unlimited (default).  When at capacity, behaviour is controlled by
+<code>backpressure</code> (:wait, :raise/:reject, :timeout).</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+120
+121
+122</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 120</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_agent_tasks'>max_concurrent_agent_tasks</span>
+  <span class='ivar'>@max_concurrent_agent_tasks</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="max_concurrent_llm_calls=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="max_concurrent_llm_calls-instance_method">
+  
+    #<strong>max_concurrent_llm_calls</strong>  &#x21d2; <tt>Integer</tt><sup>?</sup> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Maximum number of concurrent LLM calls in-flight.
+nil = unlimited (default).</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+135
+136
+137</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 135</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_llm_calls'>max_concurrent_llm_calls</span>
+  <span class='ivar'>@max_concurrent_llm_calls</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="max_concurrent_rag_fetches=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="max_concurrent_rag_fetches-instance_method">
+  
+    #<strong>max_concurrent_rag_fetches</strong>  &#x21d2; <tt>Integer</tt><sup>?</sup> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Maximum number of concurrent RAG knowledge-source fetches in-flight.
+nil = unlimited (default).</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+140
+141
+142</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 140</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_rag_fetches'>max_concurrent_rag_fetches</span>
+  <span class='ivar'>@max_concurrent_rag_fetches</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="max_concurrent_tool_tasks=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="max_concurrent_tool_tasks-instance_method">
+  
+    #<strong>max_concurrent_tool_tasks</strong>  &#x21d2; <tt>Integer</tt><sup>?</sup> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Maximum number of concurrent tool tasks (parallel tool calls in-flight).
+nil = unlimited (default).</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+125
+126
+127</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 125</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_tool_tasks'>max_concurrent_tool_tasks</span>
+  <span class='ivar'>@max_concurrent_tool_tasks</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="max_concurrent_vector_searches=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="max_concurrent_vector_searches-instance_method">
+  
+    #<strong>max_concurrent_vector_searches</strong>  &#x21d2; <tt>Integer</tt><sup>?</sup> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Maximum number of concurrent vector-store searches in-flight.
+nil = unlimited (default).</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+145
+146
+147</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 145</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_vector_searches'>max_concurrent_vector_searches</span>
+  <span class='ivar'>@max_concurrent_vector_searches</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="max_concurrent_workflow_tasks=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="max_concurrent_workflow_tasks-instance_method">
+  
+    #<strong>max_concurrent_workflow_tasks</strong>  &#x21d2; <tt>Integer</tt><sup>?</sup> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Maximum number of concurrent workflow tasks.
+nil = unlimited (default).</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+130
+131
+132</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 130</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_workflow_tasks'>max_concurrent_workflow_tasks</span>
+  <span class='ivar'>@max_concurrent_workflow_tasks</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
       <span id="recursion_limit=-instance_method"></span>
       <div class="method_details ">
   <h3 class="signature " id="recursion_limit-instance_method">
@@ -1336,6 +1910,85 @@ via <code>Kernel#warn</code>.</p>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_recursion_limit'>recursion_limit</span>
   <span class='ivar'>@recursion_limit</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="runtime_backend=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="runtime_backend-instance_method">
+  
+    #<strong>runtime_backend</strong>  &#x21d2; <tt>:thread</tt>, <tt>:deterministic</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Scheduler backend to use for new <span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span> instances.</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Scheduler</th>
+<th>Typical use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>:thread</code></td>
+<td><span class='object_link'><a href="Runtime/ThreadScheduler.html" title="Phronomy::Runtime::ThreadScheduler (class)">Runtime::ThreadScheduler</a></span></td>
+<td>Production (default)</td>
+</tr>
+<tr>
+<td><code>:deterministic</code></td>
+<td><span class='object_link'><a href="Runtime/FakeScheduler.html" title="Phronomy::Runtime::FakeScheduler (class)">Runtime::FakeScheduler</a></span></td>
+<td>Unit tests</td>
+</tr>
+</tbody>
+</table>
+<p>When this setting is changed, the change only takes effect on the NEXT
+call to <span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">Runtime.instance</a></span> that auto-creates a new instance (i.e. after the
+previous instance has been replaced or reset).  To replace the current
+instance immediately call <code>Phronomy::Runtime.instance = nil</code> first.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>:thread</tt>, <tt>:deterministic</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+169
+170
+171</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 169</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_runtime_backend'>runtime_backend</span>
+  <span class='ivar'>@runtime_backend</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1398,6 +2051,65 @@ Equivalent to setting all diagnostic thresholds to their defaults.</p>
 </div>
     
       
+      <span id="starvation_threshold_ms=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="starvation_threshold_ms-instance_method">
+  
+    #<strong>starvation_threshold_ms</strong>  &#x21d2; <tt>Numeric</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Scheduler starvation threshold (milliseconds).
+When a task waits more than this many milliseconds after calling
+<code>runtime.yield</code> before being resumed, the wait is counted as a starvation
+event.  Used by the fairness regression test and by the
+<code>tasks_waiting_over_threshold</code> metric on <span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span>.
+Default: 50ms.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Numeric</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+154
+155
+156</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 154</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_starvation_threshold_ms'>starvation_threshold_ms</span>
+  <span class='ivar'>@starvation_threshold_ms</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
       <span id="state_store=-instance_method"></span>
       <div class="method_details ">
   <h3 class="signature " id="state_store-instance_method">
@@ -1443,6 +2155,62 @@ Defaults to <code>nil</code> (no persistence — state lives only for the durati
 
 <span class='kw'>def</span> <span class='id identifier rubyid_state_store'>state_store</span>
   <span class='ivar'>@state_store</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="strict_runtime_guards=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="strict_runtime_guards-instance_method">
+  
+    #<strong>strict_runtime_guards</strong>  &#x21d2; <tt>Boolean</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>When <code>true</code>, calling Agent#invoke from inside a scheduler task
+raises <span class='object_link'><a href="SchedulerReentrancyError.html" title="Phronomy::SchedulerReentrancyError (class)">SchedulerReentrancyError</a></span>.  When <code>false</code> (default), a warning
+is logged instead so that existing callers have time to migrate.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+175
+176
+177</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 175</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span>
+  <span class='ivar'>@strict_runtime_guards</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1591,7 +2359,7 @@ the tracing backend (OTel, Langfuse, etc.).</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 02:32:20 2026 by
+  Generated on Sun May 24 15:02:57 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

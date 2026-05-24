@@ -100,7 +100,9 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy.rb
+    <dd>lib/phronomy.rb<span class="defines">,<br>
+  lib/phronomy.rb</span>
+
 </dd>
   </dl>
   
@@ -108,8 +110,9 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Raised when a blocking <code>invoke</code> is called from inside an EventLoop action.
-Use <code>invoke_async</code> instead to avoid stalling the scheduler.</p>
+    <p>Raised when a blocking <code>invoke</code> is called from inside an EventLoop action or
+from within an active Runtime scheduler task.
+Use <code>invoke_async</code> instead to compose agents without blocking the scheduler.</p>
 
   </div>
 </div>
@@ -136,7 +139,7 @@ Use <code>invoke_async</code> instead to avoid stalling the scheduler.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 02:32:19 2026 by
+  Generated on Sun May 24 15:02:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

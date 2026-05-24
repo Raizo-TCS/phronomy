@@ -159,6 +159,33 @@ observable at runtime.</li>
       <li class="public ">
   <span class="summary_signature">
     
+      <a href="#name-instance_method" title="#name (instance method)">#<strong>name</strong>  &#x21d2; String, ... </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Pool name used in thread labels.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#pool_size-instance_method" title="#pool_size (instance method)">#<strong>pool_size</strong>  &#x21d2; Integer </a>
     
 
@@ -292,7 +319,7 @@ observable at runtime.</li>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(pool_size: 10, queue_size: 100, logger: nil)  &#x21d2; BlockingAdapterPool </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(pool_size: 10, queue_size: 100, name: nil, logger: nil)  &#x21d2; BlockingAdapterPool </a>
     
 
     
@@ -389,7 +416,7 @@ observable at runtime.</li>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(pool_size: 10, queue_size: 100, logger: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span></tt> 
+    #<strong>initialize</strong>(pool_size: 10, queue_size: 100, name: nil, logger: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span></tt> 
   
 
   
@@ -439,6 +466,22 @@ observable at runtime.</li>
   
     <li>
       
+        <span class='name'>name</span>
+      
+      
+        <span class='type'>(<tt>String</tt>, <tt>Symbol</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>optional pool name used in thread labels</p></div>
+      
+    </li>
+  
+    <li>
+      
         <span class='name'>logger</span>
       
       
@@ -462,35 +505,37 @@ observable at runtime.</li>
       <pre class="lines">
 
 
-121
-122
-123
-124
-125
-126
-127
-128
-129
-130
-131
-132
-133</pre>
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 121</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 191</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>pool_size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='comma'>,</span> <span class='label'>logger:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='ivar'>@pool_size</span>        <span class='op'>=</span> <span class='id identifier rubyid_pool_size'>pool_size</span>
-  <span class='ivar'>@queue_size</span>       <span class='op'>=</span> <span class='id identifier rubyid_queue_size'>queue_size</span>
-  <span class='ivar'>@logger</span>           <span class='op'>=</span> <span class='id identifier rubyid_logger'>logger</span>
-  <span class='ivar'>@queue</span>            <span class='op'>=</span> <span class='const'>SizedQueue</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_queue_size'>queue_size</span><span class='rparen'>)</span>
-  <span class='ivar'>@active_count</span>     <span class='op'>=</span> <span class='int'>0</span>
-  <span class='ivar'>@abandoned_count</span>  <span class='op'>=</span> <span class='int'>0</span>
-  <span class='ivar'>@total_wait_ns</span>    <span class='op'>=</span> <span class='int'>0</span>
-  <span class='ivar'>@completed_count</span>  <span class='op'>=</span> <span class='int'>0</span>
-  <span class='ivar'>@mutex</span>            <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
-  <span class='ivar'>@shutdown</span>         <span class='op'>=</span> <span class='kw'>false</span>
-  <span class='ivar'>@workers</span>          <span class='op'>=</span> <span class='const'>Array</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_pool_size'>pool_size</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_spawn_worker'>spawn_worker</span> <span class='rbrace'>}</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>pool_size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='comma'>,</span> <span class='label'>name:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>logger:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='ivar'>@pool_size</span> <span class='op'>=</span> <span class='id identifier rubyid_pool_size'>pool_size</span>
+  <span class='ivar'>@queue_size</span> <span class='op'>=</span> <span class='id identifier rubyid_queue_size'>queue_size</span>
+  <span class='ivar'>@name</span> <span class='op'>=</span> <span class='id identifier rubyid_name'>name</span>
+  <span class='ivar'>@logger</span> <span class='op'>=</span> <span class='id identifier rubyid_logger'>logger</span>
+  <span class='ivar'>@queue</span> <span class='op'>=</span> <span class='const'>SizedQueue</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_queue_size'>queue_size</span><span class='rparen'>)</span>
+  <span class='ivar'>@active_count</span> <span class='op'>=</span> <span class='int'>0</span>
+  <span class='ivar'>@abandoned_count</span> <span class='op'>=</span> <span class='int'>0</span>
+  <span class='ivar'>@total_wait_ns</span> <span class='op'>=</span> <span class='int'>0</span>
+  <span class='ivar'>@completed_count</span> <span class='op'>=</span> <span class='int'>0</span>
+  <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
+  <span class='ivar'>@shutdown</span> <span class='op'>=</span> <span class='kw'>false</span>
+  <span class='ivar'>@workers</span> <span class='op'>=</span> <span class='const'>Array</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_pool_size'>pool_size</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_i'>i</span><span class='op'>|</span> <span class='id identifier rubyid_spawn_worker'>spawn_worker</span><span class='lparen'>(</span><span class='id identifier rubyid_i'>i</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -505,7 +550,64 @@ observable at runtime.</li>
       
       <span id=""></span>
       <div class="method_details first">
-  <h3 class="signature first" id="pool_size-instance_method">
+  <h3 class="signature first" id="name-instance_method">
+  
+    #<strong>name</strong>  &#x21d2; <tt>String</tt>, ...  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns pool name used in thread labels.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>String</tt>, <tt>Symbol</tt>, <tt>nil</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>pool name used in thread labels</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+292
+293
+294</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 292</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_name'>name</span>
+  <span class='ivar'>@name</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="pool_size-instance_method">
   
     #<strong>pool_size</strong>  &#x21d2; <tt>Integer</tt>  <span class="extras">(readonly)</span>
   
@@ -544,12 +646,12 @@ observable at runtime.</li>
       <pre class="lines">
 
 
-216
-217
-218</pre>
+286
+287
+288</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 216</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 286</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pool_size'>pool_size</span>
   <span class='ivar'>@pool_size</span>
@@ -601,12 +703,12 @@ observable at runtime.</li>
       <pre class="lines">
 
 
-219
-220
-221</pre>
+289
+290
+291</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 219</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 289</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_queue_size'>queue_size</span>
   <span class='ivar'>@queue_size</span>
@@ -663,12 +765,12 @@ observable at runtime.</li>
       <pre class="lines">
 
 
-200
-201
-202</pre>
+270
+271
+272</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 200</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 270</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_abandoned_count'>abandoned_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@abandoned_count</span> <span class='rbrace'>}</span>
@@ -718,12 +820,12 @@ observable at runtime.</li>
       <pre class="lines">
 
 
-190
-191
-192</pre>
+260
+261
+262</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 190</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 260</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_active_count'>active_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@active_count</span> <span class='rbrace'>}</span>
@@ -771,16 +873,16 @@ waiting for a worker.  Returns 0.0 when no operations have completed yet.</p>
       <pre class="lines">
 
 
-207
-208
-209
-210
-211
-212
-213</pre>
+277
+278
+279
+280
+281
+282
+283</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 207</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 277</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_average_wait_seconds'>average_wait_seconds</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -834,12 +936,12 @@ waiting for a worker.  Returns 0.0 when no operations have completed yet.</p>
       <pre class="lines">
 
 
-195
-196
-197</pre>
+265
+266
+267</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 195</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 265</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_queue_depth'>queue_depth</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
@@ -907,15 +1009,15 @@ Waits up to <code>drain_timeout</code> seconds for in-flight operations to finis
       <pre class="lines">
 
 
-180
-181
-182
-183
-184
-185</pre>
+250
+251
+252
+253
+254
+255</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 180</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 250</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span><span class='label'>drain_timeout:</span> <span class='int'>30</span><span class='rparen'>)</span>
   <span class='ivar'>@shutdown</span> <span class='op'>=</span> <span class='kw'>true</span>
@@ -1055,43 +1157,43 @@ Returns a <span class='object_link'><a href="BlockingAdapterPool/PendingOperatio
       <pre class="lines">
 
 
-145
-146
-147
-148
-149
-150
-151
-152
-153
-154
-155
-156
-157
-158
-159
-160
-161
-162
-163
-164
-165
-166
-167
-168
-169
-170
-171
-172
-173</pre>
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 145</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 216</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on_full:</span> <span class='symbol'>:wait</span><span class='comma'>,</span> <span class='label'>full_timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="PoolShutdownError.html" title="Phronomy::PoolShutdownError (class)">PoolShutdownError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>pool has been shut down</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='ivar'>@shutdown</span>
 
-  <span class='id identifier rubyid_op'>op</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="BlockingAdapterPool/PendingOperation.html" title="Phronomy::BlockingAdapterPool::PendingOperation (class)">PendingOperation</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="BlockingAdapterPool/PendingOperation.html#initialize-instance_method" title="Phronomy::BlockingAdapterPool::PendingOperation#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_block'>block</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_op'>op</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="BlockingAdapterPool/PendingOperation.html" title="Phronomy::BlockingAdapterPool::PendingOperation (class)">PendingOperation</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="BlockingAdapterPool/PendingOperation.html#initialize-instance_method" title="Phronomy::BlockingAdapterPool::PendingOperation#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_block'>block</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
+    <span class='label'>on_abandoned:</span> <span class='id identifier rubyid_timeout'>timeout</span> <span class='op'>?</span> <span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@abandoned_count</span> <span class='op'>+=</span> <span class='int'>1</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span> <span class='op'>:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>case</span> <span class='id identifier rubyid_on_full'>on_full</span>
   <span class='kw'>when</span> <span class='symbol'>:raise</span>
     <span class='kw'>begin</span>
@@ -1102,15 +1204,13 @@ Returns a <span class='object_link'><a href="BlockingAdapterPool/PendingOperatio
   <span class='kw'>when</span> <span class='symbol'>:timeout</span>
     <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>=</span> <span class='id identifier rubyid_full_timeout'>full_timeout</span> <span class='op'>?</span> <span class='lparen'>(</span><span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='id identifier rubyid_full_timeout'>full_timeout</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='kw'>nil</span>
     <span class='id identifier rubyid_loop'>loop</span> <span class='kw'>do</span>
-      <span class='kw'>begin</span>
-        <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_op'>op</span><span class='comma'>,</span> <span class='kw'>true</span><span class='rparen'>)</span>
-        <span class='kw'>break</span>
-      <span class='kw'>rescue</span> <span class='const'>ThreadError</span>
-        <span class='kw'>if</span> <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>&amp;&amp;</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>&gt;=</span> <span class='id identifier rubyid_deadline'>deadline</span>
-          <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>timed out waiting for a free slot in BlockingAdapterPool</span><span class='tstring_end'>&quot;</span></span>
-        <span class='kw'>end</span>
-        <span class='id identifier rubyid_sleep'>sleep</span><span class='lparen'>(</span><span class='float'>0.005</span><span class='rparen'>)</span>
+      <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_op'>op</span><span class='comma'>,</span> <span class='kw'>true</span><span class='rparen'>)</span>
+      <span class='kw'>break</span>
+    <span class='kw'>rescue</span> <span class='const'>ThreadError</span>
+      <span class='kw'>if</span> <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>&amp;&amp;</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>&gt;=</span> <span class='id identifier rubyid_deadline'>deadline</span>
+        <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>timed out waiting for a free slot in BlockingAdapterPool</span><span class='tstring_end'>&quot;</span></span>
       <span class='kw'>end</span>
+      <span class='id identifier rubyid_sleep'>sleep</span><span class='lparen'>(</span><span class='float'>0.005</span><span class='rparen'>)</span>
     <span class='kw'>end</span>
   <span class='kw'>else</span> <span class='comment'># :wait (default)
 </span>    <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_op'>op</span><span class='rparen'>)</span>
@@ -1127,7 +1227,7 @@ Returns a <span class='object_link'><a href="BlockingAdapterPool/PendingOperatio
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 02:32:22 2026 by
+  Generated on Sun May 24 15:02:58 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

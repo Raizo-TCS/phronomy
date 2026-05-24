@@ -526,6 +526,28 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#effective_timeout_token-instance_method" title="#effective_timeout_token (instance method)">#<strong>effective_timeout_token</strong>  &#x21d2; CancellationToken<sup>?</sup> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the cancellation token to use for an invocation, taking both the explicit <code>cancellation_token</code> and the <code>deadline</code> into account.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(thread_id: nil, session_id: nil, user_id: nil, cancellation_token: nil, deadline: nil, tracer_span: nil, token_budget: nil, max_parallel_tools: 10, approval_policy: nil, redaction_policy: nil, provider_limits: nil, task_id: nil, parent_task_id: nil)  &#x21d2; InvocationContext </a>
     
 
@@ -821,19 +843,19 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
   <span class='label'>task_id:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>parent_task_id:</span> <span class='kw'>nil</span>
 <span class='rparen'>)</span>
-  <span class='ivar'>@thread_id</span>          <span class='op'>=</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
-  <span class='ivar'>@session_id</span>         <span class='op'>=</span> <span class='id identifier rubyid_session_id'>session_id</span>
-  <span class='ivar'>@user_id</span>            <span class='op'>=</span> <span class='id identifier rubyid_user_id'>user_id</span>
+  <span class='ivar'>@thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
+  <span class='ivar'>@session_id</span> <span class='op'>=</span> <span class='id identifier rubyid_session_id'>session_id</span>
+  <span class='ivar'>@user_id</span> <span class='op'>=</span> <span class='id identifier rubyid_user_id'>user_id</span>
   <span class='ivar'>@cancellation_token</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
-  <span class='ivar'>@deadline</span>           <span class='op'>=</span> <span class='id identifier rubyid_deadline'>deadline</span>
-  <span class='ivar'>@tracer_span</span>        <span class='op'>=</span> <span class='id identifier rubyid_tracer_span'>tracer_span</span>
-  <span class='ivar'>@token_budget</span>       <span class='op'>=</span> <span class='id identifier rubyid_token_budget'>token_budget</span>
+  <span class='ivar'>@deadline</span> <span class='op'>=</span> <span class='id identifier rubyid_deadline'>deadline</span>
+  <span class='ivar'>@tracer_span</span> <span class='op'>=</span> <span class='id identifier rubyid_tracer_span'>tracer_span</span>
+  <span class='ivar'>@token_budget</span> <span class='op'>=</span> <span class='id identifier rubyid_token_budget'>token_budget</span>
   <span class='ivar'>@max_parallel_tools</span> <span class='op'>=</span> <span class='id identifier rubyid_max_parallel_tools'>max_parallel_tools</span>
-  <span class='ivar'>@approval_policy</span>    <span class='op'>=</span> <span class='id identifier rubyid_approval_policy'>approval_policy</span>
-  <span class='ivar'>@redaction_policy</span>   <span class='op'>=</span> <span class='id identifier rubyid_redaction_policy'>redaction_policy</span>
-  <span class='ivar'>@provider_limits</span>    <span class='op'>=</span> <span class='id identifier rubyid_provider_limits'>provider_limits</span>
-  <span class='ivar'>@task_id</span>            <span class='op'>=</span> <span class='id identifier rubyid_task_id'>task_id</span>
-  <span class='ivar'>@parent_task_id</span>     <span class='op'>=</span> <span class='id identifier rubyid_parent_task_id'>parent_task_id</span>
+  <span class='ivar'>@approval_policy</span> <span class='op'>=</span> <span class='id identifier rubyid_approval_policy'>approval_policy</span>
+  <span class='ivar'>@redaction_policy</span> <span class='op'>=</span> <span class='id identifier rubyid_redaction_policy'>redaction_policy</span>
+  <span class='ivar'>@provider_limits</span> <span class='op'>=</span> <span class='id identifier rubyid_provider_limits'>provider_limits</span>
+  <span class='ivar'>@task_id</span> <span class='op'>=</span> <span class='id identifier rubyid_task_id'>task_id</span>
+  <span class='ivar'>@parent_task_id</span> <span class='op'>=</span> <span class='id identifier rubyid_parent_task_id'>parent_task_id</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1640,6 +1662,75 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
 </div>
     
       <div class="method_details ">
+  <h3 class="signature " id="effective_timeout_token-instance_method">
+  
+    #<strong>effective_timeout_token</strong>  &#x21d2; <tt><span class='object_link'><a href="CancellationToken.html" title="Phronomy::CancellationToken (class)">CancellationToken</a></span></tt><sup>?</sup> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the cancellation token to use for an invocation, taking both the
+explicit <code>cancellation_token</code> and the <code>deadline</code> into account.</p>
+<ul>
+<li>When <code>cancellation_token</code> is set, it is returned unchanged.</li>
+<li>When only <code>deadline</code> is set, a new <span class='object_link'><a href="CancellationToken.html" title="Phronomy::CancellationToken (class)">CancellationToken</a></span> is created and
+the deadline is attached to it via <span class='object_link'><a href="Deadline.html#attach_to-instance_method" title="Phronomy::Deadline#attach_to (method)">Deadline#attach_to</a></span>.</li>
+<li>When neither is set, returns <code>nil</code>.</li>
+</ul>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="CancellationToken.html" title="Phronomy::CancellationToken (class)">CancellationToken</a></span></tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+139
+140
+141
+142
+143
+144
+145
+146</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 139</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_effective_timeout_token'>effective_timeout_token</span>
+  <span class='kw'>return</span> <span class='ivar'>@cancellation_token</span> <span class='kw'>if</span> <span class='ivar'>@cancellation_token</span>
+  <span class='kw'>return</span> <span class='kw'>nil</span> <span class='kw'>if</span> <span class='ivar'>@deadline</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
+
+  <span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="CancellationToken.html" title="Phronomy::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="CancellationToken.html#initialize-instance_method" title="Phronomy::CancellationToken#initialize (method)">new</a></span></span>
+  <span class='ivar'>@deadline</span><span class='period'>.</span><span class='id identifier rubyid_attach_to'>attach_to</span><span class='lparen'>(</span><span class='id identifier rubyid_token'>token</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_token'>token</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
   <h3 class="signature " id="merge-instance_method">
   
     #<strong>merge</strong>(**overrides)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::InvocationContext (class)">InvocationContext</a></span></tt> 
@@ -1718,19 +1809,19 @@ All other attributes are carried over unchanged.</p>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_overrides'>overrides</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="" title="Phronomy::InvocationContext (class)">InvocationContext</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::InvocationContext#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-    <span class='label'>thread_id:</span>          <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:thread_id</span><span class='comma'>,</span> <span class='ivar'>@thread_id</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>session_id:</span>         <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:session_id</span><span class='comma'>,</span> <span class='ivar'>@session_id</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>user_id:</span>            <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:user_id</span><span class='comma'>,</span> <span class='ivar'>@user_id</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>thread_id:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:thread_id</span><span class='comma'>,</span> <span class='ivar'>@thread_id</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>session_id:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:session_id</span><span class='comma'>,</span> <span class='ivar'>@session_id</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>user_id:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:user_id</span><span class='comma'>,</span> <span class='ivar'>@user_id</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:cancellation_token</span><span class='comma'>,</span> <span class='ivar'>@cancellation_token</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>deadline:</span>           <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:deadline</span><span class='comma'>,</span> <span class='ivar'>@deadline</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>tracer_span:</span>        <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:tracer_span</span><span class='comma'>,</span> <span class='ivar'>@tracer_span</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>token_budget:</span>       <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:token_budget</span><span class='comma'>,</span> <span class='ivar'>@token_budget</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>deadline:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:deadline</span><span class='comma'>,</span> <span class='ivar'>@deadline</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>tracer_span:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:tracer_span</span><span class='comma'>,</span> <span class='ivar'>@tracer_span</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>token_budget:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:token_budget</span><span class='comma'>,</span> <span class='ivar'>@token_budget</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>max_parallel_tools:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:max_parallel_tools</span><span class='comma'>,</span> <span class='ivar'>@max_parallel_tools</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>approval_policy:</span>    <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:approval_policy</span><span class='comma'>,</span> <span class='ivar'>@approval_policy</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>redaction_policy:</span>   <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:redaction_policy</span><span class='comma'>,</span> <span class='ivar'>@redaction_policy</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>provider_limits:</span>    <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:provider_limits</span><span class='comma'>,</span> <span class='ivar'>@provider_limits</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>task_id:</span>            <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:task_id</span><span class='comma'>,</span> <span class='ivar'>@task_id</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>parent_task_id:</span>     <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:parent_task_id</span><span class='comma'>,</span> <span class='ivar'>@parent_task_id</span><span class='rparen'>)</span>
+    <span class='label'>approval_policy:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:approval_policy</span><span class='comma'>,</span> <span class='ivar'>@approval_policy</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>redaction_policy:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:redaction_policy</span><span class='comma'>,</span> <span class='ivar'>@redaction_policy</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>provider_limits:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:provider_limits</span><span class='comma'>,</span> <span class='ivar'>@provider_limits</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>task_id:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:task_id</span><span class='comma'>,</span> <span class='ivar'>@task_id</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>parent_task_id:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:parent_task_id</span><span class='comma'>,</span> <span class='ivar'>@parent_task_id</span><span class='rparen'>)</span>
   <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1743,7 +1834,7 @@ All other attributes are carried over unchanged.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 02:32:21 2026 by
+  Generated on Sun May 24 15:02:58 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

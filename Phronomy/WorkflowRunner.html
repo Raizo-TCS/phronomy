@@ -194,7 +194,7 @@ directly by WorkflowRunner before the main execution loop begins.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(state_class:, entry_actions:, declared_states:, auto_transitions:, external_events:, entry_point:, exit_actions: {}, wait_state_names: [], state_store: nil)  &#x21d2; WorkflowRunner </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(state_class:, entry_actions:, declared_states:, auto_transitions:, external_events:, entry_point:, exit_actions: {}, wait_state_names: [], state_store: nil, action_timeouts: {})  &#x21d2; WorkflowRunner </a>
     
 
     
@@ -325,7 +325,7 @@ directly by WorkflowRunner before the main execution loop begins.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(state_class:, entry_actions:, declared_states:, auto_transitions:, external_events:, entry_point:, exit_actions: {}, wait_state_names: [], state_store: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::WorkflowRunner (class)">WorkflowRunner</a></span></tt> 
+    #<strong>initialize</strong>(state_class:, entry_actions:, declared_states:, auto_transitions:, external_events:, entry_point:, exit_actions: {}, wait_state_names: [], state_store: nil, action_timeouts: {})  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::WorkflowRunner (class)">WorkflowRunner</a></span></tt> 
   
 
   
@@ -361,12 +361,13 @@ directly by WorkflowRunner before the main execution loop begins.</p>
 56
 57
 58
-59</pre>
+59
+60</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 48</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>state_class:</span><span class='comma'>,</span> <span class='label'>entry_actions:</span><span class='comma'>,</span> <span class='label'>declared_states:</span><span class='comma'>,</span> <span class='label'>auto_transitions:</span><span class='comma'>,</span> <span class='label'>external_events:</span><span class='comma'>,</span> <span class='label'>entry_point:</span><span class='comma'>,</span> <span class='label'>exit_actions:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>wait_state_names:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>state_store:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>state_class:</span><span class='comma'>,</span> <span class='label'>entry_actions:</span><span class='comma'>,</span> <span class='label'>declared_states:</span><span class='comma'>,</span> <span class='label'>auto_transitions:</span><span class='comma'>,</span> <span class='label'>external_events:</span><span class='comma'>,</span> <span class='label'>entry_point:</span><span class='comma'>,</span> <span class='label'>exit_actions:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>wait_state_names:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>state_store:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>action_timeouts:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='ivar'>@state_class</span> <span class='op'>=</span> <span class='id identifier rubyid_state_class'>state_class</span>
   <span class='ivar'>@entry_actions</span> <span class='op'>=</span> <span class='id identifier rubyid_entry_actions'>entry_actions</span>   <span class='comment'># { state_name =&gt; [callable, ...] }
 </span>  <span class='ivar'>@declared_states</span> <span class='op'>=</span> <span class='id identifier rubyid_declared_states'>declared_states</span>
@@ -376,7 +377,8 @@ directly by WorkflowRunner before the main execution loop begins.</p>
 </span>  <span class='ivar'>@entry_point</span> <span class='op'>=</span> <span class='id identifier rubyid_entry_point'>entry_point</span>
   <span class='ivar'>@wait_state_names</span> <span class='op'>=</span> <span class='id identifier rubyid_wait_state_names'>wait_state_names</span>
   <span class='ivar'>@state_store</span> <span class='op'>=</span> <span class='id identifier rubyid_state_store'>state_store</span>
-  <span class='ivar'>@phase_machine_class</span> <span class='op'>=</span> <span class='id identifier rubyid_build_phase_machine_class'>build_phase_machine_class</span><span class='lparen'>(</span><span class='id identifier rubyid_auto_transitions'>auto_transitions</span><span class='comma'>,</span> <span class='id identifier rubyid_exit_actions'>exit_actions</span><span class='rparen'>)</span>
+  <span class='ivar'>@action_timeouts</span> <span class='op'>=</span> <span class='id identifier rubyid_action_timeouts'>action_timeouts</span>   <span class='comment'># { state_name =&gt; seconds }
+</span>  <span class='ivar'>@phase_machine_class</span> <span class='op'>=</span> <span class='id identifier rubyid_build_phase_machine_class'>build_phase_machine_class</span><span class='lparen'>(</span><span class='id identifier rubyid_auto_transitions'>auto_transitions</span><span class='comma'>,</span> <span class='id identifier rubyid_exit_actions'>exit_actions</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -468,7 +470,6 @@ directly by WorkflowRunner before the main execution loop begins.</p>
       <pre class="lines">
 
 
-66
 67
 68
 69
@@ -495,10 +496,11 @@ directly by WorkflowRunner before the main execution loop begins.</p>
 90
 91
 92
-93</pre>
+93
+94</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 66</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 67</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_caller_meta'>caller_meta</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
@@ -611,12 +613,12 @@ directly by WorkflowRunner before the main execution loop begins.</p>
       <pre class="lines">
 
 
-100
 101
-102</pre>
+102
+103</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 100</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 101</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='label'>state:</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_send_event'>send_event</span><span class='lparen'>(</span><span class='label'>state:</span> <span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>event:</span> <span class='symbol'>:resume</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
@@ -720,7 +722,6 @@ for the current wait state and fires it.</p>
       <pre class="lines">
 
 
-114
 115
 116
 117
@@ -748,10 +749,11 @@ for the current wait state and fires it.</p>
 139
 140
 141
-142</pre>
+142
+143</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 114</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 115</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_send_event'>send_event</span><span class='lparen'>(</span><span class='label'>state:</span><span class='comma'>,</span> <span class='label'>event:</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_state'>state</span> <span class='op'>=</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_input'>input</span>
@@ -872,16 +874,16 @@ for the current wait state and fires it.</p>
       <pre class="lines">
 
 
-150
 151
 152
 153
 154
 155
-156</pre>
+156
+157</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 150</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 151</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_uuid'>uuid</span>
@@ -900,7 +902,7 @@ for the current wait state and fires it.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 02:32:21 2026 by
+  Generated on Sun May 24 15:02:58 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

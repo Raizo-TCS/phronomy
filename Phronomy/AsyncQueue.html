@@ -212,7 +212,7 @@ backing primitive without changing call sites.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#pop-instance_method" title="#pop (instance method)">#<strong>pop</strong>  &#x21d2; Object </a>
+      <a href="#pop-instance_method" title="#pop (instance method)">#<strong>pop</strong>(timeout: nil)  &#x21d2; Object<sup>?</sup> </a>
     
 
     
@@ -388,13 +388,13 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
       <pre class="lines">
 
 
-50
-51
-52
-53</pre>
+57
+58
+59
+60</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 50</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 57</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_close'>close</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_close'>close</span>
@@ -442,12 +442,12 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
       <pre class="lines">
 
 
-44
-45
-46</pre>
+51
+52
+53</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 44</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 51</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_empty?'>empty?</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
@@ -460,7 +460,7 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
       <div class="method_details ">
   <h3 class="signature " id="pop-instance_method">
   
-    #<strong>pop</strong>  &#x21d2; <tt>Object</tt> 
+    #<strong>pop</strong>(timeout: nil)  &#x21d2; <tt>Object</tt><sup>?</sup> 
   
 
   
@@ -468,24 +468,46 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Dequeues and returns the next item.  Blocks until an item is available.</p>
+    <p>Dequeues and returns the next item.  Blocks until an item is available.
+When <code>timeout</code> is given, returns <code>nil</code> if no item arrives within that many
+seconds.  (Requires Ruby 3.2+, which added <code>Thread::Queue#pop(timeout:)</code>.)</p>
 
   </div>
 </div>
 <div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
   
+    <li>
+      
+        <span class='name'>timeout</span>
+      
+      
+        <span class='type'>(<tt>Numeric</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>seconds to wait before returning nil</p></div>
+      
+    </li>
+  
+</ul>
+
 <p class="tag_title">Returns:</p>
 <ul class="return">
   
     <li>
       
       
-        <span class='type'>(<tt>Object</tt>)</span>
+        <span class='type'>(<tt>Object</tt>, <tt>nil</tt>)</span>
       
       
       
         &mdash;
-        <div class='inline'><p>the next item</p></div>
+        <div class='inline'><p>the next item, or nil when timeout expires</p></div>
       
     </li>
   
@@ -497,15 +519,23 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
       <pre class="lines">
 
 
-32
-33
-34</pre>
+35
+36
+37
+38
+39
+40
+41</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 32</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 35</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_pop'>pop</span>
-  <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_pop'>pop</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_pop'>pop</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_timeout'>timeout</span>
+    <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_pop'>pop</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='rparen'>)</span>
+  <span class='kw'>else</span>
+    <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_pop'>pop</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -621,12 +651,12 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
       <pre class="lines">
 
 
-38
-39
-40</pre>
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 38</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_size'>size</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
@@ -641,7 +671,7 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 02:32:20 2026 by
+  Generated on Sun May 24 15:02:57 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

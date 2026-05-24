@@ -96,6 +96,10 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Stable</td>
 </tr>
 <tr>
+<td><strong>Workflow action_timeout</strong> — Per-state <code>action_timeout:</code> keyword on <code>state</code> DSL; cancels Task-returning entry actions that exceed the limit and raises <code>Phronomy::ActionTimeoutError</code></td>
+<td>Beta</td>
+</tr>
+<tr>
 <td><strong>Workflow EventLoop Mode</strong> — Opt-in event-driven execution: `Phronomy.configure { \</td>
 <td>c\</td>
 <td>c.event_loop = true }`</td>
@@ -194,6 +198,26 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Experimental</td>
 </tr>
 <tr>
+<td><strong><code>invocation_context:</code> keyword on <code>Agent#invoke</code> / <code>Workflow#invoke</code></strong> — Pass a <code>Phronomy::InvocationContext</code> directly; <code>thread_id</code>, <code>cancellation_token</code>, and <code>deadline</code>-based timeout are derived from it; <code>task_id</code> / <code>parent_task_id</code> appear in trace spans automatically; <code>config:</code> keys remain supported as backward-compat aliases</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong>Parallel RAG multi-source fetch</strong> — <code>Agent#build_context</code> fetches all <code>knowledge_sources</code> concurrently via <code>TaskGroup</code>; <code>config[:rag_failure_policy]</code> <code>:skip</code> (default) silently ignores failed sources so the agent answers with partial context, <code>:fail</code> surfaces the first error; per-source latency is emitted to <code>Phronomy.configuration.logger</code> at debug level</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong><code>VectorStore::AsyncBackend</code> mixin</strong> — Pluggable async interface for <code>VectorStore</code>; default pool-backed implementations for <code>search_async</code>, <code>add_async</code>, <code>remove_async</code>, <code>clear_async</code>; backends with native async drivers override individual methods to bypass <code>BlockingAdapterPool</code> entirely; all existing backends remain unchanged</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong><code>ConcurrencyGate</code> — unified backpressure</strong> — Counting semaphore that enforces per-resource concurrency caps (<code>max_concurrent_agent_tasks</code>, <code>max_concurrent_tool_tasks</code>, <code>max_concurrent_workflow_tasks</code>, <code>max_concurrent_llm_calls</code>, <code>max_concurrent_rag_fetches</code>, <code>max_concurrent_vector_searches</code>); configured via <code>Phronomy.configure</code>; backpressure behaviour follows the global <code>backpressure</code> setting (<code>:wait</code>, <code>:raise</code>/<code>:reject</code>, <code>:timeout</code>); <code>nil</code> cap = unlimited (default)</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong>Cooperative scheduler yield points</strong> — <code>Runtime#yield</code> (cooperative yield; calls <code>Thread.pass</code> on <code>ThreadScheduler</code>); <code>Runtime#yield_if_needed(every: N)</code> (thread-local counter, yields every N calls); CPU-bound detection when <code>blocking_detect_threshold_ms</code> is set (warns and increments <code>tasks_waiting_over_threshold</code> when a task runs longer than the threshold without yielding); <code>starvation_threshold_ms</code> configuration field (default: 50ms)</td>
+<td>Beta</td>
+</tr>
+<tr>
 <td><strong><code>ScopePolicy</code></strong> — Configurable policy callable that maps (tool, scope, agent) to <code>:allow</code>/<code>:approve</code>/<code>:reject</code>; default policy auto-routes high-risk scopes through the approval gate</td>
 <td>Experimental</td>
 </tr>
@@ -206,16 +230,24 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong><code>Phronomy::Metrics</code></strong> — <code>Phronomy::Metrics.snapshot</code> returns task and pool counters (<code>tasks_started</code>, <code>tasks_completed</code>, <code>tasks_failed</code>, <code>pool_queue_depth</code>, <code>pool_active_threads</code>)</td>
+<td><strong><code>Phronomy::Metrics</code></strong> — <code>Phronomy::Metrics.snapshot</code> returns task-tree and pool counters; task-centric keys: <code>active_agent_tasks</code>, <code>active_tool_tasks</code>, <code>active_workflow_tasks</code>, <code>active_rag_tasks</code>, <code>active_llm_tasks</code>, <code>task_wait_time_p50_ms</code>, <code>task_wait_time_p95_ms</code>, <code>task_run_time_p50_ms</code>, <code>task_run_time_p95_ms</code>, <code>cancelled_tasks</code>, <code>failed_tasks</code>, <code>non_yield_duration_max_ms</code>; pool/event-loop keys remain for backward compatibility; <code>Runtime#task_snapshot</code> exposes task-centric metrics directly</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong><code>Phronomy::Diagnostics</code></strong> — Snapshot of scheduler internals for debug/monitoring; <code>SchedulerReentrancyError</code> raised on invalid re-entrant scheduler use; <code>Runtime.in_scheduler_context?</code> returns <code>true</code> when called from inside a scheduler task</td>
 <td>Experimental</td>
 </tr>
 <tr>
-<td><strong><code>Phronomy::Diagnostics</code></strong> — Snapshot of scheduler internals for debug/monitoring; <code>SchedulerReentrancyError</code> raised on invalid re-entrant scheduler use</td>
-<td>Experimental</td>
+<td><strong><code>Phronomy::Testing::FakeClock</code> / <code>FakeScheduler</code> / <code>SchedulerHelpers</code></strong> — Test helpers for deterministic concurrency specs: <code>FakeClock#advance(seconds)</code> controls time; <code>FakeScheduler</code> runs tasks synchronously and records <code>event_log</code>; <code>FakeScheduler#assert_order</code> / <code>#assert_cancelled</code> for ordering assertions; <code>FakeClock#advance_to_next_timer</code> fires the next pending callback; <code>Testing::SchedulerHelpers#with_fake_scheduler</code> replaces the global Runtime for the duration of a block</td>
+<td>Beta</td>
 </tr>
 <tr>
-<td><strong><code>Phronomy::Testing::FakeClock</code> / <code>FakeScheduler</code></strong> — Test helpers for deterministic concurrency specs: <code>FakeClock#advance(seconds)</code> controls time; <code>FakeScheduler#flush</code> / <code>#drain</code> drives task completion synchronously</td>
-<td>Experimental</td>
+<td><strong><code>Configuration#runtime_backend</code></strong> — <code>:thread</code> (default, uses <code>ThreadScheduler</code>) or <code>:deterministic</code> (uses <code>FakeScheduler</code>; for tests that must not create new Threads)</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong><code>Configuration#strict_runtime_guards</code></strong> — When <code>true</code>, calling <code>Agent#invoke</code> from inside a scheduler task raises <code>SchedulerReentrancyError</code>; when <code>false</code> (default) a warning is logged instead</td>
+<td>Beta</td>
 </tr>
 </tbody>
 </table>
@@ -638,6 +670,8 @@ restore conversation history — you must pass <code>messages:</code> explicitly
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_trace_pii'>trace_pii</span>                       <span class='op'>=</span> <span class='kw'>false</span> <span class='comment'># default; set to true only when trace data contains no PII
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span>                          <span class='op'>=</span> <span class='kw'>nil</span>   <span class='comment'># optional; any object responding to #warn (e.g. Rails.logger)
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span>   <span class='op'>=</span> <span class='int'>5</span>     <span class='comment'># seconds to wait for sessions to drain on EventLoop#stop(drain: true)
+</span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_runtime_backend'>runtime_backend</span>                 <span class='op'>=</span> <span class='symbol'>:thread</span>        <span class='comment'># :thread (default) or :deterministic (tests)
+</span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span>           <span class='op'>=</span> <span class='kw'>false</span>          <span class='comment'># when true, raises on invoke-inside-task
 </span><span class='kw'>end</span>
 </code></pre>
 <p><code>c.logger</code> receives framework diagnostic messages (e.g. unreachable-state warnings from
@@ -648,6 +682,59 @@ responses and tool results) are replaced with <code>[REDACTED]</code> in trace s
 The default is <code>false</code> (PII protection enabled). Set to <code>true</code> only when
 trace data does not contain sensitive information.</p>
 </blockquote>
+<h2 id="Sync_vs_Async_API">Sync vs Async API</h2>
+<p>Phronomy provides both synchronous and asynchronous invocation APIs.
+Understanding when to use each prevents scheduler stalls and hidden deadlocks.</p>
+<table>
+<thead>
+<tr>
+<th>Context</th>
+<th>Recommended API</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Top-level application code, Rails controller, background job</td>
+<td><code>agent.invoke(input)</code> — blocks the calling thread until done</td>
+</tr>
+<tr>
+<td>Inside a <code>Runtime#spawn</code> block, <code>TaskGroup</code>, Workflow action, Tool <code>execute</code></td>
+<td><code>agent.invoke_async(input).await</code> — non-blocking within the scheduler</td>
+</tr>
+</tbody>
+</table>
+<h3 id="Why_this_matters">Why this matters</h3>
+<p><code>invoke</code> is a synchronous wrapper that calls <code>invoke_async</code> and then <em>blocks</em> the calling
+thread until the task completes. When called from <strong>inside</strong> an active scheduler task, the
+calling task blocks the scheduler thread, preventing other tasks from making progress — a
+hidden deadlock when all scheduler threads are occupied.</p>
+<h3 id="Runtime_guard">Runtime guard</h3>
+<p>Phronomy detects this pattern automatically:</p>
+<pre class="code ruby"><code class="ruby"><span class='comment'># Default (soft mode): logs a warning and continues
+</span><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span> <span class='op'>=</span> <span class='kw'>false</span> <span class='rbrace'>}</span>
+
+<span class='comment'># Strict mode: raises SchedulerReentrancyError immediately
+</span><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span> <span class='op'>=</span> <span class='kw'>true</span> <span class='rbrace'>}</span>
+</code></pre>
+<p>You can also query the current context directly:</p>
+<pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_in_scheduler_context?'><span class='object_link'><a href="Phronomy/Runtime.html#in_scheduler_context%3F-class_method" title="Phronomy::Runtime.in_scheduler_context? (method)">in_scheduler_context?</a></span></span>  <span class='comment'># =&gt; true if called from inside a task
+</span></code></pre>
+<h3 id="Migration__invoke___invoke_async">Migration: invoke → invoke_async</h3>
+<pre class="code ruby"><code class="ruby"><span class='comment'># Before (blocks scheduler if called from inside a task)
+</span><span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_my_agent'>my_agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+
+<span class='comment'># After (safe inside tasks and TaskGroups)
+</span><span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_my_agent'>my_agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_await'>await</span>
+</code></pre>
+<h3 id="Deterministic_test_backend">Deterministic test backend</h3>
+<p>For unit tests that must not create new Threads:</p>
+<pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_runtime_backend'>runtime_backend</span> <span class='op'>=</span> <span class='symbol'>:deterministic</span> <span class='rbrace'>}</span>
+<span class='comment'># or per-example using SchedulerHelpers:
+</span><span class='id identifier rubyid_include'>include</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Testing.html" title="Phronomy::Testing (module)">Testing</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Testing/SchedulerHelpers.html" title="Phronomy::Testing::SchedulerHelpers (module)">SchedulerHelpers</a></span></span>
+<span class='id identifier rubyid_with_fake_scheduler'>with_fake_scheduler</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_sched'>sched</span><span class='op'>|</span>
+  <span class='comment'># all spawns run synchronously; sched.event_log records every lifecycle event
+</span><span class='kw'>end</span>
+</code></pre>
 <h2 id="Context_Management">Context Management</h2>
 <p>Phronomy includes a context window management layer. When model metadata is
 available (either from the built-in registry or via an explicit <code>context_window:</code> setting),
@@ -909,7 +996,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sun May 24 02:32:18 2026 by
+  Generated on Sun May 24 15:02:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
