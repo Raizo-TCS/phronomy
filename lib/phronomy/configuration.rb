@@ -103,6 +103,16 @@ module Phronomy
     # @return [Numeric, nil]
     attr_accessor :event_loop_dispatch_threshold_seconds
 
+    # When true, enables all blocking operation diagnostics (Issue #279).
+    # Equivalent to setting all diagnostic thresholds to their defaults.
+    # @return [Boolean]
+    attr_accessor :scheduler_debug
+
+    # Wall-clock threshold (milliseconds) after which a task that has not
+    # yielded the scheduler emits a warning log.  nil disables the check.
+    # @return [Float, nil]
+    attr_accessor :blocking_detect_threshold_ms
+
     def initialize
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new
@@ -114,6 +124,8 @@ module Phronomy
       @backpressure_timeout = nil
       @event_loop_starvation_threshold_seconds = nil
       @event_loop_dispatch_threshold_seconds = nil
+      @scheduler_debug = false
+      @blocking_detect_threshold_ms = nil
     end
   end
 end

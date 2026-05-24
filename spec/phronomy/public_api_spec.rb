@@ -93,4 +93,53 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
       expect(subject.public_instance_methods).to include(:cancel!, :cancelled?, :raise_if_cancelled!)
     end
   end
+
+  # --- Cooperative / Blocking distinction (Issue #278) ---
+
+  describe "Phronomy::Tool::Base — execution_mode" do
+    it "defaults to :blocking_io when not declared" do
+      klass = Class.new(Phronomy::Tool::Base) do
+        description "no-op"
+        def execute; end
+      end
+      expect(klass.execution_mode).to eq(:blocking_io)
+    end
+
+    it "accepts :cooperative as a valid execution_mode" do
+      klass = Class.new(Phronomy::Tool::Base) do
+        description "no-op"
+        execution_mode :cooperative
+        def execute; end
+      end
+      expect(klass.execution_mode).to eq(:cooperative)
+    end
+
+    it "raises ArgumentError for unknown execution_mode values" do
+      expect {
+        Class.new(Phronomy::Tool::Base) do
+          description "no-op"
+          execution_mode :unknown_mode
+          def execute; end
+        end
+      }.to raise_error(ArgumentError, /execution_mode/)
+    end
+  end
+
+  describe "Phronomy::Agent::Base — invoke_async" do
+    it "exposes #invoke_async instance method" do
+      expect(Phronomy::Agent::Base.public_instance_methods).to include(:invoke_async)
+    end
+  end
+
+  describe "Phronomy::Runtime — blocking/cooperative API" do
+    let(:runtime) { Phronomy::Runtime.instance }
+
+    it "exposes #blocking_io returning a BlockingAdapterPool" do
+      expect(runtime.blocking_io).to be_a(Phronomy::BlockingAdapterPool)
+    end
+
+    it "exposes #task_group returning a TaskGroup" do
+      expect(runtime.task_group).to be_a(Phronomy::TaskGroup)
+    end
+  end
 end
