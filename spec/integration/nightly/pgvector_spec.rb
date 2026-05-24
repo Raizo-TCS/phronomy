@@ -11,7 +11,8 @@ require "spec_helper"
 # Run with: bundle exec rspec spec/integration/nightly/pgvector_spec.rb --tag nightly
 # Note: requires gem install pg pgvector activerecord before running.
 #
-# This spec was introduced in: https://github.com/Raizo-TCS/phronomy/issues/238
+# These tests are skipped locally unless PGVECTOR_DATABASE_URL and NIGHTLY are set.
+# They run automatically in CI via .github/workflows/nightly.yml (real-backend-pgvector job).
 
 if ENV["NIGHTLY"] && ENV["PGVECTOR_DATABASE_URL"]
   begin

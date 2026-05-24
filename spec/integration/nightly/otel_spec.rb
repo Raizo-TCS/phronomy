@@ -15,7 +15,8 @@ require "spec_helper"
 # Note: requires gem install opentelemetry-sdk before running.
 # No external collector is needed; spans are captured in-process.
 #
-# This spec was introduced in: https://github.com/Raizo-TCS/phronomy/issues/238
+# These tests are skipped locally unless NIGHTLY is set.
+# They run automatically in CI via .github/workflows/nightly.yml (real-backend-otel job).
 
 OTEL_AVAILABLE = if ENV["NIGHTLY"]
   begin

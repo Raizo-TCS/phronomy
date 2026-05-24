@@ -11,7 +11,8 @@ require "spec_helper"
 # Run with: bundle exec rspec spec/integration/nightly/redis_search_spec.rb --tag nightly
 # Note: requires gem install redis before running.
 #
-# This spec was introduced in: https://github.com/Raizo-TCS/phronomy/issues/238
+# These tests are skipped locally unless REDIS_URL and NIGHTLY are set.
+# They run automatically in CI via .github/workflows/nightly.yml (real-backend-redis job).
 
 if ENV["NIGHTLY"] && ENV["REDIS_URL"]
   begin
