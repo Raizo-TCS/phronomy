@@ -2,6 +2,7 @@
 
 require_relative "task/backend"
 require_relative "task/thread_backend"
+require_relative "task/immediate_backend"
 
 module Phronomy
   # A single unit of concurrent work.

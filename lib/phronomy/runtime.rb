@@ -1,23 +1,32 @@
 # frozen_string_literal: true
 
+require_relative "runtime/scheduler"
+require_relative "runtime/thread_scheduler"
+require_relative "runtime/fake_scheduler"
+
 module Phronomy
-  # Central factory for concurrent primitives.
+  # Central authority for concurrent primitives.
   #
-  # +Runtime+ is the single place that knows how to create {Task}s,
-  # {TaskGroup}s, and (in future) schedule work on a cooperative scheduler.
-  # Agent / workflow / tool code asks the Runtime for a group or task rather
-  # than calling +Thread.new+ directly.  This keeps all threading concern in
-  # one location and makes it possible to substitute a test double or a
-  # Fiber-based scheduler without modifying call sites.
+  # +Runtime+ is the single place that creates {Task}s, {TaskGroup}s, and
+  # manages the lifecycle of all concurrency in Phronomy.  It owns:
   #
-  # A default shared instance is available via {.instance}.  Individual agent
-  # invocations may carry a custom Runtime in their {InvocationContext} to
-  # apply per-invocation limits (e.g. reduced parallelism, injected fakes).
+  # * a pluggable {Scheduler} (default: {ThreadScheduler})
+  # * a task registry for graceful shutdown
+  # * the shared {BlockingAdapterPool}
   #
-  # @example Using the shared Runtime
+  # In production, use the process-wide singleton via {.instance}.
+  # In tests, construct a Runtime with a {FakeScheduler} to run tasks
+  # synchronously without spawning additional threads:
+  #
+  # @example Production usage
   #   group = Phronomy::Runtime.instance.task_group(limit: 4)
   #   tools.each { |t| group.spawn { t.call } }
   #   results = group.await_all
+  #
+  # @example Test usage — no extra threads
+  #   runtime = Phronomy::Runtime.new(scheduler: Phronomy::Runtime::FakeScheduler.new)
+  #   task = runtime.spawn { 42 }
+  #   expect(task.await).to eq(42)
   class Runtime
     # Returns the process-wide default Runtime.
     # @return [Runtime]
@@ -32,6 +41,13 @@ module Phronomy
       @instance = runtime
     end
 
+    # @param scheduler [Scheduler] execution backend (default: {ThreadScheduler})
+    def initialize(scheduler: ThreadScheduler.new)
+      @scheduler = scheduler
+      @task_mutex = Mutex.new
+      @tasks = []
+    end
+
     # Creates a new {TaskGroup} with an optional concurrency cap.
     #
     # @param limit [Integer, Float::INFINITY] max simultaneous tasks
@@ -40,13 +56,19 @@ module Phronomy
       TaskGroup.new(limit: limit)
     end
 
-    # Spawns a single background {Task}.
+    # Spawns a single {Task} using the runtime's scheduler.
+    #
+    # The spawned task is registered in the task registry so {#shutdown}
+    # can wait for it to complete.
     #
     # @param name [String, nil] optional label for debugging
-    # @yield block to execute concurrently
+    # @yield block to execute (concurrently or synchronously, depending on
+    #   the configured scheduler)
     # @return [Task]
     def spawn(name: nil, &block)
-      Task.spawn(name: name, &block)
+      task = @scheduler.spawn(name: name, parent: Task.current, &block)
+      @task_mutex.synchronize { @tasks << task }
+      task
     end
 
     # Returns the shared {BlockingAdapterPool} for this Runtime.
@@ -62,6 +84,23 @@ module Phronomy
     # @return [BlockingAdapterPool]
     def blocking_io(pool_size: 10, queue_size: 100)
       @blocking_io ||= BlockingAdapterPool.new(pool_size: pool_size, queue_size: queue_size)
+    end
+
+    # Waits for all registered tasks to finish, then shuts down the
+    # blocking adapter pool (if it was started).
+    #
+    # Call this before process exit to avoid leaving orphaned threads or
+    # pending work items.
+    #
+    # @return [void]
+    def shutdown
+      tasks = @task_mutex.synchronize { @tasks.dup }
+      tasks.each do |t|
+        t.join
+      rescue
+        nil
+      end
+      @blocking_io&.shutdown
     end
   end
 end

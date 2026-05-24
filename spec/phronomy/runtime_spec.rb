@@ -51,4 +51,81 @@ RSpec.describe Phronomy::Runtime do
       task.await
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Scheduler injection (#282 acceptance criteria)
+  # ---------------------------------------------------------------------------
+
+  describe "scheduler injection" do
+    subject(:runtime) { described_class.new(scheduler: described_class::FakeScheduler.new) }
+
+    it "accepts a custom scheduler at construction time" do
+      expect(runtime).to be_a(described_class)
+    end
+
+    it "spawns tasks through the injected scheduler" do
+      task = runtime.spawn { 99 }
+      expect(task).to be_a(Phronomy::Task)
+      expect(task.await).to eq(99)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # FakeScheduler: no thread increase (#282 acceptance criteria)
+  # ---------------------------------------------------------------------------
+
+  describe described_class::FakeScheduler do
+    subject(:runtime) { Phronomy::Runtime.new(scheduler: Phronomy::Runtime::FakeScheduler.new) }
+
+    it "does not increase Thread count when spawning a task" do
+      before = Thread.list.length
+      runtime.spawn { :noop }
+      after = Thread.list.length
+      expect(after).to eq(before)
+    end
+
+    it "executes the block synchronously before spawn returns" do
+      results = []
+      runtime.spawn { results << :done }
+      expect(results).to eq([:done])
+    end
+
+    it "returns a completed task immediately" do
+      task = runtime.spawn { 42 }
+      expect(task.status).to eq(:completed)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # #shutdown (#282 acceptance criteria)
+  # ---------------------------------------------------------------------------
+
+  describe "#shutdown" do
+    it "waits for all registered tasks to complete" do
+      runtime = described_class.new
+      latch = Queue.new
+      task = runtime.spawn {
+        latch.pop
+        :done
+      }
+
+      thread = Thread.new { runtime.shutdown }
+      latch.push(:go)
+      thread.join(3)
+
+      expect(task.status).to eq(:completed)
+    end
+
+    it "shuts down the blocking adapter pool when it was started" do
+      runtime = described_class.new
+      pool = runtime.blocking_io
+      runtime.shutdown
+      expect(pool.instance_variable_get(:@shutdown)).to be true
+    end
+
+    it "does not raise when called with no tasks and no pool" do
+      runtime = described_class.new
+      expect { runtime.shutdown }.not_to raise_error
+    end
+  end
 end

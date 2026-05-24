@@ -111,6 +111,7 @@ RSpec.describe "Thread.current confinement (Issue #302)", :issue_302 do
     lib/phronomy/event_loop.rb
     lib/phronomy/task.rb
     lib/phronomy/task/thread_backend.rb
+    lib/phronomy/task/immediate_backend.rb
   ].freeze
 
   it "Thread.current is not referenced outside the allowed files" do
