@@ -229,6 +229,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
           mutex.synchronize { configs << config }
           {output: "ok", messages: []}
         end
+        define_method(:invoke_async) { |input, config: {}, **_kw| Phronomy::Runtime.instance.spawn(name: "stub-async") { invoke(input, config: config) } }
       end
 
       orch.fan_out(agent: agent, inputs: %w[x y], config: {thread_id: "t99"})
