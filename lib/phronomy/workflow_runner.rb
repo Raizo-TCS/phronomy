@@ -45,7 +45,7 @@ module Phronomy
     # Sentinel value for the terminal state of a workflow.
     FINISH = :__end__
 
-    def initialize(state_class:, entry_actions:, declared_states:, auto_transitions:, external_events:, entry_point:, exit_actions: {}, wait_state_names: [], state_store: nil)
+    def initialize(state_class:, entry_actions:, declared_states:, auto_transitions:, external_events:, entry_point:, exit_actions: {}, wait_state_names: [], state_store: nil, action_timeouts: {})
       @state_class = state_class
       @entry_actions = entry_actions   # { state_name => [callable, ...] }
       @declared_states = declared_states
@@ -55,6 +55,7 @@ module Phronomy
       @entry_point = entry_point
       @wait_state_names = wait_state_names
       @state_store = state_store
+      @action_timeouts = action_timeouts   # { state_name => seconds }
       @phase_machine_class = build_phase_machine_class(auto_transitions, exit_actions)
     end
 
@@ -170,6 +171,7 @@ module Phronomy
         external_events: @external_events,
         phase_machine_class: @phase_machine_class,
         recursion_limit: recursion_limit,
+        action_timeouts: @action_timeouts,
         resume_event: resume_event,
         resume_phase: resume_phase
       )
@@ -212,6 +214,14 @@ module Phronomy
         @entry_actions[current_state]&.each do |c|
           result = c.call(ctx)
           if result.is_a?(Phronomy::Task)
+            timeout_secs = @action_timeouts[current_state]
+            if timeout_secs
+              if result.join(timeout_secs).nil?
+                result.cancel!
+                raise Phronomy::ActionTimeoutError,
+                  "Action in state #{current_state.inspect} timed out after #{timeout_secs}s"
+              end
+            end
             task_result = result.await
             ctx = task_result if task_result.is_a?(Phronomy::WorkflowContext)
           elsif result.is_a?(Phronomy::WorkflowContext)
@@ -307,6 +317,7 @@ module Phronomy
       ext_events = @external_events
       entry_acts = @entry_actions
       exit_acts = exit_actions
+      act_timeouts = @action_timeouts  # { state_name => seconds }
 
       Class.new do
         # Holds the current WorkflowContext so guards and callbacks can read it.
@@ -355,6 +366,7 @@ module Phronomy
           #    the returned context replaces the current one on the tracker.
           entry_acts.each do |state_name, callables|
             callables.each do |callable|
+              timeout_secs = act_timeouts[state_name]
               after_transition to: state_name do |machine|
                 result = callable.call(machine.context)
                 if result.is_a?(Phronomy::Task)
@@ -366,6 +378,13 @@ module Phronomy
                     ctx_ref = machine.context
                     thread_id = ctx_ref.thread_id
                     Phronomy::Task.spawn(name: "wf-await-#{thread_id}") do
+                      if timeout_secs
+                        if result.join(timeout_secs).nil?
+                          result.cancel!
+                          raise Phronomy::ActionTimeoutError,
+                            "Action in state #{state_name.inspect} timed out after #{timeout_secs}s"
+                        end
+                      end
                       task_result = result.await
                       if task_result.is_a?(Phronomy::WorkflowContext)
                         Phronomy::EventLoop.instance.post(
@@ -387,6 +406,13 @@ module Phronomy
                     end
                   else
                     # Non-EventLoop mode: block synchronously on the task result.
+                    if timeout_secs
+                      if result.join(timeout_secs).nil?
+                        result.cancel!
+                        raise Phronomy::ActionTimeoutError,
+                          "Action in state #{state_name.inspect} timed out after #{timeout_secs}s"
+                      end
+                    end
                     task_result = result.await
                     machine.context = task_result if task_result.is_a?(Phronomy::WorkflowContext)
                   end

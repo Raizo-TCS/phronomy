@@ -25,6 +25,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | Feature | Stability |
 |---|---|
 | **Workflow** — Stateful, branching workflows with wait_state/send_event | Stable |
+| **Workflow action_timeout** — Per-state `action_timeout:` keyword on `state` DSL; cancels Task-returning entry actions that exceed the limit and raises `Phronomy::ActionTimeoutError` | Beta |
 | **Workflow EventLoop Mode** — Opt-in event-driven execution: `Phronomy.configure { \|c\| c.event_loop = true }` | Experimental |
 | **Agent EventLoop Mode** — `Agent#invoke` (non-blocking via EventLoop), `Agent#run_as_child` (child-FSM pattern for Workflow integration), parallel tool dispatch via `ParallelToolChat` | Experimental |
 | **Workflow Parallel Node** — Concurrent branches via application-level threads | Beta |

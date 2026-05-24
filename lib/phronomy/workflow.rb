@@ -151,6 +151,8 @@ module Phronomy
         @transitions = []
         # Set of wait state names
         @wait_state_names = []
+        # { state_name => Numeric } — per-state action timeout in seconds
+        @action_timeouts = {}
       end
 
       # Declares the initial (entry) state.
@@ -163,13 +165,17 @@ module Phronomy
       # rubocop:enable Style/TrivialAccessors
 
       # Declares an action state.
-      # @param name   [Symbol]   state name
-      # @param action [#call, nil] optional entry action shorthand.
+      # @param name           [Symbol]        state name
+      # @param action         [#call, nil]    optional entry action shorthand.
       #   +state :generate, action: MY_PROC+ is equivalent to
       #   +state :generate; entry :generate, MY_PROC+.
+      # @param action_timeout [Numeric, nil]  seconds before an async (Task-returning)
+      #   entry action is cancelled and {Phronomy::ActionTimeoutError} is raised.
+      #   Only applies when the action returns a {Task} or {PendingOperation}.
       # @api public
-      def state(name, action: nil)
+      def state(name, action: nil, action_timeout: nil)
         @declared_states << name
+        @action_timeouts[name] = action_timeout if action_timeout
         entry(name, action) if action
       end
 
@@ -321,7 +327,8 @@ module Phronomy
           external_events: external_events,
           entry_point: @initial || @declared_states.first,
           wait_state_names: @wait_state_names,
-          state_store: @state_store
+          state_store: @state_store,
+          action_timeouts: @action_timeouts.dup
         )
 
         Workflow.new(runner)

@@ -3,10 +3,10 @@
 require "spec_helper"
 
 RSpec.describe "Awaitable Workflow actions (#264)" do
-
   let(:context_class) do
     Class.new do
       include Phronomy::WorkflowContext
+
       field :results, type: :append, default: -> { [] }
       field :step_value, default: nil
     end
@@ -30,7 +30,7 @@ RSpec.describe "Awaitable Workflow actions (#264)" do
         transition from: :compute, to: :__finish__
       end
 
-      result, = app.invoke({}, config: { thread_id: SecureRandom.uuid })
+      result, = app.invoke({}, config: {thread_id: SecureRandom.uuid})
       expect(result.step_value).to eq("async_result")
     end
 
@@ -46,7 +46,7 @@ RSpec.describe "Awaitable Workflow actions (#264)" do
       end
 
       # Should not raise; context unchanged
-      result, = app.invoke({}, config: { thread_id: SecureRandom.uuid })
+      result, = app.invoke({}, config: {thread_id: SecureRandom.uuid})
       expect(result.step_value).to be_nil
     end
   end
@@ -65,8 +65,7 @@ RSpec.describe "Awaitable Workflow actions (#264)" do
     end
 
     it "awaits the task without blocking the EventLoop thread" do
-      main_thread = Thread.current
-      event_loop_blocked = false
+      Thread.current
 
       app = Phronomy::Workflow.define(context_class) do
         initial :fetch
@@ -81,7 +80,7 @@ RSpec.describe "Awaitable Workflow actions (#264)" do
         transition from: :fetch, to: :__finish__
       end
 
-      result, = app.invoke({}, config: { thread_id: SecureRandom.uuid })
+      result, = app.invoke({}, config: {thread_id: SecureRandom.uuid})
       expect(result.step_value).to eq("fetched")
     end
 
@@ -97,7 +96,7 @@ RSpec.describe "Awaitable Workflow actions (#264)" do
       end
 
       expect {
-        app.invoke({}, config: { thread_id: SecureRandom.uuid })
+        app.invoke({}, config: {thread_id: SecureRandom.uuid})
       }.to raise_error(RuntimeError, "async error")
     end
 
@@ -117,9 +116,75 @@ RSpec.describe "Awaitable Workflow actions (#264)" do
         transition from: :step_b, to: :__finish__
       end
 
-      result, = app.invoke({}, config: { thread_id: SecureRandom.uuid })
+      result, = app.invoke({}, config: {thread_id: SecureRandom.uuid})
       expect(result.step_value).to eq("a")
       expect(result.results).to include("b")
+    end
+  end
+
+  # -------------------------------------------------------------------------
+  # C. action_timeout: — per-state timeout on Task-returning entry actions
+  # -------------------------------------------------------------------------
+  describe "action_timeout: raises ActionTimeoutError when the Task exceeds the limit" do
+    it "raises ActionTimeoutError in non-EventLoop mode when task is too slow" do
+      app = Phronomy::Workflow.define(context_class) do
+        initial :slow_step
+
+        state :slow_step, action: ->(state) {
+          Phronomy::Task.spawn {
+            sleep 10
+            state.merge(step_value: "never")
+          }
+        }, action_timeout: 0.05
+
+        transition from: :slow_step, to: :__finish__
+      end
+
+      expect {
+        app.invoke({}, config: {thread_id: SecureRandom.uuid})
+      }.to raise_error(Phronomy::ActionTimeoutError, /slow_step.*timed out/i)
+    end
+
+    it "does NOT raise when task finishes within the timeout" do
+      app = Phronomy::Workflow.define(context_class) do
+        initial :fast_step
+
+        state :fast_step, action: ->(state) {
+          Phronomy::Task.spawn { state.merge(step_value: "done") }
+        }, action_timeout: 5
+
+        transition from: :fast_step, to: :__finish__
+      end
+
+      result, = app.invoke({}, config: {thread_id: SecureRandom.uuid})
+      expect(result.step_value).to eq("done")
+    end
+
+    context "in EventLoop mode" do
+      before { Phronomy.configure { |c| c.event_loop = true } }
+      after do
+        Phronomy::EventLoop.reset!
+        Phronomy.configure { |c| c.event_loop = false }
+      end
+
+      it "raises ActionTimeoutError when task exceeds action_timeout" do
+        app = Phronomy::Workflow.define(context_class) do
+          initial :slow_step
+
+          state :slow_step, action: ->(state) {
+            Phronomy::Task.spawn {
+              sleep 10
+              state.merge(step_value: "never")
+            }
+          }, action_timeout: 0.05
+
+          transition from: :slow_step, to: :__finish__
+        end
+
+        expect {
+          app.invoke({}, config: {thread_id: SecureRandom.uuid})
+        }.to raise_error(Phronomy::ActionTimeoutError, /slow_step.*timed out/i)
+      end
     end
   end
 end

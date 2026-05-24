@@ -97,6 +97,10 @@ module Phronomy
   # result is available. Extends {TimeoutError} for backwards compatibility.
   class ScopeTimeoutError < TimeoutError; end
 
+  # Raised when a Workflow entry/exit action task exceeds the +action_timeout:+
+  # configured for its state.  Extends {TimeoutError}.
+  class ActionTimeoutError < TimeoutError; end
+
   # Raised when a {Phronomy::WorkflowContext} field is mutated from a thread
   # that does not own the context (i.e. not the EventLoop dispatch thread).
   # Only raised in EventLoop mode.  Use +context.merge(...)+ to produce a new

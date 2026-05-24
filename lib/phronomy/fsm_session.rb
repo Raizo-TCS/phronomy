@@ -49,12 +49,13 @@ module Phronomy
     # @param external_events     [Hash]          { event_name => [{from:, to:, guard:}] }
     # @param phase_machine_class [Class]         state_machines-backed phase tracker class
     # @param recursion_limit     [Integer]
+    # @param action_timeouts     [Hash]          { state_name => seconds }
     # @param resume_event        [Symbol, nil]   external event to fire when resuming
     # @param resume_phase        [Symbol, nil]   wait state name to resume from
     # @api private
     def initialize(id:, context:, entry_point:, entry_actions:, auto_state_set:,
       declared_states:, wait_state_names:, external_events:, phase_machine_class:,
-      recursion_limit:, resume_event: nil, resume_phase: nil)
+      recursion_limit:, action_timeouts: {}, resume_event: nil, resume_phase: nil)
       @id = id
       @ctx = context
       @entry_point = entry_point
@@ -65,6 +66,7 @@ module Phronomy
       @external_events = external_events
       @phase_machine_class = phase_machine_class
       @recursion_limit = recursion_limit
+      @action_timeouts = action_timeouts
       @resume_event = resume_event
       @resume_phase = resume_phase
       @step = 0
@@ -95,7 +97,16 @@ module Phronomy
             # Awaitable action: spawn a task to await without blocking EventLoop.
             @tracker.async_pending = true
             session_id = @id
+            current_state_name = @current_state
+            timeout_secs = @action_timeouts[current_state_name]
             Phronomy::Task.spawn(name: "fsm-await-#{session_id}") do
+              if timeout_secs
+                if result.join(timeout_secs).nil?
+                  result.cancel!
+                  raise Phronomy::ActionTimeoutError,
+                    "Action in state #{current_state_name.inspect} timed out after #{timeout_secs}s"
+                end
+              end
               task_result = result.await
               if task_result.is_a?(Phronomy::WorkflowContext)
                 event_loop.post(Event.new(type: :action_completed, target_id: session_id, payload: task_result))
