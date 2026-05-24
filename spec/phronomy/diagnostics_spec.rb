@@ -58,11 +58,13 @@ RSpec.describe "Blocking operation diagnostics (Issue #279)" do
     it "raises SchedulerReentrancyError when called from EventLoop thread" do
       error = nil
       t = Thread.new do
-        Thread.current[:phronomy_event_loop_thread] = true
+        Thread.current[:phronomy_current_task] = double("task", name: "event-loop")
         begin
           Phronomy::Diagnostics.assert_not_in_event_loop!
         rescue Phronomy::SchedulerReentrancyError => e
           error = e
+        ensure
+          Thread.current[:phronomy_current_task] = nil
         end
       end
       t.join

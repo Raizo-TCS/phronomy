@@ -133,7 +133,12 @@ module Phronomy
     end
 
     # Waits for all registered tasks to finish, then shuts down the
-    # blocking adapter pool, named pools, and timer queue (if they were started).
+    # EventLoop (if active), blocking adapter pool, named pools, and timer queue
+    # (if they were started).
+    #
+    # When EventLoop mode is enabled, all pending Workflow and Agent FSM events
+    # are drained before pools are shut down, ensuring in-flight sessions
+    # complete cleanly.
     #
     # Call this before process exit to avoid leaving orphaned threads or
     # pending work items.
@@ -145,6 +150,11 @@ module Phronomy
         t.join
       rescue
         nil
+      end
+      # Drain EventLoop events before stopping pools so that in-flight
+      # Workflow / Agent FSM sessions can complete their final LLM calls.
+      if Phronomy.configuration.event_loop
+        Phronomy::EventLoop.instance.stop(drain: true)
       end
       @blocking_io&.shutdown
       pools = @pool_mutex.synchronize { @pools.values.dup }

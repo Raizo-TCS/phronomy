@@ -323,16 +323,16 @@ RSpec.describe "Lifecycle invariants" do
       Phronomy.reset_configuration!
     end
 
-    it "stops the background thread cleanly when no sessions are active" do
+    it "stops the background task cleanly when no sessions are active" do
       Phronomy.configure { |c| c.event_loop = true }
       el = Phronomy::EventLoop.instance
-      thread = el.instance_variable_get(:@thread)
-      expect(thread).to be_alive
+      task = el.instance_variable_get(:@task)
+      expect(task).to be_alive
 
       el.stop(timeout: 2)
 
-      expect(thread).not_to be_alive
-      expect(el.instance_variable_get(:@thread)).to be_nil
+      expect(task).not_to be_alive
+      expect(el.instance_variable_get(:@task)).to be_nil
     end
 
     it "unblocks a waiting caller with an Exception when the loop crashes" do
@@ -347,18 +347,19 @@ RSpec.describe "Lifecycle invariants" do
       # simulate an unblocked caller without a real FSMSession.
       el.instance_variable_get(:@waiting)["lc-shutdown-orphan"] = cq
 
-      # Kill the loop thread to simulate a crash.
-      # Thread#join re-raises any exception the thread terminated with, so we
-      # suppress it here — we only need to wait for the thread to actually die.
-      loop_thread = el.instance_variable_get(:@thread)
-      # Wait until the loop thread is blocked in @queue.pop (status == "sleep").
+      # Kill the loop task to simulate a crash.
+      # Task#join re-raises any exception the task terminated with, so we
+      # suppress it here — we only need to wait for the task to actually die.
+      loop_task = el.instance_variable_get(:@task)
+      loop_backend_thread = loop_task.instance_variable_get(:@backend).instance_variable_get(:@thread)
+      # Wait until the loop task is blocked in @queue.pop (status == "sleep").
       # Without this barrier, Thread#raise can be delivered before run_loop is
-      # entered (at Thread.current[:phronomy_event_loop_thread]=true), meaning
-      # the rescue block in run_loop never runs and @waiting is never flushed.
-      sleep 0.001 while loop_thread.status != "sleep"
-      loop_thread.raise(RuntimeError, "simulated loop crash")
+      # entered, meaning the rescue block in run_loop never runs and @waiting
+      # is never flushed.
+      sleep 0.001 while loop_backend_thread.status != "sleep"
+      loop_backend_thread.raise(RuntimeError, "simulated loop crash")
       begin
-        loop_thread.join(2)
+        loop_task.join(2)
       rescue RuntimeError
         nil
       end
@@ -413,23 +414,23 @@ RSpec.describe "Lifecycle invariants" do
     end
 
     it "EventLoop.reset! nulls the singleton so the next call returns a fresh loop" do
-      # Verifies that EventLoop.reset! fully tears down the background thread and
+      # Verifies that EventLoop.reset! fully tears down the background task and
       # clears @instance, so a subsequent EventLoop.instance starts cleanly with
       # no residual state from the previous run.
       Phronomy.configure { |c| c.event_loop = true }
       first = Phronomy::EventLoop.instance
-      first_thread = first.instance_variable_get(:@thread)
-      expect(first_thread).to be_alive
+      first_task = first.instance_variable_get(:@task)
+      expect(first_task).to be_alive
 
       Phronomy::EventLoop.reset!
 
-      expect(first_thread).not_to be_alive
+      expect(first_task).not_to be_alive
       expect(Phronomy::EventLoop.instance_variable_get(:@instance)).to be_nil
 
       second = Phronomy::EventLoop.instance
       expect(second).not_to be(first)
       expect(second.instance_variable_get(:@fsm_count)).to eq(0)
-      expect(second.instance_variable_get(:@thread)).to be_alive
+      expect(second.instance_variable_get(:@task)).to be_alive
     end
 
     it "EventLoop#stop(drain: true) waits for in-flight sessions before the loop thread exits" do
@@ -465,10 +466,10 @@ RSpec.describe "Lifecycle invariants" do
   end
 
   # ===========================================================================
-  # 6. Thread-leak detection after timeout-forced shutdown (Issue #251)
+  # 6. Task-leak detection after timeout-forced shutdown (Issue #251)
   #
   # When stop(force_kill: true) fires before an in-flight session completes,
-  # the background loop thread must be dead and @thread must be nil so that a
+  # the background loop task must be dead and @task must be nil so that a
   # subsequent EventLoop.instance starts without contaminated state.
   # ===========================================================================
   describe "thread leak after timeout-forced shutdown (Issue #251)" do
@@ -477,14 +478,14 @@ RSpec.describe "Lifecycle invariants" do
       Phronomy.reset_configuration!
     end
 
-    it "loop thread is dead and @thread is nil after stop with an in-flight session" do
+    it "loop task is dead and @task is nil after stop with an in-flight session" do
       # Verifies that stop (regardless of :clean or :force_killed outcome) always
-      # sets @thread to nil and leaves the background thread no longer alive,
+      # sets @task to nil and leaves the background task no longer alive,
       # even when a session IO thread is still running at shutdown time.
       Phronomy.configure { |c| c.event_loop = true }
       el = Phronomy::EventLoop.instance
-      loop_thread = el.instance_variable_get(:@thread)
-      expect(loop_thread).to be_alive
+      loop_task = el.instance_variable_get(:@task)
+      expect(loop_task).to be_alive
 
       # Register a session that sleeps far longer than the stop timeout.
       started_q = Thread::Queue.new
@@ -504,22 +505,22 @@ RSpec.describe "Lifecycle invariants" do
       el.register(fsm)
       started_q.pop # ensure the IO thread is running before we call stop
 
-      # stop with force_kill so the loop thread is definitively terminated even
-      # if a IO thread is still sleeping.  The loop thread itself exits cleanly
+      # stop with force_kill so the loop task is definitively terminated even
+      # if an IO thread is still sleeping.  The loop task itself exits cleanly
       # once @running = false is observed; IO threads are independent.
       status = el.stop(timeout: 2, force_kill: true)
 
       expect([:clean, :force_killed]).to include(status)
-      expect(loop_thread).not_to be_alive
-      expect(el.instance_variable_get(:@thread)).to be_nil
+      expect(loop_task).not_to be_alive
+      expect(el.instance_variable_get(:@task)).to be_nil
     end
 
-    it "a subsequent EventLoop.instance starts with a fresh thread after force_kill" do
+    it "a subsequent EventLoop.instance starts with a fresh task after force_kill" do
       # Verifies that EventLoop.reset! followed by .instance creates a new,
-      # alive thread — no residual contamination from the killed instance.
+      # alive task — no residual contamination from the killed instance.
       Phronomy.configure { |c| c.event_loop = true }
       el_first = Phronomy::EventLoop.instance
-      first_thread = el_first.instance_variable_get(:@thread)
+      first_task = el_first.instance_variable_get(:@task)
 
       started_q = Thread::Queue.new
       agent = double("SlowAgentReset")
@@ -541,11 +542,11 @@ RSpec.describe "Lifecycle invariants" do
       el_first.stop(timeout: 0.1, force_kill: true)
       Phronomy::EventLoop.reset!
 
-      # After reset, a new instance must have its own alive thread.
+      # After reset, a new instance must have its own alive task.
       el_second = Phronomy::EventLoop.instance
-      second_thread = el_second.instance_variable_get(:@thread)
-      expect(second_thread).to be_alive
-      expect(second_thread).not_to be(first_thread)
+      second_task = el_second.instance_variable_get(:@task)
+      expect(second_task).to be_alive
+      expect(second_task).not_to be(first_task)
       expect(el_second.instance_variable_get(:@fsm_count)).to eq(0)
     end
   end

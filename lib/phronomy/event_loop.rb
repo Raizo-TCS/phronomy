@@ -29,14 +29,14 @@ module Phronomy
       @instance ||= new.tap(&:start)
     end
 
-    # Returns true when called from within the EventLoop background thread.
-    # Used by {Agent::Base#invoke} and {EventLoop#register} to detect deadlock
-    # conditions. Thread.current is intentionally used here as an internal
-    # implementation detail — callers should not read the raw thread-local key.
+    # Returns true when called from within the EventLoop dispatch task.
+    # Uses a task-local key set by the Runtime-spawned dispatch task so that
+    # the check works correctly for both thread-based and future fiber-based
+    # scheduler backends.
     # @return [Boolean]
     # @api private
     def self.current?
-      Thread.current[:phronomy_event_loop_thread] == true
+      Phronomy::Task.current&.name == "event-loop"
     end
 
     # Stops and destroys the singleton. Primarily used in tests.
@@ -59,9 +59,9 @@ module Phronomy
       # Fairness metrics (EventLoop thread only, except where noted)
       @lag_mutex = Mutex.new
       @last_lag_ns = 0
-      @max_lag_ns  = 0
+      @max_lag_ns = 0
       @dispatch_count = 0
-      @total_lag_ns   = 0
+      @total_lag_ns = 0
     end
 
     # Returns the most recently measured event-loop lag in seconds.
@@ -148,47 +148,49 @@ module Phronomy
       @queue.push([event, Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)])
     end
 
-    # Starts the background event loop thread.
+    # Starts the EventLoop dispatch task under {Runtime} ownership.
+    #
+    # The dispatch loop runs as a {Phronomy::Task} so that {Runtime#shutdown}
+    # can drain it together with all other in-flight tasks.  The task is named
+    # +"event-loop"+ so that {.current?} can identify it via
+    # +Task.current&.name+.
     # @return [self]
     # @api private
     def start
-      return self if @thread&.alive?
+      return self if @task&.alive?
 
       # Reset shutdown state so the loop can be restarted after a stop.
       @shutdown_token = Phronomy::CancellationToken.new
       @fsm_count_mutex.synchronize { @fsm_count = 0 }
       @running = true
-      @thread = Thread.new do
-        Thread.current[:phronomy_event_loop_thread] = true
+      @task = Phronomy::Runtime.instance.spawn(name: "event-loop") do
         run_loop
       end
-      @thread.abort_on_exception = false
       self
     end
 
-    # Stops the background thread. Used in tests only.
+    # Stops the EventLoop dispatch task.
     #
     # Sends a cooperative shutdown sentinel to the event queue so that the
-    # worker thread can finish any in-flight handler before exiting.  Waits up
-    # to +timeout+ seconds for a clean shutdown; if the thread is still alive
-    # afterwards it is force-killed as a last resort.
+    # dispatch task can finish any in-flight handler before exiting.  Waits up
+    # to +timeout+ seconds for a clean shutdown; if the task is still alive
+    # afterwards it is cancelled (cooperative cancellation via {Task#cancel!}).
     #
     # @param timeout [Numeric] seconds to wait for cooperative shutdown. Defaults
     #   to +Phronomy.configuration.event_loop_stop_grace_seconds+ (5 s).
     # @param drain [Boolean] when +true+, wait for all active FSMSessions to
     #   complete before signalling the loop to stop.  Bounded by +timeout+.
     #   Defaults to +false+.
-    # @param force_kill [Boolean] when +true+, the worker thread is killed with
-    #   +Thread#kill+ if it does not stop within +timeout+. When +false+
-    #   (default), the thread is never killed; the method returns +:timeout+
-    #   instead. +false+ is safer for production because +Thread#kill+ can
-    #   interrupt +ensure+ blocks.
+    # @param force_kill [Boolean] deprecated — retained for backward compatibility.
+    #   When +true+, the dispatch task is cancelled via {Task#cancel!} if it does
+    #   not stop within +timeout+.  +Thread#kill+ is no longer used; cooperative
+    #   cancellation (raising {CancellationError}) replaces it.
     # @return [Symbol] shutdown status:
     #   - +:clean+ — loop exited cooperatively with no active sessions discarded
     #   - +:drained_with_discards+ — drain mode requested but sessions remained;
     #     they were discarded and the loop was stopped
-    #   - +:timeout+ — the worker thread did not stop in time and +force_kill:+ is +false+
-    #   - +:force_killed+ — the worker thread did not stop in time and was killed
+    #   - +:timeout+ — the task did not stop in time and +force_kill:+ is +false+
+    #   - +:force_killed+ — the task was cancelled because it did not stop in time
     # @api private
     def stop(timeout: Phronomy.configuration.event_loop_stop_grace_seconds, drain: false, force_kill: false)
       @shutdown_token.cancel!
@@ -208,31 +210,31 @@ module Phronomy
       end
 
       @running = false
-      @queue.push(:__stop__)   # unblock queue.pop so the worker can see @running = false
+      @queue.push(:__stop__)   # unblock queue.pop so the task can see @running = false
       begin
-        @thread&.join(timeout)
+        @task&.join(timeout)
       rescue
-        # Thread may have terminated with an exception (e.g. simulated crash in
-        # tests). Suppress the re-raise so the cleanup below always runs.
+        # Task may have terminated with an error (e.g. simulated crash in tests).
+        # Suppress the re-raise so the cleanup below always runs.
         nil
       end
-      if @thread&.alive?
+      if @task&.alive?
         if force_kill
           Phronomy.configuration.logger&.warn(
-            "[Phronomy] EventLoop thread did not stop within #{timeout}s; force-killing. " \
+            "[Phronomy] EventLoop task did not stop within #{timeout}s; cancelling. " \
             "This is a last resort — check for blocking operations in event handlers."
           )
-          @thread.kill
+          @task.cancel!
           status = :force_killed
         else
           Phronomy.configuration.logger&.warn(
-            "[Phronomy] EventLoop thread did not stop within #{timeout}s; abandoning " \
+            "[Phronomy] EventLoop task did not stop within #{timeout}s; abandoning " \
             "(force_kill: false). Check for blocking operations in event handlers."
           )
           status = :timeout
         end
       end
-      @thread = nil
+      @task = nil
       status
     end
 
@@ -313,7 +315,7 @@ module Phronomy
     def update_lag_metrics(lag_ns)
       @lag_mutex.synchronize do
         @last_lag_ns = lag_ns
-        @max_lag_ns  = lag_ns if lag_ns > @max_lag_ns
+        @max_lag_ns = lag_ns if lag_ns > @max_lag_ns
         @total_lag_ns += lag_ns
         @dispatch_count += 1
       end

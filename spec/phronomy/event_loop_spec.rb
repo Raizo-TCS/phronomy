@@ -66,9 +66,9 @@ RSpec.describe Phronomy::EventLoop do
       expect(described_class.instance).to be(described_class.instance)
     end
 
-    it "starts the background thread" do
-      thread = described_class.instance.instance_variable_get(:@thread)
-      expect(thread).to be_alive
+    it "starts the background task" do
+      task = described_class.instance.instance_variable_get(:@task)
+      expect(task).to be_alive
     end
   end
 
@@ -79,13 +79,13 @@ RSpec.describe Phronomy::EventLoop do
       expect(described_class.instance).not_to be(first)
     end
 
-    it "stops the old background thread" do
+    it "stops the old background task" do
       el = described_class.instance
-      thread = el.instance_variable_get(:@thread)
+      task = el.instance_variable_get(:@task)
       described_class.reset!
-      # Give the kill a moment to propagate
+      # Give the cancel a moment to propagate
       sleep 0.05
-      expect(thread).not_to be_alive
+      expect(task).not_to be_alive
     end
   end
 
@@ -98,13 +98,15 @@ RSpec.describe Phronomy::EventLoop do
       el = described_class.instance
       error = nil
 
-      # Simulate calling register from within the EventLoop thread
+      # Simulate calling register from within the EventLoop dispatch task
       t = Thread.new do
-        Thread.current[:phronomy_event_loop_thread] = true
+        Thread.current[:phronomy_current_task] = double("task", name: "event-loop")
         begin
           el.register(double("session", id: "fake"))
         rescue Phronomy::Error => e
           error = e
+        ensure
+          Thread.current[:phronomy_current_task] = nil
         end
       end
       t.join(2)
@@ -223,11 +225,11 @@ RSpec.describe Phronomy::EventLoop do
       Phronomy.configure { |c| c.event_loop = true }
       loop_instance = Phronomy::EventLoop.instance
       # Ensure the loop is running.
-      expect(loop_instance.instance_variable_get(:@thread)).not_to be_nil
+      expect(loop_instance.instance_variable_get(:@task)).not_to be_nil
 
       loop_instance.stop(timeout: 2)
 
-      expect(loop_instance.instance_variable_get(:@thread)).to be_nil
+      expect(loop_instance.instance_variable_get(:@task)).to be_nil
     end
 
     it "accepts the timeout keyword argument" do

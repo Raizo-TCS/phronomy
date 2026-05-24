@@ -219,10 +219,10 @@ RSpec.describe "Fault injection (Issue #213)" do
         payload: {}
       ))
 
-      # The loop thread must still be alive after processing the bad event
+      # The loop task must still be alive after processing the bad event
       sleep 0.05
-      thread = loop.instance_variable_get(:@thread)
-      expect(thread).to be_alive
+      task = loop.instance_variable_get(:@task)
+      expect(task).to be_alive
     end
   end
 end
