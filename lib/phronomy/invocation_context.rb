@@ -49,6 +49,12 @@ module Phronomy
     # @return [Hash, nil] per-provider concurrency / rate-limit overrides
     attr_reader :provider_limits
 
+    # @return [String, nil] unique identifier for this task in the trace tree
+    attr_reader :task_id
+
+    # @return [String, nil] task_id of the parent span / task
+    attr_reader :parent_task_id
+
     # @param thread_id [String, nil]
     # @param session_id [String, nil]
     # @param user_id [String, nil]
@@ -60,6 +66,8 @@ module Phronomy
     # @param approval_policy [Object, nil]
     # @param redaction_policy [Object, nil]
     # @param provider_limits [Hash, nil]
+    # @param task_id [String, nil]
+    # @param parent_task_id [String, nil]
     def initialize(
       thread_id: nil,
       session_id: nil,
@@ -71,7 +79,9 @@ module Phronomy
       max_parallel_tools: 10,
       approval_policy: nil,
       redaction_policy: nil,
-      provider_limits: nil
+      provider_limits: nil,
+      task_id: nil,
+      parent_task_id: nil
     )
       @thread_id          = thread_id
       @session_id         = session_id
@@ -84,6 +94,8 @@ module Phronomy
       @approval_policy    = approval_policy
       @redaction_policy   = redaction_policy
       @provider_limits    = provider_limits
+      @task_id            = task_id
+      @parent_task_id     = parent_task_id
     end
 
     # Returns a new +InvocationContext+ with the given attributes merged in.
@@ -103,7 +115,9 @@ module Phronomy
         max_parallel_tools: overrides.fetch(:max_parallel_tools, @max_parallel_tools),
         approval_policy:    overrides.fetch(:approval_policy, @approval_policy),
         redaction_policy:   overrides.fetch(:redaction_policy, @redaction_policy),
-        provider_limits:    overrides.fetch(:provider_limits, @provider_limits)
+        provider_limits:    overrides.fetch(:provider_limits, @provider_limits),
+        task_id:            overrides.fetch(:task_id, @task_id),
+        parent_task_id:     overrides.fetch(:parent_task_id, @parent_task_id)
       )
     end
 
