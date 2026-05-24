@@ -96,6 +96,12 @@ module Phronomy
   # result is available. Extends {TimeoutError} for backwards compatibility.
   class ScopeTimeoutError < TimeoutError; end
 
+  # Raised when a {Phronomy::WorkflowContext} field is mutated from a thread
+  # that does not own the context (i.e. not the EventLoop dispatch thread).
+  # Only raised in EventLoop mode.  Use +context.merge(...)+ to produce a new
+  # context, or deliver updates as +:child_completed+ event payloads.
+  class WorkflowContextOwnershipError < Error; end
+
   class << self
     def configuration
       @configuration ||= Configuration.new

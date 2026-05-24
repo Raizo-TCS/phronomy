@@ -42,7 +42,16 @@ module Phronomy
         end
 
         @fields[name] = {type: type, default: default}
-        attr_accessor name
+
+        # Define getter.
+        attr_reader name
+
+        # Define write-guarded setter.  Mutation from outside the EventLoop
+        # dispatch thread raises WorkflowContextOwnershipError in EventLoop mode.
+        define_method(:"#{name}=") do |value|
+          _assert_write_permitted!
+          instance_variable_set(:"@#{name}", value)
+        end
       end
 
       def fields
@@ -88,7 +97,9 @@ module Phronomy
 
       self.class.fields.each do |name, config|
         default = config[:default].is_a?(Proc) ? config[:default].call : config[:default]
-        send(:"#{name}=", attrs.fetch(name, default))
+        # Bypass the write guard in initialize — ownership enforcement begins
+        # after construction is complete.
+        instance_variable_set(:"@#{name}", attrs.fetch(name, default))
       end
       @thread_id = nil
       @phase = :__end__
@@ -141,6 +152,21 @@ module Phronomy
     end
 
     private
+
+    # Asserts that the calling thread is allowed to mutate this context.
+    # No-op when EventLoop mode is disabled.
+    # @raise [Phronomy::WorkflowContextOwnershipError] when called from a
+    #   non-EventLoop thread in EventLoop mode.
+    def _assert_write_permitted!
+      return unless defined?(Phronomy::EventLoop) &&
+                    Phronomy.configuration.event_loop
+      return if Phronomy::EventLoop.current?
+
+      raise Phronomy::WorkflowContextOwnershipError,
+        "WorkflowContext fields may only be mutated from the EventLoop dispatch " \
+        "thread. Use context.merge(...) to produce a new context, or deliver " \
+        "updates as event payloads."
+    end
 
     # Performs a deep copy of a value for immutable context propagation.
     # Arrays and Hashes are deep-duplicated recursively.

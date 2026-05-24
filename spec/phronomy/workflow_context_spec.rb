@@ -322,3 +322,82 @@ RSpec.describe Phronomy::WorkflowContext do
     end
   end
 end
+
+# Issue #298 — WorkflowContext field setters must raise
+# WorkflowContextOwnershipError when called from outside the EventLoop dispatch
+# thread in EventLoop mode.
+RSpec.describe "WorkflowContext single-owner enforcement (Issue #298)", :issue_298 do
+  let(:context_class) do
+    Class.new do
+      include Phronomy::WorkflowContext
+      field :answer, type: :replace, default: nil
+    end
+  end
+
+  context "when EventLoop mode is disabled (event_loop = false)" do
+    it "allows field mutation from any thread" do
+      ctx = context_class.new
+      # Must not raise regardless of which thread calls the setter.
+      t = Thread.new { ctx.answer = "from thread" }
+      t.join
+      expect(ctx.answer).to eq("from thread")
+    end
+  end
+
+  context "when EventLoop mode is enabled (event_loop = true)" do
+    around do |example|
+      Phronomy.configure { |c| c.event_loop = true }
+      Phronomy::EventLoop.instance.start
+      example.run
+    ensure
+      Phronomy::EventLoop.instance.stop
+      Phronomy.configure { |c| c.event_loop = false }
+    end
+
+    it "raises WorkflowContextOwnershipError when mutated from a non-EventLoop thread" do
+      ctx = context_class.new
+
+      error = nil
+      t = Thread.new do
+        ctx.answer = "illegal write"
+      rescue => e
+        error = e
+      end
+      t.join
+
+      expect(error).to be_a(Phronomy::WorkflowContextOwnershipError)
+    end
+
+    it "allows mutation from the EventLoop dispatch thread" do
+      ctx = context_class.new
+      result_value = nil
+
+      # Post a custom FSM that runs a lambda on the EventLoop thread and
+      # writes directly to the context via the setter.
+      class_local_ctx = ctx
+      written_flag = Queue.new
+
+      dummy_session = Object.new
+      dummy_session.define_singleton_method(:id) { "test-owner-#{object_id}" }
+      dummy_session.define_singleton_method(:start) do
+        # This runs on the EventLoop thread — writing must succeed.
+        class_local_ctx.answer = "from eventloop"
+        written_flag.push(:done)
+        Phronomy::EventLoop.instance.post(
+          Phronomy::Event.new(type: :finished, target_id: id, payload: nil)
+        )
+      end
+      dummy_session.define_singleton_method(:handle) { |_e| }
+
+      Phronomy::EventLoop.instance.register(dummy_session)
+      written_flag.pop(timeout: 2)
+
+      expect(ctx.answer).to eq("from eventloop")
+    end
+
+    it "initialize succeeds outside the EventLoop thread" do
+      # Constructing a context outside EventLoop thread must not raise.
+      expect { context_class.new(answer: "init") }.not_to raise_error
+    end
+  end
+end
