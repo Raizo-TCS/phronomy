@@ -84,6 +84,10 @@ module Phronomy
   # already been shut down via {BlockingAdapterPool#shutdown}.
   class PoolShutdownError < Error; end
 
+  # Raised when a concurrency limit is exceeded and the configured backpressure
+  # strategy is +:raise+. The caller should back off and retry.
+  class BackpressureError < Error; end
+
   # Raised by {CancellationScope#pop_queue} when the deadline expires before a
   # result is available. Extends {TimeoutError} for backwards compatibility.
   class ScopeTimeoutError < TimeoutError; end

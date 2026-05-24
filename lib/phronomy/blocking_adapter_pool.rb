@@ -140,11 +140,35 @@ module Phronomy
     # @yield block containing the blocking call
     # @return [PendingOperation]
     # @raise [Phronomy::PoolShutdownError] when the pool has been shut down
-    def submit(timeout: nil, cancellation_token: nil, &block)
+    # @raise [Phronomy::BackpressureError] when +on_full: :raise+ and queue is full
+    # @raise [Phronomy::TimeoutError] when +on_full: :timeout+ and wait exceeds +full_timeout+
+    def submit(timeout: nil, cancellation_token: nil, on_full: :wait, full_timeout: nil, &block)
       raise Phronomy::PoolShutdownError, "pool has been shut down" if @shutdown
 
       op = PendingOperation.new(block, timeout: timeout, cancellation_token: cancellation_token)
-      @queue.push(op)
+      case on_full
+      when :raise
+        begin
+          @queue.push(op, true)
+        rescue ThreadError
+          raise Phronomy::BackpressureError, "BlockingAdapterPool queue is full (depth: #{@queue_size})"
+        end
+      when :timeout
+        deadline = full_timeout ? (Process.clock_gettime(Process::CLOCK_MONOTONIC) + full_timeout) : nil
+        loop do
+          begin
+            @queue.push(op, true)
+            break
+          rescue ThreadError
+            if deadline && Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+              raise Phronomy::TimeoutError, "timed out waiting for a free slot in BlockingAdapterPool"
+            end
+            sleep(0.005)
+          end
+        end
+      else # :wait (default)
+        @queue.push(op)
+      end
       op
     end
 

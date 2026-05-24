@@ -79,6 +79,18 @@ module Phronomy
     #   Phronomy.configure { |c| c.llm_adapter = MyAsyncLLMAdapter.new }
     attr_accessor :llm_adapter
 
+    # Default backpressure strategy for {BlockingAdapterPool#submit} when the
+    # queue is full.  One of +:wait+ (block until a slot is available),
+    # +:raise+ (raise {Phronomy::BackpressureError}), or +:timeout+ (raise
+    # {Phronomy::TimeoutError} after +backpressure_timeout+ seconds).
+    # @return [:wait, :raise, :timeout]
+    attr_accessor :backpressure
+
+    # Seconds to wait before raising {Phronomy::TimeoutError} when
+    # +backpressure+ is +:timeout+.
+    # @return [Numeric, nil]
+    attr_accessor :backpressure_timeout
+
     def initialize
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new
@@ -86,6 +98,8 @@ module Phronomy
       @event_loop = false
       @event_loop_stop_grace_seconds = 5
       @llm_adapter = Phronomy::LLMAdapter::RubyLLM.new
+      @backpressure = :wait
+      @backpressure_timeout = nil
     end
   end
 end
