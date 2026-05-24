@@ -6,7 +6,14 @@ module Phronomy
     #
     # Implementations manage a collection of (embedding, metadata) pairs and
     # support similarity search.
+    #
+    # Async methods (`search_async`, `add_async`, `remove_async`, `clear_async`)
+    # are provided by the {AsyncBackend} mixin which defaults to routing calls
+    # through {BlockingAdapterPool}.  Backends with native async drivers may
+    # override individual async methods without touching the pool at all.
     class Base
+      include AsyncBackend
+
       # Add a document with its vector embedding.
       #
       # @param id                 [String]                         unique document identifier
@@ -29,24 +36,6 @@ module Phronomy
       def search(query_embedding:, k: 5, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
         raise NotImplementedError, "#{self.class}#search is not implemented"
-      end
-
-      # Submits a {#search} call to {BlockingAdapterPool} and returns a
-      # {BlockingAdapterPool::PendingOperation}.
-      #
-      # @param query_embedding    [Array<Float>]
-      # @param k                  [Integer]
-      # @param cancellation_token [Phronomy::CancellationToken, nil]
-      # @param timeout            [Numeric, nil] seconds before the operation is abandoned
-      # @return [BlockingAdapterPool::PendingOperation]
-      # @api public
-      def search_async(query_embedding:, k: 5, cancellation_token: nil, timeout: nil)
-        Phronomy::Runtime.instance.blocking_io.submit(
-          timeout: timeout,
-          cancellation_token: cancellation_token
-        ) do
-          search(query_embedding: query_embedding, k: k, cancellation_token: cancellation_token)
-        end
       end
 
       # Remove a single document by id.
