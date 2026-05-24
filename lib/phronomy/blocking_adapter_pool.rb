@@ -42,34 +42,82 @@ module Phronomy
       end
 
       # Blocks until the operation completes and returns its value.
-      # If a +timeout+ was given to {BlockingAdapterPool#submit}, the caller
-      # stops waiting after that many seconds and a {Phronomy::TimeoutError}
-      # is raised.  The worker thread is NOT interrupted — it runs to
-      # completion on its own, which avoids the data-corruption risk of
-      # async +Thread#raise+ from +Timeout.timeout+.
       #
+      # An optional +timeout+ (in seconds) may be passed here; it is measured
+      # from the moment +await+ is called. If both a submit-time timeout and an
+      # await-time timeout are present, the earlier deadline wins. The worker
+      # thread is NOT interrupted — it runs to completion on its own.
+      #
+      # An optional +cancellation_token+ may be passed here (or at submit time).
+      # If the token is cancelled while waiting, {Phronomy::CancellationError} is
+      # raised immediately without interrupting the worker.
+      #
+      # @param timeout [Numeric, nil] seconds from now before raising TimeoutError
+      # @param cancellation_token [CancellationToken, nil]
       # @return [Object]
-      # @raise [Exception]
-      def await
-        if @timeout
-          deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + @timeout
+      # @raise [Phronomy::TimeoutError]
+      # @raise [Phronomy::CancellationError]
+      # @raise [Exception] error raised inside the submitted block
+      def await(timeout: nil, cancellation_token: nil)
+        effective_timeout = [timeout, @timeout].compact.min
+        effective_token = cancellation_token || @cancellation_token
+
+        raise CancellationError, "blocking operation cancelled" if effective_token&.cancelled?
+
+        # Wake up the waiting thread whenever the token is cancelled so we can
+        # propagate cancellation without sleeping until the timeout expires.
+        effective_token&.on_cancel { @mutex.synchronize { @cond.broadcast } }
+
+        if effective_timeout
+          deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + effective_timeout
           @mutex.synchronize do
             until @done
+              raise CancellationError, "blocking operation cancelled" if effective_token&.cancelled?
+
               remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
               if remaining <= 0
                 @abandoned = true
                 @on_abandoned&.call
-                raise Phronomy::TimeoutError, "blocking operation timed out after #{@timeout}s"
+                raise Phronomy::TimeoutError, "blocking operation timed out after #{effective_timeout}s"
               end
               @cond.wait(@mutex, remaining)
             end
           end
         else
-          @mutex.synchronize { @cond.wait(@mutex) until @done }
+          @mutex.synchronize do
+            until @done
+              raise CancellationError, "blocking operation cancelled" if effective_token&.cancelled?
+
+              @cond.wait(@mutex)
+            end
+          end
         end
         raise @error if @error
 
         @value
+      end
+
+      # Registers a callback to be called when the operation finishes.
+      # If the operation has already finished the callback is invoked immediately
+      # on the calling thread.  Otherwise it is invoked on the worker thread that
+      # completes the operation.
+      #
+      # The callback receives +result+ and +error+ (one of them will be +nil+).
+      #
+      # @yield [result, error]
+      # @return [self]
+      def on_complete(&callback)
+        fire_args = nil
+        @mutex.synchronize do
+          if @done
+            fire_args = [@value, @error]
+          else
+            @callbacks ||= []
+            @callbacks << callback
+          end
+        end
+        callback.call(*fire_args) if fire_args
+        self
       end
 
       # @api private
@@ -112,19 +160,27 @@ module Phronomy
       private
 
       def complete_with_value!(value)
+        cbs = nil
         @mutex.synchronize do
           @value = value
           @done = true
           @cond.broadcast
+          cbs = @callbacks
+          @callbacks = nil
         end
+        cbs&.each { |cb| cb.call(value, nil) }
       end
 
       def complete_with_error!(error)
+        cbs = nil
         @mutex.synchronize do
           @error = error
           @done = true
           @cond.broadcast
+          cbs = @callbacks
+          @callbacks = nil
         end
+        cbs&.each { |cb| cb.call(nil, error) }
       end
     end
 

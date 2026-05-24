@@ -5,7 +5,13 @@ require "spec_helper"
 RSpec.describe Phronomy::BlockingAdapterPool do
   subject(:pool) { described_class.new(pool_size: 2, queue_size: 10) }
 
-  after { pool.shutdown(drain_timeout: 2) rescue nil }
+  after {
+    begin
+      pool.shutdown(drain_timeout: 2)
+    rescue
+      nil
+    end
+  }
 
   describe "#submit" do
     it "executes the block and returns the value via #await" do
@@ -19,15 +25,23 @@ RSpec.describe Phronomy::BlockingAdapterPool do
     end
 
     it "returns a PendingOperation immediately" do
-      op = pool.submit { sleep 0.5; :done }
+      op = pool.submit {
+        sleep 0.5
+        :done
+      }
       expect(op).to be_a(Phronomy::BlockingAdapterPool::PendingOperation)
       op.await
     end
 
     it "executes multiple submissions concurrently" do
-      start    = Time.now
-      results  = Array.new(4) { |i| pool.submit { sleep 0.05; i } }.map(&:await)
-      elapsed  = Time.now - start
+      start = Time.now
+      results = Array.new(4) { |i|
+        pool.submit {
+          sleep 0.05
+          i
+        }
+      }.map(&:await)
+      elapsed = Time.now - start
       expect(results.sort).to eq([0, 1, 2, 3])
       # 4 tasks on 2 workers should finish in ~2 batches (~0.1 s), not ~0.2 s
       expect(elapsed).to be < 0.25
@@ -42,13 +56,21 @@ RSpec.describe Phronomy::BlockingAdapterPool do
 
     it "marks the operation as abandoned after a timeout" do
       op = pool.submit(timeout: 0.05) { sleep 10 }
-      op.await rescue nil
+      begin
+        op.await
+      rescue
+        nil
+      end
       expect(op.abandoned?).to be(true)
     end
 
     it "increments abandoned_count" do
       op = pool.submit(timeout: 0.05) { sleep 10 }
-      op.await rescue nil
+      begin
+        op.await
+      rescue
+        nil
+      end
       expect(pool.abandoned_count).to be >= 1
     end
   end
@@ -59,7 +81,7 @@ RSpec.describe Phronomy::BlockingAdapterPool do
   # completion on its own.
   describe "timeout safety (Issue #287 — no Timeout.timeout)", :issue_287 do
     it "does not interrupt the worker thread when the caller times out" do
-      mutex    = Mutex.new
+      mutex = Mutex.new
       done_flag = false
 
       # Block takes 0.15 s but the caller timeout is only 0.05 s.
@@ -86,6 +108,90 @@ RSpec.describe Phronomy::BlockingAdapterPool do
       op = pool.submit(cancellation_token: token) { :never_runs }
       expect { op.await }.to raise_error(Phronomy::CancellationError)
     end
+
+    it "raises CancellationError when token is cancelled while waiting (Issue #288)" do
+      token = Phronomy::CancellationToken.new
+      # Submit a slow operation without a cancellation token so the worker runs
+      op = pool.submit {
+        sleep 10
+        :done
+      }
+      # Cancel the token shortly after await starts
+      Thread.new {
+        sleep 0.05
+        token.cancel!
+      }
+      expect { op.await(cancellation_token: token) }.to raise_error(Phronomy::CancellationError)
+    end
+
+    it "raises CancellationError when token passed to await is already cancelled (Issue #288)" do
+      token = Phronomy::CancellationToken.new
+      token.cancel!
+      op = pool.submit { :fast }
+      expect { op.await(cancellation_token: token) }.to raise_error(Phronomy::CancellationError)
+    end
+  end
+
+  describe "await(timeout:) (Issue #288)" do
+    it "raises TimeoutError when await-time timeout expires" do
+      op = pool.submit {
+        sleep 10
+        :done
+      }
+      expect { op.await(timeout: 0.05) }.to raise_error(Phronomy::TimeoutError)
+    end
+
+    it "returns the value when the operation finishes before the await-time timeout" do
+      op = pool.submit { :fast }
+      expect(op.await(timeout: 5)).to eq(:fast)
+    end
+
+    it "uses the earlier of submit-time and await-time timeouts" do
+      # submit with 10s, await with 0.05s — await timeout fires first
+      op = pool.submit(timeout: 10) {
+        sleep 5
+        :done
+      }
+      expect { op.await(timeout: 0.05) }.to raise_error(Phronomy::TimeoutError)
+    end
+  end
+
+  describe "#on_complete (Issue #288)" do
+    it "calls the callback with result and nil error when operation succeeds" do
+      result_holder = []
+      op = pool.submit { 42 }
+      op.on_complete { |v, e| result_holder << [v, e] }
+      op.await
+      # brief sleep to allow worker callback to run if not yet fired
+      sleep 0.05
+      expect(result_holder).to eq([[42, nil]])
+    end
+
+    it "calls the callback with nil result and error when operation fails" do
+      err_holder = []
+      op = pool.submit { raise "boom" }
+      op.on_complete { |v, e| err_holder << [v, e] }
+      begin
+        op.await
+      rescue
+        nil
+      end
+      sleep 0.05
+      expect(err_holder.first).to match([nil, an_instance_of(RuntimeError)])
+    end
+
+    it "invokes the callback immediately when the operation is already done" do
+      op = pool.submit { :done }
+      op.await
+      fired = false
+      op.on_complete { |_v, _e| fired = true }
+      expect(fired).to be(true)
+    end
+
+    it "returns self so calls can be chained" do
+      op = pool.submit { 1 }
+      expect(op.on_complete { |_v, _e| }).to be(op)
+    end
   end
 
   describe "metrics" do
@@ -96,7 +202,12 @@ RSpec.describe Phronomy::BlockingAdapterPool do
 
     it "queue_depth reflects pending operations" do
       # saturate workers then check queue
-      slow = Array.new(2) { pool.submit { sleep 0.3; 1 } }
+      slow = Array.new(2) {
+        pool.submit {
+          sleep 0.3
+          1
+        }
+      }
       # with pool_size: 2 the next submit goes to queue
       queued = pool.submit { 2 }
       expect(pool.queue_depth).to be >= 0  # best-effort; queue may drain fast
@@ -125,7 +236,10 @@ RSpec.describe Phronomy::BlockingAdapterPool do
     it "returns false before the operation completes" do
       barrier = Mutex.new
       barrier.lock
-      op = pool.submit { barrier.lock; 1 }
+      op = pool.submit {
+        barrier.lock
+        1
+      }
       expect(op.done?).to be(false)
       barrier.unlock
       op.await
