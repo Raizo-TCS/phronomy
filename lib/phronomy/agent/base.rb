@@ -690,10 +690,12 @@ module Phronomy
           # Run before_completion hooks (global → class → instance) before the LLM call.
           run_before_completion_hooks!(chat, config)
 
-          response = chat.ask(user_message) do |chunk|
+          # Route the LLM call through the configured LLMAdapter.
+          adapter = Phronomy.configuration.llm_adapter
+          response = adapter.stream_async(chat, user_message, config: config) do |chunk|
             block.call(StreamEvent.new(type: :token, payload: {content: chunk.content}))
             check_cancellation!(config, "invocation cancelled during streaming")
-          end
+          end.await
 
           output = response.content
           usage = Phronomy::TokenUsage.from_tokens(response.tokens)
@@ -815,7 +817,11 @@ module Phronomy
           chat.cancellation_token = config[:cancellation_token] if chat.respond_to?(:cancellation_token=)
 
           begin
-            response = chat.ask(user_message)
+            # Route the LLM call through the configured LLMAdapter so that the
+            # blocking HTTP request runs inside BlockingAdapterPool and the
+            # adapter can be swapped without changing agent code.
+            adapter = Phronomy.configuration.llm_adapter
+            response = adapter.complete_async(chat, user_message, config: config).await
           rescue SuspendSignal => signal
             checkpoint = Checkpoint.new(
               thread_id: thread_id,

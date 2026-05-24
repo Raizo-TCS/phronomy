@@ -68,12 +68,24 @@ module Phronomy
     #   Phronomy.configure { |c| c.tool_result_max_size = 8192 }
     attr_accessor :tool_result_max_size
 
+    # LLM adapter used by Agent::Base to perform LLM calls.
+    # Must be an instance of a class that inherits from
+    # {Phronomy::LLMAdapter::Base}.  Defaults to
+    # {Phronomy::LLMAdapter::RubyLLM} which delegates to +chat.ask+ via
+    # {BlockingAdapterPool}.
+    # Set to a custom adapter to swap in an alternative LLM client without
+    # changing any agent code.
+    # @example
+    #   Phronomy.configure { |c| c.llm_adapter = MyAsyncLLMAdapter.new }
+    attr_accessor :llm_adapter
+
     def initialize
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new
       @trace_pii = false
       @event_loop = false
       @event_loop_stop_grace_seconds = 5
+      @llm_adapter = Phronomy::LLMAdapter::RubyLLM.new
     end
   end
 end
