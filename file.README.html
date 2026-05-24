@@ -242,7 +242,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong><code>Configuration#runtime_backend</code></strong> — <code>:thread</code> (default, uses <code>ThreadScheduler</code>) or <code>:deterministic</code> (uses <code>FakeScheduler</code>; for tests that must not create new Threads)</td>
+<td><strong><code>Configuration#runtime_backend</code></strong> — <code>:cooperative</code> (default, uses <code>FakeScheduler</code> — cooperative task scheduler) or <code>:thread</code> (opt-in, uses <code>ThreadScheduler</code> — legacy threading mode)</td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -670,7 +670,7 @@ restore conversation history — you must pass <code>messages:</code> explicitly
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_trace_pii'>trace_pii</span>                       <span class='op'>=</span> <span class='kw'>false</span> <span class='comment'># default; set to true only when trace data contains no PII
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span>                          <span class='op'>=</span> <span class='kw'>nil</span>   <span class='comment'># optional; any object responding to #warn (e.g. Rails.logger)
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span>   <span class='op'>=</span> <span class='int'>5</span>     <span class='comment'># seconds to wait for sessions to drain on EventLoop#stop(drain: true)
-</span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_runtime_backend'>runtime_backend</span>                 <span class='op'>=</span> <span class='symbol'>:thread</span>        <span class='comment'># :thread (default) or :deterministic (tests)
+</span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_runtime_backend'>runtime_backend</span>                 <span class='op'>=</span> <span class='symbol'>:cooperative</span>  <span class='comment'># :cooperative (default) or :thread (legacy opt-in)
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span>           <span class='op'>=</span> <span class='kw'>false</span>          <span class='comment'># when true, raises on invoke-inside-task
 </span><span class='kw'>end</span>
 </code></pre>
@@ -726,9 +726,11 @@ hidden deadlock when all scheduler threads are occupied.</p>
 <span class='comment'># After (safe inside tasks and TaskGroups)
 </span><span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_my_agent'>my_agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_await'>await</span>
 </code></pre>
-<h3 id="Deterministic_test_backend">Deterministic test backend</h3>
-<p>For unit tests that must not create new Threads:</p>
-<pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_runtime_backend'>runtime_backend</span> <span class='op'>=</span> <span class='symbol'>:deterministic</span> <span class='rbrace'>}</span>
+<h3 id="Cooperative_backend__opt_out_to_legacy_threading_">Cooperative backend (opt-out to legacy threading)</h3>
+<p>The default <code>:cooperative</code> backend runs tasks synchronously using <code>FakeScheduler</code>
+(backed by <code>Task::ImmediateBackend</code>).  Blocking I/O is isolated in <code>BlockingAdapterPool</code>.
+To opt into the legacy thread-per-task mode:</p>
+<pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_runtime_backend'>runtime_backend</span> <span class='op'>=</span> <span class='symbol'>:thread</span> <span class='rbrace'>}</span>
 <span class='comment'># or per-example using SchedulerHelpers:
 </span><span class='id identifier rubyid_include'>include</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Testing.html" title="Phronomy::Testing (module)">Testing</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Testing/SchedulerHelpers.html" title="Phronomy::Testing::SchedulerHelpers (module)">SchedulerHelpers</a></span></span>
 <span class='id identifier rubyid_with_fake_scheduler'>with_fake_scheduler</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_sched'>sched</span><span class='op'>|</span>
@@ -996,7 +998,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sun May 24 16:14:09 2026 by
+  Generated on Sun May 24 23:45:26 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

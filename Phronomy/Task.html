@@ -1450,12 +1450,12 @@ also cancels this task (default: currently running task)</p></div>
       <pre class="lines">
 
 
-187
-188
-189</pre>
+190
+191
+192</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 187</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 190</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_alive?'>alive?</span>
   <span class='ivar'>@backend</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
@@ -1590,14 +1590,20 @@ started executing yet are correctly marked as cancelled after join.</p>
 169
 170
 171
-172</pre>
+172
+173
+174
+175</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 166</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancel!'>cancel!</span>
   <span class='id identifier rubyid_transition!'>transition!</span><span class='lparen'>(</span><span class='symbol'>:cancelled</span><span class='rparen'>)</span>
-  <span class='ivar'>@backend</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span>
+  <span class='comment'># @backend may be nil if cancel! is called while ImmediateBackend is still
+</span>  <span class='comment'># initializing (the block runs synchronously inside .new, so register_child
+</span>  <span class='comment'># fires before @backend is assigned).  Safe-navigate to avoid NoMethodError.
+</span>  <span class='ivar'>@backend</span><span class='op'>&amp;.</span><span class='id identifier rubyid_cancel!'>cancel!</span>
   <span class='id identifier rubyid_children'>children</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@children</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
   <span class='id identifier rubyid_children'>children</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:cancel!</span><span class='rparen'>)</span>
   <span class='kw'>self</span>
@@ -1725,12 +1731,12 @@ Returns <code>nil</code> when the timeout expires before completion.</p>
       <pre class="lines">
 
 
-180
-181
-182</pre>
+183
+184
+185</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 180</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 183</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='id identifier rubyid_limit'>limit</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@backend</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='id identifier rubyid_limit'>limit</span><span class='rparen'>)</span>
@@ -1784,12 +1790,12 @@ Called automatically during child task initialization.</p>
       <pre class="lines">
 
 
-209
-210
-211</pre>
+212
+213
+214</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 209</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 212</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_register_child'>register_child</span><span class='lparen'>(</span><span class='id identifier rubyid_child'>child</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@children</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_child'>child</span> <span class='rbrace'>}</span>
@@ -1903,17 +1909,17 @@ Terminal states (completed/failed/cancelled) are never overwritten.</p>
       <pre class="lines">
 
 
-196
-197
-198
 199
 200
 201
 202
-203</pre>
+203
+204
+205
+206</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 196</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 199</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_transition!'>transition!</span><span class='lparen'>(</span><span class='id identifier rubyid_new_status'>new_status</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1933,7 +1939,7 @@ Terminal states (completed/failed/cancelled) are never overwritten.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 16:14:10 2026 by
+  Generated on Sun May 24 23:45:26 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

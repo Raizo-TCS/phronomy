@@ -608,7 +608,7 @@ Configure via the Phronomy.configure block.</p>
       <li class="public ">
   <span class="summary_signature">
     
-      <a href="#runtime_backend-instance_method" title="#runtime_backend (instance method)">#<strong>runtime_backend</strong>  &#x21d2; :thread, :deterministic </a>
+      <a href="#runtime_backend-instance_method" title="#runtime_backend (instance method)">#<strong>runtime_backend</strong>  &#x21d2; :cooperative, :thread </a>
     
 
     
@@ -701,6 +701,31 @@ Configure via the Phronomy.configure block.</p>
 
   
     <span class="summary_desc"><div class='inline'><p>Global state store for workflow persistence.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#stream_queue_max_size-instance_method" title="#stream_queue_max_size (instance method)">#<strong>stream_queue_max_size</strong>  &#x21d2; Integer<sup>?</sup> </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Upper bound on the number of streaming token chunks that may be buffered in the <span class='object_link'><a href="AsyncQueue.html" title="Phronomy::AsyncQueue (class)">AsyncQueue</a></span> used by Agent#stream before the LLM producer is throttled.</p></div></span>
   
 </li>
 
@@ -873,12 +898,6 @@ Configure via the Phronomy.configure block.</p>
       <pre class="lines">
 
 
-177
-178
-179
-180
-181
-182
 183
 184
 185
@@ -895,10 +914,17 @@ Configure via the Phronomy.configure block.</p>
 196
 197
 198
-199</pre>
+199
+200
+201
+202
+203
+204
+205
+206</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 177</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 183</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@recursion_limit</span> <span class='op'>=</span> <span class='int'>25</span>
@@ -917,10 +943,11 @@ Configure via the Phronomy.configure block.</p>
   <span class='ivar'>@max_concurrent_tool_tasks</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@max_concurrent_workflow_tasks</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@max_concurrent_llm_calls</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@stream_queue_max_size</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@max_concurrent_rag_fetches</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@max_concurrent_vector_searches</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@starvation_threshold_ms</span> <span class='op'>=</span> <span class='int'>50</span>
-  <span class='ivar'>@runtime_backend</span> <span class='op'>=</span> <span class='symbol'>:thread</span>
+  <span class='ivar'>@runtime_backend</span> <span class='op'>=</span> <span class='symbol'>:cooperative</span>
   <span class='ivar'>@strict_runtime_guards</span> <span class='op'>=</span> <span class='kw'>false</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1695,12 +1722,12 @@ nil = unlimited (default).</p>
       <pre class="lines">
 
 
-140
-141
-142</pre>
+146
+147
+148</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 140</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 146</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_rag_fetches'>max_concurrent_rag_fetches</span>
   <span class='ivar'>@max_concurrent_rag_fetches</span>
@@ -1805,12 +1832,12 @@ nil = unlimited (default).</p>
       <pre class="lines">
 
 
-145
-146
-147</pre>
+151
+152
+153</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 145</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 151</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_vector_searches'>max_concurrent_vector_searches</span>
   <span class='ivar'>@max_concurrent_vector_searches</span>
@@ -1921,7 +1948,7 @@ nil = unlimited (default).</p>
       <div class="method_details ">
   <h3 class="signature " id="runtime_backend-instance_method">
   
-    #<strong>runtime_backend</strong>  &#x21d2; <tt>:thread</tt>, <tt>:deterministic</tt> 
+    #<strong>runtime_backend</strong>  &#x21d2; <tt>:cooperative</tt>, <tt>:thread</tt> 
   
 
   
@@ -1940,14 +1967,14 @@ nil = unlimited (default).</p>
 </thead>
 <tbody>
 <tr>
-<td><code>:thread</code></td>
-<td><span class='object_link'><a href="Runtime/ThreadScheduler.html" title="Phronomy::Runtime::ThreadScheduler (class)">Runtime::ThreadScheduler</a></span></td>
-<td>Production (default)</td>
+<td><code>:cooperative</code></td>
+<td><span class='object_link'><a href="Runtime/FakeScheduler.html" title="Phronomy::Runtime::FakeScheduler (class)">Runtime::FakeScheduler</a></span></td>
+<td>Production (default) — cooperative task scheduler</td>
 </tr>
 <tr>
-<td><code>:deterministic</code></td>
-<td><span class='object_link'><a href="Runtime/FakeScheduler.html" title="Phronomy::Runtime::FakeScheduler (class)">Runtime::FakeScheduler</a></span></td>
-<td>Unit tests</td>
+<td><code>:thread</code></td>
+<td><span class='object_link'><a href="Runtime/ThreadScheduler.html" title="Phronomy::Runtime::ThreadScheduler (class)">Runtime::ThreadScheduler</a></span></td>
+<td>Legacy / opt-in threading mode</td>
 </tr>
 </tbody>
 </table>
@@ -1966,7 +1993,7 @@ instance immediately call <code>Phronomy::Runtime.instance = nil</code> first.</
     <li>
       
       
-        <span class='type'>(<tt>:thread</tt>, <tt>:deterministic</tt>)</span>
+        <span class='type'>(<tt>:cooperative</tt>, <tt>:thread</tt>)</span>
       
       
       
@@ -1980,12 +2007,12 @@ instance immediately call <code>Phronomy::Runtime.instance = nil</code> first.</
       <pre class="lines">
 
 
-169
-170
-171</pre>
+175
+176
+177</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 169</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 175</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_runtime_backend'>runtime_backend</span>
   <span class='ivar'>@runtime_backend</span>
@@ -2094,12 +2121,12 @@ Default: 50ms.</p>
       <pre class="lines">
 
 
-154
-155
-156</pre>
+160
+161
+162</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 154</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 160</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_starvation_threshold_ms'>starvation_threshold_ms</span>
   <span class='ivar'>@starvation_threshold_ms</span>
@@ -2162,6 +2189,62 @@ Defaults to <code>nil</code> (no persistence — state lives only for the durati
 </div>
     
       
+      <span id="stream_queue_max_size=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="stream_queue_max_size-instance_method">
+  
+    #<strong>stream_queue_max_size</strong>  &#x21d2; <tt>Integer</tt><sup>?</sup> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Upper bound on the number of streaming token chunks that may be buffered
+in the <span class='object_link'><a href="AsyncQueue.html" title="Phronomy::AsyncQueue (class)">AsyncQueue</a></span> used by Agent#stream before the LLM producer is
+throttled.  When nil (default), the queue is unbounded.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+141
+142
+143</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 141</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_stream_queue_max_size'>stream_queue_max_size</span>
+  <span class='ivar'>@stream_queue_max_size</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
       <span id="strict_runtime_guards=-instance_method"></span>
       <div class="method_details ">
   <h3 class="signature " id="strict_runtime_guards-instance_method">
@@ -2202,12 +2285,12 @@ is logged instead so that existing callers have time to migrate.</p>
       <pre class="lines">
 
 
-175
-176
-177</pre>
+181
+182
+183</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 175</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 181</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span>
   <span class='ivar'>@strict_runtime_guards</span>
@@ -2359,7 +2442,7 @@ the tracing backend (OTel, Langfuse, etc.).</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 16:14:11 2026 by
+  Generated on Sun May 24 23:45:28 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
