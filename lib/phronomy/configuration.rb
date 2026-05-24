@@ -134,6 +134,12 @@ module Phronomy
     # @return [Integer, nil]
     attr_accessor :max_concurrent_llm_calls
 
+    # Upper bound on the number of streaming token chunks that may be buffered
+    # in the {AsyncQueue} used by {Agent#stream} before the LLM producer is
+    # throttled.  When nil (default), the queue is unbounded.
+    # @return [Integer, nil]
+    attr_accessor :stream_queue_max_size
+
     # Maximum number of concurrent RAG knowledge-source fetches in-flight.
     # nil = unlimited (default).
     # @return [Integer, nil]
@@ -191,6 +197,7 @@ module Phronomy
       @max_concurrent_tool_tasks = nil
       @max_concurrent_workflow_tasks = nil
       @max_concurrent_llm_calls = nil
+      @stream_queue_max_size = nil
       @max_concurrent_rag_fetches = nil
       @max_concurrent_vector_searches = nil
       @starvation_threshold_ms = 50

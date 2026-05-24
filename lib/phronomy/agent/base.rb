@@ -765,8 +765,10 @@ module Phronomy
           # Chunks are pushed into a token queue by the pool worker thread and
           # drained here (on the caller's side) so that the user block is never
           # executed on a BlockingAdapterPool worker thread.
+          # The queue capacity is bounded by Configuration#stream_queue_max_size
+          # (nil = unbounded) to provide backpressure against a fast LLM producer.
           adapter = Phronomy.configuration.llm_adapter
-          chunk_queue = Phronomy::AsyncQueue.new
+          chunk_queue = Phronomy::AsyncQueue.new(max_size: Phronomy.configuration.stream_queue_max_size)
           pending = adapter.stream_async(chat, user_message, config: config, enqueue_to: chunk_queue)
 
           # Drain the chunk queue on this side (scheduler task / caller thread).
