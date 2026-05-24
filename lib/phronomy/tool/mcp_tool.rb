@@ -117,11 +117,15 @@ module Phronomy
         #   {HttpTransport}. Defaults to 30 seconds.
         # @param env             [Hash, nil] environment variable overrides for the subprocess.
         #   When provided, only these variables are added/overridden; the parent environment
-        #   is still inherited unless explicitly cleared via an empty string value.
+        #   is still inherited. Use a +nil+ value to unset a variable in the child process
+        #   (e.g. +env: { "SECRET" => nil }+). An empty string sets the variable to +""+ —
+        #   it does NOT unset it.
         # @param cwd             [String, nil] working directory for the subprocess.
         #   Defaults to the current process's working directory.
-        # @param startup_timeout [Numeric, nil] seconds to wait for the server to
-        #   emit its first line on stdout before raising {Phronomy::ToolError}.
+        # @param startup_timeout [Numeric, nil] seconds to wait for the server's stdout
+        #   to become readable before raising {Phronomy::ToolError}. Detects immediate
+        #   startup failures — if the child process crashes, its stdout pipe closes and
+        #   +IO.select+ returns immediately. Does not consume any data from stdout.
         #   When nil (default), no startup check is performed.
         # @api public
         def initialize(command, read_timeout: 30, env: nil, cwd: nil, startup_timeout: nil)
@@ -220,11 +224,9 @@ module Phronomy
               raise Phronomy::ToolError,
                 "MCP stdio server did not start within #{@startup_timeout} seconds"
             end
-            line = @stdout.gets
-            @stdout.ungetbyte(line) if line
+            # stdout is readable (server started or pipe closed by crash).
+            # Do NOT consume data here; rpc_call will read the actual response.
           end
-        rescue Phronomy::ToolError
-          raise
         end
 
         def rpc_call(method, params)
