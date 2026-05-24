@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Task-centric observability metrics (Issue #276).
+# Task-centric observability metrics (Issue #276, extended in #307).
 RSpec.describe Phronomy::Metrics do
   describe ".snapshot" do
     subject(:snap) { described_class.snapshot }
@@ -22,6 +22,24 @@ RSpec.describe Phronomy::Metrics do
       expect(snap.keys).to include(*expected_keys)
     end
 
+    it "includes task-centric metric keys" do
+      task_keys = %i[
+        active_agent_tasks
+        active_tool_tasks
+        active_workflow_tasks
+        active_rag_tasks
+        active_llm_tasks
+        task_wait_time_p50_ms
+        task_wait_time_p95_ms
+        task_run_time_p50_ms
+        task_run_time_p95_ms
+        cancelled_tasks
+        failed_tasks
+        non_yield_duration_max_ms
+      ]
+      expect(snap.keys).to include(*task_keys)
+    end
+
     it "reports non-negative numeric values for all metrics" do
       snap.each_value do |v|
         expect(v).to be_a(Numeric)
@@ -40,6 +58,37 @@ RSpec.describe Phronomy::Metrics do
 
     it "does not raise when called multiple times" do
       3.times { expect { described_class.snapshot }.not_to raise_error }
+    end
+
+    it "active_agent_tasks reflects running agent-prefixed tasks" do
+      runtime = Phronomy::Runtime.new
+      barrier = Mutex.new
+      cond = ConditionVariable.new
+      running = false
+
+      t = runtime.spawn(name: "agent-test-307") do
+        barrier.synchronize {
+          running = true
+          cond.broadcast
+        }
+        sleep 0.2
+      end
+
+      barrier.synchronize { cond.wait(barrier, 1) until running }
+      snap = runtime.task_snapshot
+      expect(snap[:active_agent_tasks]).to be >= 1
+      t.join
+    end
+
+    it "task_wait_time_p95_ms is populated after a burst of tasks" do
+      runtime = Phronomy::Runtime.new
+      tasks = 10.times.map do |i|
+        runtime.spawn(name: "agent-burst-#{i}") { :done }
+      end
+      tasks.each(&:join)
+      snap = runtime.task_snapshot
+      expect(snap[:task_wait_time_p95_ms]).to be >= 0
+      expect(snap[:task_run_time_p95_ms]).to be >= 0
     end
   end
 end

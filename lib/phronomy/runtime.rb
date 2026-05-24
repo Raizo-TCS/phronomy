@@ -55,6 +55,14 @@ module Phronomy
       @gate_mutex = Mutex.new
       @starvation_mutex = Mutex.new
       @tasks_waiting_over_threshold = 0
+      # Task-centric metrics (Issue #307)
+      @metrics_mutex = Mutex.new
+      @active_tasks_by_type = Hash.new(0)   # type => count
+      @wait_times_ms = []                    # ring buffer of wait_ms floats
+      @run_times_ms = []                     # ring buffer of run_ms floats
+      @cancelled_by_type = Hash.new(0)
+      @failed_by_type = Hash.new(0)
+      @metrics_window = 1000                 # keep last N samples
     end
 
     # Returns (or lazily creates) the {ConcurrencyGate} for the named resource.
@@ -160,19 +168,82 @@ module Phronomy
     # from the registry when it finishes (success, failure, or cancellation)
     # so long-lived runtimes do not accumulate stale references.
     #
+    # Task names beginning with a recognised type prefix are counted in the
+    # task-centric metrics returned by {#task_snapshot}.  Recognised prefixes:
+    # +agent-+, +tool-+, +workflow-+, +rag-+, +llm-+, +vector-+.
+    #
     # @param name [String, nil] optional label for debugging
     # @yield block to execute (concurrently or synchronously, depending on
     #   the configured scheduler)
     # @return [Task]
     def spawn(name: nil, &block)
+      type = _task_type(name)
+      spawn_at = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
+      _record_task_start(type)
+
       task = @scheduler.spawn(name: name, parent: Task.current) do
-        block.call
-      ensure
-        current = Task.current
-        @task_mutex.synchronize { @tasks.delete(current) } if current
+        run_start = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
+        _record_wait_time(run_start - spawn_at)
+        begin
+          result = block.call
+          _record_task_end(type, :completed, run_start)
+          result
+        rescue CancellationError
+          _record_task_end(type, :cancelled, run_start)
+          raise
+        rescue => e
+          _record_task_end(type, :failed, run_start)
+          raise e
+        ensure
+          current = Task.current
+          @task_mutex.synchronize { @tasks.delete(current) } if current
+        end
       end
       @task_mutex.synchronize { @tasks << task }
       task
+    end
+
+    # Returns a snapshot of task-centric metrics for the current Runtime.
+    #
+    # | Key | Description |
+    # |-----|-------------|
+    # | `active_agent_tasks`      | currently running agent spawns |
+    # | `active_tool_tasks`       | currently running tool spawns |
+    # | `active_workflow_tasks`   | currently running workflow spawns |
+    # | `active_rag_tasks`        | currently running RAG fetches |
+    # | `active_llm_tasks`        | currently running LLM calls |
+    # | `task_wait_time_p50_ms`   | p50 spawn-to-start latency (ms) |
+    # | `task_wait_time_p95_ms`   | p95 spawn-to-start latency (ms) |
+    # | `task_run_time_p50_ms`    | p50 execution duration (ms) |
+    # | `task_run_time_p95_ms`    | p95 execution duration (ms) |
+    # | `cancelled_tasks`         | total cancelled task count |
+    # | `failed_tasks`            | total failed task count |
+    # | `non_yield_duration_max_ms` | max observed CPU-slice duration (ms) |
+    #
+    # @return [Hash{Symbol => Numeric}]
+    def task_snapshot
+      @metrics_mutex.synchronize do
+        active = @active_tasks_by_type.dup
+        wait = @wait_times_ms.dup
+        run = @run_times_ms.dup
+        cancelled = @cancelled_by_type.values.sum
+        failed = @failed_by_type.values.sum
+        starvation_max = @tasks_waiting_over_threshold
+        {
+          active_agent_tasks: active[:agent].to_i,
+          active_tool_tasks: active[:tool].to_i,
+          active_workflow_tasks: active[:workflow].to_i,
+          active_rag_tasks: active[:rag].to_i,
+          active_llm_tasks: active[:llm].to_i,
+          task_wait_time_p50_ms: _percentile(wait, 50),
+          task_wait_time_p95_ms: _percentile(wait, 95),
+          task_run_time_p50_ms: _percentile(run, 50),
+          task_run_time_p95_ms: _percentile(run, 95),
+          cancelled_tasks: cancelled,
+          failed_tasks: failed,
+          non_yield_duration_max_ms: starvation_max
+        }
+      end
     end
 
     # Returns the shared {BlockingAdapterPool} for this Runtime.
@@ -266,10 +337,52 @@ module Phronomy
     }.freeze
     private_constant :GATE_CONFIG_MAP
 
+    TASK_TYPE_PREFIXES = %w[agent tool workflow rag llm vector].freeze
+    private_constant :TASK_TYPE_PREFIXES
+
     def _build_gate(name)
       config_key = GATE_CONFIG_MAP[name]
       max = config_key ? Phronomy.configuration.public_send(config_key) : nil
       ConcurrencyGate.new(max_concurrent: max, name: name)
+    end
+
+    def _task_type(name)
+      return :other if name.nil?
+
+      prefix = TASK_TYPE_PREFIXES.find { |p| name.to_s.start_with?("#{p}-") }
+      prefix ? prefix.to_sym : :other
+    end
+
+    def _record_task_start(type)
+      @metrics_mutex.synchronize { @active_tasks_by_type[type] += 1 }
+    end
+
+    def _record_wait_time(wait_ms)
+      @metrics_mutex.synchronize do
+        @wait_times_ms << wait_ms
+        @wait_times_ms.shift if @wait_times_ms.size > @metrics_window
+      end
+    end
+
+    def _record_task_end(type, outcome, run_start_ms)
+      run_ms = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond) - run_start_ms
+      @metrics_mutex.synchronize do
+        @active_tasks_by_type[type] = [@active_tasks_by_type[type] - 1, 0].max
+        @run_times_ms << run_ms
+        @run_times_ms.shift if @run_times_ms.size > @metrics_window
+        case outcome
+        when :cancelled then @cancelled_by_type[type] += 1
+        when :failed then @failed_by_type[type] += 1
+        end
+      end
+    end
+
+    def _percentile(samples, pct)
+      return 0.0 if samples.empty?
+
+      sorted = samples.sort
+      idx = ((pct / 100.0) * (sorted.size - 1)).round
+      sorted[idx].round(3)
     end
   end
 end
