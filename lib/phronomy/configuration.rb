@@ -61,6 +61,13 @@ module Phronomy
     #   Phronomy.configure { |c| c.state_store = Phronomy::StateStore::InMemory.new }
     attr_accessor :state_store
 
+    # Maximum byte length of a tool result returned to the LLM.
+    # When a tool returns a String longer than this limit, the string is truncated
+    # and a warning is logged.  Set to +nil+ (default) to disable truncation.
+    # @example
+    #   Phronomy.configure { |c| c.tool_result_max_size = 8192 }
+    attr_accessor :tool_result_max_size
+
     def initialize
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new

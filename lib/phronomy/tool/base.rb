@@ -171,6 +171,33 @@ module Phronomy
           @requires_approval = value
         end
 
+        # Marks one or more parameter names as sensitive so their values are
+        # replaced with +"[REDACTED]"+ in log and trace output.
+        #
+        # @param names [Array<Symbol>] parameter names to redact
+        # @return [Array<Symbol>] the full list of redacted param names
+        # @api public
+        def redact_params(*names)
+          if names.empty?
+            parent = superclass.respond_to?(:redact_params) ? superclass.redact_params : []
+            ((@redacted_params || []) + parent).uniq
+          else
+            @redacted_params = ((@redacted_params || []) + names.map(&:to_sym)).uniq
+          end
+        end
+
+        # Sets a per-tool maximum result size (in characters).
+        # Overrides the global +Phronomy.configuration.tool_result_max_size+ when set.
+        # Set to +nil+ to inherit the global limit.
+        #
+        # @param value [Integer, nil]
+        # @api public
+        def max_result_size(value = :__unset__)
+          return @max_result_size if value == :__unset__
+
+          @max_result_size = value
+        end
+
         # Registers a retry policy for one or more exception classes.
         #
         # When the tool raises one of the listed exception classes, it will be
@@ -287,7 +314,8 @@ module Phronomy
           end
         end
         validated_args = validated_args.merge(cancellation_token: ct) if ct && execute_accepts_cancellation_token?
-        with_tool_retry { super(validated_args) }
+        result = with_tool_retry { super(validated_args) }
+        truncate_result_if_needed(result)
       rescue Phronomy::ToolError
         raise
       rescue Phronomy::CancellationError
@@ -357,6 +385,36 @@ module Phronomy
       def execute_accepts_cancellation_token?
         method(:execute).parameters.any? do |type, name|
           name == :cancellation_token && %i[key keyreq].include?(type)
+        end
+      end
+
+      # Truncates the result string when it exceeds the configured maximum size.
+      # Uses the per-tool limit first, then the global configuration limit.
+      # Returns the original result when no limit is configured.
+      def truncate_result_if_needed(result)
+        max = self.class.max_result_size || Phronomy.configuration.tool_result_max_size
+        return result unless max && result.respond_to?(:length) && result.length > max
+
+        msg = "[Phronomy] Tool #{self.class.name} result truncated " \
+              "(#{result.length} chars > #{max} limit)"
+        if Phronomy.configuration.logger
+          Phronomy.configuration.logger.warn(msg)
+        else
+          warn msg
+        end
+        "#{result[0, max]}...[truncated]"
+      end
+
+      # Returns a copy of +args+ with redacted parameter values replaced by
+      # +"[REDACTED]"+.  Used for logging and tracing.
+      # @param args [Hash]
+      # @return [Hash]
+      def redacted_args(args)
+        redacted = self.class.redact_params
+        return args if redacted.empty?
+
+        args.each_with_object({}) do |(k, v), h|
+          h[k] = redacted.include?(k.to_sym) ? "[REDACTED]" : v
         end
       end
 
