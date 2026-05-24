@@ -113,6 +113,37 @@ module Phronomy
     # @return [Float, nil]
     attr_accessor :blocking_detect_threshold_ms
 
+    # Maximum number of concurrent agent tasks (invoke_async calls in-flight).
+    # nil = unlimited (default).  When at capacity, behaviour is controlled by
+    # +backpressure+ (:wait, :raise/:reject, :timeout).
+    # @return [Integer, nil]
+    attr_accessor :max_concurrent_agent_tasks
+
+    # Maximum number of concurrent tool tasks (parallel tool calls in-flight).
+    # nil = unlimited (default).
+    # @return [Integer, nil]
+    attr_accessor :max_concurrent_tool_tasks
+
+    # Maximum number of concurrent workflow tasks.
+    # nil = unlimited (default).
+    # @return [Integer, nil]
+    attr_accessor :max_concurrent_workflow_tasks
+
+    # Maximum number of concurrent LLM calls in-flight.
+    # nil = unlimited (default).
+    # @return [Integer, nil]
+    attr_accessor :max_concurrent_llm_calls
+
+    # Maximum number of concurrent RAG knowledge-source fetches in-flight.
+    # nil = unlimited (default).
+    # @return [Integer, nil]
+    attr_accessor :max_concurrent_rag_fetches
+
+    # Maximum number of concurrent vector-store searches in-flight.
+    # nil = unlimited (default).
+    # @return [Integer, nil]
+    attr_accessor :max_concurrent_vector_searches
+
     def initialize
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new
@@ -126,6 +157,12 @@ module Phronomy
       @event_loop_dispatch_threshold_seconds = nil
       @scheduler_debug = false
       @blocking_detect_threshold_ms = nil
+      @max_concurrent_agent_tasks = nil
+      @max_concurrent_tool_tasks = nil
+      @max_concurrent_workflow_tasks = nil
+      @max_concurrent_llm_calls = nil
+      @max_concurrent_rag_fetches = nil
+      @max_concurrent_vector_searches = nil
     end
   end
 end

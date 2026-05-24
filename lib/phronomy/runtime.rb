@@ -51,6 +51,31 @@ module Phronomy
       @timer_mutex = Mutex.new
       @pools = {}
       @pool_mutex = Mutex.new
+      @gates = {}
+      @gate_mutex = Mutex.new
+    end
+
+    # Returns (or lazily creates) the {ConcurrencyGate} for the named resource.
+    #
+    # Gate caps are read from the global {Phronomy::Configuration} when the gate
+    # is first accessed; subsequent calls return the cached gate.  To change the
+    # cap at runtime, call {#reset_gate} first.
+    #
+    # @param name [:agent, :tool, :workflow, :llm, :rag, :vector] resource name
+    # @return [ConcurrencyGate]
+    def gate(name)
+      @gate_mutex.synchronize do
+        @gates[name.to_sym] ||= _build_gate(name.to_sym)
+      end
+    end
+
+    # Drops the cached gate for +name+ so that the next call to {#gate} rebuilds
+    # it from the current configuration.  Useful in tests.
+    #
+    # @param name [Symbol]
+    # @return [void]
+    def reset_gate(name)
+      @gate_mutex.synchronize { @gates.delete(name.to_sym) }
     end
 
     # Creates a new {TaskGroup} with an optional concurrency cap.
@@ -161,6 +186,24 @@ module Phronomy
       pools = @pool_mutex.synchronize { @pools.values.dup }
       pools.each(&:shutdown)
       @timer_mutex.synchronize { @timer_queue&.shutdown }
+    end
+
+    private
+
+    GATE_CONFIG_MAP = {
+      agent: :max_concurrent_agent_tasks,
+      tool: :max_concurrent_tool_tasks,
+      workflow: :max_concurrent_workflow_tasks,
+      llm: :max_concurrent_llm_calls,
+      rag: :max_concurrent_rag_fetches,
+      vector: :max_concurrent_vector_searches
+    }.freeze
+    private_constant :GATE_CONFIG_MAP
+
+    def _build_gate(name)
+      config_key = GATE_CONFIG_MAP[name]
+      max = config_key ? Phronomy.configuration.public_send(config_key) : nil
+      ConcurrencyGate.new(max_concurrent: max, name: name)
     end
   end
 end

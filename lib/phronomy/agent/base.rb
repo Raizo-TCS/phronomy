@@ -596,8 +596,14 @@ module Phronomy
         if invocation_context
           thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
         end
+        bp = Phronomy.configuration.backpressure
+        on_full = (bp == :raise) ? :reject : (bp || :wait)
+        bp_timeout = Phronomy.configuration.backpressure_timeout
+        gate = Phronomy::Runtime.instance.gate(:agent)
         Phronomy::Runtime.instance.spawn(name: "agent-#{(self.class.name || "anonymous").downcase}-async") do
-          _invoke_impl(input, messages: messages, thread_id: thread_id, config: config)
+          gate.acquire(on_full: on_full, timeout: bp_timeout) do
+            _invoke_impl(input, messages: messages, thread_id: thread_id, config: config)
+          end
         end
       end
 
