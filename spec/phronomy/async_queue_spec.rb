@@ -13,7 +13,7 @@ RSpec.describe Phronomy::AsyncQueue do
     end
 
     it "blocks pop until an item is available" do
-      q     = described_class.new
+      q = described_class.new
       result = nil
       thread = Thread.new { result = q.pop }
       sleep 0.02
@@ -38,10 +38,10 @@ RSpec.describe Phronomy::AsyncQueue do
 
   describe "max_size" do
     it "blocks push when the queue is full" do
-      q       = described_class.new(max_size: 1)
+      q = described_class.new(max_size: 1)
       q.push(:first)
       blocked = false
-      t       = Thread.new do
+      t = Thread.new do
         blocked = true
         q.push(:second)
       end
@@ -76,7 +76,10 @@ RSpec.describe Phronomy::AsyncQueue do
 
     it "returns the item when it is pushed before the timeout" do
       q = described_class.new
-      Thread.new { sleep 0.02; q.push(:late) }
+      Thread.new {
+        sleep 0.02
+        q.push(:late)
+      }
       result = q.pop(timeout: 1.0)
       expect(result).to eq(:late)
     end

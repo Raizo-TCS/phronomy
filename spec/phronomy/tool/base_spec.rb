@@ -702,7 +702,7 @@ RSpec.describe Phronomy::Tool::Base do
     end
 
     it "cancellation_token: kwarg causes CancellationError at call entry when cancelled (#242)" do
-      active_token = Phronomy::CancellationToken.new
+      Phronomy::CancellationToken.new
       cancelled_kwarg_token = Phronomy::CancellationToken.new
       cancelled_kwarg_token.cancel!
 
@@ -756,7 +756,7 @@ RSpec.describe Phronomy::Tool::Base do
     end
 
     it "blocking_io tool with pool: call_async routes through BlockingAdapterPool" do
-      pool   = Phronomy::Runtime.instance.blocking_io
+      pool = Phronomy::Runtime.instance.blocking_io
       called = false
       allow(pool).to receive(:submit).and_wrap_original do |m, **kw, &blk|
         called = true

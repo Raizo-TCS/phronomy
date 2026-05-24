@@ -223,8 +223,6 @@ module Phronomy
             line = @stdout.gets
             @stdout.ungetbyte(line) if line
           end
-        rescue Phronomy::ToolError
-          raise
         end
 
         def rpc_call(method, params)

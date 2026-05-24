@@ -330,6 +330,7 @@ RSpec.describe "WorkflowContext single-owner enforcement (Issue #298)", :issue_2
   let(:context_class) do
     Class.new do
       include Phronomy::WorkflowContext
+
       field :answer, type: :replace, default: nil
     end
   end
@@ -370,7 +371,6 @@ RSpec.describe "WorkflowContext single-owner enforcement (Issue #298)", :issue_2
 
     it "allows mutation from the EventLoop dispatch thread" do
       ctx = context_class.new
-      result_value = nil
 
       # Post a custom FSM that runs a lambda on the EventLoop thread and
       # writes directly to the context via the setter.

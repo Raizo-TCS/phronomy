@@ -23,7 +23,7 @@ RSpec.describe "Trace context task tree (Issue #277)" do
 
     it "propagates task_id and parent_task_id through #merge" do
       parent = Phronomy::InvocationContext.new(task_id: "root")
-      child  = parent.merge(task_id: "child-1", parent_task_id: "root")
+      child = parent.merge(task_id: "child-1", parent_task_id: "root")
 
       expect(child.task_id).to eq("child-1")
       expect(child.parent_task_id).to eq("root")
@@ -32,14 +32,14 @@ RSpec.describe "Trace context task tree (Issue #277)" do
     end
 
     it "preserves existing task_id when merge does not override it" do
-      ctx    = Phronomy::InvocationContext.new(task_id: "task-xyz")
+      ctx = Phronomy::InvocationContext.new(task_id: "task-xyz")
       merged = ctx.merge(thread_id: "t-1")
 
       expect(merged.task_id).to eq("task-xyz")
     end
 
     it "allows overriding parent_task_id independently" do
-      ctx    = Phronomy::InvocationContext.new(task_id: "t1", parent_task_id: "p0")
+      ctx = Phronomy::InvocationContext.new(task_id: "t1", parent_task_id: "p0")
       merged = ctx.merge(parent_task_id: "p1")
 
       expect(merged.task_id).to eq("t1")
@@ -47,7 +47,7 @@ RSpec.describe "Trace context task tree (Issue #277)" do
     end
 
     it "supports building a parent → child chain with distinct task_ids" do
-      root  = Phronomy::InvocationContext.new(task_id: "root")
+      root = Phronomy::InvocationContext.new(task_id: "root")
       child = root.merge(task_id: "child", parent_task_id: root.task_id)
 
       expect(child.parent_task_id).to eq(root.task_id)

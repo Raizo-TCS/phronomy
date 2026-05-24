@@ -166,5 +166,4 @@ RSpec.describe Phronomy::VectorStore::Pgvector do
       expect(store.size).to eq(3)
     end
   end
-
 end

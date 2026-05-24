@@ -24,7 +24,10 @@ RSpec.describe "Backpressure limits (Issue #268)" do
           pool.submit(on_full: :raise) { :overflow }
         }.to raise_error(Phronomy::BackpressureError)
       ensure
-        latch.synchronize { released = true; cond.broadcast }
+        latch.synchronize {
+          released = true
+          cond.broadcast
+        }
         pool.shutdown(drain_timeout: 2)
       end
     end
@@ -44,7 +47,10 @@ RSpec.describe "Backpressure limits (Issue #268)" do
           pool.submit(on_full: :timeout, full_timeout: 0.05) { :overflow }
         }.to raise_error(Phronomy::TimeoutError)
       ensure
-        latch.synchronize { released = true; cond.broadcast }
+        latch.synchronize {
+          released = true
+          cond.broadcast
+        }
         pool.shutdown(drain_timeout: 2)
       end
     end
@@ -56,11 +62,17 @@ RSpec.describe "Backpressure limits (Issue #268)" do
         cond = ConditionVariable.new
         released = false
 
-        op1 = pool.submit { barrier.synchronize { cond.wait(barrier, 2) until released }; :first }
+        op1 = pool.submit {
+          barrier.synchronize { cond.wait(barrier, 2) until released }
+          :first
+        }
         # Fill queue with on_full: :raise to skip; then release for the wait test
         Thread.new do
           sleep(0.02)
-          barrier.synchronize { released = true; cond.broadcast }
+          barrier.synchronize {
+            released = true
+            cond.broadcast
+          }
         end
 
         op2 = pool.submit(on_full: :wait) { :second }

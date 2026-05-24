@@ -86,13 +86,20 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
       sat_pool.submit { latch.synchronize { cond.wait(latch, 5) until released } }
       sleep(0.02)
       # Fill the queue
-      sat_pool.submit(on_full: :raise) { :fill } rescue nil
+      begin
+        sat_pool.submit(on_full: :raise) { :fill }
+      rescue
+        nil
+      end
 
       expect {
         sat_pool.submit(on_full: :raise) { :overflow }
       }.to raise_error(Phronomy::BackpressureError)
     ensure
-      latch.synchronize { released = true; cond.broadcast }
+      latch.synchronize {
+        released = true
+        cond.broadcast
+      }
       sat_pool.shutdown(drain_timeout: 2)
     end
   end

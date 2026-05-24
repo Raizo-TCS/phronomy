@@ -95,7 +95,7 @@ RSpec.describe Phronomy::Tool::ScopePolicy do
 
     it "routes :write scoped tool through approval gate (approve decision)" do
       agent = agent_class.new
-      agent.scope_policy = ->(_tc, scope, _a) { scope == :write ? :approve : :allow }
+      agent.scope_policy = ->(_tc, scope, _a) { (scope == :write) ? :approve : :allow }
       approved = false
       agent.on_approval_required { |_name, _args| approved = true }
 
@@ -108,7 +108,7 @@ RSpec.describe Phronomy::Tool::ScopePolicy do
 
     it "denies :write scoped tool when approve decision but no handler registered" do
       agent = agent_class.new
-      agent.scope_policy = ->(_tc, scope, _a) { scope == :write ? :approve : :allow }
+      agent.scope_policy = ->(_tc, scope, _a) { (scope == :write) ? :approve : :allow }
       # No approval handler registered
 
       wrapped = agent.send(:prepare_tool_class, write_tool_class)

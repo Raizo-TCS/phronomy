@@ -29,7 +29,12 @@ RSpec.describe "Stress and resource leak tests (Issue #275)" do
       baseline = Thread.list.count
 
       threads = 20.times.map do
-        Thread.new { pool.submit { sleep(0.01); :done }.await }
+        Thread.new {
+          pool.submit {
+            sleep(0.01)
+            :done
+          }.await
+        }
       end
       threads.each(&:join)
 
@@ -71,13 +76,22 @@ RSpec.describe "Stress and resource leak tests (Issue #275)" do
 
       sat_pool.submit { latch.synchronize { cond.wait(latch, 5) until released } }
       sleep(0.02)
-      2.times { sat_pool.submit(on_full: :raise) { :fill } rescue nil }
+      2.times {
+        begin
+          sat_pool.submit(on_full: :raise) { :fill }
+        rescue
+          nil
+        end
+      }
 
       expect {
         sat_pool.submit(on_full: :raise) { :overflow }
       }.to raise_error(Phronomy::BackpressureError)
     ensure
-      latch.synchronize { released = true; cond.broadcast }
+      latch.synchronize {
+        released = true
+        cond.broadcast
+      }
       sat_pool.shutdown(drain_timeout: 2)
     end
   end
@@ -89,7 +103,10 @@ RSpec.describe "Stress and resource leak tests (Issue #275)" do
       mutex = Mutex.new
 
       5.times do |i|
-        small_pool.submit { sleep(0.01); mutex.synchronize { results << i } }
+        small_pool.submit {
+          sleep(0.01)
+          mutex.synchronize { results << i }
+        }
       end
 
       small_pool.shutdown(drain_timeout: 5)

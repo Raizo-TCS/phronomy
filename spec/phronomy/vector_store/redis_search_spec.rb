@@ -203,5 +203,4 @@ RSpec.describe Phronomy::VectorStore::RedisSearch do
       expect(store.size).to eq(0)
     end
   end
-
 end

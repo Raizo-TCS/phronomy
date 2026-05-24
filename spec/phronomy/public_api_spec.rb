@@ -100,7 +100,8 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
     it "defaults to :blocking_io when not declared" do
       klass = Class.new(Phronomy::Tool::Base) do
         description "no-op"
-        def execute; end
+        def execute
+        end
       end
       expect(klass.execution_mode).to eq(:blocking_io)
     end
@@ -109,7 +110,8 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
       klass = Class.new(Phronomy::Tool::Base) do
         description "no-op"
         execution_mode :cooperative
-        def execute; end
+        def execute
+        end
       end
       expect(klass.execution_mode).to eq(:cooperative)
     end
@@ -119,7 +121,8 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
         Class.new(Phronomy::Tool::Base) do
           description "no-op"
           execution_mode :unknown_mode
-          def execute; end
+          def execute
+          end
         end
       }.to raise_error(ArgumentError, /execution_mode/)
     end

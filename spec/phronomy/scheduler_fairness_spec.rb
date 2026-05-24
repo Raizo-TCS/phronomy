@@ -11,9 +11,10 @@ RSpec.describe "Cooperative scheduler fairness (Issue #269)" do
 
   describe "EventLoop lag metrics" do
     it "records last_lag_seconds after dispatching an event" do
-      latch = Thread::Queue.new
+      Thread::Queue.new
       wf = Class.new do
         include Phronomy::WorkflowContext
+
         field :done, default: -> { false }
       end
       app = Phronomy::Workflow.define(wf) do
@@ -76,6 +77,7 @@ RSpec.describe "Cooperative scheduler fairness (Issue #269)" do
       # Trigger at least one event dispatch through the singleton
       wf = Class.new do
         include Phronomy::WorkflowContext
+
         field :done, default: -> { false }
       end
       app = Phronomy::Workflow.define(wf) do

@@ -284,7 +284,9 @@ RSpec.describe Phronomy::Agent::ParallelToolChat do
         tool_name "io_dispatch_tool"
         description "IO tool for dispatch test"
         param :v, type: :string, desc: "v"
-        def execute(v:); "io:#{v}"; end
+        def execute(v:)
+          "io:#{v}"
+        end
       end
     end
 
@@ -294,7 +296,9 @@ RSpec.describe Phronomy::Agent::ParallelToolChat do
         execution_mode :cooperative
         description "Cooperative tool for dispatch test"
         param :v, type: :string, desc: "v"
-        def execute(v:); "coop:#{v}"; end
+        def execute(v:)
+          "coop:#{v}"
+        end
       end
     end
 
