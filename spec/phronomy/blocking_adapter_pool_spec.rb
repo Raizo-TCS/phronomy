@@ -230,6 +230,46 @@ RSpec.describe Phronomy::BlockingAdapterPool do
     it "returns self" do
       expect(pool.shutdown).to be(pool)
     end
+
+    it "does not deadlock when the queue is full at shutdown time (Issue #316)" do
+      # pool_size: 2, queue_size: 2 — ensures queue fills before shutdown
+      tiny_pool = described_class.new(pool_size: 2, queue_size: 2)
+      worker_started = Queue.new
+      worker_gate = Queue.new
+
+      # Pin both workers — they signal when started, then wait for release
+      2.times do
+        tiny_pool.submit do
+          worker_started.push(:started)
+          worker_gate.pop   # wait for release
+        end
+      end
+      2.times { worker_started.pop }  # ensure both workers are busy
+
+      # Fill the queue to capacity (2 more items)
+      begin
+        tiny_pool.submit(on_full: :raise) { 1 }
+        tiny_pool.submit(on_full: :raise) { 1 }
+      rescue Phronomy::BackpressureError
+        # already full — that's fine
+      end
+
+      # shutdown is called while workers are pinned and queue is full
+      # With the old code this blocks indefinitely; with the fix it returns quickly
+      done = false
+      shutdown_thread = Thread.new do
+        tiny_pool.shutdown(drain_timeout: 5)
+        done = true
+      end
+
+      # Give shutdown a moment to start, then release workers
+      sleep 0.05
+      worker_gate.push(:go)
+      worker_gate.push(:go)
+
+      shutdown_thread.join(8)
+      expect(done).to be(true), "shutdown deadlocked with a full queue"
+    end
   end
 
   describe "#done?" do

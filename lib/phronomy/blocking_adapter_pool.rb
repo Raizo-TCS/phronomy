@@ -225,26 +225,31 @@ module Phronomy
 
       op = PendingOperation.new(block, timeout: timeout, cancellation_token: cancellation_token,
         on_abandoned: timeout ? -> { @mutex.synchronize { @abandoned_count += 1 } } : nil)
-      case on_full
-      when :raise
-        begin
-          @queue.push(op, true)
-        rescue ThreadError
-          raise Phronomy::BackpressureError, "BlockingAdapterPool queue is full (depth: #{@queue_size})"
-        end
-      when :timeout
-        deadline = full_timeout ? (Process.clock_gettime(Process::CLOCK_MONOTONIC) + full_timeout) : nil
-        loop do
-          @queue.push(op, true)
-          break
-        rescue ThreadError
-          if deadline && Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
-            raise Phronomy::TimeoutError, "timed out waiting for a free slot in BlockingAdapterPool"
+      begin
+        case on_full
+        when :raise
+          begin
+            @queue.push(op, true)
+          rescue ThreadError
+            raise Phronomy::BackpressureError, "BlockingAdapterPool queue is full (depth: #{@queue_size})"
           end
-          sleep(0.005)
+        when :timeout
+          deadline = full_timeout ? (Process.clock_gettime(Process::CLOCK_MONOTONIC) + full_timeout) : nil
+          loop do
+            @queue.push(op, true)
+            break
+          rescue ThreadError
+            if deadline && Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+              raise Phronomy::TimeoutError, "timed out waiting for a free slot in BlockingAdapterPool"
+            end
+            sleep(0.005)
+          end
+        else # :wait (default)
+          @queue.push(op)
         end
-      else # :wait (default)
-        @queue.push(op)
+      rescue ClosedQueueError
+        # Shutdown raced with this submit — treat as if @shutdown was already set.
+        raise Phronomy::PoolShutdownError, "pool has been shut down"
       end
       op
     end
@@ -252,12 +257,15 @@ module Phronomy
     # Gracefully drains the pool and terminates all worker threads.
     # Waits up to +drain_timeout+ seconds for in-flight operations to finish.
     #
+    # Closing the underlying SizedQueue signals workers to exit after draining
+    # remaining items, without blocking on a full-queue push.
+    #
     # @param drain_timeout [Numeric] seconds to wait for workers to finish
     # @return [self]
     # @api private
     def shutdown(drain_timeout: 30)
       @shutdown = true
-      @pool_size.times { @queue.push(:shutdown) }
+      @queue.close
       @workers.each { |t| t.join(drain_timeout) }
       self
     end
@@ -313,8 +321,13 @@ module Phronomy
       Thread.new do
         Thread.current.name = label
         loop do
-          op = @queue.pop
-          break if op == SENTINEL
+          op = begin
+            @queue.pop
+          rescue ClosedQueueError
+            break
+          end
+          # nil is returned by a closed, empty Queue on some Ruby versions
+          break if op.nil? || op == SENTINEL
 
           run_operation(op)
         end
