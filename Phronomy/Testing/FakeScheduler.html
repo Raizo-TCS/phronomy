@@ -190,7 +190,7 @@ queue depth and verify event ordering without wall-clock sleeps.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns true when the queue is empty.</p></div></span>
@@ -236,7 +236,7 @@ queue depth and verify event ordering without wall-clock sleeps.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Register a handler block for events of the given class.</p></div></span>
@@ -258,7 +258,7 @@ queue depth and verify event ordering without wall-clock sleeps.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Enqueue an event for later dispatch.</p></div></span>
@@ -280,7 +280,7 @@ queue depth and verify event ordering without wall-clock sleeps.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns the number of events waiting to be dispatched.</p></div></span>
@@ -302,7 +302,7 @@ queue depth and verify event ordering without wall-clock sleeps.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Dispatch the next queued event.</p></div></span>
@@ -324,7 +324,7 @@ queue depth and verify event ordering without wall-clock sleeps.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Dispatch events until the queue is empty.</p></div></span>
@@ -462,7 +462,11 @@ queue depth and verify event ordering without wall-clock sleeps.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns true when the queue is empty.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns true when the queue is empty.</p>
 
   </div>
 </div>
@@ -488,12 +492,12 @@ queue depth and verify event ordering without wall-clock sleeps.</p>
       <pre class="lines">
 
 
-89
-90
-91</pre>
+99
+100
+101</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/fake_scheduler.rb', line 89</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/fake_scheduler.rb', line 99</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_idle?'>idle?</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
@@ -514,7 +518,11 @@ queue depth and verify event ordering without wall-clock sleeps.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Register a handler block for events of the given class.
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Register a handler block for events of the given class.
 Use <code>:any</code> to handle all event types.</p>
 
   </div>
@@ -569,13 +577,13 @@ Use <code>:any</code> to handle all event types.</p>
       <pre class="lines">
 
 
-82
-83
-84
-85</pre>
+91
+92
+93
+94</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/fake_scheduler.rb', line 82</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/fake_scheduler.rb', line 91</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on'>on</span><span class='lparen'>(</span><span class='id identifier rubyid_klass'>klass</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@handlers</span><span class='lbracket'>[</span><span class='id identifier rubyid_klass'>klass</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -597,7 +605,11 @@ Use <code>:any</code> to handle all event types.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Enqueue an event for later dispatch.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Enqueue an event for later dispatch.</p>
 
   </div>
 </div>
@@ -638,13 +650,13 @@ Use <code>:any</code> to handle all event types.</p>
       <pre class="lines">
 
 
-34
 35
 36
-37</pre>
+37
+38</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/fake_scheduler.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/fake_scheduler.rb', line 35</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_post'>post</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
@@ -666,7 +678,11 @@ Use <code>:any</code> to handle all event types.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the number of events waiting to be dispatched.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns the number of events waiting to be dispatched.</p>
 
   </div>
 </div>
@@ -692,12 +708,12 @@ Use <code>:any</code> to handle all event types.</p>
       <pre class="lines">
 
 
-72
-73
-74</pre>
+80
+81
+82</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/fake_scheduler.rb', line 72</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/fake_scheduler.rb', line 80</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_queue_depth'>queue_depth</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
@@ -718,7 +734,11 @@ Use <code>:any</code> to handle all event types.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Dispatch the next queued event.
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Dispatch the next queued event.
 Calls the registered handler (if any) and records the event.
 Returns the dispatched event, or <code>nil</code> if the queue is empty.</p>
 
@@ -746,8 +766,6 @@ Returns the dispatched event, or <code>nil</code> if the queue is empty.</p>
       <pre class="lines">
 
 
-44
-45
 46
 47
 48
@@ -756,15 +774,25 @@ Returns the dispatched event, or <code>nil</code> if the queue is empty.</p>
 51
 52
 53
-54</pre>
+54
+55
+56
+57
+58
+59
+60</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/fake_scheduler.rb', line 44</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/fake_scheduler.rb', line 46</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tick'>tick</span>
   <span class='kw'>return</span> <span class='kw'>nil</span> <span class='kw'>if</span> <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
 
-  <span class='id identifier rubyid_event'>event</span> <span class='op'>=</span> <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_pop'>pop</span><span class='lparen'>(</span><span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>rescue</span> <span class='kw'>nil</span>
+  <span class='id identifier rubyid_event'>event</span> <span class='op'>=</span> <span class='kw'>begin</span>
+    <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_pop'>pop</span><span class='lparen'>(</span><span class='kw'>true</span><span class='rparen'>)</span>
+  <span class='kw'>rescue</span>
+    <span class='kw'>nil</span>
+  <span class='kw'>end</span>
   <span class='kw'>return</span> <span class='kw'>nil</span> <span class='kw'>unless</span> <span class='id identifier rubyid_event'>event</span>
 
   <span class='ivar'>@dispatched</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_event'>event</span>
@@ -788,7 +816,11 @@ Returns the dispatched event, or <code>nil</code> if the queue is empty.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Dispatch events until the queue is empty.
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Dispatch events until the queue is empty.
 Bounded by <code>max_ticks</code> to prevent infinite loops.</p>
 
   </div>
@@ -835,17 +867,17 @@ Bounded by <code>max_ticks</code> to prevent infinite loops.</p>
       <pre class="lines">
 
 
-61
-62
-63
-64
-65
-66
-67
-68</pre>
+68
+69
+70
+71
+72
+73
+74
+75</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/fake_scheduler.rb', line 61</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/fake_scheduler.rb', line 68</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tick_until_idle'>tick_until_idle</span><span class='lparen'>(</span><span class='label'>max_ticks:</span> <span class='int'>1000</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_count'>count</span> <span class='op'>=</span> <span class='int'>0</span>
@@ -865,7 +897,7 @@ Bounded by <code>max_ticks</code> to prevent infinite loops.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 15:02:59 2026 by
+  Generated on Sun May 24 15:31:33 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

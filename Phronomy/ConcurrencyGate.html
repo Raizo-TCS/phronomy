@@ -219,7 +219,7 @@ pass through immediately without acquiring a slot.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Acquires a slot, executes <code>block</code>, then releases the slot.</p></div></span>
@@ -265,7 +265,7 @@ pass through immediately without acquiring a slot.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of ConcurrencyGate.</p></div></span>
@@ -291,7 +291,11 @@ pass through immediately without acquiring a slot.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a new instance of ConcurrencyGate.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a new instance of ConcurrencyGate.</p>
 
   </div>
 </div>
@@ -338,16 +342,16 @@ pass through immediately without acquiring a slot.</p>
       <pre class="lines">
 
 
-25
 26
 27
 28
 29
 30
-31</pre>
+31
+32</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency_gate.rb', line 25</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency_gate.rb', line 26</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>max_concurrent:</span><span class='comma'>,</span> <span class='label'>name:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@max</span> <span class='op'>=</span> <span class='id identifier rubyid_max_concurrent'>max_concurrent</span>
@@ -392,12 +396,12 @@ pass through immediately without acquiring a slot.</p>
       <pre class="lines">
 
 
-34
 35
-36</pre>
+36
+37</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency_gate.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency_gate.rb', line 35</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max'>max</span>
   <span class='ivar'>@max</span>
@@ -433,12 +437,12 @@ pass through immediately without acquiring a slot.</p>
       <pre class="lines">
 
 
-37
 38
-39</pre>
+39
+40</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency_gate.rb', line 37</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency_gate.rb', line 38</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_name'>name</span>
   <span class='ivar'>@name</span>
@@ -466,7 +470,11 @@ pass through immediately without acquiring a slot.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Acquires a slot, executes <code>block</code>, then releases the slot.
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Acquires a slot, executes <code>block</code>, then releases the slot.
 When the gate is unlimited (max is nil) the block runs directly.</p>
 
   </div>
@@ -561,8 +569,6 @@ When the gate is unlimited (max is nil) the block runs directly.</p>
       <pre class="lines">
 
 
-52
-53
 54
 55
 56
@@ -570,10 +576,12 @@ When the gate is unlimited (max is nil) the block runs directly.</p>
 58
 59
 60
-61</pre>
+61
+62
+63</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency_gate.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency_gate.rb', line 54</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_acquire'>acquire</span><span class='lparen'>(</span><span class='label'>on_full:</span> <span class='symbol'>:wait</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='id identifier rubyid_block'>block</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span> <span class='kw'>if</span> <span class='ivar'>@max</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -614,12 +622,12 @@ When the gate is unlimited (max is nil) the block runs directly.</p>
       <pre class="lines">
 
 
-40
 41
-42</pre>
+42
+43</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency_gate.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency_gate.rb', line 41</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_current_count'>current_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@count</span> <span class='rbrace'>}</span>
@@ -634,7 +642,7 @@ When the gate is unlimited (max is nil) the block runs directly.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 15:02:58 2026 by
+  Generated on Sun May 24 15:31:32 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

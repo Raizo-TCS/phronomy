@@ -228,7 +228,7 @@ using this tracer — phronomy does not configure an exporter or propagator.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Overrides Base#trace to use OTel <code>in_span</code>, which pushes the span onto the OTel Context stack while the block runs.</p></div></span>
@@ -452,7 +452,11 @@ Input and extra metadata are stored as span attributes prefixed with
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Overrides Base#trace to use OTel <code>in_span</code>, which pushes the span onto
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Overrides Base#trace to use OTel <code>in_span</code>, which pushes the span onto
 the OTel Context stack while the block runs.  Nested <code>trace</code> calls
 automatically inherit the current span as their parent, establishing the
 correct parent/child hierarchy in the trace tree.</p>
@@ -548,7 +552,6 @@ correct parent/child hierarchy in the trace tree.</p>
       <pre class="lines">
 
 
-66
 67
 68
 69
@@ -569,10 +572,11 @@ correct parent/child hierarchy in the trace tree.</p>
 84
 85
 86
-87</pre>
+87
+88</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/open_telemetry_tracer.rb', line 66</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/open_telemetry_tracer.rb', line 67</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_meta'>meta</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_attrs'>attrs</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
@@ -606,7 +610,7 @@ correct parent/child hierarchy in the trace tree.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 15:02:59 2026 by
+  Generated on Sun May 24 15:31:34 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

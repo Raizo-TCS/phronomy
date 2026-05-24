@@ -227,7 +227,7 @@ token is cancelled and all child tasks that check it will stop.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Cancels this scope immediately.</p></div></span>
@@ -249,7 +249,7 @@ token is cancelled and all child tasks that check it will stop.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns <code>true</code> if this scope has been cancelled.</p></div></span>
@@ -271,7 +271,7 @@ token is cancelled and all child tasks that check it will stop.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Attaches a deadline that will cancel this scope after <code>seconds</code>.</p></div></span>
@@ -295,7 +295,7 @@ token is cancelled and all child tasks that check it will stop.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of CancellationScope.</p></div></span>
@@ -317,7 +317,7 @@ token is cancelled and all child tasks that check it will stop.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Pops from <code>queue</code> with a timeout derived from the attached deadline (or <code>fallback_timeout</code> seconds when no deadline is set).</p></div></span>
@@ -339,7 +339,7 @@ token is cancelled and all child tasks that check it will stop.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns the remaining time in seconds before the deadline expires, or <code>nil</code> when no deadline is set.</p></div></span>
@@ -365,7 +365,11 @@ token is cancelled and all child tasks that check it will stop.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a new instance of CancellationScope.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a new instance of CancellationScope.</p>
 
   </div>
 </div>
@@ -401,7 +405,6 @@ deadline expiry).  No polling thread is spawned.</p></div>
       <pre class="lines">
 
 
-36
 37
 38
 39
@@ -422,10 +425,11 @@ deadline expiry).  No polling thread is spawned.</p></div>
 54
 55
 56
-57</pre>
+57
+58</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 36</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 37</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>parent_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="CancellationToken.html" title="Phronomy::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="CancellationToken.html#initialize-instance_method" title="Phronomy::CancellationToken#initialize (method)">new</a></span></span>
@@ -591,7 +595,11 @@ deadline expiry).  No polling thread is spawned.</p></div>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note returns_void">This method returns an undefined value.</p><p>Cancels this scope immediately.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p class="note returns_void">This method returns an undefined value.</p><p>Cancels this scope immediately.</p>
 
   </div>
 </div>
@@ -604,12 +612,12 @@ deadline expiry).  No polling thread is spawned.</p></div>
       <pre class="lines">
 
 
-71
-72
-73</pre>
+74
+75
+76</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 71</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 74</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancel!'>cancel!</span>
   <span class='ivar'>@token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span>
@@ -630,7 +638,11 @@ deadline expiry).  No polling thread is spawned.</p></div>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns <code>true</code> if this scope has been cancelled.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns <code>true</code> if this scope has been cancelled.</p>
 
   </div>
 </div>
@@ -656,12 +668,12 @@ deadline expiry).  No polling thread is spawned.</p></div>
       <pre class="lines">
 
 
-77
-78
-79</pre>
+81
+82
+83</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 77</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 81</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancelled?'>cancelled?</span>
   <span class='ivar'>@token</span><span class='period'>.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
@@ -682,7 +694,11 @@ deadline expiry).  No polling thread is spawned.</p></div>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Attaches a deadline that will cancel this scope after <code>seconds</code>.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Attaches a deadline that will cancel this scope after <code>seconds</code>.</p>
 
   </div>
 </div>
@@ -726,14 +742,14 @@ deadline expiry).  No polling thread is spawned.</p></div>
       <pre class="lines">
 
 
-63
-64
 65
 66
-67</pre>
+67
+68
+69</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 63</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 65</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_deadline_in'>deadline_in</span><span class='lparen'>(</span><span class='id identifier rubyid_seconds'>seconds</span><span class='rparen'>)</span>
   <span class='ivar'>@deadline</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Deadline.html" title="Phronomy::Deadline (class)">Deadline</a></span></span><span class='period'>.</span><span class='id identifier rubyid_in'><span class='object_link'><a href="Deadline.html#in-class_method" title="Phronomy::Deadline.in (method)">in</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_seconds'>seconds</span><span class='rparen'>)</span>
@@ -756,7 +772,11 @@ deadline expiry).  No polling thread is spawned.</p></div>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Pops from <code>queue</code> with a timeout derived from the attached deadline (or
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Pops from <code>queue</code> with a timeout derived from the attached deadline (or
 <code>fallback_timeout</code> seconds when no deadline is set).  If the pop times out,
 the scope is cancelled and the block is called (or a <span class='object_link'><a href="TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span> raised).</p>
 
@@ -853,12 +873,6 @@ the scope is cancelled and the block is called (or a <span class='object_link'><
       <pre class="lines">
 
 
-97
-98
-99
-100
-101
-102
 103
 104
 105
@@ -871,10 +885,16 @@ the scope is cancelled and the block is called (or a <span class='object_link'><
 112
 113
 114
-115</pre>
+115
+116
+117
+118
+119
+120
+121</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 97</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 103</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pop_queue'>pop_queue</span><span class='lparen'>(</span><span class='id identifier rubyid_queue'>queue</span><span class='comma'>,</span> <span class='label'>fallback_timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_timeout'>timeout</span> <span class='op'>=</span> <span class='ivar'>@deadline</span><span class='op'>&amp;.</span><span class='id identifier rubyid_remaining_seconds'>remaining_seconds</span> <span class='op'>||</span> <span class='id identifier rubyid_fallback_timeout'>fallback_timeout</span>
@@ -911,7 +931,11 @@ the scope is cancelled and the block is called (or a <span class='object_link'><
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the remaining time in seconds before the deadline expires,
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns the remaining time in seconds before the deadline expires,
 or <code>nil</code> when no deadline is set.</p>
 
   </div>
@@ -938,12 +962,12 @@ or <code>nil</code> when no deadline is set.</p>
       <pre class="lines">
 
 
-84
-85
-86</pre>
+89
+90
+91</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 84</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/cancellation_scope.rb', line 89</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remaining_seconds'>remaining_seconds</span>
   <span class='ivar'>@deadline</span><span class='op'>&amp;.</span><span class='id identifier rubyid_remaining_seconds'>remaining_seconds</span>
@@ -958,7 +982,7 @@ or <code>nil</code> when no deadline is set.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 15:02:58 2026 by
+  Generated on Sun May 24 15:31:33 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

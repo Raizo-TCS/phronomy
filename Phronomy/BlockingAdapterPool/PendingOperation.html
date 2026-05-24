@@ -142,7 +142,7 @@ wait for the result.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>True when the operation was abandoned due to timeout.</p></div></span>
@@ -164,7 +164,7 @@ wait for the result.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Blocks until the operation completes and returns its value.</p></div></span>
@@ -186,7 +186,7 @@ wait for the result.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>True when the operation has finished (success or error).</p></div></span>
@@ -254,7 +254,7 @@ wait for the result.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Registers a callback to be called when the operation finishes.</p></div></span>
@@ -276,7 +276,7 @@ wait for the result.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Seconds spent in the queue before execution started.</p></div></span>
@@ -319,11 +319,6 @@ wait for the result.</p>
       <pre class="lines">
 
 
-124
-125
-126
-127
-128
 129
 130
 131
@@ -332,10 +327,15 @@ wait for the result.</p>
 134
 135
 136
-137</pre>
+137
+138
+139
+140
+141
+142</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 124</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 129</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_block'>block</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on_abandoned:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@block</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -374,7 +374,11 @@ wait for the result.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns true when the operation was abandoned due to timeout.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns true when the operation was abandoned due to timeout.</p>
 
   </div>
 </div>
@@ -403,12 +407,12 @@ wait for the result.</p>
       <pre class="lines">
 
 
-35
-36
-37</pre>
+37
+38
+39</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 35</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 37</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_abandoned?'>abandoned?</span>
   <span class='ivar'>@abandoned</span>
@@ -429,7 +433,11 @@ wait for the result.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Blocks until the operation completes and returns its value.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Blocks until the operation completes and returns its value.</p>
 <p>An optional <code>timeout</code> (in seconds) may be passed here; it is measured
 from the moment <code>await</code> is called. If both a submit-time timeout and an
 await-time timeout are present, the earlier deadline wins. The worker
@@ -529,10 +537,6 @@ raised immediately without interrupting the worker.</p>
       <pre class="lines">
 
 
-61
-62
-63
-64
 65
 66
 67
@@ -566,10 +570,14 @@ raised immediately without interrupting the worker.</p>
 95
 96
 97
-98</pre>
+98
+99
+100
+101
+102</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 61</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 65</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_await'>await</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_effective_timeout'>effective_timeout</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span> <span class='ivar'>@timeout</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span><span class='period'>.</span><span class='id identifier rubyid_min'>min</span>
@@ -625,7 +633,11 @@ raised immediately without interrupting the worker.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns true when the operation has finished (success or error).</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns true when the operation has finished (success or error).</p>
 
   </div>
 </div>
@@ -654,12 +666,12 @@ raised immediately without interrupting the worker.</p>
       <pre class="lines">
 
 
-30
 31
-32</pre>
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 30</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_done?'>done?</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@done</span> <span class='rbrace'>}</span>
@@ -697,11 +709,6 @@ raised immediately without interrupting the worker.</p>
       <pre class="lines">
 
 
-140
-141
-142
-143
-144
 145
 146
 147
@@ -715,10 +722,15 @@ raised immediately without interrupting the worker.</p>
 155
 156
 157
-158</pre>
+158
+159
+160
+161
+162
+163</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 140</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 145</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execute!'>execute!</span>
   <span class='ivar'>@wait_time</span> <span class='op'>=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>-</span> <span class='ivar'>@submitted_at</span>
@@ -755,7 +767,11 @@ raised immediately without interrupting the worker.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Registers a callback to be called when the operation finishes.
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Registers a callback to be called when the operation finishes.
 If the operation has already finished the callback is invoked immediately
 on the calling thread.  Otherwise it is invoked on the worker thread that
 completes the operation.</p>
@@ -798,11 +814,6 @@ completes the operation.</p>
       <pre class="lines">
 
 
-109
-110
-111
-112
-113
 114
 115
 116
@@ -810,10 +821,15 @@ completes the operation.</p>
 118
 119
 120
-121</pre>
+121
+122
+123
+124
+125
+126</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 109</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 114</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_complete'>on_complete</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_fire_args'>fire_args</span> <span class='op'>=</span> <span class='kw'>nil</span>
@@ -844,7 +860,11 @@ completes the operation.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns seconds spent in the queue before execution started.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns seconds spent in the queue before execution started.</p>
 
   </div>
 </div>
@@ -873,12 +893,12 @@ completes the operation.</p>
       <pre class="lines">
 
 
-40
-41
-42</pre>
+43
+44
+45</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 43</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_wait_time'>wait_time</span>
   <span class='ivar'>@wait_time</span> <span class='op'>||</span> <span class='float'>0.0</span>
@@ -893,7 +913,7 @@ completes the operation.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 15:02:58 2026 by
+  Generated on Sun May 24 15:31:33 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

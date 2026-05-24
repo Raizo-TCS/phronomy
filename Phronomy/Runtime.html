@@ -213,7 +213,7 @@ synchronously without spawning additional threads:</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns <code>true</code> when the calling thread is executing inside an active scheduler task (i.e. <span class='object_link'><a href="Task.html#current-class_method" title="Phronomy::Task.current (method)">Task.current</a></span> is non-nil).</p></div></span>
@@ -235,7 +235,7 @@ synchronously without spawning additional threads:</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns the process-wide default Runtime.</p></div></span>
@@ -257,7 +257,7 @@ synchronously without spawning additional threads:</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Replaces the process-wide default Runtime.</p></div></span>
@@ -289,7 +289,7 @@ synchronously without spawning additional threads:</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns the shared <span class='object_link'><a href="BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span> for this Runtime.</p></div></span>
@@ -311,7 +311,7 @@ synchronously without spawning additional threads:</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns (or lazily creates) the <span class='object_link'><a href="ConcurrencyGate.html" title="Phronomy::ConcurrencyGate (class)">ConcurrencyGate</a></span> for the named resource.</p></div></span>
@@ -335,7 +335,7 @@ synchronously without spawning additional threads:</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of Runtime.</p></div></span>
@@ -357,7 +357,7 @@ synchronously without spawning additional threads:</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns (or lazily creates) a named <span class='object_link'><a href="BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span>.</p></div></span>
@@ -379,7 +379,7 @@ synchronously without spawning additional threads:</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Drops the cached gate for <code>name</code> so that the next call to <span class='object_link'><a href="#gate-instance_method" title="Phronomy::Runtime#gate (method)">#gate</a></span> rebuilds it from the current configuration.</p></div></span>
@@ -401,7 +401,7 @@ synchronously without spawning additional threads:</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Waits for all registered tasks to finish, then shuts down the EventLoop (if active), blocking adapter pool, named pools, and timer queue (if they were started).</p></div></span>
@@ -423,7 +423,7 @@ synchronously without spawning additional threads:</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Spawns a single <span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Task</a></span> using the runtime's scheduler.</p></div></span>
@@ -445,7 +445,7 @@ synchronously without spawning additional threads:</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Creates a new <span class='object_link'><a href="TaskGroup.html" title="Phronomy::TaskGroup (class)">TaskGroup</a></span> with an optional concurrency cap.</p></div></span>
@@ -467,7 +467,7 @@ synchronously without spawning additional threads:</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns a snapshot of task-centric metrics for the current Runtime.</p></div></span>
@@ -489,7 +489,7 @@ synchronously without spawning additional threads:</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Number of times a task has exceeded the CPU-bound detection threshold (i.e. ran longer than <code>blocking_detect_threshold_ms</code> without yielding).</p></div></span>
@@ -511,7 +511,7 @@ synchronously without spawning additional threads:</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns the shared <span class='object_link'><a href="Runtime/TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span> for this Runtime.</p></div></span>
@@ -533,7 +533,7 @@ synchronously without spawning additional threads:</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Cooperative yield point.</p></div></span>
@@ -555,7 +555,7 @@ synchronously without spawning additional threads:</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Cooperative yield point with a call-count gate.</p></div></span>
@@ -581,7 +581,11 @@ synchronously without spawning additional threads:</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a new instance of Runtime.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a new instance of Runtime.</p>
 
   </div>
 </div>
@@ -614,10 +618,6 @@ synchronously without spawning additional threads:</p>
       <pre class="lines">
 
 
-78
-79
-80
-81
 82
 83
 84
@@ -634,10 +634,14 @@ synchronously without spawning additional threads:</p>
 95
 96
 97
-98</pre>
+98
+99
+100
+101
+102</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 78</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 82</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>scheduler:</span> <span class='const'><span class='object_link'><a href="Runtime/ThreadScheduler.html" title="Phronomy::Runtime::ThreadScheduler (class)">ThreadScheduler</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='rparen'>)</span>
   <span class='ivar'>@scheduler</span> <span class='op'>=</span> <span class='id identifier rubyid_scheduler'>scheduler</span>
@@ -709,12 +713,12 @@ synchronously without spawning additional threads:</p>
       <pre class="lines">
 
 
-75
-76
-77</pre>
+78
+79
+80</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 75</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 78</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_scheduler'>scheduler</span>
   <span class='ivar'>@scheduler</span>
@@ -742,7 +746,11 @@ synchronously without spawning additional threads:</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns <code>true</code> when the calling thread is executing inside an active
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns <code>true</code> when the calling thread is executing inside an active
 scheduler task (i.e. <span class='object_link'><a href="Task.html#current-class_method" title="Phronomy::Task.current (method)">Task.current</a></span> is non-nil).  Code running inside
 a <span class='object_link'><a href="#spawn-instance_method" title="Phronomy::Runtime#spawn (method)">#spawn</a></span> block is always in a scheduler context.</p>
 <p>Use this to detect potential scheduler-blocking calls:</p>
@@ -774,12 +782,12 @@ a <span class='object_link'><a href="#spawn-instance_method" title="Phronomy::Ru
       <pre class="lines">
 
 
-69
-70
-71</pre>
+72
+73
+74</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 69</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 72</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_in_scheduler_context?'>in_scheduler_context?</span>
   <span class='op'>!</span><span class='const'><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="Task.html#current-class_method" title="Phronomy::Task.current (method)">current</a></span></span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -800,7 +808,11 @@ a <span class='object_link'><a href="#spawn-instance_method" title="Phronomy::Ru
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the process-wide default Runtime.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns the process-wide default Runtime.</p>
 <p>Auto-creates an instance using the scheduler backend specified by
 <code>Phronomy.configuration.runtime_backend</code>:</p>
 <ul>
@@ -832,7 +844,6 @@ a <span class='object_link'><a href="#spawn-instance_method" title="Phronomy::Ru
       <pre class="lines">
 
 
-40
 41
 42
 43
@@ -842,10 +853,11 @@ a <span class='object_link'><a href="#spawn-instance_method" title="Phronomy::Ru
 47
 48
 49
-50</pre>
+50
+51</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 41</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_instance'>instance</span>
   <span class='ivar'>@instance</span> <span class='op'>||=</span> <span class='kw'>begin</span>
@@ -874,7 +886,11 @@ a <span class='object_link'><a href="#spawn-instance_method" title="Phronomy::Ru
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Replaces the process-wide default Runtime.  Useful in tests.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Replaces the process-wide default Runtime.  Useful in tests.</p>
 
   </div>
 </div>
@@ -915,12 +931,12 @@ a <span class='object_link'><a href="#spawn-instance_method" title="Phronomy::Ru
       <pre class="lines">
 
 
-55
-56
-57</pre>
+57
+58
+59</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 55</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 57</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_instance='>instance=</span><span class='lparen'>(</span><span class='id identifier rubyid_runtime'>runtime</span><span class='rparen'>)</span>
   <span class='ivar'>@instance</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span>
@@ -947,7 +963,11 @@ a <span class='object_link'><a href="#spawn-instance_method" title="Phronomy::Ru
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the shared <span class='object_link'><a href="BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span> for this Runtime.
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns the shared <span class='object_link'><a href="BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span> for this Runtime.
 All blocking I/O (LLM HTTP, MCP, ActiveRecord, Redis) should be
 submitted through this pool.</p>
 <p>Pool settings default to 10 workers / 100-deep queue.  Override by
@@ -1014,12 +1034,12 @@ shared Runtime via <span class='object_link'><a href="#instance=-class_method" t
       <pre class="lines">
 
 
-292
-293
-294</pre>
+305
+306
+307</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 292</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 305</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_blocking_io'>blocking_io</span><span class='lparen'>(</span><span class='label'>pool_size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='rparen'>)</span>
   <span class='ivar'>@blocking_io</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="BlockingAdapterPool.html#initialize-instance_method" title="Phronomy::BlockingAdapterPool#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='symbol'>:default</span><span class='comma'>,</span> <span class='label'>pool_size:</span> <span class='id identifier rubyid_pool_size'>pool_size</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='id identifier rubyid_queue_size'>queue_size</span><span class='rparen'>)</span>
@@ -1040,7 +1060,11 @@ shared Runtime via <span class='object_link'><a href="#instance=-class_method" t
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns (or lazily creates) the <span class='object_link'><a href="ConcurrencyGate.html" title="Phronomy::ConcurrencyGate (class)">ConcurrencyGate</a></span> for the named resource.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns (or lazily creates) the <span class='object_link'><a href="ConcurrencyGate.html" title="Phronomy::ConcurrencyGate (class)">ConcurrencyGate</a></span> for the named resource.</p>
 <p>Gate caps are read from the global <span class='object_link'><a href="Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span> when the gate
 is first accessed; subsequent calls return the cached gate.  To change the
 cap at runtime, call <span class='object_link'><a href="#reset_gate-instance_method" title="Phronomy::Runtime#reset_gate (method)">#reset_gate</a></span> first.</p>
@@ -1087,14 +1111,14 @@ cap at runtime, call <span class='object_link'><a href="#reset_gate-instance_met
       <pre class="lines">
 
 
-108
-109
-110
-111
-112</pre>
+113
+114
+115
+116
+117</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 108</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 113</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_gate'>gate</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
   <span class='ivar'>@gate_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1117,7 +1141,11 @@ cap at runtime, call <span class='object_link'><a href="#reset_gate-instance_met
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns (or lazily creates) a named <span class='object_link'><a href="BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span>.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns (or lazily creates) a named <span class='object_link'><a href="BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span>.</p>
 <p>Named pools allow per-subsystem thread-budget control and observability.
 Recommended pool names: <code>:llm</code>, <code>:mcp</code>, <code>:db</code>, <code>:redis</code>, <code>:tool</code>.
 Each pool gets its own dedicated worker threads labelled with the pool name.</p>
@@ -1205,18 +1233,18 @@ Each pool gets its own dedicated worker threads labelled with the pool name.</p>
       <pre class="lines">
 
 
-310
-311
-312
-313
-314
-315
-316
-317
-318</pre>
+324
+325
+326
+327
+328
+329
+330
+331
+332</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 310</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 324</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pool'>pool</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='rparen'>)</span>
   <span class='ivar'>@pool_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1243,7 +1271,11 @@ Each pool gets its own dedicated worker threads labelled with the pool name.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note returns_void">This method returns an undefined value.</p><p>Drops the cached gate for <code>name</code> so that the next call to <span class='object_link'><a href="#gate-instance_method" title="Phronomy::Runtime#gate (method)">#gate</a></span> rebuilds
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p class="note returns_void">This method returns an undefined value.</p><p>Drops the cached gate for <code>name</code> so that the next call to <span class='object_link'><a href="#gate-instance_method" title="Phronomy::Runtime#gate (method)">#gate</a></span> rebuilds
 it from the current configuration.  Useful in tests.</p>
 
   </div>
@@ -1272,12 +1304,12 @@ it from the current configuration.  Useful in tests.</p>
       <pre class="lines">
 
 
-119
-120
-121</pre>
+125
+126
+127</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 119</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 125</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_reset_gate'>reset_gate</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
   <span class='ivar'>@gate_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@gates</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
@@ -1298,7 +1330,11 @@ it from the current configuration.  Useful in tests.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note returns_void">This method returns an undefined value.</p><p>Waits for all registered tasks to finish, then shuts down the
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p class="note returns_void">This method returns an undefined value.</p><p>Waits for all registered tasks to finish, then shuts down the
 EventLoop (if active), blocking adapter pool, named pools, and timer queue
 (if they were started).</p>
 <p>When EventLoop mode is enabled, all pending Workflow and Agent FSM events
@@ -1318,26 +1354,26 @@ pending work items.</p>
       <pre class="lines">
 
 
-342
-343
-344
-345
-346
-347
-348
-349
-350
-351
-352
-353
-354
-355
-356
-357
-358</pre>
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 342</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 358</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span>
   <span class='id identifier rubyid_tasks'>tasks</span> <span class='op'>=</span> <span class='ivar'>@task_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@tasks</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
@@ -1372,7 +1408,11 @@ pending work items.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Spawns a single <span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Task</a></span> using the runtime's scheduler.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Spawns a single <span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Task</a></span> using the runtime's scheduler.</p>
 <p>The spawned task is registered in the task registry so <span class='object_link'><a href="#shutdown-instance_method" title="Phronomy::Runtime#shutdown (method)">#shutdown</a></span>
 can wait for it to complete.  The task is automatically deregistered
 from the registry when it finishes (success, failure, or cancellation)
@@ -1442,17 +1482,6 @@ the configured scheduler)</p></div>
       <pre class="lines">
 
 
-211
-212
-213
-214
-215
-216
-217
-218
-219
-220
-221
 222
 223
 224
@@ -1467,10 +1496,21 @@ the configured scheduler)</p></div>
 233
 234
 235
-236</pre>
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 211</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 222</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_spawn'>spawn</span><span class='lparen'>(</span><span class='label'>name:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_type'>type</span> <span class='op'>=</span> <span class='id identifier rubyid__task_type'>_task_type</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
@@ -1514,7 +1554,11 @@ the configured scheduler)</p></div>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Creates a new <span class='object_link'><a href="TaskGroup.html" title="Phronomy::TaskGroup (class)">TaskGroup</a></span> with an optional concurrency cap.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Creates a new <span class='object_link'><a href="TaskGroup.html" title="Phronomy::TaskGroup (class)">TaskGroup</a></span> with an optional concurrency cap.</p>
 
   </div>
 </div>
@@ -1576,12 +1620,12 @@ the configured scheduler)</p></div>
       <pre class="lines">
 
 
-192
-193
-194</pre>
+202
+203
+204</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 192</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 202</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_task_group'>task_group</span><span class='lparen'>(</span><span class='label'>limit:</span> <span class='const'>Float</span><span class='op'>::</span><span class='const'>INFINITY</span><span class='comma'>,</span> <span class='label'>failure_policy:</span> <span class='symbol'>:fail_fast</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="TaskGroup.html" title="Phronomy::TaskGroup (class)">TaskGroup</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="TaskGroup.html#initialize-instance_method" title="Phronomy::TaskGroup#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>limit:</span> <span class='id identifier rubyid_limit'>limit</span><span class='comma'>,</span> <span class='label'>failure_policy:</span> <span class='id identifier rubyid_failure_policy'>failure_policy</span><span class='rparen'>)</span>
@@ -1602,7 +1646,11 @@ the configured scheduler)</p></div>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a snapshot of task-centric metrics for the current Runtime.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a snapshot of task-centric metrics for the current Runtime.</p>
 <table>
 <thead>
 <tr>
@@ -1686,18 +1734,6 @@ the configured scheduler)</p></div>
       <pre class="lines">
 
 
-256
-257
-258
-259
-260
-261
-262
-263
-264
-265
-266
-267
 268
 269
 270
@@ -1709,10 +1745,22 @@ the configured scheduler)</p></div>
 276
 277
 278
-279</pre>
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 256</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 268</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_task_snapshot'>task_snapshot</span>
   <span class='ivar'>@metrics_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1754,7 +1802,11 @@ the configured scheduler)</p></div>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Number of times a task has exceeded the CPU-bound detection threshold
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Number of times a task has exceeded the CPU-bound detection threshold
 (i.e. ran longer than <code>blocking_detect_threshold_ms</code> without yielding).
 Resets to 0 when the Runtime is recreated.</p>
 
@@ -1782,12 +1834,12 @@ Resets to 0 when the Runtime is recreated.</p>
       <pre class="lines">
 
 
-162
-163
-164</pre>
+170
+171
+172</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 162</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 170</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tasks_waiting_over_threshold'>tasks_waiting_over_threshold</span>
   <span class='ivar'>@starvation_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@tasks_waiting_over_threshold</span> <span class='rbrace'>}</span>
@@ -1808,7 +1860,11 @@ Resets to 0 when the Runtime is recreated.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the shared <span class='object_link'><a href="Runtime/TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span> for this Runtime.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns the shared <span class='object_link'><a href="Runtime/TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span> for this Runtime.</p>
 <p>All deadline-based cancellation should be registered here instead of
 spawning one-off sleep threads.  Lazily created on first access.</p>
 
@@ -1836,12 +1892,12 @@ spawning one-off sleep threads.  Lazily created on first access.</p>
       <pre class="lines">
 
 
-326
-327
-328</pre>
+341
+342
+343</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 326</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 341</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_timer_queue'>timer_queue</span>
   <span class='ivar'>@timer_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@timer_queue</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="Runtime/TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Runtime/TimerQueue.html#initialize-instance_method" title="Phronomy::Runtime::TimerQueue#initialize (method)">new</a></span></span> <span class='rbrace'>}</span>
@@ -1862,7 +1918,11 @@ spawning one-off sleep threads.  Lazily created on first access.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note returns_void">This method returns an undefined value.</p><p>Cooperative yield point.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p class="note returns_void">This method returns an undefined value.</p><p>Cooperative yield point.</p>
 <p>Signals the scheduler that the current task is willing to give up CPU time
 so that other ready tasks can run.  On the default <span class='object_link'><a href="Runtime/ThreadScheduler.html" title="Phronomy::Runtime::ThreadScheduler (class)">ThreadScheduler</a></span> this
 calls <code>Thread.pass</code>.  On a future fiber-based scheduler this would switch
@@ -1885,13 +1945,6 @@ methods and Workflow actions to keep the scheduler responsive.</p>
       <pre class="lines">
 
 
-139
-140
-141
-142
-143
-144
-145
 146
 147
 148
@@ -1902,10 +1955,17 @@ methods and Workflow actions to keep the scheduler responsive.</p>
 153
 154
 155
-156</pre>
+156
+157
+158
+159
+160
+161
+162
+163</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 139</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 146</span>
 
 <span class='kw'>def</span> <span class='kw'>yield</span>
   <span class='kw'>if</span> <span class='lparen'>(</span><span class='id identifier rubyid_threshold'>threshold</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_blocking_detect_threshold_ms'>blocking_detect_threshold_ms</span><span class='rparen'>)</span>
@@ -1941,7 +2001,11 @@ methods and Workflow actions to keep the scheduler responsive.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note returns_void">This method returns an undefined value.</p><p>Cooperative yield point with a call-count gate.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p class="note returns_void">This method returns an undefined value.</p><p>Cooperative yield point with a call-count gate.</p>
 <p>Increments a per-thread counter and calls <span class='object_link'><a href="#yield-instance_method" title="Phronomy::Runtime#yield (method)">#yield</a></span> when the counter
 reaches a multiple of <code>every</code>.  The counter is thread-local so concurrent
 tasks each maintain their own independent loop counter without requiring
@@ -1989,14 +2053,14 @@ a mutex.</p>
       <pre class="lines">
 
 
-181
-182
-183
-184
-185</pre>
+190
+191
+192
+193
+194</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 181</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 190</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_yield_if_needed'>yield_if_needed</span><span class='lparen'>(</span><span class='label'>every:</span> <span class='int'>1000</span><span class='rparen'>)</span>
   <span class='comment'># Delegate Thread.current access to Task so that runtime.rb stays outside
@@ -2013,7 +2077,7 @@ a mutex.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 15:02:57 2026 by
+  Generated on Sun May 24 15:31:31 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

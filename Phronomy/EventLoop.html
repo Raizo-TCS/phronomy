@@ -231,7 +231,7 @@ back to the EventLoop).</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns the mean event-loop lag across all dispatched events since the loop was started.</p></div></span>
@@ -299,7 +299,7 @@ back to the EventLoop).</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns the most recently measured event-loop lag in seconds.</p></div></span>
@@ -321,7 +321,7 @@ back to the EventLoop).</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns the maximum event-loop lag seen since the loop was started.</p></div></span>
@@ -658,7 +658,11 @@ scheduler backends.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the mean event-loop lag across all dispatched events since the
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns the mean event-loop lag across all dispatched events since the
 loop was started.  Returns 0.0 when no events have been dispatched.
 Thread-safe.</p>
 
@@ -686,16 +690,16 @@ Thread-safe.</p>
       <pre class="lines">
 
 
-86
-87
-88
 89
 90
 91
-92</pre>
+92
+93
+94
+95</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 86</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 89</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_average_lag_seconds'>average_lag_seconds</span>
   <span class='ivar'>@lag_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -771,15 +775,15 @@ Thread-safe.</p>
       <pre class="lines">
 
 
-134
-135
-136
 137
 138
-139</pre>
+139
+140
+141
+142</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 134</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 137</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_enqueue_child'>enqueue_child</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_fsm'>agent_fsm</span><span class='rparen'>)</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='lbracket'>[</span><span class='const'><span class='object_link'><a href="Event.html" title="Phronomy::Event (class)">Event</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>type:</span> <span class='symbol'>:start</span><span class='comma'>,</span> <span class='label'>target_id:</span> <span class='id identifier rubyid_agent_fsm'>agent_fsm</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='comma'>,</span>
@@ -803,7 +807,11 @@ Thread-safe.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the most recently measured event-loop lag in seconds.
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns the most recently measured event-loop lag in seconds.
 Lag is the wall-clock time between <span class='object_link'><a href="#post-instance_method" title="Phronomy::EventLoop#post (method)">#post</a></span> and the moment the event
 is dequeued for dispatch.  Thread-safe.</p>
 
@@ -831,12 +839,12 @@ is dequeued for dispatch.  Thread-safe.</p>
       <pre class="lines">
 
 
-71
 72
-73</pre>
+73
+74</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 71</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 72</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_last_lag_seconds'>last_lag_seconds</span>
   <span class='ivar'>@lag_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@last_lag_ns</span> <span class='rbrace'>}</span> <span class='op'>/</span> <span class='float'>1_000_000_000.0</span>
@@ -857,7 +865,11 @@ is dequeued for dispatch.  Thread-safe.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the maximum event-loop lag seen since the loop was started.
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns the maximum event-loop lag seen since the loop was started.
 Thread-safe.</p>
 
   </div>
@@ -884,12 +896,12 @@ Thread-safe.</p>
       <pre class="lines">
 
 
-78
-79
-80</pre>
+80
+81
+82</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 78</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 80</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_lag_seconds'>max_lag_seconds</span>
   <span class='ivar'>@lag_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@max_lag_ns</span> <span class='rbrace'>}</span> <span class='op'>/</span> <span class='float'>1_000_000_000.0</span>
@@ -944,12 +956,12 @@ measure the dispatch lag when it dequeues the event.</p>
       <pre class="lines">
 
 
-147
-148
-149</pre>
+150
+151
+152</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 147</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 150</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_post'>post</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='lbracket'>[</span><span class='id identifier rubyid_event'>event</span><span class='comma'>,</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='comma'>,</span> <span class='symbol'>:nanosecond</span><span class='rparen'>)</span><span class='rbracket'>]</span><span class='rparen'>)</span>
@@ -1024,9 +1036,6 @@ the popped value will be an Exception — callers are responsible for re-raising
       <pre class="lines">
 
 
-107
-108
-109
 110
 111
 112
@@ -1039,10 +1048,13 @@ the popped value will be an Exception — callers are responsible for re-raising
 119
 120
 121
-122</pre>
+122
+123
+124
+125</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 107</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 110</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_register'>register</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="" title="Phronomy::EventLoop (class)">EventLoop</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current?'><span class='object_link'><a href="#current%3F-class_method" title="Phronomy::EventLoop.current? (method)">current?</a></span></span>
@@ -1110,9 +1122,6 @@ can drain it together with all other in-flight tasks.  The task is named
       <pre class="lines">
 
 
-159
-160
-161
 162
 163
 164
@@ -1121,10 +1130,13 @@ can drain it together with all other in-flight tasks.  The task is named
 167
 168
 169
-170</pre>
+170
+171
+172
+173</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 159</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 162</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start'>start</span>
   <span class='kw'>return</span> <span class='kw'>self</span> <span class='kw'>if</span> <span class='ivar'>@task</span><span class='op'>&amp;.</span><span class='id identifier rubyid_alive?'>alive?</span>
@@ -1256,9 +1268,6 @@ they were discarded and the loop was stopped</li>
       <pre class="lines">
 
 
-195
-196
-197
 198
 199
 200
@@ -1300,10 +1309,13 @@ they were discarded and the loop was stopped</li>
 236
 237
 238
-239</pre>
+239
+240
+241
+242</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 195</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 198</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stop'>stop</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span><span class='comma'>,</span> <span class='label'>drain:</span> <span class='kw'>false</span><span class='comma'>,</span> <span class='label'>force_kill:</span> <span class='kw'>false</span><span class='rparen'>)</span>
   <span class='ivar'>@shutdown_token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span>
@@ -1360,7 +1372,7 @@ they were discarded and the loop was stopped</li>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 15:02:57 2026 by
+  Generated on Sun May 24 15:31:31 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

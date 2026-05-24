@@ -515,7 +515,7 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Convenience: returns the cancellation token or a new never-cancelled token.</p></div></span>
@@ -537,7 +537,7 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns the cancellation token to use for an invocation, taking both the explicit <code>cancellation_token</code> and the <code>deadline</code> into account.</p></div></span>
@@ -561,7 +561,7 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of InvocationContext.</p></div></span>
@@ -583,7 +583,7 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns a new <code>InvocationContext</code> with the given attributes merged in.</p></div></span>
@@ -609,7 +609,11 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a new instance of InvocationContext.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a new instance of InvocationContext.</p>
 
   </div>
 </div>
@@ -795,7 +799,6 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
       <pre class="lines">
 
 
-71
 72
 73
 74
@@ -823,10 +826,11 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
 96
 97
 98
-99</pre>
+99
+100</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 71</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 72</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span>
@@ -1620,7 +1624,11 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Convenience: returns the cancellation token or a new never-cancelled token.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Convenience: returns the cancellation token or a new never-cancelled token.</p>
 
   </div>
 </div>
@@ -1646,12 +1654,12 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
       <pre class="lines">
 
 
-126
-127
-128</pre>
+129
+130
+131</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 126</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 129</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_effective_cancellation_token'>effective_cancellation_token</span>
   <span class='ivar'>@cancellation_token</span> <span class='op'>||</span> <span class='const'><span class='object_link'><a href="CancellationToken.html" title="Phronomy::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="CancellationToken.html#initialize-instance_method" title="Phronomy::CancellationToken#initialize (method)">new</a></span></span>
@@ -1672,7 +1680,11 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the cancellation token to use for an invocation, taking both the
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns the cancellation token to use for an invocation, taking both the
 explicit <code>cancellation_token</code> and the <code>deadline</code> into account.</p>
 <ul>
 <li>When <code>cancellation_token</code> is set, it is returned unchanged.</li>
@@ -1705,17 +1717,17 @@ the deadline is attached to it via <span class='object_link'><a href="Deadline.h
       <pre class="lines">
 
 
-139
-140
-141
-142
 143
 144
 145
-146</pre>
+146
+147
+148
+149
+150</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 139</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 143</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_effective_timeout_token'>effective_timeout_token</span>
   <span class='kw'>return</span> <span class='ivar'>@cancellation_token</span> <span class='kw'>if</span> <span class='ivar'>@cancellation_token</span>
@@ -1741,7 +1753,11 @@ the deadline is attached to it via <span class='object_link'><a href="Deadline.h
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a new <code>InvocationContext</code> with the given attributes merged in.
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a new <code>InvocationContext</code> with the given attributes merged in.
 All other attributes are carried over unchanged.</p>
 
   </div>
@@ -1786,8 +1802,6 @@ All other attributes are carried over unchanged.</p>
       <pre class="lines">
 
 
-106
-107
 108
 109
 110
@@ -1802,10 +1816,12 @@ All other attributes are carried over unchanged.</p>
 119
 120
 121
-122</pre>
+122
+123
+124</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 106</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 108</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_overrides'>overrides</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="" title="Phronomy::InvocationContext (class)">InvocationContext</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::InvocationContext#initialize (method)">new</a></span></span><span class='lparen'>(</span>
@@ -1834,7 +1850,7 @@ All other attributes are carried over unchanged.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 15:02:58 2026 by
+  Generated on Sun May 24 15:31:33 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

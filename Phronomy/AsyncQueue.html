@@ -155,7 +155,7 @@ backing primitive without changing call sites.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Closes the queue.</p></div></span>
@@ -177,7 +177,7 @@ backing primitive without changing call sites.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns <code>true</code> when the queue contains no items.</p></div></span>
@@ -201,7 +201,7 @@ backing primitive without changing call sites.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of AsyncQueue.</p></div></span>
@@ -223,7 +223,7 @@ backing primitive without changing call sites.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Dequeues and returns the next item.</p></div></span>
@@ -245,7 +245,7 @@ backing primitive without changing call sites.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Enqueues <code>item</code>.</p></div></span>
@@ -267,7 +267,7 @@ backing primitive without changing call sites.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns the current number of items in the queue.</p></div></span>
@@ -293,7 +293,11 @@ backing primitive without changing call sites.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a new instance of AsyncQueue.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a new instance of AsyncQueue.</p>
 
   </div>
 </div>
@@ -327,16 +331,16 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
       <pre class="lines">
 
 
-17
 18
 19
-20</pre>
+20
+21</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 17</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>max_size:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='ivar'>@queue</span>    <span class='op'>=</span> <span class='id identifier rubyid_max_size'>max_size</span> <span class='op'>?</span> <span class='const'>SizedQueue</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_max_size'>max_size</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='const'>Thread</span><span class='op'>::</span><span class='const'>Queue</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
+  <span class='ivar'>@queue</span> <span class='op'>=</span> <span class='id identifier rubyid_max_size'>max_size</span> <span class='op'>?</span> <span class='const'>SizedQueue</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_max_size'>max_size</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='const'>Thread</span><span class='op'>::</span><span class='const'>Queue</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@max_size</span> <span class='op'>=</span> <span class='id identifier rubyid_max_size'>max_size</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -362,7 +366,11 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Closes the queue.  Subsequent <span class='object_link'><a href="#pop-instance_method" title="Phronomy::AsyncQueue#pop (method)">#pop</a></span> calls raise <code>ClosedQueueError</code>.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Closes the queue.  Subsequent <span class='object_link'><a href="#pop-instance_method" title="Phronomy::AsyncQueue#pop (method)">#pop</a></span> calls raise <code>ClosedQueueError</code>.</p>
 
   </div>
 </div>
@@ -388,13 +396,13 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
       <pre class="lines">
 
 
-57
-58
-59
-60</pre>
+63
+64
+65
+66</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 57</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 63</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_close'>close</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_close'>close</span>
@@ -416,7 +424,11 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns <code>true</code> when the queue contains no items.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns <code>true</code> when the queue contains no items.</p>
 
   </div>
 </div>
@@ -442,12 +454,12 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
       <pre class="lines">
 
 
-51
-52
-53</pre>
+56
+57
+58</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 51</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 56</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_empty?'>empty?</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
@@ -468,7 +480,11 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Dequeues and returns the next item.  Blocks until an item is available.
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Dequeues and returns the next item.  Blocks until an item is available.
 When <code>timeout</code> is given, returns <code>nil</code> if no item arrives within that many
 seconds.  (Requires Ruby 3.2+, which added <code>Thread::Queue#pop(timeout:)</code>.)</p>
 
@@ -519,16 +535,16 @@ seconds.  (Requires Ruby 3.2+, which added <code>Thread::Queue#pop(timeout:)</co
       <pre class="lines">
 
 
-35
-36
-37
 38
 39
 40
-41</pre>
+41
+42
+43
+44</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 35</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 38</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pop'>pop</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_timeout'>timeout</span>
@@ -553,7 +569,11 @@ seconds.  (Requires Ruby 3.2+, which added <code>Thread::Queue#pop(timeout:)</co
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Enqueues <code>item</code>.  Blocks when <code>max_size</code> is set and the queue is full.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Enqueues <code>item</code>.  Blocks when <code>max_size</code> is set and the queue is full.</p>
 
   </div>
 </div>
@@ -597,13 +617,13 @@ seconds.  (Requires Ruby 3.2+, which added <code>Thread::Queue#pop(timeout:)</co
       <pre class="lines">
 
 
-25
-26
 27
-28</pre>
+28
+29
+30</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 25</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 27</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_item'>item</span><span class='rparen'>)</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_item'>item</span><span class='rparen'>)</span>
@@ -625,7 +645,11 @@ seconds.  (Requires Ruby 3.2+, which added <code>Thread::Queue#pop(timeout:)</co
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the current number of items in the queue.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns the current number of items in the queue.</p>
 
   </div>
 </div>
@@ -651,12 +675,12 @@ seconds.  (Requires Ruby 3.2+, which added <code>Thread::Queue#pop(timeout:)</co
       <pre class="lines">
 
 
-45
-46
-47</pre>
+49
+50
+51</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 45</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 49</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_size'>size</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
@@ -671,7 +695,7 @@ seconds.  (Requires Ruby 3.2+, which added <code>Thread::Queue#pop(timeout:)</co
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 15:02:57 2026 by
+  Generated on Sun May 24 15:31:31 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

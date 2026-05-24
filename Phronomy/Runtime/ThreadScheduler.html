@@ -145,7 +145,7 @@ It delegates directly to <span class='object_link'><a href="../Task.html#spawn-c
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Spawns <code>block</code> as a new <span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span> backed by a Thread.</p></div></span>
@@ -167,7 +167,7 @@ It delegates directly to <span class='object_link'><a href="../Task.html#spawn-c
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Yields the current thread's time slice to other runnable threads.</p></div></span>
@@ -203,7 +203,11 @@ It delegates directly to <span class='object_link'><a href="../Task.html#spawn-c
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Spawns <code>block</code> as a new <span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span> backed by a Thread.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Spawns <code>block</code> as a new <span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span> backed by a Thread.</p>
 
   </div>
 </div>
@@ -255,12 +259,12 @@ It delegates directly to <span class='object_link'><a href="../Task.html#spawn-c
       <pre class="lines">
 
 
-16
 17
-18</pre>
+18
+19</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/thread_scheduler.rb', line 16</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/thread_scheduler.rb', line 17</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_spawn'>spawn</span><span class='lparen'>(</span><span class='label'>name:</span><span class='comma'>,</span> <span class='label'>parent:</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_spawn'><span class='object_link'><a href="../Task.html#spawn-class_method" title="Phronomy::Task.spawn (method)">spawn</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>parent:</span> <span class='id identifier rubyid_parent'>parent</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
@@ -281,7 +285,11 @@ It delegates directly to <span class='object_link'><a href="../Task.html#spawn-c
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note returns_void">This method returns an undefined value.</p><p>Yields the current thread's time slice to other runnable threads.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p class="note returns_void">This method returns an undefined value.</p><p>Yields the current thread's time slice to other runnable threads.</p>
 
   </div>
 </div>
@@ -294,12 +302,12 @@ It delegates directly to <span class='object_link'><a href="../Task.html#spawn-c
       <pre class="lines">
 
 
-22
-23
-24</pre>
+24
+25
+26</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/thread_scheduler.rb', line 22</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/thread_scheduler.rb', line 24</span>
 
 <span class='kw'>def</span> <span class='kw'>yield</span>
   <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_pass'>pass</span>
@@ -314,7 +322,7 @@ It delegates directly to <span class='object_link'><a href="../Task.html#spawn-c
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 15:02:59 2026 by
+  Generated on Sun May 24 15:31:33 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

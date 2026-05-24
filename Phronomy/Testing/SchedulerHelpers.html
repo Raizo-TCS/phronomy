@@ -158,7 +158,7 @@ synchronous, event-logged runtime.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Run <code>block</code> with a <span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span> that uses <span class='object_link'><a href="../Runtime/FakeScheduler.html" title="Phronomy::Runtime::FakeScheduler (class)">Runtime::FakeScheduler</a></span>.</p></div></span>
@@ -187,7 +187,11 @@ synchronous, event-logged runtime.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Run <code>block</code> with a <span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span> that uses
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Run <code>block</code> with a <span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span> that uses
 <span class='object_link'><a href="../Runtime/FakeScheduler.html" title="Phronomy::Runtime::FakeScheduler (class)">Runtime::FakeScheduler</a></span>.</p>
 <p>The global runtime is replaced for the duration of the block and
 restored afterwards, whether the block raises or not.</p>
@@ -256,7 +260,6 @@ and event timestamping.</p></div>
       <pre class="lines">
 
 
-44
 45
 46
 47
@@ -267,10 +270,11 @@ and event timestamping.</p></div>
 52
 53
 54
-55</pre>
+55
+56</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/scheduler_helpers.rb', line 44</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/scheduler_helpers.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_with_fake_scheduler'>with_fake_scheduler</span><span class='lparen'>(</span><span class='label'>clock:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_scheduler'>scheduler</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime/FakeScheduler.html" title="Phronomy::Runtime::FakeScheduler (class)">FakeScheduler</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Runtime/FakeScheduler.html#initialize-instance_method" title="Phronomy::Runtime::FakeScheduler#initialize (method)">new</a></span></span>
@@ -294,7 +298,7 @@ and event timestamping.</p></div>
 </div>
 
       <div id="footer">
-  Generated on Sun May 24 15:02:56 2026 by
+  Generated on Sun May 24 15:31:30 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
