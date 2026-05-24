@@ -28,9 +28,16 @@ module Phronomy
     end
 
     # Dequeues and returns the next item.  Blocks until an item is available.
-    # @return [Object] the next item
-    def pop
-      @queue.pop
+    # When +timeout+ is given, returns +nil+ if no item arrives within that many
+    # seconds.  (Requires Ruby 3.2+, which added +Thread::Queue#pop(timeout:)+.)
+    # @param timeout [Numeric, nil] seconds to wait before returning nil
+    # @return [Object, nil] the next item, or nil when timeout expires
+    def pop(timeout: nil)
+      if timeout
+        @queue.pop(timeout: timeout)
+      else
+        @queue.pop
+      end
     end
 
     # Returns the current number of items in the queue.

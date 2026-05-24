@@ -3,9 +3,10 @@
 module Phronomy
   # Singleton event loop that manages all FSMSession instances.
   #
-  # A single background thread reads from a global Thread::Queue and dispatches
-  # events to their target FSMSession. IO work (LLM calls, tool calls) runs in
-  # separate IO threads that post events back to the loop via EventLoop#post.
+  # A single background thread reads from a global {Phronomy::AsyncQueue} and
+  # dispatches events to their target FSMSession.  IO work (LLM calls, tool
+  # calls) runs in separate IO threads that post events back to the loop via
+  # EventLoop#post.
   #
   # Activated with: +Phronomy.configure { |c| c.event_loop = true }+
   #
@@ -46,7 +47,7 @@ module Phronomy
     end
 
     def initialize
-      @queue = Thread::Queue.new  # global event queue (thread-safe; no Mutex needed)
+      @queue = Phronomy::AsyncQueue.new  # global event queue (thread-safe; no Mutex needed)
       @fsms = {}                  # { id => FSMSession }     — EventLoop thread only
       @waiting = {}               # { id => completion_queue } — EventLoop thread only
       # Mutex-backed FSM count for drain-mode shutdown.
@@ -101,7 +102,7 @@ module Phronomy
     # the popped value will be an Exception — callers are responsible for re-raising it.
     #
     # @param fsm_session [Phronomy::FSMSession]
-    # @return [Thread::Queue] resolves to final/halted context, or an Exception
+    # @return [Phronomy::AsyncQueue] resolves to final/halted context, or an Exception
     # @api private
     def register(fsm_session)
       if Phronomy::EventLoop.current?
@@ -111,7 +112,7 @@ module Phronomy
           "back via Phronomy::EventLoop.instance.post(...) instead."
       end
 
-      completion_queue = Thread::Queue.new
+      completion_queue = Phronomy::AsyncQueue.new
       # Pass both session and completion_queue in the event payload so that the
       # EventLoop thread is the sole writer of @fsms and @waiting.
       @queue.push([Event.new(type: :start, target_id: fsm_session.id,

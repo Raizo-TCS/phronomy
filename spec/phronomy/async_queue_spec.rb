@@ -57,4 +57,28 @@ RSpec.describe Phronomy::AsyncQueue do
       expect(described_class.new.close).to be_a(described_class)
     end
   end
+
+  # Issue #284 — EventLoop and CancellationScope must not reference Thread::Queue
+  # directly; all queue usage must go through Phronomy::AsyncQueue so the backing
+  # primitive can be swapped without touching call sites.
+  describe "pop with timeout (Issue #284)", :issue_284 do
+    it "returns nil when the queue is empty and the timeout expires" do
+      q = described_class.new
+      result = q.pop(timeout: 0.05)
+      expect(result).to be_nil
+    end
+
+    it "returns the item immediately when one is already present" do
+      q = described_class.new
+      q.push(:item)
+      expect(q.pop(timeout: 1.0)).to eq(:item)
+    end
+
+    it "returns the item when it is pushed before the timeout" do
+      q = described_class.new
+      Thread.new { sleep 0.02; q.push(:late) }
+      result = q.pop(timeout: 1.0)
+      expect(result).to eq(:late)
+    end
+  end
 end

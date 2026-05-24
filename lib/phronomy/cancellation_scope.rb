@@ -77,7 +77,7 @@ module Phronomy
     # +fallback_timeout+ seconds when no deadline is set).  If the pop times out,
     # the scope is cancelled and the block is called (or a {TimeoutError} raised).
     #
-    # @param queue [Thread::Queue] the queue to pop from
+    # @param queue [Phronomy::AsyncQueue] the queue to pop from
     # @param fallback_timeout [Numeric, nil] used when no deadline is attached
     # @yield called when the operation times out
     # @raise [Phronomy::TimeoutError] when no block is given and a timeout occurs
