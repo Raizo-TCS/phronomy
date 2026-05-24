@@ -42,6 +42,10 @@ module Phronomy
       @instance = runtime
     end
 
+    # The scheduler backing this runtime instance.
+    # @return [Scheduler]
+    attr_reader :scheduler
+
     # @param scheduler [Scheduler] execution backend (default: {ThreadScheduler})
     def initialize(scheduler: ThreadScheduler.new)
       @scheduler = scheduler

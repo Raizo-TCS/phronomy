@@ -62,6 +62,35 @@ module Phronomy
         @mutex.synchronize { @callbacks.size }
       end
 
+      # Returns the logical time of the next pending callback, or +nil+ if
+      # there are no pending callbacks.
+      #
+      # @return [Float, nil]
+      def next_timer_at
+        @mutex.synchronize { @callbacks.min_by { |(t, _)| t }&.first }
+      end
+
+      # Advance the clock exactly to the next pending callback and fire it.
+      # Raises +RuntimeError+ when there are no pending callbacks.
+      #
+      # @return [self]
+      def advance_to_next_timer
+        target = next_timer_at
+        raise "No pending timers to advance to" unless target
+
+        advance(target - @now)
+      end
+
+      # Returns descriptive entries for all pending callbacks.
+      # Used by {Phronomy::Runtime::FakeScheduler#pending_timers}.
+      #
+      # @return [Array<Hash>] each entry: +{ fire_at:, description: nil }+
+      def pending_timer_entries
+        @mutex.synchronize do
+          @callbacks.sort_by { |(t, _)| t }.map { |(t, _)| {fire_at: t, description: nil} }
+        end
+      end
+
       private
 
       def fire_expired_callbacks!
