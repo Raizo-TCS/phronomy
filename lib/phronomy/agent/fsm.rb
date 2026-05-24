@@ -119,39 +119,37 @@ module Phronomy
         fsm_id = @id
         parent_id = @parent_id
 
-        Phronomy::Task.spawn(name: "agent-fsm:#{fsm_id}") do
-          begin
-            result = agent.send(:_invoke_impl,
-              input,
-              messages: messages,
-              thread_id: thread_id,
-              config: config)
+        Phronomy::Runtime.instance.spawn(name: "agent-fsm:#{fsm_id}") do
+          result = agent.send(:_invoke_impl,
+            input,
+            messages: messages,
+            thread_id: thread_id,
+            config: config)
 
-            if parent_id
-              # Result is delivered exclusively as the :child_completed payload.
-              # The parent Workflow task is the sole owner of WorkflowContext
-              # and applies the result after receiving the event.
-              Phronomy::EventLoop.instance.post(
-                Phronomy::Event.new(type: :child_completed, target_id: parent_id, payload: result)
-              )
-            end
-
+          if parent_id
+            # Result is delivered exclusively as the :child_completed payload.
+            # The parent Workflow task is the sole owner of WorkflowContext
+            # and applies the result after receiving the event.
             Phronomy::EventLoop.instance.post(
-              Phronomy::Event.new(type: :finished, target_id: fsm_id, payload: result)
+              Phronomy::Event.new(type: :child_completed, target_id: parent_id, payload: result)
             )
-          rescue => e
-            if parent_id
-              Phronomy::EventLoop.instance.post(
-                Phronomy::Event.new(type: :child_failed, target_id: parent_id, payload: e)
-              )
-            end
-
-            Phronomy::EventLoop.instance.post(
-              Phronomy::Event.new(type: :error, target_id: fsm_id, payload: e)
-            )
-          ensure
-            # Context caches are instance variables; no thread-local cleanup needed.
           end
+
+          Phronomy::EventLoop.instance.post(
+            Phronomy::Event.new(type: :finished, target_id: fsm_id, payload: result)
+          )
+        rescue => e
+          if parent_id
+            Phronomy::EventLoop.instance.post(
+              Phronomy::Event.new(type: :child_failed, target_id: parent_id, payload: e)
+            )
+          end
+
+          Phronomy::EventLoop.instance.post(
+            Phronomy::Event.new(type: :error, target_id: fsm_id, payload: e)
+          )
+
+          # Context caches are instance variables; no thread-local cleanup needed.
         end
       end
     end

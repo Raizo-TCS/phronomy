@@ -64,14 +64,21 @@ module Phronomy
     # Spawns a single {Task} using the runtime's scheduler.
     #
     # The spawned task is registered in the task registry so {#shutdown}
-    # can wait for it to complete.
+    # can wait for it to complete.  The task is automatically deregistered
+    # from the registry when it finishes (success, failure, or cancellation)
+    # so long-lived runtimes do not accumulate stale references.
     #
     # @param name [String, nil] optional label for debugging
     # @yield block to execute (concurrently or synchronously, depending on
     #   the configured scheduler)
     # @return [Task]
     def spawn(name: nil, &block)
-      task = @scheduler.spawn(name: name, parent: Task.current, &block)
+      task = @scheduler.spawn(name: name, parent: Task.current) do
+        block.call
+      ensure
+        current = Task.current
+        @task_mutex.synchronize { @tasks.delete(current) } if current
+      end
       @task_mutex.synchronize { @tasks << task }
       task
     end

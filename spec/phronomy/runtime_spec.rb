@@ -128,4 +128,48 @@ RSpec.describe Phronomy::Runtime do
       expect { runtime.shutdown }.not_to raise_error
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Task auto-deregistration (Issue #289)
+  # ---------------------------------------------------------------------------
+
+  describe "#spawn task registry auto-deregistration (Issue #289)" do
+    subject(:runtime) { described_class.new }
+
+    it "removes a completed task from the registry" do
+      task = runtime.spawn { :done }
+      task.await
+      tasks = runtime.instance_variable_get(:@tasks)
+      expect(tasks).not_to include(task)
+    end
+
+    it "removes a failed task from the registry" do
+      task = runtime.spawn { raise ArgumentError, "boom" }
+      begin
+        task.await
+      rescue
+        nil
+      end
+      tasks = runtime.instance_variable_get(:@tasks)
+      expect(tasks).not_to include(task)
+    end
+
+    it "does not accumulate tasks across many spawns" do
+      20.times { runtime.spawn { :done }.await }
+      tasks = runtime.instance_variable_get(:@tasks)
+      expect(tasks.length).to eq(0)
+    end
+
+    it "still drains in-flight tasks on shutdown" do
+      latch = Queue.new
+      task = runtime.spawn {
+        latch.pop
+        :done
+      }
+      shutdown_thread = Thread.new { runtime.shutdown }
+      latch.push(:go)
+      shutdown_thread.join(3)
+      expect(task.status).to eq(:completed)
+    end
+  end
 end
