@@ -185,6 +185,38 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td><strong><code>dispatch_parallel</code> / <code>fan_out</code> <code>force_kill:</code> option</strong> — <code>force_kill: false</code> (default) leaves timed-out workers running and raises <code>TimeoutError</code> immediately; <code>force_kill: true</code> restores the old <code>Thread#kill</code> behaviour with a <code>logger.warn</code></td>
 <td>Beta</td>
 </tr>
+<tr>
+<td><strong><code>execution_mode</code> DSL on <code>Tool::Base</code></strong> — Declares how a tool's <code>execute</code> should be dispatched: <code>:cooperative</code> (same scheduler thread), <code>:blocking_io</code> (default; offloaded to <code>BlockingAdapterPool</code>), <code>:cpu_bound</code>, <code>:external_process</code></td>
+<td>Experimental</td>
+</tr>
+<tr>
+<td><strong><code>invoke_async</code> / <code>call_async</code></strong> — <code>Agent::Base#invoke_async</code> and <code>Workflow#invoke_async</code> return a <code>Task</code>; <code>Tool::Base#call_async</code> similarly; compatible with EventLoop and standalone contexts</td>
+<td>Experimental</td>
+</tr>
+<tr>
+<td><strong><code>ScopePolicy</code></strong> — Configurable policy callable that maps (tool, scope, agent) to <code>:allow</code>/<code>:approve</code>/<code>:reject</code>; default policy auto-routes high-risk scopes through the approval gate</td>
+<td>Experimental</td>
+</tr>
+<tr>
+<td><strong><code>PromptInjectionGuardrail</code></strong> — Built-in <code>InputGuardrail</code> subclass that detects prompt-injection patterns; usable standalone or as part of a guardrail chain</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong><code>Tool::Base.redact_params</code> / <code>.max_result_size</code></strong> — Class-level DSL: <code>redact_params</code> masks parameter values in log/trace output; <code>max_result_size</code> truncates oversized tool results before they reach the LLM</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong><code>Phronomy::Metrics</code></strong> — <code>Phronomy::Metrics.snapshot</code> returns task and pool counters (<code>tasks_started</code>, <code>tasks_completed</code>, <code>tasks_failed</code>, <code>pool_queue_depth</code>, <code>pool_active_threads</code>)</td>
+<td>Experimental</td>
+</tr>
+<tr>
+<td><strong><code>Phronomy::Diagnostics</code></strong> — Snapshot of scheduler internals for debug/monitoring; <code>SchedulerReentrancyError</code> raised on invalid re-entrant scheduler use</td>
+<td>Experimental</td>
+</tr>
+<tr>
+<td><strong><code>Phronomy::Testing::FakeClock</code> / <code>FakeScheduler</code></strong> — Test helpers for deterministic concurrency specs: <code>FakeClock#advance(seconds)</code> controls time; <code>FakeScheduler#flush</code> / <code>#drain</code> drives task completion synchronously</td>
+<td>Experimental</td>
+</tr>
 </tbody>
 </table>
 <h2 id="Installation">Installation</h2>
@@ -284,11 +316,14 @@ Configure your provider credentials before using agents or chains:</p>
 <span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Approved: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_final'>final</span><span class='period'>.</span><span class='id identifier rubyid_approved'>approved</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>  <span class='comment'># =&gt; true
 </span></code></pre>
 <p>In EventLoop mode (<code>c.event_loop = true</code>), <code>Agent#run_as_child</code> spawns a child agent
-asynchronously. When the child succeeds, <code>:child_completed</code> is dispatched; when it fails,
-<code>:child_failed</code> is dispatched. Always declare both transitions to avoid a stuck workflow:</p>
-<pre class="code ruby"><code class="ruby"><span class='comment'># EventLoop mode: workflow that runs an agent as a child FSM
+asynchronously. When the child succeeds, <code>:child_completed</code> is dispatched with the result
+<code>{ output:, messages:, usage: }</code> as its payload; when it fails, <code>:child_failed</code> is
+dispatched. Always declare both transitions to avoid a stuck workflow:</p>
+<pre class="code ruby"><code class="ruby"><span class='comment'># EventLoop mode: workflow that runs an agent as a child FSM.
+</span><span class='comment'># The result { output:, messages:, usage: } arrives as the :child_completed event
+</span><span class='comment'># payload — write it back to the context in the target state&#39;s entry action.
 </span><span class='id identifier rubyid_entry'>entry</span> <span class='symbol'>:run_agent</span><span class='comma'>,</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
-  <span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_run_as_child'>run_as_child</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_query'>query</span><span class='comma'>,</span> <span class='label'>ctx:</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_r'>r</span><span class='op'>|</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_answer'>answer</span> <span class='op'>=</span> <span class='id identifier rubyid_r'>r</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
+  <span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_run_as_child'>run_as_child</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_query'>query</span><span class='comma'>,</span> <span class='label'>ctx:</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span>
 <span class='rbrace'>}</span>
 <span class='id identifier rubyid_transition'>transition</span> <span class='label'>from:</span> <span class='symbol'>:run_agent</span><span class='comma'>,</span> <span class='label'>on:</span> <span class='symbol'>:child_completed</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:done</span>
 <span class='id identifier rubyid_transition'>transition</span> <span class='label'>from:</span> <span class='symbol'>:run_agent</span><span class='comma'>,</span> <span class='label'>on:</span> <span class='symbol'>:child_failed</span><span class='comma'>,</span>    <span class='label'>to:</span> <span class='symbol'>:handle_error</span>
@@ -874,7 +909,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sun May 24 02:06:48 2026 by
+  Generated on Sun May 24 02:32:18 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
