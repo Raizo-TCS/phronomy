@@ -824,19 +824,25 @@ module Phronomy
 
           group = Phronomy::Runtime.instance.task_group(failure_policy: failure_policy)
 
+          bp = Phronomy.configuration.backpressure
+          rag_on_full = (bp == :raise) ? :reject : (bp || :wait)
+          rag_bp_timeout = Phronomy.configuration.backpressure_timeout
+
           # Spawn all fetches concurrently. Results are returned in spawn order
           # (i.e. registration order of knowledge sources) by TaskGroup#await_all.
           sources.each do |ks|
             group.spawn do
-              t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-              result = ks.fetch_async(
-                query: user_message,
-                cancellation_token: config[:cancellation_token],
-                timeout: config[:rag_timeout]
-              ).await
-              elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0
-              Phronomy.configuration.logger&.debug { "RAG fetch from #{ks.class.name} completed in #{(elapsed * 1000).round}ms" }
-              result
+              Phronomy::Runtime.instance.gate(:rag).acquire(on_full: rag_on_full, timeout: rag_bp_timeout) do
+                t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+                result = ks.fetch_async(
+                  query: user_message,
+                  cancellation_token: config[:cancellation_token],
+                  timeout: config[:rag_timeout]
+                ).await
+                elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0
+                Phronomy.configuration.logger&.debug { "RAG fetch from #{ks.class.name} completed in #{(elapsed * 1000).round}ms" }
+                result
+              end
             end
           end
 

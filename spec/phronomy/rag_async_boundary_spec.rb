@@ -135,3 +135,63 @@ RSpec.describe "RAG parallel multi-source fetch (Issue #303)" do
     }.not_to raise_error
   end
 end
+
+RSpec.describe "RAG gate enforcement (Issue #319)" do
+  let(:agent_class) { Class.new(Phronomy::Agent::Base) { model "test-model" } }
+  let(:agent) { agent_class.new }
+
+  around do |example|
+    # Limit the RAG gate to 1 concurrent fetch, reset afterwards.
+    original = Phronomy.configuration.max_concurrent_rag_fetches
+    Phronomy.configuration.max_concurrent_rag_fetches = 1
+    Phronomy::Runtime.instance.reset_gate(:rag)
+    example.run
+  ensure
+    Phronomy.configuration.max_concurrent_rag_fetches = original
+    Phronomy::Runtime.instance.reset_gate(:rag)
+  end
+
+  it "honours max_concurrent_rag_fetches by serialising fetches when cap is 1" do
+    # Each fetch sleeps briefly so we can measure concurrency.
+    concurrency = 0
+    max_seen = 0
+    mutex = Mutex.new
+
+    make_ks = lambda do
+      Class.new(Phronomy::KnowledgeSource::Base) do
+        define_method(:fetch) do |query: nil, cancellation_token: nil|
+          mutex.synchronize do
+            concurrency += 1
+            max_seen = concurrency if concurrency > max_seen
+          end
+          sleep 0.02
+          mutex.synchronize { concurrency -= 1 }
+          [{content: "data", type: "text", source: "s"}]
+        end
+      end.new
+    end
+
+    agent.send(:build_context, "q",
+      config: {knowledge_sources: [make_ks.call, make_ks.call, make_ks.call]})
+
+    # With a gate cap of 1, no more than 1 fetch should run simultaneously.
+    expect(max_seen).to eq(1)
+  end
+
+  it "tracks gate acquisition during fetch (Issue #319 gate is connected)" do
+    gate = Phronomy::Runtime.instance.gate(:rag)
+    observed = []
+
+    ks = Class.new(Phronomy::KnowledgeSource::Base) do
+      define_method(:fetch) do |query: nil, cancellation_token: nil|
+        observed << gate.current_count
+        [{content: "x", type: "text", source: "g"}]
+      end
+    end.new
+
+    agent.send(:build_context, "q", config: {knowledge_sources: [ks]})
+
+    # The gate should have been acquired (count == 1) during the fetch.
+    expect(observed).to eq([1])
+  end
+end
