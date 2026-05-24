@@ -27,6 +27,9 @@ RSpec.describe "Cooperative scheduler yield points (Issue #306)" do
     end
 
     it "only calls scheduler#yield at multiples of every: (thread-local counter)" do
+      # Reset thread-local counter: with FakeScheduler, tasks run synchronously
+      # on the main thread, so the counter accumulates across tests.
+      Thread.current[:phronomy_yield_if_needed_counter] = nil
       scheduler = Phronomy::Runtime::FakeScheduler.new
       runtime = Phronomy::Runtime.new(scheduler: scheduler)
       yield_calls = 0

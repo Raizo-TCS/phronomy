@@ -119,7 +119,14 @@ module Phronomy
         fsm_id = @id
         parent_id = @parent_id
 
-        Phronomy::Runtime.instance.spawn(name: "agent-fsm:#{fsm_id}") do
+        # Agent IO work (LLM / tool calls) must run in a real background thread.
+        # Using Runtime.instance.spawn with a cooperative (FakeScheduler) backend
+        # would execute the block synchronously, blocking the calling thread and
+        # preventing the EventLoop from dispatching other events.
+        Phronomy::Task.spawn(
+          name: "agent-fsm:#{fsm_id}",
+          backend_class: Phronomy::Task::ThreadBackend
+        ) do
           result = agent.send(:_invoke_impl,
             input,
             messages: messages,

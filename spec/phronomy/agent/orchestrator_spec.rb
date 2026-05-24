@@ -449,6 +449,16 @@ RSpec.describe Phronomy::Agent::Orchestrator do
   end
 
   describe "#dispatch_parallel timeout: option (Issue #133)" do
+    # dispatch_parallel timeout requires concurrent execution — force :thread backend.
+    around do |ex|
+      Phronomy.configure { |c| c.runtime_backend = :thread }
+      Phronomy::Runtime.instance_variable_set(:@instance, nil)
+      ex.run
+    ensure
+      Phronomy.reset_configuration!
+      Phronomy::Runtime.instance_variable_set(:@instance, nil)
+    end
+
     let(:orchestrator_class) { Class.new(described_class) }
     subject(:orchestrator) { orchestrator_class.new }
 
@@ -481,6 +491,16 @@ RSpec.describe Phronomy::Agent::Orchestrator do
   end
 
   describe "#dispatch_parallel force_kill: option (deprecated, Issue #235)" do
+    # dispatch_parallel timeout requires concurrent execution — force :thread backend.
+    around do |ex|
+      Phronomy.configure { |c| c.runtime_backend = :thread }
+      Phronomy::Runtime.instance_variable_set(:@instance, nil)
+      ex.run
+    ensure
+      Phronomy.reset_configuration!
+      Phronomy::Runtime.instance_variable_set(:@instance, nil)
+    end
+
     let(:orchestrator_class) { Class.new(described_class) }
     subject(:orchestrator) { orchestrator_class.new }
 

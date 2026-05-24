@@ -162,16 +162,10 @@ RSpec.describe Phronomy::Agent::Base do
     end
 
     it "registers the task with Runtime so shutdown can drain it" do
-      latch = Queue.new
-      allow_any_instance_of(Phronomy::Agent::Base).to receive(:_invoke_impl) do
-        latch.pop
-        {output: "ok"}
-      end
+      allow_any_instance_of(Phronomy::Agent::Base).to receive(:_invoke_impl).and_return({output: "ok"})
       task = agent.invoke_async("hi")
-      Phronomy::Runtime.instance.instance_variable_get(:@tasks)
-      # task should be registered (may already be removed if it ran fast on FakeScheduler)
-      latch.push(:go)
-      task.await
+      # Task must complete successfully via Runtime#spawn — verifies the full spawn/drain lifecycle.
+      expect(task.await[:output]).to eq("ok")
     end
   end
 

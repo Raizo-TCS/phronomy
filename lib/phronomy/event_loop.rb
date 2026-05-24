@@ -166,7 +166,14 @@ module Phronomy
       @shutdown_token = Phronomy::CancellationToken.new
       @fsm_count_mutex.synchronize { @fsm_count = 0 }
       @running = true
-      @task = Phronomy::Runtime.instance.spawn(name: "event-loop") do
+      # The dispatch loop must always run in a real background thread.
+      # A cooperative scheduler (FakeScheduler/ImmediateBackend) executes tasks
+      # synchronously on the caller's thread, which would block forever inside
+      # the run_loop infinite loop.  Create a dedicated Runtime with
+      # ThreadScheduler to guarantee async execution regardless of the global
+      # runtime_backend setting.
+      thread_runtime = Phronomy::Runtime.new(scheduler: Phronomy::Runtime::ThreadScheduler.new)
+      @task = thread_runtime.spawn(name: "event-loop") do
         run_loop
       end
       self

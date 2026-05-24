@@ -33,18 +33,18 @@ module Phronomy
     #
     # Auto-creates an instance using the scheduler backend specified by
     # +Phronomy.configuration.runtime_backend+:
-    # - +:thread+ (default) — {ThreadScheduler}
-    # - +:deterministic+ — {FakeScheduler}
+    # - +:cooperative+ (default) — {FakeScheduler} (cooperative task scheduler)
+    # - +:thread+ — {ThreadScheduler} (legacy opt-in threading mode)
     #
     # @return [Runtime]
     # @api private
     def self.instance
       @instance ||= begin
         scheduler = case Phronomy.configuration.runtime_backend
-        when :deterministic
-          FakeScheduler.new
-        else
+        when :thread
           ThreadScheduler.new
+        else
+          FakeScheduler.new
         end
         new(scheduler: scheduler)
       end

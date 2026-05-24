@@ -81,14 +81,14 @@ RSpec.describe "Phronomy.configure" do
 
   # Issue #313: runtime_backend configuration
   describe "runtime_backend" do
-    it "defaults to :thread" do
-      expect(Phronomy::Configuration.new.runtime_backend).to eq(:thread)
+    it "defaults to :cooperative" do
+      expect(Phronomy::Configuration.new.runtime_backend).to eq(:cooperative)
     end
 
-    it "can be set to :deterministic" do
+    it "can be set to :thread" do
       config = Phronomy::Configuration.new
-      config.runtime_backend = :deterministic
-      expect(config.runtime_backend).to eq(:deterministic)
+      config.runtime_backend = :thread
+      expect(config.runtime_backend).to eq(:thread)
     end
   end
 

@@ -11,9 +11,9 @@
 #   - Only BlockingAdapterPool workers may create Threads, and only at
 #     pool initialisation time (not during submit calls).
 #
-# NOTE: FakeScheduler is the cooperative backend available today.  When
-# runtime_backend configuration is introduced (Issue #313), these tests will
-# be updated to use `Phronomy.configure { |c| c.runtime_backend = :cooperative }`.
+# With runtime_backend = :cooperative (the default), Runtime.instance uses
+# FakeScheduler automatically.  These tests set it explicitly to remain
+# robust when a future Fiber-based scheduler replaces FakeScheduler.
 RSpec.describe "Thread-independence under FakeScheduler (Issue #309)" do
   # Build a Runtime backed by FakeScheduler and make it the shared instance
   # for the duration of each example.

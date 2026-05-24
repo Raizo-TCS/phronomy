@@ -165,7 +165,10 @@ module Phronomy
     # @api private
     def cancel!
       transition!(:cancelled)
-      @backend.cancel!
+      # @backend may be nil if cancel! is called while ImmediateBackend is still
+      # initializing (the block runs synchronously inside .new, so register_child
+      # fires before @backend is assigned).  Safe-navigate to avoid NoMethodError.
+      @backend&.cancel!
       children = @mutex.synchronize { @children.dup }
       children.each(&:cancel!)
       self
