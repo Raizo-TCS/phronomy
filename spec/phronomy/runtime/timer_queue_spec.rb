@@ -91,6 +91,26 @@ RSpec.describe Phronomy::Runtime::TimerQueue do
     end
   end
 
+  describe "regression: Issue #318 — callback exception and schedule-after-shutdown safety" do
+    it "does not kill the timer thread when a callback raises" do
+      real_queue = described_class.new
+      fired_after = false
+
+      real_queue.schedule(seconds: 0.01) { raise "boom" }
+      real_queue.schedule(seconds: 0.05) { fired_after = true }
+      sleep 0.12
+
+      expect(fired_after).to be(true), "timer thread died after callback exception"
+      real_queue.shutdown
+    end
+
+    it "raises SchedulerShutdownError (or equivalent) when schedule is called after shutdown" do
+      tq = described_class.new
+      tq.shutdown
+      expect { tq.schedule(seconds: 1) { nil } }.to raise_error(Phronomy::Error)
+    end
+  end
+
   describe "acceptance criterion: 1000 Deadline instances do not add 1000 Threads" do
     it "creates at most 1 extra thread for all deadlines" do
       runtime = Phronomy::Runtime.new

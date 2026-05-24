@@ -35,6 +35,7 @@ module Phronomy
       def schedule(seconds:, &callback)
         fire_at = @clock.call + seconds.to_f
         @mutex.synchronize do
+          raise Phronomy::PoolShutdownError, "TimerQueue has been shut down" if @stopped
           insert_sorted(fire_at, callback)
           @cond.signal
         end
@@ -72,7 +73,11 @@ module Phronomy
         loop do
           callback = next_callback
           break if callback == :stopped
-          callback&.call
+          begin
+            callback&.call
+          rescue => e
+            Phronomy.configuration.logger&.error { "[TimerQueue] callback raised #{e.class}: #{e.message}" }
+          end
         end
       end
 
