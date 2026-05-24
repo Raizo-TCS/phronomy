@@ -141,7 +141,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
   # ===========================================================================
   # STDIO transport tests
   # ===========================================================================
-  describe "stdio transport" do
+  describe "stdio transport", real_backend: :mcp_stdio do
     # TC-001: stdio + tools_list_ok — from_server returns a McpTool instance
     describe "TC-001: stdio + tools_list_ok — from_server succeeds" do
       it "builds a McpTool with description and params from server" do
@@ -204,7 +204,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
   # ===========================================================================
   # HTTP transport — JSON responses
   # ===========================================================================
-  describe "http transport — JSON responses" do
+  describe "http transport — JSON responses", real_backend: :mcp_http do
     include_context "with http mcp server", response_mode: :json_ok
 
     # TC-006: http + tools_list_ok + json — from_server returns McpTool
@@ -232,7 +232,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     end
   end
 
-  describe "http transport — JSON responses (empty tools list)" do
+  describe "http transport — JSON responses (empty tools list)", real_backend: :mcp_http do
     include_context "with http mcp server", response_mode: :json_ok, tools_empty: true
 
     # TC-007: http + tools_list_empty + json — ArgumentError
@@ -248,7 +248,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     end
   end
 
-  describe "http transport — JSON multi-content response" do
+  describe "http transport — JSON multi-content response", real_backend: :mcp_http do
     include_context "with http mcp server", response_mode: :json_multi
 
     # TC-009: http + tools_call_multi + json — Array returned
@@ -264,7 +264,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     end
   end
 
-  describe "http transport — 500 error response" do
+  describe "http transport — 500 error response", real_backend: :mcp_http do
     include_context "with http mcp server", response_mode: :error_500
 
     # TC-010: http + http_error (500) + json — ToolError raised
@@ -283,7 +283,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
   # ===========================================================================
   # HTTP transport — SSE responses
   # ===========================================================================
-  describe "http transport — SSE responses" do
+  describe "http transport — SSE responses", real_backend: :mcp_http do
     include_context "with http mcp server", response_mode: :sse_ok
 
     # TC-011: http + tools_list_ok + sse — from_server parses SSE JSON-RPC
@@ -309,7 +309,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     end
   end
 
-  describe "http transport — SSE response without valid JSON-RPC" do
+  describe "http transport — SSE response without valid JSON-RPC", real_backend: :mcp_http do
     include_context "with http mcp server", response_mode: :sse_no_rpc
 
     # TC-018: sse without JSON-RPC message → ToolError
@@ -328,7 +328,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
   # ===========================================================================
   # HTTPS transport — use_ssl flag (unit-level check; no actual TLS server)
   # ===========================================================================
-  describe "TC-012: https:// scheme sets use_ssl=true on Net::HTTP" do
+  describe "TC-012: https:// scheme sets use_ssl=true on Net::HTTP", real_backend: :mcp_http do
     it "configures Net::HTTP to use SSL" do
       transport = Phronomy::Tool::McpTool::HttpTransport.new("https://example.com/mcp")
       allow(Net::HTTP).to receive(:new).and_call_original
@@ -363,7 +363,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
   # Unsupported scheme
   # ===========================================================================
   # TC-013: unsupported scheme → ArgumentError
-  describe "TC-013: unsupported transport scheme — ArgumentError" do
+  describe "TC-013: unsupported transport scheme — ArgumentError", real_backend: :mcp_http do
     it "raises ArgumentError for an unknown scheme" do
       expect {
         Phronomy::Tool::McpTool.from_server("grpc://localhost:50051", tool_name: "greet")

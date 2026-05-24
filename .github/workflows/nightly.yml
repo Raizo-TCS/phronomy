@@ -182,3 +182,35 @@ jobs:
             --format documentation \
             --tag nightly
 
+  # ---------------------------------------------------------------------------
+  # 1d. MCP transports — stdio and HTTP/SSE fake server integration tests
+  # ---------------------------------------------------------------------------
+  real-backend-mcp:
+    runs-on: ubuntu-latest
+    name: MCP Transport (${{ matrix.ruby }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ['3.2', '3.3']
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby ${{ matrix.ruby }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: false
+
+      - name: Install base dependencies
+        run: bundle install --jobs 4
+
+      - name: Run MCP transport integration specs (stdio + HTTP/SSE)
+        run: |
+          bundle exec rspec spec/integration/mcp_http_spec.rb \
+            --format documentation \
+            --tag integration
+
