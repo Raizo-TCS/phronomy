@@ -92,25 +92,22 @@ module Phronomy
         (@entry_actions[@current_state] || []).each do |c|
           result = c.call(@ctx)
           if result.is_a?(Phronomy::Task)
-            # Awaitable action: spawn a thread to await without blocking EventLoop.
+            # Awaitable action: spawn a task to await without blocking EventLoop.
             @tracker.async_pending = true
-            ctx_ref = @ctx
             session_id = @id
-            Thread.new do
-              begin
-                task_result = result.await
-                if task_result.is_a?(Phronomy::WorkflowContext)
-                  event_loop.post(Event.new(type: :action_completed, target_id: session_id, payload: task_result))
-                else
-                  event_loop.post(Event.new(type: :state_completed, target_id: session_id, payload: nil))
-                end
-              rescue => e
-                event_loop.post(Event.new(type: :error, target_id: session_id, payload: e))
+            Phronomy::Task.spawn(name: "fsm-await-#{session_id}") do
+              task_result = result.await
+              if task_result.is_a?(Phronomy::WorkflowContext)
+                event_loop.post(Event.new(type: :action_completed, target_id: session_id, payload: task_result))
+              else
+                event_loop.post(Event.new(type: :state_completed, target_id: session_id, payload: nil))
               end
+            rescue => e
+              event_loop.post(Event.new(type: :error, target_id: session_id, payload: e))
             end
             break # Only one async action at a time per state
-          else
-            @ctx = result if result.is_a?(Phronomy::WorkflowContext)
+          elsif result.is_a?(Phronomy::WorkflowContext)
+            @ctx = result
           end
         end
         @tracker.context = @ctx

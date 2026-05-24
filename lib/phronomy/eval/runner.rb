@@ -32,25 +32,25 @@ module Phronomy
         cases = dataset.to_a
         return cases.map { |eval_case| run_one(eval_case, callable) } if concurrency <= 1
 
-        # Run cases in slices of +concurrency+ threads. Each slice is joined
-        # before the next starts, bounding peak thread count to +concurrency+.
-        # Writing to pre-allocated slots (one per thread) is safe because each
-        # thread writes to a unique index and all threads in a slice are joined
+        # Run cases in slices of +concurrency+ tasks. Each slice is joined
+        # before the next starts, bounding peak task count to +concurrency+.
+        # Writing to pre-allocated slots (one per task) is safe because each
+        # task writes to a unique index and all tasks in a slice are joined
         # before the next slice begins.
-        # Exceptions in worker threads are collected and re-raised after all
-        # threads in the slice are joined, preventing orphaned threads.
+        # Exceptions in worker tasks are collected and re-raised after all
+        # tasks in the slice are joined, preventing orphaned tasks.
         results = Array.new(cases.length)
         cases.each_with_index.each_slice(concurrency) do |batch|
           errors = []
           errors_mu = Mutex.new
-          threads = batch.map do |eval_case, i|
-            Thread.new do
+          tasks = batch.map do |eval_case, i|
+            Phronomy::Task.spawn(name: "eval-case-#{i}") do
               results[i] = run_one(eval_case, callable)
             rescue => e
               errors_mu.synchronize { errors << e }
             end
           end
-          threads.each(&:join)
+          tasks.each(&:join)
           raise errors.first if errors.any?
         end
         results

@@ -74,18 +74,18 @@ module Phronomy
 
       # @api private
       def initialize(block, timeout: nil, cancellation_token: nil, on_abandoned: nil)
-        @block              = block
-        @timeout            = timeout
+        @block = block
+        @timeout = timeout
         @cancellation_token = cancellation_token
-        @on_abandoned       = on_abandoned
-        @value              = nil
-        @error              = nil
-        @done               = false
-        @abandoned          = false
-        @wait_time          = nil
-        @submitted_at       = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        @mutex              = Mutex.new
-        @cond               = ConditionVariable.new
+        @on_abandoned = on_abandoned
+        @value = nil
+        @error = nil
+        @done = false
+        @abandoned = false
+        @wait_time = nil
+        @submitted_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        @mutex = Mutex.new
+        @cond = ConditionVariable.new
       end
 
       # @api private
@@ -114,7 +114,7 @@ module Phronomy
       def complete_with_value!(value)
         @mutex.synchronize do
           @value = value
-          @done  = true
+          @done = true
           @cond.broadcast
         end
       end
@@ -122,7 +122,7 @@ module Phronomy
       def complete_with_error!(error)
         @mutex.synchronize do
           @error = error
-          @done  = true
+          @done = true
           @cond.broadcast
         end
       end
@@ -130,19 +130,21 @@ module Phronomy
 
     # @param pool_size  [Integer] maximum number of worker threads
     # @param queue_size [Integer] maximum pending operations waiting for a worker
+    # @param name       [String, Symbol, nil] optional pool name used in thread labels
     # @param logger     [Logger, nil] optional logger for warnings
-    def initialize(pool_size: 10, queue_size: 100, logger: nil)
-      @pool_size        = pool_size
-      @queue_size       = queue_size
-      @logger           = logger
-      @queue            = SizedQueue.new(queue_size)
-      @active_count     = 0
-      @abandoned_count  = 0
-      @total_wait_ns    = 0
-      @completed_count  = 0
-      @mutex            = Mutex.new
-      @shutdown         = false
-      @workers          = Array.new(pool_size) { spawn_worker }
+    def initialize(pool_size: 10, queue_size: 100, name: nil, logger: nil)
+      @pool_size = pool_size
+      @queue_size = queue_size
+      @name = name
+      @logger = logger
+      @queue = SizedQueue.new(queue_size)
+      @active_count = 0
+      @abandoned_count = 0
+      @total_wait_ns = 0
+      @completed_count = 0
+      @mutex = Mutex.new
+      @shutdown = false
+      @workers = Array.new(pool_size) { |i| spawn_worker(i) }
     end
 
     # Submits a blocking operation to the pool.
@@ -170,15 +172,13 @@ module Phronomy
       when :timeout
         deadline = full_timeout ? (Process.clock_gettime(Process::CLOCK_MONOTONIC) + full_timeout) : nil
         loop do
-          begin
-            @queue.push(op, true)
-            break
-          rescue ThreadError
-            if deadline && Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
-              raise Phronomy::TimeoutError, "timed out waiting for a free slot in BlockingAdapterPool"
-            end
-            sleep(0.005)
+          @queue.push(op, true)
+          break
+        rescue ThreadError
+          if deadline && Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+            raise Phronomy::TimeoutError, "timed out waiting for a free slot in BlockingAdapterPool"
           end
+          sleep(0.005)
         end
       else # :wait (default)
         @queue.push(op)
@@ -232,13 +232,18 @@ module Phronomy
     # @return [Integer] configured maximum queue depth
     attr_reader :queue_size
 
+    # @return [String, Symbol, nil] pool name used in thread labels
+    attr_reader :name
+
     private
 
     SENTINEL = :shutdown
     private_constant :SENTINEL
 
-    def spawn_worker
+    def spawn_worker(index = nil)
+      label = ["phronomy", "blocking-pool", @name, index].compact.join("-")
       Thread.new do
+        Thread.current.name = label
         loop do
           op = @queue.pop
           break if op == SENTINEL
@@ -261,8 +266,8 @@ module Phronomy
             @logger&.warn { "BlockingAdapterPool: worker finished operation after caller timed out" }
           end
 
-          @total_wait_ns    += (op.wait_time * 1_000_000_000).to_i
-          @completed_count  += 1
+          @total_wait_ns += (op.wait_time * 1_000_000_000).to_i
+          @completed_count += 1
         end
       end
     end

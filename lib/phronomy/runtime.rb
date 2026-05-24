@@ -49,6 +49,8 @@ module Phronomy
       @tasks = []
       @timer_queue = nil
       @timer_mutex = Mutex.new
+      @pools = {}
+      @pool_mutex = Mutex.new
     end
 
     # Creates a new {TaskGroup} with an optional concurrency cap.
@@ -86,7 +88,31 @@ module Phronomy
     # @param queue_size [Integer] max pending operations (default: 100)
     # @return [BlockingAdapterPool]
     def blocking_io(pool_size: 10, queue_size: 100)
-      @blocking_io ||= BlockingAdapterPool.new(pool_size: pool_size, queue_size: queue_size)
+      @blocking_io ||= BlockingAdapterPool.new(name: :default, pool_size: pool_size, queue_size: queue_size)
+    end
+
+    # Returns (or lazily creates) a named {BlockingAdapterPool}.
+    #
+    # Named pools allow per-subsystem thread-budget control and observability.
+    # Recommended pool names: +:llm+, +:mcp+, +:db+, +:redis+, +:tool+.
+    # Each pool gets its own dedicated worker threads labelled with the pool name.
+    #
+    # @example
+    #   runtime.pool(:llm)            # default size (10 workers)
+    #   runtime.pool(:db, size: 20)   # custom size
+    #
+    # @param name      [Symbol, String] pool identifier
+    # @param size      [Integer] worker thread count (default: 10)
+    # @param queue_size [Integer] max pending operations (default: 100)
+    # @return [BlockingAdapterPool]
+    def pool(name, size: 10, queue_size: 100)
+      @pool_mutex.synchronize do
+        @pools[name.to_sym] ||= BlockingAdapterPool.new(
+          name: name,
+          pool_size: size,
+          queue_size: queue_size
+        )
+      end
     end
 
     # Returns the shared {TimerQueue} for this Runtime.
@@ -100,7 +126,7 @@ module Phronomy
     end
 
     # Waits for all registered tasks to finish, then shuts down the
-    # blocking adapter pool and timer queue (if they were started).
+    # blocking adapter pool, named pools, and timer queue (if they were started).
     #
     # Call this before process exit to avoid leaving orphaned threads or
     # pending work items.
@@ -114,6 +140,8 @@ module Phronomy
         nil
       end
       @blocking_io&.shutdown
+      pools = @pool_mutex.synchronize { @pools.values.dup }
+      pools.each(&:shutdown)
       @timer_mutex.synchronize { @timer_queue&.shutdown }
     end
   end

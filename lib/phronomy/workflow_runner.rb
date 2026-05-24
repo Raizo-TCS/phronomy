@@ -214,8 +214,8 @@ module Phronomy
           if result.is_a?(Phronomy::Task)
             task_result = result.await
             ctx = task_result if task_result.is_a?(Phronomy::WorkflowContext)
-          else
-            ctx = result if result.is_a?(Phronomy::WorkflowContext)
+          elsif result.is_a?(Phronomy::WorkflowContext)
+            ctx = result
           end
         end
         tracker.context = ctx
@@ -359,41 +359,39 @@ module Phronomy
                 result = callable.call(machine.context)
                 if result.is_a?(Phronomy::Task)
                   if Phronomy.configuration.event_loop
-                    # EventLoop mode: await in a background thread so the EventLoop
+                    # EventLoop mode: await in a background task so the EventLoop
                     # thread is not blocked. Signal async_pending so FSMSession
                     # skips the automatic advance_or_halt step.
                     machine.async_pending = true
                     ctx_ref = machine.context
                     thread_id = ctx_ref.thread_id
-                    Thread.new do
-                      begin
-                        task_result = result.await
-                        if task_result.is_a?(Phronomy::WorkflowContext)
-                          Phronomy::EventLoop.instance.post(
-                            Phronomy::Event.new(
-                              type: :action_completed,
-                              target_id: thread_id,
-                              payload: task_result
-                            )
-                          )
-                        else
-                          Phronomy::EventLoop.instance.post(
-                            Phronomy::Event.new(type: :state_completed, target_id: thread_id, payload: nil)
-                          )
-                        end
-                      rescue => e
+                    Phronomy::Task.spawn(name: "wf-await-#{thread_id}") do
+                      task_result = result.await
+                      if task_result.is_a?(Phronomy::WorkflowContext)
                         Phronomy::EventLoop.instance.post(
-                          Phronomy::Event.new(type: :error, target_id: thread_id, payload: e)
+                          Phronomy::Event.new(
+                            type: :action_completed,
+                            target_id: thread_id,
+                            payload: task_result
+                          )
+                        )
+                      else
+                        Phronomy::EventLoop.instance.post(
+                          Phronomy::Event.new(type: :state_completed, target_id: thread_id, payload: nil)
                         )
                       end
+                    rescue => e
+                      Phronomy::EventLoop.instance.post(
+                        Phronomy::Event.new(type: :error, target_id: thread_id, payload: e)
+                      )
                     end
                   else
                     # Non-EventLoop mode: block synchronously on the task result.
                     task_result = result.await
                     machine.context = task_result if task_result.is_a?(Phronomy::WorkflowContext)
                   end
-                else
-                  machine.context = result if result.is_a?(Phronomy::WorkflowContext)
+                elsif result.is_a?(Phronomy::WorkflowContext)
+                  machine.context = result
                 end
               end
             end

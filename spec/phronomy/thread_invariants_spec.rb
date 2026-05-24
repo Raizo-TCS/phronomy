@@ -112,6 +112,7 @@ RSpec.describe "Thread.current confinement (Issue #302)", :issue_302 do
     lib/phronomy/task.rb
     lib/phronomy/task/thread_backend.rb
     lib/phronomy/task/immediate_backend.rb
+    lib/phronomy/blocking_adapter_pool.rb
   ].freeze
 
   it "Thread.current is not referenced outside the allowed files" do
@@ -135,6 +136,44 @@ RSpec.describe "Thread.current confinement (Issue #302)", :issue_302 do
 
     expect(violations).to be_empty,
       "Thread.current used outside allowed files (use EventLoop.current? or InvocationContext instead):\n" \
+      "#{violations.join("\n")}"
+  end
+end
+
+# Issue #286 — Thread.new must only appear in files that own a Thread-creation
+# zone.  All other concurrency must go through Phronomy::Task.spawn (backed by
+# ThreadBackend during the transition period) or BlockingAdapterPool#submit.
+RSpec.describe "Thread.new confinement (Issue #286)", :issue_286 do
+  # Files authorised to call Thread.new directly.
+  THREAD_NEW_ALLOWLIST = %w[
+    lib/phronomy/blocking_adapter_pool.rb
+    lib/phronomy/task/thread_backend.rb
+    lib/phronomy/runtime/timer_queue.rb
+    lib/phronomy/event_loop.rb
+    lib/phronomy/tool/mcp_tool.rb
+  ].freeze
+
+  it "Thread.new is not called outside the allowed files" do
+    lib_root = File.expand_path("../../lib", __dir__)
+    project_root = File.expand_path("..", lib_root)
+    lib_files = Dir.glob("#{lib_root}/**/*.rb")
+
+    violations = []
+    lib_files.each do |abs_path|
+      rel_path = abs_path.sub("#{project_root}/", "")
+      next if THREAD_NEW_ALLOWLIST.any? { |allowed| rel_path == allowed }
+      next if rel_path.start_with?("lib/phronomy/testing/")
+
+      File.foreach(abs_path).each_with_index do |line, idx|
+        next if line.strip.start_with?("#")
+        next unless line.include?("Thread.new")
+
+        violations << "#{rel_path}:#{idx + 1}: #{line.strip}"
+      end
+    end
+
+    expect(violations).to be_empty,
+      "Thread.new used outside allowed files (use Phronomy::Task.spawn or BlockingAdapterPool#submit instead):\n" \
       "#{violations.join("\n")}"
   end
 end
