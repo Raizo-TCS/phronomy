@@ -11,6 +11,104 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`Phronomy::Diagnostics` and `SchedulerReentrancyError`** (#278, #279):
+  `Phronomy::Diagnostics` exposes a snapshot of current scheduler state
+  (`pending_count`, `active_tasks`, `pool_utilization`, etc.) for debugging and
+  monitoring. `SchedulerReentrancyError` is raised when a scheduler operation is
+  attempted from within a scheduler callback, preventing deadlocks.
+  `Phronomy.configure { |c| c.scheduler_debug = true }` enables verbose scheduler
+  logging.
+
+- **`task_id` / `parent_task_id` on `InvocationContext`** (#277):
+  Every task spawned via `Task.spawn` now carries a `task_id` (a random UUID) and
+  an optional `parent_task_id`. These fields enable hierarchical task-tree tracing
+  and are forwarded automatically by `TaskGroup`.
+
+- **`Phronomy::Metrics` — task-centric observability snapshot** (#276):
+  `Phronomy::Metrics.snapshot` returns a hash with scheduler statistics:
+  `tasks_started`, `tasks_completed`, `tasks_failed`, `pool_queue_depth`, and
+  `pool_active_threads`. Intended for metrics export and health-check endpoints.
+
+- **`Phronomy::Testing::FakeClock` and `FakeScheduler`** (#273):
+  Two test helpers for deterministic concurrency testing.
+  `FakeClock` exposes `advance(seconds)` to control the passage of time without
+  sleeping. `FakeScheduler` replaces the real scheduler in specs, providing
+  synchronous execution and `flush` / `drain` helpers to drive task completion.
+
+- **`ScopePolicy` and approval gate integration** (#270):
+  `Phronomy::Tool::ScopePolicy` is a callable that maps `(tool_class, scope, agent)`
+  to `:allow`, `:approve`, or `:reject`. The default policy (`ScopePolicy::DEFAULT`)
+  automatically routes tools declaring high-risk scopes (`:write`, `:admin`,
+  `:external_network`, `:filesystem`, `:process`, `:external_process`) through the
+  existing approval gate; tools with `scope :read_only` or no scope are allowed
+  unconditionally. Per-agent policy overrides are available via
+  `agent.scope_policy = my_policy`.
+  **Behaviour change**: tools with the above scopes that previously executed without
+  an approval handler will now be **rejected** unless an approval handler is
+  registered or the agent uses a custom permissive policy.
+
+- **`PromptInjectionGuardrail`, `Tool::Base#redact_params`, and `#max_result_size`** (#271):
+  `Phronomy::Guardrail::PromptInjectionGuardrail` is a built-in `InputGuardrail`
+  subclass that detects prompt-injection patterns in user input.
+  `Tool::Base.redact_params(*names)` marks parameter names as sensitive; their
+  values are replaced with `"[REDACTED]"` in log and trace output.
+  `Tool::Base.max_result_size(n)` sets a per-tool character limit; results
+  exceeding the limit are truncated and a warning is logged. The global fallback is
+  `Phronomy.configure { |c| c.tool_result_max_size = n }` (default: no limit).
+
+- **`execution_mode` DSL on `Tool::Base`** (#263):
+  `Tool::Base.execution_mode` accepts `:cooperative`, `:blocking_io` (default),
+  `:cpu_bound`, or `:external_process`. Tools marked `:blocking_io` (the default)
+  are dispatched through `BlockingAdapterPool` when a `Runtime` is available,
+  keeping the scheduler thread unblocked. Tools marked `:cooperative` are called
+  directly on the scheduler thread (suitable for pure in-memory operations).
+
+- **`invoke_async` and `call_async` — async entry points** (#262):
+  `Agent::Base#invoke_async(input, **opts)` returns a `Phronomy::Task` wrapping
+  `#invoke`. `Workflow#invoke_async(input, config:)` does the same for workflows.
+  `Tool::Base#call_async(args, cancellation_token:)` returns a `Task` wrapping
+  `#call`. All three are backward-compatible with existing synchronous callers.
+
+- **`LLMAdapter` abstraction** (#266):
+  `Phronomy::LLMAdapter::Base` decouples the agent pipeline from RubyLLM.
+  `Phronomy::LLMAdapter::RubyLLM` (registered by default) wraps the existing
+  integration. Custom adapters can be registered via
+  `Phronomy.configure { |c| c.llm_adapter = MyAdapter }` for testing or
+  alternative LLM backends.
+
+- **`BlockingAdapterPool` backpressure limits** (#268):
+  `BlockingAdapterPool` now enforces configurable `pool_size` (default: 10) and
+  `queue_size` (default: 100) limits. Tasks submitted when the queue is full raise
+  `Phronomy::BackpressureError` immediately instead of growing the queue without
+  bound.
+
+- **Cooperative scheduler fairness** (#269):
+  The scheduler measures per-task lag and emits starvation and dispatch warnings
+  via `Phronomy.configuration.logger` when tasks wait longer than configured
+  thresholds. Configurable via `scheduler_starvation_warn_ms` and
+  `scheduler_dispatch_warn_ms`.
+
+- **Workflow entry actions awaitable with Task** (#264):
+  Entry action lambdas may now return a `Phronomy::Task`. The FSMSession awaits
+  the task on a background thread and posts `:action_completed` (with the resulting
+  `WorkflowContext`) or `:state_completed` back to the EventLoop without blocking
+  it. Backward-compatible: lambdas that return a `WorkflowContext` or `nil`
+  continue to work as before.
+
+- **`Task`, `TaskGroup`, `AsyncQueue`, `Deadline`, `InvocationContext`, `Runtime` concurrency abstractions** (#255):
+  Six new concurrency primitives form the foundation of the async execution layer.
+  `Task` wraps a callable with cancellation, timeout (`Deadline`), and context
+  propagation (`InvocationContext`). `TaskGroup` runs tasks concurrently and waits
+  for all to finish (or the first failure). `AsyncQueue` is a bounded, cancellable
+  queue. `Runtime` is the top-level façade that resolves a `BlockingAdapterPool`
+  and provides `blocking_io { }` and `cpu_bound { }` dispatch helpers.
+
+- **`BlockingAdapterPool`** (#256):
+  A bounded thread pool that isolates blocking I/O (LLM calls, database queries,
+  HTTP requests) from the cooperative scheduler thread. Default pool size is 10
+  threads with a queue depth of 100. Replaces direct `Thread.new` calls in core
+  agent and tool paths.
+
 - **`VectorStore#size` — document count for all backends, contract coverage for RedisSearch and Pgvector** (#240):
   `VectorStore::Base` gains `#size` as an abstract method; `InMemory`, `RedisSearch`,
   and `Pgvector` all implement it. `RedisSearch#size` queries `FT.INFO num_docs`;
@@ -128,9 +226,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `dispatch_parallel` and `fan_out` accept `cancellation_token:` and automatically
   inject it into every worker task's config unless the task already supplies its own.
 
+### Removed
+
+- **BREAKING: `Agent::Base#run_as_child` drops `&result_writer` block parameter** (#265):
+  The optional block form `run_as_child(input, ctx: ctx) { |r| ctx.answer = r[:output] }`
+  is no longer supported. The result is now delivered **exclusively** as the
+  `:child_completed` event payload `{ output:, messages:, usage: }`. The parent
+  Workflow task is the sole owner of the `WorkflowContext`; no background thread
+  writes to it directly. Callers that were using the block to write back into the
+  context must update their workflow design (e.g. read the result in the target
+  state's entry action after the transition, or store output through an external
+  shared resource if needed).
+
+- **BREAKING (internal): `AgentFSM#initialize` drops `result_writer:` keyword** (#265):
+  Direct callers of `AgentFSM.new(result_writer: ...)` must remove that keyword.
+  This class is considered internal; gem consumers should use `run_as_child` instead.
+
 ### Changed
 
-- **`CancellationToken` checked at granular checkpoints** (#223):
+- **`AgentFSM`, `ParallelToolChat`, and `Orchestrator` use `Task`/`TaskGroup` instead of bare `Thread.new`** (#257, #258, #259):
+  All three components now spawn async work through the `Task` and `TaskGroup`
+  abstractions. This enables cancellation propagation, context threading, and
+  `BlockingAdapterPool` routing. No public API changes; behaviour is equivalent.
+
+- **`Thread.current[:phronomy_*]` context propagation replaced with explicit `InvocationContext`** (#260):
+  Thread-local keys `phronomy_event_loop_thread`, `phronomy_cancellation_token`,
+  and `phronomy_context_version_caches` are no longer used as the primary
+  propagation channel. `InvocationContext` is threaded explicitly through call
+  stacks. Importantly, `Tool::Base#call` no longer falls back to
+  `Thread.current[:phronomy_cancellation_token]`; cancellation is only observed
+  when the caller passes `cancellation_token:` explicitly (or when
+  `ParallelToolChat` injects it). Tools that relied on the thread-local fallback
+  must be updated.
+
+- **`Timeout.timeout` removed from core paths; replaced with `CancellationScope`** (#261):
+  `Agent::Base#invoke` and `McpTool::StdioTransport` no longer use `Timeout.timeout`
+  (which is unsafe with `Thread.new` and `ensure` blocks). A `CancellationScope`
+  with `deadline_in(seconds)` provides equivalent semantics without the thread-
+  interruption hazards. `ScopeTimeoutError < TimeoutError` is raised on expiry.
+
+- **RAG/VectorStore blocking I/O placed behind `BlockingAdapterPool` async boundary** (#267):
+  `KnowledgeSource#fetch` and all three `VectorStore` backends now execute their
+  blocking I/O through `Runtime#blocking_io` when a `Runtime` is present. Callers
+  in a synchronous context see no change; callers in an EventLoop context benefit
+  from non-blocking scheduler behaviour.
+
+
   The cancellation token (passed via `config: { cancellation_token: token }`) is
   now checked at multiple additional points beyond the initial LLM call boundary:
   before each `KnowledgeSource#fetch` in `build_context` (RAG phase); after each
@@ -194,6 +335,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   enabling accurate structured argument generation for complex tool parameters.
 
 ### Fixed
+
+- **`tool_name` preserved in `Orchestrator#prepare_tool_class` anonymous subclass wrapper**:
+  When `Orchestrator#prepare_tool_class` wrapped a subagent tool in an anonymous
+  subclass (`Class.new(prepared)`), the class-level instance variable `@tool_name`
+  was not inherited, causing the wrapper's `tool_name` to return `nil`. RubyLLM
+  then registered the tool under a `nil` key, making it unreachable when the LLM
+  called it by name. The fix captures the effective name before subclassing and
+  calls `tool_name effective_name` explicitly inside the anonymous class body —
+  the same pattern already used by the approval-gate wrapper.
 
 - **`EventLoop#start` is now idempotent; stale `:__stop__` sentinel race fixed** (#203):
   Calling `start` on an already-running `EventLoop` is now a no-op. Fixed a race condition

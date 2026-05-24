@@ -47,6 +47,14 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **`Phronomy.with_configuration` / `Phronomy.reset_runtime!`** — Scoped configuration override and full runtime reset for test isolation | Beta |
 | **CancellationToken** — Cooperative cancellation via `cancel!`/`cancelled?`/`raise_if_cancelled!`; `timeout_after(seconds)` for monotonic-clock deadlines; optional `deadline:` (wall-clock) for backward compatibility; passed as `config: { cancellation_token: token }` to agents and `dispatch_parallel`; injected into `tool.execute` when the method declares a `cancellation_token:` keyword | Experimental |
 | **`dispatch_parallel` / `fan_out` `force_kill:` option** — `force_kill: false` (default) leaves timed-out workers running and raises `TimeoutError` immediately; `force_kill: true` restores the old `Thread#kill` behaviour with a `logger.warn` | Beta |
+| **`execution_mode` DSL on `Tool::Base`** — Declares how a tool's `execute` should be dispatched: `:cooperative` (same scheduler thread), `:blocking_io` (default; offloaded to `BlockingAdapterPool`), `:cpu_bound`, `:external_process` | Experimental |
+| **`invoke_async` / `call_async`** — `Agent::Base#invoke_async` and `Workflow#invoke_async` return a `Task`; `Tool::Base#call_async` similarly; compatible with EventLoop and standalone contexts | Experimental |
+| **`ScopePolicy`** — Configurable policy callable that maps (tool, scope, agent) to `:allow`/`:approve`/`:reject`; default policy auto-routes high-risk scopes through the approval gate | Experimental |
+| **`PromptInjectionGuardrail`** — Built-in `InputGuardrail` subclass that detects prompt-injection patterns; usable standalone or as part of a guardrail chain | Beta |
+| **`Tool::Base.redact_params` / `.max_result_size`** — Class-level DSL: `redact_params` masks parameter values in log/trace output; `max_result_size` truncates oversized tool results before they reach the LLM | Beta |
+| **`Phronomy::Metrics`** — `Phronomy::Metrics.snapshot` returns task and pool counters (`tasks_started`, `tasks_completed`, `tasks_failed`, `pool_queue_depth`, `pool_active_threads`) | Experimental |
+| **`Phronomy::Diagnostics`** — Snapshot of scheduler internals for debug/monitoring; `SchedulerReentrancyError` raised on invalid re-entrant scheduler use | Experimental |
+| **`Phronomy::Testing::FakeClock` / `FakeScheduler`** — Test helpers for deterministic concurrency specs: `FakeClock#advance(seconds)` controls time; `FakeScheduler#flush` / `#drain` drives task completion synchronously | Experimental |
 
 ## Installation
 
@@ -150,13 +158,16 @@ puts "Approved: #{final.approved}"  # => true
 ```
 
 In EventLoop mode (`c.event_loop = true`), `Agent#run_as_child` spawns a child agent
-asynchronously. When the child succeeds, `:child_completed` is dispatched; when it fails,
-`:child_failed` is dispatched. Always declare both transitions to avoid a stuck workflow:
+asynchronously. When the child succeeds, `:child_completed` is dispatched with the result
+`{ output:, messages:, usage: }` as its payload; when it fails, `:child_failed` is
+dispatched. Always declare both transitions to avoid a stuck workflow:
 
 ```ruby
-# EventLoop mode: workflow that runs an agent as a child FSM
+# EventLoop mode: workflow that runs an agent as a child FSM.
+# The result { output:, messages:, usage: } arrives as the :child_completed event
+# payload — write it back to the context in the target state's entry action.
 entry :run_agent, ->(ctx) {
-  MyAgent.new.run_as_child(ctx.query, ctx: ctx) { |r| ctx.answer = r[:output] }
+  MyAgent.new.run_as_child(ctx.query, ctx: ctx)
 }
 transition from: :run_agent, on: :child_completed, to: :done
 transition from: :run_agent, on: :child_failed,    to: :handle_error
