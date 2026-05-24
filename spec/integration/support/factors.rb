@@ -1401,9 +1401,11 @@ module IntegrationFactors
   def self.bp_tasks(label)
     good = Class.new(Phronomy::Agent::Base) do
       define_method(:invoke) { |input, config: {}, thread_id: nil| {output: "ok:#{input}", messages: []} }
+      define_method(:invoke_async) { |input, **_kw| Phronomy::Runtime.instance.spawn(name: "stub-async") { invoke(input) } }
     end
     bad = Class.new(Phronomy::Agent::Base) do
       define_method(:invoke) { |*| raise "task_error" }
+      define_method(:invoke_async) { |input, **_kw| Phronomy::Runtime.instance.spawn(name: "stub-async") { invoke(input) } }
     end
 
     case label

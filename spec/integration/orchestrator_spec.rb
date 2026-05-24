@@ -25,6 +25,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
       define_method(:invoke) do |_input, config: {}, thread_id: nil|
         {output: out, messages: []}
       end
+      define_method(:invoke_async) { |input, **_kw| Phronomy::Runtime.instance.spawn(name: "stub-async") { invoke(input) } }
     end
   end
 
@@ -34,6 +35,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
       define_method(:invoke) do |_input, config: {}, thread_id: nil|
         raise "subagent_failure"
       end
+      define_method(:invoke_async) { |input, **_kw| Phronomy::Runtime.instance.spawn(name: "stub-async") { invoke(input) } }
     end
   end
 
@@ -136,6 +138,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
           received << input
           {output: "ok", messages: []}
         end
+        define_method(:invoke_async) { |input, **_kw| Phronomy::Runtime.instance.spawn(name: "stub-async") { invoke(input) } }
       end
       orch.dispatch_parallel({agent: capture_class, input: "my_task"})
       expect(received).to eq(["my_task"])
@@ -208,6 +211,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
           mutex.synchronize { received << input }
           {output: "echo:#{input}", messages: []}
         end
+        define_method(:invoke_async) { |input, **_kw| Phronomy::Runtime.instance.spawn(name: "stub-async") { invoke(input) } }
       end
 
       results = orch.fan_out(agent: capture_class, inputs: %w[alpha beta gamma])
