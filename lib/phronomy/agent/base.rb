@@ -225,13 +225,10 @@ module Phronomy
         # Defaults to +nil+ (no timeout).
         # Inherited by subclasses; the most-specific definition wins.
         #
-        # **Note**: +invoke_timeout+ is a *wait timeout*, not a cancellation.
-        # When the timeout fires, +Phronomy::TimeoutError+ is raised to the
-        # caller, but the background agent thread and any in-flight LLM or tool
-        # calls are **not** interrupted — they continue running until they
-        # complete naturally.  The agent therefore keeps consuming threads,
-        # memory, and external API credits after the caller has already received
-        # the error.  True cancellation is not yet supported.
+        # When the timeout fires, a {Phronomy::CancellationScope} is cancelled
+        # and its token is propagated to the FSM config so that in-flight LLM,
+        # tool, and RAG calls observe cancellation via their +cancellation_token:+
+        # keyword argument.  +Phronomy::TimeoutError+ is raised to the caller.
         #
         # @param val [Numeric, nil]
         # @return [Numeric, nil]
@@ -514,20 +511,28 @@ module Phronomy
               "entry action. Use agent.run_as_child(input, ctx: ctx) instead."
           end
 
+          # Build an effective config that includes the invoke_timeout scope's
+          # CancellationToken before constructing the FSM.  This ensures that
+          # every LLM, tool, and RAG call made inside _invoke_impl observes
+          # cancellation when the deadline fires.
+          timeout_sec = self.class.invoke_timeout
+          effective_config, scope = if timeout_sec
+            s = Phronomy::CancellationScope.new(parent_token: config[:cancellation_token])
+            s.deadline_in(timeout_sec)
+            [config.merge(cancellation_token: s.token), s]
+          else
+            [config, nil]
+          end
+
           fsm = Agent::FSM.new(
             agent: self,
             input: input,
             messages: messages,
             thread_id: thread_id || SecureRandom.uuid,
-            config: config
+            config: effective_config
           )
           completion_queue = Phronomy::EventLoop.instance.register(fsm)
-          timeout_sec = self.class.invoke_timeout
-          result = if timeout_sec
-            # Use CancellationScope so the deadline is tracked and the scope's
-            # token can propagate to child tasks via config in future work.
-            scope = Phronomy::CancellationScope.new(parent_token: config[:cancellation_token])
-            scope.deadline_in(timeout_sec)
+          result = if scope
             scope.pop_queue(completion_queue) do
               raise Phronomy::TimeoutError,
                 "Agent #{self.class.name} invoke timed out after #{timeout_sec}s"

@@ -956,3 +956,56 @@ RSpec.describe "Agent static_knowledge caching (issue #127)" do
     expect(ks.fetch_count).to eq(2)
   end
 end
+
+# Issue #290 — invoke_timeout scope token must be wired into the FSM config so
+# that LLM, tool, and RAG calls observe cancellation when the deadline fires.
+RSpec.describe "Agent#invoke invoke_timeout cancellation propagation (Issue #290)", :issue_290 do
+  around do |example|
+    Phronomy.configure { |c| c.event_loop = true }
+    Phronomy::EventLoop.instance.start
+    example.run
+  ensure
+    Phronomy::EventLoop.instance.stop
+    Phronomy.configure { |c| c.event_loop = false }
+  end
+
+  it "passes a CancellationToken that is cancelled after timeout to _invoke_impl config" do
+    klass = Class.new(Phronomy::Agent::Base) do
+      model "test-model"
+      invoke_timeout 0.1
+    end
+
+    captured_token = nil
+    allow_any_instance_of(klass).to receive(:_invoke_impl) do |_agent, _input, config:, **|
+      captured_token = config[:cancellation_token]
+      sleep 10 # simulate a slow LLM/tool call
+    end
+
+    expect { klass.new.invoke("test") }.to raise_error(Phronomy::TimeoutError)
+
+    # The scope token must be non-nil and cancelled so that in-flight
+    # LLM/tool/RAG sub-calls stop after the deadline fires.
+    expect(captured_token).not_to be_nil
+    expect(captured_token).to be_cancelled
+  end
+
+  it "scope token is a child of the caller-supplied cancellation_token" do
+    klass = Class.new(Phronomy::Agent::Base) do
+      model "test-model"
+      invoke_timeout 5
+    end
+
+    parent_token = Phronomy::CancellationToken.new
+    captured_token = nil
+    allow_any_instance_of(klass).to receive(:_invoke_impl) do |_agent, _input, config:, **|
+      captured_token = config[:cancellation_token]
+      {output: "ok", messages: [], usage: nil}
+    end
+
+    klass.new.invoke("test", config: {cancellation_token: parent_token})
+
+    # A distinct scope token must be provided — not the parent token itself.
+    expect(captured_token).not_to be_nil
+    expect(captured_token).not_to equal(parent_token)
+  end
+end
