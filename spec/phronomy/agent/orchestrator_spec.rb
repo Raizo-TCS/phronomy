@@ -480,7 +480,7 @@ RSpec.describe Phronomy::Agent::Orchestrator do
     end
   end
 
-  describe "#dispatch_parallel force_kill: option (Issue #235)" do
+  describe "#dispatch_parallel force_kill: option (deprecated, Issue #235)" do
     let(:orchestrator_class) { Class.new(described_class) }
     subject(:orchestrator) { orchestrator_class.new }
 
@@ -503,7 +503,7 @@ RSpec.describe Phronomy::Agent::Orchestrator do
       }.to raise_error(Phronomy::TimeoutError)
     end
 
-    it "raises TimeoutError with force_kill: true and calls Thread#kill on still-running workers" do
+    it "raises TimeoutError with force_kill: true (deprecated; cooperative cancellation used)" do
       expect {
         orchestrator.dispatch_parallel(
           {agent: slow_agent_class, input: "x"},

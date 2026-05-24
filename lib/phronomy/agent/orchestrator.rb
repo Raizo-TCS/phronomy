@@ -66,13 +66,24 @@ module Phronomy
           attr_writer :_orchestrator_context
 
           define_method(:execute) do |input:|
-            # Inherit the calling orchestrator's thread_id and config when
-            # available so that sub-agent spans and memory stay connected.
+            # Inherit the calling orchestrator's thread_id, config, and
+            # InvocationContext so that child subagent spans and memory stay
+            # connected to the parent invocation.
             ctx = @_orchestrator_context || {}
+            parent_ic = ctx[:invocation_context]
+            task_config = ctx[:config] || {}
+
+            # Propagate parent InvocationContext to the child agent so that
+            # cancellation, deadline, and tracing carry through automatically.
+            if parent_ic && !task_config[:invocation_context]
+              child_ic = parent_ic.merge(parent_task_id: parent_ic.task_id)
+              task_config = task_config.merge(invocation_context: child_ic)
+            end
+
             result = agent_class.new.invoke_async(
               input,
-              thread_id: ctx[:thread_id],
-              config: ctx[:config] || {}
+              thread_id: ctx[:thread_id] || parent_ic&.thread_id,
+              config: task_config
             ).await
             result[:output]
           rescue
@@ -107,8 +118,8 @@ module Phronomy
         @registered_subagents ||= {}
       end
 
-      # Dispatches multiple heterogeneous agent tasks in parallel using Ruby
-      # threads. Each task is a Hash describing one agent invocation.
+      # Dispatches multiple heterogeneous agent tasks in parallel using
+      # cooperative {Task}s. Each task is a Hash describing one agent invocation.
       #
       # Results are returned in the same order as the input +tasks+ array.
       # Concurrency is bounded by +max_concurrency+; when nil all tasks run at
@@ -116,7 +127,7 @@ module Phronomy
       #
       # Error semantics are controlled by +on_error+:
       # - +:raise+ (default) — every task runs to completion; the first
-      #   exception in input order is then re-raised in the calling thread.
+      #   exception in input order is then re-raised in the calling task.
       # - +:skip+            — failed tasks return +nil+; no exception is raised.
       #
       # @param tasks           [Array<Hash>]
@@ -124,27 +135,27 @@ module Phronomy
       # @option task [String]  :input  input string for the agent (required)
       # @option task [Hash]    :config forwarded to +agent#invoke+ (default: +{}+)
       # @option task [String]  :thread_id forwarded to +agent#invoke+ (default: nil)
-      # @param max_concurrency    [Integer, nil] maximum number of concurrent threads;
+      # @param max_concurrency    [Integer, nil] maximum number of concurrent tasks;
       #   nil means no limit (all tasks run simultaneously)
       # @param on_error            [Symbol] +:raise+ or +:skip+
-      # @param timeout             [Numeric, nil] maximum seconds to wait for all workers;
+      # @param timeout             [Numeric, nil] maximum seconds to wait for all tasks;
       #   nil means wait indefinitely. When the deadline is exceeded,
-      #   {Phronomy::TimeoutError} is raised and all surviving worker threads are killed.
+      #   {Phronomy::TimeoutError} is raised and all surviving tasks are cancelled
+      #   cooperatively.
       # @param cancellation_token [Phronomy::CancellationToken, nil] when provided, the
       #   token is merged into each task's config (unless the task already sets one) so
-      #   that every worker agent checks it before making LLM calls.
-      # @param force_kill [Boolean] when +true+, surviving worker threads are killed with
-      #   +Thread#kill+ after the grace period if they do not stop cooperatively. When
-      #   +false+ (default), workers are asked to stop cooperatively but are never killed;
-      #   the caller receives {Phronomy::TimeoutError} immediately and abandoned workers
-      #   discard their results when they eventually finish. +false+ is safer for
-      #   production because +Thread#kill+ can interrupt +ensure+ blocks.
+      #   that every child agent checks it before making LLM calls.
+      # @param invocation_context [Phronomy::InvocationContext, nil] when provided,
+      #   the context (cancellation_token, deadline, thread_id) is propagated to each
+      #   child agent as a child InvocationContext.
+      # @param force_kill [Boolean] deprecated — cooperative cancellation is always
+      #   used; this parameter is accepted for backwards compatibility but has no effect.
       # @return [Array<Hash, nil>] agent results in the same order as +tasks+
       # @raise [ArgumentError] if +on_error+ is not +:raise+ or +:skip+
       # @raise [ArgumentError] if +max_concurrency+ is not a positive Integer or nil
       # @raise [Phronomy::TimeoutError] if +timeout+ is exceeded
       # @api public
-      def dispatch_parallel(*tasks, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil, force_kill: false)
+      def dispatch_parallel(*tasks, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil, invocation_context: nil, force_kill: false)
         unless [:raise, :skip].include?(on_error)
           raise ArgumentError, "unknown on_error: #{on_error.inspect}"
         end
@@ -152,7 +163,7 @@ module Phronomy
           raise ArgumentError, "max_concurrency must be a positive Integer"
         end
 
-        bounded_map(tasks, max_concurrency: max_concurrency, on_error: on_error, timeout: timeout, cancellation_token: cancellation_token, force_kill: force_kill)
+        bounded_map(tasks, max_concurrency: max_concurrency, on_error: on_error, timeout: timeout, cancellation_token: cancellation_token, invocation_context: invocation_context, force_kill: force_kill)
       end
 
       # Runs the same agent against multiple inputs in parallel (fan-out pattern).
@@ -164,17 +175,20 @@ module Phronomy
       # @param inputs          [Array<String>] list of input strings
       # @param config          [Hash]          forwarded to every +agent#invoke+ call
       # @param thread_id       [String, nil]   forwarded to every +agent#invoke+ call
-      # @param max_concurrency [Integer, nil]  forwarded to {#dispatch_parallel}
-      # @param on_error        [Symbol]        forwarded to {#dispatch_parallel}
+      # @param max_concurrency    [Integer, nil]  forwarded to {#dispatch_parallel}
+      # @param on_error            [Symbol]        forwarded to {#dispatch_parallel}
+      # @param invocation_context [Phronomy::InvocationContext, nil] forwarded to
+      #   {#dispatch_parallel} for child context propagation
       # @return [Array<Hash, nil>] results in the same order as +inputs+
       # @api public
-      def fan_out(agent:, inputs:, config: {}, thread_id: nil, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil, force_kill: false)
+      def fan_out(agent:, inputs:, config: {}, thread_id: nil, max_concurrency: nil, on_error: :raise, timeout: nil, cancellation_token: nil, invocation_context: nil, force_kill: false)
         dispatch_parallel(
           *inputs.map { |input| {agent: agent, input: input, config: config, thread_id: thread_id} },
           max_concurrency: max_concurrency,
           on_error: on_error,
           timeout: timeout,
           cancellation_token: cancellation_token,
+          invocation_context: invocation_context,
           force_kill: force_kill
         )
       end
@@ -190,10 +204,19 @@ module Phronomy
       # @api public
       def subagent(agent_class, input, config: nil, thread_id: nil)
         ctx = @_orchestrator_context || {}
+        parent_ic = ctx[:invocation_context]
+        effective_config = config || ctx[:config] || {}
+
+        # Propagate parent InvocationContext to the child agent.
+        if parent_ic && !effective_config[:invocation_context]
+          child_ic = parent_ic.merge(parent_task_id: parent_ic.task_id)
+          effective_config = effective_config.merge(invocation_context: child_ic)
+        end
+
         agent_class.new.invoke_async(
           input,
-          config: config || ctx[:config] || {},
-          thread_id: thread_id || ctx[:thread_id]
+          config: effective_config,
+          thread_id: thread_id || ctx[:thread_id] || parent_ic&.thread_id
         ).await
       end
 
@@ -204,7 +227,11 @@ module Phronomy
       # without using Thread.current.
       def invoke_once(input, messages: [], thread_id: nil, config: {})
         prev = @_orchestrator_context
-        @_orchestrator_context = {thread_id: thread_id, config: config}
+        @_orchestrator_context = {
+          thread_id: thread_id,
+          config: config,
+          invocation_context: config[:invocation_context]
+        }
         super
       ensure
         @_orchestrator_context = prev
@@ -232,110 +259,72 @@ module Phronomy
         end
       end
 
-      # Worker-pool implementation shared by {#dispatch_parallel} and {#fan_out}.
+      # Task-based worker pool shared by {#dispatch_parallel} and {#fan_out}.
       #
-      # Uses a +Queue+ as a work-stealing mechanism: each worker task pops a
-      # job, executes it, and loops until the queue is empty.  The number of
-      # workers is +min(max_concurrency, tasks.length)+, capped at the task count
-      # so we never spin up idle tasks.
+      # Spawns one {Task} per input using a {TaskGroup} so that +max_concurrency+
+      # acts as a semaphore: spare tasks block on {TaskGroup#spawn} until a slot
+      # becomes available.  Results are written back to +results+ in input order;
+      # +errors+ captures the first error per position so that the first error in
+      # *input* order is deterministically re-raised when +on_error: :raise+ is used.
       #
-      # +errors+ is indexed by task position so that the first error in *input*
-      # order is deterministically re-raised when +on_error: :raise+ is used.
-      # A +Mutex+ guards concurrent writes to +errors+ even though Array element
-      # assignment at different indices is safe in MRI; this keeps the code
-      # correct across alternative Ruby runtimes.
-      #
-      # When +timeout+ is given, workers are first asked to stop cooperatively
-      # via a cancellation flag (so they do not pick up new tasks) and then given
-      # +KILL_GRACE_SECONDS+ to finish any in-flight +ensure+ blocks.  Only
-      # workers that are still alive after the grace period are force-killed, and
-      # a warning is logged in that case.  Use a +CancellationToken+ (see #216)
-      # for full cooperative cancellation of long-running tasks.
+      # When +timeout+ is given, each spawned task is joined with the remaining
+      # deadline.  Any still-alive tasks are cancelled cooperatively via
+      # {TaskGroup#cancel_all!} before {Phronomy::TimeoutError} is raised.
+      # The +force_kill+ argument is deprecated: cooperative cancellation is always
+      # used regardless of its value.
       #
       # Deadline tracking uses +Process.clock_gettime(Process::CLOCK_MONOTONIC)+
       # to avoid sensitivity to NTP adjustments and system-clock changes.
-      KILL_GRACE_SECONDS = 0.5
-      private_constant :KILL_GRACE_SECONDS
-
-      def bounded_map(tasks, max_concurrency:, on_error:, timeout: nil, cancellation_token: nil, force_kill: false)
+      def bounded_map(tasks, max_concurrency:, on_error:, timeout: nil, cancellation_token: nil, invocation_context: nil, force_kill: false) # rubocop:disable Lint/UnusedMethodArgument
         return [] if tasks.empty?
 
         results = Array.new(tasks.length)
         errors = Array.new(tasks.length)
-        errors_mutex = Mutex.new
-        # Mutex-backed cooperative stop token; workers check before each task pick-up.
-        internal_stop_token = Phronomy::CancellationToken.new
+        group = Phronomy::Runtime.instance.task_group(limit: max_concurrency || tasks.length)
 
-        queue = Queue.new
-        tasks.each_with_index { |task, i| queue << [i, task] }
+        # Resolve the effective cancellation token: explicit argument wins;
+        # fall back to the one embedded in the InvocationContext if present.
+        effective_ct = cancellation_token || invocation_context&.cancellation_token
 
-        worker_count = [max_concurrency || tasks.length, tasks.length].min
+        spawned = tasks.each_with_index.map do |task, i|
+          group.spawn do
+            task_config = task.fetch(:config, {})
 
-        workers = worker_count.times.map do |wi|
-          Phronomy::Task.spawn(name: "orchestrator-worker-#{wi}") do
-            loop do
-              break if internal_stop_token.cancelled?
-
-              i, task = begin
-                queue.pop(true)
-              rescue ThreadError
-                break # queue is empty; this worker is done
-              end
-
-              # Merge the shared cancellation token into the task's config unless
-              # the task already supplies its own token.
-              task_config = task.fetch(:config, {})
-              if cancellation_token && !task_config[:cancellation_token]
-                task_config = task_config.merge(cancellation_token: cancellation_token)
-              end
-
-              begin
-                results[i] = task[:agent].new.invoke_async(
-                  task[:input],
-                  config: task_config,
-                  thread_id: task[:thread_id]
-                ).await
-              rescue => e
-                case on_error
-                when :skip
-                  results[i] = nil
-                else
-                  errors_mutex.synchronize { errors[i] = e }
-                end
-              end
+            # Merge the shared cancellation token unless the task already has one.
+            if effective_ct && !task_config[:cancellation_token]
+              task_config = task_config.merge(cancellation_token: effective_ct)
             end
+
+            # Propagate parent InvocationContext to each child task so that
+            # cancellation, deadline, and tracing carry through automatically.
+            if invocation_context && !task_config[:invocation_context]
+              child_ic = invocation_context.merge(parent_task_id: invocation_context.task_id)
+              task_config = task_config.merge(invocation_context: child_ic)
+            end
+
+            results[i] = task[:agent].new.invoke_async(
+              task[:input],
+              config: task_config,
+              thread_id: task[:thread_id] || invocation_context&.thread_id
+            ).await
+          rescue => e
+            errors[i] = e unless on_error == :skip
           end
         end
 
-        workers.each(&:await) if timeout.nil?
-
         if timeout
           deadline = Phronomy::Deadline.in(timeout)
-          workers.each do |w|
-            w.join([deadline.remaining_seconds, 0].max)
-          end
+          spawned.each { |t| t.join([deadline.remaining_seconds, 0].max) }
 
-          alive = workers.select(&:alive?)
+          alive = spawned.select(&:alive?)
           unless alive.empty?
-            # Signal workers cooperatively to stop picking up new tasks.
-            internal_stop_token.cancel!
-            if force_kill
-              # Give in-flight ensure blocks a short grace period before cancel.
-              alive.each { |w| w.join(KILL_GRACE_SECONDS) }
-              still_alive = alive.select(&:alive?)
-              if still_alive.any?
-                Phronomy.configuration.logger&.warn(
-                  "[Phronomy] dispatch_parallel: #{still_alive.length} worker(s) did not stop " \
-                  "within grace period; force-killing. Use CancellationToken for " \
-                  "cooperative cancellation of long-running tasks."
-                )
-                still_alive.each(&:cancel!)
-              end
-            end
+            group.cancel_all!
             raise Phronomy::TimeoutError,
               "dispatch_parallel timed out after #{timeout}s " \
-              "(#{alive.length} of #{workers.length} workers still running)"
+              "(#{alive.length} of #{spawned.length} tasks still running)"
           end
+        else
+          spawned.each(&:await)
         end
 
         first_error = errors.compact.first
