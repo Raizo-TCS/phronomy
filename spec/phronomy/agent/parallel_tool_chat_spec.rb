@@ -38,6 +38,28 @@ class PtcApprovalTool < Phronomy::Tool::Base
 end
 
 RSpec.describe Phronomy::Agent::ParallelToolChat do
+  before(:each) do
+    RubyLLM.configure { |c| c.openai_api_key = "test-api-key" }
+  end
+
+  # Stub Task.spawn synchronously and Runtime pool so multi-tool tests run
+  # without a live EventLoop.  Cooperative tests use Task.spawn; blocking_io
+  # tests use pool.submit.  Both are stubbed to execute the block in-line.
+  def stub_task_and_pool(pool_double: nil)
+    allow(Phronomy::Task).to receive(:spawn) do |&blk|
+      t = double("Task")
+      allow(t).to receive(:await).and_return(blk.call)
+      t
+    end
+    if pool_double
+      allow(Phronomy::Runtime).to receive(:instance).and_return(
+        instance_double(Phronomy::Runtime, blocking_io: pool_double)
+      )
+    else
+      allow(Phronomy::Runtime).to receive(:instance).and_return(nil)
+    end
+  end
+
   # Build a minimal ToolCall double.
   def fake_tool_call(name, args, id: nil)
     tc = double("ToolCall-#{name}")
@@ -81,17 +103,16 @@ RSpec.describe Phronomy::Agent::ParallelToolChat do
 
     context "with multiple tool calls" do
       it "executes all tools and adds a message for each" do
+        stub_task_and_pool
         chat = described_class.new
         chat.instance_variable_set(:@on, {})
-        chat.instance_variable_set(:@tools, {})
+        tool = PtcEchoTool.new
+        chat.instance_variable_set(:@tools, {ptc_echo: tool})
 
         tc1 = fake_tool_call("ptc_echo", {"value" => "a"}, id: "tc1")
         tc2 = fake_tool_call("ptc_echo", {"value" => "b"}, id: "tc2")
         resp = fake_response({"tool_a" => tc1, "tool_b" => tc2})
 
-        allow(chat).to receive(:execute_tool) do |tc|
-          (tc.name == "ptc_echo") ? "echo:#{tc.arguments["value"]}" : "noop"
-        end
         allow(chat).to receive(:content_like?).and_return(false)
         allow(chat).to receive(:forced_tool_choice?).and_return(false)
         allow(chat).to receive(:complete).and_return(nil)
@@ -109,20 +130,28 @@ RSpec.describe Phronomy::Agent::ParallelToolChat do
       end
 
       it "calls pre-execution callbacks before any tool runs" do
+        stub_task_and_pool
         chat = described_class.new
 
         execution_order = []
         callback_order = []
 
-        tc1 = fake_tool_call("t1", {}, id: "tc1")
-        tc2 = fake_tool_call("t2", {}, id: "tc2")
+        tool1 = PtcEchoTool.new
+        tool2 = PtcEchoTool.new
+        allow(tool1).to receive(:call).and_wrap_original do |m, *a, **kw|
+          execution_order << "t1"
+          m.call(*a, **kw)
+        end
+        allow(tool2).to receive(:call).and_wrap_original do |m, *a, **kw|
+          execution_order << "t2"
+          m.call(*a, **kw)
+        end
+        chat.instance_variable_set(:@tools, {t1: tool1, t2: tool2})
+
+        tc1 = fake_tool_call("t1", {"value" => "a"}, id: "tc1")
+        tc2 = fake_tool_call("t2", {"value" => "b"}, id: "tc2")
         resp = fake_response({"t1" => tc1, "t2" => tc2})
 
-        allow(chat).to receive(:execute_tool) do |tc|
-          execution_order << tc.name
-          sleep 0.01
-          "result"
-        end
         allow(chat).to receive(:content_like?).and_return(false)
         allow(chat).to receive(:forced_tool_choice?).and_return(false)
         allow(chat).to receive(:complete).and_return(nil)
@@ -144,19 +173,19 @@ RSpec.describe Phronomy::Agent::ParallelToolChat do
       end
 
       it "adds messages in the original tool-call order regardless of execution timing" do
+        stub_task_and_pool
         chat = described_class.new
         chat.instance_variable_set(:@on, {})
-        chat.instance_variable_set(:@tools, {})
 
-        # tc1 is slow, tc2 is fast — but messages should appear in tc1, tc2 order
-        tc1 = fake_tool_call("slow_tool", {}, id: "tc1")
-        tc2 = fake_tool_call("fast_tool", {}, id: "tc2")
+        # tc1 is slow, tc2 is fast — messages must appear in original (tc1, tc2) order
+        slow_tool = PtcSlowTool.new
+        fast_tool = PtcEchoTool.new
+        chat.instance_variable_set(:@tools, {slow_tool: slow_tool, fast_tool: fast_tool})
+
+        tc1 = fake_tool_call("slow_tool", {"value" => "x"}, id: "tc1")
+        tc2 = fake_tool_call("fast_tool", {"value" => "y"}, id: "tc2")
         resp = fake_response({"slow" => tc1, "fast" => tc2})
 
-        allow(chat).to receive(:execute_tool) do |tc|
-          sleep 0.05 if tc.name == "slow_tool"
-          "result:#{tc.name}"
-        end
         allow(chat).to receive(:content_like?).and_return(false)
         allow(chat).to receive(:forced_tool_choice?).and_return(false)
         allow(chat).to receive(:complete).and_return(nil)
@@ -173,17 +202,21 @@ RSpec.describe Phronomy::Agent::ParallelToolChat do
       end
 
       it "returns the halt result when a Tool::Halt is encountered" do
+        stub_task_and_pool
         chat = described_class.new
         chat.instance_variable_set(:@on, {})
 
         halt = RubyLLM::Tool::Halt.new("stop!")
+        halt_tool = PtcEchoTool.new
+        normal_tool = PtcEchoTool.new
+        allow(halt_tool).to receive(:call).and_return(halt)
+        allow(normal_tool).to receive(:call).and_return("normal")
+        chat.instance_variable_set(:@tools, {t1: halt_tool, t2: normal_tool})
+
         tc1 = fake_tool_call("t1", {}, id: "tc1")
         tc2 = fake_tool_call("t2", {}, id: "tc2")
         resp = fake_response({"t1" => tc1, "t2" => tc2})
 
-        allow(chat).to receive(:execute_tool) do |tc|
-          (tc.id == "tc1") ? halt : "normal"
-        end
         allow(chat).to receive(:content_like?).and_return(false)
         allow(chat).to receive(:forced_tool_choice?).and_return(false)
         allow(chat).to receive(:add_message).and_return(double("msg"))
@@ -216,6 +249,93 @@ RSpec.describe Phronomy::Agent::ParallelToolChat do
       expect(agent.send(:build_chat_class)).to be(Phronomy::Agent::ParallelToolChat)
     ensure
       Phronomy.configure { |c| c.event_loop = false }
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Regression: issue #295 — eliminate double-Thread for :blocking_io tools
+  # ---------------------------------------------------------------------------
+  context "issue #295 — direct pool dispatch, no TaskGroup wrapper", :issue_295 do
+    let(:task_spawned) { [] }
+    let(:pool_double) do
+      pd = instance_double(Phronomy::BlockingAdapterPool)
+      allow(pd).to receive(:submit) do |cancellation_token: nil, &blk|
+        result = blk.call
+        op = double("PendingOperation")
+        allow(op).to receive(:await).and_return(result)
+        op
+      end
+      pd
+    end
+
+    before do
+      allow(Phronomy::Task).to receive(:spawn) do |&blk|
+        task_spawned << :spawned
+        t = double("Task#{task_spawned.size}")
+        allow(t).to receive(:await).and_return(blk.call)
+        t
+      end
+      runtime = instance_double(Phronomy::Runtime, blocking_io: pool_double)
+      allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
+    end
+
+    let(:blocking_tool_class) do
+      Class.new(Phronomy::Tool::Base) do
+        tool_name "io_dispatch_tool"
+        description "IO tool for dispatch test"
+        param :v, type: :string, desc: "v"
+        def execute(v:); "io:#{v}"; end
+      end
+    end
+
+    let(:coop_tool_class) do
+      Class.new(Phronomy::Tool::Base) do
+        tool_name "coop_dispatch_tool"
+        execution_mode :cooperative
+        description "Cooperative tool for dispatch test"
+        param :v, type: :string, desc: "v"
+        def execute(v:); "coop:#{v}"; end
+      end
+    end
+
+    def minimal_multi_chat(tools_hash)
+      chat = described_class.new
+      chat.instance_variable_set(:@on, {})
+      chat.instance_variable_set(:@tools, tools_hash)
+      allow(chat).to receive(:content_like?).and_return(false)
+      allow(chat).to receive(:forced_tool_choice?).and_return(false)
+      allow(chat).to receive(:complete).and_return(nil)
+      allow(chat).to receive(:add_message).and_return(double("msg"))
+      chat
+    end
+
+    it "dispatches :blocking_io tools via pool.submit without a TaskGroup" do
+      tool = blocking_tool_class.new
+      chat = minimal_multi_chat({io_dispatch_tool: tool})
+      tc1 = fake_tool_call("io_dispatch_tool", {"v" => "a"}, id: "tc1")
+      tc2 = fake_tool_call("io_dispatch_tool", {"v" => "b"}, id: "tc2")
+      resp = fake_response({"t1" => tc1, "t2" => tc2})
+
+      allow(Phronomy::TaskGroup).to receive(:new).and_call_original
+
+      chat.send(:handle_tool_calls, resp)
+
+      expect(pool_double).to have_received(:submit).exactly(2).times
+      expect(task_spawned).to be_empty
+      expect(Phronomy::TaskGroup).not_to have_received(:new)
+    end
+
+    it "dispatches :cooperative tools via Task.spawn without touching the pool" do
+      tool = coop_tool_class.new
+      chat = minimal_multi_chat({coop_dispatch_tool: tool})
+      tc1 = fake_tool_call("coop_dispatch_tool", {"v" => "a"}, id: "tc1")
+      tc2 = fake_tool_call("coop_dispatch_tool", {"v" => "b"}, id: "tc2")
+      resp = fake_response({"t1" => tc1, "t2" => tc2})
+
+      chat.send(:handle_tool_calls, resp)
+
+      expect(pool_double).not_to have_received(:submit)
+      expect(task_spawned.size).to eq(2)
     end
   end
 end

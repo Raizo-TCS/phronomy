@@ -65,25 +65,48 @@ module Phronomy
         end
 
         # Phase 2 — parallel tool execution.
-        # Honour the per-agent concurrency cap (max_parallel_tools DSL).
-        # Tool calls are processed in batches of at most `max` threads;
-        # batches run sequentially so the total in-flight thread count never
-        # exceeds the limit.
+        # :cooperative tools run inside a Task (no pool).
+        # :blocking_io/:cpu_bound/:external_process tools are submitted directly
+        # to BlockingAdapterPool when available — eliminating the extra Task
+        # Thread that previously wrapped each pool operation.
         #
-        # Check for cancellation before dispatching each batch so that
-        # already-cancelled tokens do not start new LLM/tool-round-trips.
-        ct = @cancellation_token
+        # Both Phronomy::Task and BlockingAdapterPool::PendingOperation support
+        # #await, so results are collected uniformly below.
+        ct  = @cancellation_token
         max = @max_parallel_tools
         thread_results = tool_calls.each_slice(max).flat_map do |batch|
           if ct&.cancelled?
             raise Phronomy::CancellationError, "invocation cancelled before tool execution"
           end
 
-          group = Phronomy::TaskGroup.new(limit: max)
-          tasks = batch.map do |tool_call|
-            group.spawn { {tool_call: tool_call, result: execute_tool(tool_call)} }
+          pool = begin; Phronomy::Runtime.instance&.blocking_io; rescue; nil; end
+
+          # Dispatch all tools in this batch — cooperative via Task.spawn,
+          # blocking_io directly via pool.submit.
+          dispatched = batch.map do |tc|
+            tool = tools[tc.name.to_sym]
+            unless tool
+              next {tool_call: tc, awaitable: nil, result: {
+                error: "Model tried to call unavailable tool `#{tc.name}`. " \
+                       "Available tools: #{tools.keys.to_json}."
+              }}
+            end
+
+            mode = tool.class.execution_mode
+            awaitable = if mode == :cooperative || pool.nil?
+              Phronomy::Task.spawn { tool.call(tc.arguments, cancellation_token: ct) }
+            else
+              # Submit directly to pool — no wrapping Task Thread required.
+              pool.submit(cancellation_token: ct) { tool.call(tc.arguments, cancellation_token: ct) }
+            end
+            {tool_call: tc, awaitable: awaitable, result: nil}
           end
-          group.await_all
+
+          # Await all dispatched operations in original order.
+          dispatched.map do |item|
+            result = item[:awaitable] ? item[:awaitable].await : item[:result]
+            {tool_call: item[:tool_call], result: result}
+          end
         end
 
         # Phase 3 — post-execution callbacks and message recording (sequential).
