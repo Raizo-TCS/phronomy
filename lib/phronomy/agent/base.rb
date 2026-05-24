@@ -545,8 +545,6 @@ module Phronomy
         else
           _invoke_impl(input, messages: messages, thread_id: thread_id, config: config)
         end
-      ensure
-        # No per-thread cleanup needed: context caches are instance variables.
       end
 
       # Invokes this agent asynchronously and returns a {Phronomy::Task}.
@@ -665,6 +663,10 @@ module Phronomy
         caller_meta = {}
         caller_meta[:user_id] = config[:user_id] if config[:user_id]
         caller_meta[:session_id] = config[:session_id] if config[:session_id]
+        if (ic = config[:invocation_context])
+          caller_meta[:task_id] = ic.task_id if ic.task_id
+          caller_meta[:parent_task_id] = ic.parent_task_id if ic.parent_task_id
+        end
 
         trace("agent.invoke", input: input, **caller_meta) do |_span|
           run_input_guardrails!(input)
@@ -799,6 +801,10 @@ module Phronomy
         caller_meta = {}
         caller_meta[:user_id] = config[:user_id] if config[:user_id]
         caller_meta[:session_id] = config[:session_id] if config[:session_id]
+        if (ic = config[:invocation_context])
+          caller_meta[:task_id] = ic.task_id if ic.task_id
+          caller_meta[:parent_task_id] = ic.parent_task_id if ic.parent_task_id
+        end
 
         trace("agent.invoke", input: input, **caller_meta) do |_span|
           # Run input guardrails before touching the LLM.
@@ -919,7 +925,6 @@ module Phronomy
           [instruction.to_s, *static_chunks.map { |c| c[:content] }].join("\0")
         )
 
-        agent_id = object_id
         cache = (@context_version_cache ||= Context::ContextVersionCache.new)
         unless cache.valid?(fingerprint)
           parts = [instruction]

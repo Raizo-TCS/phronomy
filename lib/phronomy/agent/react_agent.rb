@@ -13,6 +13,10 @@ module Phronomy
         caller_meta = {}
         caller_meta[:user_id] = config[:user_id] if config[:user_id]
         caller_meta[:session_id] = config[:session_id] if config[:session_id]
+        if (ic = config[:invocation_context])
+          caller_meta[:task_id] = ic.task_id if ic.task_id
+          caller_meta[:parent_task_id] = ic.parent_task_id if ic.parent_task_id
+        end
 
         trace("agent.invoke", input: input, **caller_meta) do |_span|
           # Run input guardrails before any LLM interaction.
@@ -68,6 +72,10 @@ module Phronomy
         caller_meta = {}
         caller_meta[:user_id] = config[:user_id] if config[:user_id]
         caller_meta[:session_id] = config[:session_id] if config[:session_id]
+        if (ic = config[:invocation_context])
+          caller_meta[:task_id] = ic.task_id if ic.task_id
+          caller_meta[:parent_task_id] = ic.parent_task_id if ic.parent_task_id
+        end
 
         trace("agent.invoke", input: input, **caller_meta) do |_span|
           run_input_guardrails!(input)

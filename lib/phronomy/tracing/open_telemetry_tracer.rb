@@ -52,6 +52,39 @@ module Phronomy
         end
         span.finish
       end
+
+      # Overrides Base#trace to use OTel +in_span+, which pushes the span onto
+      # the OTel Context stack while the block runs.  Nested +trace+ calls
+      # automatically inherit the current span as their parent, establishing the
+      # correct parent/child hierarchy in the trace tree.
+      #
+      # @param name [String] span name
+      # @param input [Object, nil] input to record as a span attribute
+      # @param meta [Hash] additional metadata (e.g. task_id, user_id)
+      # @yield [span] the active OTel span
+      # @return [Object] the block's return value
+      def trace(name, input: nil, **meta)
+        attrs = {}
+        attrs["phronomy.input"] = input.to_s if input
+        meta.each { |k, v| attrs["phronomy.#{k}"] = v.to_s unless v.nil? }
+
+        result = nil
+        @otel_tracer.in_span(name, attributes: attrs) do |span|
+          result, usage = yield span
+          span.set_attribute("phronomy.output", result.to_s) if result
+          if usage
+            span.set_attribute("llm.usage.input_tokens", usage.input)
+            span.set_attribute("llm.usage.output_tokens", usage.output)
+            total = (usage.input || 0) + (usage.output || 0)
+            span.set_attribute("llm.usage.total_tokens", total)
+          end
+        rescue => e
+          span.record_exception(e)
+          span.status = OpenTelemetry::Trace::Status.error(e.message)
+          raise
+        end
+        result
+      end
     end
   end
 end

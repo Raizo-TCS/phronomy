@@ -98,5 +98,30 @@ RSpec.describe Phronomy::Tracing::OpenTelemetryTracer do
       finished_span = exporter.finished_spans.first
       expect(finished_span.status.code).to eq(OpenTelemetry::Trace::Status::ERROR)
     end
+
+    it "records task_id and parent_task_id as span attributes" do
+      tracer.trace("task_op", task_id: "T1", parent_task_id: "T0") { ["result", nil] }
+
+      attrs = exporter.finished_spans.first.attributes
+      expect(attrs["phronomy.task_id"]).to eq("T1")
+      expect(attrs["phronomy.parent_task_id"]).to eq("T0")
+    end
+
+    it "establishes parent/child span relationships for nested trace calls" do
+      tracer.trace("parent_op") do |_span|
+        tracer.trace("child_op") { ["child_result", nil] }
+        ["parent_result", nil]
+      end
+
+      spans = exporter.finished_spans
+      expect(spans.size).to eq(2)
+
+      child_span = spans.find { |s| s.name == "child_op" }
+      parent_span = spans.find { |s| s.name == "parent_op" }
+
+      expect(child_span).not_to be_nil
+      expect(parent_span).not_to be_nil
+      expect(child_span.parent_span_id).to eq(parent_span.span_id)
+    end
   end
 end
