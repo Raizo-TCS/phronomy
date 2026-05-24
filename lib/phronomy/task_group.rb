@@ -77,22 +77,53 @@ module Phronomy
       tasks = @mutex.synchronize { @tasks.dup }
       return [] if tasks.empty?
 
-      collected = tasks.map do |task|
-        {value: task.await, error: nil}
-      rescue => e
-        tasks.each { |t| t.cancel! unless t.done? } if @failure_policy == :fail_fast
-        {value: nil, error: e}
+      # Each watcher task awaits one task and reports the outcome to a
+      # shared Queue.  Results arrive in completion order (not spawn order),
+      # which means a fast-failing task is detected immediately regardless of
+      # how long earlier-spawned tasks take — fixing Issue #315.
+      completion_q = Queue.new
+      watcher_tasks = tasks.each_with_index.map do |task, idx|
+        Task.new do
+          value = task.await
+          completion_q.push({index: idx, value: value, error: nil})
+        rescue => e
+          completion_q.push({index: idx, value: nil, error: e})
+        end
       end
 
-      errors = collected.filter_map { |r| r[:error] }
+      entries = Array.new(tasks.length)
+      cancelled = false
+      # The error that triggered fail_fast cancellation (tracked separately so
+      # we raise it rather than a secondary CancellationError from cancelled tasks).
+      fail_fast_error = nil
+
+      tasks.length.times do
+        entry = completion_q.pop
+        entries[entry[:index]] = entry
+
+        if entry[:error] && @failure_policy == :fail_fast && !cancelled
+          cancelled = true
+          fail_fast_error = entry[:error]
+          tasks.each { |t| t.cancel! unless t.done? }
+        end
+      end
+
+      watcher_tasks.each do |t|
+        t.join
+      rescue
+        nil
+      end
 
       case @failure_policy
+      when :fail_fast
+        raise fail_fast_error if fail_fast_error
+        entries.map { |r| r[:value] }
       when :skip_failed
-        collected.filter_map { |r| r[:value] unless r[:error] }
-      else
+        entries.filter_map { |r| r[:value] unless r[:error] }
+      else # :collect_all
+        errors = entries.filter_map { |r| r[:error] }
         raise errors.first if errors.any?
-
-        collected.map { |r| r[:value] }
+        entries.map { |r| r[:value] }
       end
     end
 

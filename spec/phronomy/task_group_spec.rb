@@ -115,5 +115,45 @@ RSpec.describe Phronomy::TaskGroup do
       expect { described_class.new(failure_policy: :unknown) }
         .to raise_error(ArgumentError, /unknown failure_policy/)
     end
+
+    context "with :fail_fast and spawn-order dependency (Issue #315)" do
+      it "detects a fast-failing later task before the slow first task completes" do
+        started = Queue.new
+        released = Queue.new
+
+        group = described_class.new(failure_policy: :fail_fast)
+
+        # Task[0]: slow — blocks until released
+        group.spawn do
+          started.push(:slow_started)
+          released.pop   # waits until released
+          :slow_done
+        end
+
+        # Task[1]: fast-failing
+        group.spawn do
+          raise "fast failure"
+        end
+
+        started.pop  # ensure slow task is running
+
+        t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        error = nil
+        begin
+          group.await_all
+        rescue => e
+          error = e
+        ensure
+          released.push(:go)  # unblock the slow task so the test can clean up
+        end
+        elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0
+
+        expect(error).to be_a(RuntimeError)
+        expect(error.message).to eq("fast failure")
+        # Without the fix this would take several seconds (waiting for slow task).
+        # With the fix it completes almost immediately.
+        expect(elapsed).to be < 2.0
+      end
+    end
   end
 end
