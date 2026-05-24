@@ -337,13 +337,33 @@ module Phronomy
 
       # Invokes this tool asynchronously and returns a {Phronomy::Task}.
       #
+      # Routing is governed by the class-level {.execution_mode} setting:
+      # - +:cooperative+ — runs directly inside a {Phronomy::Task} (no pool).
+      # - +:blocking_io+, +:cpu_bound+, +:external_process+ — submitted to
+      #   {Phronomy::BlockingAdapterPool} when a Runtime is present, then
+      #   wrapped in a Task that waits for the pool operation.  Falls back to a
+      #   direct Task spawn when no Runtime / pool is configured.
+      #
       # @param args               [Hash]
       # @param cancellation_token [Phronomy::CancellationToken, nil]
       # @return [Phronomy::Task]
       # @api public
       def call_async(args, cancellation_token: nil)
-        Phronomy::Task.spawn do
-          call(args, cancellation_token: cancellation_token)
+        ct = cancellation_token
+        case self.class.execution_mode
+        when :cooperative
+          Phronomy::Task.spawn { call(args, cancellation_token: ct) }
+        else
+          # :blocking_io (default), :cpu_bound, :external_process
+          pool = begin; Phronomy::Runtime.instance&.blocking_io; rescue; nil; end
+          if pool
+            op = pool.submit(cancellation_token: ct) { call(args, cancellation_token: ct) }
+            Phronomy::Task.spawn { op.await }
+          else
+            # No pool available (e.g., no Runtime configured) — fall back to a
+            # direct Task spawn so the method always returns a Task.
+            Phronomy::Task.spawn { call(args, cancellation_token: ct) }
+          end
         end
       end
 

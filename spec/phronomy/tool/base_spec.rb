@@ -718,4 +718,65 @@ RSpec.describe Phronomy::Tool::Base do
         .to raise_error(Phronomy::CancellationError)
     end
   end
+
+  # Issue #293 — Tool#call_async must respect the execution_mode DSL setting.
+  # :cooperative tools should run directly in a Task; :blocking_io tools should
+  # be routed through BlockingAdapterPool when a Runtime is present.
+  describe "#call_async execution_mode routing (Issue #293)", :issue_293 do
+    after { Phronomy::Runtime.instance_variable_set(:@instance, nil) }
+
+    let(:cooperative_tool_class) do
+      Class.new(described_class) do
+        description "cooperative tool"
+        execution_mode :cooperative
+        param :x, type: :string, desc: "input"
+
+        def execute(x:)
+          "coop:#{x}"
+        end
+      end
+    end
+
+    let(:blocking_tool_class) do
+      Class.new(described_class) do
+        description "blocking tool"
+        execution_mode :blocking_io
+        param :x, type: :string, desc: "input"
+
+        def execute(x:)
+          "block:#{x}"
+        end
+      end
+    end
+
+    it "cooperative tool: call_async returns a Task that resolves correctly" do
+      task = cooperative_tool_class.new.call_async({"x" => "hi"})
+      expect(task).to be_a(Phronomy::Task)
+      expect(task.await).to eq("coop:hi")
+    end
+
+    it "blocking_io tool with pool: call_async routes through BlockingAdapterPool" do
+      pool   = Phronomy::Runtime.instance.blocking_io
+      called = false
+      allow(pool).to receive(:submit).and_wrap_original do |m, **kw, &blk|
+        called = true
+        m.call(**kw, &blk)
+      end
+
+      task = blocking_tool_class.new.call_async({"x" => "io"})
+      expect(task).to be_a(Phronomy::Task)
+      expect(task.await).to eq("block:io")
+      expect(called).to be(true)
+    end
+
+    it "blocking_io tool without pool: call_async falls back to direct Task.spawn" do
+      # Reset so no Runtime / pool is present
+      Phronomy::Runtime.instance_variable_set(:@instance, nil)
+      allow(Phronomy::Runtime).to receive(:instance).and_return(nil)
+
+      task = blocking_tool_class.new.call_async({"x" => "fallback"})
+      expect(task).to be_a(Phronomy::Task)
+      expect(task.await).to eq("block:fallback")
+    end
+  end
 end
