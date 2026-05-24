@@ -116,13 +116,13 @@ machine; the name reflects its role in the EventLoop rather than internal
 state transitions.</p>
 <h2 id="Execution_model">Execution model</h2>
 <p><span class='object_link'><a href="#start-instance_method" title="Phronomy::Agent::FSM#start (method)">#start</a></span> is called by the EventLoop on the <code>:start</code> event.  It immediately
-returns after spawning a background IO thread that runs the agent's full
+returns after spawning a <span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span> that runs the agent's full
 invocation pipeline (via <code>_invoke_impl</code>).  The EventLoop thread is never
 blocked by agent execution.</p>
-<p>Inside the IO thread, the <code>:phronomy_agent_parallel_tools</code> thread-local
-flag is set to <code>true</code> so that <span class='object_link'>Base#build_chat</span> returns a
-<span class='object_link'><a href="ParallelToolChat.html" title="Phronomy::Agent::ParallelToolChat (class)">ParallelToolChat</a></span> instance, enabling concurrent tool dispatch when the LLM
-returns multiple tool calls in one response.</p>
+<p>Inside the task, <span class='object_link'>Base#build_chat</span> returns a
+<span class='object_link'><a href="ParallelToolChat.html" title="Phronomy::Agent::ParallelToolChat (class)">ParallelToolChat</a></span> instance when EventLoop mode is enabled, allowing
+concurrent tool dispatch when the LLM returns multiple tool calls in one
+response.</p>
 <h2 id="Completion_events">Completion events</h2>
 <p>On <em>success</em>:</p>
 <pre class="code ruby"><code class="ruby">- Posts +:finished+ to this FSM&#39;s own +#id+ so the EventLoop cleans up
@@ -257,7 +257,7 @@ The parent <span class='object_link'><a href="../FSMSession.html" title="Phronom
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(agent:, input:, messages: [], thread_id: nil, config: {}, parent_id: nil, result_writer: nil)  &#x21d2; FSM </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(agent:, input:, messages: [], thread_id: nil, config: {}, parent_id: nil)  &#x21d2; FSM </a>
     
 
     
@@ -310,7 +310,7 @@ The parent <span class='object_link'><a href="../FSMSession.html" title="Phronom
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(agent:, input:, messages: [], thread_id: nil, config: {}, parent_id: nil, result_writer: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Agent::FSM (class)">FSM</a></span></tt> 
+    #<strong>initialize</strong>(agent:, input:, messages: [], thread_id: nil, config: {}, parent_id: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Agent::FSM (class)">FSM</a></span></tt> 
   
 
   
@@ -327,19 +327,7 @@ The parent <span class='object_link'><a href="../FSMSession.html" title="Phronom
   </div>
 </div>
 <div class="tags">
-  
-  <div class="examples">
-    <h4 class="tag_title">Examples:</h4>
-    
-      
-        <h5 class="example_title"><div class='inline'><p>Writing result into context</p></div></h5>
-      
-      <pre class="example code"><code><span class='id identifier rubyid_entry'>entry</span> <span class='symbol'>:run_agent</span><span class='comma'>,</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
-  <span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_run_as_child'>run_as_child</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_query'>query</span><span class='comma'>,</span> <span class='label'>ctx:</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_r'>r</span><span class='op'>|</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_answer'>answer</span> <span class='op'>=</span> <span class='id identifier rubyid_r'>r</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
-<span class='rbrace'>}</span></code></pre>
-    
-  </div>
-<p class="tag_title">Parameters:</p>
+  <p class="tag_title">Parameters:</p>
 <ul class="param">
   
     <li>
@@ -432,32 +420,12 @@ auto-generated when nil</p></div>
       
       
         &mdash;
-        <div class='inline'><p>EventLoop id of the parent
-FSMSession; when set, a
-<code>:child_completed</code> event is posted
-on completion</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>result_writer</span>
-      
-      
-        <span class='type'>(<tt>Proc</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>optional callable invoked with the
-result hash <b>before</b>
-<code>:child_completed</code> is posted.
-Use this to write the agent output
-back into the parent WorkflowContext.
-Thread::Queue provides the
-happens-before guarantee.</p></div>
+        <div class='inline'><p>EventLoop id of the parent FSMSession;
+when set, a <code>:child_completed</code> event
+is posted on completion.  The result
+is delivered exclusively as the event
+payload — no cross-thread writes to the
+parent WorkflowContext are performed.</p></div>
       
     </li>
   
@@ -470,29 +438,27 @@ happens-before guarantee.</p></div>
       <pre class="lines">
 
 
-92
-93
-94
-95
-96
-97
-98
-99
-100
-101
-102</pre>
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 92</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 83</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>agent:</span><span class='comma'>,</span> <span class='label'>input:</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>parent_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>result_writer:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>agent:</span><span class='comma'>,</span> <span class='label'>input:</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>parent_id:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span>
   <span class='ivar'>@input</span> <span class='op'>=</span> <span class='id identifier rubyid_input'>input</span>
   <span class='ivar'>@messages</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
   <span class='ivar'>@thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='op'>||</span> <span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_uuid'>uuid</span>
   <span class='ivar'>@config</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span>
   <span class='ivar'>@parent_id</span> <span class='op'>=</span> <span class='id identifier rubyid_parent_id'>parent_id</span>
-  <span class='ivar'>@result_writer</span> <span class='op'>=</span> <span class='id identifier rubyid_result_writer'>result_writer</span>
   <span class='ivar'>@id</span> <span class='op'>=</span> <span class='ivar'>@thread_id</span>
   <span class='ivar'>@current_phase</span> <span class='op'>=</span> <span class='symbol'>:idle</span>
 <span class='kw'>end</span></pre>
@@ -665,12 +631,12 @@ to external events after <span class='object_link'><a href="#start-instance_meth
       <pre class="lines">
 
 
-114
-115
-116</pre>
+104
+105
+106</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 114</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 104</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_handle'>handle</span><span class='lparen'>(</span><span class='id identifier rubyid__event'>_event</span><span class='rparen'>)</span>
   <span class='comment'># No-op: AgentFSM is driven entirely by its IO thread.
@@ -696,7 +662,7 @@ to external events after <span class='object_link'><a href="#start-instance_meth
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
 <p>Called by <span class='object_link'><a href="../EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span> on the <code>:start</code> event.
-Transitions to <code>:running</code> and spawns the agent IO thread.</p>
+Transitions to <code>:running</code> and spawns the agent task.</p>
 
   </div>
 </div>
@@ -709,17 +675,17 @@ Transitions to <code>:running</code> and spawns the agent IO thread.</p>
       <pre class="lines">
 
 
-106
-107
-108
-109</pre>
+96
+97
+98
+99</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 106</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/fsm.rb', line 96</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start'>start</span>
   <span class='ivar'>@current_phase</span> <span class='op'>=</span> <span class='symbol'>:running</span>
-  <span class='id identifier rubyid_spawn_agent_thread'>spawn_agent_thread</span>
+  <span class='id identifier rubyid_spawn_agent_task'>spawn_agent_task</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -731,7 +697,7 @@ Transitions to <code>:running</code> and spawns the agent IO thread.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 18:10:04 2026 by
+  Generated on Sun May 24 02:06:49 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

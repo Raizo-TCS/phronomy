@@ -167,6 +167,28 @@ has been registered, the invocation is suspended and a
 </li>
 
       
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#scope_policy=-instance_method" title="#scope_policy= (instance method)">#<strong>scope_policy=</strong>(policy)  &#x21d2; void </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Registers a scope policy callable for this agent instance.</p></div></span>
+  
+</li>
+
+      
     </ul>
     
   
@@ -367,21 +389,6 @@ to inject a denial message and let the LLM handle it gracefully</p></div>
       <pre class="lines">
 
 
-49
-50
-51
-52
-53
-54
-55
-56
-57
-58
-59
-60
-61
-62
-63
 64
 65
 66
@@ -406,10 +413,25 @@ to inject a denial message and let the LLM handle it gracefully</p></div>
 85
 86
 87
-88</pre>
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 64</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='id identifier rubyid_checkpoint'>checkpoint</span><span class='comma'>,</span> <span class='label'>approved:</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='comment'># Build a fresh chat with all tools registered.
@@ -456,12 +478,78 @@ to inject a denial message and let the LLM handle it gracefully</p></div>
 </table>
 </div>
     
+      <div class="method_details ">
+  <h3 class="signature " id="scope_policy=-instance_method">
+  
+    #<strong>scope_policy=</strong>(policy)  &#x21d2; <tt>void</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note returns_void">This method returns an undefined value.</p><p>Registers a scope policy callable for this agent instance.</p>
+<p>The callable receives <code>(tool_class, scope, agent)</code> and must return
+<code>:allow</code>, <code>:reject</code>, or <code>:approve</code>.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="examples">
+    <h4 class="tag_title">Examples:</h4>
+    
+      
+        <h5 class="example_title"><div class='inline'><p>Reject all write-scoped tools</p></div></h5>
+      
+      <pre class="example code"><code><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_scope_policy'>scope_policy</span> <span class='op'>=</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid__tc'>_tc</span><span class='comma'>,</span> <span class='id identifier rubyid_scope'>scope</span><span class='comma'>,</span> <span class='id identifier rubyid__agent'>_agent</span><span class='rparen'>)</span> <span class='tlambeg'>{</span> <span class='id identifier rubyid_scope'>scope</span> <span class='op'>==</span> <span class='symbol'>:write</span> <span class='op'>?</span> <span class='symbol'>:reject</span> <span class='op'>:</span> <span class='symbol'>:allow</span> <span class='rbrace'>}</span></code></pre>
+    
+  </div>
+<p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>policy</span>
+      
+      
+        <span class='type'>(<tt>#call</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+46
+47
+48</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 46</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_scope_policy='>scope_policy=</span><span class='lparen'>(</span><span class='id identifier rubyid_policy'>policy</span><span class='rparen'>)</span>
+  <span class='ivar'>@scope_policy</span> <span class='op'>=</span> <span class='id identifier rubyid_policy'>policy</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
   </div>
 
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 18:10:04 2026 by
+  Generated on Sun May 24 02:06:48 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

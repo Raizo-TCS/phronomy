@@ -604,7 +604,7 @@ The entry action is expected to spawn an IO thread that posts the event back:</p
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
 <p>Processes an event dispatched from EventLoop.
-Called for :state_completed and all user-defined external events.</p>
+Called for :state_completed, :action_completed, and all user-defined external events.</p>
 
   </div>
 </div>
@@ -632,19 +632,37 @@ Called for :state_completed and all user-defined external events.</p>
       <pre class="lines">
 
 
-108
-109
-110
-111
-112
-113
-114</pre>
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/fsm_session.rb', line 108</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/fsm_session.rb', line 128</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_handle'>handle</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='kw'>if</span> <span class='ivar'>@done</span>
+
+  <span class='kw'>if</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span> <span class='op'>==</span> <span class='symbol'>:action_completed</span>
+    <span class='comment'># An awaitable entry action completed: update context and advance.
+</span>    <span class='ivar'>@ctx</span> <span class='op'>=</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span> <span class='kw'>if</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="WorkflowContext.html" title="Phronomy::WorkflowContext (module)">WorkflowContext</a></span></span><span class='rparen'>)</span>
+    <span class='ivar'>@tracker</span><span class='period'>.</span><span class='id identifier rubyid_context'>context</span> <span class='op'>=</span> <span class='ivar'>@ctx</span>
+    <span class='ivar'>@tracker</span><span class='period'>.</span><span class='id identifier rubyid_async_pending'>async_pending</span> <span class='op'>=</span> <span class='kw'>false</span>  <span class='comment'># Reset flag set by start or fire_and_advance!
+</span>    <span class='id identifier rubyid_advance_or_halt'>advance_or_halt</span>
+    <span class='kw'>return</span>
+  <span class='kw'>end</span>
 
   <span class='id identifier rubyid_fire_and_advance!'>fire_and_advance!</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span><span class='rparen'>)</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
@@ -703,7 +721,27 @@ Called for :state_completed and all user-defined external events.</p>
 98
 99
 100
-101</pre>
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/fsm_session.rb', line 77</span>
@@ -725,10 +763,30 @@ Called for :state_completed and all user-defined external events.</p>
     <span class='ivar'>@tracker</span><span class='period'>.</span><span class='id identifier rubyid_context'>context</span> <span class='op'>=</span> <span class='ivar'>@ctx</span>
     <span class='lparen'>(</span><span class='ivar'>@entry_actions</span><span class='lbracket'>[</span><span class='ivar'>@current_state</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span>
       <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='ivar'>@ctx</span><span class='rparen'>)</span>
-      <span class='ivar'>@ctx</span> <span class='op'>=</span> <span class='id identifier rubyid_result'>result</span> <span class='kw'>if</span> <span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="WorkflowContext.html" title="Phronomy::WorkflowContext (module)">WorkflowContext</a></span></span><span class='rparen'>)</span>
+      <span class='kw'>if</span> <span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='rparen'>)</span>
+        <span class='comment'># Awaitable action: spawn a thread to await without blocking EventLoop.
+</span>        <span class='ivar'>@tracker</span><span class='period'>.</span><span class='id identifier rubyid_async_pending'>async_pending</span> <span class='op'>=</span> <span class='kw'>true</span>
+        <span class='id identifier rubyid_ctx_ref'>ctx_ref</span> <span class='op'>=</span> <span class='ivar'>@ctx</span>
+        <span class='id identifier rubyid_session_id'>session_id</span> <span class='op'>=</span> <span class='ivar'>@id</span>
+        <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='kw'>do</span>
+          <span class='kw'>begin</span>
+            <span class='id identifier rubyid_task_result'>task_result</span> <span class='op'>=</span> <span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_await'>await</span>
+            <span class='kw'>if</span> <span class='id identifier rubyid_task_result'>task_result</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="WorkflowContext.html" title="Phronomy::WorkflowContext (module)">WorkflowContext</a></span></span><span class='rparen'>)</span>
+              <span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_post'>post</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="Event.html" title="Phronomy::Event (class)">Event</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>type:</span> <span class='symbol'>:action_completed</span><span class='comma'>,</span> <span class='label'>target_id:</span> <span class='id identifier rubyid_session_id'>session_id</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='id identifier rubyid_task_result'>task_result</span><span class='rparen'>)</span><span class='rparen'>)</span>
+            <span class='kw'>else</span>
+              <span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_post'>post</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="Event.html" title="Phronomy::Event (class)">Event</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>type:</span> <span class='symbol'>:state_completed</span><span class='comma'>,</span> <span class='label'>target_id:</span> <span class='id identifier rubyid_session_id'>session_id</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='kw'>nil</span><span class='rparen'>)</span><span class='rparen'>)</span>
+            <span class='kw'>end</span>
+          <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
+            <span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_post'>post</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="Event.html" title="Phronomy::Event (class)">Event</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>type:</span> <span class='symbol'>:error</span><span class='comma'>,</span> <span class='label'>target_id:</span> <span class='id identifier rubyid_session_id'>session_id</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='id identifier rubyid_e'>e</span><span class='rparen'>)</span><span class='rparen'>)</span>
+          <span class='kw'>end</span>
+        <span class='kw'>end</span>
+        <span class='kw'>break</span> <span class='comment'># Only one async action at a time per state
+</span>      <span class='kw'>else</span>
+        <span class='ivar'>@ctx</span> <span class='op'>=</span> <span class='id identifier rubyid_result'>result</span> <span class='kw'>if</span> <span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="WorkflowContext.html" title="Phronomy::WorkflowContext (module)">WorkflowContext</a></span></span><span class='rparen'>)</span>
+      <span class='kw'>end</span>
     <span class='kw'>end</span>
     <span class='ivar'>@tracker</span><span class='period'>.</span><span class='id identifier rubyid_context'>context</span> <span class='op'>=</span> <span class='ivar'>@ctx</span>
-    <span class='id identifier rubyid_advance_or_halt'>advance_or_halt</span>
+    <span class='id identifier rubyid_advance_or_halt'>advance_or_halt</span> <span class='kw'>unless</span> <span class='ivar'>@tracker</span><span class='period'>.</span><span class='id identifier rubyid_async_pending'>async_pending</span>
   <span class='kw'>end</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
   <span class='id identifier rubyid_finish_with_error'>finish_with_error</span><span class='lparen'>(</span><span class='id identifier rubyid_e'>e</span><span class='rparen'>)</span>
@@ -743,7 +801,7 @@ Called for :state_completed and all user-defined external events.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 18:10:04 2026 by
+  Generated on Sun May 24 02:06:50 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

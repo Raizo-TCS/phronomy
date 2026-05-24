@@ -159,6 +159,28 @@ Each chunk Hash must contain:</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#fetch_async-instance_method" title="#fetch_async (instance method)">#<strong>fetch_async</strong>(query: nil, cancellation_token: nil, timeout: nil)  &#x21d2; BlockingAdapterPool::PendingOperation </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Submits a <span class='object_link'><a href="#fetch-instance_method" title="Phronomy::KnowledgeSource::Base#fetch (method)">#fetch</a></span> call to <span class='object_link'><a href="../BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span> and returns a <span class='object_link'><a href="../BlockingAdapterPool/PendingOperation.html" title="Phronomy::BlockingAdapterPool::PendingOperation (class)">BlockingAdapterPool::PendingOperation</a></span>.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#static%3F-instance_method" title="#static? (instance method)">#<strong>static?</strong>  &#x21d2; Boolean </a>
     
 
@@ -295,6 +317,116 @@ Each chunk Hash must contain:</p>
 </div>
     
       <div class="method_details ">
+  <h3 class="signature " id="fetch_async-instance_method">
+  
+    #<strong>fetch_async</strong>(query: nil, cancellation_token: nil, timeout: nil)  &#x21d2; <tt><span class='object_link'><a href="../BlockingAdapterPool/PendingOperation.html" title="Phronomy::BlockingAdapterPool::PendingOperation (class)">BlockingAdapterPool::PendingOperation</a></span></tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Submits a <span class='object_link'><a href="#fetch-instance_method" title="Phronomy::KnowledgeSource::Base#fetch (method)">#fetch</a></span> call to <span class='object_link'><a href="../BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span> and returns a
+<span class='object_link'><a href="../BlockingAdapterPool/PendingOperation.html" title="Phronomy::BlockingAdapterPool::PendingOperation (class)">BlockingAdapterPool::PendingOperation</a></span>.
+Callers can fan out multiple fetches in parallel and await them all.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>query</span>
+      
+      
+        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>cancellation_token</span>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="../CancellationToken.html" title="Phronomy::CancellationToken (class)">Phronomy::CancellationToken</a></span></tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>timeout</span>
+      
+      
+        <span class='type'>(<tt>Numeric</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>seconds before the operation is abandoned</p></div>
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="../BlockingAdapterPool/PendingOperation.html" title="Phronomy::BlockingAdapterPool::PendingOperation (class)">BlockingAdapterPool::PendingOperation</a></span></tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+32
+33
+34
+35
+36
+37
+38
+39</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/knowledge_source/base.rb', line 32</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_fetch_async'>fetch_async</span><span class='lparen'>(</span><span class='label'>query:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_blocking_io'><span class='object_link'><a href="../Runtime.html#blocking_io-instance_method" title="Phronomy::Runtime#blocking_io (method)">blocking_io</a></span></span><span class='period'>.</span><span class='id identifier rubyid_submit'><span class='object_link'><a href="../BlockingAdapterPool.html#submit-instance_method" title="Phronomy::BlockingAdapterPool#submit (method)">submit</a></span></span><span class='lparen'>(</span>
+    <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
+    <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
+  <span class='rparen'>)</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='label'>query:</span> <span class='id identifier rubyid_query'>query</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
   <h3 class="signature " id="static?-instance_method">
   
     #<strong>static?</strong>  &#x21d2; <tt>Boolean</tt> 
@@ -334,12 +466,12 @@ fingerprint-based caching in ContextVersionCache.</p>
       <pre class="lines">
 
 
-31
-32
-33</pre>
+49
+50
+51</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/knowledge_source/base.rb', line 31</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/knowledge_source/base.rb', line 49</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_static?'>static?</span>
   <span class='kw'>false</span>
@@ -354,7 +486,7 @@ fingerprint-based caching in ContextVersionCache.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May 23 18:10:06 2026 by
+  Generated on Sun May 24 02:06:51 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
