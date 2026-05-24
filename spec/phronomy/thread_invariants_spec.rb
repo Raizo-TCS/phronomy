@@ -96,3 +96,40 @@ RSpec.describe "Thread.new absence from core paths (Issue #272)" do
     end
   end
 end
+
+# Issue #302 — Thread.current must only appear in files that explicitly own a
+# Thread context (EventLoop background thread marker, Task#spawn name setter).
+# All other modules must use the public Phronomy::EventLoop.current? predicate
+# or InvocationContext instead of reading thread-locals directly.
+RSpec.describe "Thread.current confinement (Issue #302)", :issue_302 do
+  # Files permitted to reference Thread.current directly.
+  THREAD_CURRENT_ALLOWLIST = %w[
+    lib/phronomy/event_loop.rb
+    lib/phronomy/task.rb
+  ].freeze
+
+  it "Thread.current is not referenced outside the allowed files" do
+    lib_root     = File.expand_path("../../lib", __dir__)
+    project_root = File.expand_path("..", lib_root)
+    lib_files    = Dir.glob("#{lib_root}/**/*.rb")
+
+    violations = []
+    lib_files.each do |abs_path|
+      rel_path = abs_path.sub("#{project_root}/", "")
+      next if THREAD_CURRENT_ALLOWLIST.any? { |allowed| rel_path == allowed }
+
+      File.foreach(abs_path).each_with_index do |line, idx|
+        # Skip pure-comment lines so docs referencing Thread.current are allowed.
+        next if line.strip.start_with?("#")
+        next unless line.include?("Thread.current")
+
+        violations << "#{rel_path}:#{idx + 1}: #{line.strip}"
+      end
+    end
+
+    expect(violations).to be_empty,
+      "Thread.current used outside allowed files (use EventLoop.current? or InvocationContext instead):\n" \
+      "#{violations.join("\n")}"
+  end
+end
+
