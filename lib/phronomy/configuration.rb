@@ -91,6 +91,18 @@ module Phronomy
     # @return [Numeric, nil]
     attr_accessor :backpressure_timeout
 
+    # Warn when an event spends longer than this many seconds waiting in the
+    # EventLoop queue before being dispatched (starvation detection).
+    # Set to +nil+ to disable the warning.
+    # @return [Numeric, nil]
+    attr_accessor :event_loop_starvation_threshold_seconds
+
+    # Warn when processing a single event on the EventLoop thread takes longer
+    # than this many seconds (long-running task / blocking-on-loop detection).
+    # Set to +nil+ to disable the warning.
+    # @return [Numeric, nil]
+    attr_accessor :event_loop_dispatch_threshold_seconds
+
     def initialize
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new
@@ -100,6 +112,8 @@ module Phronomy
       @llm_adapter = Phronomy::LLMAdapter::RubyLLM.new
       @backpressure = :wait
       @backpressure_timeout = nil
+      @event_loop_starvation_threshold_seconds = nil
+      @event_loop_dispatch_threshold_seconds = nil
     end
   end
 end

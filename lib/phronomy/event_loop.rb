@@ -55,6 +55,39 @@ module Phronomy
       @fsm_count = 0
       # Token cancelled when shutdown is requested; new child sessions receive it.
       @shutdown_token = Phronomy::CancellationToken.new
+      # Fairness metrics (EventLoop thread only, except where noted)
+      @lag_mutex = Mutex.new
+      @last_lag_ns = 0
+      @max_lag_ns  = 0
+      @dispatch_count = 0
+      @total_lag_ns   = 0
+    end
+
+    # Returns the most recently measured event-loop lag in seconds.
+    # Lag is the wall-clock time between {#post} and the moment the event
+    # is dequeued for dispatch.  Thread-safe.
+    # @return [Float]
+    def last_lag_seconds
+      @lag_mutex.synchronize { @last_lag_ns } / 1_000_000_000.0
+    end
+
+    # Returns the maximum event-loop lag seen since the loop was started.
+    # Thread-safe.
+    # @return [Float]
+    def max_lag_seconds
+      @lag_mutex.synchronize { @max_lag_ns } / 1_000_000_000.0
+    end
+
+    # Returns the mean event-loop lag across all dispatched events since the
+    # loop was started.  Returns 0.0 when no events have been dispatched.
+    # Thread-safe.
+    # @return [Float]
+    def average_lag_seconds
+      @lag_mutex.synchronize do
+        return 0.0 if @dispatch_count.zero?
+
+        @total_lag_ns.to_f / @dispatch_count / 1_000_000_000.0
+      end
     end
 
     # Registers an FSMSession for execution and returns a completion queue.
@@ -81,8 +114,9 @@ module Phronomy
       completion_queue = Thread::Queue.new
       # Pass both session and completion_queue in the event payload so that the
       # EventLoop thread is the sole writer of @fsms and @waiting.
-      @queue.push(Event.new(type: :start, target_id: fsm_session.id,
-        payload: {session: fsm_session, completion: completion_queue}))
+      @queue.push([Event.new(type: :start, target_id: fsm_session.id,
+        payload: {session: fsm_session, completion: completion_queue}),
+        Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)])
       completion_queue
     end
 
@@ -97,17 +131,20 @@ module Phronomy
     # @return [nil]
     # @api private
     def enqueue_child(agent_fsm)
-      @queue.push(Event.new(type: :start, target_id: agent_fsm.id,
-        payload: {session: agent_fsm, completion: nil}))
+      @queue.push([Event.new(type: :start, target_id: agent_fsm.id,
+        payload: {session: agent_fsm, completion: nil}),
+        Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)])
       nil
     end
 
     # Posts an event to the loop. Safe to call from any thread (including IO threads).
+    # The current monotonic clock time is recorded so that the EventLoop can
+    # measure the dispatch lag when it dequeues the event.
     #
     # @param event [Phronomy::Event]
     # @api private
     def post(event)
-      @queue.push(event)
+      @queue.push([event, Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)])
     end
 
     # Starts the background event loop thread.
@@ -202,14 +239,22 @@ module Phronomy
 
     def run_loop
       while @running
-        event = @queue.pop
+        item = @queue.pop
         # :__stop__ is used purely as an unblock signal for @queue.pop; the
         # actual stop condition is @running == false (set before the push).
         # Treating it as `next` instead of `break` prevents a stale sentinel
         # (left by a previous stop call that raced with thread start) from
         # immediately terminating a freshly restarted EventLoop.
-        next if event == :__stop__
+        next if item == :__stop__
 
+        # item is [event, posted_at_ns] — unwrap and measure lag
+        event, posted_at_ns = item
+        dequeued_at_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+        lag_ns = dequeued_at_ns - posted_at_ns
+        update_lag_metrics(lag_ns)
+        check_starvation_lag(lag_ns, event)
+
+        dispatch_start_ns = dequeued_at_ns
         case event.type
         when :finished, :halted, :error
           # All three terminal events share the same cleanup path.
@@ -254,11 +299,50 @@ module Phronomy
                  "no handler for target_id #{event.target_id.inspect}"
           end
         end
+
+        # Check how long this dispatch took; warn if it exceeds the threshold.
+        check_dispatch_time(dispatch_start_ns, event)
       end
     rescue => e
       # Unblock all waiting callers if the loop dies unexpectedly.
       @waiting.values.each { |cq| cq.push(e) }
       raise
+    end
+
+    def update_lag_metrics(lag_ns)
+      @lag_mutex.synchronize do
+        @last_lag_ns = lag_ns
+        @max_lag_ns  = lag_ns if lag_ns > @max_lag_ns
+        @total_lag_ns += lag_ns
+        @dispatch_count += 1
+      end
+    end
+
+    def check_starvation_lag(lag_ns, event)
+      threshold = Phronomy.configuration.event_loop_starvation_threshold_seconds
+      return unless threshold && lag_ns > (threshold * 1_000_000_000)
+
+      Phronomy.configuration.logger&.warn do
+        "[Phronomy::EventLoop] Starvation detected: event #{event.type.inspect} " \
+        "for target #{event.target_id.inspect} waited " \
+        "#{format("%.3f", lag_ns / 1_000_000_000.0)}s in queue " \
+        "(threshold: #{threshold}s)"
+      end
+    end
+
+    def check_dispatch_time(dispatch_start_ns, event)
+      threshold = Phronomy.configuration.event_loop_dispatch_threshold_seconds
+      return unless threshold
+
+      elapsed_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond) - dispatch_start_ns
+      return unless elapsed_ns > (threshold * 1_000_000_000)
+
+      Phronomy.configuration.logger&.warn do
+        "[Phronomy::EventLoop] Long dispatch: event #{event.type.inspect} " \
+        "for target #{event.target_id.inspect} took " \
+        "#{format("%.3f", elapsed_ns / 1_000_000_000.0)}s on the EventLoop thread " \
+        "(threshold: #{threshold}s). Consider moving blocking work to BlockingAdapterPool."
+      end
     end
   end
 end
