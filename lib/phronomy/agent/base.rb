@@ -485,6 +485,11 @@ module Phronomy
       #   +:knowledge_sources+ (Array) — dynamic knowledge sources for this turn
       #   +:user_id+    (+String+, optional) — caller identity forwarded to the tracer
       #   +:session_id+ (+String+, optional) — session identity forwarded to the tracer
+      # @param invocation_context [Phronomy::InvocationContext, nil] optional first-class context
+      #   object.  When present, +thread_id+, +cancellation_token+, and +deadline+ are
+      #   derived from it (existing +config:+ keys take precedence as backward-compat
+      #   aliases).  The object is also stored in +config[:invocation_context]+ so that
+      #   +task_id+ / +parent_task_id+ appear in trace spans automatically.
       # @return [Hash] +{ output: String, messages: Array, usage: Phronomy::TokenUsage }+,
       #   or +{ output: nil, suspended: true, checkpoint: Phronomy::Agent::Checkpoint,
       #   messages: Array }+ when the invocation was suspended awaiting tool approval.
@@ -501,8 +506,18 @@ module Phronomy
       #     result = agent.resume(result[:checkpoint], approved: true)
       #   end
       #   puts result[:output]
+      # @example With InvocationContext (deadline-based timeout)
+      #   ctx = Phronomy::InvocationContext.new(
+      #     thread_id: "conv-123",
+      #     deadline: Phronomy::Deadline.in(30),
+      #     task_id: SecureRandom.uuid
+      #   )
+      #   result = MyAgent.new.invoke("Hello", invocation_context: ctx)
       # @api public
-      def invoke(input, messages: [], thread_id: nil, config: {})
+      def invoke(input, messages: [], thread_id: nil, config: {}, invocation_context: nil)
+        if invocation_context
+          thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
+        end
         if Phronomy.configuration.event_loop
           # Protect against blocking the EventLoop thread itself.
           if Phronomy::EventLoop.current?
@@ -574,9 +589,13 @@ module Phronomy
       # @param messages [Array]
       # @param thread_id [String, nil]
       # @param config   [Hash]
+      # @param invocation_context [Phronomy::InvocationContext, nil]
       # @return [Phronomy::Task]
       # @api public
-      def invoke_async(input, messages: [], thread_id: nil, config: {})
+      def invoke_async(input, messages: [], thread_id: nil, config: {}, invocation_context: nil)
+        if invocation_context
+          thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
+        end
         Phronomy::Runtime.instance.spawn(name: "agent-#{(self.class.name || "anonymous").downcase}-async") do
           _invoke_impl(input, messages: messages, thread_id: thread_id, config: config)
         end
@@ -671,6 +690,24 @@ module Phronomy
       end
 
       private
+
+      # Merges an {InvocationContext} into the +thread_id+ / +config+ pair.
+      # Returns +[effective_thread_id, effective_config]+.
+      #
+      # Precedence rules (existing explicit values always win):
+      # - +thread_id+ argument > +ic.thread_id+
+      # - +config[:cancellation_token]+ > +ic.cancellation_token+ > token derived from +ic.deadline+
+      # - +ic+ is stored in +config[:invocation_context]+ (overwriting any previous value)
+      def _apply_invocation_context(thread_id, config, ic)
+        effective_thread_id = thread_id || ic.thread_id
+        effective_config = config.merge(invocation_context: ic)
+        if effective_config[:cancellation_token].nil?
+          if (tok = ic.effective_timeout_token)
+            effective_config = effective_config.merge(cancellation_token: tok)
+          end
+        end
+        [effective_thread_id, effective_config]
+      end
 
       # Streaming implementation for #stream.
       def _stream_impl(input, messages: [], thread_id: nil, config: {}, &block)

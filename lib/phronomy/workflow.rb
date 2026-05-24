@@ -81,9 +81,16 @@ module Phronomy
     # Executes the workflow from the initial state.
     # @param input [Hash] initial context field values
     # @param config [Hash] { thread_id:, recursion_limit:, user_id:, session_id: }
+    # @param invocation_context [Phronomy::InvocationContext, nil] optional first-class context
+    #   object.  When present, +thread_id+, +cancellation_token+, and +deadline+ are
+    #   derived from it (existing +config:+ keys take precedence).  The object is also
+    #   stored in +config[:invocation_context]+ for downstream tracing.
     # @return [Object] final context
     # @api public
-    def invoke(input, config: {})
+    def invoke(input, config: {}, invocation_context: nil)
+      if invocation_context
+        config = _apply_invocation_context(config, invocation_context)
+      end
       @runner.invoke(input, config: config)
     end
 
@@ -91,9 +98,13 @@ module Phronomy
     #
     # @param input  [Hash]
     # @param config [Hash]
+    # @param invocation_context [Phronomy::InvocationContext, nil]
     # @return [Phronomy::Task]
     # @api public
-    def invoke_async(input, config: {})
+    def invoke_async(input, config: {}, invocation_context: nil)
+      if invocation_context
+        config = _apply_invocation_context(config, invocation_context)
+      end
       Phronomy::Task.spawn do
         invoke(input, config: config)
       end
@@ -127,6 +138,23 @@ module Phronomy
     def stream(input, config: {}, &block)
       @runner.stream(input, config: config, &block)
     end
+
+    private
+
+    # Merges an {InvocationContext} into the config hash.
+    # Existing +config+ keys take precedence (backward-compat).
+    def _apply_invocation_context(config, ic)
+      effective = config.merge(invocation_context: ic)
+      effective = effective.merge(thread_id: ic.thread_id) if effective[:thread_id].nil? && ic.thread_id
+      if effective[:cancellation_token].nil?
+        if (tok = ic.effective_timeout_token)
+          effective = effective.merge(cancellation_token: tok)
+        end
+      end
+      effective
+    end
+
+    public
 
     # ---------------------------------------------------------------------------
     # Internal DSL builder

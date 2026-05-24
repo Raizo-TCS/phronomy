@@ -83,19 +83,19 @@ module Phronomy
       task_id: nil,
       parent_task_id: nil
     )
-      @thread_id          = thread_id
-      @session_id         = session_id
-      @user_id            = user_id
+      @thread_id = thread_id
+      @session_id = session_id
+      @user_id = user_id
       @cancellation_token = cancellation_token
-      @deadline           = deadline
-      @tracer_span        = tracer_span
-      @token_budget       = token_budget
+      @deadline = deadline
+      @tracer_span = tracer_span
+      @token_budget = token_budget
       @max_parallel_tools = max_parallel_tools
-      @approval_policy    = approval_policy
-      @redaction_policy   = redaction_policy
-      @provider_limits    = provider_limits
-      @task_id            = task_id
-      @parent_task_id     = parent_task_id
+      @approval_policy = approval_policy
+      @redaction_policy = redaction_policy
+      @provider_limits = provider_limits
+      @task_id = task_id
+      @parent_task_id = parent_task_id
     end
 
     # Returns a new +InvocationContext+ with the given attributes merged in.
@@ -105,19 +105,19 @@ module Phronomy
     # @return [InvocationContext]
     def merge(**overrides)
       InvocationContext.new(
-        thread_id:          overrides.fetch(:thread_id, @thread_id),
-        session_id:         overrides.fetch(:session_id, @session_id),
-        user_id:            overrides.fetch(:user_id, @user_id),
+        thread_id: overrides.fetch(:thread_id, @thread_id),
+        session_id: overrides.fetch(:session_id, @session_id),
+        user_id: overrides.fetch(:user_id, @user_id),
         cancellation_token: overrides.fetch(:cancellation_token, @cancellation_token),
-        deadline:           overrides.fetch(:deadline, @deadline),
-        tracer_span:        overrides.fetch(:tracer_span, @tracer_span),
-        token_budget:       overrides.fetch(:token_budget, @token_budget),
+        deadline: overrides.fetch(:deadline, @deadline),
+        tracer_span: overrides.fetch(:tracer_span, @tracer_span),
+        token_budget: overrides.fetch(:token_budget, @token_budget),
         max_parallel_tools: overrides.fetch(:max_parallel_tools, @max_parallel_tools),
-        approval_policy:    overrides.fetch(:approval_policy, @approval_policy),
-        redaction_policy:   overrides.fetch(:redaction_policy, @redaction_policy),
-        provider_limits:    overrides.fetch(:provider_limits, @provider_limits),
-        task_id:            overrides.fetch(:task_id, @task_id),
-        parent_task_id:     overrides.fetch(:parent_task_id, @parent_task_id)
+        approval_policy: overrides.fetch(:approval_policy, @approval_policy),
+        redaction_policy: overrides.fetch(:redaction_policy, @redaction_policy),
+        provider_limits: overrides.fetch(:provider_limits, @provider_limits),
+        task_id: overrides.fetch(:task_id, @task_id),
+        parent_task_id: overrides.fetch(:parent_task_id, @parent_task_id)
       )
     end
 
@@ -125,6 +125,24 @@ module Phronomy
     # @return [CancellationToken]
     def effective_cancellation_token
       @cancellation_token || CancellationToken.new
+    end
+
+    # Returns the cancellation token to use for an invocation, taking both the
+    # explicit +cancellation_token+ and the +deadline+ into account.
+    #
+    # - When +cancellation_token+ is set, it is returned unchanged.
+    # - When only +deadline+ is set, a new {CancellationToken} is created and
+    #   the deadline is attached to it via {Deadline#attach_to}.
+    # - When neither is set, returns +nil+.
+    #
+    # @return [CancellationToken, nil]
+    def effective_timeout_token
+      return @cancellation_token if @cancellation_token
+      return nil if @deadline.nil?
+
+      token = CancellationToken.new
+      @deadline.attach_to(token)
+      token
     end
   end
 end

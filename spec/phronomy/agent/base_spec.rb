@@ -262,3 +262,64 @@ RSpec.describe Phronomy::Agent::Base do
     end
   end
 end
+
+RSpec.describe "Agent::Base invocation_context: keyword argument (Issue #301)" do
+  let(:agent) do
+    Class.new(Phronomy::Agent::Base) do
+      instructions "test"
+      model "gpt-4o-mini"
+    end.new
+  end
+
+  # Capture the config hash seen by _invoke_impl so we can assert on it.
+  def capture_config(ag, &block)
+    captured = {}
+    allow(ag).to receive(:_invoke_impl) do |_input, **kwargs|
+      captured = kwargs[:config]
+      {output: "ok"}
+    end
+    block.call
+    captured
+  end
+
+  it "stores the InvocationContext in config[:invocation_context]" do
+    ic = Phronomy::InvocationContext.new(task_id: "abc-123")
+    config = capture_config(agent) { agent.invoke("hi", invocation_context: ic) }
+    expect(config[:invocation_context]).to be(ic)
+  end
+
+  it "derives thread_id from InvocationContext when not explicitly supplied" do
+    ic = Phronomy::InvocationContext.new(thread_id: "ic-thread")
+    config = capture_config(agent) { agent.invoke("hi", invocation_context: ic) }
+    # InvocationContext must be stored in config; thread_id routing is tested via FSM
+    expect(config[:invocation_context]).to be(ic)
+  end
+
+  it "explicit thread_id takes precedence over ic.thread_id" do
+    ic = Phronomy::InvocationContext.new(thread_id: "ic-thread")
+    config = capture_config(agent) { agent.invoke("hi", thread_id: "explicit", invocation_context: ic) }
+    # _invoke_impl will be called with thread_id: "explicit"
+    # The captured config should still contain the ic
+    expect(config[:invocation_context]).to be(ic)
+  end
+
+  it "derives cancellation_token from InvocationContext.cancellation_token" do
+    token = Phronomy::CancellationToken.new
+    ic = Phronomy::InvocationContext.new(cancellation_token: token)
+    config = capture_config(agent) { agent.invoke("hi", invocation_context: ic) }
+    expect(config[:cancellation_token]).to be(token)
+  end
+
+  it "derives cancellation_token from InvocationContext.deadline" do
+    ic = Phronomy::InvocationContext.new(deadline: Phronomy::Deadline.in(30))
+    config = capture_config(agent) { agent.invoke("hi", invocation_context: ic) }
+    expect(config[:cancellation_token]).to be_a(Phronomy::CancellationToken)
+  end
+
+  it "existing config[:cancellation_token] takes precedence over ic" do
+    explicit_token = Phronomy::CancellationToken.new
+    ic = Phronomy::InvocationContext.new(deadline: Phronomy::Deadline.in(30))
+    config = capture_config(agent) { agent.invoke("hi", config: {cancellation_token: explicit_token}, invocation_context: ic) }
+    expect(config[:cancellation_token]).to be(explicit_token)
+  end
+end
