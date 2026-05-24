@@ -64,3 +64,74 @@ RSpec.describe "RAG async boundary (Issue #267)" do
     end
   end
 end
+
+RSpec.describe "RAG parallel multi-source fetch (Issue #303)" do
+  let(:agent_class) { Class.new(Phronomy::Agent::Base) { model "test-model" } }
+  let(:agent) { agent_class.new }
+
+  def make_ks(chunks, delay: 0)
+    Class.new(Phronomy::KnowledgeSource::Base) do
+      define_method(:fetch) do |query: nil, cancellation_token: nil|
+        sleep delay if delay > 0
+        chunks
+      end
+    end.new
+  end
+
+  it "returns chunks from all sources in registration order" do
+    ks1 = make_ks([{content: "from-1", type: "text", source: "s1"}])
+    ks2 = make_ks([{content: "from-2", type: "text", source: "s2"}])
+
+    ctx = agent.send(:build_context, "query", config: {knowledge_sources: [ks1, ks2]})
+    ctx_str = ctx[:system].to_s
+    expect(ctx_str).to include("from-1")
+    expect(ctx_str).to include("from-2")
+  end
+
+  it "fetches multiple sources concurrently (wall time < sum of individual delays)" do
+    delay = 0.1
+    ks1 = make_ks([{content: "a", type: "text", source: "s1"}], delay: delay)
+    ks2 = make_ks([{content: "b", type: "text", source: "s2"}], delay: delay)
+    ks3 = make_ks([{content: "c", type: "text", source: "s3"}], delay: delay)
+
+    t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    agent.send(:build_context, "query", config: {knowledge_sources: [ks1, ks2, ks3]})
+    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0
+
+    # Sequential would take ~0.3s; parallel should finish well under 0.25s.
+    expect(elapsed).to be < 0.25
+  end
+
+  it "skips a failed source by default (rag_failure_policy: :skip)" do
+    bad_ks = Class.new(Phronomy::KnowledgeSource::Base) do
+      def fetch(query: nil, cancellation_token: nil)
+        raise Phronomy::Error, "source exploded"
+      end
+    end.new
+    good_ks = make_ks([{content: "good", type: "text", source: "ok"}])
+
+    expect {
+      ctx = agent.send(:build_context, "query", config: {knowledge_sources: [bad_ks, good_ks]})
+      expect(ctx[:system].to_s).to include("good")
+    }.not_to raise_error
+  end
+
+  it "raises when rag_failure_policy: :fail and a source fails" do
+    bad_ks = Class.new(Phronomy::KnowledgeSource::Base) do
+      def fetch(query: nil, cancellation_token: nil)
+        raise Phronomy::Error, "source exploded"
+      end
+    end.new
+
+    expect {
+      agent.send(:build_context, "query",
+        config: {knowledge_sources: [bad_ks], rag_failure_policy: :fail})
+    }.to raise_error(Phronomy::Error, "source exploded")
+  end
+
+  it "returns empty context when no knowledge sources are given" do
+    expect {
+      agent.send(:build_context, "query", config: {})
+    }.not_to raise_error
+  end
+end

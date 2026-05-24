@@ -55,10 +55,11 @@ module Phronomy
 
     # Creates a new {TaskGroup} with an optional concurrency cap.
     #
-    # @param limit [Integer, Float::INFINITY] max simultaneous tasks
+    # @param limit          [Integer, Float::INFINITY] max simultaneous tasks
+    # @param failure_policy [Symbol] one of :fail_fast, :collect_all, :skip_failed (default :fail_fast)
     # @return [TaskGroup]
-    def task_group(limit: Float::INFINITY)
-      TaskGroup.new(limit: limit)
+    def task_group(limit: Float::INFINITY, failure_policy: :fail_fast)
+      TaskGroup.new(limit: limit, failure_policy: failure_policy)
     end
 
     # Spawns a single {Task} using the runtime's scheduler.

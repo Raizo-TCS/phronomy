@@ -154,7 +154,19 @@ RSpec.describe "Fault injection (Issue #230 — extended)" do
       end.new
     end
 
-    it "propagates the exception from build_context when knowledge source raises" do
+    it "propagates the exception from build_context when knowledge source raises and rag_failure_policy is :fail" do
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        model "test-model"
+      end
+      agent = agent_class.new
+
+      expect {
+        agent.send(:build_context, "query",
+          config: {knowledge_sources: [exploding_knowledge_source], rag_failure_policy: :fail})
+      }.to raise_error(Phronomy::Error, "knowledge source unavailable")
+    end
+
+    it "silently skips failed knowledge sources when rag_failure_policy is :skip (default)" do
       agent_class = Class.new(Phronomy::Agent::Base) do
         model "test-model"
       end
@@ -163,7 +175,7 @@ RSpec.describe "Fault injection (Issue #230 — extended)" do
       expect {
         agent.send(:build_context, "query",
           config: {knowledge_sources: [exploding_knowledge_source]})
-      }.to raise_error(Phronomy::Error, "knowledge source unavailable")
+      }.not_to raise_error
     end
   end
 

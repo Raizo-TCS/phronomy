@@ -104,13 +104,13 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
         .to raise_error(Phronomy::Error, "vector store search failure")
     end
 
-    it "propagates from build_context when knowledge source raises on search" do
+    it "propagates from build_context when knowledge source raises on search and rag_failure_policy is :fail" do
       agent_class = Class.new(Phronomy::Agent::Base) { model "test-model" }
       agent = agent_class.new
 
       expect {
         agent.send(:build_context, "query",
-          config: {knowledge_sources: [rag_source]})
+          config: {knowledge_sources: [rag_source], rag_failure_policy: :fail})
       }.to raise_error(Phronomy::Error, "vector store search failure")
     end
   end

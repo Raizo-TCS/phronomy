@@ -797,17 +797,43 @@ module Phronomy
         assembler = Context::Assembler.new(budget: budget)
         assembler.add_instruction(system_text) if system_text
 
-        Array(config[:knowledge_sources]).each do |ks|
-          check_cancellation!(config, "invocation cancelled during RAG fetch")
-          # Route the blocking embed + search calls through BlockingAdapterPool
-          # via fetch_async so they do not run on the scheduler thread.
-          chunks = ks.fetch_async(
-            query: user_message,
-            cancellation_token: config[:cancellation_token],
-            timeout: config[:rag_timeout]
-          ).await
-          chunks.each do |chunk|
-            assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
+        sources = Array(config[:knowledge_sources])
+        unless sources.empty?
+          check_cancellation!(config, "invocation cancelled before RAG fetch")
+          # Determine TaskGroup failure policy: :skip (default) ignores per-source
+          # failures so the agent can still answer with partial context; :fail
+          # surfaces the first error immediately via :fail_fast.
+          failure_policy =
+            case config[:rag_failure_policy]
+            when :fail then :fail_fast
+            else :skip_failed
+            end
+
+          group = Phronomy::Runtime.instance.task_group(failure_policy: failure_policy)
+
+          # Spawn all fetches concurrently. Results are returned in spawn order
+          # (i.e. registration order of knowledge sources) by TaskGroup#await_all.
+          sources.each do |ks|
+            group.spawn do
+              t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+              result = ks.fetch_async(
+                query: user_message,
+                cancellation_token: config[:cancellation_token],
+                timeout: config[:rag_timeout]
+              ).await
+              elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0
+              Phronomy.configuration.logger&.debug { "RAG fetch from #{ks.class.name} completed in #{(elapsed * 1000).round}ms" }
+              result
+            end
+          end
+
+          # await_all returns results in spawn order; nil entries indicate
+          # skipped failures when using :skip_failed.
+          per_source_chunks = group.await_all
+          per_source_chunks.each do |chunks|
+            Array(chunks).each do |chunk|
+              assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
+            end
           end
         end
 
