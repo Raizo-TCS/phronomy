@@ -97,7 +97,7 @@
   <dl>
     <dt>Defined in:</dt>
     <dd>lib/phronomy/runtime.rb<span class="defines">,<br>
-  lib/phronomy/runtime/scheduler.rb,<br> lib/phronomy/runtime/timer_queue.rb,<br> lib/phronomy/runtime/fake_scheduler.rb,<br> lib/phronomy/runtime/thread_scheduler.rb,<br> lib/phronomy/runtime/deterministic_scheduler.rb</span>
+  lib/phronomy/runtime/scheduler.rb,<br> lib/phronomy/runtime/timer_queue.rb,<br> lib/phronomy/runtime/fake_scheduler.rb,<br> lib/phronomy/runtime/thread_scheduler.rb,<br> lib/phronomy/runtime/deterministic_scheduler.rb,<br> lib/phronomy/runtime/scheduler_timer_adapter.rb</span>
 
 </dd>
   </dl>
@@ -148,7 +148,7 @@ synchronously without spawning additional threads:</p>
     
   
     
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Runtime/DeterministicScheduler.html" title="Phronomy::Runtime::DeterministicScheduler (class)">DeterministicScheduler</a></span>, <span class='object_link'><a href="Runtime/FakeScheduler.html" title="Phronomy::Runtime::FakeScheduler (class)">FakeScheduler</a></span>, <span class='object_link'><a href="Runtime/Scheduler.html" title="Phronomy::Runtime::Scheduler (class)">Scheduler</a></span>, <span class='object_link'><a href="Runtime/ThreadScheduler.html" title="Phronomy::Runtime::ThreadScheduler (class)">ThreadScheduler</a></span>, <span class='object_link'><a href="Runtime/TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span>
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Runtime/DeterministicScheduler.html" title="Phronomy::Runtime::DeterministicScheduler (class)">DeterministicScheduler</a></span>, <span class='object_link'><a href="Runtime/FakeScheduler.html" title="Phronomy::Runtime::FakeScheduler (class)">FakeScheduler</a></span>, <span class='object_link'><a href="Runtime/Scheduler.html" title="Phronomy::Runtime::Scheduler (class)">Scheduler</a></span>, <span class='object_link'><a href="Runtime/SchedulerTimerAdapter.html" title="Phronomy::Runtime::SchedulerTimerAdapter (class)">SchedulerTimerAdapter</a></span>, <span class='object_link'><a href="Runtime/ThreadScheduler.html" title="Phronomy::Runtime::ThreadScheduler (class)">ThreadScheduler</a></span>, <span class='object_link'><a href="Runtime/TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span>
     
   
 </p>
@@ -500,7 +500,7 @@ synchronously without spawning additional threads:</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#timer_queue-instance_method" title="#timer_queue (instance method)">#<strong>timer_queue</strong>  &#x21d2; TimerQueue </a>
+      <a href="#timer_queue-instance_method" title="#timer_queue (instance method)">#<strong>timer_queue</strong>  &#x21d2; TimerQueue, SchedulerTimerAdapter </a>
     
 
     
@@ -514,7 +514,7 @@ synchronously without spawning additional threads:</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns the shared <span class='object_link'><a href="Runtime/TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span> for this Runtime.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the shared timer queue for this Runtime.</p></div></span>
   
 </li>
 
@@ -618,7 +618,6 @@ synchronously without spawning additional threads:</p>
       <pre class="lines">
 
 
-102
 103
 104
 105
@@ -638,10 +637,11 @@ synchronously without spawning additional threads:</p>
 119
 120
 121
-122</pre>
+122
+123</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 102</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 103</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>scheduler:</span> <span class='const'><span class='object_link'><a href="Runtime/ThreadScheduler.html" title="Phronomy::Runtime::ThreadScheduler (class)">ThreadScheduler</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='rparen'>)</span>
   <span class='ivar'>@scheduler</span> <span class='op'>=</span> <span class='id identifier rubyid_scheduler'>scheduler</span>
@@ -713,12 +713,12 @@ synchronously without spawning additional threads:</p>
       <pre class="lines">
 
 
-98
 99
-100</pre>
+100
+101</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 98</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 99</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_scheduler'>scheduler</span>
   <span class='ivar'>@scheduler</span>
@@ -782,12 +782,12 @@ a <span class='object_link'><a href="#spawn-instance_method" title="Phronomy::Ru
       <pre class="lines">
 
 
-92
 93
-94</pre>
+94
+95</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 92</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 93</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_in_scheduler_context?'>in_scheduler_context?</span>
   <span class='op'>!</span><span class='const'><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="Task.html#current-class_method" title="Phronomy::Task.current (method)">current</a></span></span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -848,7 +848,6 @@ because it uses virtual time rather than real wall-clock timers)</li>
       <pre class="lines">
 
 
-46
 47
 48
 49
@@ -873,10 +872,11 @@ because it uses virtual time rather than real wall-clock timers)</li>
 68
 69
 70
-71</pre>
+71
+72</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 46</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 47</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_instance'>instance</span>
   <span class='ivar'>@instance</span> <span class='op'>||=</span> <span class='kw'>begin</span>
@@ -965,12 +965,12 @@ because it uses virtual time rather than real wall-clock timers)</li>
       <pre class="lines">
 
 
-77
 78
-79</pre>
+79
+80</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 77</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 78</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_instance='>instance=</span><span class='lparen'>(</span><span class='id identifier rubyid_runtime'>runtime</span><span class='rparen'>)</span>
   <span class='ivar'>@instance</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span>
@@ -1068,12 +1068,12 @@ shared Runtime via <span class='object_link'><a href="#instance=-class_method" t
       <pre class="lines">
 
 
-328
 329
-330</pre>
+330
+331</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 328</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 329</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_blocking_io'>blocking_io</span><span class='lparen'>(</span><span class='label'>pool_size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='rparen'>)</span>
   <span class='ivar'>@blocking_io</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="BlockingAdapterPool.html#initialize-instance_method" title="Phronomy::BlockingAdapterPool#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='symbol'>:default</span><span class='comma'>,</span> <span class='label'>pool_size:</span> <span class='id identifier rubyid_pool_size'>pool_size</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='id identifier rubyid_queue_size'>queue_size</span><span class='rparen'>)</span>
@@ -1145,14 +1145,14 @@ cap at runtime, call <span class='object_link'><a href="#reset_gate-instance_met
       <pre class="lines">
 
 
-133
 134
 135
 136
-137</pre>
+137
+138</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 133</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 134</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_gate'>gate</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
   <span class='ivar'>@gate_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1267,7 +1267,6 @@ Each pool gets its own dedicated worker threads labelled with the pool name.</p>
       <pre class="lines">
 
 
-347
 348
 349
 350
@@ -1275,10 +1274,11 @@ Each pool gets its own dedicated worker threads labelled with the pool name.</p>
 352
 353
 354
-355</pre>
+355
+356</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 347</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 348</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pool'>pool</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='rparen'>)</span>
   <span class='ivar'>@pool_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1338,12 +1338,12 @@ it from the current configuration.  Useful in tests.</p>
       <pre class="lines">
 
 
-145
 146
-147</pre>
+147
+148</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 145</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 146</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_reset_gate'>reset_gate</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
   <span class='ivar'>@gate_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@gates</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
@@ -1388,26 +1388,26 @@ pending work items.</p>
       <pre class="lines">
 
 
-381
-382
-383
-384
-385
-386
-387
-388
-389
-390
-391
-392
-393
-394
-395
-396
-397</pre>
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 381</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 397</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span>
   <span class='id identifier rubyid_tasks'>tasks</span> <span class='op'>=</span> <span class='ivar'>@task_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@tasks</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
@@ -1516,7 +1516,6 @@ the configured scheduler)</p></div>
       <pre class="lines">
 
 
-242
 243
 244
 245
@@ -1544,10 +1543,11 @@ the configured scheduler)</p></div>
 267
 268
 269
-270</pre>
+270
+271</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 242</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 243</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_spawn'>spawn</span><span class='lparen'>(</span><span class='label'>name:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_type'>type</span> <span class='op'>=</span> <span class='id identifier rubyid__task_type'>_task_type</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
@@ -1660,12 +1660,12 @@ the configured scheduler)</p></div>
       <pre class="lines">
 
 
-222
 223
-224</pre>
+224
+225</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 222</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 223</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_task_group'>task_group</span><span class='lparen'>(</span><span class='label'>limit:</span> <span class='const'>Float</span><span class='op'>::</span><span class='const'>INFINITY</span><span class='comma'>,</span> <span class='label'>failure_policy:</span> <span class='symbol'>:fail_fast</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="TaskGroup.html" title="Phronomy::TaskGroup (class)">TaskGroup</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="TaskGroup.html#initialize-instance_method" title="Phronomy::TaskGroup#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>limit:</span> <span class='id identifier rubyid_limit'>limit</span><span class='comma'>,</span> <span class='label'>failure_policy:</span> <span class='id identifier rubyid_failure_policy'>failure_policy</span><span class='comma'>,</span> <span class='label'>runtime:</span> <span class='kw'>self</span><span class='rparen'>)</span>
@@ -1774,7 +1774,6 @@ the configured scheduler)</p></div>
       <pre class="lines">
 
 
-291
 292
 293
 294
@@ -1797,10 +1796,11 @@ the configured scheduler)</p></div>
 311
 312
 313
-314</pre>
+314
+315</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 291</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 292</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_task_snapshot'>task_snapshot</span>
   <span class='ivar'>@metrics_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1874,12 +1874,12 @@ Resets to 0 when the Runtime is recreated.</p>
       <pre class="lines">
 
 
-190
 191
-192</pre>
+192
+193</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 190</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 191</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tasks_waiting_over_threshold'>tasks_waiting_over_threshold</span>
   <span class='ivar'>@starvation_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@tasks_waiting_over_threshold</span> <span class='rbrace'>}</span>
@@ -1892,7 +1892,7 @@ Resets to 0 when the Runtime is recreated.</p>
       <div class="method_details ">
   <h3 class="signature " id="timer_queue-instance_method">
   
-    #<strong>timer_queue</strong>  &#x21d2; <tt><span class='object_link'><a href="Runtime/TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span></tt> 
+    #<strong>timer_queue</strong>  &#x21d2; <tt><span class='object_link'><a href="Runtime/TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span></tt>, <tt><span class='object_link'><a href="Runtime/SchedulerTimerAdapter.html" title="Phronomy::Runtime::SchedulerTimerAdapter (class)">SchedulerTimerAdapter</a></span></tt> 
   
 
   
@@ -1904,7 +1904,14 @@ Resets to 0 when the Runtime is recreated.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Returns the shared <span class='object_link'><a href="Runtime/TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span> for this Runtime.</p>
+<p>Returns the shared timer queue for this Runtime.</p>
+<p>When the scheduler is a <span class='object_link'><a href="Runtime/DeterministicScheduler.html" title="Phronomy::Runtime::DeterministicScheduler (class)">DeterministicScheduler</a></span> (e.g. the <code>:fiber</code>
+runtime backend), returns a <span class='object_link'><a href="Runtime/SchedulerTimerAdapter.html" title="Phronomy::Runtime::SchedulerTimerAdapter (class)">SchedulerTimerAdapter</a></span> that integrates with
+the scheduler's tick cycle instead of spawning a background OS thread.
+This is the first concrete step of the TimerQueue scheduler-tick integration
+described in ADR-010 (Issue #331).</p>
+<p>For all other schedulers, returns a <span class='object_link'><a href="Runtime/TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span> backed by a single
+background thread.</p>
 <p>All deadline-based cancellation should be registered here instead of
 spawning one-off sleep threads.  Lazily created on first access.</p>
 
@@ -1918,7 +1925,7 @@ spawning one-off sleep threads.  Lazily created on first access.</p>
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="Runtime/TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="Runtime/TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span></tt>, <tt><span class='object_link'><a href="Runtime/SchedulerTimerAdapter.html" title="Phronomy::Runtime::SchedulerTimerAdapter (class)">SchedulerTimerAdapter</a></span></tt>)</span>
       
       
       
@@ -1932,15 +1939,27 @@ spawning one-off sleep threads.  Lazily created on first access.</p>
       <pre class="lines">
 
 
-364
-365
-366</pre>
+374
+375
+376
+377
+378
+379
+380
+381
+382</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 364</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 374</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_timer_queue'>timer_queue</span>
-  <span class='ivar'>@timer_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@timer_queue</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="Runtime/TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Runtime/TimerQueue.html#initialize-instance_method" title="Phronomy::Runtime::TimerQueue#initialize (method)">new</a></span></span> <span class='rbrace'>}</span>
+  <span class='ivar'>@timer_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='ivar'>@timer_queue</span> <span class='op'>||=</span> <span class='kw'>if</span> <span class='ivar'>@scheduler</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="Runtime/DeterministicScheduler.html" title="Phronomy::Runtime::DeterministicScheduler (class)">DeterministicScheduler</a></span></span><span class='rparen'>)</span>
+      <span class='const'><span class='object_link'><a href="Runtime/SchedulerTimerAdapter.html" title="Phronomy::Runtime::SchedulerTimerAdapter (class)">SchedulerTimerAdapter</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Runtime/SchedulerTimerAdapter.html#initialize-instance_method" title="Phronomy::Runtime::SchedulerTimerAdapter#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='ivar'>@scheduler</span><span class='rparen'>)</span>
+    <span class='kw'>else</span>
+      <span class='const'><span class='object_link'><a href="Runtime/TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Runtime/TimerQueue.html#initialize-instance_method" title="Phronomy::Runtime::TimerQueue#initialize (method)">new</a></span></span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1985,7 +2004,6 @@ methods and Workflow actions to keep the scheduler responsive.</p>
       <pre class="lines">
 
 
-166
 167
 168
 169
@@ -2002,10 +2020,11 @@ methods and Workflow actions to keep the scheduler responsive.</p>
 180
 181
 182
-183</pre>
+183
+184</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 166</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 167</span>
 
 <span class='kw'>def</span> <span class='kw'>yield</span>
   <span class='kw'>if</span> <span class='lparen'>(</span><span class='id identifier rubyid_threshold'>threshold</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_blocking_detect_threshold_ms'>blocking_detect_threshold_ms</span><span class='rparen'>)</span>
@@ -2093,14 +2112,14 @@ a mutex.</p>
       <pre class="lines">
 
 
-210
 211
 212
 213
-214</pre>
+214
+215</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 210</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime.rb', line 211</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_yield_if_needed'>yield_if_needed</span><span class='lparen'>(</span><span class='label'>every:</span> <span class='int'>1000</span><span class='rparen'>)</span>
   <span class='comment'># Delegate Thread.current access to Task so that runtime.rb stays outside
@@ -2117,7 +2136,7 @@ a mutex.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 05:09:08 2026 by
+  Generated on Mon May 25 05:21:32 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>
+  Class: Phronomy::Runtime::SchedulerTimerAdapter
+  
+    &mdash; Documentation by YARD 0.9.43
+  
+</title>
+
+  <link rel="stylesheet" href="../../css/style.css" type="text/css">
+
+  <link rel="stylesheet" href="../../css/common.css" type="text/css">
+
+<script type="text/javascript">
+  pathId = "Phronomy::Runtime::SchedulerTimerAdapter";
+  relpath = '../../';
+</script>
+
+
+  <script type="text/javascript" charset="utf-8" src="../../js/jquery.js"></script>
+
+  <script type="text/javascript" charset="utf-8" src="../../js/app.js"></script>
+
+
+  </head>
+  <body>
+    <div id="main_progress" aria-hidden="true"></div>
+
+    <div class="nav_wrap">
+      <iframe id="nav" src="../../class_list.html?1"></iframe>
+      <div id="resizer"></div>
+    </div>
+
+    <div id="main" tabindex="-1">
+      <div id="header">
+        <div id="menu">
+  
+    <a href="../../_index.html">Index (S)</a> &raquo;
+    <span class='title'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span>
+     &raquo; 
+    <span class="title">SchedulerTimerAdapter</span>
+  
+</div>
+
+        <div id="search">
+  
+    <a class="full_list_link" id="class_list_link"
+        href="../../class_list.html">
+
+        <svg width="24" height="24">
+          <rect x="0" y="4" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="12" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="20" width="24" height="4" rx="1" ry="1"></rect>
+        </svg>
+    </a>
+  
+</div>
+        <div class="clear"></div>
+      </div>
+
+      <div id="content"><h1>Class: Phronomy::Runtime::SchedulerTimerAdapter
+  
+  
+  
+</h1>
+<div class="box_info">
+  
+  <dl>
+    <dt>Inherits:</dt>
+    <dd>
+      <span class="inheritName">Object</span>
+      
+        <ul class="fullTree">
+          <li>Object</li>
+          
+            <li class="next">Phronomy::Runtime::SchedulerTimerAdapter</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+    </dd>
+  </dl>
+  
+
+  
+  
+  
+  
+  
+
+  
+
+  
+  <dl>
+    <dt>Defined in:</dt>
+    <dd>lib/phronomy/runtime/scheduler_timer_adapter.rb
+</dd>
+  </dl>
+  
+</div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>A drop-in replacement for <span class='object_link'><a href="TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span> that delegates timer scheduling to
+a <span class='object_link'><a href="DeterministicScheduler.html" title="Phronomy::Runtime::DeterministicScheduler (class)">DeterministicScheduler</a></span> instead of spawning a dedicated background OS thread.</p>
+<p>When a <span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Phronomy::Runtime</a></span> is backed by <span class='object_link'><a href="DeterministicScheduler.html" title="Phronomy::Runtime::DeterministicScheduler (class)">DeterministicScheduler</a></span> (e.g. the <code>:fiber</code>
+runtime backend), <span class='object_link'><a href="../Runtime.html#timer_queue-instance_method" title="Phronomy::Runtime#timer_queue (method)">#timer_queue</a></span> returns an instance of this adapter
+rather than a <span class='object_link'><a href="TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span>.  This eliminates the <code>phronomy-timer-queue</code>
+background thread for Fiber-based runtimes.</p>
+<p>Timer callbacks are fired during <span class='object_link'><a href="DeterministicScheduler.html#run_until_idle-instance_method" title="Phronomy::Runtime::DeterministicScheduler#run_until_idle (method)">DeterministicScheduler#run_until_idle</a></span>
+when <span class='object_link'><a href="DeterministicScheduler.html#autorun%3F-instance_method" title="Phronomy::Runtime::DeterministicScheduler#autorun? (method)">DeterministicScheduler#autorun?</a></span> is <code>true</code> (i.e. the <code>:fiber</code> backend).
+They can also be fired explicitly by calling
+<span class='object_link'><a href="DeterministicScheduler.html#fire_real_timers-instance_method" title="Phronomy::Runtime::DeterministicScheduler#fire_real_timers (method)">DeterministicScheduler#fire_real_timers</a></span>.</p>
+<h2 id="Known_Limitation__Issue__331_">Known Limitation (Issue #331)</h2>
+<p>Timers that require an actual wall-clock sleep (e.g. a deadline of 10 s
+from now that will not be reached until real time elapses) will not fire
+automatically: <code>run_until_idle</code> does not block waiting for future deadlines.
+This is an accepted limitation of the current stepping-stone implementation.
+Full resolution requires integrating the cooperative scheduler with the
+<span class='object_link'><a href="../EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span> tick cycle so that a single event-loop iteration checks both
+ready Fibers and expired wall-clock timers.</p>
+<p>Use the <code>:thread</code> runtime backend (default) for production workloads that
+depend on real-time deadline enforcement.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+  <p class="tag_title">See Also:</p>
+  <ul class="see">
+    
+      <li><span class='object_link'><a href="DeterministicScheduler.html#schedule_real_after-instance_method" title="Phronomy::Runtime::DeterministicScheduler#schedule_real_after (method)">DeterministicScheduler#schedule_real_after</a></span></li>
+    
+      <li><span class='object_link'><a href="DeterministicScheduler.html#fire_real_timers-instance_method" title="Phronomy::Runtime::DeterministicScheduler#fire_real_timers (method)">DeterministicScheduler#fire_real_timers</a></span></li>
+    
+  </ul>
+
+</div>
+
+
+
+
+
+
+  
+    <h2>
+      Instance Method Summary
+      <small><a href="#" class="summary_toggle">collapse</a></small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(scheduler)  &#x21d2; SchedulerTimerAdapter </a>
+    
+
+    
+  </span>
+  
+  
+    <span class="note title constructor">constructor</span>
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>A new instance of SchedulerTimerAdapter.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#pending_count-instance_method" title="#pending_count (instance method)">#<strong>pending_count</strong>  &#x21d2; Integer </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the number of pending (not yet fired) callbacks.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#schedule-instance_method" title="#schedule (instance method)">#<strong>schedule</strong>(seconds:) { ... } &#x21d2; self </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Schedules a one-shot callback to fire after <code>seconds</code> from now.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#shutdown-instance_method" title="#shutdown (instance method)">#<strong>shutdown</strong>  &#x21d2; self </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>No-op: there is no background thread to stop.</p></div></span>
+  
+</li>
+
+      
+    </ul>
+    
+  
+
+<div id="constructor_details" class="method_details_list">
+  <h2>Constructor Details</h2>
+  
+    <div class="method_details first">
+  <h3 class="signature first" id="initialize-instance_method">
+  
+    #<strong>initialize</strong>(scheduler)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Runtime::SchedulerTimerAdapter (class)">SchedulerTimerAdapter</a></span></tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a new instance of SchedulerTimerAdapter.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>scheduler</span>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="DeterministicScheduler.html" title="Phronomy::Runtime::DeterministicScheduler (class)">DeterministicScheduler</a></span></tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+36
+37
+38</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler_timer_adapter.rb', line 36</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_scheduler'>scheduler</span><span class='rparen'>)</span>
+  <span class='ivar'>@scheduler</span> <span class='op'>=</span> <span class='id identifier rubyid_scheduler'>scheduler</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+  
+</div>
+
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="pending_count-instance_method">
+  
+    #<strong>pending_count</strong>  &#x21d2; <tt>Integer</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns the number of pending (not yet fired) callbacks.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+69
+70
+71</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler_timer_adapter.rb', line 69</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_pending_count'>pending_count</span>
+  <span class='ivar'>@scheduler</span><span class='period'>.</span><span class='id identifier rubyid_pending_real_timer_count'>pending_real_timer_count</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="schedule-instance_method">
+  
+    #<strong>schedule</strong>(seconds:) { ... } &#x21d2; <tt>self</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Schedules a one-shot callback to fire after <code>seconds</code> from now.
+Delegates to <span class='object_link'><a href="DeterministicScheduler.html#schedule_real_after-instance_method" title="Phronomy::Runtime::DeterministicScheduler#schedule_real_after (method)">DeterministicScheduler#schedule_real_after</a></span>.</p>
+<p>Raises <span class='object_link'><a href="../PoolShutdownError.html" title="Phronomy::PoolShutdownError (class)">PoolShutdownError</a></span> after <span class='object_link'><a href="#shutdown-instance_method" title="Phronomy::Runtime::SchedulerTimerAdapter#shutdown (method)">#shutdown</a></span> has been called, matching
+the behaviour of <span class='object_link'><a href="TimerQueue.html#schedule-instance_method" title="Phronomy::Runtime::TimerQueue#schedule (method)">TimerQueue#schedule</a></span>.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>seconds</span>
+      
+      
+        <span class='type'>(<tt>Numeric</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>delay before the callback fires</p></div>
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Yields:</p>
+<ul class="yield">
+  
+    <li>
+      
+      
+        <span class='type'></span>
+      
+      
+      
+        
+        <div class='inline'><p>called when the deadline is reached</p></div>
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>self</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="../PoolShutdownError.html" title="Phronomy::PoolShutdownError (class)">Phronomy::PoolShutdownError</a></span></tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+50
+51
+52
+53
+54
+55</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler_timer_adapter.rb', line 50</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_schedule'>schedule</span><span class='lparen'>(</span><span class='label'>seconds:</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../PoolShutdownError.html" title="Phronomy::PoolShutdownError (class)">PoolShutdownError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>SchedulerTimerAdapter has been shut down</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='ivar'>@stopped</span>
+
+  <span class='ivar'>@scheduler</span><span class='period'>.</span><span class='id identifier rubyid_schedule_real_after'>schedule_real_after</span><span class='lparen'>(</span><span class='id identifier rubyid_seconds'>seconds</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
+  <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="shutdown-instance_method">
+  
+    #<strong>shutdown</strong>  &#x21d2; <tt>self</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>No-op: there is no background thread to stop.
+Present for API compatibility with <span class='object_link'><a href="TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span>.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>self</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+61
+62
+63
+64</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler_timer_adapter.rb', line 61</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span>
+  <span class='ivar'>@stopped</span> <span class='op'>=</span> <span class='kw'>true</span>
+  <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+
+      <div id="footer">
+  Generated on Mon May 25 05:21:36 2026 by
+  <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.9.43 (ruby-3.3.11).
+</div>
+
+    </div>
+  </body>
+</html>
