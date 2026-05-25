@@ -6,8 +6,10 @@ module Phronomy
   # This is the single place in the framework that decides *how* a tool call is
   # dispatched:
   #
-  # - +:cooperative+       — runs via +Runtime#spawn+ on the cooperative scheduler
-  #                          (no extra OS thread).
+  # - +:cooperative+       — dispatched via +Runtime#spawn+ through the configured
+  #                          scheduler. Under the +:fiber+ backend this avoids an
+  #                          extra OS thread; under the +:thread+ backend it is
+  #                          backed by +ThreadScheduler+ (one thread per task).
   # - +:blocking_io+       — submitted to +BlockingAdapterPool+ when the runtime
   #                          provides a pool; falls back to +Runtime#spawn+ otherwise.
   # - +:cpu_bound+         — emits a deprecation-style warning then falls back to
@@ -21,6 +23,12 @@ module Phronomy
   #
   # @api private
   module ToolExecutor
+    # Tracks tool classes that have already emitted an execution_mode warning so
+    # that the same warning is only logged once per process lifetime.
+    WARNED_MODES = Set.new
+    WARNED_MODES_MUTEX = Mutex.new
+    private_constant :WARNED_MODES, :WARNED_MODES_MUTEX
+
     # Dispatches a single tool call asynchronously according to its
     # +execution_mode+ and returns an awaitable.
     #
@@ -36,21 +44,27 @@ module Phronomy
       mode = tool.class.execution_mode
 
       # Warn and normalise unsupported modes to :blocking_io.
+      # Each (tool class, mode) pair emits the warning at most once per process
+      # lifetime to avoid log flooding in high-throughput scenarios.
       if mode == :cpu_bound || mode == :external_process
-        msg = if mode == :cpu_bound
-          "[Phronomy] Tool #{tool.class.name} declares execution_mode :cpu_bound, " \
-          "which has no dedicated executor. " \
-          "Falling back to blocking_io (BlockingAdapterPool). " \
-          "Use :blocking_io explicitly to suppress this warning."
-        else
-          "[Phronomy] Tool #{tool.class.name} declares execution_mode :external_process, " \
-          "which has no dedicated process manager. " \
-          "Falling back to blocking_io (BlockingAdapterPool)."
-        end
-        if Phronomy.configuration.logger
-          Phronomy.configuration.logger.warn(msg)
-        else
-          warn msg
+        warn_key = [tool.class.name, mode]
+        newly_warned = WARNED_MODES_MUTEX.synchronize { WARNED_MODES.add?(warn_key) }
+        if newly_warned
+          msg = if mode == :cpu_bound
+            "[Phronomy] Tool #{tool.class.name} declares execution_mode :cpu_bound, " \
+            "which has no dedicated executor. " \
+            "Falling back to blocking_io (BlockingAdapterPool). " \
+            "Use :blocking_io explicitly to suppress this warning."
+          else
+            "[Phronomy] Tool #{tool.class.name} declares execution_mode :external_process, " \
+            "which has no dedicated process manager. " \
+            "Falling back to blocking_io (BlockingAdapterPool)."
+          end
+          if Phronomy.configuration.logger
+            Phronomy.configuration.logger.warn(msg)
+          else
+            warn msg
+          end
         end
         mode = :blocking_io
       end
