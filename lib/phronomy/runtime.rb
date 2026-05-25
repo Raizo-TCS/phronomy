@@ -33,18 +33,19 @@ module Phronomy
     #
     # Auto-creates an instance using the scheduler backend specified by
     # +Phronomy.configuration.runtime_backend+:
-    # - +:cooperative+ (default) — {FakeScheduler} (cooperative task scheduler)
-    # - +:thread+ — {ThreadScheduler} (legacy opt-in threading mode)
+    # - +:thread+ (default) — {ThreadScheduler} (one OS thread per task)
+    # - +:immediate+ — {FakeScheduler} (synchronous, no extra threads)
+    # - +:cooperative+ — deprecated alias for +:immediate+
     #
     # @return [Runtime]
     # @api private
     def self.instance
       @instance ||= begin
         scheduler = case Phronomy.configuration.runtime_backend
-        when :thread
-          ThreadScheduler.new
-        else
+        when :immediate, :cooperative
           FakeScheduler.new
+        else
+          ThreadScheduler.new
         end
         new(scheduler: scheduler)
       end
@@ -200,7 +201,7 @@ module Phronomy
     # @return [TaskGroup]
     # @api private
     def task_group(limit: Float::INFINITY, failure_policy: :fail_fast)
-      TaskGroup.new(limit: limit, failure_policy: failure_policy)
+      TaskGroup.new(limit: limit, failure_policy: failure_policy, runtime: self)
     end
 
     # Spawns a single {Task} using the runtime's scheduler.

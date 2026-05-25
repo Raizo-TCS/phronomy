@@ -27,12 +27,12 @@ module Phronomy
         task.transition!(:running)
         begin
           @value = block.call
-          task.transition!(:completed)
+          task.transition!(:completed, value: @value)
         rescue CancellationError => e
-          task.transition!(:cancelled)
+          task.transition!(:cancelled, error: e)
           @error = e
         rescue => e
-          task.transition!(:failed)
+          task.transition!(:failed, error: e)
           @error = e
         ensure
           task.transition!(:cancelled) unless task.done?
@@ -48,6 +48,18 @@ module Phronomy
         raise @error if @error
 
         @value
+      end
+
+      # @return [Object, nil]
+      # @api private
+      def completed_value
+        @value
+      end
+
+      # @return [Exception, nil]
+      # @api private
+      def completed_error
+        @error
       end
 
       # Always +false+ — block has already completed by the time the task

@@ -24,12 +24,12 @@ module Phronomy
             Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
           task.transition!(:running)
           @value = block.call
-          task.transition!(:completed)
+          task.transition!(:completed, value: @value)
         rescue CancellationError => e
-          task.transition!(:cancelled)
+          task.transition!(:cancelled, error: e)
           @error = e
         rescue => e
-          task.transition!(:failed)
+          task.transition!(:failed, error: e)
           @error = e
         ensure
           # Guard against Thread#raise firing before the rescue handler has a
@@ -66,6 +66,18 @@ module Phronomy
       # @api private
       def join(limit = nil)
         @thread.join(limit)
+      end
+
+      # @return [Object, nil]
+      # @api private
+      def completed_value
+        @value
+      end
+
+      # @return [Exception, nil]
+      # @api private
+      def completed_error
+        @error
       end
     end
   end

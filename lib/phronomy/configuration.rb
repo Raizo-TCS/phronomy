@@ -163,15 +163,16 @@ module Phronomy
     #
     # | Value | Scheduler | Typical use |
     # |-------|-----------|-------------|
-    # | +:cooperative+ | {Runtime::FakeScheduler} | Production (default) — cooperative task scheduler |
-    # | +:thread+ | {Runtime::ThreadScheduler} | Legacy / opt-in threading mode |
+    # | +:thread+ | {Runtime::ThreadScheduler} | Default — one OS thread per task |
+    # | +:immediate+ | {Runtime::FakeScheduler} | Tests — tasks run synchronously, no extra threads |
+    # | +:cooperative+ | {Runtime::FakeScheduler} | Deprecated alias for +:immediate+ |
     #
     # When this setting is changed, the change only takes effect on the NEXT
     # call to {Runtime.instance} that auto-creates a new instance (i.e. after the
     # previous instance has been replaced or reset).  To replace the current
     # instance immediately call +Phronomy::Runtime.instance = nil+ first.
     #
-    # @return [:cooperative, :thread]
+    # @return [:thread, :immediate, :cooperative]
     attr_accessor :runtime_backend
 
     # When +true+, calling {Agent#invoke} from inside a scheduler task
@@ -201,7 +202,7 @@ module Phronomy
       @max_concurrent_rag_fetches = nil
       @max_concurrent_vector_searches = nil
       @starvation_threshold_ms = 50
-      @runtime_backend = :cooperative
+      @runtime_backend = :thread
       @strict_runtime_guards = false
     end
   end

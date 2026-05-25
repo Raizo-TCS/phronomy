@@ -30,12 +30,17 @@ module Phronomy
 
     # @param limit          [Integer, Float::INFINITY] maximum simultaneous active tasks
     # @param failure_policy [Symbol] one of {FAILURE_POLICIES} (default +:fail_fast+)
+    # @param runtime        [Runtime, nil] runtime used to spawn tasks via {Runtime#spawn};
+    #   when +nil+, tasks are created directly via +Task.new+ (backward-compatible mode).
+    #   Pass +runtime: self+ from {Runtime#task_group} to keep task execution consistent
+    #   with the configured scheduler backend.
     # @api private
-    def initialize(limit: Float::INFINITY, failure_policy: :fail_fast)
+    def initialize(limit: Float::INFINITY, failure_policy: :fail_fast, runtime: nil)
       raise ArgumentError, "unknown failure_policy: #{failure_policy}" unless FAILURE_POLICIES.include?(failure_policy)
 
       @limit = limit
       @failure_policy = failure_policy
+      @runtime = runtime
       @tasks = []
       @mutex = Mutex.new
       @cond = ConditionVariable.new
@@ -51,10 +56,18 @@ module Phronomy
     def spawn(&block)
       wait_for_slot!
 
-      task = Task.new do
-        block.call
-      ensure
-        release_slot!
+      task = if @runtime
+        @runtime.spawn(name: "task-group-worker") do
+          block.call
+        ensure
+          release_slot!
+        end
+      else
+        Task.new do
+          block.call
+        ensure
+          release_slot!
+        end
       end
 
       @mutex.synchronize { @tasks << task }
@@ -77,17 +90,14 @@ module Phronomy
       tasks = @mutex.synchronize { @tasks.dup }
       return [] if tasks.empty?
 
-      # Each watcher task awaits one task and reports the outcome to a
-      # shared Queue.  Results arrive in completion order (not spawn order),
-      # which means a fast-failing task is detected immediately regardless of
-      # how long earlier-spawned tasks take — fixing Issue #315.
+      # Use Task#on_complete callbacks instead of spawning N additional watcher
+      # tasks (Issue #328).  on_complete receives the task's value and error
+      # directly — no await call is needed, eliminating the risk of a self-join
+      # when the callback fires inside the task's own execution thread.
       completion_q = Queue.new
-      watcher_tasks = tasks.each_with_index.map do |task, idx|
-        Task.new do
-          value = task.await
-          completion_q.push({index: idx, value: value, error: nil})
-        rescue => e
-          completion_q.push({index: idx, value: nil, error: e})
+      tasks.each_with_index do |task, idx|
+        task.on_complete do |value, error|
+          completion_q.push({index: idx, value: value, error: error})
         end
       end
 
@@ -106,12 +116,6 @@ module Phronomy
           fail_fast_error = entry[:error]
           tasks.each { |t| t.cancel! unless t.done? }
         end
-      end
-
-      watcher_tasks.each do |t|
-        t.join
-      rescue
-        nil
       end
 
       case @failure_policy

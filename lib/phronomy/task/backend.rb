@@ -54,6 +54,24 @@ module Phronomy
         raise NotImplementedError, "#{self.class}#join not implemented"
       end
 
+      # Returns the task's result value once it has reached a terminal state.
+      # Only valid to call after the task is done.
+      # Subclasses should override if they store the result.
+      # @return [Object, nil]
+      # @api private
+      def completed_value
+        nil
+      end
+
+      # Returns the exception raised by the task, or +nil+ on success/cancellation.
+      # Only valid to call after the task is done.
+      # Subclasses should override if they store errors.
+      # @return [Exception, nil]
+      # @api private
+      def completed_error
+        nil
+      end
+
       private
 
       attr_reader :task, :block

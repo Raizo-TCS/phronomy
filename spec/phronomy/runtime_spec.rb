@@ -218,7 +218,17 @@ RSpec.describe Phronomy::Runtime do
       described_class.instance_variable_set(:@instance, original_instance)
     end
 
-    it "uses FakeScheduler by default (:cooperative backend)" do
+    it "uses ThreadScheduler by default (:thread backend)" do
+      Phronomy.configure { |c| c.runtime_backend = :thread }
+      expect(described_class.instance.scheduler).to be_a(Phronomy::Runtime::ThreadScheduler)
+    end
+
+    it "uses FakeScheduler for :immediate backend" do
+      Phronomy.configure { |c| c.runtime_backend = :immediate }
+      expect(described_class.instance.scheduler).to be_a(Phronomy::Runtime::FakeScheduler)
+    end
+
+    it "uses FakeScheduler for :cooperative backend (deprecated alias for :immediate)" do
       Phronomy.configure { |c| c.runtime_backend = :cooperative }
       expect(described_class.instance.scheduler).to be_a(Phronomy::Runtime::FakeScheduler)
     end

@@ -130,6 +130,9 @@ module Phronomy
       @status = :pending
       @mutex = Mutex.new
       @children = []
+      @on_complete_callbacks = []
+      @completed_value = nil
+      @completed_error = nil
       parent&.register_child(self)
       @backend = backend_class.new(task: self, &block)
     end
@@ -151,6 +154,37 @@ module Phronomy
       @backend.await
     end
 
+    # Registers a callback to be invoked when the task reaches a terminal state
+    # (+:completed+, +:failed+, or +:cancelled+).
+    #
+    # The callback receives two arguments: +value+ (the task's return value,
+    # or +nil+) and +error+ (the exception, or +nil+).  These are provided
+    # directly so the callback does not need to call +task.await+, which would
+    # risk a self-join error when the callback runs inside the task's own thread.
+    #
+    # If the task is already done when this method is called, the callback is
+    # invoked immediately (synchronously, on the calling thread).
+    #
+    # @yield [value, error] called when the task finishes
+    # @return [self]
+    # @api private
+    def on_complete(&callback)
+      fire_now = false
+      fire_args = nil
+      @mutex.synchronize do
+        # Check @status directly to avoid re-entering the mutex (done? calls
+        # status, which also takes @mutex).
+        if %i[completed failed cancelled].include?(@status)
+          fire_now = true
+          fire_args = [@completed_value, @completed_error]
+        else
+          @on_complete_callbacks << callback
+        end
+      end
+      callback.call(*fire_args) if fire_now
+      self
+    end
+
     # Returns +true+ once the task has finished (success, error, or cancellation).
     # @return [Boolean]
     # @api private
@@ -161,10 +195,12 @@ module Phronomy
     # Requests cancellation.  Propagates to all registered child tasks.
     # Sets status to :cancelled immediately so that even tasks that have not
     # started executing yet are correctly marked as cancelled after join.
+    # Passes a CancellationError to on_complete callbacks so callers do not
+    # need to call await to discover the error.
     # @return [self]
     # @api private
     def cancel!
-      transition!(:cancelled)
+      transition!(:cancelled, error: CancellationError.new("Task cancelled"))
       # @backend may be nil if cancel! is called while ImmediateBackend is still
       # initializing (the block runs synchronously inside .new, so register_child
       # fires before @backend is assigned).  Safe-navigate to avoid NoMethodError.
@@ -194,15 +230,28 @@ module Phronomy
     # Updates the task lifecycle state.
     # Called by backends during execution transitions.
     # Terminal states (completed/failed/cancelled) are never overwritten.
+    # When a terminal state is reached, fires on_complete callbacks (outside
+    # the mutex) passing the result value and error directly.
+    #
     # @param new_status [Symbol]
+    # @param value      [Object, nil]    task return value (terminal states only)
+    # @param error      [Exception, nil] exception raised by the block, if any
     # @api private
-    def transition!(new_status)
+    def transition!(new_status, value: nil, error: nil)
+      callbacks = nil
       @mutex.synchronize do
         # Check @status directly (not via #done?) to avoid re-entering the mutex.
         return if %i[completed failed cancelled].include?(@status)
 
         @status = new_status
+        if %i[completed failed cancelled].include?(new_status)
+          @completed_value = value
+          @completed_error = error
+          callbacks = @on_complete_callbacks.dup
+          @on_complete_callbacks.clear
+        end
       end
+      callbacks&.each { |cb| cb.call(value, error) }
     end
 
     # Registers +child+ as a child task for cancellation propagation.
