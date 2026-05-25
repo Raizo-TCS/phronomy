@@ -84,4 +84,49 @@ RSpec.describe Phronomy::AsyncQueue do
       expect(result).to eq(:late)
     end
   end
+
+  # Issue #329 — AsyncQueue must suspend the current Fiber (not the OS thread) when
+  # pop is called in a DeterministicScheduler context.
+  describe "cooperative pop (Issue #329)", :issue_329 do
+    let(:scheduler) { Phronomy::Runtime::DeterministicScheduler.new }
+
+    it "returns item pushed by another task without blocking the thread" do
+      q = described_class.new
+      results = []
+
+      scheduler.spawn(name: "consumer", parent: nil) { results << q.pop }
+      scheduler.spawn(name: "producer", parent: nil) { q.push(:hello) }
+      scheduler.run_until_idle
+
+      expect(results).to eq([:hello])
+    end
+
+    it "returns nil when timeout expires with an empty queue" do
+      q = described_class.new
+      result = :not_set
+
+      scheduler.spawn(name: "consumer", parent: nil) { result = q.pop(timeout: 0) }
+      scheduler.run_until_idle
+
+      expect(result).to be_nil
+    end
+
+    it "transfers multiple items FIFO between cooperative tasks" do
+      q = described_class.new
+      results = []
+
+      scheduler.spawn(name: "producers", parent: nil) do
+        q.push(1)
+        q.push(2)
+        q.push(3)
+      end
+      scheduler.spawn(name: "consumer", parent: nil) do
+        3.times { results << q.pop }
+      end
+      scheduler.run_until_idle
+
+      expect(results).to eq([1, 2, 3])
+    end
+  end
 end
+
