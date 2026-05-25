@@ -6,6 +6,11 @@ require_relative "runtime/fake_scheduler"
 require_relative "runtime/deterministic_scheduler"
 require_relative "runtime/timer_queue"
 require_relative "runtime/scheduler_timer_adapter"
+require_relative "runtime/task_registry"
+require_relative "runtime/runtime_metrics"
+require_relative "runtime/gate_registry"
+require_relative "runtime/pool_registry"
+require_relative "runtime/timer_service"
 
 module Phronomy
   # Central authority for concurrent primitives.
@@ -102,24 +107,11 @@ module Phronomy
     # @api private
     def initialize(scheduler: ThreadScheduler.new)
       @scheduler = scheduler
-      @task_mutex = Mutex.new
-      @tasks = []
-      @timer_queue = nil
-      @timer_mutex = Mutex.new
-      @pools = {}
-      @pool_mutex = Mutex.new
-      @gates = {}
-      @gate_mutex = Mutex.new
-      @starvation_mutex = Mutex.new
-      @tasks_waiting_over_threshold = 0
-      # Task-centric metrics (Issue #307)
-      @metrics_mutex = Mutex.new
-      @active_tasks_by_type = Hash.new(0)   # type => count
-      @wait_times_ms = []                    # ring buffer of wait_ms floats
-      @run_times_ms = []                     # ring buffer of run_ms floats
-      @cancelled_by_type = Hash.new(0)
-      @failed_by_type = Hash.new(0)
-      @metrics_window = 1000                 # keep last N samples
+      @task_registry  = TaskRegistry.new
+      @metrics        = RuntimeMetrics.new
+      @gate_registry  = GateRegistry.new
+      @pool_registry  = PoolRegistry.new
+      @timer_service  = TimerService.new(scheduler)
     end
 
     # Returns (or lazily creates) the {ConcurrencyGate} for the named resource.
@@ -132,9 +124,7 @@ module Phronomy
     # @return [ConcurrencyGate]
     # @api private
     def gate(name)
-      @gate_mutex.synchronize do
-        @gates[name.to_sym] ||= _build_gate(name.to_sym)
-      end
+      @gate_registry.get(name.to_sym)
     end
 
     # Drops the cached gate for +name+ so that the next call to {#gate} rebuilds
@@ -144,7 +134,7 @@ module Phronomy
     # @return [void]
     # @api private
     def reset_gate(name)
-      @gate_mutex.synchronize { @gates.delete(name.to_sym) }
+      @gate_registry.reset(name.to_sym)
     end
 
     # Cooperative yield point.
@@ -175,7 +165,7 @@ module Phronomy
               "[Phronomy] CPU-bound task detected: '#{name}' ran #{elapsed.round}ms " \
               "without yielding (threshold: #{threshold}ms)"
             )
-            @starvation_mutex.synchronize { @tasks_waiting_over_threshold += 1 }
+            @metrics.increment_starvation
           end
         end
       end
@@ -189,7 +179,7 @@ module Phronomy
     # @return [Integer]
     # @api private
     def tasks_waiting_over_threshold
-      @starvation_mutex.synchronize { @tasks_waiting_over_threshold }
+      @metrics.starvation_count
     end
 
     # Cooperative yield point with a call-count gate.
@@ -243,30 +233,27 @@ module Phronomy
     def spawn(name: nil, &block)
       type = _task_type(name)
       spawn_at = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
-      _record_task_start(type)
+      @metrics.record_start(type)
 
       task = @scheduler.spawn(name: name, parent: Task.current) do
         run_start = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
-        _record_wait_time(run_start - spawn_at)
+        @metrics.record_wait(run_start - spawn_at)
         begin
           result = block.call
-          _record_task_end(type, :completed, run_start)
+          @metrics.record_end(type, :completed, run_start)
           result
         rescue CancellationError
-          _record_task_end(type, :cancelled, run_start)
+          @metrics.record_end(type, :cancelled, run_start)
           raise
         rescue => e
-          _record_task_end(type, :failed, run_start)
+          @metrics.record_end(type, :failed, run_start)
           raise e
         ensure
           current = Task.current
-          @task_mutex.synchronize { @tasks.delete(current) } if current
+          @task_registry.deregister(current) if current
         end
       end
-      # Skip registration for tasks that already completed synchronously
-      # (e.g. ImmediateBackend used in tests runs the block inline, so
-      # `ensure` fires before we reach this line and the delete is a no-op).
-      @task_mutex.synchronize { @tasks << task unless task.done? }
+      @task_registry.register(task)
       task
     end
 
@@ -290,28 +277,7 @@ module Phronomy
     # @return [Hash{Symbol => Numeric}]
     # @api private
     def task_snapshot
-      @metrics_mutex.synchronize do
-        active = @active_tasks_by_type.dup
-        wait = @wait_times_ms.dup
-        run = @run_times_ms.dup
-        cancelled = @cancelled_by_type.values.sum
-        failed = @failed_by_type.values.sum
-        starvation_max = @tasks_waiting_over_threshold
-        {
-          active_agent_tasks: active[:agent].to_i,
-          active_tool_tasks: active[:tool].to_i,
-          active_workflow_tasks: active[:workflow].to_i,
-          active_rag_tasks: active[:rag].to_i,
-          active_llm_tasks: active[:llm].to_i,
-          task_wait_time_p50_ms: _percentile(wait, 50),
-          task_wait_time_p95_ms: _percentile(wait, 95),
-          task_run_time_p50_ms: _percentile(run, 50),
-          task_run_time_p95_ms: _percentile(run, 95),
-          cancelled_tasks: cancelled,
-          failed_tasks: failed,
-          non_yield_duration_max_ms: starvation_max
-        }
-      end
+      @metrics.snapshot
     end
 
     # Returns the shared {BlockingAdapterPool} for this Runtime.
@@ -327,7 +293,7 @@ module Phronomy
     # @return [BlockingAdapterPool]
     # @api private
     def blocking_io(pool_size: 10, queue_size: 100)
-      @blocking_io ||= BlockingAdapterPool.new(name: :default, pool_size: pool_size, queue_size: queue_size)
+      @pool_registry.default_pool(pool_size: pool_size, queue_size: queue_size)
     end
 
     # Returns (or lazily creates) a named {BlockingAdapterPool}.
@@ -346,13 +312,7 @@ module Phronomy
     # @return [BlockingAdapterPool]
     # @api private
     def pool(name, size: 10, queue_size: 100)
-      @pool_mutex.synchronize do
-        @pools[name.to_sym] ||= BlockingAdapterPool.new(
-          name: name,
-          pool_size: size,
-          queue_size: queue_size
-        )
-      end
+      @pool_registry.named_pool(name, size: size, queue_size: queue_size)
     end
 
     # Returns the shared timer queue for this Runtime.
@@ -372,13 +332,7 @@ module Phronomy
     # @return [TimerQueue, SchedulerTimerAdapter]
     # @api private
     def timer_queue
-      @timer_mutex.synchronize do
-        @timer_queue ||= if @scheduler.is_a?(DeterministicScheduler)
-          SchedulerTimerAdapter.new(@scheduler)
-        else
-          TimerQueue.new
-        end
-      end
+      @timer_service.timer_queue
     end
 
     # Waits for all registered tasks to finish, then shuts down the
@@ -395,81 +349,26 @@ module Phronomy
     # @return [void]
     # @api private
     def shutdown
-      tasks = @task_mutex.synchronize { @tasks.dup }
-      tasks.each do |t|
-        t.join
-      rescue
-        nil
-      end
+      @task_registry.drain
       # Drain EventLoop events before stopping pools so that in-flight
       # Workflow / Agent FSM sessions can complete their final LLM calls.
       if Phronomy.configuration.event_loop
         Phronomy::EventLoop.instance.stop(drain: true)
       end
-      @blocking_io&.shutdown
-      pools = @pool_mutex.synchronize { @pools.values.dup }
-      pools.each(&:shutdown)
-      @timer_mutex.synchronize { @timer_queue&.shutdown }
+      @pool_registry.shutdown
+      @timer_service.shutdown
     end
 
     private
 
-    GATE_CONFIG_MAP = {
-      agent: :max_concurrent_agent_tasks,
-      tool: :max_concurrent_tool_tasks,
-      workflow: :max_concurrent_workflow_tasks,
-      llm: :max_concurrent_llm_calls,
-      rag: :max_concurrent_rag_fetches,
-      vector: :max_concurrent_vector_searches
-    }.freeze
-    private_constant :GATE_CONFIG_MAP
-
     TASK_TYPE_PREFIXES = %w[agent tool workflow rag llm vector].freeze
     private_constant :TASK_TYPE_PREFIXES
-
-    def _build_gate(name)
-      config_key = GATE_CONFIG_MAP[name]
-      max = config_key ? Phronomy.configuration.public_send(config_key) : nil
-      ConcurrencyGate.new(max_concurrent: max, name: name)
-    end
 
     def _task_type(name)
       return :other if name.nil?
 
       prefix = TASK_TYPE_PREFIXES.find { |p| name.to_s.start_with?("#{p}-") }
       prefix ? prefix.to_sym : :other
-    end
-
-    def _record_task_start(type)
-      @metrics_mutex.synchronize { @active_tasks_by_type[type] += 1 }
-    end
-
-    def _record_wait_time(wait_ms)
-      @metrics_mutex.synchronize do
-        @wait_times_ms << wait_ms
-        @wait_times_ms.shift if @wait_times_ms.size > @metrics_window
-      end
-    end
-
-    def _record_task_end(type, outcome, run_start_ms)
-      run_ms = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond) - run_start_ms
-      @metrics_mutex.synchronize do
-        @active_tasks_by_type[type] = [@active_tasks_by_type[type] - 1, 0].max
-        @run_times_ms << run_ms
-        @run_times_ms.shift if @run_times_ms.size > @metrics_window
-        case outcome
-        when :cancelled then @cancelled_by_type[type] += 1
-        when :failed then @failed_by_type[type] += 1
-        end
-      end
-    end
-
-    def _percentile(samples, pct)
-      return 0.0 if samples.empty?
-
-      sorted = samples.sort
-      idx = ((pct / 100.0) * (sorted.size - 1)).round
-      sorted[idx].round(3)
     end
   end
 end

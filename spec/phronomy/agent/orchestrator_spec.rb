@@ -459,8 +459,9 @@ RSpec.describe Phronomy::Agent::Orchestrator do
       # that would skew Thread.list counts in unrelated thread-independence tests.
       rt = Phronomy::Runtime.instance_variable_get(:@instance)
       if rt
-        running = rt.instance_variable_get(:@task_mutex).synchronize do
-          rt.instance_variable_get(:@tasks).dup
+        registry = rt.instance_variable_get(:@task_registry)
+        running = registry.instance_variable_get(:@mutex).synchronize do
+          registry.instance_variable_get(:@tasks).dup
         end
         running.each do |t|
           t.cancel!
@@ -515,8 +516,9 @@ RSpec.describe Phronomy::Agent::Orchestrator do
       # that would skew Thread.list counts in unrelated thread-independence tests.
       rt = Phronomy::Runtime.instance_variable_get(:@instance)
       if rt
-        running = rt.instance_variable_get(:@task_mutex).synchronize do
-          rt.instance_variable_get(:@tasks).dup
+        registry = rt.instance_variable_get(:@task_registry)
+        running = registry.instance_variable_get(:@mutex).synchronize do
+          registry.instance_variable_get(:@tasks).dup
         end
         running.each do |t|
           t.cancel!

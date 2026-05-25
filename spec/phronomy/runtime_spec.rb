@@ -103,7 +103,7 @@ RSpec.describe Phronomy::Runtime do
       # task was never removed and the registry kept growing.
       3.times { runtime.spawn { :result } }
 
-      tasks = runtime.instance_variable_get(:@tasks)
+      tasks = runtime.instance_variable_get(:@task_registry).instance_variable_get(:@tasks)
       # All tasks completed synchronously; registry must be empty.
       expect(tasks).to be_empty
     end
@@ -152,7 +152,7 @@ RSpec.describe Phronomy::Runtime do
     it "removes a completed task from the registry" do
       task = runtime.spawn { :done }
       task.await
-      tasks = runtime.instance_variable_get(:@tasks)
+      tasks = runtime.instance_variable_get(:@task_registry).instance_variable_get(:@tasks)
       expect(tasks).not_to include(task)
     end
 
@@ -163,13 +163,13 @@ RSpec.describe Phronomy::Runtime do
       rescue
         nil
       end
-      tasks = runtime.instance_variable_get(:@tasks)
+      tasks = runtime.instance_variable_get(:@task_registry).instance_variable_get(:@tasks)
       expect(tasks).not_to include(task)
     end
 
     it "does not accumulate tasks across many spawns" do
       20.times { runtime.spawn { :done }.await }
-      tasks = runtime.instance_variable_get(:@tasks)
+      tasks = runtime.instance_variable_get(:@task_registry).instance_variable_get(:@tasks)
       expect(tasks.length).to eq(0)
     end
 
