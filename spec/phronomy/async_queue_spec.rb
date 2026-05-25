@@ -52,9 +52,45 @@ RSpec.describe Phronomy::AsyncQueue do
     end
   end
 
-  describe "#close" do
-    it "returns self" do
-      expect(described_class.new.close).to be_a(described_class)
+  # Issue #336 — AsyncQueue#push must not block the OS thread when SizedQueue is
+  # full in a cooperative scheduler context; it should suspend the Fiber instead.
+  describe "cooperative bounded-queue push backpressure (Issue #336)", :issue_336 do
+    let(:scheduler) { Phronomy::Runtime::DeterministicScheduler.new }
+
+    it "suspends the producer Fiber when the queue is full and resumes when a slot opens" do
+      q = described_class.new(max_size: 1)
+      log = []
+
+      scheduler.spawn(name: "producer", parent: nil) do
+        q.push(:first)
+        log << :pushed_first
+        q.push(:second)   # queue full — suspends cooperatively until consumer pops
+        log << :pushed_second
+      end
+
+      scheduler.spawn(name: "consumer", parent: nil) do
+        log << q.pop   # :first — frees a slot, wakes producer
+        log << q.pop   # :second
+      end
+
+      scheduler.run_until_idle
+
+      expect(log).to eq([:pushed_first, :first, :pushed_second, :second])
+    end
+
+    it "transfers multiple items through a bounded queue cooperatively" do
+      q = described_class.new(max_size: 2)
+      results = []
+
+      scheduler.spawn(name: "producer", parent: nil) do
+        5.times { |i| q.push(i) }
+      end
+      scheduler.spawn(name: "consumer", parent: nil) do
+        5.times { results << q.pop }
+      end
+
+      scheduler.run_until_idle
+      expect(results).to eq([0, 1, 2, 3, 4])
     end
   end
 

@@ -194,6 +194,35 @@ RSpec.describe Phronomy::Runtime::DeterministicScheduler, :issue_320 do
       expect(task.status).to eq(:cancelled)
       expect(reached_after_yield).to be false
     end
+
+    # Issue #335: cooperative cancellation — cancel! must not inject an exception
+    # mid-Fiber via Fiber#raise at call time; instead cancellation is delivered at
+    # the next scheduler step (cooperative checkpoint).
+    it "delivers cancellation at the next scheduler step, not at cancel! call time (Issue #335)" do
+      checkpoint_count = 0
+      task = runtime.spawn do
+        checkpoint_count += 1  # step 1
+        Fiber.yield
+        checkpoint_count += 1  # step 2 — must NOT be reached after cancel!
+        Fiber.yield
+        checkpoint_count += 1  # step 3
+      end
+
+      scheduler.tick  # step 1 runs, Fiber.yield suspends; re-enqueued
+      expect(checkpoint_count).to eq(1)
+
+      # cancel! sets the flag — does NOT inject exception into the Fiber NOW
+      task.cancel!
+      # checkpoint_count is still 1: no exception delivered yet
+      expect(checkpoint_count).to eq(1)
+
+      # The next tick picks up the re-enqueued step and delivers cancellation
+      # at the cooperative checkpoint in step().
+      scheduler.run_until_idle
+      expect(task.status).to eq(:cancelled)
+      # step 2 was never reached because cancellation fired before resuming
+      expect(checkpoint_count).to eq(1)
+    end
   end
 
   # ---------------------------------------------------------------------------
@@ -311,6 +340,56 @@ RSpec.describe Phronomy::Runtime::DeterministicScheduler, :issue_320 do
       task = runtime.spawn { raise ArgumentError, "boom" }
       scheduler.run_until_idle
       expect { task.await }.to raise_error(ArgumentError, "boom")
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # TaskGroup cooperative fail-fast — completion-order semantics (Issue #333)
+  # ---------------------------------------------------------------------------
+  describe "TaskGroup cooperative fail-fast (Issue #333)" do
+    it "raises on the first task to fail regardless of spawn order" do
+      group = Phronomy::TaskGroup.new(runtime: runtime, failure_policy: :fail_fast)
+
+      # task_b is spawned second but fails immediately; task_a runs longer.
+      # With completion-order semantics, the error from task_b must be seen
+      # before task_a finishes.
+      runtime.spawn do
+        group.spawn do
+          Fiber.yield   # slow task — suspends once
+          :slow_result
+        end
+        group.spawn { raise ArgumentError, "fast_fail" }  # fast failing task
+
+        expect { group.await_all }.to raise_error(ArgumentError, "fast_fail")
+      end
+
+      scheduler.run_until_idle
+    end
+
+    it "collect_all returns all completions in spawn order" do
+      group = Phronomy::TaskGroup.new(runtime: runtime, failure_policy: :collect_all)
+
+      runtime.spawn do
+        group.spawn { :a }
+        group.spawn { :b }
+        group.spawn { :c }
+        expect(group.await_all).to eq(%i[a b c])
+      end
+
+      scheduler.run_until_idle
+    end
+
+    it "skip_failed returns only successful results in spawn order" do
+      group = Phronomy::TaskGroup.new(runtime: runtime, failure_policy: :skip_failed)
+
+      runtime.spawn do
+        group.spawn { :a }
+        group.spawn { raise "ignored" }
+        group.spawn { :c }
+        expect(group.await_all).to eq(%i[a c])
+      end
+
+      scheduler.run_until_idle
     end
   end
 end

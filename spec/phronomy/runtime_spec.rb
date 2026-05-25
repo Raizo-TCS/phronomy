@@ -233,6 +233,16 @@ RSpec.describe Phronomy::Runtime do
       expect(described_class.instance.scheduler).to be_a(Phronomy::Runtime::FakeScheduler)
     end
 
+    it "emits a deprecation warning when :cooperative is used (Issue #332)" do
+      logger = instance_double("Logger", warn: nil, info: nil, debug: nil, error: nil)
+      Phronomy.configure do |c|
+        c.runtime_backend = :cooperative
+        c.logger = logger
+      end
+      described_class.instance
+      expect(logger).to have_received(:warn).with(a_string_including(":cooperative is a deprecated alias"))
+    end
+
     it "uses ThreadScheduler for :thread backend" do
       Phronomy.configure { |c| c.runtime_backend = :thread }
       expect(described_class.instance.scheduler).to be_a(Phronomy::Runtime::ThreadScheduler)

@@ -20,15 +20,22 @@ module Phronomy
       @max_size = max_size
     end
 
-    # Enqueues +item+.  Blocks when +max_size+ is set and the queue is full.
-    # In a cooperative scheduler context, also notifies any suspended +pop+ caller.
+    # Enqueues +item+.
+    # In a cooperative scheduler context with a bounded queue (max_size:), suspends
+    # the current Fiber via a scheduler signal when the queue is full rather than
+    # blocking the OS thread.  Without a scheduler, falls back to the standard
+    # SizedQueue blocking behaviour.
     # @param item [Object] value to enqueue
     # @return [self]
     # @api private
     def push(item)
-      @queue.push(item)
       scheduler = Phronomy::Runtime::Scheduler.current
-      scheduler.raise_signal(@coop_signal) if scheduler && @coop_signal
+      if scheduler && @max_size
+        _push_cooperative(scheduler, item)
+      else
+        @queue.push(item)
+        scheduler.raise_signal(@coop_signal) if scheduler && @coop_signal
+      end
       self
     end
 
@@ -79,6 +86,8 @@ module Phronomy
     # Suspends the current Fiber via the scheduler's signal mechanism rather than
     # blocking the OS thread.  Because cooperative mode is single-threaded, the
     # empty?/pop pair is race-free (no other Fiber can run between the two calls).
+    # After dequeuing, notifies any push-waiter so that a backpressure-suspended
+    # producer can be unblocked.
     # @api private
     # @param scheduler [Runtime::Scheduler]
     # @param timeout [Numeric, nil]
@@ -88,10 +97,36 @@ module Phronomy
       deadline = timeout ? (scheduler.virtual_time + timeout) : nil
 
       loop do
-        return @queue.pop(timeout: 0) unless @queue.empty?
+        unless @queue.empty?
+          item = @queue.pop(timeout: 0)
+          # Notify a push-waiter (bounded queue) that a slot opened up.
+          scheduler.raise_signal(@push_signal) if @push_signal
+          return item
+        end
         return nil if deadline && scheduler.virtual_time >= deadline
         scheduler.wait_for_signal(@coop_signal)
         return nil if deadline && scheduler.virtual_time >= deadline
+      end
+    end
+
+    # Cooperative push for DeterministicScheduler context with a bounded queue.
+    # Suspends the current Fiber via a scheduler signal when the queue is full,
+    # rather than blocking the OS thread.
+    # @api private
+    # @param scheduler [Runtime::Scheduler]
+    # @param item [Object]
+    # @return [void]
+    def _push_cooperative(scheduler, item)
+      @push_signal ||= scheduler.new_signal
+
+      loop do
+        unless @queue.size >= @max_size
+          @queue.push(item)
+          # Notify any pop-waiter that an item is now available.
+          scheduler.raise_signal(@coop_signal) if @coop_signal
+          return
+        end
+        scheduler.wait_for_signal(@push_signal)
       end
     end
   end

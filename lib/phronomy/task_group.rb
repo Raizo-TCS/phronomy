@@ -100,17 +100,47 @@ module Phronomy
     private
 
     # Cooperative await_all for DeterministicScheduler context.
-    # Awaits each task sequentially using FiberBackend#await (cooperative suspend).
+    # Uses on_complete callbacks + AsyncQueue to observe task completions in
+    # arrival order (not spawn order), matching the fail-fast semantics of the
+    # threaded path.  AsyncQueue#pop suspends the current Fiber cooperatively
+    # rather than blocking the OS thread.
     # @api private
     # @param tasks [Array<Task>]
     # @return [Array]
     def _await_all_cooperative(tasks)
-      entries = tasks.map.with_index do |task, idx|
-        {index: idx, value: task.await, error: nil}
-      rescue => e
-        {index: idx, value: nil, error: e}
+      completion_q = AsyncQueue.new
+      tasks.each_with_index do |task, idx|
+        task.on_complete do |value, error|
+          completion_q.push({index: idx, value: value, error: error})
+        end
       end
-      _build_result(entries)
+
+      entries = Array.new(tasks.length)
+      cancelled = false
+      fail_fast_error = nil
+
+      tasks.length.times do
+        entry = completion_q.pop  # cooperative suspend via scheduler signal
+        entries[entry[:index]] = entry
+
+        if entry[:error] && @failure_policy == :fail_fast && !cancelled
+          cancelled = true
+          fail_fast_error = entry[:error]
+          tasks.each { |t| t.cancel! unless t.done? }
+        end
+      end
+
+      case @failure_policy
+      when :fail_fast
+        raise fail_fast_error if fail_fast_error
+        entries.map { |r| r[:value] }
+      when :skip_failed
+        entries.filter_map { |r| r[:value] unless r[:error] }
+      else # :collect_all
+        errors = entries.filter_map { |r| r[:error] }
+        raise errors.first if errors.any?
+        entries.map { |r| r[:value] }
+      end
     end
 
     # Thread-blocking await_all for ThreadBackend / ImmediateBackend context.
@@ -146,22 +176,6 @@ module Phronomy
       case @failure_policy
       when :fail_fast
         raise fail_fast_error if fail_fast_error
-        entries.map { |r| r[:value] }
-      when :skip_failed
-        entries.filter_map { |r| r[:value] unless r[:error] }
-      else # :collect_all
-        errors = entries.filter_map { |r| r[:error] }
-        raise errors.first if errors.any?
-        entries.map { |r| r[:value] }
-      end
-    end
-
-    # Builds the final result array from completed entries.
-    def _build_result(entries)
-      case @failure_policy
-      when :fail_fast
-        first_error = entries.find { |r| r[:error] }&.dig(:error)
-        raise first_error if first_error
         entries.map { |r| r[:value] }
       when :skip_failed
         entries.filter_map { |r| r[:value] unless r[:error] }

@@ -23,6 +23,7 @@ module Phronomy
         @value = nil
         @error = nil
         @cancel_error = nil
+        @cancel_requested = false
         @started = false
         @cooperative_suspend = false
 
@@ -50,12 +51,27 @@ module Phronomy
 
       # Advances execution by one scheduler step.
       # Resumes the Fiber until it yields (via +Fiber.yield+) or finishes.
+      # Cooperative cancellation is checked at the start of each step: if
+      # +cancel!+ has been called, +CancellationError+ is raised inside the
+      # Fiber at this controlled checkpoint rather than injected at an
+      # arbitrary suspension point via +Fiber#raise+.
       # @return [self]
       # @api private
       def step
         return self unless @fiber.alive?
 
         @started = true
+        # Deliver pending cancellation at this scheduler checkpoint rather than
+        # injecting it mid-Fiber via Fiber#raise (which would be preemptive).
+        if @cancel_requested && @cancel_error
+          begin
+            @fiber.raise(@cancel_error)
+          rescue FiberError
+            nil  # Fiber completed between the check and raise — safe to ignore.
+          end
+          @cancel_requested = false
+          return self
+        end
         yield_value = @fiber.resume
         # A yield value of :cooperative_suspend signals that the Fiber deliberately
         # suspended itself (e.g. inside CoopSignal#wait) and must NOT be
@@ -113,21 +129,17 @@ module Phronomy
         @fiber.alive?
       end
 
-      # Requests cancellation.
-      # If the Fiber is suspended (has already started), delivers
-      # +CancellationError+ via +Fiber#raise+.  If it has not yet started,
-      # records the error so it is raised on the first {#step}.
+      # Requests cancellation using a cooperative checkpoint mechanism.
+      # Sets a cancellation flag; the error is raised inside the Fiber at the
+      # next +step+ call (i.e. when the scheduler next dispatches this task),
+      # not injected at an arbitrary suspension point via +Fiber#raise+.
+      # If the Fiber has not yet started, the error is recorded so it is raised
+      # on the first {#step}.
       # @return [self]
       # @api private
       def cancel!
         @cancel_error = CancellationError.new("Task cancelled")
-        if @fiber.alive? && @started
-          begin
-            @fiber.raise(CancellationError, "Task cancelled")
-          rescue FiberError
-            # Fiber may have completed between the alive? check and raise — safe to ignore.
-          end
-        end
+        @cancel_requested = true
         self
       end
 

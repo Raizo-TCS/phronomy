@@ -43,7 +43,14 @@ module Phronomy
     def self.instance
       @instance ||= begin
         scheduler = case Phronomy.configuration.runtime_backend
-        when :immediate, :cooperative
+        when :cooperative
+          Phronomy.configuration.logger&.warn(
+            "[phronomy] runtime_backend: :cooperative is a deprecated alias for :immediate. " \
+            "Use :immediate for synchronous/test execution. " \
+            ":cooperative will be reassigned when a real cooperative Fiber-based scheduler is available."
+          )
+          FakeScheduler.new
+        when :immediate
           FakeScheduler.new
         else
           ThreadScheduler.new
