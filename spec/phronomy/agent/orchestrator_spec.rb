@@ -455,6 +455,20 @@ RSpec.describe Phronomy::Agent::Orchestrator do
       Phronomy::Runtime.instance_variable_set(:@instance, nil)
       ex.run
     ensure
+      # Cancel tasks left sleeping after TimeoutError to prevent thread leaks
+      # that would skew Thread.list counts in unrelated thread-independence tests.
+      rt = Phronomy::Runtime.instance_variable_get(:@instance)
+      if rt
+        running = rt.instance_variable_get(:@task_mutex).synchronize do
+          rt.instance_variable_get(:@tasks).dup
+        end
+        running.each do |t|
+          t.cancel!
+        rescue
+          nil
+        end
+        sleep 0.05
+      end
       Phronomy.reset_configuration!
       Phronomy::Runtime.instance_variable_set(:@instance, nil)
     end
@@ -497,6 +511,20 @@ RSpec.describe Phronomy::Agent::Orchestrator do
       Phronomy::Runtime.instance_variable_set(:@instance, nil)
       ex.run
     ensure
+      # Cancel tasks left sleeping after TimeoutError to prevent thread leaks
+      # that would skew Thread.list counts in unrelated thread-independence tests.
+      rt = Phronomy::Runtime.instance_variable_get(:@instance)
+      if rt
+        running = rt.instance_variable_get(:@task_mutex).synchronize do
+          rt.instance_variable_get(:@tasks).dup
+        end
+        running.each do |t|
+          t.cancel!
+        rescue
+          nil
+        end
+        sleep 0.05
+      end
       Phronomy.reset_configuration!
       Phronomy::Runtime.instance_variable_set(:@instance, nil)
     end

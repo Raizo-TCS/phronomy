@@ -473,6 +473,18 @@ RSpec.describe "Lifecycle invariants" do
   # subsequent EventLoop.instance starts without contaminated state.
   # ===========================================================================
   describe "thread leak after timeout-forced shutdown (Issue #251)" do
+    # These tests start a real agent IO thread (sleep 10) and cancel it via
+    # EventLoop#stop(force_kill: true).  Concurrent execution is required, so
+    # force the :thread backend so Runtime.instance spawns real threads.
+    around do |ex|
+      Phronomy.configure { |c| c.runtime_backend = :thread }
+      Phronomy::Runtime.instance_variable_set(:@instance, nil)
+      ex.run
+    ensure
+      Phronomy.reset_configuration!
+      Phronomy::Runtime.instance_variable_set(:@instance, nil)
+    end
+
     after do
       Phronomy::EventLoop.reset!
       Phronomy.reset_configuration!
