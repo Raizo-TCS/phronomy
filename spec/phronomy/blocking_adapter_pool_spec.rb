@@ -396,3 +396,66 @@ RSpec.describe "BlockingAdapterPool cooperative await (Issue #338)" do
     expect(result).to eq(:immediate)
   end
 end
+
+# Issue #348: PendingOperation#await cooperative timeout limitation.
+# On the cooperative path (DeterministicScheduler / :fiber backend),
+# the timeout: parameter passed to await is NOT enforced — the Fiber
+# remains suspended until the worker thread completes, regardless of
+# elapsed time.  Set timeout: at submit time instead to trigger on the
+# worker side and unblock the Fiber via the normal on-complete callback.
+RSpec.describe "BlockingAdapterPool cooperative await timeout limitation (Issue #348)" do
+  let(:pool) { Phronomy::BlockingAdapterPool.new(pool_size: 1) }
+  let(:scheduler) { Phronomy::Runtime::DeterministicScheduler.new(autorun: true) }
+  let(:runtime) { Phronomy::Runtime.new(scheduler: scheduler) }
+
+  after { pool.shutdown }
+
+  it "does NOT raise TimeoutError from await(timeout:) on the cooperative path" do
+    # The await-time timeout is ignored on the cooperative path.
+    # The Fiber waits until the worker finishes, then returns the value.
+    op = pool.submit { :result }  # fast operation
+    result = nil
+    runtime.spawn(name: "consumer") do
+      # Pass a very small timeout — would fire on the thread path but is
+      # ignored on the cooperative path.
+      result = op.await(timeout: 0.001)
+    end
+    # Worker completes; Fiber is resumed with the value regardless of timeout.
+    expect(result).to eq(:result)
+  end
+
+  it "submit-time timeout is honoured cooperatively (worker abandoned, Fiber resumed)" do
+    # A submit-time timeout fires on the worker side, marks the operation as
+    # abandoned, and then invokes on_complete callbacks — which re-enqueues
+    # the waiting Fiber via the scheduler.
+    barrier = Thread::Mutex.new
+    released = false
+    barrier.lock
+
+    op = pool.submit(timeout: 0.05) do
+      # Block until the test releases the barrier (simulating a slow operation).
+      barrier.lock
+      released = true
+      :never_returned
+    end
+
+    result = :not_set
+    error_class = nil
+    runtime.spawn(name: "consumer") do
+      result = op.await
+    rescue Phronomy::TimeoutError => e
+      error_class = e.class
+    ensure
+      barrier.unlock
+    end
+
+    # Give the worker time to run and hit the submit-time timeout.
+    sleep 0.2
+
+    expect(op.abandoned?).to be true
+    # On the cooperative path the Fiber is resumed via on_complete even when
+    # abandoned; the caller raises or returns depending on implementation.
+    # What is guaranteed: the Fiber is NOT stuck waiting forever.
+    expect(result).not_to eq(:not_set).or(expect(error_class).not_to be_nil)
+  end
+end

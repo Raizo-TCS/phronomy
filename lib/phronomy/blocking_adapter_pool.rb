@@ -55,14 +55,24 @@ module Phronomy
       # If the token is cancelled while waiting, {Phronomy::CancellationError} is
       # raised immediately without interrupting the worker.
       #
+      # **Cooperative path (`:fiber` / `DeterministicScheduler`):**
       # When called from a Fiber managed by {DeterministicScheduler} (i.e. under
       # the +:fiber+ runtime backend), the calling Fiber suspends cooperatively
       # via +Fiber.yield+ rather than blocking the OS thread.  The Fiber is
       # resumed on the scheduler's ready queue once the worker thread completes
-      # the operation.  Timeout is not enforced cooperatively in this path;
-      # callers that require a time bound should set +timeout:+ at submit time.
+      # the operation.
+      #
+      # @note **Cooperative timeout limitation**: the +timeout:+ parameter passed
+      #   to +await+ is *not* enforced on the cooperative path.  The calling Fiber
+      #   remains suspended until the worker thread finishes regardless of how many
+      #   seconds elapse.  This is because the cooperative scheduler cannot
+      #   preempt a running OS thread.  If a time bound is required, set
+      #   +timeout:+ at {BlockingAdapterPool#submit submit} time instead; the pool
+      #   will then abandon the operation on the worker side and mark it as
+      #   {#abandoned?}.
       #
       # @param timeout [Numeric, nil] seconds from now before raising TimeoutError
+      #   (thread path only; ignored on the cooperative/fiber path)
       # @param cancellation_token [CancellationToken, nil]
       # @return [Object]
       # @raise [Phronomy::TimeoutError]
@@ -251,6 +261,13 @@ module Phronomy
     # Submits a blocking operation to the pool.
     # Returns a {PendingOperation} immediately; the block runs on a worker thread.
     #
+    # @note **Cooperative callers**: if you are running under the `:fiber` backend
+    #   (i.e. inside a {DeterministicScheduler} Fiber), set +timeout:+ here
+    #   rather than on {PendingOperation#await}.  The await-time timeout is not
+    #   enforced on the cooperative path (the Fiber cannot preempt a running
+    #   worker thread).  A submit-time timeout triggers on the worker side and
+    #   marks the operation {PendingOperation#abandoned? abandoned}, which
+    #   unblocks the waiting Fiber via the normal on-complete callback.
     # @param timeout [Numeric, nil] seconds before the operation is abandoned
     # @param cancellation_token [CancellationToken, nil]
     # @yield block containing the blocking call
