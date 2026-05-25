@@ -37,9 +37,16 @@ module Phronomy
 
       # Warn and normalise unsupported modes to :blocking_io.
       if mode == :cpu_bound || mode == :external_process
-        msg = "[Phronomy] ToolExecutor: execution_mode :#{mode} is not yet supported " \
-              "(no process pool available). Falling back to :blocking_io routing. " \
-              "Tool: #{tool.class.name}"
+        msg = if mode == :cpu_bound
+          "[Phronomy] Tool #{tool.class.name} declares execution_mode :cpu_bound, " \
+          "which has no dedicated executor. " \
+          "Falling back to blocking_io (BlockingAdapterPool). " \
+          "Use :blocking_io explicitly to suppress this warning."
+        else
+          "[Phronomy] Tool #{tool.class.name} declares execution_mode :external_process, " \
+          "which has no dedicated process manager. " \
+          "Falling back to blocking_io (BlockingAdapterPool)."
+        end
         if Phronomy.configuration.logger
           Phronomy.configuration.logger.warn(msg)
         else

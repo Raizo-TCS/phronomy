@@ -88,7 +88,7 @@ RSpec.describe Phronomy::ToolExecutor do
       tool = make_tool(:cpu_bound)
       expect { described_class.call_async(tool: tool, args: {"x" => "cpu"},
         runtime: runtime_with_pool) }
-        .to output(/cpu_bound.*not yet supported|not yet supported.*cpu_bound/im).to_stderr
+        .to output(/execution_mode :cpu_bound.*no dedicated executor|declares execution_mode :cpu_bound/im).to_stderr
     end
 
     it "still returns a result after fallback" do
@@ -111,7 +111,7 @@ RSpec.describe Phronomy::ToolExecutor do
       tool = make_tool(:external_process)
       expect { described_class.call_async(tool: tool, args: {"x" => "ext"},
         runtime: runtime_with_pool) }
-        .to output(/external_process.*not yet supported|not yet supported.*external_process/im).to_stderr
+        .to output(/execution_mode :external_process|declares execution_mode :external_process/im).to_stderr
     end
   end
 

@@ -99,11 +99,16 @@ module Phronomy
 
         # Sets or reads the execution mode for this tool.
         #
-        # Execution mode controls which runtime resource is used to run the tool:
-        # - +:cooperative+       — runs directly as a scheduler task (no blocking I/O)
-        # - +:blocking_io+       — delegated to {Phronomy::BlockingAdapterPool} (default)
-        # - +:cpu_bound+         — reserved for future process-pool routing
-        # - +:external_process+  — reserved for future process-manager routing
+        # Execution mode is the concurrency contract declaration for the tool.
+        # In Phronomy's non-preemptive, cooperative concurrency model it controls
+        # which runtime resource is used to dispatch the tool:
+        #
+        # | Mode | Dispatcher | Constraint |
+        # |------|-----------|------------|
+        # | +:cooperative+ | +Runtime.instance.spawn+ (scheduler task) | *Must not* block the scheduler thread; use only for in-memory computation |
+        # | +:blocking_io+ | {Phronomy::BlockingAdapterPool} (bounded thread pool) | **Default**. Safe for all blocking I/O (HTTP, DB, file) |
+        # | +:cpu_bound+ | Falls back to +:blocking_io+ + emits a warning | No dedicated process pool yet; use +:blocking_io+ explicitly to suppress the warning |
+        # | +:external_process+ | Falls back to +:blocking_io+ | No process manager yet |
         #
         # Tools that perform network calls, file I/O, or database queries should use
         # +:blocking_io+ (the default).  Tools that only perform in-memory computation
