@@ -43,10 +43,31 @@ module Phronomy
     # Dequeues and returns the next item.
     # In a cooperative scheduler context, suspends the current Fiber (yielding
     # control back to the scheduler) rather than blocking the OS thread.
-    # When +timeout+ is given, returns +nil+ if no item arrives within that many
-    # seconds.  (Requires Ruby 3.2+, which added +Thread::Queue#pop(timeout:)+.)
-    # @param timeout [Numeric, nil] seconds to wait before returning nil
-    # @return [Object, nil] the next item, or nil when timeout expires
+    #
+    # When +timeout+ is given the semantics depend on the active backend:
+    #
+    # * **Thread backend** (`:thread`) — uses real wall-clock time via
+    #   +Thread::Queue#pop(timeout:)+.  Requires Ruby 3.2+.
+    #   Returns +nil+ if no item arrives within the specified number of real seconds.
+    # * **DeterministicScheduler / `:fiber` backend** — uses the scheduler's
+    #   *virtual time* (+scheduler.virtual_time+).  The timeout elapses only when
+    #   the virtual clock is advanced (e.g. via {Phronomy::Testing::FakeClock#advance}).
+    #   In tests this means the timeout is fully deterministic and does not depend on
+    #   actual elapsed wall time.  However, in production `:fiber` mode the timeout
+    #   may never expire unless the scheduler explicitly advances virtual time.
+    #
+    # @note The `:fiber` backend is **EXPERIMENTAL**.  Real-time timeout behaviour
+    #   in production workloads is not guaranteed and may differ from wall-clock
+    #   expectations.
+    # @note **Cooperative timeout limitation**: on the cooperative path, the
+    #   deadline is re-checked *after* a wake-up signal arrives.  If virtual time
+    #   has already passed the deadline when the consumer is woken by a producer
+    #   push, the consumer returns +nil+ rather than the pushed item.  Without any
+    #   wake-up signal the waiting Fiber remains suspended even after
+    #   +scheduler.advance+ — the timeout does not self-fire.
+    # @param timeout [Numeric, nil] seconds to wait before returning +nil+.
+    #   Semantics are wall-clock on `:thread` and virtual-time on `:fiber`.
+    # @return [Object, nil] the next item, or +nil+ when timeout expires
     # @api private
     def pop(timeout: nil)
       scheduler = Phronomy::Runtime::Scheduler.current

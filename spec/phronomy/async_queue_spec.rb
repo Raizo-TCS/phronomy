@@ -164,4 +164,99 @@ RSpec.describe Phronomy::AsyncQueue do
       expect(results).to eq([1, 2, 3])
     end
   end
+
+  # Issue #347 — pop timeout semantics differ between thread and cooperative paths.
+  # Thread path uses wall-clock time; cooperative/fiber path uses virtual time.
+  describe "pop timeout semantics: wall-clock vs virtual-time (Issue #347)", :issue_347 do
+    context "thread path (wall-clock)" do
+      it "returns nil after real elapsed time when queue stays empty" do
+        q = described_class.new
+        start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        result = q.pop(timeout: 0.03)
+        elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
+        expect(result).to be_nil
+        expect(elapsed).to be >= 0.02
+      end
+
+      it "does not expire before the item arrives within the timeout window" do
+        q = described_class.new
+        Thread.new do
+          sleep 0.01
+          q.push(:ok)
+        end
+        expect(q.pop(timeout: 2.0)).to eq(:ok)
+      end
+    end
+
+    context "cooperative path (virtual time)" do
+      let(:scheduler) { Phronomy::Runtime::DeterministicScheduler.new }
+
+      it "expires immediately when virtual time already meets the deadline" do
+        q = described_class.new
+        result = :not_set
+
+        scheduler.spawn(name: "consumer", parent: nil) do
+          result = q.pop(timeout: 0)
+        end
+        scheduler.run_until_idle
+
+        expect(result).to be_nil
+      end
+
+      it "expires when queue is still empty at or past the timeout deadline" do
+        q = described_class.new
+        result = :not_set
+
+        scheduler.spawn(name: "consumer", parent: nil) do
+          result = q.pop(timeout: 0)
+        end
+        # advance has no effect on waking the consumer here — timeout: 0 means
+        # the deadline (virtual_time + 0) is already met on the first loop check.
+        scheduler.advance(1.0)
+        scheduler.run_until_idle
+
+        expect(result).to be_nil
+      end
+
+      it "returns nil (not the item) when a producer wakes the consumer after deadline" do
+        # The cooperative deadline is checked *after* wait_for_signal returns.
+        # So even if a producer pushes an item, if virtual_time >= deadline at
+        # the moment the consumer is woken up, it returns nil and does not
+        # dequeue the item.
+        q = described_class.new
+        result = :not_set
+
+        scheduler.spawn(name: "consumer", parent: nil) do
+          result = q.pop(timeout: 0.5)  # deadline = 0.0 + 0.5 = 0.5
+        end
+        scheduler.tick  # consumer runs to wait_for_signal (deadline not yet met)
+        scheduler.advance(1.0)  # virtual_time = 1.0, past the deadline
+
+        # Producer push wakes the consumer via @coop_signal.
+        # Consumer checks: virtual_time (1.0) >= deadline (0.5) => return nil.
+        scheduler.spawn(name: "producer", parent: nil) { q.push(:too_late) }
+        scheduler.run_until_idle
+
+        expect(result).to be_nil
+      end
+
+      it "does NOT expire just because real time passes (virtual time unchanged)" do
+        q = described_class.new
+        result = :not_set
+        pushed = false
+
+        scheduler.spawn(name: "producer", parent: nil) do
+          q.push(:virtual_item)
+          pushed = true
+        end
+        scheduler.spawn(name: "consumer", parent: nil) do
+          result = q.pop(timeout: 999.0)
+        end
+        scheduler.run_until_idle
+
+        expect(pushed).to be true
+        expect(result).to eq(:virtual_item)
+      end
+    end
+  end
 end
