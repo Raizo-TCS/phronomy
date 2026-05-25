@@ -60,7 +60,7 @@ module Phronomy
           Phronomy.configuration.logger&.warn(
             "[phronomy] runtime_backend: :fiber uses DeterministicScheduler in autorun mode. " \
             "This is an EXPERIMENTAL Fiber-based cooperative scheduler. " \
-            "It does not integrate with real wall-clock timers yet (Issue #331). " \
+            "Wall-clock timer integration is available via SchedulerTimerAdapter (Issues #331, #337). " \
             "Not recommended for production use."
           )
           DeterministicScheduler.new(autorun: true)

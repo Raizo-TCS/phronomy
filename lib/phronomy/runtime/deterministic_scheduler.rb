@@ -85,6 +85,12 @@ module Phronomy
         @timer_heap = []  # Array of { fire_at:, callback: }
         @real_timer_heap = []  # Array of [fire_at_monotonic, callback] for wall-clock timers
         @clock = -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }
+        # Tracks Fibers suspended in BlockingAdapterPool#await so that
+        # run_until_idle knows to keep looping until worker threads complete.
+        # Protected by @await_mutex (separate from @mutex to avoid contention).
+        @pending_awaits = 0
+        @await_mutex = Mutex.new
+        @await_cond = ConditionVariable.new
       end
 
       # Returns +true+ when this scheduler is in autorun mode.
@@ -112,7 +118,11 @@ module Phronomy
           enqueue_fiber(step_callable) if backend.alive? && !backend.cooperative_suspend?
         end
         enqueue_fiber(step_callable)
-        run_until_idle if @autorun
+        # Auto-run only when called from outside a running scheduler tick.
+        # When SCHEDULER_KEY is set, the calling code is already inside a managed
+        # Fiber; the outer run_until_idle loop will pick up the new task on the
+        # next iteration without a recursive re-entry.
+        run_until_idle if @autorun && Thread.current.thread_variable_get(SCHEDULER_KEY).nil?
         task
       end
 
@@ -167,9 +177,18 @@ module Phronomy
       end
 
       # Drains the ready queue by calling {#tick} until it is empty.
-      # In autorun mode ({#autorun?} is +true+), also fires any wall-clock timers
-      # whose deadline has already passed before each drain attempt, continuing
-      # until both the ready queue and the due real-timer set are empty.
+      #
+      # In autorun mode ({#autorun?} is +true+), also handles wall-clock timers
+      # and cooperative blocking-I/O awaits:
+      # - Fires any timers whose deadline has already passed on each iteration.
+      # - When all ready tasks are done but future timers remain pending, sleeps
+      #   until the next deadline and fires them.
+      # - When Fibers are suspended in {BlockingAdapterPool::PendingOperation#await}
+      #   (tracked via {#track_blocking_await}), waits on a condition variable
+      #   that is broadcast by {#enqueue_fiber} when the worker thread completes
+      #   (Issue #338).  This ensures run_until_idle does not exit while blocking
+      #   I/O operations are still in flight.
+      #
       # Does not fire pending virtual timers — call {#advance} for those.
       #
       # @return [self]
@@ -179,7 +198,25 @@ module Phronomy
           loop do
             fire_real_timers
             tick until idle?
-            break if idle? && !real_timers_due?
+
+            # Atomically check all exit conditions.
+            should_break = @await_mutex.synchronize do
+              idle? && pending_real_timer_count.zero? && @pending_awaits.zero?
+            end
+            break if should_break
+
+            if idle?
+              if pending_real_timer_count > 0 &&
+                  @await_mutex.synchronize { @pending_awaits.zero? }
+                # Only real timers pending — sleep until the next deadline.
+                sleep_until_next_real_timer
+              else
+                # Pending blocking awaits (pool workers still running).
+                # Wait for the completion signal broadcast by enqueue_fiber /
+                # complete_blocking_await (30-second safety cap).
+                @await_mutex.synchronize { @await_cond.wait(@await_mutex, 30) }
+              end
+            end
           end
         else
           tick until idle?
@@ -225,12 +262,18 @@ module Phronomy
 
       # Enqueues a callable (Fiber step or arbitrary block) onto the ready queue.
       # Called by {Task::FiberBackend#await} to resume a waiting Fiber.
+      # Also wakes any thread blocked in {#run_until_idle} waiting for external
+      # completion signals (e.g. from {BlockingAdapterPool} worker threads).
       #
       # @param callable [#call]
       # @return [self]
       # @api private
       def enqueue_fiber(callable)
         @mutex.synchronize { @ready << callable }
+        # Broadcast to wake run_until_idle if it is sleeping on @await_cond.
+        # @await_mutex is always acquired AFTER releasing @mutex (never nested)
+        # to guarantee consistent lock ordering and avoid deadlocks.
+        @await_mutex.synchronize { @await_cond.broadcast }
         self
       end
 
@@ -303,11 +346,49 @@ module Phronomy
         @mutex.synchronize { @real_timer_heap.size }
       end
 
+      # Registers one pending cooperative blocking-I/O await.
+      # Called by {BlockingAdapterPool::PendingOperation#await} before
+      # +Fiber.yield+ so that {#run_until_idle} knows not to exit yet.
+      # Each call must be balanced by a {#complete_blocking_await} call.
+      # @return [self]
+      # @api private
+      def track_blocking_await
+        @await_mutex.synchronize { @pending_awaits += 1 }
+        self
+      end
+
+      # Marks one pending cooperative blocking-I/O await as complete.
+      # Called from the {BlockingAdapterPool::PendingOperation#on_complete}
+      # callback (on the pool worker thread) after the result is ready.
+      # Decrements the counter and broadcasts to wake {#run_until_idle}.
+      # @return [self]
+      # @api private
+      def complete_blocking_await
+        @await_mutex.synchronize do
+          @pending_awaits -= 1
+          @await_cond.broadcast
+        end
+        self
+      end
+
       private
 
       def real_timers_due?
         now = @clock.call
         @mutex.synchronize { @real_timer_heap.any? { |(t, _)| t <= now } }
+      end
+
+      # Sleeps until the nearest pending real-timer deadline, then returns.
+      # Called only from run_until_idle when the ready queue is empty and at
+      # least one future real-timer is pending.  Ensures we never overshoot:
+      # sleep is bounded to the exact remaining time to the next deadline.
+      # @api private
+      def sleep_until_next_real_timer
+        next_at = @mutex.synchronize { @real_timer_heap.first&.first }
+        return unless next_at
+
+        wait_duration = [next_at - @clock.call, 0.0].max
+        sleep(wait_duration) if wait_duration > 0
       end
 
       def fire_due_timers

@@ -320,3 +320,79 @@ RSpec.describe "Runtime#blocking_io" do
     runtime.blocking_io.shutdown(drain_timeout: 1)
   end
 end
+
+# Issue #338: PendingOperation#await cooperates with DeterministicScheduler.
+# When called from a Fiber managed by DeterministicScheduler, await suspends
+# the Fiber cooperatively (via Fiber.yield) rather than blocking the OS thread,
+# allowing the scheduler to continue dispatching other tasks.
+RSpec.describe "BlockingAdapterPool cooperative await (Issue #338)" do
+  let(:scheduler) { Phronomy::Runtime::DeterministicScheduler.new(autorun: true) }
+  let(:runtime) { Phronomy::Runtime.new(scheduler: scheduler) }
+  let(:pool) { Phronomy::BlockingAdapterPool.new(pool_size: 2, queue_size: 10) }
+
+  after do
+    pool.shutdown(drain_timeout: 2)
+  end
+
+  it "resumes the waiting Fiber when the blocking operation completes" do
+    result = nil
+    runtime.spawn(name: "test-task") do
+      op = pool.submit { 42 }
+      result = op.await
+    end
+    expect(result).to eq(42)
+  end
+
+  it "propagates errors from the worker thread to the awaiting Fiber" do
+    raised_error = nil
+    runtime.spawn(name: "error-task") do
+      op = pool.submit { raise ArgumentError, "boom" }
+      begin
+        op.await
+      rescue ArgumentError => e
+        raised_error = e
+      end
+    end
+    expect(raised_error).to be_a(ArgumentError)
+    expect(raised_error.message).to eq("boom")
+  end
+
+  it "does not block the scheduler thread while the worker is running" do
+    order = []
+
+    # Both tasks are spawned inside a parent task so they share a single
+    # run_until_idle loop.  Spawning from the top level in autorun mode
+    # calls run_until_idle once per spawn, which serialises the tasks.
+    runtime.spawn(name: "parent") do
+      child_a = runtime.spawn(name: "task-a") do
+        op = pool.submit do
+          sleep 0.05
+          :done
+        end
+        order << :a_before_await
+        op.await
+        order << :a_after_await
+      end
+      child_b = runtime.spawn(name: "task-b") do
+        order << :b_ran
+      end
+      child_a.await
+      child_b.await
+    end
+
+    # task-b must run while task-a is suspended awaiting the slow pool operation
+    expect(order).to include(:b_ran)
+    expect(order.index(:b_ran)).to be < order.index(:a_after_await)
+    expect(order.first).to eq(:a_before_await)
+  end
+
+  it "handles an already-completed operation without suspension" do
+    op = pool.submit { :immediate }
+    op.await  # ensure done in thread context first
+    result = nil
+    runtime.spawn(name: "no-yield-task") do
+      result = op.await
+    end
+    expect(result).to eq(:immediate)
+  end
+end

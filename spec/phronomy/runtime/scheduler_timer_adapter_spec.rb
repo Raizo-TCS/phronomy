@@ -30,6 +30,17 @@ RSpec.describe Phronomy::Runtime::SchedulerTimerAdapter do
       Phronomy::Runtime.new(scheduler: scheduler).spawn { nil }
       expect(fired).to be(true)
     end
+
+    it "fires a future-deadline callback automatically via run_until_idle (Issue #337)" do
+      fired_at = nil
+      scheduled_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      adapter.schedule(seconds: 0.05) { fired_at = Process.clock_gettime(Process::CLOCK_MONOTONIC) }
+      # spawn a no-op task so run_until_idle is driven; autorun will sleep until
+      # the 50ms deadline, fire the timer, then return
+      Phronomy::Runtime.new(scheduler: scheduler).spawn { nil }
+      expect(fired_at).not_to be_nil
+      expect(fired_at - scheduled_at).to be >= 0.04
+    end
   end
 
   describe "#pending_count" do

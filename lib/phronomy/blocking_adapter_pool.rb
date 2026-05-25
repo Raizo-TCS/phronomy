@@ -55,6 +55,13 @@ module Phronomy
       # If the token is cancelled while waiting, {Phronomy::CancellationError} is
       # raised immediately without interrupting the worker.
       #
+      # When called from a Fiber managed by {DeterministicScheduler} (i.e. under
+      # the +:fiber+ runtime backend), the calling Fiber suspends cooperatively
+      # via +Fiber.yield+ rather than blocking the OS thread.  The Fiber is
+      # resumed on the scheduler's ready queue once the worker thread completes
+      # the operation.  Timeout is not enforced cooperatively in this path;
+      # callers that require a time bound should set +timeout:+ at submit time.
+      #
       # @param timeout [Numeric, nil] seconds from now before raising TimeoutError
       # @param cancellation_token [CancellationToken, nil]
       # @return [Object]
@@ -67,6 +74,35 @@ module Phronomy
         effective_token = cancellation_token || @cancellation_token
 
         raise CancellationError, "blocking operation cancelled" if effective_token&.cancelled?
+
+        # Cooperative context: suspend the calling Fiber rather than blocking
+        # the OS thread so that DeterministicScheduler can continue dispatching
+        # other tasks while waiting for the blocking worker to finish.
+        # (Issue #338, ADR-010 Rule 3)
+        # Uses the same thread-local key as Task::FiberBackend::SCHEDULER_KEY
+        # (:phronomy_deterministic_scheduler) to avoid a cross-file constant
+        # dependency at load time.
+        scheduler = Thread.current.thread_variable_get(:phronomy_deterministic_scheduler)
+        in_managed_fiber = !Fiber.respond_to?(:main) || Fiber.current != Fiber.main
+        if scheduler && in_managed_fiber
+          unless @done
+            # Register this await with the scheduler so run_until_idle knows
+            # not to exit until the worker thread completes (Issue #338).
+            scheduler.track_blocking_await
+            waiting_fiber = Fiber.current
+            on_complete do |_result, _error|
+              # Decrement the counter and wake run_until_idle, then re-enqueue
+              # the suspended Fiber for cooperative resumption.
+              scheduler.complete_blocking_await
+              scheduler.enqueue_fiber(-> { waiting_fiber.resume })
+            end
+            Fiber.yield(:cooperative_suspend)
+          end
+          raise CancellationError, "blocking operation cancelled" if effective_token&.cancelled?
+          raise @error if @error
+
+          return @value
+        end
 
         # Wake up the waiting thread whenever the token is cancelled so we can
         # propagate cancellation without sleeping until the timeout expires.
