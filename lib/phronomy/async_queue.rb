@@ -79,6 +79,7 @@ module Phronomy
     # Suspends the current Fiber via the scheduler's signal mechanism rather than
     # blocking the OS thread.  Because cooperative mode is single-threaded, the
     # empty?/pop pair is race-free (no other Fiber can run between the two calls).
+    # @api private
     # @param scheduler [Runtime::Scheduler]
     # @param timeout [Numeric, nil]
     # @return [Object, nil]

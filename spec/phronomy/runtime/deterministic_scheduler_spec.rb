@@ -245,7 +245,12 @@ RSpec.describe Phronomy::Runtime::DeterministicScheduler, :issue_320 do
         log = []
         signal = scheduler.new_signal
 
-        2.times { |i| runtime.spawn { scheduler.wait_for_signal(signal); log << i } }
+        2.times { |i|
+          runtime.spawn {
+            scheduler.wait_for_signal(signal)
+            log << i
+          }
+        }
         runtime.spawn { scheduler.raise_signal_all(signal) }
 
         scheduler.run_until_idle
@@ -278,7 +283,10 @@ RSpec.describe Phronomy::Runtime::DeterministicScheduler, :issue_320 do
 
         # Spawn 2 tasks into a limit-1 group inside a controlling fiber.
         runtime.spawn do
-          group.spawn { log << :task_a; Fiber.yield }
+          group.spawn {
+            log << :task_a
+            Fiber.yield
+          }
           group.spawn { log << :task_b }
           group.await_all
         end

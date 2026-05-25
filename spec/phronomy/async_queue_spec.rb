@@ -129,4 +129,3 @@ RSpec.describe Phronomy::AsyncQueue do
     end
   end
 end
-

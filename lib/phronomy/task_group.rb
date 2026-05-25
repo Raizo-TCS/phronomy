@@ -101,15 +101,14 @@ module Phronomy
 
     # Cooperative await_all for DeterministicScheduler context.
     # Awaits each task sequentially using FiberBackend#await (cooperative suspend).
+    # @api private
     # @param tasks [Array<Task>]
     # @return [Array]
     def _await_all_cooperative(tasks)
       entries = tasks.map.with_index do |task, idx|
-        begin
-          {index: idx, value: task.await, error: nil}
-        rescue => e
-          {index: idx, value: nil, error: e}
-        end
+        {index: idx, value: task.await, error: nil}
+      rescue => e
+        {index: idx, value: nil, error: e}
       end
       _build_result(entries)
     end

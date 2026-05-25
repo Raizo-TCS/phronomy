@@ -41,6 +41,7 @@ module Phronomy
         end
 
         # Suspends the current Fiber until {#notify_one} or {#notify_all} fires.
+        # @api private
         # @return [void]
         def wait
           @waiters << Fiber.current
@@ -51,6 +52,7 @@ module Phronomy
         end
 
         # Wakes up one waiting Fiber.
+        # @api private
         # @return [void]
         def notify_one
           waiter = @waiters.shift
@@ -58,6 +60,7 @@ module Phronomy
         end
 
         # Wakes up all waiting Fibers.
+        # @api private
         # @return [void]
         def notify_all
           waiters, @waiters = @waiters, []
@@ -69,10 +72,10 @@ module Phronomy
       attr_reader :virtual_time
 
       def initialize
-        @ready   = []  # Array of callables ({ fiber.resume } or timer callbacks)
-        @mutex   = Mutex.new
+        @ready = []  # Array of callables ({ fiber.resume } or timer callbacks)
+        @mutex = Mutex.new
         @virtual_time = 0.0
-        @timer_heap   = []  # Array of { fire_at:, callback: }
+        @timer_heap = []  # Array of { fire_at:, callback: }
       end
 
       # Spawns a new {Task} backed by {Task::FiberBackend} and enqueues it.
@@ -144,7 +147,6 @@ module Phronomy
         callable.call
       ensure
         Thread.current.thread_variable_set(SCHEDULER_KEY, prev)
-        self
       end
 
       # Drains the ready queue by calling {#tick} until it is empty.
@@ -178,7 +180,7 @@ module Phronomy
       # @api private
       def schedule_at(absolute_time, &callback)
         @mutex.synchronize do
-          @timer_heap << { fire_at: absolute_time, callback: callback }
+          @timer_heap << {fire_at: absolute_time, callback: callback}
           @timer_heap.sort_by! { |e| e[:fire_at] }
         end
         self
