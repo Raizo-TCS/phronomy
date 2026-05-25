@@ -763,9 +763,9 @@ RSpec.describe Phronomy::Tool::Base do
         m.call(**kw, &blk)
       end
 
-      task = blocking_tool_class.new.call_async({"x" => "io"})
-      expect(task).to be_a(Phronomy::Task)
-      expect(task.await).to eq("block:io")
+      awaitable = blocking_tool_class.new.call_async({"x" => "io"})
+      expect(awaitable).to respond_to(:await)
+      expect(awaitable.await).to eq("block:io")
       expect(called).to be(true)
     end
 

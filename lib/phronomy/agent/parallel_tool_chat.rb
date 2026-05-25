@@ -85,10 +85,7 @@ module Phronomy
             raise Phronomy::CancellationError, "invocation cancelled before tool execution"
           end
 
-          pool = begin; Phronomy::Runtime.instance&.blocking_io; rescue; nil; end
-
-          # Dispatch all tools in this batch — cooperative tools via
-          # Runtime.instance.spawn; blocking_io tools via pool.submit.
+          # Dispatch all tools in this batch via ToolExecutor (centralised routing).
           dispatched = batch.map do |tc|
             tool = tools[tc.name.to_sym]
             unless tool
@@ -98,15 +95,11 @@ module Phronomy
               }}
             end
 
-            mode = tool.class.execution_mode
-            awaitable = if mode == :cooperative || pool.nil?
-              Phronomy::Runtime.instance.spawn(name: "tool-#{tool.class.name.to_s.split("::").last}") do
-                tool.call(tc.arguments, cancellation_token: ct)
-              end
-            else
-              # Submit directly to pool — no wrapping Task Thread required.
-              pool.submit(cancellation_token: ct) { tool.call(tc.arguments, cancellation_token: ct) }
-            end
+            awaitable = Phronomy::ToolExecutor.call_async(
+              tool: tool,
+              args: tc.arguments,
+              cancellation_token: ct
+            )
             {tool_call: tc, awaitable: awaitable, result: nil}
           end
 

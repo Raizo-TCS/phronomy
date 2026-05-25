@@ -337,36 +337,20 @@ module Phronomy
 
       # Invokes this tool asynchronously and returns a {Phronomy::Task}.
       #
-      # Routing is governed by the class-level {.execution_mode} setting:
-      # - +:cooperative+ — runs directly inside a {Phronomy::Task} (no pool).
-      # - +:blocking_io+, +:cpu_bound+, +:external_process+ — submitted to
-      #   {Phronomy::BlockingAdapterPool} when a Runtime is present, then
-      #   wrapped in a Task that waits for the pool operation.  Falls back to a
-      #   direct Task spawn when no Runtime / pool is configured.
+      # Routing is governed by the class-level {.execution_mode} setting.
+      # Delegates to {Phronomy::ToolExecutor.call_async} which is the single
+      # place in the framework that applies the execution-mode routing rules.
       #
       # @param args               [Hash]
       # @param cancellation_token [Phronomy::CancellationToken, nil]
-      # @return [Phronomy::Task]
+      # @return [#await]
       # @api public
       def call_async(args, cancellation_token: nil)
-        ct = cancellation_token
-        runtime = Phronomy::Runtime.instance
-        tool_name = "tool-#{self.class.name.to_s.split("::").last}"
-        case self.class.execution_mode
-        when :cooperative
-          runtime.spawn(name: tool_name) { call(args, cancellation_token: ct) }
-        else
-          # :blocking_io (default), :cpu_bound, :external_process
-          pool = begin; runtime&.blocking_io; rescue; nil; end
-          if pool
-            op = pool.submit(cancellation_token: ct) { call(args, cancellation_token: ct) }
-            runtime.spawn(name: "#{tool_name}-await") { op.await }
-          else
-            # No pool available (e.g., no Runtime configured) — fall back to
-            # Runtime.instance.spawn so the method always returns a Task.
-            runtime.spawn(name: tool_name) { call(args, cancellation_token: ct) }
-          end
-        end
+        Phronomy::ToolExecutor.call_async(
+          tool: self,
+          args: args,
+          cancellation_token: cancellation_token
+        )
       end
 
       # Instance method accessor — delegates to the class-level flag.
