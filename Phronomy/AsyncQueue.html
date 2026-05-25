@@ -64,7 +64,7 @@
       <div id="content"><h1>Class: Phronomy::AsyncQueue
   
   
-  
+  <span class="private note title">Private</span>
 </h1>
 <div class="box_info">
   
@@ -104,7 +104,11 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>A thread-safe FIFO queue for passing values between concurrent tasks.</p>
+    <p class="note private">
+  <strong>This class is part of a private API.</strong>
+  You should avoid using this class if possible, as it may be removed or be changed in the future.
+</p>
+<p>A thread-safe FIFO queue for passing values between concurrent tasks.</p>
 <p>Wraps <code>Thread::Queue</code> so that callers do not need to reference the Ruby
 standard-library type directly.  A future implementation may replace the
 backing primitive without changing call sites.</p>
@@ -120,7 +124,7 @@ backing primitive without changing call sites.</p>
         <h5 class="example_title"><div class='inline'><p>Producer / consumer</p></div></h5>
       
       <pre class="example code"><code><span class='id identifier rubyid_queue'>queue</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>AsyncQueue</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::AsyncQueue#initialize (method)">new</a></span></span>
-<span class='const'><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_spawn'><span class='object_link'><a href="Task.html#spawn-class_method" title="Phronomy::Task.spawn (method)">spawn</a></span></span> <span class='lbrace'>{</span> <span class='id identifier rubyid_queue'>queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_expensive_io'>expensive_io</span><span class='lparen'>(</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+<span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_spawn'><span class='object_link'><a href="Runtime.html#spawn-instance_method" title="Phronomy::Runtime#spawn (method)">spawn</a></span></span> <span class='lbrace'>{</span> <span class='id identifier rubyid_queue'>queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_expensive_io'>expensive_io</span><span class='lparen'>(</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
 <span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='id identifier rubyid_queue'>queue</span><span class='period'>.</span><span class='id identifier rubyid_pop'>pop</span>   <span class='comment'># blocks until the producer pushes</span></code></pre>
     
   </div>
@@ -331,13 +335,13 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
       <pre class="lines">
 
 
-18
 19
 20
-21</pre>
+21
+22</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 18</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 19</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>max_size:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@queue</span> <span class='op'>=</span> <span class='id identifier rubyid_max_size'>max_size</span> <span class='op'>?</span> <span class='const'>SizedQueue</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_max_size'>max_size</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='const'>Thread</span><span class='op'>::</span><span class='const'>Queue</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
@@ -396,13 +400,13 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
       <pre class="lines">
 
 
-78
-79
-80
-81</pre>
+100
+101
+102
+103</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 78</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 100</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_close'>close</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_close'>close</span>
@@ -454,12 +458,12 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
       <pre class="lines">
 
 
-71
-72
-73</pre>
+93
+94
+95</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 71</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 93</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_empty?'>empty?</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
@@ -484,11 +488,39 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
+
+  <div class="note notetag">
+    <strong>Note:</strong>
+    <div class='inline'><p>The <code>:fiber</code> backend is <strong>EXPERIMENTAL</strong>.  Real-time timeout behaviour
+in production workloads is not guaranteed and may differ from wall-clock
+expectations.</p></div>
+  </div>
+
+  <div class="note notetag">
+    <strong>Note:</strong>
+    <div class='inline'><p><strong>Cooperative timeout limitation</strong>: on the cooperative path, the
+deadline is re-checked <em>after</em> a wake-up signal arrives.  If virtual time
+has already passed the deadline when the consumer is woken by a producer
+push, the consumer returns <code>nil</code> rather than the pushed item.  Without any
+wake-up signal the waiting Fiber remains suspended even after
+<code>scheduler.advance</code> — the timeout does not self-fire.</p></div>
+  </div>
+
 <p>Dequeues and returns the next item.
 In a cooperative scheduler context, suspends the current Fiber (yielding
-control back to the scheduler) rather than blocking the OS thread.
-When <code>timeout</code> is given, returns <code>nil</code> if no item arrives within that many
-seconds.  (Requires Ruby 3.2+, which added <code>Thread::Queue#pop(timeout:)</code>.)</p>
+control back to the scheduler) rather than blocking the OS thread.</p>
+<p>When <code>timeout</code> is given the semantics depend on the active backend:</p>
+<ul>
+<li><strong>Thread backend</strong> (<code>:thread</code>) — uses real wall-clock time via
+<code>Thread::Queue#pop(timeout:)</code>.  Requires Ruby 3.2+.
+Returns <code>nil</code> if no item arrives within the specified number of real seconds.</li>
+<li><strong>DeterministicScheduler / <code>:fiber</code> backend</strong> — uses the scheduler's
+<em>virtual time</em> (+scheduler.virtual_time+).  The timeout elapses only when
+the virtual clock is advanced (e.g. via <span class='object_link'><a href="Testing/FakeClock.html#advance-instance_method" title="Phronomy::Testing::FakeClock#advance (method)">Testing::FakeClock#advance</a></span>).
+In tests this means the timeout is fully deterministic and does not depend on
+actual elapsed wall time.  However, in production <code>:fiber</code> mode the timeout
+may never expire unless the scheduler explicitly advances virtual time.</li>
+</ul>
 
   </div>
 </div>
@@ -508,7 +540,8 @@ seconds.  (Requires Ruby 3.2+, which added <code>Thread::Queue#pop(timeout:)</co
       
       
         &mdash;
-        <div class='inline'><p>seconds to wait before returning nil</p></div>
+        <div class='inline'><p>seconds to wait before returning <code>nil</code>.
+Semantics are wall-clock on <code>:thread</code> and virtual-time on <code>:fiber</code>.</p></div>
       
     </li>
   
@@ -525,7 +558,7 @@ seconds.  (Requires Ruby 3.2+, which added <code>Thread::Queue#pop(timeout:)</co
       
       
         &mdash;
-        <div class='inline'><p>the next item, or nil when timeout expires</p></div>
+        <div class='inline'><p>the next item, or <code>nil</code> when timeout expires</p></div>
       
     </li>
   
@@ -537,19 +570,19 @@ seconds.  (Requires Ruby 3.2+, which added <code>Thread::Queue#pop(timeout:)</co
       <pre class="lines">
 
 
-50
-51
-52
-53
-54
-55
-56
-57
-58
-59</pre>
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 50</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 72</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pop'>pop</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_scheduler'>scheduler</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime/Scheduler.html" title="Phronomy::Runtime::Scheduler (class)">Scheduler</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="Runtime/Scheduler.html#current-class_method" title="Phronomy::Runtime::Scheduler.current (method)">current</a></span></span>
@@ -629,7 +662,6 @@ SizedQueue blocking behaviour.</p>
       <pre class="lines">
 
 
-31
 32
 33
 34
@@ -638,10 +670,11 @@ SizedQueue blocking behaviour.</p>
 37
 38
 39
-40</pre>
+40
+41</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 31</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 32</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_item'>item</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_scheduler'>scheduler</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime/Scheduler.html" title="Phronomy::Runtime::Scheduler (class)">Scheduler</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="Runtime/Scheduler.html#current-class_method" title="Phronomy::Runtime::Scheduler.current (method)">current</a></span></span>
@@ -699,12 +732,12 @@ SizedQueue blocking behaviour.</p>
       <pre class="lines">
 
 
-64
-65
-66</pre>
+86
+87
+88</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 64</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 86</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_size'>size</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
@@ -719,7 +752,7 @@ SizedQueue blocking behaviour.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 09:30:39 2026 by
+  Generated on Mon May 25 14:09:34 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

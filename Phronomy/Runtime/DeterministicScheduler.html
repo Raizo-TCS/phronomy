@@ -64,7 +64,7 @@
       <div id="content"><h1>Class: Phronomy::Runtime::DeterministicScheduler
   
   
-  
+  <span class="private note title">Private</span>
 </h1>
 <div class="box_info">
   
@@ -106,7 +106,11 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Tick-based deterministic cooperative scheduler for testing.</p>
+    <p class="note private">
+  <strong>This class is part of a private API.</strong>
+  You should avoid using this class if possible, as it may be removed or be changed in the future.
+</p>
+<p>Tick-based deterministic cooperative scheduler for testing.</p>
 <p>Unlike <span class='object_link'><a href="FakeScheduler.html" title="Phronomy::Runtime::FakeScheduler (class)">FakeScheduler</a></span> (which runs every task synchronously to completion
 before <code>spawn</code> returns), <code>DeterministicScheduler</code> pushes each task to a
 ready queue and only advances execution one step at a time via <span class='object_link'><a href="#tick-instance_method" title="Phronomy::Runtime::DeterministicScheduler#tick (method)">#tick</a></span>.
@@ -117,6 +121,11 @@ This makes it possible to test:</p>
 <li><code>await</code> suspension and resumption</li>
 <li>Cancellation while a task is suspended</li>
 </ul>
+<p>EXPERIMENTAL Fiber-based cooperative scheduler.</p>
+<p>Uses <span class='object_link'><a href="../Task/FiberBackend.html" title="Phronomy::Task::FiberBackend (class)">Task::FiberBackend</a></span> to run tasks cooperatively without OS threads.
+Intended for deterministic testing and, in future, as a production
+cooperative scheduler. Not recommended for production use.</p>
+<p>Activated via <code>runtime_backend: :fiber</code> in <span class='object_link'><a href="../../Phronomy.html#configure-class_method" title="Phronomy.configure (method)">Phronomy.configure</a></span>.</p>
 
   </div>
 </div>
@@ -188,7 +197,7 @@ This makes it possible to test:</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Current virtual clock time (seconds since scheduler creation).</p></div></span>
@@ -744,24 +753,24 @@ Used internally by the <code>:fiber</code> runtime backend.</p></div>
       <pre class="lines">
 
 
-80
-81
-82
-83
-84
-85
-86
-87
 88
 89
 90
 91
 92
 93
-94</pre>
+94
+95
+96
+97
+98
+99
+100
+101
+102</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 80</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 88</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>autorun:</span> <span class='kw'>false</span><span class='rparen'>)</span>
   <span class='ivar'>@autorun</span> <span class='op'>=</span> <span class='id identifier rubyid_autorun'>autorun</span>
@@ -801,7 +810,11 @@ Used internally by the <code>:fiber</code> runtime backend.</p></div>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns current virtual clock time (seconds since scheduler creation).</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns current virtual clock time (seconds since scheduler creation).</p>
 
   </div>
 </div>
@@ -830,12 +843,12 @@ Used internally by the <code>:fiber</code> runtime backend.</p></div>
       <pre class="lines">
 
 
-72
-73
-74</pre>
+80
+81
+82</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 72</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 80</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_virtual_time'>virtual_time</span>
   <span class='ivar'>@virtual_time</span>
@@ -909,14 +922,14 @@ callbacks that are now due.</p>
       <pre class="lines">
 
 
-233
-234
-235
-236
-237</pre>
+241
+242
+243
+244
+245</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 233</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 241</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_advance'>advance</span><span class='lparen'>(</span><span class='id identifier rubyid_seconds'>seconds</span><span class='rparen'>)</span>
   <span class='ivar'>@virtual_time</span> <span class='op'>+=</span> <span class='id identifier rubyid_seconds'>seconds</span>
@@ -969,12 +982,12 @@ callbacks that are now due.</p>
       <pre class="lines">
 
 
-99
-100
-101</pre>
+107
+108
+109</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 99</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 107</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_autorun?'>autorun?</span>
   <span class='ivar'>@autorun</span>
@@ -1028,16 +1041,16 @@ Decrements the counter and broadcasts to wake <span class='object_link'><a href=
       <pre class="lines">
 
 
-366
-367
-368
-369
-370
-371
-372</pre>
+374
+375
+376
+377
+378
+379
+380</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 366</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 374</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_complete_blocking_await'>complete_blocking_await</span>
   <span class='ivar'>@await_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1110,17 +1123,17 @@ completion signals (e.g. from <span class='object_link'><a href="../BlockingAdap
       <pre class="lines">
 
 
-271
-272
-273
-274
-275
-276
-277
-278</pre>
+279
+280
+281
+282
+283
+284
+285
+286</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 271</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 279</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_enqueue_fiber'>enqueue_fiber</span><span class='lparen'>(</span><span class='id identifier rubyid_callable'>callable</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@ready</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_callable'>callable</span> <span class='rbrace'>}</span>
@@ -1177,19 +1190,19 @@ Enqueues each fired callback onto the ready queue for scheduler dispatch.</p>
       <pre class="lines">
 
 
-331
-332
-333
-334
-335
-336
-337
-338
 339
-340</pre>
+340
+341
+342
+343
+344
+345
+346
+347
+348</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 331</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 339</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fire_real_timers'>fire_real_timers</span>
   <span class='id identifier rubyid_now'>now</span> <span class='op'>=</span> <span class='ivar'>@clock</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span>
@@ -1247,12 +1260,12 @@ Enqueues each fired callback onto the ready queue for scheduler dispatch.</p>
       <pre class="lines">
 
 
-283
-284
-285</pre>
+291
+292
+293</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 283</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 291</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_idle?'>idle?</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@ready</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span> <span class='rbrace'>}</span>
@@ -1303,12 +1316,12 @@ Enqueues each fired callback onto the ready queue for scheduler dispatch.</p>
       <pre class="lines">
 
 
-132
-133
-134</pre>
+140
+141
+142</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 132</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 140</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_new_signal'>new_signal</span>
   <span class='const'><span class='object_link'><a href="DeterministicScheduler/CoopSignal.html" title="Phronomy::Runtime::DeterministicScheduler::CoopSignal (class)">CoopSignal</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="DeterministicScheduler/CoopSignal.html#initialize-instance_method" title="Phronomy::Runtime::DeterministicScheduler::CoopSignal#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
@@ -1359,12 +1372,12 @@ Enqueues each fired callback onto the ready queue for scheduler dispatch.</p>
       <pre class="lines">
 
 
-345
-346
-347</pre>
+353
+354
+355</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 345</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 353</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pending_real_timer_count'>pending_real_timer_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@real_timer_heap</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span> <span class='rbrace'>}</span>
@@ -1416,12 +1429,12 @@ Each entry has <code>:fire_at</code> and <code>:description</code> (if set) keys
       <pre class="lines">
 
 
-298
-299
-300</pre>
+306
+307
+308</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 298</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 306</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pending_timers'>pending_timers</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@timer_heap</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
@@ -1474,12 +1487,12 @@ Each entry has <code>:fire_at</code> and <code>:description</code> (if set) keys
       <pre class="lines">
 
 
-148
-149
-150</pre>
+156
+157
+158</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 148</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 156</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_raise_signal'>raise_signal</span><span class='lparen'>(</span><span class='id identifier rubyid_signal'>signal</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_signal'>signal</span><span class='period'>.</span><span class='id identifier rubyid_notify_one'>notify_one</span>
@@ -1532,12 +1545,12 @@ Each entry has <code>:fire_at</code> and <code>:description</code> (if set) keys
       <pre class="lines">
 
 
-156
-157
-158</pre>
+164
+165
+166</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 156</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 164</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_raise_signal_all'>raise_signal_all</span><span class='lparen'>(</span><span class='id identifier rubyid_signal'>signal</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_signal'>signal</span><span class='period'>.</span><span class='id identifier rubyid_notify_all'>notify_all</span>
@@ -1588,12 +1601,12 @@ Each entry has <code>:fire_at</code> and <code>:description</code> (if set) keys
       <pre class="lines">
 
 
-290
-291
-292</pre>
+298
+299
+300</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 290</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 298</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_ready_count'>ready_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@ready</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span> <span class='rbrace'>}</span>
@@ -1657,14 +1670,6 @@ I/O operations are still in flight.</li>
       <pre class="lines">
 
 
-196
-197
-198
-199
-200
-201
-202
-203
 204
 205
 206
@@ -1686,10 +1691,18 @@ I/O operations are still in flight.</li>
 222
 223
 224
-225</pre>
+225
+226
+227
+228
+229
+230
+231
+232
+233</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 196</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 204</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_run_until_idle'>run_until_idle</span>
   <span class='kw'>if</span> <span class='ivar'>@autorun</span>
@@ -1798,12 +1811,12 @@ I/O operations are still in flight.</li>
       <pre class="lines">
 
 
-259
-260
-261</pre>
+267
+268
+269</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 259</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 267</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_schedule_after'>schedule_after</span><span class='lparen'>(</span><span class='id identifier rubyid_delay'>delay</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_schedule_at'>schedule_at</span><span class='lparen'>(</span><span class='ivar'>@virtual_time</span> <span class='op'>+</span> <span class='id identifier rubyid_delay'>delay</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
@@ -1885,16 +1898,16 @@ I/O operations are still in flight.</li>
       <pre class="lines">
 
 
-245
-246
-247
-248
-249
-250
-251</pre>
+253
+254
+255
+256
+257
+258
+259</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 245</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 253</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_schedule_at'>schedule_at</span><span class='lparen'>(</span><span class='id identifier rubyid_absolute_time'>absolute_time</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1990,17 +2003,17 @@ a background OS thread.</p>
       <pre class="lines">
 
 
-317
-318
-319
-320
-321
-322
-323
-324</pre>
+325
+326
+327
+328
+329
+330
+331
+332</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 317</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 325</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_schedule_real_after'>schedule_real_after</span><span class='lparen'>(</span><span class='id identifier rubyid_seconds'>seconds</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_fire_at'>fire_at</span> <span class='op'>=</span> <span class='ivar'>@clock</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span> <span class='op'>+</span> <span class='id identifier rubyid_seconds'>seconds</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span>
@@ -2083,14 +2096,6 @@ The task does NOT start executing until <span class='object_link'><a href="#tick
       <pre class="lines">
 
 
-110
-111
-112
-113
-114
-115
-116
-117
 118
 119
 120
@@ -2100,10 +2105,18 @@ The task does NOT start executing until <span class='object_link'><a href="#tick
 124
 125
 126
-127</pre>
+127
+128
+129
+130
+131
+132
+133
+134
+135</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 110</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 118</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_spawn'>spawn</span><span class='lparen'>(</span><span class='label'>name:</span><span class='comma'>,</span> <span class='label'>parent:</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_spawn'><span class='object_link'><a href="../Task.html#spawn-class_method" title="Phronomy::Task.spawn (method)">spawn</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>parent:</span> <span class='id identifier rubyid_parent'>parent</span><span class='comma'>,</span> <span class='label'>backend_class:</span> <span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Task/FiberBackend.html" title="Phronomy::Task::FiberBackend (class)">FiberBackend</a></span></span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
@@ -2171,21 +2184,21 @@ can suspend cooperatively.</p>
       <pre class="lines">
 
 
-166
-167
-168
-169
-170
-171
-172
-173
 174
 175
 176
-177</pre>
+177
+178
+179
+180
+181
+182
+183
+184
+185</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 166</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 174</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tick'>tick</span>
   <span class='id identifier rubyid_callable'>callable</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@ready</span><span class='period'>.</span><span class='id identifier rubyid_shift'>shift</span> <span class='rbrace'>}</span>
@@ -2248,13 +2261,13 @@ Each call must be balanced by a <span class='object_link'><a href="#complete_blo
       <pre class="lines">
 
 
-355
-356
-357
-358</pre>
+363
+364
+365
+366</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 355</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 363</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_track_blocking_await'>track_blocking_await</span>
   <span class='ivar'>@await_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@pending_awaits</span> <span class='op'>+=</span> <span class='int'>1</span> <span class='rbrace'>}</span>
@@ -2308,12 +2321,12 @@ Each call must be balanced by a <span class='object_link'><a href="#complete_blo
       <pre class="lines">
 
 
-140
-141
-142</pre>
+148
+149
+150</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 140</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 148</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_wait_for_signal'>wait_for_signal</span><span class='lparen'>(</span><span class='id identifier rubyid_signal'>signal</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_signal'>signal</span><span class='period'>.</span><span class='id identifier rubyid_wait'>wait</span>
@@ -2328,7 +2341,7 @@ Each call must be balanced by a <span class='object_link'><a href="#complete_blo
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 09:30:42 2026 by
+  Generated on Mon May 25 14:09:37 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

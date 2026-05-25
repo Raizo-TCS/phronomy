@@ -64,7 +64,7 @@
       <div id="content"><h1>Class: Phronomy::Task::FiberBackend
   
   
-  
+  <span class="private note title">Private</span>
 </h1>
 <div class="box_info">
   
@@ -104,7 +104,20 @@
   
 </div>
 
+<div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This class is part of a private API.</strong>
+  You should avoid using this class if possible, as it may be removed or be changed in the future.
+</p>
 
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
 
 
 
@@ -223,7 +236,7 @@
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of FiberBackend.</p></div></span>
@@ -305,7 +318,11 @@
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a new instance of FiberBackend.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a new instance of FiberBackend.</p>
 
   </div>
 </div>
@@ -318,7 +335,6 @@
       <pre class="lines">
 
 
-21
 22
 23
 24
@@ -347,10 +363,11 @@
 47
 48
 49
-50</pre>
+50
+51</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 21</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 22</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>task:</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='kw'>super</span>
@@ -438,12 +455,12 @@
       <pre class="lines">
 
 
-128
 129
-130</pre>
+130
+131</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 128</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 129</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_alive?'>alive?</span>
   <span class='ivar'>@fiber</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
@@ -512,7 +529,6 @@ when this task completes.  When called from outside a managed Fiber
       <pre class="lines">
 
 
-102
 103
 104
 105
@@ -534,10 +550,11 @@ when this task completes.  When called from outside a managed Fiber
 121
 122
 123
-124</pre>
+124
+125</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 102</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 103</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_await'>await</span>
   <span class='kw'>unless</span> <span class='ivar'>@fiber</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
@@ -613,14 +630,14 @@ on the first <span class='object_link'><a href="#step-instance_method" title="Ph
       <pre class="lines">
 
 
-140
 141
 142
 143
-144</pre>
+144
+145</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 140</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 141</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancel!'>cancel!</span>
   <span class='ivar'>@cancel_error</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Task cancelled</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
@@ -674,12 +691,12 @@ and should not be automatically re-enqueued by the scheduler.</p>
       <pre class="lines">
 
 
-87
 88
-89</pre>
+89
+90</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 87</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 88</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cooperative_suspend?'>cooperative_suspend?</span>
   <span class='ivar'>@cooperative_suspend</span>
@@ -748,13 +765,13 @@ and should not be automatically re-enqueued by the scheduler.</p>
       <pre class="lines">
 
 
-150
 151
 152
-153</pre>
+153
+154</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 150</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 151</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='id identifier rubyid__limit'>_limit</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_step'>step</span> <span class='kw'>while</span> <span class='ivar'>@fiber</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
@@ -811,7 +828,6 @@ arbitrary suspension point via <code>Fiber#raise</code>.</p>
       <pre class="lines">
 
 
-60
 61
 62
 63
@@ -832,10 +848,11 @@ arbitrary suspension point via <code>Fiber#raise</code>.</p>
 78
 79
 80
-81</pre>
+81
+82</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 60</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 61</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_step'>step</span>
   <span class='kw'>return</span> <span class='kw'>self</span> <span class='kw'>unless</span> <span class='ivar'>@fiber</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
@@ -869,7 +886,7 @@ arbitrary suspension point via <code>Fiber#raise</code>.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 09:30:41 2026 by
+  Generated on Mon May 25 14:09:36 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

@@ -898,10 +898,6 @@ Configure via the Phronomy.configure block.</p>
       <pre class="lines">
 
 
-185
-186
-187
-188
 189
 190
 191
@@ -921,10 +917,14 @@ Configure via the Phronomy.configure block.</p>
 205
 206
 207
-208</pre>
+208
+209
+210
+211
+212</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 185</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 189</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@recursion_limit</span> <span class='op'>=</span> <span class='int'>25</span>
@@ -1969,7 +1969,7 @@ nil = unlimited (default).</p>
 <tr>
 <td><code>:thread</code></td>
 <td><span class='object_link'><a href="Runtime/ThreadScheduler.html" title="Phronomy::Runtime::ThreadScheduler (class)">Runtime::ThreadScheduler</a></span></td>
-<td>Default — one OS thread per task</td>
+<td><strong>Default</strong> — production-ready; one OS thread per task</td>
 </tr>
 <tr>
 <td><code>:immediate</code></td>
@@ -1977,17 +1977,20 @@ nil = unlimited (default).</p>
 <td>Tests — tasks run synchronously, no extra threads</td>
 </tr>
 <tr>
-<td><code>:cooperative</code></td>
-<td><span class='object_link'><a href="Runtime/FakeScheduler.html" title="Phronomy::Runtime::FakeScheduler (class)">Runtime::FakeScheduler</a></span></td>
-<td>Deprecated alias for <code>:immediate</code></td>
-</tr>
-<tr>
 <td><code>:fiber</code></td>
 <td><span class='object_link'><a href="Runtime/DeterministicScheduler.html" title="Phronomy::Runtime::DeterministicScheduler (class)">Runtime::DeterministicScheduler</a></span> (autorun)</td>
-<td>EXPERIMENTAL Fiber-based cooperative scheduler</td>
+<td><strong>EXPERIMENTAL</strong> — Fiber-based cooperative scheduler; do not use as production default</td>
+</tr>
+<tr>
+<td><code>:cooperative</code></td>
+<td><span class='object_link'><a href="Runtime/FakeScheduler.html" title="Phronomy::Runtime::FakeScheduler (class)">Runtime::FakeScheduler</a></span></td>
+<td><strong>Deprecated</strong> — alias for <code>:immediate</code>; do not use in new code</td>
 </tr>
 </tbody>
 </table>
+<p>The default is <code>:thread</code>. The <code>:fiber</code> backend remains experimental and opt-in;
+it will not become the default until integration test coverage is production grade
+and virtual-time/timeout semantics are fully resolved (see Issues #350, #347, #348).</p>
 <p>When this setting is changed, the change only takes effect on the NEXT
 call to <span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">Runtime.instance</a></span> that auto-creates a new instance (i.e. after the
 previous instance has been replaced or reset).  To replace the current
@@ -2003,7 +2006,7 @@ instance immediately call <code>Phronomy::Runtime.instance = nil</code> first.</
     <li>
       
       
-        <span class='type'>(<tt>:thread</tt>, <tt>:immediate</tt>, <tt>:cooperative</tt>, <tt>:fiber</tt>)</span>
+        <span class='type'>(<tt>:thread</tt>, <tt>:immediate</tt>, <tt>:fiber</tt>)</span>
       
       
       
@@ -2017,12 +2020,12 @@ instance immediately call <code>Phronomy::Runtime.instance = nil</code> first.</
       <pre class="lines">
 
 
-177
-178
-179</pre>
+181
+182
+183</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 177</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 181</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_runtime_backend'>runtime_backend</span>
   <span class='ivar'>@runtime_backend</span>
@@ -2295,12 +2298,12 @@ is logged instead so that existing callers have time to migrate.</p>
       <pre class="lines">
 
 
-183
-184
-185</pre>
+187
+188
+189</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 183</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 187</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span>
   <span class='ivar'>@strict_runtime_guards</span>
@@ -2452,7 +2455,7 @@ the tracing backend (OTel, Langfuse, etc.).</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 09:30:39 2026 by
+  Generated on Mon May 25 14:09:34 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

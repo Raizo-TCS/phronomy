@@ -319,23 +319,23 @@ wait for the result.</p>
       <pre class="lines">
 
 
-168
-169
-170
-171
-172
-173
-174
-175
-176
-177
-178
-179
-180
-181</pre>
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 168</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 188</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_block'>block</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on_abandoned:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@block</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -407,12 +407,12 @@ wait for the result.</p>
       <pre class="lines">
 
 
-37
-38
-39</pre>
+47
+48
+49</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 37</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 47</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_abandoned?'>abandoned?</span>
   <span class='ivar'>@abandoned</span>
@@ -437,6 +437,19 @@ wait for the result.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
+
+  <div class="note notetag">
+    <strong>Note:</strong>
+    <div class='inline'><p><strong>Cooperative timeout limitation</strong>: the <code>timeout:</code> parameter passed
+to <code>await</code> is <em>not</em> enforced on the cooperative path.  The calling Fiber
+remains suspended until the worker thread finishes regardless of how many
+seconds elapse.  This is because the cooperative scheduler cannot
+preempt a running OS thread.  If a time bound is required, set
+<code>timeout:</code> at <span class='object_link'><a href="../BlockingAdapterPool.html#submit-instance_method" title="Phronomy::BlockingAdapterPool#submit (method)">submit</a></span> time instead; the pool
+will then abandon the operation on the worker side and mark it as
+<span class='object_link'><a href="#abandoned%3F-instance_method" title="Phronomy::BlockingAdapterPool::PendingOperation#abandoned? (method)">#abandoned?</a></span>.</p></div>
+  </div>
+
 <p>Blocks until the operation completes and returns its value.</p>
 <p>An optional <code>timeout</code> (in seconds) may be passed here; it is measured
 from the moment <code>await</code> is called. If both a submit-time timeout and an
@@ -445,12 +458,12 @@ thread is NOT interrupted — it runs to completion on its own.</p>
 <p>An optional <code>cancellation_token</code> may be passed here (or at submit time).
 If the token is cancelled while waiting, <span class='object_link'><a href="../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span> is
 raised immediately without interrupting the worker.</p>
-<p>When called from a Fiber managed by DeterministicScheduler (i.e. under
+<p><strong>Cooperative path (<code>:fiber</code> / <code>DeterministicScheduler</code>):</strong>
+When called from a Fiber managed by DeterministicScheduler (i.e. under
 the <code>:fiber</code> runtime backend), the calling Fiber suspends cooperatively
 via <code>Fiber.yield</code> rather than blocking the OS thread.  The Fiber is
 resumed on the scheduler's ready queue once the worker thread completes
-the operation.  Timeout is not enforced cooperatively in this path;
-callers that require a time bound should set <code>timeout:</code> at submit time.</p>
+the operation.</p>
 
   </div>
 </div>
@@ -470,7 +483,8 @@ callers that require a time bound should set <code>timeout:</code> at submit tim
       
       
         &mdash;
-        <div class='inline'><p>seconds from now before raising TimeoutError</p></div>
+        <div class='inline'><p>seconds from now before raising TimeoutError
+(thread path only; ignored on the cooperative/fiber path)</p></div>
       
     </li>
   
@@ -543,26 +557,6 @@ callers that require a time bound should set <code>timeout:</code> at submit tim
       <pre class="lines">
 
 
-72
-73
-74
-75
-76
-77
-78
-79
-80
-81
-82
-83
-84
-85
-86
-87
-88
-89
-90
-91
 92
 93
 94
@@ -612,10 +606,30 @@ callers that require a time bound should set <code>timeout:</code> at submit tim
 138
 139
 140
-141</pre>
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 72</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 92</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_await'>await</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_effective_timeout'>effective_timeout</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span> <span class='ivar'>@timeout</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span><span class='period'>.</span><span class='id identifier rubyid_min'>min</span>
@@ -736,12 +750,12 @@ callers that require a time bound should set <code>timeout:</code> at submit tim
       <pre class="lines">
 
 
-31
-32
-33</pre>
+41
+42
+43</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 31</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 41</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_done?'>done?</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@done</span> <span class='rbrace'>}</span>
@@ -779,28 +793,28 @@ callers that require a time bound should set <code>timeout:</code> at submit tim
       <pre class="lines">
 
 
-184
-185
-186
-187
-188
-189
-190
-191
-192
-193
-194
-195
-196
-197
-198
-199
-200
-201
-202</pre>
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 184</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 204</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execute!'>execute!</span>
   <span class='ivar'>@wait_time</span> <span class='op'>=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>-</span> <span class='ivar'>@submitted_at</span>
@@ -884,22 +898,22 @@ completes the operation.</p>
       <pre class="lines">
 
 
-153
-154
-155
-156
-157
-158
-159
-160
-161
-162
-163
-164
-165</pre>
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 153</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 173</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_complete'>on_complete</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_fire_args'>fire_args</span> <span class='op'>=</span> <span class='kw'>nil</span>
@@ -963,12 +977,12 @@ completes the operation.</p>
       <pre class="lines">
 
 
-43
-44
-45</pre>
+53
+54
+55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 53</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_wait_time'>wait_time</span>
   <span class='ivar'>@wait_time</span> <span class='op'>||</span> <span class='float'>0.0</span>
@@ -983,7 +997,7 @@ completes the operation.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 09:30:41 2026 by
+  Generated on Mon May 25 14:09:36 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

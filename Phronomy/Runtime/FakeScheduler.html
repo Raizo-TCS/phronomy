@@ -64,7 +64,7 @@
       <div id="content"><h1>Class: Phronomy::Runtime::FakeScheduler
   
   
-  
+  <span class="private note title">Private</span>
 </h1>
 <div class="box_info">
   
@@ -106,7 +106,11 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Synchronous scheduler for use in tests.</p>
+    <p class="note private">
+  <strong>This class is part of a private API.</strong>
+  You should avoid using this class if possible, as it may be removed or be changed in the future.
+</p>
+<p>Synchronous scheduler for use in tests.</p>
 <p>Each spawned task is executed immediately on the calling thread using
 <span class='object_link'><a href="../Task/ImmediateBackend.html" title="Phronomy::Task::ImmediateBackend (class)">Task::ImmediateBackend</a></span>.  No new threads are created, so a
 <span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Phronomy::Runtime</a></span> that uses <code>FakeScheduler</code> does not increase the process
@@ -171,7 +175,7 @@ pending callbacks are surfaced as <code>pending_timers</code>.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Optional <span class='object_link'><a href="../Testing/FakeClock.html" title="Phronomy::Testing::FakeClock (class)">Testing::FakeClock</a></span> used to timestamp events and surface pending timers.</p></div></span>
@@ -198,7 +202,7 @@ pending callbacks are surfaced as <code>pending_timers</code>.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>Ordered list of task lifecycle events.</p></div></span>
@@ -225,7 +229,7 @@ pending callbacks are surfaced as <code>pending_timers</code>.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>All tasks spawned by this scheduler.</p></div></span>
@@ -306,7 +310,7 @@ pending callbacks are surfaced as <code>pending_timers</code>.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of FakeScheduler.</p></div></span>
@@ -432,7 +436,11 @@ pending callbacks are surfaced as <code>pending_timers</code>.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a new instance of FakeScheduler.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a new instance of FakeScheduler.</p>
 
   </div>
 </div>
@@ -445,15 +453,15 @@ pending callbacks are surfaced as <code>pending_timers</code>.</p>
       <pre class="lines">
 
 
-51
 52
 53
 54
 55
-56</pre>
+56
+57</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 51</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 52</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@event_log</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -484,7 +492,11 @@ pending callbacks are surfaced as <code>pending_timers</code>.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Optional <span class='object_link'><a href="../Testing/FakeClock.html" title="Phronomy::Testing::FakeClock (class)">Testing::FakeClock</a></span> used to timestamp events and
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Optional <span class='object_link'><a href="../Testing/FakeClock.html" title="Phronomy::Testing::FakeClock (class)">Testing::FakeClock</a></span> used to timestamp events and
 surface pending timers.  When <code>nil</code>, a real monotonic clock is used.</p>
 
   </div>
@@ -511,12 +523,12 @@ surface pending timers.  When <code>nil</code>, a real monotonic clock is used.<
       <pre class="lines">
 
 
-49
 50
-51</pre>
+51
+52</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 50</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clock'>clock</span>
   <span class='ivar'>@clock</span>
@@ -539,7 +551,11 @@ surface pending timers.  When <code>nil</code>, a real monotonic clock is used.<
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns ordered list of task lifecycle events.
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns ordered list of task lifecycle events.
 Each entry is <code>{ type:, task_name:, at: }</code> where <code>type</code> is one of
 <code>:spawned</code>, <code>:started</code>, <code>:completed</code>, <code>:cancelled</code>, <code>:failed</code> and
 <code>at</code> is a Float monotonic timestamp (seconds).</p>
@@ -574,12 +590,12 @@ Each entry is <code>{ type:, task_name:, at: }</code> where <code>type</code> is
       <pre class="lines">
 
 
-40
 41
-42</pre>
+42
+43</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 41</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_log'>event_log</span>
   <span class='ivar'>@event_log</span>
@@ -602,7 +618,11 @@ Each entry is <code>{ type:, task_name:, at: }</code> where <code>type</code> is
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns all tasks spawned by this scheduler.
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns all tasks spawned by this scheduler.
 Each entry is <code>{ task:, name:, status: }</code>.</p>
 
   </div>
@@ -633,12 +653,12 @@ Each entry is <code>{ task:, name:, status: }</code>.</p></div>
       <pre class="lines">
 
 
-44
 45
-46</pre>
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 44</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tasks'>tasks</span>
   <span class='ivar'>@tasks</span>
@@ -714,17 +734,17 @@ Each entry is <code>{ task:, name:, status: }</code>.</p></div>
       <pre class="lines">
 
 
-147
 148
 149
 150
 151
 152
 153
-154</pre>
+154
+155</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 147</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 148</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_assert_cancelled'>assert_cancelled</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_names'>names</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_cancelled'>cancelled</span> <span class='op'>=</span> <span class='ivar'>@event_log</span><span class='period'>.</span><span class='id identifier rubyid_select'>select</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_e'>e</span><span class='op'>|</span> <span class='id identifier rubyid_e'>e</span><span class='lbracket'>[</span><span class='symbol'>:type</span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='symbol'>:cancelled</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_e'>e</span><span class='op'>|</span> <span class='id identifier rubyid_e'>e</span><span class='lbracket'>[</span><span class='symbol'>:task_name</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
@@ -787,17 +807,17 @@ Intended for use inside RSpec examples.</p>
       <pre class="lines">
 
 
-133
 134
 135
 136
 137
 138
 139
-140</pre>
+140
+141</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 133</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 134</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_assert_order'>assert_order</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_names'>names</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_completed'>completed</span> <span class='op'>=</span> <span class='ivar'>@event_log</span><span class='period'>.</span><span class='id identifier rubyid_select'>select</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_e'>e</span><span class='op'>|</span> <span class='id identifier rubyid_e'>e</span><span class='lbracket'>[</span><span class='symbol'>:type</span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='symbol'>:completed</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_e'>e</span><span class='op'>|</span> <span class='id identifier rubyid_e'>e</span><span class='lbracket'>[</span><span class='symbol'>:task_name</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
@@ -857,14 +877,14 @@ Intended for use inside RSpec examples.</p>
       <pre class="lines">
 
 
-120
 121
 122
 123
-124</pre>
+124
+125</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 120</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 121</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pending_timers'>pending_timers</span>
   <span class='kw'>return</span> <span class='lbracket'>[</span><span class='rbracket'>]</span> <span class='kw'>unless</span> <span class='ivar'>@clock</span>
@@ -945,7 +965,6 @@ Lifecycle events are recorded in <span class='object_link'><a href="#event_log-i
       <pre class="lines">
 
 
-66
 67
 68
 69
@@ -963,10 +982,11 @@ Lifecycle events are recorded in <span class='object_link'><a href="#event_log-i
 81
 82
 83
-84</pre>
+84
+85</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 66</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 67</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_spawn'>spawn</span><span class='lparen'>(</span><span class='label'>name:</span><span class='comma'>,</span> <span class='label'>parent:</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid__log_event'>_log_event</span><span class='lparen'>(</span><span class='symbol'>:spawned</span><span class='comma'>,</span> <span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
@@ -1037,12 +1057,12 @@ compatibility with cooperative scheduler interfaces.</p>
       <pre class="lines">
 
 
-95
 96
-97</pre>
+97
+98</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 95</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 96</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tick'>tick</span>
   <span class='kw'>self</span>
@@ -1134,16 +1154,16 @@ evaluated once; if it is already met this method returns immediately.</p>
       <pre class="lines">
 
 
-107
 108
 109
 110
 111
 112
-113</pre>
+113
+114</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 107</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 108</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tick_until'>tick_until</span><span class='lparen'>(</span><span class='label'>max_ticks:</span> <span class='int'>1000</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_max_ticks'>max_ticks</span><span class='period'>.</span><span class='id identifier rubyid_times'>times</span> <span class='kw'>do</span>
@@ -1162,7 +1182,7 @@ evaluated once; if it is already met this method returns immediately.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 09:30:41 2026 by
+  Generated on Mon May 25 14:09:36 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

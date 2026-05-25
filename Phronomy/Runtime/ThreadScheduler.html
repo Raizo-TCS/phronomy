@@ -64,7 +64,7 @@
       <div id="content"><h1>Class: Phronomy::Runtime::ThreadScheduler
   
   
-  
+  <span class="private note title">Private</span>
 </h1>
 <div class="box_info">
   
@@ -106,7 +106,11 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Thread-based scheduler: spawns each task in a new OS thread.</p>
+    <p class="note private">
+  <strong>This class is part of a private API.</strong>
+  You should avoid using this class if possible, as it may be removed or be changed in the future.
+</p>
+<p>Thread-based scheduler: spawns each task in a new OS thread.</p>
 <p>This is the default scheduler used by <span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Phronomy::Runtime</a></span> in production.
 It delegates directly to <span class='object_link'><a href="../Task.html#spawn-class_method" title="Phronomy::Task.spawn (method)">Task.spawn</a></span> with the default
 <span class='object_link'><a href="../Task/ThreadBackend.html" title="Phronomy::Task::ThreadBackend (class)">Task::ThreadBackend</a></span>, preserving the pre-282 behaviour exactly.</p>
@@ -270,12 +274,12 @@ It delegates directly to <span class='object_link'><a href="../Task.html#spawn-c
       <pre class="lines">
 
 
-17
 18
-19</pre>
+19
+20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/thread_scheduler.rb', line 17</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/thread_scheduler.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_spawn'>spawn</span><span class='lparen'>(</span><span class='label'>name:</span><span class='comma'>,</span> <span class='label'>parent:</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_spawn'><span class='object_link'><a href="../Task.html#spawn-class_method" title="Phronomy::Task.spawn (method)">spawn</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>parent:</span> <span class='id identifier rubyid_parent'>parent</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
@@ -313,12 +317,12 @@ It delegates directly to <span class='object_link'><a href="../Task.html#spawn-c
       <pre class="lines">
 
 
-24
 25
-26</pre>
+26
+27</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/thread_scheduler.rb', line 24</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/thread_scheduler.rb', line 25</span>
 
 <span class='kw'>def</span> <span class='kw'>yield</span>
   <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_pass'>pass</span>
@@ -333,7 +337,7 @@ It delegates directly to <span class='object_link'><a href="../Task.html#spawn-c
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 09:30:41 2026 by
+  Generated on Mon May 25 14:09:37 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

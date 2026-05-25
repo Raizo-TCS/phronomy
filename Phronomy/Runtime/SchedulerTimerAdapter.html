@@ -64,7 +64,7 @@
       <div id="content"><h1>Class: Phronomy::Runtime::SchedulerTimerAdapter
   
   
-  
+  <span class="private note title">Private</span>
 </h1>
 <div class="box_info">
   
@@ -104,7 +104,11 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>A drop-in replacement for <span class='object_link'><a href="TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span> that delegates timer scheduling to
+    <p class="note private">
+  <strong>This class is part of a private API.</strong>
+  You should avoid using this class if possible, as it may be removed or be changed in the future.
+</p>
+<p>A drop-in replacement for <span class='object_link'><a href="TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span> that delegates timer scheduling to
 a <span class='object_link'><a href="DeterministicScheduler.html" title="Phronomy::Runtime::DeterministicScheduler (class)">DeterministicScheduler</a></span> instead of spawning a dedicated background OS thread.</p>
 <p>When a <span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Phronomy::Runtime</a></span> is backed by <span class='object_link'><a href="DeterministicScheduler.html" title="Phronomy::Runtime::DeterministicScheduler (class)">DeterministicScheduler</a></span> (e.g. the <code>:fiber</code>
 runtime backend), <span class='object_link'><a href="../Runtime.html#timer_queue-instance_method" title="Phronomy::Runtime#timer_queue (method)">#timer_queue</a></span> returns an instance of this adapter
@@ -124,6 +128,9 @@ Full resolution requires integrating the cooperative scheduler with the
 ready Fibers and expired wall-clock timers.</p>
 <p>Use the <code>:thread</code> runtime backend (default) for production workloads that
 depend on real-time deadline enforcement.</p>
+<p>Bridges wall-clock timers to the cooperative <span class='object_link'><a href="DeterministicScheduler.html" title="Phronomy::Runtime::DeterministicScheduler (class)">DeterministicScheduler</a></span>.</p>
+<p>Registers a recurring timer callback with the scheduler's <span class='object_link'><a href="TimerQueue.html" title="Phronomy::Runtime::TimerQueue (class)">TimerQueue</a></span>
+so that Fiber-based tasks can await real time without blocking OS threads.</p>
 
   </div>
 </div>
@@ -294,12 +301,12 @@ depend on real-time deadline enforcement.</p>
       <pre class="lines">
 
 
-36
-37
-38</pre>
+41
+42
+43</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler_timer_adapter.rb', line 36</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler_timer_adapter.rb', line 41</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_scheduler'>scheduler</span><span class='rparen'>)</span>
   <span class='ivar'>@scheduler</span> <span class='op'>=</span> <span class='id identifier rubyid_scheduler'>scheduler</span>
@@ -357,12 +364,12 @@ depend on real-time deadline enforcement.</p>
       <pre class="lines">
 
 
-69
-70
-71</pre>
+74
+75
+76</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler_timer_adapter.rb', line 69</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler_timer_adapter.rb', line 74</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pending_count'>pending_count</span>
   <span class='ivar'>@scheduler</span><span class='period'>.</span><span class='id identifier rubyid_pending_real_timer_count'>pending_real_timer_count</span>
@@ -463,15 +470,15 @@ the behaviour of <span class='object_link'><a href="TimerQueue.html#schedule-ins
       <pre class="lines">
 
 
-50
-51
-52
-53
-54
-55</pre>
+55
+56
+57
+58
+59
+60</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler_timer_adapter.rb', line 50</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler_timer_adapter.rb', line 55</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_schedule'>schedule</span><span class='lparen'>(</span><span class='label'>seconds:</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../PoolShutdownError.html" title="Phronomy::PoolShutdownError (class)">PoolShutdownError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>SchedulerTimerAdapter has been shut down</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='ivar'>@stopped</span>
@@ -526,13 +533,13 @@ Present for API compatibility with <span class='object_link'><a href="TimerQueue
       <pre class="lines">
 
 
-61
-62
-63
-64</pre>
+66
+67
+68
+69</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler_timer_adapter.rb', line 61</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler_timer_adapter.rb', line 66</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span>
   <span class='ivar'>@stopped</span> <span class='op'>=</span> <span class='kw'>true</span>
@@ -548,7 +555,7 @@ Present for API compatibility with <span class='object_link'><a href="TimerQueue
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 09:30:42 2026 by
+  Generated on Mon May 25 14:09:37 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

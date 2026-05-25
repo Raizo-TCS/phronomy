@@ -67,6 +67,22 @@ thread_runtime = Phronomy::Runtime.new(
 @task = thread_runtime.spawn(name: "event-loop") { run_loop }
 ```
 
+**Legitimate ThreadScheduler exceptions (exhaustive list):**
+
+| Component | Reason |
+|---|---|
+| `EventLoop#start` | `run_loop` is the framework's own `while @running` infinite dispatch loop; running it on the shared scheduler would consume the scheduler, preventing all other tasks from running |
+
+**Handler constraints for EventLoop:**
+
+- Handler code runs **on the EventLoop thread**.  Do not perform blocking
+  operations (database, LLM, HTTP) directly inside a handler — this stalls all
+  session processing.
+- Do **not** call `Workflow#invoke` from within a handler.  That call blocks
+  until the EventLoop processes events, causing a deadlock.  Use the async
+  pattern: schedule work via `Runtime.instance.spawn` or `BlockingAdapterPool`,
+  then post results back with `EventLoop#post`.
+
 All other framework components — including FSM, orchestration, RAG, streaming —
 do NOT own an infinite loop and therefore MUST use `Runtime.instance.spawn`.
 
