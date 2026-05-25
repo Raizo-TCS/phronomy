@@ -10,6 +10,29 @@ module Phronomy
   #
   # Activated with: +Phronomy.configure { |c| c.event_loop = true }+
   #
+  # == Threading exception (see ADR-010 Rule 2)
+  #
+  # +EventLoop+ is a **deliberate exception** to Phronomy's cooperative-first
+  # concurrency model.  Its dispatch loop is an infinite +while @running+ loop
+  # that must never block the framework's own event processing.
+  # Running it on a shared scheduler task would consume the scheduler, preventing
+  # other tasks from running.  Therefore {#start} creates a dedicated
+  # {Runtime::ThreadScheduler} — this is correct and intentional per ADR-010.
+  # No other framework component should do the same; see the ADR-010 checklist.
+  #
+  # == Handler constraints
+  #
+  # Handlers dispatched by the EventLoop run **on the EventLoop thread**.
+  # They must not:
+  #
+  # * Perform blocking operations directly (database queries, LLM calls, HTTP
+  #   requests).  Schedule blocking work via +Runtime.instance.spawn+ or
+  #   +BlockingAdapterPool+, then post results back with {#post}.
+  # * Call +Workflow#invoke+ (or any synchronous +invoke+) from within a
+  #   handler.  That method would block waiting for the EventLoop to process
+  #   events, causing a deadlock.  Use the async pattern: post a follow-up
+  #   event instead.
+  #
   # == Fork safety
   #
   # +EventLoop.instance+ is lazily initialized. The background thread is not
@@ -147,6 +170,11 @@ module Phronomy
     # The current monotonic clock time is recorded so that the EventLoop can
     # measure the dispatch lag when it dequeues the event.
     #
+    # @note **Handler constraint**: do not perform blocking operations or call
+    #   +Workflow#invoke+ directly from within the handler that processes a
+    #   posted event.  Handlers run on the EventLoop thread; blocking there
+    #   stalls all session processing.  For blocking work, post a new event
+    #   after the result is ready.
     # @param event [Phronomy::Event]
     # @api private
     def post(event)
