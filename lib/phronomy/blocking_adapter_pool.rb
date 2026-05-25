@@ -3,6 +3,16 @@
 module Phronomy
   # A bounded, observable thread pool for blocking I/O operations.
   #
+  # ## Architectural boundary
+  #
+  # `BlockingAdapterPool` is the *only* place in Phronomy that uses raw OS threads
+  # for I/O. All third-party gem calls whose internal I/O Phronomy cannot control
+  # — including RubyLLM, ActiveRecord, Redis, Faraday, and MCP stdio transport —
+  # **must** route through this pool (or a named pool obtained via
+  # {Runtime#pool}). Custom non-blocking HTTP/selector runtimes are intentionally
+  # out of scope; the pool + cooperative scheduler combination satisfies all
+  # current concurrency requirements without that complexity. (See ADR-010.)
+  #
   # All blocking calls (LLM HTTP, MCP stdio, ActiveRecord, Redis, etc.) must be
   # submitted through this pool so that:
   #

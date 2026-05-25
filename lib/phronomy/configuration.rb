@@ -163,10 +163,14 @@ module Phronomy
     #
     # | Value | Scheduler | Typical use |
     # |-------|-----------|-------------|
-    # | +:thread+ | {Runtime::ThreadScheduler} | Default — one OS thread per task |
+    # | +:thread+ | {Runtime::ThreadScheduler} | **Default** — production-ready; one OS thread per task |
     # | +:immediate+ | {Runtime::FakeScheduler} | Tests — tasks run synchronously, no extra threads |
-    # | +:fiber+ | {Runtime::DeterministicScheduler} (autorun) | EXPERIMENTAL Fiber-based cooperative scheduler |
+    # | +:fiber+ | {Runtime::DeterministicScheduler} (autorun) | **EXPERIMENTAL** — Fiber-based cooperative scheduler; do not use as production default |
     # | +:cooperative+ | {Runtime::FakeScheduler} | **Deprecated** — alias for +:immediate+; do not use in new code |
+    #
+    # The default is +:thread+. The +:fiber+ backend remains experimental and opt-in;
+    # it will not become the default until integration test coverage is production grade
+    # and virtual-time/timeout semantics are fully resolved (see Issues #350, #347, #348).
     #
     # When this setting is changed, the change only takes effect on the NEXT
     # call to {Runtime.instance} that auto-creates a new instance (i.e. after the

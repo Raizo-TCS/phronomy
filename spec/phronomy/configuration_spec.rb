@@ -96,6 +96,17 @@ RSpec.describe "Phronomy.configure" do
       config.runtime_backend = :thread
       expect(config.runtime_backend).to eq(:thread)
     end
+
+    # Issue #353: :fiber must remain experimental opt-in; :thread is the production default
+    it "does not default to :fiber (fiber backend is experimental opt-in only)" do
+      expect(Phronomy::Configuration.new.runtime_backend).not_to eq(:fiber)
+    end
+
+    it "can be opted in to :fiber explicitly" do
+      config = Phronomy::Configuration.new
+      config.runtime_backend = :fiber
+      expect(config.runtime_backend).to eq(:fiber)
+    end
   end
 
   # Issue #312: strict_runtime_guards configuration
