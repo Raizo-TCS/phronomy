@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+Accepted — updated 2026-05-25 to document current scheduler landscape and
+production-cooperative roadmap (Issues #331, #332, #334).
 
 ## Context
 
@@ -103,10 +104,59 @@ Properties of `BlockingAdapterPool`:
 > and is a candidate for future migration. Until that migration, it remains an
 > accepted exception per ADR-008.
 
+## Scheduler Landscape (as of 2026-05-25)
+
+Three scheduler backends currently exist:
+
+| Symbol / Class | Status | Purpose |
+|---|---|---|
+| `:thread` — `ThreadScheduler` / `ThreadBackend` | **Production default** | One OS thread per task; GVL-releasing I/O works transparently |
+| `:immediate` — `FakeScheduler` / `ImmediateBackend` | Test / CI | Synchronous; block runs to completion before `spawn` returns; no threads |
+| `DeterministicScheduler` / `FiberBackend` | **Test-only (not a named backend)** | Tick-based Fiber scheduler with virtual clock; enables deterministic concurrency tests without wall-clock timers |
+
+### `:cooperative` deprecation
+
+`:cooperative` was a silent alias for `:immediate` (mapped to `FakeScheduler`).
+As of Issue #332, it now emits a `WARN`-level deprecation message. It will be
+either removed or reassigned to a real Fiber-based cooperative backend when one
+is available (Issue #334).
+
+### DeterministicScheduler as a stepping stone
+
+`DeterministicScheduler` is the foundation for the long-term production
+cooperative runtime goal. It provides:
+
+- Ready-queue dispatch, virtual timer heap, scheduler signal API
+- `FiberBackend` wrapping tasks as Fibers
+- `tick` / `run_until_idle` / `advance(seconds)` for deterministic test control
+
+**Current gaps versus a production cooperative runtime:**
+
+- Not configurable via `runtime_backend` (test-only)
+- No real-wall-clock timer integration (`TimerQueue` runs as a background thread — Issue #331)
+- No `BlockingAdapterPool` integration for LLM/network calls
+- Scheduler must be driven manually (`tick`) rather than event-loop-driven
+
+The minimum delta to promote `DeterministicScheduler` toward production use:
+
+1. Integrate `TimerQueue` into the scheduler `tick` cycle (eliminates timer thread — Issue #331)
+2. Implement `BlockingAdapterPool` and wire LLM/tool calls through it (Issue #280)
+3. Expose as a named `runtime_backend` (e.g. `:fiber`) — Issue #334
+4. Add real-wall-clock integration (replace virtual time with `Process.clock_gettime`)
+
+Progress is tracked in Issue #334.
+
+### TimerQueue background thread
+
+`Runtime::TimerQueue` currently runs as a dedicated background OS thread
+(`Thread.new { run_loop }`). This is an accepted interim implementation — it is
+robust for production but violates the cooperative-first goal. The long-term
+target is to integrate timer firing into the scheduler's own `tick` cycle so
+that no separate timer thread is needed. Progress tracked in Issue #331.
+
 ## Consequences
 
 ### Positive
-- The `runtime_backend` configuration is respected throughout; `:cooperative`
   truly means cooperative for all framework-controlled paths.
 - Thread creation is isolated and bounded; no accidental unbounded thread
   proliferation from deep inside the framework.
@@ -114,12 +164,17 @@ Properties of `BlockingAdapterPool`:
   cooperative layer → adapter boundary → bounded thread pool → blocking gem.
 - Tests can reliably use `FakeScheduler` by default and opt in to `:thread`
   only where true concurrency is required.
+- `DeterministicScheduler` + `FiberBackend` provide a deterministic test
+  foundation for cooperative concurrency without wall-clock timers.
 
 ### Negative / Tradeoffs
 - `BlockingAdapterPool` is not yet implemented (as of ADR-010 acceptance).
   Until it is, callers that need real blocking I/O must opt in to `:thread`
   backend explicitly (e.g., in tests via `around` blocks).
 - `dispatch_parallel` remains on raw threads (ADR-008) until migrated.
+- `TimerQueue` runs as a background OS thread (interim; see Issue #331).
+- `DeterministicScheduler` is test-only; a production cooperative runtime
+  requires further work (see Issue #334).
 
 ## Derived Checklist
 
@@ -133,7 +188,11 @@ When writing or reviewing any Phronomy component, apply this checklist:
 | Is this a test that needs real concurrency (sleep + cancel)? | `around` block with `c.runtime_backend = :thread` opt-in |
 | Anything else | Default: `Runtime.instance.spawn` |
 
-## Related ADRs
+## Related ADRs and Issues
 
 - ADR-008: Orchestrator Uses OS Threads for Parallel Dispatch (predates this
   ADR; `dispatch_parallel` is a future migration candidate)
+- Issue #331: TimerQueue scheduler integration (long-term — eliminate timer thread)
+- Issue #334: Promote DeterministicScheduler to production cooperative runtime
+- Issue #332: `:cooperative` alias deprecation (resolved 2026-05-25)
+- Issue #280: MCP transports behind BlockingAdapterPool (pending)
