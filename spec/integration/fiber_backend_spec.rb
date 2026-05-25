@@ -2,15 +2,17 @@
 
 require_relative "spec_helper"
 require_relative "support/factors"
+require_relative "support/llm_stub"
 
 # Group 38: :fiber backend cooperative runtime (Issue #339)
-# Factor: fb_subject (7 values, each = 1 test case)
+# Factor: fb_subject (12 values, each = 1 test case)
 #
-# Feasible cases: 7 (TC-001..TC-007)
+# Feasible cases: 12 (TC-001..TC-012)
 # Infeasible: none
 #
-# No LLM required: all cases use DeterministicScheduler (autorun: true)
-# and BlockingAdapterPool with pure-Ruby blocks.
+# TC-001..TC-007: DeterministicScheduler low-level primitives — no LLM required.
+# TC-008..TC-012: Upper-layer components (Agent, LLMAdapter, ToolExecutor,
+#                 VectorStore, AsyncQueue streaming) — TC-008/TC-009 use LLMStub.
 
 RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
   # Build a fresh DeterministicScheduler-backed runtime for each example.
@@ -180,6 +182,196 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
 
       expect(fired_at).not_to be_nil
       expect(fired_at - scheduled_at).to be >= 0.04
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Upper-layer component tests (TC-008..TC-012)
+  # Runtime.instance is set to the DeterministicScheduler-backed runtime for
+  # each example so that Agent, ToolExecutor and VectorStore all route through
+  # the same scheduler/pool under test.
+  # ---------------------------------------------------------------------------
+
+  # TC-008: agent_invoke_async
+  # -------------------------------------------------------------------------
+  describe "TC-008: agent_invoke_async — Agent#invoke and #invoke_async return correct result under :fiber" do
+    let(:agent_class) do
+      Class.new(Phronomy::Agent::Base) do
+        model "openai/gpt-oss-20b"
+        provider :openai
+        instructions "You are a test assistant."
+      end
+    end
+
+    around do |ex|
+      old = Phronomy::Runtime.instance
+      Phronomy::Runtime.instance = runtime
+      ex.run
+    ensure
+      runtime.blocking_io.shutdown(drain_timeout: 5)
+      Phronomy::Runtime.instance = old
+    end
+
+    before { LLMStub.activate(responses: ["Hello from fiber!"]) }
+    after { LLMStub.deactivate }
+
+    it "invoke returns a Hash with non-empty :output String" do
+      result = agent_class.new.invoke("hello")
+      expect(result[:output]).to be_a(String)
+      expect(result[:output]).not_to be_empty
+    end
+
+    it "invoke_async returns a Task; await resolves to the same result structure" do
+      result = agent_class.new.invoke_async("hello").await
+      expect(result[:output]).to be_a(String)
+      expect(result[:output]).not_to be_empty
+    end
+  end
+
+  # TC-009: llm_adapter_suspend
+  # -------------------------------------------------------------------------
+  describe "TC-009: llm_adapter_suspend — LLMAdapter#complete_async suspends cooperatively under :fiber" do
+    let(:agent_class) do
+      Class.new(Phronomy::Agent::Base) do
+        model "openai/gpt-oss-20b"
+        provider :openai
+        instructions "You are a test assistant."
+      end
+    end
+
+    around do |ex|
+      old = Phronomy::Runtime.instance
+      Phronomy::Runtime.instance = runtime
+      ex.run
+    ensure
+      runtime.blocking_io.shutdown(drain_timeout: 5)
+      Phronomy::Runtime.instance = old
+    end
+
+    before { LLMStub.activate(responses: ["LLM response"]) }
+    after { LLMStub.deactivate }
+
+    it "fast fiber runs while LLM call is pending in the pool" do
+      order = []
+
+      runtime.spawn(name: "orchestrator") do
+        slow_task = runtime.spawn(name: "llm-task") do
+          order << :before_llm
+          agent_class.new.invoke("query")
+          order << :after_llm
+        end
+
+        fast_task = runtime.spawn(name: "fast-task") do
+          order << :fast_ran
+        end
+
+        slow_task.await
+        fast_task.await
+      end
+
+      expect(order).to include(:fast_ran)
+      expect(order.index(:fast_ran)).to be < order.index(:after_llm)
+    end
+  end
+
+  # TC-010: mixed_tools
+  # -------------------------------------------------------------------------
+  describe "TC-010: mixed_tools — FbBlockingTool (:blocking_io) and FbCooperativeTool (:cooperative) both execute correctly under :fiber" do
+    around do |ex|
+      old = Phronomy::Runtime.instance
+      Phronomy::Runtime.instance = runtime
+      ex.run
+    ensure
+      runtime.blocking_io.shutdown(drain_timeout: 5)
+      Phronomy::Runtime.instance = old
+    end
+
+    it "FbBlockingTool#call_async routes through the pool and returns the correct result" do
+      result = nil
+      runtime.spawn(name: "blocking-caller") do
+        result = IntegrationFactors::FbBlockingTool.new.call_async({input: "x"}).await
+      end
+      expect(result).to eq("blocking:x")
+    end
+
+    it "FbCooperativeTool#call_async routes through Runtime#spawn and returns the correct result" do
+      result = nil
+      runtime.spawn(name: "coop-caller") do
+        result = IntegrationFactors::FbCooperativeTool.new.call_async({input: "y"}).await
+      end
+      expect(result).to eq("cooperative:y")
+    end
+
+    it "both tools can be called concurrently and both resolve correctly" do
+      results = []
+      runtime.spawn(name: "orchestrator") do
+        t1 = IntegrationFactors::FbBlockingTool.new.call_async({input: "a"})
+        t2 = IntegrationFactors::FbCooperativeTool.new.call_async({input: "b"})
+        results << t1.await
+        results << t2.await
+      end
+      expect(results).to contain_exactly("blocking:a", "cooperative:b")
+    end
+  end
+
+  # TC-011: rag_fetch
+  # -------------------------------------------------------------------------
+  describe "TC-011: rag_fetch — VectorStore::InMemory#search_async routes through pool and returns correct results under :fiber" do
+    around do |ex|
+      old = Phronomy::Runtime.instance
+      Phronomy::Runtime.instance = runtime
+      ex.run
+    ensure
+      runtime.blocking_io.shutdown(drain_timeout: 5)
+      Phronomy::Runtime.instance = old
+    end
+
+    it "search_async awaited inside a spawned fiber returns the correct top result" do
+      store = Phronomy::VectorStore::InMemory.new
+      store.add(id: "doc1", embedding: [1.0, 0.0, 0.0], metadata: {content: "hello"})
+      store.add(id: "doc2", embedding: [0.0, 1.0, 0.0], metadata: {content: "world"})
+
+      result = nil
+      runtime.spawn(name: "searcher") do
+        results = store.search_async(query_embedding: [1.0, 0.0, 0.0], k: 1).await
+        result = results.first
+      end
+
+      expect(result).not_to be_nil
+      expect(result[:id]).to eq("doc1")
+    end
+  end
+
+  # TC-012: stream_queue
+  # -------------------------------------------------------------------------
+  describe "TC-012: stream_queue — tokens flow through AsyncQueue and :done is the final event" do
+    it "cooperative producer pushes tokens then a nil sentinel; consumer collects :token/:done events in order" do
+      tokens = %w[hello world]
+      queue = Phronomy::AsyncQueue.new
+      events = []
+
+      runtime.spawn(name: "orchestrator") do
+        consumer_task = runtime.spawn(name: "consumer") do
+          loop do
+            item = queue.pop
+            break if item.nil?
+            events << {type: :token, content: item}
+          end
+          events << {type: :done}
+        end
+
+        producer_task = runtime.spawn(name: "producer") do
+          tokens.each { |t| queue.push(t) }
+          queue.push(nil) # nil sentinel wakes the waiting consumer and signals end-of-stream
+        end
+
+        producer_task.await
+        consumer_task.await
+      end
+
+      expect(events.map { |e| e[:type] }).to eq([:token, :token, :done])
+      expect(events.select { |e| e[:type] == :token }.map { |e| e[:content] }).to eq(tokens)
+      expect(events.last[:type]).to eq(:done)
     end
   end
 end

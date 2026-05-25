@@ -1478,10 +1478,38 @@ module IntegrationFactors
   def self.fb_subject(label)
     case label
     when "spawn_await_value", "blocking_io_await", "async_queue_pop",
-         "spawn_child", "error_propagation", "cancellation", "timer_real_clock"
+         "spawn_child", "error_propagation", "cancellation", "timer_real_clock",
+         "agent_invoke_async", "llm_adapter_suspend", "mixed_tools",
+         "rag_fetch", "stream_queue"
       label.to_sym
     else
       raise ArgumentError, "Unknown fb_subject label: #{label}"
+    end
+  end
+
+  # A tool with execution_mode :blocking_io used in upper-layer fiber backend tests.
+  # Routes through BlockingAdapterPool (ToolExecutor default).
+  class FbBlockingTool < Phronomy::Tool::Base
+    tool_name "fb_blocking_tool"
+    description "A blocking_io tool for fiber backend upper-layer tests"
+    param :input, type: :string, desc: "Any string input"
+    execution_mode :blocking_io
+
+    def execute(input:)
+      "blocking:#{input}"
+    end
+  end
+
+  # A tool with execution_mode :cooperative used in upper-layer fiber backend tests.
+  # Routes through Runtime#spawn (no pool allocation).
+  class FbCooperativeTool < Phronomy::Tool::Base
+    tool_name "fb_cooperative_tool"
+    description "A cooperative tool for fiber backend upper-layer tests"
+    param :input, type: :string, desc: "Any string input"
+    execution_mode :cooperative
+
+    def execute(input:)
+      "cooperative:#{input}"
     end
   end
 end
