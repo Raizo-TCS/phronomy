@@ -61,7 +61,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **`Phronomy::Metrics`** — `Phronomy::Metrics.snapshot` returns task-tree and pool counters; task-centric keys: `active_agent_tasks`, `active_tool_tasks`, `active_workflow_tasks`, `active_rag_tasks`, `active_llm_tasks`, `task_wait_time_p50_ms`, `task_wait_time_p95_ms`, `task_run_time_p50_ms`, `task_run_time_p95_ms`, `cancelled_tasks`, `failed_tasks`, `non_yield_duration_max_ms`; pool/event-loop keys remain for backward compatibility; `Runtime#task_snapshot` exposes task-centric metrics directly | Beta |
 | **`Phronomy::Diagnostics`** — Snapshot of scheduler internals for debug/monitoring; `SchedulerReentrancyError` raised on invalid re-entrant scheduler use; `Runtime.in_scheduler_context?` returns `true` when called from inside a scheduler task | Experimental |
 | **`Phronomy::Testing::FakeClock` / `FakeScheduler` / `SchedulerHelpers`** — Test helpers for deterministic concurrency specs: `FakeClock#advance(seconds)` controls time; `FakeScheduler` runs tasks synchronously and records `event_log`; `FakeScheduler#assert_order` / `#assert_cancelled` for ordering assertions; `FakeClock#advance_to_next_timer` fires the next pending callback; `Testing::SchedulerHelpers#with_fake_scheduler` replaces the global Runtime for the duration of a block | Beta |
-| **`Configuration#runtime_backend`** — `:cooperative` (default, uses `FakeScheduler` — cooperative task scheduler) or `:thread` (opt-in, uses `ThreadScheduler` — legacy threading mode) | Beta |
+| **`Configuration#runtime_backend`** — `:thread` (default, uses `ThreadScheduler` — one OS thread per task), `:immediate` (tests — tasks run synchronously, no extra threads), `:fiber` (EXPERIMENTAL Fiber-based cooperative scheduler). `:cooperative` is a **deprecated alias** for `:immediate` — do not use in new code | Beta |
 | **`Configuration#strict_runtime_guards`** — When `true`, calling `Agent#invoke` from inside a scheduler task raises `SchedulerReentrancyError`; when `false` (default) a warning is logged instead | Beta |
 
 ## Installation
@@ -554,7 +554,7 @@ Phronomy.configure do |c|
   c.trace_pii                       = false # default; set to true only when trace data contains no PII
   c.logger                          = nil   # optional; any object responding to #warn (e.g. Rails.logger)
   c.event_loop_stop_grace_seconds   = 5     # seconds to wait for sessions to drain on EventLoop#stop(drain: true)
-  c.runtime_backend                 = :cooperative  # :cooperative (default) or :thread (legacy opt-in)
+  c.runtime_backend                 = :thread   # :thread (default) or :immediate (tests, runs tasks synchronously)
   c.strict_runtime_guards           = false          # when true, raises on invoke-inside-task
 end
 ```
@@ -612,9 +612,9 @@ result = my_agent.invoke("Hello")
 result = my_agent.invoke_async("Hello").await
 ```
 
-### Cooperative backend (opt-out to legacy threading)
+### :immediate backend (synchronous / test mode)
 
-The default `:cooperative` backend runs tasks synchronously using `FakeScheduler`
+The `:immediate` backend runs tasks synchronously using `FakeScheduler`
 (backed by `Task::ImmediateBackend`).  Blocking I/O is isolated in `BlockingAdapterPool`.
 To opt into the legacy thread-per-task mode:
 
