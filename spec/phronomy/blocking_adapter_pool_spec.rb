@@ -433,7 +433,10 @@ RSpec.describe "BlockingAdapterPool cooperative await timeout limitation (Issue 
     result = nil
     # Worker takes 0.15 s; submit-time timeout of 0.05 s elapses first,
     # but the cooperative Fiber still waits and receives the completed value.
-    op = pool.submit(timeout: 0.05) { sleep 0.15; :completed_late }
+    op = pool.submit(timeout: 0.05) do
+      sleep 0.15
+      :completed_late
+    end
     runtime.spawn(name: "consumer") do
       result = op.await
     rescue Phronomy::TimeoutError
