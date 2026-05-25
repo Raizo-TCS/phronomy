@@ -7,6 +7,7 @@ module Phronomy
     # This is the default scheduler used by {Runtime} in production.
     # It delegates directly to {Task.spawn} with the default
     # {Task::ThreadBackend}, preserving the pre-282 behaviour exactly.
+    # @api private
     class ThreadScheduler < Scheduler
       # Spawns +block+ as a new {Task} backed by a Thread.
       #

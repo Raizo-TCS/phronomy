@@ -9,8 +9,9 @@ module Phronomy
   #
   # @example Producer / consumer
   #   queue = Phronomy::AsyncQueue.new
-  #   Task.spawn { queue.push(expensive_io()) }
+  #   Runtime.instance.spawn { queue.push(expensive_io()) }
   #   value = queue.pop   # blocks until the producer pushes
+  # @api private
   class AsyncQueue
     # @param max_size [Integer, nil] optional upper bound on queue depth.
     #   When set, {#push} blocks the caller until a slot is available.

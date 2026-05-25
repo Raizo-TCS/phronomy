@@ -17,6 +17,7 @@ module Phronomy
     # is stored so that {#await} can suspend cooperatively.
     SCHEDULER_KEY = :phronomy_deterministic_scheduler
 
+    # @api private
     class FiberBackend < Backend
       def initialize(task:, &block)
         super

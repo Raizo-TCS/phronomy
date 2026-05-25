@@ -32,6 +32,7 @@ module Phronomy
     #   task = runtime.spawn(name: "agent-test") { 42 }
     #   expect(task.await).to eq(42)
     #   expect(task.status).to eq(:completed)
+    # @api private
     class FakeScheduler < Scheduler
       # @return [Array<Hash>] ordered list of task lifecycle events.
       #   Each entry is +{ type:, task_name:, at: }+ where +type+ is one of

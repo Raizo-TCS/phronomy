@@ -30,6 +30,11 @@ module Phronomy
     #
     # @see DeterministicScheduler#schedule_real_after
     # @see DeterministicScheduler#fire_real_timers
+    # Bridges wall-clock timers to the cooperative {DeterministicScheduler}.
+    #
+    # Registers a recurring timer callback with the scheduler's {TimerQueue}
+    # so that Fiber-based tasks can await real time without blocking OS threads.
+    # @api private
     class SchedulerTimerAdapter
       # @param scheduler [DeterministicScheduler]
       # @api private

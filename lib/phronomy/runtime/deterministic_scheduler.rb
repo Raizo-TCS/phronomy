@@ -27,6 +27,14 @@ module Phronomy
     #   sched.schedule_after(1.0) { puts "fired at T=1" }
     #   sched.advance(1.0)    # moves virtual clock forward, fires the timer
     #   sched.run_until_idle  # dispatches the timer callback
+    # EXPERIMENTAL Fiber-based cooperative scheduler.
+    #
+    # Uses {Task::FiberBackend} to run tasks cooperatively without OS threads.
+    # Intended for deterministic testing and, in future, as a production
+    # cooperative scheduler. Not recommended for production use.
+    #
+    # Activated via +runtime_backend: :fiber+ in {Phronomy.configure}.
+    # @api private
     class DeterministicScheduler < Scheduler
       # Scheduler-aware signal for cooperative suspension.
       #
