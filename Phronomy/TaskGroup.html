@@ -475,12 +475,12 @@ with the configured scheduler backend.</p></div>
       <pre class="lines">
 
 
-213
-214
-215</pre>
+227
+228
+229</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task_group.rb', line 213</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task_group.rb', line 227</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_active_task_count'>active_task_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@active</span> <span class='rbrace'>}</span>
@@ -633,20 +633,6 @@ reset explicitly after all tasks are joined.</p>
       <pre class="lines">
 
 
-187
-188
-189
-190
-191
-192
-193
-194
-195
-196
-197
-198
-199
-200
 201
 202
 203
@@ -654,10 +640,24 @@ reset explicitly after all tasks are joined.</p>
 205
 206
 207
-208</pre>
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task_group.rb', line 187</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task_group.rb', line 201</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancel_all!'>cancel_all!</span>
   <span class='id identifier rubyid_tasks'>tasks</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@tasks</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
@@ -801,7 +801,7 @@ Blocks if the number of currently active tasks equals <code>limit</code>.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 02:49:56 2026 by
+  Generated on Mon May 25 05:01:13 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

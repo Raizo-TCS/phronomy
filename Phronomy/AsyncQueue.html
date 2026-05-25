@@ -396,13 +396,13 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
       <pre class="lines">
 
 
-71
-72
-73
-74</pre>
+78
+79
+80
+81</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 71</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 78</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_close'>close</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_close'>close</span>
@@ -454,12 +454,12 @@ When set, <span class='object_link'><a href="#push-instance_method" title="Phron
       <pre class="lines">
 
 
-64
-65
-66</pre>
+71
+72
+73</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 64</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 71</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_empty?'>empty?</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
@@ -537,19 +537,19 @@ seconds.  (Requires Ruby 3.2+, which added <code>Thread::Queue#pop(timeout:)</co
       <pre class="lines">
 
 
-43
-44
-45
-46
-47
-48
-49
 50
 51
-52</pre>
+52
+53
+54
+55
+56
+57
+58
+59</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 50</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pop'>pop</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_scheduler'>scheduler</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime/Scheduler.html" title="Phronomy::Runtime::Scheduler (class)">Scheduler</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="Runtime/Scheduler.html#current-class_method" title="Phronomy::Runtime::Scheduler.current (method)">current</a></span></span>
@@ -581,8 +581,11 @@ seconds.  (Requires Ruby 3.2+, which added <code>Thread::Queue#pop(timeout:)</co
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Enqueues <code>item</code>.  Blocks when <code>max_size</code> is set and the queue is full.
-In a cooperative scheduler context, also notifies any suspended <code>pop</code> caller.</p>
+<p>Enqueues <code>item</code>.
+In a cooperative scheduler context with a bounded queue (max_size:), suspends
+the current Fiber via a scheduler signal when the queue is full rather than
+blocking the OS thread.  Without a scheduler, falls back to the standard
+SizedQueue blocking behaviour.</p>
 
   </div>
 </div>
@@ -626,20 +629,28 @@ In a cooperative scheduler context, also notifies any suspended <code>pop</code>
       <pre class="lines">
 
 
-28
-29
-30
 31
 32
-33</pre>
+33
+34
+35
+36
+37
+38
+39
+40</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 28</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_item'>item</span><span class='rparen'>)</span>
-  <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_item'>item</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_scheduler'>scheduler</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime/Scheduler.html" title="Phronomy::Runtime::Scheduler (class)">Scheduler</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="Runtime/Scheduler.html#current-class_method" title="Phronomy::Runtime::Scheduler.current (method)">current</a></span></span>
-  <span class='id identifier rubyid_scheduler'>scheduler</span><span class='period'>.</span><span class='id identifier rubyid_raise_signal'>raise_signal</span><span class='lparen'>(</span><span class='ivar'>@coop_signal</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_scheduler'>scheduler</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@coop_signal</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_scheduler'>scheduler</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@max_size</span>
+    <span class='id identifier rubyid__push_cooperative'>_push_cooperative</span><span class='lparen'>(</span><span class='id identifier rubyid_scheduler'>scheduler</span><span class='comma'>,</span> <span class='id identifier rubyid_item'>item</span><span class='rparen'>)</span>
+  <span class='kw'>else</span>
+    <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_item'>item</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_scheduler'>scheduler</span><span class='period'>.</span><span class='id identifier rubyid_raise_signal'>raise_signal</span><span class='lparen'>(</span><span class='ivar'>@coop_signal</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_scheduler'>scheduler</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@coop_signal</span>
+  <span class='kw'>end</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -688,12 +699,12 @@ In a cooperative scheduler context, also notifies any suspended <code>pop</code>
       <pre class="lines">
 
 
-57
-58
-59</pre>
+64
+65
+66</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 57</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/async_queue.rb', line 64</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_size'>size</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
@@ -708,7 +719,7 @@ In a cooperative scheduler context, also notifies any suspended <code>pop</code>
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 02:49:56 2026 by
+  Generated on Mon May 25 05:01:13 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

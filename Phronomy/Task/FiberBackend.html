@@ -180,7 +180,7 @@
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Requests cancellation.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Requests cancellation using a cooperative checkpoint mechanism.</p></div></span>
   
 </li>
 
@@ -346,7 +346,8 @@
 46
 47
 48
-49</pre>
+49
+50</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 21</span>
@@ -356,6 +357,7 @@
   <span class='ivar'>@value</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@error</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@cancel_error</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@cancel_requested</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@started</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@cooperative_suspend</span> <span class='op'>=</span> <span class='kw'>false</span>
 
@@ -436,12 +438,12 @@
       <pre class="lines">
 
 
-112
-113
-114</pre>
+128
+129
+130</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 112</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 128</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_alive?'>alive?</span>
   <span class='ivar'>@fiber</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
@@ -510,32 +512,32 @@ when this task completes.  When called from outside a managed Fiber
       <pre class="lines">
 
 
-86
-87
-88
-89
-90
-91
-92
-93
-94
-95
-96
-97
-98
-99
-100
-101
 102
 103
 104
 105
 106
 107
-108</pre>
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 86</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 102</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_await'>await</span>
   <span class='kw'>unless</span> <span class='ivar'>@fiber</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
@@ -580,10 +582,12 @@ when this task completes.  When called from outside a managed Fiber
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Requests cancellation.
-If the Fiber is suspended (has already started), delivers
-<code>CancellationError</code> via <code>Fiber#raise</code>.  If it has not yet started,
-records the error so it is raised on the first <span class='object_link'><a href="#step-instance_method" title="Phronomy::Task::FiberBackend#step (method)">#step</a></span>.</p>
+<p>Requests cancellation using a cooperative checkpoint mechanism.
+Sets a cancellation flag; the error is raised inside the Fiber at the
+next <code>step</code> call (i.e. when the scheduler next dispatches this task),
+not injected at an arbitrary suspension point via <code>Fiber#raise</code>.
+If the Fiber has not yet started, the error is recorded so it is raised
+on the first <span class='object_link'><a href="#step-instance_method" title="Phronomy::Task::FiberBackend#step (method)">#step</a></span>.</p>
 
   </div>
 </div>
@@ -609,30 +613,18 @@ records the error so it is raised on the first <span class='object_link'><a href
       <pre class="lines">
 
 
-122
-123
-124
-125
-126
-127
-128
-129
-130
-131
-132</pre>
+140
+141
+142
+143
+144</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 122</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 140</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancel!'>cancel!</span>
   <span class='ivar'>@cancel_error</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Task cancelled</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
-  <span class='kw'>if</span> <span class='ivar'>@fiber</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@started</span>
-    <span class='kw'>begin</span>
-      <span class='ivar'>@fiber</span><span class='period'>.</span><span class='id identifier rubyid_raise'>raise</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Task cancelled</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
-    <span class='kw'>rescue</span> <span class='const'>FiberError</span>
-      <span class='comment'># Fiber may have completed between the alive? check and raise — safe to ignore.
-</span>    <span class='kw'>end</span>
-  <span class='kw'>end</span>
+  <span class='ivar'>@cancel_requested</span> <span class='op'>=</span> <span class='kw'>true</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -682,12 +674,12 @@ and should not be automatically re-enqueued by the scheduler.</p>
       <pre class="lines">
 
 
-71
-72
-73</pre>
+87
+88
+89</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 71</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 87</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cooperative_suspend?'>cooperative_suspend?</span>
   <span class='ivar'>@cooperative_suspend</span>
@@ -756,13 +748,13 @@ and should not be automatically re-enqueued by the scheduler.</p>
       <pre class="lines">
 
 
-138
-139
-140
-141</pre>
+150
+151
+152
+153</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 138</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 150</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='id identifier rubyid__limit'>_limit</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_step'>step</span> <span class='kw'>while</span> <span class='ivar'>@fiber</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
@@ -789,7 +781,11 @@ and should not be automatically re-enqueued by the scheduler.</p>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
 <p>Advances execution by one scheduler step.
-Resumes the Fiber until it yields (via <code>Fiber.yield</code>) or finishes.</p>
+Resumes the Fiber until it yields (via <code>Fiber.yield</code>) or finishes.
+Cooperative cancellation is checked at the start of each step: if
+<code>cancel!</code> has been called, <code>CancellationError</code> is raised inside the
+Fiber at this controlled checkpoint rather than injected at an
+arbitrary suspension point via <code>Fiber#raise</code>.</p>
 
   </div>
 </div>
@@ -815,25 +811,47 @@ Resumes the Fiber until it yields (via <code>Fiber.yield</code>) or finishes.</p
       <pre class="lines">
 
 
-55
-56
-57
-58
-59
 60
 61
 62
 63
 64
-65</pre>
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 55</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task/fiber_backend.rb', line 60</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_step'>step</span>
   <span class='kw'>return</span> <span class='kw'>self</span> <span class='kw'>unless</span> <span class='ivar'>@fiber</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
 
   <span class='ivar'>@started</span> <span class='op'>=</span> <span class='kw'>true</span>
+  <span class='comment'># Deliver pending cancellation at this scheduler checkpoint rather than
+</span>  <span class='comment'># injecting it mid-Fiber via Fiber#raise (which would be preemptive).
+</span>  <span class='kw'>if</span> <span class='ivar'>@cancel_requested</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@cancel_error</span>
+    <span class='kw'>begin</span>
+      <span class='ivar'>@fiber</span><span class='period'>.</span><span class='id identifier rubyid_raise'>raise</span><span class='lparen'>(</span><span class='ivar'>@cancel_error</span><span class='rparen'>)</span>
+    <span class='kw'>rescue</span> <span class='const'>FiberError</span>
+      <span class='kw'>nil</span>  <span class='comment'># Fiber completed between the check and raise — safe to ignore.
+</span>    <span class='kw'>end</span>
+    <span class='ivar'>@cancel_requested</span> <span class='op'>=</span> <span class='kw'>false</span>
+    <span class='kw'>return</span> <span class='kw'>self</span>
+  <span class='kw'>end</span>
   <span class='id identifier rubyid_yield_value'>yield_value</span> <span class='op'>=</span> <span class='ivar'>@fiber</span><span class='period'>.</span><span class='id identifier rubyid_resume'>resume</span>
   <span class='comment'># A yield value of :cooperative_suspend signals that the Fiber deliberately
 </span>  <span class='comment'># suspended itself (e.g. inside CoopSignal#wait) and must NOT be
@@ -851,7 +869,7 @@ Resumes the Fiber until it yields (via <code>Fiber.yield</code>) or finishes.</p
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 02:49:58 2026 by
+  Generated on Mon May 25 05:01:14 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
