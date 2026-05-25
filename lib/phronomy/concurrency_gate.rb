@@ -65,6 +65,47 @@ module Phronomy
     private
 
     def _acquire_slot(on_full:, timeout:)
+      scheduler = Phronomy::Runtime::Scheduler.current
+      if scheduler
+        _acquire_slot_coop(scheduler, on_full: on_full, timeout: timeout)
+      else
+        _acquire_slot_threaded(on_full: on_full, timeout: timeout)
+      end
+    end
+
+    def _acquire_slot_coop(scheduler, on_full:, timeout:)
+      # In cooperative mode all tasks run on the same thread, so no mutex needed.
+      deadline = timeout ? (scheduler.virtual_time + timeout) : nil
+      @coop_signal ||= scheduler.new_signal
+
+      loop do
+        if @count < @max
+          @count += 1
+          return
+        end
+
+        case on_full
+        when :reject
+          raise Phronomy::BackpressureError,
+            "ConcurrencyGate[#{@name}] at capacity (#{@max}); " \
+            "increase max_concurrent_#{@name}_tasks or retry later"
+        when :timeout
+          if deadline && scheduler.virtual_time >= deadline
+            raise Phronomy::BackpressureError,
+              "ConcurrencyGate[#{@name}] timed out waiting for a free slot (cap: #{@max})"
+          end
+          scheduler.wait_for_signal(@coop_signal)
+          if deadline && scheduler.virtual_time >= deadline
+            raise Phronomy::BackpressureError,
+              "ConcurrencyGate[#{@name}] timed out waiting for a free slot (cap: #{@max})"
+          end
+        else # :wait
+          scheduler.wait_for_signal(@coop_signal)
+        end
+      end
+    end
+
+    def _acquire_slot_threaded(on_full:, timeout:)
       deadline = timeout ? (Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout) : nil
 
       @mutex.synchronize do
@@ -99,9 +140,15 @@ module Phronomy
     end
 
     def _release_slot
-      @mutex.synchronize do
+      scheduler = Phronomy::Runtime::Scheduler.current
+      if scheduler && @coop_signal
         @count -= 1
-        @cond.signal
+        scheduler.raise_signal(@coop_signal)
+      else
+        @mutex.synchronize do
+          @count -= 1
+          @cond.signal
+        end
       end
     end
   end

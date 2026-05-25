@@ -90,10 +90,36 @@ module Phronomy
       tasks = @mutex.synchronize { @tasks.dup }
       return [] if tasks.empty?
 
-      # Use Task#on_complete callbacks instead of spawning N additional watcher
-      # tasks (Issue #328).  on_complete receives the task's value and error
-      # directly — no await call is needed, eliminating the risk of a self-join
-      # when the callback fires inside the task's own execution thread.
+      if Phronomy::Runtime::Scheduler.current
+        _await_all_cooperative(tasks)
+      else
+        _await_all_threaded(tasks)
+      end
+    end
+
+    private
+
+    # Cooperative await_all for DeterministicScheduler context.
+    # Awaits each task sequentially using FiberBackend#await (cooperative suspend).
+    # @param tasks [Array<Task>]
+    # @return [Array]
+    def _await_all_cooperative(tasks)
+      entries = tasks.map.with_index do |task, idx|
+        begin
+          {index: idx, value: task.await, error: nil}
+        rescue => e
+          {index: idx, value: nil, error: e}
+        end
+      end
+      _build_result(entries)
+    end
+
+    # Thread-blocking await_all for ThreadBackend / ImmediateBackend context.
+    # Uses Task#on_complete callbacks instead of spawning N additional watcher
+    # tasks (Issue #328).  on_complete receives the task's value and error
+    # directly — no await call is needed, eliminating the risk of a self-join
+    # when the callback fires inside the task's own execution thread.
+    def _await_all_threaded(tasks)
       completion_q = Queue.new
       tasks.each_with_index do |task, idx|
         task.on_complete do |value, error|
@@ -131,6 +157,24 @@ module Phronomy
       end
     end
 
+    # Builds the final result array from completed entries.
+    def _build_result(entries)
+      case @failure_policy
+      when :fail_fast
+        first_error = entries.find { |r| r[:error] }&.dig(:error)
+        raise first_error if first_error
+        entries.map { |r| r[:value] }
+      when :skip_failed
+        entries.filter_map { |r| r[:value] unless r[:error] }
+      else # :collect_all
+        errors = entries.filter_map { |r| r[:error] }
+        raise errors.first if errors.any?
+        entries.map { |r| r[:value] }
+      end
+    end
+
+    public
+
     # Cancels all tasks currently in the group and waits for each to finish.
     # After this method returns, the active child task count is guaranteed to
     # be zero.
@@ -151,9 +195,15 @@ module Phronomy
       end
       # Force @active to zero: tasks cancelled before block execution starts
       # may not decrement @active via their ensure clause.
-      @mutex.synchronize do
+      scheduler = Phronomy::Runtime::Scheduler.current
+      if scheduler && @coop_signal
         @active = 0
-        @cond.broadcast
+        scheduler.raise_signal_all(@coop_signal)
+      else
+        @mutex.synchronize do
+          @active = 0
+          @cond.broadcast
+        end
       end
       self
     end
@@ -168,16 +218,34 @@ module Phronomy
     private
 
     def wait_for_slot!
-      @mutex.synchronize do
-        @cond.wait(@mutex) while @active >= @limit
-        @active += 1
+      scheduler = Phronomy::Runtime::Scheduler.current
+      if scheduler
+        @coop_signal ||= scheduler.new_signal
+        loop do
+          if @active < @limit
+            @active += 1
+            return
+          end
+          scheduler.wait_for_signal(@coop_signal)
+        end
+      else
+        @mutex.synchronize do
+          @cond.wait(@mutex) while @active >= @limit
+          @active += 1
+        end
       end
     end
 
     def release_slot!
-      @mutex.synchronize do
+      scheduler = Phronomy::Runtime::Scheduler.current
+      if scheduler && @coop_signal
         @active -= 1
-        @cond.signal
+        scheduler.raise_signal(@coop_signal)
+      else
+        @mutex.synchronize do
+          @active -= 1
+          @cond.signal
+        end
       end
     end
   end

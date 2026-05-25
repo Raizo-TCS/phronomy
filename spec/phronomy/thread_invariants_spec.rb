@@ -112,6 +112,9 @@ RSpec.describe "Thread.current confinement (Issue #302)", :issue_302 do
     lib/phronomy/task.rb
     lib/phronomy/task/thread_backend.rb
     lib/phronomy/task/immediate_backend.rb
+    lib/phronomy/task/fiber_backend.rb
+    lib/phronomy/runtime/scheduler.rb
+    lib/phronomy/runtime/deterministic_scheduler.rb
     lib/phronomy/blocking_adapter_pool.rb
   ].freeze
 

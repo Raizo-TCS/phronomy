@@ -3,6 +3,7 @@
 require_relative "task/backend"
 require_relative "task/thread_backend"
 require_relative "task/immediate_backend"
+require_relative "task/fiber_backend"
 
 module Phronomy
   # A single unit of concurrent work.
@@ -119,6 +120,10 @@ module Phronomy
 
     # @return [Task, nil] parent task in the task tree, if any
     attr_reader :parent
+
+    # @return [Backend] the execution backend for this task
+    # @api private
+    attr_reader :backend
 
     # @param name          [String, nil]
     # @param parent        [Task, nil]

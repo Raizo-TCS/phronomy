@@ -3,6 +3,7 @@
 require_relative "runtime/scheduler"
 require_relative "runtime/thread_scheduler"
 require_relative "runtime/fake_scheduler"
+require_relative "runtime/deterministic_scheduler"
 require_relative "runtime/timer_queue"
 
 module Phronomy
