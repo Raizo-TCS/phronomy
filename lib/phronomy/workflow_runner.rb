@@ -377,7 +377,7 @@ module Phronomy
                     machine.async_pending = true
                     ctx_ref = machine.context
                     thread_id = ctx_ref.thread_id
-                    Phronomy::Task.spawn(name: "wf-await-#{thread_id}") do
+                    Phronomy::Runtime.instance.spawn(name: "wf-await-#{thread_id}") do
                       if timeout_secs
                         if result.join(timeout_secs).nil?
                           result.cancel!

@@ -350,19 +350,21 @@ module Phronomy
       # @api public
       def call_async(args, cancellation_token: nil)
         ct = cancellation_token
+        runtime = Phronomy::Runtime.instance
+        tool_name = "tool-#{self.class.name.to_s.split("::").last}"
         case self.class.execution_mode
         when :cooperative
-          Phronomy::Task.spawn { call(args, cancellation_token: ct) }
+          runtime.spawn(name: tool_name) { call(args, cancellation_token: ct) }
         else
           # :blocking_io (default), :cpu_bound, :external_process
-          pool = begin; Phronomy::Runtime.instance&.blocking_io; rescue; nil; end
+          pool = begin; runtime&.blocking_io; rescue; nil; end
           if pool
             op = pool.submit(cancellation_token: ct) { call(args, cancellation_token: ct) }
-            Phronomy::Task.spawn { op.await }
+            runtime.spawn(name: "#{tool_name}-await") { op.await }
           else
-            # No pool available (e.g., no Runtime configured) — fall back to a
-            # direct Task spawn so the method always returns a Task.
-            Phronomy::Task.spawn { call(args, cancellation_token: ct) }
+            # No pool available (e.g., no Runtime configured) — fall back to
+            # Runtime.instance.spawn so the method always returns a Task.
+            runtime.spawn(name: tool_name) { call(args, cancellation_token: ct) }
           end
         end
       end

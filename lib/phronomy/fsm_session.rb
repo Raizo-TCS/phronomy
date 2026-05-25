@@ -99,7 +99,7 @@ module Phronomy
             session_id = @id
             current_state_name = @current_state
             timeout_secs = @action_timeouts[current_state_name]
-            Phronomy::Task.spawn(name: "fsm-await-#{session_id}") do
+            Phronomy::Runtime.instance.spawn(name: "fsm-await-#{session_id}") do
               if timeout_secs
                 if result.join(timeout_secs).nil?
                   result.cancel!

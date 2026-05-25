@@ -87,8 +87,8 @@ module Phronomy
 
           pool = begin; Phronomy::Runtime.instance&.blocking_io; rescue; nil; end
 
-          # Dispatch all tools in this batch — cooperative via Task.spawn,
-          # blocking_io directly via pool.submit.
+          # Dispatch all tools in this batch — cooperative tools via
+          # Runtime.instance.spawn; blocking_io tools via pool.submit.
           dispatched = batch.map do |tc|
             tool = tools[tc.name.to_sym]
             unless tool
@@ -100,7 +100,9 @@ module Phronomy
 
             mode = tool.class.execution_mode
             awaitable = if mode == :cooperative || pool.nil?
-              Phronomy::Task.spawn { tool.call(tc.arguments, cancellation_token: ct) }
+              Phronomy::Runtime.instance.spawn(name: "tool-#{tool.class.name.to_s.split("::").last}") do
+                tool.call(tc.arguments, cancellation_token: ct)
+              end
             else
               # Submit directly to pool — no wrapping Task Thread required.
               pool.submit(cancellation_token: ct) { tool.call(tc.arguments, cancellation_token: ct) }

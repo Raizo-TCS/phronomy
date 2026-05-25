@@ -44,7 +44,7 @@ module Phronomy
           errors = []
           errors_mu = Mutex.new
           tasks = batch.map do |eval_case, i|
-            Phronomy::Task.spawn(name: "eval-case-#{i}") do
+            Phronomy::Runtime.instance.spawn(name: "eval-case-#{i}") do
               results[i] = run_one(eval_case, callable)
             rescue => e
               errors_mu.synchronize { errors << e }

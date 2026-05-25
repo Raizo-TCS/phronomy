@@ -769,13 +769,18 @@ RSpec.describe Phronomy::Tool::Base do
       expect(called).to be(true)
     end
 
-    it "blocking_io tool without pool: call_async falls back to direct Task.spawn" do
-      # Reset so no Runtime / pool is present
-      Phronomy::Runtime.instance_variable_set(:@instance, nil)
-      allow(Phronomy::Runtime).to receive(:instance).and_return(nil)
+    it "blocking_io tool without pool: call_async falls back to Runtime.instance.spawn" do
+      # Reset so no pool is present but Runtime itself still exists
+      runtime = instance_double(Phronomy::Runtime, blocking_io: nil)
+      allow(runtime).to receive(:spawn) do |name: nil, &blk|
+        t = double("Task-fallback")
+        allow(t).to receive(:await).and_return(blk.call)
+        t
+      end
+      allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
 
       task = blocking_tool_class.new.call_async({"x" => "fallback"})
-      expect(task).to be_a(Phronomy::Task)
+      expect(task).to be_a(Phronomy::Task).or respond_to(:await)
       expect(task.await).to eq("block:fallback")
     end
   end

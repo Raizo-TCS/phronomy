@@ -105,7 +105,7 @@ module Phronomy
       if invocation_context
         config = _apply_invocation_context(config, invocation_context)
       end
-      Phronomy::Task.spawn do
+      Phronomy::Runtime.instance.spawn(name: "workflow-invoke-async") do
         invoke(input, config: config)
       end
     end

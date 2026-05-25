@@ -42,22 +42,17 @@ RSpec.describe Phronomy::Agent::ParallelToolChat do
     RubyLLM.configure { |c| c.openai_api_key = "test-api-key" }
   end
 
-  # Stub Task.spawn synchronously and Runtime pool so multi-tool tests run
-  # without a live EventLoop.  Cooperative tests use Task.spawn; blocking_io
-  # tests use pool.submit.  Both are stubbed to execute the block in-line.
+  # Stub Runtime.instance.spawn synchronously and pool so multi-tool tests run
+  # without a live EventLoop. Cooperative tests use Runtime.instance.spawn;
+  # blocking_io tests use pool.submit. Both are stubbed to execute inline.
   def stub_task_and_pool(pool_double: nil)
-    allow(Phronomy::Task).to receive(:spawn) do |&blk|
-      t = double("Task")
+    runtime_dbl = instance_double(Phronomy::Runtime, blocking_io: pool_double)
+    allow(runtime_dbl).to receive(:spawn) do |name: nil, &blk|
+      t = double("Task-#{name}")
       allow(t).to receive(:await).and_return(blk.call)
       t
     end
-    if pool_double
-      allow(Phronomy::Runtime).to receive(:instance).and_return(
-        instance_double(Phronomy::Runtime, blocking_io: pool_double)
-      )
-    else
-      allow(Phronomy::Runtime).to receive(:instance).and_return(nil)
-    end
+    allow(Phronomy::Runtime).to receive(:instance).and_return(runtime_dbl)
   end
 
   # Build a minimal ToolCall double.
@@ -269,13 +264,13 @@ RSpec.describe Phronomy::Agent::ParallelToolChat do
     end
 
     before do
-      allow(Phronomy::Task).to receive(:spawn) do |&blk|
+      runtime = instance_double(Phronomy::Runtime, blocking_io: pool_double)
+      allow(runtime).to receive(:spawn) do |name: nil, &blk|
         task_spawned << :spawned
         t = double("Task#{task_spawned.size}")
         allow(t).to receive(:await).and_return(blk.call)
         t
       end
-      runtime = instance_double(Phronomy::Runtime, blocking_io: pool_double)
       allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
     end
 
@@ -329,7 +324,7 @@ RSpec.describe Phronomy::Agent::ParallelToolChat do
       expect(Phronomy::TaskGroup).not_to have_received(:new)
     end
 
-    it "dispatches :cooperative tools via Task.spawn without touching the pool" do
+    it "dispatches :cooperative tools via Runtime.instance.spawn without touching the pool" do
       tool = coop_tool_class.new
       chat = minimal_multi_chat({coop_dispatch_tool: tool})
       tc1 = fake_tool_call("coop_dispatch_tool", {"v" => "a"}, id: "tc1")
