@@ -1468,4 +1468,20 @@ module IntegrationFactors
       "cooperative:#{input}"
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Group 38: :fiber backend cooperative runtime (Issue #339)
+  # ---------------------------------------------------------------------------
+
+  # Maps fb_subject label to a symbol for use in fiber_backend_spec.rb.
+  # Each label corresponds to a distinct cooperative-runtime scenario.
+  def self.fb_subject(label)
+    case label
+    when "spawn_await_value", "blocking_io_await", "async_queue_pop",
+         "spawn_child", "error_propagation", "cancellation", "timer_real_clock"
+      label.to_sym
+    else
+      raise ArgumentError, "Unknown fb_subject label: #{label}"
+    end
+  end
 end
