@@ -12,10 +12,11 @@ includes:
 requires:
   - phronomy
 
-subjects:
-  - Phronomy::WorkflowContext
-  - Phronomy::WorkflowRunner
-  - Phronomy::Tool::Base
-  - Phronomy::Context::TokenBudget
-  - Phronomy::Context::TokenEstimator
-  - Phronomy::VectorStore::InMemory
+matcher:
+  subjects:
+    - Phronomy::WorkflowContext
+    - Phronomy::WorkflowRunner
+    - Phronomy::Tool::Base
+    - Phronomy::Context::TokenBudget
+    - Phronomy::Context::TokenEstimator
+    - Phronomy::VectorStore::InMemory

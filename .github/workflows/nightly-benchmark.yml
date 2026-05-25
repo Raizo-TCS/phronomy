@@ -24,9 +24,35 @@ jobs:
           ruby-version: '3.2'
           bundler-cache: true
 
+      - name: Restore rolling benchmark baseline
+        id: restore-baseline
+        uses: actions/cache/restore@v4
+        with:
+          path: benchmark/rolling-baseline.json
+          key: nightly-bench-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            nightly-bench-${{ runner.os }}-
+
+      - name: Resolve baseline file path
+        id: baseline
+        run: |
+          if [ -f benchmark/rolling-baseline.json ]; then
+            echo "path=benchmark/rolling-baseline.json" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=benchmark/baseline.json" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run benchmark suite with regression comparison
         run: bundle exec ruby benchmark/run_all.rb
         env:
           BENCHMARK_MAX_SECONDS: "120"
-          BENCHMARK_BASELINE: "benchmark/baseline.json"
+          BENCHMARK_BASELINE: "${{ steps.baseline.outputs.path }}"
           BENCHMARK_REGRESSION_THRESHOLD: "20"
+          BENCHMARK_WRITE_BASELINE: "benchmark/rolling-baseline.json"
+
+      - name: Save new rolling baseline
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: benchmark/rolling-baseline.json
+          key: nightly-bench-${{ runner.os }}-${{ github.run_id }}
