@@ -107,11 +107,11 @@ module Phronomy
     # @api private
     def initialize(scheduler: ThreadScheduler.new)
       @scheduler = scheduler
-      @task_registry  = TaskRegistry.new
-      @metrics        = RuntimeMetrics.new
-      @gate_registry  = GateRegistry.new
-      @pool_registry  = PoolRegistry.new
-      @timer_service  = TimerService.new(scheduler)
+      @task_registry = TaskRegistry.new
+      @metrics = RuntimeMetrics.new
+      @gate_registry = GateRegistry.new
+      @pool_registry = PoolRegistry.new
+      @timer_service = TimerService.new(scheduler)
     end
 
     # Returns (or lazily creates) the {ConcurrencyGate} for the named resource.

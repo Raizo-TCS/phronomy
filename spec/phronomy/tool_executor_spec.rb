@@ -86,8 +86,10 @@ RSpec.describe Phronomy::ToolExecutor do
   describe "cpu_bound routing" do
     it "emits a deprecation-style warning and falls back to blocking_io" do
       tool = make_tool(:cpu_bound)
-      expect { described_class.call_async(tool: tool, args: {"x" => "cpu"},
-        runtime: runtime_with_pool) }
+      expect {
+        described_class.call_async(tool: tool, args: {"x" => "cpu"},
+          runtime: runtime_with_pool)
+      }
         .to output(/execution_mode :cpu_bound.*no dedicated executor|declares execution_mode :cpu_bound/im).to_stderr
     end
 
@@ -109,8 +111,10 @@ RSpec.describe Phronomy::ToolExecutor do
   describe "external_process routing" do
     it "emits a warning and falls back to blocking_io" do
       tool = make_tool(:external_process)
-      expect { described_class.call_async(tool: tool, args: {"x" => "ext"},
-        runtime: runtime_with_pool) }
+      expect {
+        described_class.call_async(tool: tool, args: {"x" => "ext"},
+          runtime: runtime_with_pool)
+      }
         .to output(/execution_mode :external_process|declares execution_mode :external_process/im).to_stderr
     end
   end
