@@ -83,6 +83,8 @@ module Phronomy
         @mutex = Mutex.new
         @virtual_time = 0.0
         @timer_heap = []  # Array of { fire_at:, callback: }
+        @real_timer_heap = []  # Array of [fire_at_monotonic, callback] for wall-clock timers
+        @clock = -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }
       end
 
       # Returns +true+ when this scheduler is in autorun mode.
@@ -165,13 +167,23 @@ module Phronomy
       end
 
       # Drains the ready queue by calling {#tick} until it is empty.
-      # Does not fire pending timers — call {#advance} separately to move the
-      # virtual clock and enqueue due timer callbacks.
+      # In autorun mode ({#autorun?} is +true+), also fires any wall-clock timers
+      # whose deadline has already passed before each drain attempt, continuing
+      # until both the ready queue and the due real-timer set are empty.
+      # Does not fire pending virtual timers — call {#advance} for those.
       #
       # @return [self]
       # @api private
       def run_until_idle
-        tick until idle?
+        if @autorun
+          loop do
+            fire_real_timers
+            tick until idle?
+            break if idle? && !real_timers_due?
+          end
+        else
+          tick until idle?
+        end
         self
       end
 
@@ -244,7 +256,59 @@ module Phronomy
         @mutex.synchronize { @timer_heap.dup }
       end
 
+      # Schedules +callback+ to fire +seconds+ from now (wall-clock time).
+      #
+      # Unlike {#schedule_after} (which uses virtual time), this method uses
+      # the real monotonic clock.  Callbacks are fired during {#run_until_idle}
+      # when {#autorun?} is +true+, or explicitly via {#fire_real_timers}.
+      #
+      # This is the integration point for {TimerQueue} replacement: when a
+      # {Runtime} is backed by a +DeterministicScheduler+, its {Runtime#timer_queue}
+      # returns a {SchedulerTimerAdapter} that delegates here instead of spawning
+      # a background OS thread.
+      #
+      # @param seconds [Numeric] delay before the callback fires
+      # @yield called when the deadline is reached
+      # @return [self]
+      # @api private
+      def schedule_real_after(seconds, &callback)
+        fire_at = @clock.call + seconds.to_f
+        @mutex.synchronize do
+          @real_timer_heap << [fire_at, callback]
+          @real_timer_heap.sort_by! { |(t, _)| t }
+        end
+        self
+      end
+
+      # Fires all wall-clock timer callbacks whose deadline has passed.
+      # Enqueues each fired callback onto the ready queue for scheduler dispatch.
+      #
+      # @return [self]
+      # @api private
+      def fire_real_timers
+        now = @clock.call
+        due = @mutex.synchronize do
+          ready, pending = @real_timer_heap.partition { |(t, _)| t <= now }
+          @real_timer_heap.replace(pending)
+          ready
+        end
+        due.each { |(_, cb)| enqueue_fiber(cb) }
+        self
+      end
+
+      # Returns the number of pending wall-clock timer entries (not yet fired).
+      # @return [Integer]
+      # @api private
+      def pending_real_timer_count
+        @mutex.synchronize { @real_timer_heap.size }
+      end
+
       private
+
+      def real_timers_due?
+        now = @clock.call
+        @mutex.synchronize { @real_timer_heap.any? { |(t, _)| t <= now } }
+      end
 
       def fire_due_timers
         due = @mutex.synchronize do

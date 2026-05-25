@@ -5,6 +5,7 @@ require_relative "runtime/thread_scheduler"
 require_relative "runtime/fake_scheduler"
 require_relative "runtime/deterministic_scheduler"
 require_relative "runtime/timer_queue"
+require_relative "runtime/scheduler_timer_adapter"
 
 module Phronomy
   # Central authority for concurrent primitives.
@@ -354,15 +355,30 @@ module Phronomy
       end
     end
 
-    # Returns the shared {TimerQueue} for this Runtime.
+    # Returns the shared timer queue for this Runtime.
+    #
+    # When the scheduler is a {DeterministicScheduler} (e.g. the +:fiber+
+    # runtime backend), returns a {SchedulerTimerAdapter} that integrates with
+    # the scheduler's tick cycle instead of spawning a background OS thread.
+    # This is the first concrete step of the TimerQueue scheduler-tick integration
+    # described in ADR-010 (Issue #331).
+    #
+    # For all other schedulers, returns a {TimerQueue} backed by a single
+    # background thread.
     #
     # All deadline-based cancellation should be registered here instead of
     # spawning one-off sleep threads.  Lazily created on first access.
     #
-    # @return [TimerQueue]
+    # @return [TimerQueue, SchedulerTimerAdapter]
     # @api private
     def timer_queue
-      @timer_mutex.synchronize { @timer_queue ||= TimerQueue.new }
+      @timer_mutex.synchronize do
+        @timer_queue ||= if @scheduler.is_a?(DeterministicScheduler)
+          SchedulerTimerAdapter.new(@scheduler)
+        else
+          TimerQueue.new
+        end
+      end
     end
 
     # Waits for all registered tasks to finish, then shuts down the
