@@ -97,7 +97,7 @@
   <dl>
     <dt>Defined in:</dt>
     <dd>lib/phronomy/task.rb<span class="defines">,<br>
-  lib/phronomy/task/backend.rb,<br> lib/phronomy/task/thread_backend.rb,<br> lib/phronomy/task/immediate_backend.rb</span>
+  lib/phronomy/task/backend.rb,<br> lib/phronomy/task/fiber_backend.rb,<br> lib/phronomy/task/thread_backend.rb,<br> lib/phronomy/task/immediate_backend.rb</span>
 
 </dd>
   </dl>
@@ -147,7 +147,7 @@ by passing <code>backend_class:</code> to <span class='object_link'><a href="#sp
     
   
     
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Task/Backend.html" title="Phronomy::Task::Backend (class)">Backend</a></span>, <span class='object_link'><a href="Task/ImmediateBackend.html" title="Phronomy::Task::ImmediateBackend (class)">ImmediateBackend</a></span>, <span class='object_link'><a href="Task/ThreadBackend.html" title="Phronomy::Task::ThreadBackend (class)">ThreadBackend</a></span>
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Task/Backend.html" title="Phronomy::Task::Backend (class)">Backend</a></span>, <span class='object_link'><a href="Task/FiberBackend.html" title="Phronomy::Task::FiberBackend (class)">FiberBackend</a></span>, <span class='object_link'><a href="Task/ImmediateBackend.html" title="Phronomy::Task::ImmediateBackend (class)">ImmediateBackend</a></span>, <span class='object_link'><a href="Task/ThreadBackend.html" title="Phronomy::Task::ThreadBackend (class)">ThreadBackend</a></span>
     
   
 </p>
@@ -174,6 +174,29 @@ by passing <code>backend_class:</code> to <span class='object_link'><a href="#sp
         </dt>
         <dd><pre class="code"><span class='qsymbols_beg'>%i[</span><span class='tstring_content'>pending</span><span class='words_sep'> </span><span class='tstring_content'>running</span><span class='words_sep'> </span><span class='tstring_content'>completed</span><span class='words_sep'> </span><span class='tstring_content'>failed</span><span class='words_sep'> </span><span class='tstring_content'>cancelled</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
       
+        <dt id="SCHEDULER_KEY-constant" class="">SCHEDULER_KEY =
+          <div class="docstring">
+  <div class="discussion">
+    <p>Cooperative task backend using Ruby Fibers.</p>
+<p>Unlike <span class='object_link'><a href="Task/ImmediateBackend.html" title="Phronomy::Task::ImmediateBackend (class)">ImmediateBackend</a></span> (which runs the block to completion on the
+calling thread) or <span class='object_link'><a href="Task/ThreadBackend.html" title="Phronomy::Task::ThreadBackend (class)">ThreadBackend</a></span> (which runs the block on a new OS
+thread), <code>FiberBackend</code> wraps the block in a <code>Fiber</code> that is NOT started
+immediately.  The owning scheduler calls #step to advance execution one
+cooperative step at a time.</p>
+<p>This backend is used exclusively by <span class='object_link'><a href="Runtime/DeterministicScheduler.html" title="Phronomy::Runtime::DeterministicScheduler (class)">Runtime::DeterministicScheduler</a></span> to
+enable deterministic, wall-clock-free testing of concurrent logic.</p>
+<p>Thread-local key under which the currently active DeterministicScheduler
+is stored so that <span class='object_link'><a href="#await-instance_method" title="Phronomy::Task#await (method)">#await</a></span> can suspend cooperatively.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='symbol'>:phronomy_deterministic_scheduler</span></pre></dd>
+      
     </dl>
   
 
@@ -182,6 +205,33 @@ by passing <code>backend_class:</code> to <span class='object_link'><a href="#sp
 
   <h2>Instance Attribute Summary <small><a href="#" class="summary_toggle">collapse</a></small></h2>
   <ul class="summary">
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#backend-instance_method" title="#backend (instance method)">#<strong>backend</strong>  &#x21d2; Backend </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>The execution backend for this task.</p></div></span>
+  
+</li>
+
     
       <li class="public ">
   <span class="summary_signature">
@@ -573,6 +623,28 @@ by passing <code>backend_class:</code> to <span class='object_link'><a href="#sp
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#on_complete-instance_method" title="#on_complete (instance method)">#<strong>on_complete</strong> {|value, error| ... } &#x21d2; self </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Registers a callback to be invoked when the task reaches a terminal state (+:completed+, <code>:failed</code>, or <code>:cancelled</code>).</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#register_child-instance_method" title="#register_child (instance method)">#<strong>register_child</strong>(child)  &#x21d2; Object </a>
     
 
@@ -617,7 +689,7 @@ by passing <code>backend_class:</code> to <span class='object_link'><a href="#sp
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#transition!-instance_method" title="#transition! (instance method)">#<strong>transition!</strong>(new_status)  &#x21d2; Object </a>
+      <a href="#transition!-instance_method" title="#transition! (instance method)">#<strong>transition!</strong>(new_status, value: nil, error: nil)  &#x21d2; Object </a>
     
 
     
@@ -710,18 +782,21 @@ by passing <code>backend_class:</code> to <span class='object_link'><a href="#sp
       <pre class="lines">
 
 
-127
-128
-129
-130
-131
 132
 133
 134
-135</pre>
+135
+136
+137
+138
+139
+140
+141
+142
+143</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 127</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 132</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>name:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>parent:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>backend_class:</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_default_backend_class'>default_backend_class</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@name</span> <span class='op'>=</span> <span class='id identifier rubyid_name'>name</span>
@@ -729,6 +804,9 @@ by passing <code>backend_class:</code> to <span class='object_link'><a href="#sp
   <span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:pending</span>
   <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@children</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+  <span class='ivar'>@on_complete_callbacks</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+  <span class='ivar'>@completed_value</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@completed_error</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='id identifier rubyid_parent'>parent</span><span class='op'>&amp;.</span><span class='id identifier rubyid_register_child'>register_child</span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
   <span class='ivar'>@backend</span> <span class='op'>=</span> <span class='id identifier rubyid_backend_class'>backend_class</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>task:</span> <span class='kw'>self</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
@@ -745,7 +823,68 @@ by passing <code>backend_class:</code> to <span class='object_link'><a href="#sp
       
       <span id=""></span>
       <div class="method_details first">
-  <h3 class="signature first" id="name-instance_method">
+  <h3 class="signature first" id="backend-instance_method">
+  
+    #<strong>backend</strong>  &#x21d2; <tt><span class='object_link'><a href="Task/Backend.html" title="Phronomy::Task::Backend (class)">Backend</a></span></tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns the execution backend for this task.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Task/Backend.html" title="Phronomy::Task::Backend (class)">Backend</a></span></tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>the execution backend for this task</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+126
+127
+128</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 126</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_backend'>backend</span>
+  <span class='ivar'>@backend</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="name-instance_method">
   
     #<strong>name</strong>  &#x21d2; <tt>String</tt><sup>?</sup>  <span class="extras">(readonly)</span>
   
@@ -784,12 +923,12 @@ by passing <code>backend_class:</code> to <span class='object_link'><a href="#sp
       <pre class="lines">
 
 
-118
 119
-120</pre>
+120
+121</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 118</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 119</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_name'>name</span>
   <span class='ivar'>@name</span>
@@ -841,12 +980,12 @@ by passing <code>backend_class:</code> to <span class='object_link'><a href="#sp
       <pre class="lines">
 
 
-121
 122
-123</pre>
+123
+124</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 121</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 122</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_parent'>parent</span>
   <span class='ivar'>@parent</span>
@@ -912,15 +1051,15 @@ primary cancellation mechanism.</p>
       <pre class="lines">
 
 
-97
 98
 99
 100
 101
-102</pre>
+102
+103</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 97</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 98</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_checkpoint!'>checkpoint!</span>
   <span class='id identifier rubyid_ct'>ct</span> <span class='op'>=</span> <span class='id identifier rubyid_current'>current</span>
@@ -975,12 +1114,12 @@ Returns <code>nil</code> when called from outside a task-managed execution conte
       <pre class="lines">
 
 
-51
 52
-53</pre>
+53
+54</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 51</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 52</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span>
   <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='lbracket'>[</span><span class='symbol'>:phronomy_current_task</span><span class='rbracket'>]</span>
@@ -1034,12 +1173,12 @@ Used by <span class='object_link'><a href="Runtime.html#yield-instance_method" t
       <pre class="lines">
 
 
-61
 62
-63</pre>
+63
+64</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 61</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 62</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_current_cpu_slice_start_ms'>current_cpu_slice_start_ms</span>
   <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='lbracket'>[</span><span class='symbol'>:phronomy_task_cpu_slice_start_ms</span><span class='rbracket'>]</span>
@@ -1092,12 +1231,12 @@ Override in tests or to enable a cooperative scheduler backend.</p>
       <pre class="lines">
 
 
-36
 37
-38</pre>
+38
+39</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 36</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 37</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_default_backend_class'>default_backend_class</span>
   <span class='ivar'>@default_backend_class</span> <span class='op'>||</span> <span class='const'><span class='object_link'><a href="Task/ThreadBackend.html" title="Phronomy::Task::ThreadBackend (class)">ThreadBackend</a></span></span>
@@ -1150,12 +1289,12 @@ Override in tests or to enable a cooperative scheduler backend.</p>
       <pre class="lines">
 
 
-43
 44
-45</pre>
+45
+46</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 44</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_default_backend_class='>default_backend_class=</span><span class='lparen'>(</span><span class='id identifier rubyid_klass'>klass</span><span class='rparen'>)</span>
   <span class='ivar'>@default_backend_class</span> <span class='op'>=</span> <span class='id identifier rubyid_klass'>klass</span>
@@ -1212,14 +1351,14 @@ Thread.current allowlist).</p>
       <pre class="lines">
 
 
-80
 81
 82
 83
-84</pre>
+84
+85</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 80</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 81</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_increment_yield_counter!'>increment_yield_counter!</span>
   <span class='id identifier rubyid_count'>count</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='lbracket'>[</span><span class='symbol'>:phronomy_yield_if_needed_counter</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='int'>0</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='int'>1</span>
@@ -1261,13 +1400,13 @@ that the next yield correctly measures only the time since the last yield.</p>
       <pre class="lines">
 
 
-69
 70
 71
-72</pre>
+72
+73</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 69</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 70</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_record_yield!'>record_yield!</span>
   <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='lbracket'>[</span><span class='symbol'>:phronomy_task_cpu_slice_start_ms</span><span class='rbracket'>]</span> <span class='op'>=</span>
@@ -1388,12 +1527,12 @@ also cancels this task (default: currently running task)</p></div>
       <pre class="lines">
 
 
-113
 114
-115</pre>
+115
+116</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 113</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 114</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_spawn'>spawn</span><span class='lparen'>(</span><span class='label'>name:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>parent:</span> <span class='id identifier rubyid_current'>current</span><span class='comma'>,</span> <span class='label'>backend_class:</span> <span class='id identifier rubyid_default_backend_class'>default_backend_class</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>name:</span> <span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>parent:</span> <span class='id identifier rubyid_parent'>parent</span><span class='comma'>,</span> <span class='label'>backend_class:</span> <span class='id identifier rubyid_backend_class'>backend_class</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
@@ -1450,12 +1589,12 @@ also cancels this task (default: currently running task)</p></div>
       <pre class="lines">
 
 
-190
-191
-192</pre>
+231
+232
+233</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 190</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 231</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_alive?'>alive?</span>
   <span class='ivar'>@backend</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
@@ -1526,12 +1665,12 @@ Re-raises any exception raised inside the block.</p>
       <pre class="lines">
 
 
-150
-151
-152</pre>
+158
+159
+160</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 150</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 158</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_await'>await</span>
   <span class='ivar'>@backend</span><span class='period'>.</span><span class='id identifier rubyid_await'>await</span>
@@ -1558,7 +1697,9 @@ Re-raises any exception raised inside the block.</p>
 </p>
 <p>Requests cancellation.  Propagates to all registered child tasks.
 Sets status to :cancelled immediately so that even tasks that have not
-started executing yet are correctly marked as cancelled after join.</p>
+started executing yet are correctly marked as cancelled after join.
+Passes a CancellationError to on_complete callbacks so callers do not
+need to call await to discover the error.</p>
 
   </div>
 </div>
@@ -1584,22 +1725,22 @@ started executing yet are correctly marked as cancelled after join.</p>
       <pre class="lines">
 
 
-166
-167
-168
-169
-170
-171
-172
-173
-174
-175</pre>
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 166</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 207</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancel!'>cancel!</span>
-  <span class='id identifier rubyid_transition!'>transition!</span><span class='lparen'>(</span><span class='symbol'>:cancelled</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_transition!'>transition!</span><span class='lparen'>(</span><span class='symbol'>:cancelled</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='const'><span class='object_link'><a href="CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Task cancelled</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='comment'># @backend may be nil if cancel! is called while ImmediateBackend is still
 </span>  <span class='comment'># initializing (the block runs synchronously inside .new, so register_child
 </span>  <span class='comment'># fires before @backend is assigned).  Safe-navigate to avoid NoMethodError.
@@ -1654,12 +1795,12 @@ started executing yet are correctly marked as cancelled after join.</p>
       <pre class="lines">
 
 
-157
-158
-159</pre>
+196
+197
+198</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 157</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 196</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_done?'>done?</span>
   <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>completed</span><span class='words_sep'> </span><span class='tstring_content'>failed</span><span class='words_sep'> </span><span class='tstring_content'>cancelled</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_status'>status</span><span class='rparen'>)</span>
@@ -1731,15 +1872,120 @@ Returns <code>nil</code> when the timeout expires before completion.</p>
       <pre class="lines">
 
 
-183
-184
-185</pre>
+224
+225
+226</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 183</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 224</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='id identifier rubyid_limit'>limit</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@backend</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='id identifier rubyid_limit'>limit</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="on_complete-instance_method">
+  
+    #<strong>on_complete</strong> {|value, error| ... } &#x21d2; <tt>self</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Registers a callback to be invoked when the task reaches a terminal state
+(+:completed+, <code>:failed</code>, or <code>:cancelled</code>).</p>
+<p>The callback receives two arguments: <code>value</code> (the task's return value,
+or <code>nil</code>) and <code>error</code> (the exception, or <code>nil</code>).  These are provided
+directly so the callback does not need to call <code>task.await</code>, which would
+risk a self-join error when the callback runs inside the task's own thread.</p>
+<p>If the task is already done when this method is called, the callback is
+invoked immediately (synchronously, on the calling thread).</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Yields:</p>
+<ul class="yield">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>value</tt>, <tt>error</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>called when the task finishes</p></div>
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>self</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 176</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_on_complete'>on_complete</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_fire_now'>fire_now</span> <span class='op'>=</span> <span class='kw'>false</span>
+  <span class='id identifier rubyid_fire_args'>fire_args</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='comment'># Check @status directly to avoid re-entering the mutex (done? calls
+</span>    <span class='comment'># status, which also takes @mutex).
+</span>    <span class='kw'>if</span> <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>completed</span><span class='words_sep'> </span><span class='tstring_content'>failed</span><span class='words_sep'> </span><span class='tstring_content'>cancelled</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='ivar'>@status</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_fire_now'>fire_now</span> <span class='op'>=</span> <span class='kw'>true</span>
+      <span class='id identifier rubyid_fire_args'>fire_args</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='ivar'>@completed_value</span><span class='comma'>,</span> <span class='ivar'>@completed_error</span><span class='rbracket'>]</span>
+    <span class='kw'>else</span>
+      <span class='ivar'>@on_complete_callbacks</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_callback'>callback</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_callback'>callback</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_fire_args'>fire_args</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_fire_now'>fire_now</span>
+  <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1790,12 +2036,12 @@ Called automatically during child task initialization.</p>
       <pre class="lines">
 
 
-212
-213
-214</pre>
+266
+267
+268</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 212</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 266</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_register_child'>register_child</span><span class='lparen'>(</span><span class='id identifier rubyid_child'>child</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@children</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_child'>child</span> <span class='rbrace'>}</span>
@@ -1849,12 +2095,12 @@ Called automatically during child task initialization.</p>
       <pre class="lines">
 
 
-140
-141
-142</pre>
+148
+149
+150</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 140</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 148</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_status'>status</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@status</span> <span class='rbrace'>}</span>
@@ -1867,7 +2113,7 @@ Called automatically during child task initialization.</p>
       <div class="method_details ">
   <h3 class="signature " id="transition!-instance_method">
   
-    #<strong>transition!</strong>(new_status)  &#x21d2; <tt>Object</tt> 
+    #<strong>transition!</strong>(new_status, value: nil, error: nil)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -1881,7 +2127,9 @@ Called automatically during child task initialization.</p>
 </p>
 <p>Updates the task lifecycle state.
 Called by backends during execution transitions.
-Terminal states (completed/failed/cancelled) are never overwritten.</p>
+Terminal states (completed/failed/cancelled) are never overwritten.
+When a terminal state is reached, fires on_complete callbacks (outside
+the mutex) passing the result value and error directly.</p>
 
   </div>
 </div>
@@ -1900,6 +2148,38 @@ Terminal states (completed/failed/cancelled) are never overwritten.</p>
       
     </li>
   
+    <li>
+      
+        <span class='name'>value</span>
+      
+      
+        <span class='type'>(<tt>Object</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>task return value (terminal states only)</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>error</span>
+      
+      
+        <span class='type'>(<tt>Exception</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>exception raised by the block, if any</p></div>
+      
+    </li>
+  
 </ul>
 
 
@@ -1909,25 +2189,41 @@ Terminal states (completed/failed/cancelled) are never overwritten.</p>
       <pre class="lines">
 
 
-199
-200
-201
-202
-203
-204
-205
-206</pre>
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 199</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task.rb', line 245</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_transition!'>transition!</span><span class='lparen'>(</span><span class='id identifier rubyid_new_status'>new_status</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_transition!'>transition!</span><span class='lparen'>(</span><span class='id identifier rubyid_new_status'>new_status</span><span class='comma'>,</span> <span class='label'>value:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_callbacks'>callbacks</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='comment'># Check @status directly (not via #done?) to avoid re-entering the mutex.
 </span>    <span class='kw'>return</span> <span class='kw'>if</span> <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>completed</span><span class='words_sep'> </span><span class='tstring_content'>failed</span><span class='words_sep'> </span><span class='tstring_content'>cancelled</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='ivar'>@status</span><span class='rparen'>)</span>
 
     <span class='ivar'>@status</span> <span class='op'>=</span> <span class='id identifier rubyid_new_status'>new_status</span>
+    <span class='kw'>if</span> <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>completed</span><span class='words_sep'> </span><span class='tstring_content'>failed</span><span class='words_sep'> </span><span class='tstring_content'>cancelled</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_new_status'>new_status</span><span class='rparen'>)</span>
+      <span class='ivar'>@completed_value</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span>
+      <span class='ivar'>@completed_error</span> <span class='op'>=</span> <span class='id identifier rubyid_error'>error</span>
+      <span class='id identifier rubyid_callbacks'>callbacks</span> <span class='op'>=</span> <span class='ivar'>@on_complete_callbacks</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
+      <span class='ivar'>@on_complete_callbacks</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span>
+    <span class='kw'>end</span>
   <span class='kw'>end</span>
+  <span class='id identifier rubyid_callbacks'>callbacks</span><span class='op'>&amp;.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_cb'>cb</span><span class='op'>|</span> <span class='id identifier rubyid_cb'>cb</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1939,7 +2235,7 @@ Terminal states (completed/failed/cancelled) are never overwritten.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 00:33:09 2026 by
+  Generated on Mon May 25 02:39:00 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

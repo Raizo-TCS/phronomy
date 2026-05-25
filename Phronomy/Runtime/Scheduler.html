@@ -118,8 +118,38 @@ objects and never interact with the scheduler directly.</p>
 
 </div><div id="subclasses">
   <h2>Direct Known Subclasses</h2>
-  <p class="children"><span class='object_link'><a href="FakeScheduler.html" title="Phronomy::Runtime::FakeScheduler (class)">FakeScheduler</a></span>, <span class='object_link'><a href="ThreadScheduler.html" title="Phronomy::Runtime::ThreadScheduler (class)">ThreadScheduler</a></span></p>
+  <p class="children"><span class='object_link'><a href="DeterministicScheduler.html" title="Phronomy::Runtime::DeterministicScheduler (class)">DeterministicScheduler</a></span>, <span class='object_link'><a href="FakeScheduler.html" title="Phronomy::Runtime::FakeScheduler (class)">FakeScheduler</a></span>, <span class='object_link'><a href="ThreadScheduler.html" title="Phronomy::Runtime::ThreadScheduler (class)">ThreadScheduler</a></span></p>
 </div>
+
+  
+    <h2>
+      Constant Summary
+      <small><a href="#" class="constants_summary_toggle">collapse</a></small>
+    </h2>
+
+    <dl class="constants">
+      
+        <dt id="SCHEDULER_KEY-constant" class="">SCHEDULER_KEY =
+          <div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This constant is part of a private API.</strong>
+  You should avoid using this constant if possible, as it may be removed or be changed in the future.
+</p>
+<p>Thread-local key under which the active scheduler is stored.
+Shared with <span class='object_link'><a href="../Task/FiberBackend.html" title="Phronomy::Task::FiberBackend (class)">Task::FiberBackend</a></span> (same symbol).</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='symbol'>:phronomy_deterministic_scheduler</span></pre></dd>
+      
+    </dl>
+  
 
 
 
@@ -129,11 +159,109 @@ objects and never interact with the scheduler directly.</p>
 
   
     <h2>
+      Class Method Summary
+      <small><a href="#" class="summary_toggle">collapse</a></small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#current-class_method" title="current (class method)">.<strong>current</strong>  &#x21d2; Scheduler<sup>?</sup> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the scheduler currently dispatching on this OS thread, or <code>nil</code> when running outside a cooperative (Fiber-based) scheduler context.</p></div></span>
+  
+</li>
+
+      
+    </ul>
+    
+  
+    <h2>
       Instance Method Summary
       <small><a href="#" class="summary_toggle">collapse</a></small>
     </h2>
 
     <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#new_signal-instance_method" title="#new_signal (instance method)">#<strong>new_signal</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Creates a new scheduler-aware signal object for this scheduler.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#raise_signal-instance_method" title="#raise_signal (instance method)">#<strong>raise_signal</strong>(signal)  &#x21d2; void </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Wakes up one waiter suspended on <code>signal</code>.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#raise_signal_all-instance_method" title="#raise_signal_all (instance method)">#<strong>raise_signal_all</strong>(signal)  &#x21d2; void </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Wakes up all waiters suspended on <code>signal</code>.</p></div></span>
+  
+</li>
+
       
         <li class="public ">
   <span class="summary_signature">
@@ -153,6 +281,28 @@ objects and never interact with the scheduler directly.</p>
 
   
     <span class="summary_desc"><div class='inline'><p>Spawns a new task.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#wait_for_signal-instance_method" title="#wait_for_signal (instance method)">#<strong>wait_for_signal</strong>(signal)  &#x21d2; void </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Suspends the current execution unit (Fiber or Thread) until <code>signal</code> is raised via <span class='object_link'><a href="#raise_signal-instance_method" title="Phronomy::Runtime::Scheduler#raise_signal (method)">#raise_signal</a></span>.</p></div></span>
   
 </li>
 
@@ -185,12 +335,303 @@ objects and never interact with the scheduler directly.</p>
 
 
 
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="current-class_method">
+  
+    .<strong>current</strong>  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Runtime::Scheduler (class)">Scheduler</a></span></tt><sup>?</sup> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns the scheduler currently dispatching on this OS thread, or <code>nil</code>
+when running outside a cooperative (Fiber-based) scheduler context.</p>
+<p>Uses <code>Thread#thread_variable_get</code> (not <code>Thread#[]</code>) so that the value is
+visible across all Fibers running on the same OS thread.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="" title="Phronomy::Runtime::Scheduler (class)">Scheduler</a></span></tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+27
+28
+29</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler.rb', line 27</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span>
+  <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_thread_variable_get'>thread_variable_get</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="#SCHEDULER_KEY-constant" title="Phronomy::Runtime::Scheduler::SCHEDULER_KEY (constant)">SCHEDULER_KEY</a></span></span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
   <div id="instance_method_details" class="method_details_list">
     <h2>Instance Method Details</h2>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="spawn-instance_method">
+  <h3 class="signature first" id="new_signal-instance_method">
+  
+    #<strong>new_signal</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Creates a new scheduler-aware signal object for this scheduler.
+Signalling primitives use this instead of <code>ConditionVariable</code> when a
+cooperative scheduler is active.</p>
+<p>Default implementation raises <code>NotImplementedError</code>.  Subclasses that
+support cooperative suspension (e.g. <span class='object_link'><a href="DeterministicScheduler.html" title="Phronomy::Runtime::DeterministicScheduler (class)">DeterministicScheduler</a></span>) must
+override this.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Object</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>an opaque signal handle understood by <span class='object_link'><a href="#wait_for_signal-instance_method" title="Phronomy::Runtime::Scheduler#wait_for_signal (method)">#wait_for_signal</a></span>
+and <span class='object_link'><a href="#raise_signal-instance_method" title="Phronomy::Runtime::Scheduler#raise_signal (method)">#raise_signal</a></span></p></div>
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>NotImplementedError</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+42
+43
+44</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler.rb', line 42</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_new_signal'>new_signal</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#new_signal is not implemented</span><span class='tstring_end'>&quot;</span></span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="raise_signal-instance_method">
+  
+    #<strong>raise_signal</strong>(signal)  &#x21d2; <tt>void</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p class="note returns_void">This method returns an undefined value.</p><p>Wakes up one waiter suspended on <code>signal</code>.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>signal</span>
+      
+      
+        <span class='type'>(<tt>Object</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>signal handle returned by <span class='object_link'><a href="#new_signal-instance_method" title="Phronomy::Runtime::Scheduler#new_signal (method)">#new_signal</a></span></p></div>
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>NotImplementedError</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+61
+62
+63</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler.rb', line 61</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_raise_signal'>raise_signal</span><span class='lparen'>(</span><span class='id identifier rubyid_signal'>signal</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#raise_signal is not implemented</span><span class='tstring_end'>&quot;</span></span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="raise_signal_all-instance_method">
+  
+    #<strong>raise_signal_all</strong>(signal)  &#x21d2; <tt>void</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p class="note returns_void">This method returns an undefined value.</p><p>Wakes up all waiters suspended on <code>signal</code>.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>signal</span>
+      
+      
+        <span class='type'>(<tt>Object</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>signal handle returned by <span class='object_link'><a href="#new_signal-instance_method" title="Phronomy::Runtime::Scheduler#new_signal (method)">#new_signal</a></span></p></div>
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>NotImplementedError</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+70
+71
+72</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler.rb', line 70</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_raise_signal_all'>raise_signal_all</span><span class='lparen'>(</span><span class='id identifier rubyid_signal'>signal</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#raise_signal_all is not implemented</span><span class='tstring_end'>&quot;</span></span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="spawn-instance_method">
   
     #<strong>spawn</strong>(name:, parent:) { ... } &#x21d2; <tt><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></tt> 
   
@@ -292,15 +733,90 @@ the concrete scheduler)</p></div>
       <pre class="lines">
 
 
-22
-23
-24</pre>
+82
+83
+84</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler.rb', line 22</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler.rb', line 82</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_spawn'>spawn</span><span class='lparen'>(</span><span class='label'>name:</span><span class='comma'>,</span> <span class='label'>parent:</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#spawn is not implemented</span><span class='tstring_end'>&quot;</span></span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="wait_for_signal-instance_method">
+  
+    #<strong>wait_for_signal</strong>(signal)  &#x21d2; <tt>void</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p class="note returns_void">This method returns an undefined value.</p><p>Suspends the current execution unit (Fiber or Thread) until <code>signal</code> is
+raised via <span class='object_link'><a href="#raise_signal-instance_method" title="Phronomy::Runtime::Scheduler#raise_signal (method)">#raise_signal</a></span>.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>signal</span>
+      
+      
+        <span class='type'>(<tt>Object</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>signal handle returned by <span class='object_link'><a href="#new_signal-instance_method" title="Phronomy::Runtime::Scheduler#new_signal (method)">#new_signal</a></span></p></div>
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>NotImplementedError</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+52
+53
+54</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler.rb', line 52</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_wait_for_signal'>wait_for_signal</span><span class='lparen'>(</span><span class='id identifier rubyid_signal'>signal</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#wait_for_signal is not implemented</span><span class='tstring_end'>&quot;</span></span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -338,12 +854,12 @@ next runnable fiber.</p>
       <pre class="lines">
 
 
-33
-34
-35</pre>
+93
+94
+95</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler.rb', line 33</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler.rb', line 93</span>
 
 <span class='kw'>def</span> <span class='kw'>yield</span>
   <span class='comment'># no-op by default; subclasses override
@@ -358,7 +874,7 @@ next runnable fiber.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 00:33:11 2026 by
+  Generated on Mon May 25 02:39:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>

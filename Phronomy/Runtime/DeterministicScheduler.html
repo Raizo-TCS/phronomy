@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>
+  Class: Phronomy::Runtime::DeterministicScheduler
+  
+    &mdash; Documentation by YARD 0.9.43
+  
+</title>
+
+  <link rel="stylesheet" href="../../css/style.css" type="text/css">
+
+  <link rel="stylesheet" href="../../css/common.css" type="text/css">
+
+<script type="text/javascript">
+  pathId = "Phronomy::Runtime::DeterministicScheduler";
+  relpath = '../../';
+</script>
+
+
+  <script type="text/javascript" charset="utf-8" src="../../js/jquery.js"></script>
+
+  <script type="text/javascript" charset="utf-8" src="../../js/app.js"></script>
+
+
+  </head>
+  <body>
+    <div id="main_progress" aria-hidden="true"></div>
+
+    <div class="nav_wrap">
+      <iframe id="nav" src="../../class_list.html?1"></iframe>
+      <div id="resizer"></div>
+    </div>
+
+    <div id="main" tabindex="-1">
+      <div id="header">
+        <div id="menu">
+  
+    <a href="../../_index.html">Index (D)</a> &raquo;
+    <span class='title'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span>
+     &raquo; 
+    <span class="title">DeterministicScheduler</span>
+  
+</div>
+
+        <div id="search">
+  
+    <a class="full_list_link" id="class_list_link"
+        href="../../class_list.html">
+
+        <svg width="24" height="24">
+          <rect x="0" y="4" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="12" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="20" width="24" height="4" rx="1" ry="1"></rect>
+        </svg>
+    </a>
+  
+</div>
+        <div class="clear"></div>
+      </div>
+
+      <div id="content"><h1>Class: Phronomy::Runtime::DeterministicScheduler
+  
+  
+  
+</h1>
+<div class="box_info">
+  
+  <dl>
+    <dt>Inherits:</dt>
+    <dd>
+      <span class="inheritName"><span class='object_link'><a href="Scheduler.html" title="Phronomy::Runtime::Scheduler (class)">Scheduler</a></span></span>
+      
+        <ul class="fullTree">
+          <li>Object</li>
+          
+            <li class="next"><span class='object_link'><a href="Scheduler.html" title="Phronomy::Runtime::Scheduler (class)">Scheduler</a></span></li>
+          
+            <li class="next">Phronomy::Runtime::DeterministicScheduler</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+    </dd>
+  </dl>
+  
+
+  
+  
+  
+  
+  
+
+  
+
+  
+  <dl>
+    <dt>Defined in:</dt>
+    <dd>lib/phronomy/runtime/deterministic_scheduler.rb
+</dd>
+  </dl>
+  
+</div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>Tick-based deterministic cooperative scheduler for testing.</p>
+<p>Unlike <span class='object_link'><a href="FakeScheduler.html" title="Phronomy::Runtime::FakeScheduler (class)">FakeScheduler</a></span> (which runs every task synchronously to completion
+before <code>spawn</code> returns), <code>DeterministicScheduler</code> pushes each task to a
+ready queue and only advances execution one step at a time via <span class='object_link'><a href="#tick-instance_method" title="Phronomy::Runtime::DeterministicScheduler#tick (method)">#tick</a></span>.
+This makes it possible to test:</p>
+<ul>
+<li>Task interleaving (two tasks yielding control back and forth)</li>
+<li>Virtual-time timer firing order</li>
+<li><code>await</code> suspension and resumption</li>
+<li>Cancellation while a task is suspended</li>
+</ul>
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="examples">
+    <h4 class="tag_title">Examples:</h4>
+    
+      
+        <h5 class="example_title"><div class='inline'><p>Basic usage</p></div></h5>
+      
+      <pre class="example code"><code><span class='id identifier rubyid_sched'>sched</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='op'>::</span><span class='const'>DeterministicScheduler</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Runtime::DeterministicScheduler#initialize (method)">new</a></span></span>
+<span class='id identifier rubyid_rt'>rt</span>    <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Runtime.html#initialize-instance_method" title="Phronomy::Runtime#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>scheduler:</span> <span class='id identifier rubyid_sched'>sched</span><span class='rparen'>)</span>
+
+<span class='id identifier rubyid_rt'>rt</span><span class='period'>.</span><span class='id identifier rubyid_spawn'>spawn</span> <span class='lbrace'>{</span> <span class='const'>Fiber</span><span class='period'>.</span><span class='id identifier rubyid_yield'>yield</span><span class='semicolon'>;</span> <span class='symbol'>:done</span> <span class='rbrace'>}</span>   <span class='comment'># not started yet
+</span><span class='id identifier rubyid_sched'>sched</span><span class='period'>.</span><span class='id identifier rubyid_tick'>tick</span>                        <span class='comment'># runs until first Fiber.yield
+</span><span class='id identifier rubyid_sched'>sched</span><span class='period'>.</span><span class='id identifier rubyid_tick'>tick</span>                        <span class='comment'># runs to completion
+</span><span class='id identifier rubyid_sched'>sched</span><span class='period'>.</span><span class='id identifier rubyid_run_until_idle'>run_until_idle</span>              <span class='comment'># same as calling tick until empty</span></code></pre>
+    
+      
+        <h5 class="example_title"><div class='inline'><p>Virtual clock</p></div></h5>
+      
+      <pre class="example code"><code><span class='id identifier rubyid_sched'>sched</span><span class='period'>.</span><span class='id identifier rubyid_schedule_after'>schedule_after</span><span class='lparen'>(</span><span class='float'>1.0</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>fired at T=1</span><span class='tstring_end'>&quot;</span></span> <span class='rbrace'>}</span>
+<span class='id identifier rubyid_sched'>sched</span><span class='period'>.</span><span class='id identifier rubyid_advance'>advance</span><span class='lparen'>(</span><span class='float'>1.0</span><span class='rparen'>)</span>    <span class='comment'># moves virtual clock forward, fires the timer
+</span><span class='id identifier rubyid_sched'>sched</span><span class='period'>.</span><span class='id identifier rubyid_run_until_idle'>run_until_idle</span>  <span class='comment'># dispatches the timer callback</span></code></pre>
+    
+  </div>
+
+
+</div><h2>Defined Under Namespace</h2>
+<p class="children">
+  
+    
+  
+    
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="DeterministicScheduler/CoopSignal.html" title="Phronomy::Runtime::DeterministicScheduler::CoopSignal (class)">CoopSignal</a></span>
+    
+  
+</p>
+
+
+
+  <h2>Constant Summary</h2>
+  
+  <h3 class="inherited">Constants inherited
+     from <span class='object_link'><a href="Scheduler.html" title="Phronomy::Runtime::Scheduler (class)">Scheduler</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="Scheduler.html#SCHEDULER_KEY-constant" title="Phronomy::Runtime::Scheduler::SCHEDULER_KEY (constant)">Scheduler::SCHEDULER_KEY</a></span></p>
+
+
+  <h2>Instance Attribute Summary <small><a href="#" class="summary_toggle">collapse</a></small></h2>
+  <ul class="summary">
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#virtual_time-instance_method" title="#virtual_time (instance method)">#<strong>virtual_time</strong>  &#x21d2; Float </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Current virtual clock time (seconds since scheduler creation).</p></div></span>
+  
+</li>
+
+    
+  </ul>
+
+
+
+
+  
+    <h2>
+      Instance Method Summary
+      <small><a href="#" class="summary_toggle">collapse</a></small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#advance-instance_method" title="#advance (instance method)">#<strong>advance</strong>(seconds)  &#x21d2; self </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Advances the virtual clock by <code>seconds</code> and enqueues any timer callbacks that are now due.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#enqueue_fiber-instance_method" title="#enqueue_fiber (instance method)">#<strong>enqueue_fiber</strong>(callable)  &#x21d2; self </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Enqueues a callable (Fiber step or arbitrary block) onto the ready queue.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#idle%3F-instance_method" title="#idle? (instance method)">#<strong>idle?</strong>  &#x21d2; Boolean </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns <code>true</code> when there are no ready entries to dispatch.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>  &#x21d2; DeterministicScheduler </a>
+    
+
+    
+  </span>
+  
+  
+    <span class="note title constructor">constructor</span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>A new instance of DeterministicScheduler.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#new_signal-instance_method" title="#new_signal (instance method)">#<strong>new_signal</strong>  &#x21d2; CoopSignal </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Creates a new cooperative signal backed by <span class='object_link'><a href="DeterministicScheduler/CoopSignal.html" title="Phronomy::Runtime::DeterministicScheduler::CoopSignal (class)">CoopSignal</a></span>.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#pending_timers-instance_method" title="#pending_timers (instance method)">#<strong>pending_timers</strong>  &#x21d2; Array&lt;Hash&gt; </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns a list of pending timer entries (not yet fired).</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#raise_signal-instance_method" title="#raise_signal (instance method)">#<strong>raise_signal</strong>(signal)  &#x21d2; void </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Wakes up one Fiber waiting on <code>signal</code>.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#raise_signal_all-instance_method" title="#raise_signal_all (instance method)">#<strong>raise_signal_all</strong>(signal)  &#x21d2; void </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Wakes up all Fibers waiting on <code>signal</code>.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#ready_count-instance_method" title="#ready_count (instance method)">#<strong>ready_count</strong>  &#x21d2; Integer </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the number of entries currently in the ready queue.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#run_until_idle-instance_method" title="#run_until_idle (instance method)">#<strong>run_until_idle</strong>  &#x21d2; self </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Drains the ready queue by calling <span class='object_link'><a href="#tick-instance_method" title="Phronomy::Runtime::DeterministicScheduler#tick (method)">#tick</a></span> until it is empty.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#schedule_after-instance_method" title="#schedule_after (instance method)">#<strong>schedule_after</strong>(delay) { ... } &#x21d2; self </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Schedules <code>callback</code> to fire <code>delay</code> seconds from now (virtual time).</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#schedule_at-instance_method" title="#schedule_at (instance method)">#<strong>schedule_at</strong>(absolute_time) { ... } &#x21d2; self </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Schedules <code>callback</code> to fire at the given absolute virtual time.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#spawn-instance_method" title="#spawn (instance method)">#<strong>spawn</strong>(name:, parent:, &amp;block)  &#x21d2; Task </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Spawns a new <span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span> backed by <span class='object_link'><a href="../Task/FiberBackend.html" title="Phronomy::Task::FiberBackend (class)">Task::FiberBackend</a></span> and enqueues it.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#tick-instance_method" title="#tick (instance method)">#<strong>tick</strong>  &#x21d2; self </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Executes one ready entry (a fiber step or a timer callback).</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#wait_for_signal-instance_method" title="#wait_for_signal (instance method)">#<strong>wait_for_signal</strong>(signal)  &#x21d2; void </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Suspends the current Fiber until <code>signal</code> is notified.</p></div></span>
+  
+</li>
+
+      
+    </ul>
+    
+  
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods inherited from <span class='object_link'><a href="Scheduler.html" title="Phronomy::Runtime::Scheduler (class)">Scheduler</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="Scheduler.html#current-class_method" title="Phronomy::Runtime::Scheduler.current (method)">current</a></span>, <span class='object_link'><a href="Scheduler.html#yield-instance_method" title="Phronomy::Runtime::Scheduler#yield (method)">#yield</a></span></p>
+<div id="constructor_details" class="method_details_list">
+  <h2>Constructor Details</h2>
+  
+    <div class="method_details first">
+  <h3 class="signature first" id="initialize-instance_method">
+  
+    #<strong>initialize</strong>  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Runtime::DeterministicScheduler (class)">DeterministicScheduler</a></span></tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns a new instance of DeterministicScheduler.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+71
+72
+73
+74
+75
+76</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 71</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
+  <span class='ivar'>@ready</span>   <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>  <span class='comment'># Array of callables ({ fiber.resume } or timer callbacks)
+</span>  <span class='ivar'>@mutex</span>   <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
+  <span class='ivar'>@virtual_time</span> <span class='op'>=</span> <span class='float'>0.0</span>
+  <span class='ivar'>@timer_heap</span>   <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>  <span class='comment'># Array of { fire_at:, callback: }
+</span><span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+  
+</div>
+
+  <div id="instance_attr_details" class="attr_details">
+    <h2>Instance Attribute Details</h2>
+    
+      
+      <span id=""></span>
+      <div class="method_details first">
+  <h3 class="signature first" id="virtual_time-instance_method">
+  
+    #<strong>virtual_time</strong>  &#x21d2; <tt>Float</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns current virtual clock time (seconds since scheduler creation).</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Float</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>current virtual clock time (seconds since scheduler creation)</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+69
+70
+71</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 69</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_virtual_time'>virtual_time</span>
+  <span class='ivar'>@virtual_time</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="advance-instance_method">
+  
+    #<strong>advance</strong>(seconds)  &#x21d2; <tt>self</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Advances the virtual clock by <code>seconds</code> and enqueues any timer
+callbacks that are now due.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>seconds</span>
+      
+      
+        <span class='type'>(<tt>Numeric</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>self</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+167
+168
+169
+170
+171</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 167</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_advance'>advance</span><span class='lparen'>(</span><span class='id identifier rubyid_seconds'>seconds</span><span class='rparen'>)</span>
+  <span class='ivar'>@virtual_time</span> <span class='op'>+=</span> <span class='id identifier rubyid_seconds'>seconds</span>
+  <span class='id identifier rubyid_fire_due_timers'>fire_due_timers</span>
+  <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="enqueue_fiber-instance_method">
+  
+    #<strong>enqueue_fiber</strong>(callable)  &#x21d2; <tt>self</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Enqueues a callable (Fiber step or arbitrary block) onto the ready queue.
+Called by <span class='object_link'><a href="../Task/FiberBackend.html#await-instance_method" title="Phronomy::Task::FiberBackend#await (method)">Task::FiberBackend#await</a></span> to resume a waiting Fiber.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>callable</span>
+      
+      
+        <span class='type'>(<tt>#call</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>self</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+203
+204
+205
+206</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 203</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_enqueue_fiber'>enqueue_fiber</span><span class='lparen'>(</span><span class='id identifier rubyid_callable'>callable</span><span class='rparen'>)</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@ready</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_callable'>callable</span> <span class='rbrace'>}</span>
+  <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="idle?-instance_method">
+  
+    #<strong>idle?</strong>  &#x21d2; <tt>Boolean</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns <code>true</code> when there are no ready entries to dispatch.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+211
+212
+213</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 211</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_idle?'>idle?</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@ready</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="new_signal-instance_method">
+  
+    #<strong>new_signal</strong>  &#x21d2; <tt><span class='object_link'><a href="DeterministicScheduler/CoopSignal.html" title="Phronomy::Runtime::DeterministicScheduler::CoopSignal (class)">CoopSignal</a></span></tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Creates a new cooperative signal backed by <span class='object_link'><a href="DeterministicScheduler/CoopSignal.html" title="Phronomy::Runtime::DeterministicScheduler::CoopSignal (class)">CoopSignal</a></span>.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="DeterministicScheduler/CoopSignal.html" title="Phronomy::Runtime::DeterministicScheduler::CoopSignal (class)">CoopSignal</a></span></tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+102
+103
+104</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 102</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_new_signal'>new_signal</span>
+  <span class='const'><span class='object_link'><a href="DeterministicScheduler/CoopSignal.html" title="Phronomy::Runtime::DeterministicScheduler::CoopSignal (class)">CoopSignal</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="DeterministicScheduler/CoopSignal.html#initialize-instance_method" title="Phronomy::Runtime::DeterministicScheduler::CoopSignal#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="pending_timers-instance_method">
+  
+    #<strong>pending_timers</strong>  &#x21d2; <tt>Array&lt;Hash&gt;</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a list of pending timer entries (not yet fired).
+Each entry has <code>:fire_at</code> and <code>:description</code> (if set) keys.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Array&lt;Hash&gt;</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+226
+227
+228</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 226</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_pending_timers'>pending_timers</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@timer_heap</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="raise_signal-instance_method">
+  
+    #<strong>raise_signal</strong>(signal)  &#x21d2; <tt>void</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p class="note returns_void">This method returns an undefined value.</p><p>Wakes up one Fiber waiting on <code>signal</code>.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>signal</span>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="DeterministicScheduler/CoopSignal.html" title="Phronomy::Runtime::DeterministicScheduler::CoopSignal (class)">CoopSignal</a></span></tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+118
+119
+120</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 118</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_raise_signal'>raise_signal</span><span class='lparen'>(</span><span class='id identifier rubyid_signal'>signal</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_signal'>signal</span><span class='period'>.</span><span class='id identifier rubyid_notify_one'>notify_one</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="raise_signal_all-instance_method">
+  
+    #<strong>raise_signal_all</strong>(signal)  &#x21d2; <tt>void</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p class="note returns_void">This method returns an undefined value.</p><p>Wakes up all Fibers waiting on <code>signal</code>.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>signal</span>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="DeterministicScheduler/CoopSignal.html" title="Phronomy::Runtime::DeterministicScheduler::CoopSignal (class)">CoopSignal</a></span></tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+126
+127
+128</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 126</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_raise_signal_all'>raise_signal_all</span><span class='lparen'>(</span><span class='id identifier rubyid_signal'>signal</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_signal'>signal</span><span class='period'>.</span><span class='id identifier rubyid_notify_all'>notify_all</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="ready_count-instance_method">
+  
+    #<strong>ready_count</strong>  &#x21d2; <tt>Integer</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns the number of entries currently in the ready queue.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+218
+219
+220</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 218</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_ready_count'>ready_count</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@ready</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="run_until_idle-instance_method">
+  
+    #<strong>run_until_idle</strong>  &#x21d2; <tt>self</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Drains the ready queue by calling <span class='object_link'><a href="#tick-instance_method" title="Phronomy::Runtime::DeterministicScheduler#tick (method)">#tick</a></span> until it is empty.
+Does not fire pending timers — call <span class='object_link'><a href="#advance-instance_method" title="Phronomy::Runtime::DeterministicScheduler#advance (method)">#advance</a></span> separately to move the
+virtual clock and enqueue due timer callbacks.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>self</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+156
+157
+158
+159</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 156</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_run_until_idle'>run_until_idle</span>
+  <span class='id identifier rubyid_tick'>tick</span> <span class='kw'>until</span> <span class='id identifier rubyid_idle?'>idle?</span>
+  <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="schedule_after-instance_method">
+  
+    #<strong>schedule_after</strong>(delay) { ... } &#x21d2; <tt>self</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Schedules <code>callback</code> to fire <code>delay</code> seconds from now (virtual time).</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>delay</span>
+      
+      
+        <span class='type'>(<tt>Numeric</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Yields:</p>
+<ul class="yield">
+  
+    <li>
+      
+      
+        <span class='type'></span>
+      
+      
+      
+        
+        <div class='inline'><p>callback</p></div>
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>self</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+193
+194
+195</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 193</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_schedule_after'>schedule_after</span><span class='lparen'>(</span><span class='id identifier rubyid_delay'>delay</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_schedule_at'>schedule_at</span><span class='lparen'>(</span><span class='ivar'>@virtual_time</span> <span class='op'>+</span> <span class='id identifier rubyid_delay'>delay</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="schedule_at-instance_method">
+  
+    #<strong>schedule_at</strong>(absolute_time) { ... } &#x21d2; <tt>self</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Schedules <code>callback</code> to fire at the given absolute virtual time.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>absolute_time</span>
+      
+      
+        <span class='type'>(<tt>Float</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Yields:</p>
+<ul class="yield">
+  
+    <li>
+      
+      
+        <span class='type'></span>
+      
+      
+      
+        
+        <div class='inline'><p>callback to invoke when the virtual clock reaches <code>absolute_time</code></p></div>
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>self</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+179
+180
+181
+182
+183
+184
+185</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 179</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_schedule_at'>schedule_at</span><span class='lparen'>(</span><span class='id identifier rubyid_absolute_time'>absolute_time</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='ivar'>@timer_heap</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span> <span class='label'>fire_at:</span> <span class='id identifier rubyid_absolute_time'>absolute_time</span><span class='comma'>,</span> <span class='label'>callback:</span> <span class='id identifier rubyid_callback'>callback</span> <span class='rbrace'>}</span>
+    <span class='ivar'>@timer_heap</span><span class='period'>.</span><span class='id identifier rubyid_sort_by!'>sort_by!</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_e'>e</span><span class='op'>|</span> <span class='id identifier rubyid_e'>e</span><span class='lbracket'>[</span><span class='symbol'>:fire_at</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
+  <span class='kw'>end</span>
+  <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="spawn-instance_method">
+  
+    #<strong>spawn</strong>(name:, parent:, &amp;block)  &#x21d2; <tt><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Spawns a new <span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span> backed by <span class='object_link'><a href="../Task/FiberBackend.html" title="Phronomy::Task::FiberBackend (class)">Task::FiberBackend</a></span> and enqueues it.
+The task does NOT start executing until <span class='object_link'><a href="#tick-instance_method" title="Phronomy::Runtime::DeterministicScheduler#tick (method)">#tick</a></span> is called.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>name</span>
+      
+      
+        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>parent</span>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 85</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_spawn'>spawn</span><span class='lparen'>(</span><span class='label'>name:</span><span class='comma'>,</span> <span class='label'>parent:</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_spawn'><span class='object_link'><a href="../Task.html#spawn-class_method" title="Phronomy::Task.spawn (method)">spawn</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>parent:</span> <span class='id identifier rubyid_parent'>parent</span><span class='comma'>,</span> <span class='label'>backend_class:</span> <span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Task/FiberBackend.html" title="Phronomy::Task::FiberBackend (class)">FiberBackend</a></span></span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_backend'>backend</span> <span class='op'>=</span> <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_backend'>backend</span>
+  <span class='comment'># Build a self-rescheduling step: after each step, re-enqueue if the
+</span>  <span class='comment'># Fiber yielded cooperatively and is still alive.
+</span>  <span class='id identifier rubyid_step_callable'>step_callable</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='id identifier rubyid_step_callable'>step_callable</span> <span class='op'>=</span> <span class='id identifier rubyid_lambda'>lambda</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_backend'>backend</span><span class='period'>.</span><span class='id identifier rubyid_step'>step</span>
+    <span class='id identifier rubyid_enqueue_fiber'>enqueue_fiber</span><span class='lparen'>(</span><span class='id identifier rubyid_step_callable'>step_callable</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_backend'>backend</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_backend'>backend</span><span class='period'>.</span><span class='id identifier rubyid_cooperative_suspend?'>cooperative_suspend?</span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_enqueue_fiber'>enqueue_fiber</span><span class='lparen'>(</span><span class='id identifier rubyid_step_callable'>step_callable</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_task'>task</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="tick-instance_method">
+  
+    #<strong>tick</strong>  &#x21d2; <tt>self</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Executes one ready entry (a fiber step or a timer callback).
+Sets the thread-local scheduler reference so that <code>FiberBackend#await</code>
+can suspend cooperatively.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>self</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 136</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_tick'>tick</span>
+  <span class='id identifier rubyid_callable'>callable</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@ready</span><span class='period'>.</span><span class='id identifier rubyid_shift'>shift</span> <span class='rbrace'>}</span>
+  <span class='kw'>return</span> <span class='kw'>self</span> <span class='kw'>unless</span> <span class='id identifier rubyid_callable'>callable</span>
+
+  <span class='comment'># Use thread_variable_set (not Thread#[]) so the value is accessible from
+</span>  <span class='comment'># any Fiber running on this OS thread, not just the current Fiber.
+</span>  <span class='id identifier rubyid_prev'>prev</span> <span class='op'>=</span> <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_thread_variable_get'>thread_variable_get</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="Scheduler.html#SCHEDULER_KEY-constant" title="Phronomy::Runtime::Scheduler::SCHEDULER_KEY (constant)">SCHEDULER_KEY</a></span></span><span class='rparen'>)</span>
+  <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_thread_variable_set'>thread_variable_set</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="Scheduler.html#SCHEDULER_KEY-constant" title="Phronomy::Runtime::Scheduler::SCHEDULER_KEY (constant)">SCHEDULER_KEY</a></span></span><span class='comma'>,</span> <span class='kw'>self</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_callable'>callable</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span>
+<span class='kw'>ensure</span>
+  <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_thread_variable_set'>thread_variable_set</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="Scheduler.html#SCHEDULER_KEY-constant" title="Phronomy::Runtime::Scheduler::SCHEDULER_KEY (constant)">SCHEDULER_KEY</a></span></span><span class='comma'>,</span> <span class='id identifier rubyid_prev'>prev</span><span class='rparen'>)</span>
+  <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="wait_for_signal-instance_method">
+  
+    #<strong>wait_for_signal</strong>(signal)  &#x21d2; <tt>void</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p class="note returns_void">This method returns an undefined value.</p><p>Suspends the current Fiber until <code>signal</code> is notified.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>signal</span>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="DeterministicScheduler/CoopSignal.html" title="Phronomy::Runtime::DeterministicScheduler::CoopSignal (class)">CoopSignal</a></span></tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+110
+111
+112</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 110</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_wait_for_signal'>wait_for_signal</span><span class='lparen'>(</span><span class='id identifier rubyid_signal'>signal</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_signal'>signal</span><span class='period'>.</span><span class='id identifier rubyid_wait'>wait</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+
+      <div id="footer">
+  Generated on Mon May 25 02:39:04 2026 by
+  <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.9.43 (ruby-3.3.11).
+</div>
+
+    </div>
+  </body>
+</html>

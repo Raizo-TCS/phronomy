@@ -204,6 +204,50 @@ run outside the scheduler (e.g. inside <span class='object_link'><a href="../Blo
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#completed_error-instance_method" title="#completed_error (instance method)">#<strong>completed_error</strong>  &#x21d2; Exception<sup>?</sup> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#completed_value-instance_method" title="#completed_value (instance method)">#<strong>completed_value</strong>  &#x21d2; Object<sup>?</sup> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(task:, &amp;block)  &#x21d2; ThreadBackend </a>
     
 
@@ -324,12 +368,12 @@ run outside the scheduler (e.g. inside <span class='object_link'><a href="../Blo
       <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='comma'>,</span> <span class='symbol'>:millisecond</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_transition!'>transition!</span><span class='lparen'>(</span><span class='symbol'>:running</span><span class='rparen'>)</span>
     <span class='ivar'>@value</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span>
-    <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_transition!'>transition!</span><span class='lparen'>(</span><span class='symbol'>:completed</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_transition!'>transition!</span><span class='lparen'>(</span><span class='symbol'>:completed</span><span class='comma'>,</span> <span class='label'>value:</span> <span class='ivar'>@value</span><span class='rparen'>)</span>
   <span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
-    <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_transition!'>transition!</span><span class='lparen'>(</span><span class='symbol'>:cancelled</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_transition!'>transition!</span><span class='lparen'>(</span><span class='symbol'>:cancelled</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='id identifier rubyid_e'>e</span><span class='rparen'>)</span>
     <span class='ivar'>@error</span> <span class='op'>=</span> <span class='id identifier rubyid_e'>e</span>
   <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
-    <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_transition!'>transition!</span><span class='lparen'>(</span><span class='symbol'>:failed</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_transition!'>transition!</span><span class='lparen'>(</span><span class='symbol'>:failed</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='id identifier rubyid_e'>e</span><span class='rparen'>)</span>
     <span class='ivar'>@error</span> <span class='op'>=</span> <span class='id identifier rubyid_e'>e</span>
   <span class='kw'>ensure</span>
     <span class='comment'># Guard against Thread#raise firing before the rescue handler has a
@@ -539,6 +583,118 @@ run outside the scheduler (e.g. inside <span class='object_link'><a href="../Blo
 </div>
     
       <div class="method_details ">
+  <h3 class="signature " id="completed_error-instance_method">
+  
+    #<strong>completed_error</strong>  &#x21d2; <tt>Exception</tt><sup>?</sup> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Exception</tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+79
+80
+81</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task/thread_backend.rb', line 79</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_completed_error'>completed_error</span>
+  <span class='ivar'>@error</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="completed_value-instance_method">
+  
+    #<strong>completed_value</strong>  &#x21d2; <tt>Object</tt><sup>?</sup> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Object</tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+73
+74
+75</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/task/thread_backend.rb', line 73</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_completed_value'>completed_value</span>
+  <span class='ivar'>@value</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
   <h3 class="signature " id="join-instance_method">
   
     #<strong>join</strong>(limit = nil)  &#x21d2; <tt>Thread</tt><sup>?</sup> 
@@ -616,7 +772,7 @@ run outside the scheduler (e.g. inside <span class='object_link'><a href="../Blo
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 00:33:11 2026 by
+  Generated on Mon May 25 02:39:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.43 (ruby-3.3.11).
 </div>
