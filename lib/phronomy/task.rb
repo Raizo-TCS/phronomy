@@ -13,7 +13,12 @@ module Phronomy
   # or test-double backend can be substituted via {.default_backend_class=} or
   # by passing +backend_class:+ to {.spawn}.
   #
-  # @example Basic usage
+  # +Task.spawn+ is an **internal API** used by schedulers and the framework
+  # itself.  Application code and framework components should use
+  # +Runtime.instance.spawn+ instead, which routes through the configured
+  # scheduler and respects the concurrency model.
+  #
+  # @example Basic usage (framework/test code only — prefer Runtime.instance.spawn in app code)
   #   task = Phronomy::Task.spawn { expensive_io() }
   #   result = task.await   # blocks until done, re-raises errors
   #

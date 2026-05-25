@@ -5,8 +5,9 @@ module Phronomy
   #
   # A single background thread reads from a global {Phronomy::AsyncQueue} and
   # dispatches events to their target FSMSession.  IO work (LLM calls, tool
-  # calls) runs in separate IO threads that post events back to the loop via
-  # EventLoop#post.
+  # calls) must be dispatched via +Runtime.instance.spawn+ or
+  # +BlockingAdapterPool+, then post results back to the loop via
+  # {EventLoop#post}.
   #
   # Activated with: +Phronomy.configure { |c| c.event_loop = true }+
   #

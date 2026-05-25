@@ -17,7 +17,7 @@ module Phronomy
   #
   # @example Explicit cancellation
   #   scope = Phronomy::CancellationScope.new
-  #   Phronomy::Task.spawn(name: "worker") do
+  #   Phronomy::Runtime.instance.spawn(name: "worker") do
   #     scope.token.raise_if_cancelled!
   #     # ... do work ...
   #   end
