@@ -166,13 +166,14 @@ module Phronomy
     # | +:thread+ | {Runtime::ThreadScheduler} | Default — one OS thread per task |
     # | +:immediate+ | {Runtime::FakeScheduler} | Tests — tasks run synchronously, no extra threads |
     # | +:cooperative+ | {Runtime::FakeScheduler} | Deprecated alias for +:immediate+ |
+    # | +:fiber+ | {Runtime::DeterministicScheduler} (autorun) | EXPERIMENTAL Fiber-based cooperative scheduler |
     #
     # When this setting is changed, the change only takes effect on the NEXT
     # call to {Runtime.instance} that auto-creates a new instance (i.e. after the
     # previous instance has been replaced or reset).  To replace the current
     # instance immediately call +Phronomy::Runtime.instance = nil+ first.
     #
-    # @return [:thread, :immediate, :cooperative]
+    # @return [:thread, :immediate, :cooperative, :fiber]
     attr_accessor :runtime_backend
 
     # When +true+, calling {Agent#invoke} from inside a scheduler task

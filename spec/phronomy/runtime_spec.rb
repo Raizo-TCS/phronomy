@@ -247,5 +247,33 @@ RSpec.describe Phronomy::Runtime do
       Phronomy.configure { |c| c.runtime_backend = :thread }
       expect(described_class.instance.scheduler).to be_a(Phronomy::Runtime::ThreadScheduler)
     end
+
+    it "uses DeterministicScheduler in autorun mode for :fiber backend (Issue #334)" do
+      Phronomy.configure { |c| c.runtime_backend = :fiber }
+      scheduler = described_class.instance.scheduler
+      expect(scheduler).to be_a(Phronomy::Runtime::DeterministicScheduler)
+      expect(scheduler).to be_autorun
+    end
+
+    it "emits an experimental warning when :fiber backend is used (Issue #334)" do
+      logger = instance_double("Logger", warn: nil, info: nil, debug: nil, error: nil)
+      Phronomy.configure do |c|
+        c.runtime_backend = :fiber
+        c.logger = logger
+      end
+      described_class.instance
+      expect(logger).to have_received(:warn).with(a_string_including("EXPERIMENTAL Fiber-based cooperative scheduler"))
+    end
+
+    it "runs tasks synchronously via Fibers with :fiber backend (Issue #334)" do
+      Phronomy.configure { |c| c.runtime_backend = :fiber }
+      results = []
+      task = described_class.instance.spawn do
+        results << :done
+        42
+      end
+      expect(results).to eq([:done])
+      expect(task.await).to eq(42)
+    end
   end
 end

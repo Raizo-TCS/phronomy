@@ -36,6 +36,9 @@ module Phronomy
     # +Phronomy.configuration.runtime_backend+:
     # - +:thread+ (default) — {ThreadScheduler} (one OS thread per task)
     # - +:immediate+ — {FakeScheduler} (synchronous, no extra threads)
+    # - +:fiber+ — {DeterministicScheduler} in autorun mode (EXPERIMENTAL;
+    #   Fiber-based synchronous execution; not yet suitable for production
+    #   because it uses virtual time rather than real wall-clock timers)
     # - +:cooperative+ — deprecated alias for +:immediate+
     #
     # @return [Runtime]
@@ -52,6 +55,14 @@ module Phronomy
           FakeScheduler.new
         when :immediate
           FakeScheduler.new
+        when :fiber
+          Phronomy.configuration.logger&.warn(
+            "[phronomy] runtime_backend: :fiber uses DeterministicScheduler in autorun mode. " \
+            "This is an EXPERIMENTAL Fiber-based cooperative scheduler. " \
+            "It does not integrate with real wall-clock timers yet (Issue #331). " \
+            "Not recommended for production use."
+          )
+          DeterministicScheduler.new(autorun: true)
         else
           ThreadScheduler.new
         end

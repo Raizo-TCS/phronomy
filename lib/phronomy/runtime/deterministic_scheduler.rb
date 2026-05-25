@@ -71,11 +71,25 @@ module Phronomy
       # @return [Float] current virtual clock time (seconds since scheduler creation)
       attr_reader :virtual_time
 
-      def initialize
+      # @param autorun [Boolean] when +true+, each call to {#spawn} automatically
+      #   drains the ready queue via {#run_until_idle} before returning the task.
+      #   This makes +DeterministicScheduler+ behave like {FakeScheduler} (tasks
+      #   complete synchronously) while still executing them on real Fibers.
+      #   Used internally by the +:fiber+ runtime backend.
+      # @api private
+      def initialize(autorun: false)
+        @autorun = autorun
         @ready = []  # Array of callables ({ fiber.resume } or timer callbacks)
         @mutex = Mutex.new
         @virtual_time = 0.0
         @timer_heap = []  # Array of { fire_at:, callback: }
+      end
+
+      # Returns +true+ when this scheduler is in autorun mode.
+      # @return [Boolean]
+      # @api private
+      def autorun?
+        @autorun
       end
 
       # Spawns a new {Task} backed by {Task::FiberBackend} and enqueues it.
@@ -96,6 +110,7 @@ module Phronomy
           enqueue_fiber(step_callable) if backend.alive? && !backend.cooperative_suspend?
         end
         enqueue_fiber(step_callable)
+        run_until_idle if @autorun
         task
       end
 
