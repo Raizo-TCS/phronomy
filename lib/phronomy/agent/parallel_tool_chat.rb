@@ -5,10 +5,14 @@ module Phronomy
     # RubyLLM::Chat subclass that executes multiple tool calls concurrently.
     #
     # When the LLM returns more than one tool call in a single response, each
-    # tool is dispatched in a dedicated IO thread and all results are collected
-    # before being appended to the message history. This preserves a
-    # deterministic message order while reducing wall-clock latency when tools
-    # are IO-bound (HTTP calls, DB queries, etc.).
+    # tool is dispatched according to its +execution_mode+:
+    # - +:cooperative+ tools run via +Runtime.instance.spawn+ on the
+    #   cooperative scheduler (non-preemptive, no extra OS thread).
+    # - +:blocking_io+ tools are offloaded to a +BlockingAdapterPool+ worker
+    #   thread so they do not occupy a scheduler task slot.
+    # All results are collected before being appended to the message history,
+    # preserving deterministic message order while reducing wall-clock latency
+    # when tools are IO-bound (HTTP calls, DB queries, etc.).
     #
     # Single-tool responses fall through to the standard sequential path via
     # +super+, preserving all existing edge-case behaviour (Tool::Halt,
@@ -43,7 +47,8 @@ module Phronomy
       #   1. Pre-execution callbacks (+on_new_message+, +on_tool_call+) —
       #      sequential so that the Suspendable concern's approval hook can
       #      raise +SuspendSignal+ before any tool is executed.
-      #   2. Parallel tool execution — one IO thread per tool call.
+      #   2. Parallel tool execution — cooperative tools via Runtime.instance.spawn,
+      #      blocking_io tools via BlockingAdapterPool.
       #   3. Post-execution callbacks and message recording — sequential,
       #      in the original tool-call order.
       #

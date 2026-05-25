@@ -21,8 +21,9 @@ module Phronomy
   # Do NOT call +Workflow#invoke+ (in EventLoop mode) from within a workflow
   # entry action. The entry action runs on the EventLoop thread; a nested
   # +invoke+ would block waiting for the same thread to process events →
-  # deadlock. Use the async IO pattern instead (spawn a Thread, post events
-  # back to the EventLoop).
+  # deadlock. Use the async pattern instead: schedule work via
+  # +Runtime.instance.spawn+ or +BlockingAdapterPool+, then post events back
+  # via +Phronomy::EventLoop.instance.post(...)+.
   class EventLoop
     # Returns the singleton instance, creating and starting it on first call.
     def self.instance
@@ -111,8 +112,9 @@ module Phronomy
       if Phronomy::EventLoop.current?
         raise Phronomy::Error,
           "Cannot call Workflow#invoke (EventLoop mode) from within an EventLoop " \
-          "entry action. Use the async IO pattern: spawn a Thread, post events " \
-          "back via Phronomy::EventLoop.instance.post(...) instead."
+          "entry action. Schedule work via Runtime.instance.spawn or " \
+          "BlockingAdapterPool, then post events back via " \
+          "Phronomy::EventLoop.instance.post(...) instead."
       end
 
       completion_queue = Phronomy::AsyncQueue.new
