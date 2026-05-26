@@ -436,10 +436,11 @@ When a guardrail rejects, <code>invoke</code> raises instead of returning an out
 </span><span class='kw'>end</span>
 </code></pre>
 <blockquote>
-<p><strong>Limitations:</strong> Phronomy ships no built-in guardrail implementations. There is no
-built-in prompt injection detector, PII scanner, or content classifier. All guardrail
-logic must be implemented by the application. Reference implementations for common
-patterns are available in <code>phronomy-examples</code> (example 06).</p>
+<p><strong>Note:</strong> Phronomy includes <code>PromptInjectionGuardrail</code>, a built-in pattern-based
+input guardrail that detects common injection patterns (see the feature table above).
+PII scanning and content classification are <strong>not</strong> provided by the framework;
+that logic must be implemented by the application. Reference implementations for
+common patterns are available in <code>phronomy-examples</code> (example 06).</p>
 </blockquote>
 <h3 id="Knowledge_RAG___Context_injection_and_vector_retrieval">Knowledge/RAG — Context injection and vector retrieval</h3>
 <pre class="code ruby"><code class="ruby"><span class='comment'># Static knowledge (policy files, reference docs)
@@ -592,7 +593,9 @@ fan-outs consider additional rate-limiting at the application level.</p>
 <span class='kw'>end</span>
 </code></pre>
 <h3 id="Workflow_Parallel_Node___Concurrent_branches">Workflow Parallel Node — Concurrent branches</h3>
-<p>Phronomy does not provide a built-in parallel abstraction. Use application-level Ruby threads inside a <code>state</code> action:</p>
+<p>Phronomy does not provide a dedicated parallel-node primitive. The recommended
+pattern for concurrent branches is to use application-level Ruby threads inside
+a <code>state</code> action:</p>
 <pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>EnrichContext</span>
   <span class='id identifier rubyid_include'>include</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/WorkflowContext.html" title="Phronomy::WorkflowContext (module)">WorkflowContext</a></span></span>
   <span class='id identifier rubyid_field'>field</span> <span class='symbol'>:summary</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='symbol'>:replace</span>
@@ -1003,9 +1006,11 @@ span attributes by default (<code>trace_pii: false</code>). To include full cont
 (e.g., for debugging in a non-production environment), set <code>trace_pii: true</code> in your
 Phronomy configuration. Evaluate whether your tracing backend (OTLP collector, Jaeger,
 Honeycomb, etc.) meets your data-retention and privacy requirements.</p>
-<p><strong>Prompt injection</strong> — Phronomy provides no built-in prompt injection detection.
-Applications that process untrusted user input should implement their own input
-guardrails (see the Guardrails section above).</p>
+<p><strong>Prompt injection</strong> — Phronomy provides <code>PromptInjectionGuardrail</code>, a built-in
+pattern-based input guardrail that detects common injection patterns (ignore/override
+instructions, role-switching phrases, etc.). It is a useful starting point, not a
+comprehensive defence; applications processing untrusted input should layer additional
+custom guardrails as needed (see the Guardrails section above).</p>
 <p><strong>Tool and MCP security</strong> — Tools can perform real-world side effects (database
 writes, API calls, file deletion). Treat tool execution as a privileged operation:
 use the interrupt/approval mechanism for high-risk tools (e.g., payment processing,
@@ -1021,7 +1026,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Tue May 26 04:55:40 2026 by
+  Generated on Tue May 26 05:58:22 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
