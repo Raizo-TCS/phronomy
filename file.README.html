@@ -230,7 +230,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong><code>Phronomy::Metrics</code></strong> — <code>Phronomy::Metrics.snapshot</code> returns task-tree and pool counters; task-centric keys: <code>active_agent_tasks</code>, <code>active_tool_tasks</code>, <code>active_workflow_tasks</code>, <code>active_rag_tasks</code>, <code>active_llm_tasks</code>, <code>task_wait_time_p50_ms</code>, <code>task_wait_time_p95_ms</code>, <code>task_run_time_p50_ms</code>, <code>task_run_time_p95_ms</code>, <code>cancelled_tasks</code>, <code>failed_tasks</code>, <code>non_yield_duration_max_ms</code>; pool/event-loop keys remain for backward compatibility; <code>Runtime#task_snapshot</code> exposes task-centric metrics directly</td>
+<td><strong><code>Phronomy::Metrics</code></strong> — <code>Phronomy::Metrics.snapshot</code> returns task-tree and pool counters; task-centric keys: <code>active_agent_tasks</code>, <code>active_tool_tasks</code>, <code>active_workflow_tasks</code>, <code>active_rag_tasks</code>, <code>active_llm_tasks</code>, <code>task_wait_time_p50_ms</code>, <code>task_wait_time_p95_ms</code>, <code>task_run_time_p50_ms</code>, <code>task_run_time_p95_ms</code>, <code>cancelled_tasks</code>, <code>failed_tasks</code>, <code>non_yield_threshold_violation_count</code>; pool/event-loop keys remain for backward compatibility; <code>Runtime#task_snapshot</code> exposes task-centric metrics directly</td>
 <td>Beta</td>
 </tr>
 </tbody>
@@ -1013,7 +1013,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Tue May 26 00:15:31 2026 by
+  Generated on Tue May 26 01:39:43 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

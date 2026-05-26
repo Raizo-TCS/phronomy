@@ -1682,8 +1682,8 @@ the configured scheduler)</p></div>
 <td>total failed task count</td>
 </tr>
 <tr>
-<td><code>non_yield_duration_max_ms</code></td>
-<td>max observed CPU-slice duration (ms)</td>
+<td><code>non_yield_threshold_violation_count</code></td>
+<td>cumulative count of tasks that ran past <code>blocking_detect_threshold_ms</code> without yielding</td>
 </tr>
 </tbody>
 </table>
@@ -2020,7 +2020,7 @@ a mutex.</p>
 </div>
 
       <div id="footer">
-  Generated on Tue May 26 00:15:32 2026 by
+  Generated on Tue May 26 01:39:44 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
