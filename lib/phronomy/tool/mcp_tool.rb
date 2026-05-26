@@ -66,7 +66,7 @@ module Phronomy
 
         def build_tool_class(tool_name, server_uri, tool_def)
           klass = Class.new(McpTool)
-          klass.instance_variable_set(:@mcp_tool_name, tool_name)
+          klass.tool_name(tool_name)
           klass.instance_variable_set(:@mcp_server_uri, server_uri)
 
           # Register description and params from the MCP tool definition.
