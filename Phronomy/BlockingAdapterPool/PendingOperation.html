@@ -319,23 +319,23 @@ wait for the result.</p>
       <pre class="lines">
 
 
-188
-189
-190
-191
-192
-193
-194
-195
-196
-197
-198
-199
 200
-201</pre>
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 188</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 200</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_block'>block</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on_abandoned:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@block</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -437,6 +437,23 @@ wait for the result.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
+
+  <div class="note notetag">
+    <strong>Note:</strong>
+    <div class='inline'><p><strong>Cooperative cancellation semantics</strong> (ADR-010):
+Phronomy uses a non-preemptive, cooperative-first concurrency model.
+Cancellation is <em>cooperative</em>, not preemptive:</p>
+<ul>
+<li>When a <code>cancellation_token</code> is cancelled (or the timeout fires),
+<code>CancellationError</code> is raised to the <code>await</code> caller immediately,
+but the underlying worker thread is <strong>not</strong> forcibly stopped.</li>
+<li>The worker thread will complete its submitted block naturally.
+Code inside the block must call <code>token.check!</code> at suitable
+checkpoints to observe the cancelled state and exit early.</li>
+<li>There is no <code>Thread#kill</code> or <code>Thread#raise</code> involved. The framework
+never forcibly terminates worker threads.</li>
+</ul></div>
+  </div>
 
   <div class="note notetag">
     <strong>Note:</strong>
@@ -557,18 +574,6 @@ the operation.</p>
       <pre class="lines">
 
 
-92
-93
-94
-95
-96
-97
-98
-99
-100
-101
-102
-103
 104
 105
 106
@@ -626,10 +631,22 @@ the operation.</p>
 158
 159
 160
-161</pre>
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 92</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 104</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_await'>await</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_effective_timeout'>effective_timeout</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span> <span class='ivar'>@timeout</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span><span class='period'>.</span><span class='id identifier rubyid_min'>min</span>
@@ -793,28 +810,28 @@ the operation.</p>
       <pre class="lines">
 
 
-204
-205
-206
-207
-208
-209
-210
-211
-212
-213
-214
-215
 216
 217
 218
 219
 220
 221
-222</pre>
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 204</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 216</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execute!'>execute!</span>
   <span class='ivar'>@wait_time</span> <span class='op'>=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>-</span> <span class='ivar'>@submitted_at</span>
@@ -898,22 +915,22 @@ completes the operation.</p>
       <pre class="lines">
 
 
-173
-174
-175
-176
-177
-178
-179
-180
-181
-182
-183
-184
-185</pre>
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 173</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/blocking_adapter_pool.rb', line 185</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_complete'>on_complete</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_fire_args'>fire_args</span> <span class='op'>=</span> <span class='kw'>nil</span>
@@ -997,7 +1014,7 @@ completes the operation.</p>
 </div>
 
       <div id="footer">
-  Generated on Tue May 26 01:39:47 2026 by
+  Generated on Tue May 26 02:37:15 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

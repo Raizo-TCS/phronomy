@@ -214,7 +214,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong>Cooperative scheduler yield points</strong> — <code>Runtime#yield</code> (cooperative yield; yields the current task's time slice); <code>Runtime#yield_if_needed(every: N)</code> (thread-local counter, yields every N calls); CPU-bound detection when <code>blocking_detect_threshold_ms</code> is set (warns and increments <code>tasks_waiting_over_threshold</code> when a task runs longer than the threshold without yielding); <code>starvation_threshold_ms</code> configuration field (default: 50ms)</td>
+<td><strong>Cooperative scheduler yield points</strong> — <code>Runtime#yield</code> (cooperative yield; yields the current task's time slice); <code>Runtime#yield_if_needed(every: N)</code> (thread-local counter, yields every N calls); CPU-bound detection when <code>blocking_detect_threshold_ms</code> is set (warns and increments <code>non_yield_threshold_violation_count</code> when a task runs longer than the threshold without yielding); <code>starvation_threshold_ms</code> configuration field (default: 50ms)</td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -235,6 +235,14 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 </tr>
 </tbody>
 </table>
+<blockquote>
+<p><strong>Public API boundary</strong>: The table above is the complete list of classes, modules, and features
+intended for gem consumers. Every entry has an associated stability label.
+All other classes, modules, and methods — including everything in the
+<a href="#advanced--internal-apis">Advanced / Internal APIs</a> section below — are
+marked <code>@api private</code> in source and may change without notice. Do not
+depend on internal APIs in application code.</p>
+</blockquote>
 <h2 id="Advanced___Internal_APIs">Advanced / Internal APIs</h2>
 <p>The APIs listed below are intended for advanced use cases, framework internals, and test infrastructure. Typical application code does not need to interact with them directly.</p>
 <blockquote>
@@ -257,7 +265,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong><code>Configuration#runtime_backend</code></strong> — <code>:thread</code> (default, one OS thread per task), <code>:immediate</code> (tests — tasks run synchronously, no extra threads), <code>:fiber</code> (<strong>EXPERIMENTAL</strong> Fiber-based cooperative scheduler — not for production use). <code>:cooperative</code> is a <strong>deprecated alias</strong> for <code>:immediate</code> — do not use in new code</td>
+<td><strong><code>Configuration#runtime_backend</code></strong> — <code>:thread</code> (default, one OS thread per task), <code>:immediate</code> (tests — tasks run synchronously, no extra threads), <code>:fiber</code> (<strong>EXPERIMENTAL</strong> — experimental validation backend only: runs tasks as Ruby Fibers on a cooperative scheduler to verify that framework components are truly non-blocking; <strong>not for production use</strong> and not a planned production replacement for <code>:thread</code>; no preemptive scheduling will be added). <code>:cooperative</code> is a <strong>deprecated alias</strong> for <code>:immediate</code> — do not use in new code</td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -1013,7 +1021,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Tue May 26 01:39:43 2026 by
+  Generated on Tue May 26 02:37:11 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

@@ -92,6 +92,29 @@
   <strong>This module is part of a private API.</strong>
   You should avoid using this module if possible, as it may be removed or be changed in the future.
 </p>
+
+  <div class="note notetag">
+    <strong>Note:</strong>
+    <div class='inline'><p>Non-goals
+ToolExecutor deliberately does NOT provide:</p>
+<ul>
+<li>A CPU-bound process pool. CPU-intensive tool work must be handled at the
+application layer (e.g., fork, Sidekiq, separate OS processes). The
+framework will not add a <code>ProcessPoolExecutor</code> equivalent.</li>
+<li>An external process manager. Spawning or supervising subprocesses is
+out of scope for this module.</li>
+<li>Additional execution modes beyond <code>:cooperative</code> and <code>:blocking_io</code>.
+The <code>:cpu_bound</code> and <code>:external_process</code> modes are accepted for
+compatibility but both fall back to <code>:blocking_io</code> routing with a
+one-time warning. If a genuinely new execution mode is needed, a new
+ADR is required.
+These non-goals follow from the cooperative-first, non-preemptive
+concurrency model (ADR-010): framework components must not assume the
+caller's concurrency model, and CPU/process management belongs to the
+application layer.</li>
+</ul></div>
+  </div>
+
 <p>Centralises tool execution routing based on <span class='object_link'><a href="Tool/Base.html#execution_mode-class_method" title="Phronomy::Tool::Base.execution_mode (method)">Phronomy::Tool::Base.execution_mode</a></span>.</p>
 <p>This is the single place in the framework that decides <em>how</em> a tool call is
 dispatched:</p>
@@ -270,23 +293,6 @@ uniformly.</p>
       <pre class="lines">
 
 
-42
-43
-44
-45
-46
-47
-48
-49
-50
-51
-52
-53
-54
-55
-56
-57
-58
 59
 60
 61
@@ -314,10 +320,27 @@ uniformly.</p>
 83
 84
 85
-86</pre>
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool_executor.rb', line 42</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool_executor.rb', line 59</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span><span class='label'>tool:</span><span class='comma'>,</span> <span class='label'>args:</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>runtime:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ct'>ct</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
@@ -374,7 +397,7 @@ uniformly.</p>
 </div>
 
       <div id="footer">
-  Generated on Tue May 26 01:39:44 2026 by
+  Generated on Tue May 26 02:37:12 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
