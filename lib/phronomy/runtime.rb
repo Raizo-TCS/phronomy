@@ -272,7 +272,7 @@ module Phronomy
     # | `task_run_time_p95_ms`    | p95 execution duration (ms) |
     # | `cancelled_tasks`         | total cancelled task count |
     # | `failed_tasks`            | total failed task count |
-    # | `non_yield_duration_max_ms` | max observed CPU-slice duration (ms) |
+    # | `non_yield_threshold_violation_count` | cumulative count of tasks that ran past `blocking_detect_threshold_ms` without yielding |
     #
     # @return [Hash{Symbol => Numeric}]
     # @api private

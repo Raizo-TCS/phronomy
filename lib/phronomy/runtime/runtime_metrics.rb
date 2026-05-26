@@ -98,7 +98,7 @@ module Phronomy
             task_run_time_p95_ms: _percentile(run, 95),
             cancelled_tasks: cancelled,
             failed_tasks: failed,
-            non_yield_duration_max_ms: starvation
+            non_yield_threshold_violation_count: starvation
           }
         end
       end

@@ -35,7 +35,7 @@ RSpec.describe Phronomy::Metrics do
         task_run_time_p95_ms
         cancelled_tasks
         failed_tasks
-        non_yield_duration_max_ms
+        non_yield_threshold_violation_count
       ]
       expect(snap.keys).to include(*task_keys)
     end

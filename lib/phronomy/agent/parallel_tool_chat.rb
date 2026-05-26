@@ -6,8 +6,8 @@ module Phronomy
     #
     # When the LLM returns more than one tool call in a single response, each
     # tool is dispatched according to its +execution_mode+:
-    # - +:cooperative+ tools run via +Runtime.instance.spawn+ on the
-    #   cooperative scheduler (non-preemptive, no extra OS thread).
+    # - +:cooperative+ tools run via +Runtime.instance.spawn+, delegating
+    #   scheduling to the configured runtime backend.
     # - +:blocking_io+ tools are offloaded to a +BlockingAdapterPool+ worker
     #   thread so they do not occupy a scheduler task slot.
     # All results are collected before being appended to the message history,
@@ -47,8 +47,8 @@ module Phronomy
       #   1. Pre-execution callbacks (+on_new_message+, +on_tool_call+) —
       #      sequential so that the Suspendable concern's approval hook can
       #      raise +SuspendSignal+ before any tool is executed.
-      #   2. Parallel tool execution — cooperative tools via Runtime.instance.spawn,
-      #      blocking_io tools via BlockingAdapterPool.
+      #   2. Parallel tool execution — cooperative tools via Runtime.instance.spawn
+      #      (respects the configured runtime backend), blocking_io tools via BlockingAdapterPool.
       #   3. Post-execution callbacks and message recording — sequential,
       #      in the original tool-call order.
       #

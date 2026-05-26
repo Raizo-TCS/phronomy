@@ -144,8 +144,9 @@ RSpec.describe "Thread.current confinement (Issue #302)", :issue_302 do
 end
 
 # Issue #286 — Thread.new must only appear in files that own a Thread-creation
-# zone.  All other concurrency must go through Phronomy::Task.spawn (backed by
-# ThreadBackend during the transition period) or BlockingAdapterPool#submit.
+# zone.  All other concurrency must go through Runtime.instance.spawn
+# so it respects the configured runtime backend, or BlockingAdapterPool#submit
+# for blocking I/O isolation.
 RSpec.describe "Thread.new confinement (Issue #286)", :issue_286 do
   # Files authorised to call Thread.new directly.
   # mcp_tool.rb: falls back to Thread.new only when no BlockingAdapterPool is
@@ -180,7 +181,7 @@ RSpec.describe "Thread.new confinement (Issue #286)", :issue_286 do
     end
 
     expect(violations).to be_empty,
-      "Thread.new used outside allowed files (use Phronomy::Task.spawn or BlockingAdapterPool#submit instead):\n" \
+      "Thread.new used outside allowed files (use Runtime.instance.spawn or BlockingAdapterPool#submit instead):\n" \
       "#{violations.join("\n")}"
   end
 end
