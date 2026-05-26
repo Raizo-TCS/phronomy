@@ -137,6 +137,7 @@ module Phronomy
           @stderr = nil
           @wait_thr = nil
           @stderr_thread = nil
+          @stderr_op = nil
         end
 
         # Shut down the child process and close its IO streams.
@@ -148,10 +149,17 @@ module Phronomy
           @stdout = nil
           @stderr = nil
           stderr_thread = @stderr_thread
+          stderr_op = @stderr_op
           wait_thr = @wait_thr
           @stderr_thread = nil
+          @stderr_op = nil
           @wait_thr = nil
           stderr_thread&.join(1)
+          begin
+            stderr_op&.await(timeout: 1.0)
+          rescue
+            nil
+          end
           wait_thr&.join(5)
         end
 
@@ -208,10 +216,29 @@ module Phronomy
           # Drain stderr asynchronously to prevent the pipe buffer from filling
           # and deadlocking the child process. Errors inside the drain thread are
           # silently ignored since stderr content is diagnostics-only.
-          @stderr_thread = Thread.new do
-            @stderr.read
-          rescue
-            nil
+          #
+          # Prefer BlockingAdapterPool when a Runtime is configured so that this
+          # file eventually needs no direct Thread.new (Issue #360). Fall back to
+          # Thread.new when no pool is available (no EventLoop / bare invocation).
+          pool = begin; Phronomy::Runtime.instance&.blocking_io; rescue; nil; end
+          if pool
+            @stderr_op = pool.submit {
+              begin
+                @stderr.read
+              rescue
+                nil
+              end
+            }
+            @stderr_thread = nil
+          else
+            @stderr_thread = Thread.new {
+              begin
+                @stderr.read
+              rescue
+                nil
+              end
+            }
+            @stderr_op = nil
           end
 
           if @startup_timeout

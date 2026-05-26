@@ -148,6 +148,10 @@ end
 # ThreadBackend during the transition period) or BlockingAdapterPool#submit.
 RSpec.describe "Thread.new confinement (Issue #286)", :issue_286 do
   # Files authorised to call Thread.new directly.
+  # mcp_tool.rb: falls back to Thread.new only when no BlockingAdapterPool is
+  # available (no Runtime configured). When a Runtime with a pool is present,
+  # the pool is used instead and Thread.new is never called. Full migration of
+  # this fallback path is tracked in Issue #360 (pending MCP transport PR).
   THREAD_NEW_ALLOWLIST = %w[
     lib/phronomy/blocking_adapter_pool.rb
     lib/phronomy/task/thread_backend.rb
