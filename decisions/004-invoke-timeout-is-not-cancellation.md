@@ -56,10 +56,10 @@ transport layer participation.
 `cancellation_token:` parameters. The same non-preemptive rule applies here,
 consistent with ADR-010 (cooperative-first, non-preemptive concurrency model):
 
-1. **No forcible thread termination.** When a `cancellation_token` is cancelled
-   or the timeout fires, `CancellationError` is raised to the `await` caller,
-   but the underlying worker thread is **not** killed. The worker runs its block
-   to natural completion.
+1. **No forcible thread termination.** When a `cancellation_token` is cancelled,
+   `CancellationError` is raised to the `await` caller; when the timeout fires,
+   `TimeoutError` is raised instead. In both cases, the underlying worker thread
+   is **not** killed. The worker runs its block to natural completion.
 2. **Cooperative, not preemptive.** Cancellation takes effect only at `await`
    call sites or at explicit `token.check!` checkpoints inside the submitted
    block. Code that ignores the token will not be interrupted.

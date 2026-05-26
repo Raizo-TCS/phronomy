@@ -103,11 +103,12 @@ application layer (e.g., fork, Sidekiq, separate OS processes). The
 framework will not add a <code>ProcessPoolExecutor</code> equivalent.</li>
 <li>An external process manager. Spawning or supervising subprocesses is
 out of scope for this module.</li>
-<li>Additional execution modes beyond <code>:cooperative</code> and <code>:blocking_io</code>.
+<li>Additional core execution routes beyond scheduler-backed cooperative
+execution and BlockingAdapterPool-backed blocking I/O isolation.
 The <code>:cpu_bound</code> and <code>:external_process</code> modes are accepted for
 compatibility but both fall back to <code>:blocking_io</code> routing with a
-one-time warning. If a genuinely new execution mode is needed, a new
-ADR is required.
+one-time warning. If a genuinely new core execution route is needed,
+a new ADR is required.
 These non-goals follow from the cooperative-first, non-preemptive
 concurrency model (ADR-010): framework components must not assume the
 caller's concurrency model, and CPU/process management belongs to the
@@ -293,7 +294,6 @@ uniformly.</p>
       <pre class="lines">
 
 
-59
 60
 61
 62
@@ -337,10 +337,11 @@ uniformly.</p>
 100
 101
 102
-103</pre>
+103
+104</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool_executor.rb', line 59</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool_executor.rb', line 60</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span><span class='label'>tool:</span><span class='comma'>,</span> <span class='label'>args:</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>runtime:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ct'>ct</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
@@ -397,7 +398,7 @@ uniformly.</p>
 </div>
 
       <div id="footer">
-  Generated on Tue May 26 02:37:12 2026 by
+  Generated on Tue May 26 04:55:40 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
