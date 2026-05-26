@@ -6,7 +6,7 @@
 <title>
   Module: Phronomy
   
-    &mdash; Documentation by YARD 0.9.43
+    &mdash; Documentation by YARD 0.9.44
   
 </title>
 
@@ -266,12 +266,12 @@
       <pre class="lines">
 
 
-127
-128
-129</pre>
+122
+123
+124</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 127</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 122</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_configuration'>configuration</span>
   <span class='ivar'>@configuration</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="Phronomy/Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Configuration.html#initialize-instance_method" title="Phronomy::Configuration#initialize (method)">new</a></span></span>
@@ -318,12 +318,12 @@
       <pre class="lines">
 
 
-131
-132
-133</pre>
+126
+127
+128</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 131</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 126</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_configure'>configure</span>
   <span class='kw'>yield</span> <span class='id identifier rubyid_configuration'>configuration</span>
@@ -367,12 +367,12 @@ thread-based parallelism when using this method.</p>
       <pre class="lines">
 
 
-149
-150
-151</pre>
+144
+145
+146</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 149</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 144</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_reset_configuration!'>reset_configuration!</span>
   <span class='ivar'>@configuration</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy/Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Configuration.html#initialize-instance_method" title="Phronomy::Configuration#initialize (method)">new</a></span></span>
@@ -418,13 +418,13 @@ Call once before/after each example to ensure test isolation.</p>
       <pre class="lines">
 
 
-182
-183
-184
-185</pre>
+177
+178
+179
+180</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 182</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 177</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_reset_runtime!'>reset_runtime!</span>
   <span class='const'><span class='object_link'><a href="" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span></span><span class='period'>.</span><span class='id identifier rubyid_reset!'><span class='object_link'><a href="Phronomy/EventLoop.html#reset!-class_method" title="Phronomy::EventLoop.reset! (method)">reset!</a></span></span>
@@ -488,15 +488,15 @@ without permanently mutating the global configuration.</p>
       <pre class="lines">
 
 
-165
-166
-167
-168
-169
-170</pre>
+160
+161
+162
+163
+164
+165</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 165</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 160</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_with_configuration'>with_configuration</span>
   <span class='id identifier rubyid_original'>original</span> <span class='op'>=</span> <span class='ivar'>@configuration</span><span class='op'>&amp;.</span><span class='id identifier rubyid_dup'>dup</span>
@@ -514,9 +514,9 @@ without permanently mutating the global configuration.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 15:19:02 2026 by
+  Generated on Tue May 26 00:15:31 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
-  0.9.43 (ruby-3.3.11).
+  0.9.44 (ruby-3.3.11).
 </div>
 
     </div>

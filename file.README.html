@@ -6,7 +6,7 @@
 <title>
   File: README
   
-    &mdash; Documentation by YARD 0.9.43
+    &mdash; Documentation by YARD 0.9.44
   
 </title>
 
@@ -233,6 +233,21 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td><strong><code>Phronomy::Metrics</code></strong> — <code>Phronomy::Metrics.snapshot</code> returns task-tree and pool counters; task-centric keys: <code>active_agent_tasks</code>, <code>active_tool_tasks</code>, <code>active_workflow_tasks</code>, <code>active_rag_tasks</code>, <code>active_llm_tasks</code>, <code>task_wait_time_p50_ms</code>, <code>task_wait_time_p95_ms</code>, <code>task_run_time_p50_ms</code>, <code>task_run_time_p95_ms</code>, <code>cancelled_tasks</code>, <code>failed_tasks</code>, <code>non_yield_duration_max_ms</code>; pool/event-loop keys remain for backward compatibility; <code>Runtime#task_snapshot</code> exposes task-centric metrics directly</td>
 <td>Beta</td>
 </tr>
+</tbody>
+</table>
+<h2 id="Advanced___Internal_APIs">Advanced / Internal APIs</h2>
+<p>The APIs listed below are intended for advanced use cases, framework internals, and test infrastructure. Typical application code does not need to interact with them directly.</p>
+<blockquote>
+<p>These APIs are subject to change without the same backwards-compatibility guarantees as the stable public API.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Stability</th>
+</tr>
+</thead>
+<tbody>
 <tr>
 <td><strong><code>Phronomy::Diagnostics</code></strong> — Snapshot of scheduler internals for debug/monitoring; <code>SchedulerReentrancyError</code> raised on invalid re-entrant scheduler use; <code>Runtime.in_scheduler_context?</code> returns <code>true</code> when called from inside a scheduler task</td>
 <td>Experimental</td>
@@ -998,9 +1013,9 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Mon May 25 15:19:02 2026 by
+  Generated on Tue May 26 00:15:31 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
-  0.9.43 (ruby-3.3.11).
+  0.9.44 (ruby-3.3.11).
 </div>
 
     </div>

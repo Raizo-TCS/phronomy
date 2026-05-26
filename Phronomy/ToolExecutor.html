@@ -6,7 +6,7 @@
 <title>
   Module: Phronomy::ToolExecutor
   
-    &mdash; Documentation by YARD 0.9.43
+    &mdash; Documentation by YARD 0.9.44
   
 </title>
 
@@ -96,8 +96,10 @@
 <p>This is the single place in the framework that decides <em>how</em> a tool call is
 dispatched:</p>
 <ul>
-<li><code>:cooperative</code>       — runs via <code>Runtime#spawn</code> on the cooperative scheduler
-(no extra OS thread).</li>
+<li><code>:cooperative</code>       — dispatched via <code>Runtime#spawn</code> through the configured
+scheduler. Under the <code>:fiber</code> backend this avoids an
+extra OS thread; under the <code>:thread</code> backend it is
+backed by <code>ThreadScheduler</code> (one thread per task).</li>
 <li><code>:blocking_io</code>       — submitted to <code>BlockingAdapterPool</code> when the runtime
 provides a pool; falls back to <code>Runtime#spawn</code> otherwise.</li>
 <li><code>:cpu_bound</code>         — emits a deprecation-style warning then falls back to
@@ -268,14 +270,6 @@ uniformly.</p>
       <pre class="lines">
 
 
-34
-35
-36
-37
-38
-39
-40
-41
 42
 43
 44
@@ -306,31 +300,51 @@ uniformly.</p>
 69
 70
 71
-72</pre>
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool_executor.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool_executor.rb', line 42</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span><span class='label'>tool:</span><span class='comma'>,</span> <span class='label'>args:</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>runtime:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ct'>ct</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
   <span class='id identifier rubyid_mode'>mode</span> <span class='op'>=</span> <span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_execution_mode'>execution_mode</span>
 
   <span class='comment'># Warn and normalise unsupported modes to :blocking_io.
+</span>  <span class='comment'># Each (tool class, mode) pair emits the warning at most once per process
+</span>  <span class='comment'># lifetime to avoid log flooding in high-throughput scenarios.
 </span>  <span class='kw'>if</span> <span class='id identifier rubyid_mode'>mode</span> <span class='op'>==</span> <span class='symbol'>:cpu_bound</span> <span class='op'>||</span> <span class='id identifier rubyid_mode'>mode</span> <span class='op'>==</span> <span class='symbol'>:external_process</span>
-    <span class='id identifier rubyid_msg'>msg</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_mode'>mode</span> <span class='op'>==</span> <span class='symbol'>:cpu_bound</span>
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[Phronomy] Tool </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'> declares execution_mode :cpu_bound, </span><span class='tstring_end'>&quot;</span></span> \
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>which has no dedicated executor. </span><span class='tstring_end'>&quot;</span></span> \
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Falling back to blocking_io (BlockingAdapterPool). </span><span class='tstring_end'>&quot;</span></span> \
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Use :blocking_io explicitly to suppress this warning.</span><span class='tstring_end'>&quot;</span></span>
-    <span class='kw'>else</span>
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[Phronomy] Tool </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'> declares execution_mode :external_process, </span><span class='tstring_end'>&quot;</span></span> \
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>which has no dedicated process manager. </span><span class='tstring_end'>&quot;</span></span> \
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Falling back to blocking_io (BlockingAdapterPool).</span><span class='tstring_end'>&quot;</span></span>
-    <span class='kw'>end</span>
-    <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span>
-      <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span><span class='period'>.</span><span class='id identifier rubyid_warn'>warn</span><span class='lparen'>(</span><span class='id identifier rubyid_msg'>msg</span><span class='rparen'>)</span>
-    <span class='kw'>else</span>
-      <span class='id identifier rubyid_warn'>warn</span> <span class='id identifier rubyid_msg'>msg</span>
+    <span class='id identifier rubyid_warn_key'>warn_key</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_mode'>mode</span><span class='rbracket'>]</span>
+    <span class='id identifier rubyid_newly_warned'>newly_warned</span> <span class='op'>=</span> <span class='const'>WARNED_MODES_MUTEX</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='const'>WARNED_MODES</span><span class='period'>.</span><span class='id identifier rubyid_add?'>add?</span><span class='lparen'>(</span><span class='id identifier rubyid_warn_key'>warn_key</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+    <span class='kw'>if</span> <span class='id identifier rubyid_newly_warned'>newly_warned</span>
+      <span class='id identifier rubyid_msg'>msg</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_mode'>mode</span> <span class='op'>==</span> <span class='symbol'>:cpu_bound</span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[Phronomy] Tool </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'> declares execution_mode :cpu_bound, </span><span class='tstring_end'>&quot;</span></span> \
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>which has no dedicated executor. </span><span class='tstring_end'>&quot;</span></span> \
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Falling back to blocking_io (BlockingAdapterPool). </span><span class='tstring_end'>&quot;</span></span> \
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Use :blocking_io explicitly to suppress this warning.</span><span class='tstring_end'>&quot;</span></span>
+      <span class='kw'>else</span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[Phronomy] Tool </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'> declares execution_mode :external_process, </span><span class='tstring_end'>&quot;</span></span> \
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>which has no dedicated process manager. </span><span class='tstring_end'>&quot;</span></span> \
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Falling back to blocking_io (BlockingAdapterPool).</span><span class='tstring_end'>&quot;</span></span>
+      <span class='kw'>end</span>
+      <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span>
+        <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span><span class='period'>.</span><span class='id identifier rubyid_warn'>warn</span><span class='lparen'>(</span><span class='id identifier rubyid_msg'>msg</span><span class='rparen'>)</span>
+      <span class='kw'>else</span>
+        <span class='id identifier rubyid_warn'>warn</span> <span class='id identifier rubyid_msg'>msg</span>
+      <span class='kw'>end</span>
     <span class='kw'>end</span>
     <span class='id identifier rubyid_mode'>mode</span> <span class='op'>=</span> <span class='symbol'>:blocking_io</span>
   <span class='kw'>end</span>
@@ -360,9 +374,9 @@ uniformly.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 15:19:02 2026 by
+  Generated on Tue May 26 00:15:31 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
-  0.9.43 (ruby-3.3.11).
+  0.9.44 (ruby-3.3.11).
 </div>
 
     </div>

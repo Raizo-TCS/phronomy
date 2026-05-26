@@ -6,7 +6,7 @@
 <title>
   Exception: Phronomy::SchedulerReentrancyError
   
-    &mdash; Documentation by YARD 0.9.43
+    &mdash; Documentation by YARD 0.9.44
   
 </title>
 
@@ -100,9 +100,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy.rb<span class="defines">,<br>
-  lib/phronomy.rb</span>
-
+    <dd>lib/phronomy.rb
 </dd>
   </dl>
   
@@ -110,14 +108,28 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Raised when a blocking <code>invoke</code> is called from inside an EventLoop action or
-from within an active Runtime scheduler task.
-Use <code>invoke_async</code> instead to compose agents without blocking the scheduler.</p>
+    <p>Raised when Agent#invoke (a synchronous, blocking call) is attempted from
+inside an active scheduler task and <code>strict_runtime_guards</code> is enabled.</p>
+<p>Calling a blocking invocation from within a scheduler task stalls the
+scheduler until the inner invocation completes, preventing other tasks from
+making progress (hidden deadlock risk).  Use Agent#invoke_async followed by
+<code>#await</code> inside scheduler tasks instead.</p>
+<p>This error is only raised when:</p>
+<pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="../Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span> <span class='op'>=</span> <span class='kw'>true</span> <span class='rbrace'>}</span>
+</code></pre>
+<p>By default a warning is logged and execution continues.</p>
 
   </div>
 </div>
 <div class="tags">
   
+
+  <p class="tag_title">See Also:</p>
+  <ul class="see">
+    
+      <li><span class='object_link'><a href="Runtime.html#in_scheduler_context%3F-class_method" title="Phronomy::Runtime.in_scheduler_context? (method)">Runtime.in_scheduler_context?</a></span></li>
+    
+  </ul>
 
 </div>
 
@@ -139,9 +151,9 @@ Use <code>invoke_async</code> instead to compose agents without blocking the sch
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 15:19:02 2026 by
+  Generated on Tue May 26 00:15:31 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
-  0.9.43 (ruby-3.3.11).
+  0.9.44 (ruby-3.3.11).
 </div>
 
     </div>

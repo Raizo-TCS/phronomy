@@ -6,7 +6,7 @@
 <title>
   Class: Phronomy::Tool::McpTool::StdioTransport
   
-    &mdash; Documentation by YARD 0.9.43
+    &mdash; Documentation by YARD 0.9.44
   
 </title>
 
@@ -352,7 +352,8 @@ When nil (default), no startup check is performed.</p></div>
 137
 138
 139
-140</pre>
+140
+141</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 127</span>
@@ -370,6 +371,7 @@ When nil (default), no startup check is performed.</p></div>
   <span class='ivar'>@stderr</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@wait_thr</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@stderr_thread</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@stderr_op</span> <span class='op'>=</span> <span class='kw'>nil</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -449,14 +451,6 @@ When nil (default), no startup check is performed.</p></div>
       <pre class="lines">
 
 
-180
-181
-182
-183
-184
-185
-186
-187
 188
 189
 190
@@ -464,10 +458,18 @@ When nil (default), no startup check is performed.</p></div>
 192
 193
 194
-195</pre>
+195
+196
+197
+198
+199
+200
+201
+202
+203</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 180</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 188</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_call_tool'>call_tool</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_name'>tool_name</span><span class='comma'>,</span> <span class='id identifier rubyid_args'>args</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_response'>response</span> <span class='op'>=</span> <span class='id identifier rubyid_rpc_call'>rpc_call</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tools/call</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='lbrace'>{</span><span class='label'>name:</span> <span class='id identifier rubyid_tool_name'>tool_name</span><span class='comma'>,</span> <span class='label'>arguments:</span> <span class='id identifier rubyid_args'>args</span><span class='rbrace'>}</span><span class='rparen'>)</span>
@@ -514,7 +516,6 @@ When nil (default), no startup check is performed.</p></div>
       <pre class="lines">
 
 
-143
 144
 145
 146
@@ -527,10 +528,18 @@ When nil (default), no startup check is performed.</p></div>
 153
 154
 155
-156</pre>
+156
+157
+158
+159
+160
+161
+162
+163
+164</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 143</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 144</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_close'>close</span>
   <span class='ivar'>@stdin</span><span class='op'>&amp;.</span><span class='id identifier rubyid_close'>close</span>
@@ -540,10 +549,17 @@ When nil (default), no startup check is performed.</p></div>
   <span class='ivar'>@stdout</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@stderr</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='id identifier rubyid_stderr_thread'>stderr_thread</span> <span class='op'>=</span> <span class='ivar'>@stderr_thread</span>
+  <span class='id identifier rubyid_stderr_op'>stderr_op</span> <span class='op'>=</span> <span class='ivar'>@stderr_op</span>
   <span class='id identifier rubyid_wait_thr'>wait_thr</span> <span class='op'>=</span> <span class='ivar'>@wait_thr</span>
   <span class='ivar'>@stderr_thread</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@stderr_op</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@wait_thr</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='id identifier rubyid_stderr_thread'>stderr_thread</span><span class='op'>&amp;.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='int'>1</span><span class='rparen'>)</span>
+  <span class='kw'>begin</span>
+    <span class='id identifier rubyid_stderr_op'>stderr_op</span><span class='op'>&amp;.</span><span class='id identifier rubyid_await'>await</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='float'>1.0</span><span class='rparen'>)</span>
+  <span class='kw'>rescue</span>
+    <span class='kw'>nil</span>
+  <span class='kw'>end</span>
   <span class='id identifier rubyid_wait_thr'>wait_thr</span><span class='op'>&amp;.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='int'>5</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -619,21 +635,21 @@ When nil (default), no startup check is performed.</p></div>
       <pre class="lines">
 
 
-162
-163
-164
-165
-166
-167
-168
-169
 170
 171
 172
-173</pre>
+173
+174
+175
+176
+177
+178
+179
+180
+181</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 162</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 170</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fetch_tool'>fetch_tool</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_name'>tool_name</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_response'>response</span> <span class='op'>=</span> <span class='id identifier rubyid_rpc_call'>rpc_call</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tools/list</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
@@ -657,9 +673,9 @@ When nil (default), no startup check is performed.</p></div>
 </div>
 
       <div id="footer">
-  Generated on Mon May 25 15:19:04 2026 by
+  Generated on Tue May 26 00:15:33 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
-  0.9.43 (ruby-3.3.11).
+  0.9.44 (ruby-3.3.11).
 </div>
 
     </div>
