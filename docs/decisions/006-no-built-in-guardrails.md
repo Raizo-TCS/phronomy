@@ -1,8 +1,8 @@
-# ADR-006: Built-in Guardrail Implementations Are Not Shipped
+# ADR-006: Minimal Built-in Guardrail Implementations
 
 ## Status
 
-Accepted
+Amended (see Amendment section below)
 
 ## Context
 
@@ -46,3 +46,21 @@ Users are responsible for implementing domain-specific guardrail logic.
 **Negative / Tradeoffs:**
 - Users must implement their own guardrails from scratch. Providing a cookbook
   of example patterns in the README partially mitigates this.
+
+## Amendment — `PromptInjectionGuardrail` Added
+
+After the original decision was accepted, `Guardrail::PromptInjectionGuardrail`
+was introduced as the **one exception** to the "no built-ins" rule.
+
+**Rationale for the exception:**
+- Prompt injection patterns are broadly applicable across almost all LLM
+  applications regardless of domain, unlike PII patterns which are locale-specific.
+- A lightweight, pure-regex implementation has no third-party dependency and
+  adds negligible gem weight.
+- It serves as a documented reference implementation that users can subclass with
+  `extra_patterns:` to extend.
+
+**Scope of the exception:**
+Only prompt-injection detection is provided as a built-in. PII scanning,
+content classification, and toxic-content filtering remain out of scope per the
+original decision.

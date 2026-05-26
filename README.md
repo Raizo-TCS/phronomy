@@ -257,10 +257,11 @@ rescue Phronomy::GuardrailError => e
 end
 ```
 
-> **Limitations:** Phronomy ships no built-in guardrail implementations. There is no
-> built-in prompt injection detector, PII scanner, or content classifier. All guardrail
-> logic must be implemented by the application. Reference implementations for common
-> patterns are available in `phronomy-examples` (example 06).
+> **Note:** Phronomy includes `PromptInjectionGuardrail`, a built-in pattern-based
+> input guardrail that detects common injection patterns (see the feature table above).
+> PII scanning and content classification are **not** provided by the framework;
+> that logic must be implemented by the application. Reference implementations for
+> common patterns are available in `phronomy-examples` (example 06).
 
 ### Knowledge/RAG — Context injection and vector retrieval
 
@@ -444,7 +445,9 @@ end
 
 ### Workflow Parallel Node — Concurrent branches
 
-Phronomy does not provide a built-in parallel abstraction. Use application-level Ruby threads inside a `state` action:
+Phronomy does not provide a dedicated parallel-node primitive. The recommended
+pattern for concurrent branches is to use application-level Ruby threads inside
+a `state` action:
 
 ```ruby
 class EnrichContext
@@ -837,9 +840,11 @@ span attributes by default (`trace_pii: false`). To include full content in trac
 Phronomy configuration. Evaluate whether your tracing backend (OTLP collector, Jaeger,
 Honeycomb, etc.) meets your data-retention and privacy requirements.
 
-**Prompt injection** — Phronomy provides no built-in prompt injection detection.
-Applications that process untrusted user input should implement their own input
-guardrails (see the Guardrails section above).
+**Prompt injection** — Phronomy provides `PromptInjectionGuardrail`, a built-in
+pattern-based input guardrail that detects common injection patterns (ignore/override
+instructions, role-switching phrases, etc.). It is a useful starting point, not a
+comprehensive defence; applications processing untrusted input should layer additional
+custom guardrails as needed (see the Guardrails section above).
 
 **Tool and MCP security** — Tools can perform real-world side effects (database
 writes, API calls, file deletion). Treat tool execution as a privileged operation:
