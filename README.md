@@ -460,7 +460,7 @@ class MyOrchestrator < Phronomy::Agent::Orchestrator
 end
 ```
 
-### Workflow Parallel Node — Concurrent branches
+### Workflow parallel pattern — Concurrent branches
 
 Phronomy does not provide a dedicated parallel-node primitive. The recommended
 pattern for concurrent branches is to use application-level Ruby threads inside
@@ -481,9 +481,9 @@ app = Phronomy::Workflow.define(EnrichContext) do
       summary: Thread.new { Summarizer.call(s) },
       tags:    Thread.new { Tagger.call(s) }
     }
-    # For bounded waits, prefer per-thread join with a deadline rather than Timeout.timeout.
-    # Timeout.timeout injects an async exception and carries the same risks as Thread#kill.
-    # Example: threads.each_value { |t| t.join(30) || t.kill }  # crude; prefer CancellationToken
+    # For bounded waits, use Thread#join(timeout_seconds); nil means timed out — handle explicitly.
+    # Do not use Timeout.timeout or Thread#kill — both inject async exceptions that bypass cleanup.
+    # Prefer CancellationToken for cooperative cancellation of Phronomy-managed tasks.
     threads.each_value(&:join)
     s.merge(summary: threads[:summary].value, tags: Array(threads[:tags].value))
   end
@@ -652,7 +652,7 @@ result = my_agent.invoke_async("Hello").await
 
 The `:immediate` backend runs tasks synchronously using `FakeScheduler`
 (backed by `Task::ImmediateBackend`).  Blocking I/O is isolated in `BlockingAdapterPool`.
-To opt into the legacy thread-per-task mode:
+To switch back to the default thread-per-task backend:
 
 ```ruby
 Phronomy.configure { |c| c.runtime_backend = :thread }
