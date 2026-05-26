@@ -117,7 +117,9 @@ module Phronomy
         #   {HttpTransport}. Defaults to 30 seconds.
         # @param env             [Hash, nil] environment variable overrides for the subprocess.
         #   When provided, only these variables are added/overridden; the parent environment
-        #   is still inherited unless explicitly cleared via an empty string value.
+        #   is still inherited. Use +nil+ as a value to unset a variable in the child process
+        #   (e.g. +{ "SECRET" => nil }+). An empty string value (+""+ ) sets the variable to
+        #   an empty string — it does NOT unset it.
         # @param cwd             [String, nil] working directory for the subprocess.
         #   Defaults to the current process's working directory.
         # @param startup_timeout [Numeric, nil] seconds to wait for the server to
