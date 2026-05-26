@@ -28,11 +28,12 @@ module Phronomy
   #     framework will not add a +ProcessPoolExecutor+ equivalent.
   #   - An external process manager. Spawning or supervising subprocesses is
   #     out of scope for this module.
-  #   - Additional execution modes beyond +:cooperative+ and +:blocking_io+.
+  #   - Additional core execution routes beyond scheduler-backed cooperative
+  #     execution and BlockingAdapterPool-backed blocking I/O isolation.
   #     The +:cpu_bound+ and +:external_process+ modes are accepted for
   #     compatibility but both fall back to +:blocking_io+ routing with a
-  #     one-time warning. If a genuinely new execution mode is needed, a new
-  #     ADR is required.
+  #     one-time warning. If a genuinely new core execution route is needed,
+  #     a new ADR is required.
   #   These non-goals follow from the cooperative-first, non-preemptive
   #   concurrency model (ADR-010): framework components must not assume the
   #   caller's concurrency model, and CPU/process management belongs to the

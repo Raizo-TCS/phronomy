@@ -9,9 +9,11 @@ production-cooperative roadmap (Issues #331, #332, #334).
 
 Phronomy provides its own concurrency primitives:
 
-- **`Phronomy::Runtime`** — task scheduler; backend is configurable
-  (`:cooperative` = `FakeScheduler` / `ImmediateBackend` by default,
-  `:thread` = `ThreadScheduler` / `ThreadBackend` for opt-in parallelism).
+- **`Phronomy::Runtime`** — task scheduler; backend is configurable.
+  The current production default is `:thread` (`ThreadScheduler` / `ThreadBackend`).
+  See the backend landscape table below for all supported values.
+  *(Historical note: early versions used `:cooperative` as the default; it is now
+  a deprecated alias for `:immediate`.)*
 - **`Phronomy::EventLoop`** — singleton event dispatcher; drives the cooperative
   task cycle.
 
@@ -138,14 +140,14 @@ Three scheduler backends currently exist:
 |---|---|---|
 | `:thread` — `ThreadScheduler` / `ThreadBackend` | **Production default** | One OS thread per task; GVL-releasing I/O works transparently |
 | `:immediate` — `FakeScheduler` / `ImmediateBackend` | Test / CI | Synchronous; block runs to completion before `spawn` returns; no threads |
-| `DeterministicScheduler` / `FiberBackend` | **Test-only (not a named backend)** | Tick-based Fiber scheduler with virtual clock; enables deterministic concurrency tests without wall-clock timers |
+| `:fiber` — `DeterministicScheduler` / `FiberBackend` | **Experimental validation backend** | Tick-based Fiber scheduler with virtual clock; enables deterministic concurrency tests without wall-clock timers. Named backend added in Issue #334. |
 
 ### `:cooperative` deprecation
 
 `:cooperative` was a silent alias for `:immediate` (mapped to `FakeScheduler`).
-As of Issue #332, it now emits a `WARN`-level deprecation message. It will be
-either removed or reassigned to a real Fiber-based cooperative backend when one
-is available (Issue #334).
+As of Issue #332, it now emits a `WARN`-level deprecation message and must not
+be used in new code. Issue #334 introduced `:fiber` as the named experimental
+validation backend; `:cooperative` is retained only for backwards compatibility.
 
 ### DeterministicScheduler as a stepping stone
 
@@ -156,21 +158,20 @@ cooperative runtime goal. It provides:
 - `FiberBackend` wrapping tasks as Fibers
 - `tick` / `run_until_idle` / `advance(seconds)` for deterministic test control
 
-**Current gaps versus a production cooperative runtime:**
+**Remaining gaps versus a full production cooperative runtime:**
 
-- Not configurable via `runtime_backend` (test-only)
 - No real-wall-clock timer integration (`TimerQueue` runs as a background thread — Issue #331)
-- No `BlockingAdapterPool` integration for LLM/network calls
+- No `BlockingAdapterPool` integration for LLM/network calls (Issue #280)
 - Scheduler must be driven manually (`tick`) rather than event-loop-driven
 
-The minimum delta to promote `DeterministicScheduler` toward production use:
+The minimum delta to promote `DeterministicScheduler` to production use:
 
 1. Integrate `TimerQueue` into the scheduler `tick` cycle (eliminates timer thread — Issue #331)
 2. Implement `BlockingAdapterPool` and wire LLM/tool calls through it (Issue #280)
-3. Expose as a named `runtime_backend` (e.g. `:fiber`) — Issue #334
+3. ~~Expose as a named `runtime_backend` (`:fiber`)~~ — **done** (Issue #334)
 4. Add real-wall-clock integration (replace virtual time with `Process.clock_gettime`)
 
-Progress is tracked in Issue #334.
+Progress is tracked in Issues #331 and #280.
 
 ### TimerQueue background thread
 
@@ -199,8 +200,10 @@ that no separate timer thread is needed. Progress tracked in Issue #331.
   backend explicitly (e.g., in tests via `around` blocks).
 - `dispatch_parallel` remains on raw threads (ADR-008) until migrated.
 - `TimerQueue` runs as a background OS thread (interim; see Issue #331).
-- `DeterministicScheduler` is test-only; a production cooperative runtime
-  requires further work (see Issue #334).
+- `DeterministicScheduler` backs the named `:fiber` backend (Issue #334
+  resolved). It remains experimental and not for production use; the remaining
+  steps toward a full production cooperative runtime are `TimerQueue`
+  integration (Issue #331) and `BlockingAdapterPool` completion (Issue #280).
 
 ## Derived Checklist
 
@@ -228,16 +231,18 @@ When writing or reviewing any Phronomy component, apply this checklist:
 The following capabilities are intentionally out of scope for this framework's
 concurrency layer:
 
-- **CPU-bound process pool** — A `ProcessPoolExecutor` equivalent will not be
-  added to `ToolExecutor` or any other framework component. CPU-intensive tool
-  work belongs at the application layer (fork, Sidekiq, etc.).
-- **External process manager** — The framework will not spawn, monitor, or
-  restart external subprocesses.
+- **CPU-bound process pool** — A `ProcessPoolExecutor` equivalent is not part
+  of core framework by default. CPU-intensive tool work belongs at the
+  application layer (fork, Sidekiq, etc.). A separate ADR would be required
+  to introduce one.
+- **External process manager** — Spawning, monitoring, or restarting external
+  subprocesses is not currently a framework responsibility. A separate ADR
+  would be required.
 - **Preemptive scheduling** — The cooperative-first model is non-preemptive by
-  design. There are no plans to introduce a preemptive scheduler or to make
-  `:fiber` the production default.
-- **Additional ToolExecutor execution modes** — Only `:cooperative` and
-  `:blocking_io` are supported. `:cpu_bound` and `:external_process` are
-  compatibility aliases that fall back to `:blocking_io` with a warning.
-  Any genuinely new execution mode requires a new ADR.
+  design. Introducing a preemptive scheduler or promoting `:fiber` to
+  production default is not currently planned; a separate ADR would be required.
+- **Additional ToolExecutor core execution routes** — Only `:cooperative` and
+  `:blocking_io` are core dispatch routes. `:cpu_bound` and `:external_process`
+  are compatibility aliases that fall back to `:blocking_io` with a warning.
+  Any genuinely new core execution route requires a new ADR.
 
