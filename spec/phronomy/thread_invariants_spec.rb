@@ -206,7 +206,7 @@ RSpec.describe "EventLoop always uses a dedicated ThreadScheduler (Issue #370)",
     Phronomy.configure { |c| c.runtime_backend = :thread }
   end
 
-  [:thread, :immediate].each do |backend|
+  [:thread, :immediate, :fiber].each do |backend|
     it "EventLoop#start spawns its loop task on a ThreadBackend::Task regardless of :#{backend} backend" do
       Phronomy.configure { |c| c.runtime_backend = backend }
       event_loop.start
