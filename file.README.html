@@ -83,6 +83,7 @@ in <code>CHANGELOG.md</code>.</li>
 <p><strong>Note</strong>: The <code>main</code> branch contains unreleased development work. Pin to a released gem
 version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stability in production.</p>
 </blockquote>
+<p><strong>Core building blocks</strong></p>
 <table>
 <thead>
 <tr>
@@ -100,20 +101,6 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong>Workflow EventLoop Mode</strong> — Opt-in event-driven execution: `Phronomy.configure { \</td>
-<td>c\</td>
-<td>c.event_loop = true }`</td>
-<td>Experimental</td>
-</tr>
-<tr>
-<td><strong>Agent EventLoop Mode</strong> — <code>Agent#invoke</code> (non-blocking via EventLoop), <code>Agent#run_as_child</code> (child-FSM pattern for Workflow integration), parallel tool dispatch via <code>ParallelToolChat</code></td>
-<td>Experimental</td>
-</tr>
-<tr>
-<td><strong>Workflow Parallel Node</strong> — Concurrent branches via application-level threads</td>
-<td>Beta</td>
-</tr>
-<tr>
 <td><strong>Agent</strong> — ReAct-style tool-calling agents with guardrails and conversation history</td>
 <td>Stable</td>
 </tr>
@@ -126,11 +113,134 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Stable</td>
 </tr>
 <tr>
+<td><strong>Guardrails</strong> — Input/output validation with custom <code>InputGuardrail</code>/<code>OutputGuardrail</code></td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong><code>PromptInjectionGuardrail</code></strong> — Built-in <code>InputGuardrail</code> subclass that detects prompt-injection patterns; usable standalone or as part of a guardrail chain</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong><code>Tool::Base.redact_params</code> / <code>.max_result_size</code></strong> — Class-level DSL: <code>redact_params</code> masks parameter values in log/trace output; <code>max_result_size</code> truncates oversized tool results before they reach the LLM</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong>Output Parser</strong> — JSON and Struct-mapped parsers for structured LLM responses</td>
+<td>Stable</td>
+</tr>
+<tr>
+<td><strong>Eval Framework</strong> — Dataset-driven evaluation with multiple scorer types</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong>Tracing</strong> — Pluggable span-based observability</td>
+<td>Stable</td>
+</tr>
+<tr>
+<td><strong>Error Taxonomy</strong> — <code>RateLimitError</code>, <code>AuthenticationError</code>, <code>ContextLengthError</code>, <code>TransportError</code> (subclasses of <code>Phronomy::Error</code>) raised at the agent retry boundary</td>
+<td>Beta</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Knowledge and integration</strong></p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Stability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
 <td><strong>Knowledge/RAG</strong> — Retrieval sources with pluggable loaders, splitters, and vector stores; <code>static_knowledge_refresh!</code> for runtime cache invalidation</td>
 <td>Beta</td>
 </tr>
 <tr>
 <td><strong><code>VectorStore#size</code></strong> — Returns document count for all three backends (InMemory, RedisSearch, Pgvector)</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong><code>VectorStore::AsyncBackend</code> mixin</strong> — Pluggable async interface for <code>VectorStore</code>; default pool-backed implementations for <code>search_async</code>, <code>add_async</code>, <code>remove_async</code>, <code>clear_async</code>; backends with native async drivers override individual methods to bypass <code>BlockingAdapterPool</code> entirely; all existing backends remain unchanged</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong>Parallel RAG multi-source fetch</strong> — <code>Agent#build_context</code> fetches all <code>knowledge_sources</code> concurrently via <code>TaskGroup</code>; <code>config[:rag_failure_policy]</code> <code>:skip</code> (default) silently ignores failed sources so the agent answers with partial context, <code>:fail</code> surfaces the first error; per-source latency is emitted to <code>Phronomy.configuration.logger</code> at debug level</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong>MCP Tool</strong> — Model Context Protocol server integration</td>
+<td>Beta</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Execution and reliability</strong></p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Stability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Workflow EventLoop Mode</strong> — Opt-in event-driven execution: `Phronomy.configure { \</td>
+<td>c\</td>
+<td>c.event_loop = true }`</td>
+<td>Experimental</td>
+</tr>
+<tr>
+<td><strong>Agent EventLoop Mode</strong> — <code>Agent#invoke</code> (non-blocking via EventLoop), <code>Agent#run_as_child</code> (child-FSM pattern for Workflow integration), parallel tool dispatch via <code>ParallelToolChat</code></td>
+<td>Experimental</td>
+</tr>
+<tr>
+<td><strong><code>invoke_async</code> / <code>call_async</code></strong> — <code>Agent::Base#invoke_async</code> and <code>Workflow#invoke_async</code> return a <code>Task</code>; <code>Tool::Base#call_async</code> similarly; compatible with EventLoop and standalone contexts</td>
+<td>Experimental</td>
+</tr>
+<tr>
+<td><strong>CancellationToken</strong> — Cooperative cancellation via <code>cancel!</code>/<code>cancelled?</code>/<code>raise_if_cancelled!</code>; <code>timeout_after(seconds)</code> for monotonic-clock deadlines; optional <code>deadline:</code> (wall-clock) for backward compatibility; passed as <code>config: { cancellation_token: token }</code> to agents and <code>dispatch_parallel</code>; injected into <code>tool.execute</code> when the method declares a <code>cancellation_token:</code> keyword</td>
+<td>Experimental</td>
+</tr>
+<tr>
+<td><strong><code>dispatch_parallel</code> / <code>fan_out</code> <code>force_kill:</code> option</strong> — <code>force_kill: false</code> (default) leaves timed-out workers running and raises <code>TimeoutError</code> immediately; <code>force_kill: true</code> restores the old <code>Thread#kill</code> behaviour with a <code>logger.warn</code></td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong><code>execution_mode</code> DSL on <code>Tool::Base</code></strong> — Declares how a tool's <code>execute</code> should be dispatched: <code>:cooperative</code> (same scheduler thread), <code>:blocking_io</code> (default; offloaded to <code>BlockingAdapterPool</code>), <code>:cpu_bound</code>, <code>:external_process</code></td>
+<td>Experimental</td>
+</tr>
+<tr>
+<td><strong><code>invocation_context:</code> keyword on <code>Agent#invoke</code> / <code>Workflow#invoke</code></strong> — Pass a <code>Phronomy::InvocationContext</code> directly; <code>thread_id</code>, <code>cancellation_token</code>, and <code>deadline</code>-based timeout are derived from it; <code>task_id</code> / <code>parent_task_id</code> appear in trace spans automatically; <code>config:</code> keys remain supported as backward-compat aliases</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong><code>ConcurrencyGate</code> — unified backpressure</strong> — Counting semaphore that enforces per-resource concurrency caps (<code>max_concurrent_agent_tasks</code>, <code>max_concurrent_tool_tasks</code>, <code>max_concurrent_workflow_tasks</code>, <code>max_concurrent_llm_calls</code>, <code>max_concurrent_rag_fetches</code>, <code>max_concurrent_vector_searches</code>); configured via <code>Phronomy.configure</code>; backpressure behaviour follows the global <code>backpressure</code> setting (<code>:wait</code>, <code>:raise</code>/<code>:reject</code>, <code>:timeout</code>); <code>nil</code> cap = unlimited (default)</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong>Cooperative scheduler yield points</strong> — <code>Runtime#yield</code> (cooperative yield; yields the current task's time slice); <code>Runtime#yield_if_needed(every: N)</code> (thread-local counter, yields every N calls); CPU-bound detection when <code>blocking_detect_threshold_ms</code> is set (warns and increments <code>non_yield_threshold_violation_count</code> when a task runs longer than the threshold without yielding); <code>starvation_threshold_ms</code> configuration field (default: 50ms)</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong><code>Phronomy::Metrics</code></strong> — <code>Phronomy::Metrics.snapshot</code> returns task-tree and pool counters; task-centric keys: <code>active_agent_tasks</code>, <code>active_tool_tasks</code>, <code>active_workflow_tasks</code>, <code>active_rag_tasks</code>, <code>active_llm_tasks</code>, <code>task_wait_time_p50_ms</code>, <code>task_wait_time_p95_ms</code>, <code>task_run_time_p50_ms</code>, <code>task_run_time_p95_ms</code>, <code>cancelled_tasks</code>, <code>failed_tasks</code>, <code>non_yield_threshold_violation_count</code>; pool/event-loop keys remain for backward compatibility; <code>Runtime#task_snapshot</code> exposes task-centric metrics directly</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong><code>Phronomy.with_configuration</code> / <code>Phronomy.reset_runtime!</code></strong> — Scoped configuration override and full runtime reset for test isolation</td>
+<td>Beta</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Agent patterns</strong></p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Stability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Workflow parallel pattern</strong> — Concurrent branches via application-level threads (no built-in parallel primitive; see the Workflow section for the recommended pattern)</td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -154,89 +264,13 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Experimental</td>
 </tr>
 <tr>
-<td><strong>Guardrails</strong> — Input/output validation with custom <code>InputGuardrail</code>/<code>OutputGuardrail</code></td>
-<td>Beta</td>
-</tr>
-<tr>
-<td><strong>Output Parser</strong> — JSON and Struct-mapped parsers for structured LLM responses</td>
-<td>Stable</td>
-</tr>
-<tr>
-<td><strong>Eval Framework</strong> — Dataset-driven evaluation with multiple scorer types</td>
-<td>Beta</td>
-</tr>
-<tr>
-<td><strong>Tracing</strong> — Pluggable span-based observability</td>
-<td>Stable</td>
-</tr>
-<tr>
-<td><strong>MCP Tool</strong> — Model Context Protocol server integration</td>
-<td>Beta</td>
-</tr>
-<tr>
-<td><strong>Error Taxonomy</strong> — <code>RateLimitError</code>, <code>AuthenticationError</code>, <code>ContextLengthError</code>, <code>TransportError</code> (subclasses of <code>Phronomy::Error</code>) raised at the agent retry boundary</td>
-<td>Beta</td>
-</tr>
-<tr>
-<td><strong><code>Phronomy.with_configuration</code> / <code>Phronomy.reset_runtime!</code></strong> — Scoped configuration override and full runtime reset for test isolation</td>
-<td>Beta</td>
-</tr>
-<tr>
-<td><strong>CancellationToken</strong> — Cooperative cancellation via <code>cancel!</code>/<code>cancelled?</code>/<code>raise_if_cancelled!</code>; <code>timeout_after(seconds)</code> for monotonic-clock deadlines; optional <code>deadline:</code> (wall-clock) for backward compatibility; passed as <code>config: { cancellation_token: token }</code> to agents and <code>dispatch_parallel</code>; injected into <code>tool.execute</code> when the method declares a <code>cancellation_token:</code> keyword</td>
-<td>Experimental</td>
-</tr>
-<tr>
-<td><strong><code>dispatch_parallel</code> / <code>fan_out</code> <code>force_kill:</code> option</strong> — <code>force_kill: false</code> (default) leaves timed-out workers running and raises <code>TimeoutError</code> immediately; <code>force_kill: true</code> restores the old <code>Thread#kill</code> behaviour with a <code>logger.warn</code></td>
-<td>Beta</td>
-</tr>
-<tr>
-<td><strong><code>execution_mode</code> DSL on <code>Tool::Base</code></strong> — Declares how a tool's <code>execute</code> should be dispatched: <code>:cooperative</code> (same scheduler thread), <code>:blocking_io</code> (default; offloaded to <code>BlockingAdapterPool</code>), <code>:cpu_bound</code>, <code>:external_process</code></td>
-<td>Experimental</td>
-</tr>
-<tr>
-<td><strong><code>invoke_async</code> / <code>call_async</code></strong> — <code>Agent::Base#invoke_async</code> and <code>Workflow#invoke_async</code> return a <code>Task</code>; <code>Tool::Base#call_async</code> similarly; compatible with EventLoop and standalone contexts</td>
-<td>Experimental</td>
-</tr>
-<tr>
-<td><strong><code>invocation_context:</code> keyword on <code>Agent#invoke</code> / <code>Workflow#invoke</code></strong> — Pass a <code>Phronomy::InvocationContext</code> directly; <code>thread_id</code>, <code>cancellation_token</code>, and <code>deadline</code>-based timeout are derived from it; <code>task_id</code> / <code>parent_task_id</code> appear in trace spans automatically; <code>config:</code> keys remain supported as backward-compat aliases</td>
-<td>Beta</td>
-</tr>
-<tr>
-<td><strong>Parallel RAG multi-source fetch</strong> — <code>Agent#build_context</code> fetches all <code>knowledge_sources</code> concurrently via <code>TaskGroup</code>; <code>config[:rag_failure_policy]</code> <code>:skip</code> (default) silently ignores failed sources so the agent answers with partial context, <code>:fail</code> surfaces the first error; per-source latency is emitted to <code>Phronomy.configuration.logger</code> at debug level</td>
-<td>Beta</td>
-</tr>
-<tr>
-<td><strong><code>VectorStore::AsyncBackend</code> mixin</strong> — Pluggable async interface for <code>VectorStore</code>; default pool-backed implementations for <code>search_async</code>, <code>add_async</code>, <code>remove_async</code>, <code>clear_async</code>; backends with native async drivers override individual methods to bypass <code>BlockingAdapterPool</code> entirely; all existing backends remain unchanged</td>
-<td>Beta</td>
-</tr>
-<tr>
-<td><strong><code>ConcurrencyGate</code> — unified backpressure</strong> — Counting semaphore that enforces per-resource concurrency caps (<code>max_concurrent_agent_tasks</code>, <code>max_concurrent_tool_tasks</code>, <code>max_concurrent_workflow_tasks</code>, <code>max_concurrent_llm_calls</code>, <code>max_concurrent_rag_fetches</code>, <code>max_concurrent_vector_searches</code>); configured via <code>Phronomy.configure</code>; backpressure behaviour follows the global <code>backpressure</code> setting (<code>:wait</code>, <code>:raise</code>/<code>:reject</code>, <code>:timeout</code>); <code>nil</code> cap = unlimited (default)</td>
-<td>Beta</td>
-</tr>
-<tr>
-<td><strong>Cooperative scheduler yield points</strong> — <code>Runtime#yield</code> (cooperative yield; yields the current task's time slice); <code>Runtime#yield_if_needed(every: N)</code> (thread-local counter, yields every N calls); CPU-bound detection when <code>blocking_detect_threshold_ms</code> is set (warns and increments <code>non_yield_threshold_violation_count</code> when a task runs longer than the threshold without yielding); <code>starvation_threshold_ms</code> configuration field (default: 50ms)</td>
-<td>Beta</td>
-</tr>
-<tr>
 <td><strong><code>ScopePolicy</code></strong> — Configurable policy callable that maps (tool, scope, agent) to <code>:allow</code>/<code>:approve</code>/<code>:reject</code>; default policy auto-routes high-risk scopes through the approval gate</td>
 <td>Experimental</td>
-</tr>
-<tr>
-<td><strong><code>PromptInjectionGuardrail</code></strong> — Built-in <code>InputGuardrail</code> subclass that detects prompt-injection patterns; usable standalone or as part of a guardrail chain</td>
-<td>Beta</td>
-</tr>
-<tr>
-<td><strong><code>Tool::Base.redact_params</code> / <code>.max_result_size</code></strong> — Class-level DSL: <code>redact_params</code> masks parameter values in log/trace output; <code>max_result_size</code> truncates oversized tool results before they reach the LLM</td>
-<td>Beta</td>
-</tr>
-<tr>
-<td><strong><code>Phronomy::Metrics</code></strong> — <code>Phronomy::Metrics.snapshot</code> returns task-tree and pool counters; task-centric keys: <code>active_agent_tasks</code>, <code>active_tool_tasks</code>, <code>active_workflow_tasks</code>, <code>active_rag_tasks</code>, <code>active_llm_tasks</code>, <code>task_wait_time_p50_ms</code>, <code>task_wait_time_p95_ms</code>, <code>task_run_time_p50_ms</code>, <code>task_run_time_p95_ms</code>, <code>cancelled_tasks</code>, <code>failed_tasks</code>, <code>non_yield_threshold_violation_count</code>; pool/event-loop keys remain for backward compatibility; <code>Runtime#task_snapshot</code> exposes task-centric metrics directly</td>
-<td>Beta</td>
 </tr>
 </tbody>
 </table>
 <blockquote>
-<p><strong>Public API boundary</strong>: The table above is the complete list of classes, modules, and features
+<p><strong>Public API boundary</strong>: The tables above are the complete list of classes, modules, and features
 intended for gem consumers. Every entry has an associated stability label.
 All other classes, modules, and methods — including everything in the
 <a href="#advanced--internal-apis">Advanced / Internal APIs</a> section below — are
@@ -610,9 +644,9 @@ a <code>state</code> action:</p>
       <span class='label'>summary:</span> <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='lbrace'>{</span> <span class='const'>Summarizer</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_s'>s</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='comma'>,</span>
       <span class='label'>tags:</span>    <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='lbrace'>{</span> <span class='const'>Tagger</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_s'>s</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
     <span class='rbrace'>}</span>
-    <span class='comment'># For production use, wrap with Timeout.timeout to avoid unbounded waits:
-</span>    <span class='comment'>#   require &quot;timeout&quot;
-</span>    <span class='comment'>#   Timeout.timeout(30) { threads.each_value(&amp;:join) }
+    <span class='comment'># For bounded waits, prefer per-thread join with a deadline rather than Timeout.timeout.
+</span>    <span class='comment'># Timeout.timeout injects an async exception and carries the same risks as Thread#kill.
+</span>    <span class='comment'># Example: threads.each_value { |t| t.join(30) || t.kill }  # crude; prefer CancellationToken
 </span>    <span class='id identifier rubyid_threads'>threads</span><span class='period'>.</span><span class='id identifier rubyid_each_value'>each_value</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:join</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_s'>s</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>summary:</span> <span class='id identifier rubyid_threads'>threads</span><span class='lbracket'>[</span><span class='symbol'>:summary</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='label'>tags:</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_threads'>threads</span><span class='lbracket'>[</span><span class='symbol'>:tags</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
@@ -696,7 +730,7 @@ restore conversation history — you must pass <code>messages:</code> explicitly
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_trace_pii'>trace_pii</span>                       <span class='op'>=</span> <span class='kw'>false</span> <span class='comment'># default; set to true only when trace data contains no PII
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span>                          <span class='op'>=</span> <span class='kw'>nil</span>   <span class='comment'># optional; any object responding to #warn (e.g. Rails.logger)
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span>   <span class='op'>=</span> <span class='int'>5</span>     <span class='comment'># seconds to wait for sessions to drain on EventLoop#stop(drain: true)
-</span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_runtime_backend'>runtime_backend</span>                 <span class='op'>=</span> <span class='symbol'>:thread</span>   <span class='comment'># :thread (default) or :immediate (tests, runs tasks synchronously)
+</span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_runtime_backend'>runtime_backend</span>                 <span class='op'>=</span> <span class='symbol'>:thread</span>   <span class='comment'># :thread (default); :immediate (tests, synchronous); :fiber (experimental validation only); :cooperative (deprecated alias for :immediate)
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span>           <span class='op'>=</span> <span class='kw'>false</span>          <span class='comment'># when true, raises on invoke-inside-task
 </span><span class='kw'>end</span>
 </code></pre>
@@ -789,7 +823,7 @@ agents automatically stay within the configured token limit.</p>
   <span class='id identifier rubyid_max_output_tokens'>max_output_tokens</span> <span class='int'>4096</span>   <span class='comment'># override max_output_tokens from registry
 </span>  <span class='id identifier rubyid_context_overhead'>context_overhead</span>  <span class='int'>600</span>    <span class='comment'># extra reservation for system prompt + tools
 </span>  <span class='id identifier rubyid_invoke_timeout'>invoke_timeout</span>    <span class='int'>30</span>     <span class='comment'># raise Phronomy::TimeoutError after 30 s (wait timeout, not cancellation)
-</span>  <span class='id identifier rubyid_max_parallel_tools'>max_parallel_tools</span> <span class='int'>4</span>     <span class='comment'># cap concurrent tool-call threads (default: 10)
+</span>  <span class='id identifier rubyid_max_parallel_tools'>max_parallel_tools</span> <span class='int'>4</span>     <span class='comment'># cap concurrent tool executions (default: 10)
 </span><span class='kw'>end</span>
 </code></pre>
 <p><code>Agent::Base#invoke</code> builds a <code>TokenBudget</code> automatically. When the model is not in the
@@ -824,9 +858,13 @@ operation. This means the following are <strong>not</strong> interrupted mid-exe
 <li>Any external I/O (database query, vector search, HTTP request) inside those calls</li>
 </ul>
 <p>For deep in-flight safety, complement <code>CancellationToken</code> with per-source or
-per-tool timeouts (e.g. <code>Net::HTTP#read_timeout</code>, <code>Timeout.timeout</code>, connection
-pool limits). Ruby's GVL prevents fully preemptive cancellation without
-<code>Thread#kill</code>, which Phronomy avoids by default due to resource safety concerns.</p>
+per-tool timeouts. Prefer library-native timeouts such as <code>Net::HTTP#read_timeout</code>,
+database <code>statement_timeout</code>, or Redis client timeout — these signal the I/O layer
+to abort cleanly. Avoid <code>Timeout.timeout</code> unless you understand its async-exception
+risks: it injects <code>Timeout::Error</code> at an arbitrary execution point (the same
+mechanism as <code>Thread#kill</code>), which Phronomy avoids by default due to resource
+safety concerns. Ruby's GVL prevents fully preemptive cancellation without such
+risky interruption.</p>
 </blockquote>
 <pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/CancellationToken.html" title="Phronomy::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/CancellationToken.html#initialize-instance_method" title="Phronomy::CancellationToken#initialize (method)">new</a></span></span>
 
@@ -1026,7 +1064,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Tue May 26 05:58:22 2026 by
+  Generated on Tue May 26 06:37:32 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
