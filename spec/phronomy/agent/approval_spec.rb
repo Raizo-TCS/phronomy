@@ -167,6 +167,26 @@ RSpec.describe "Agent approval gate" do
       end
     end
 
+    context "when an instantiated tool object is passed (e.g. McpTool instance)" do
+      it "returns the instance as-is without raising NoMethodError (#383)" do
+        # McpTool.from_server returns an instance, not a class.
+        # Simulate with a plain Tool::Base instance so the test does not require
+        # a live MCP server.
+        tool_instance = ApprovalTestTool.new
+        agent = ApprovalBaseAgent.new
+        result = agent.send(:prepare_tool_class, tool_instance)
+        expect(result).to equal(tool_instance)
+      end
+
+      it "returns the instance unchanged even when an approval handler is registered" do
+        tool_instance = ApprovalTestTool.new
+        agent = ApprovalBaseAgent.new
+        agent.on_approval_required { |_name, _args| true }
+        result = agent.send(:prepare_tool_class, tool_instance)
+        expect(result).to equal(tool_instance)
+      end
+    end
+
     context "with ReactAgent subclass" do
       it "wraps requires_approval tool when handler approves" do
         agent = ApprovalRequiredReactAgent.new

@@ -1138,7 +1138,12 @@ module Phronomy
 
       # Builds the final tool class to register with the chat.
       #
-      # Three transformations are applied in order:
+      # When an already-instantiated tool object is passed (e.g. a
+      # {Phronomy::Tool::McpTool} returned by +McpTool.from_server+), it is
+      # returned as-is.  RubyLLM's +with_tool+ accepts both classes and
+      # instances, so no wrapping is needed.
+      #
+      # For tool classes, three transformations are applied in order:
       #   1. Alias override — when the Hash form of .tools maps this class to an
       #      explicit name, an anonymous subclass with that tool_name is returned.
       #   2. Scope policy   — when a scope is declared on the tool, the configured
@@ -1152,6 +1157,11 @@ module Phronomy
       #      (tool_name, args) and, if it returns falsy, the tool returns a denial
       #      message instead of executing.
       def prepare_tool_class(tool_class)
+        # When an instantiated tool object is passed (e.g. McpTool.from_server
+        # returns an instance, not a class), skip class-level processing and
+        # return it directly. RubyLLM#with_tool handles both forms.
+        return tool_class unless tool_class.is_a?(Class)
+
         # Step 1: apply alias if needed.
         resolved = if (alias_name = self.class.tool_aliases[tool_class])
           parent_description = tool_class.description
