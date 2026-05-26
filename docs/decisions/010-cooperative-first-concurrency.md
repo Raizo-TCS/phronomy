@@ -36,6 +36,16 @@ These must be handled differently from application-controlled I/O.
 
 ## Decision
 
+### Runtime backend landscape
+
+| Backend | Scheduler class | Role | Production use? |
+|---------|-----------------|------|----------------|
+| `:thread` | `ThreadScheduler` / `ThreadBackend` | **Default.** One OS thread per task. Provides true parallelism for blocking I/O workflows. | Yes |
+| `:immediate` | `FakeScheduler` / `ImmediateBackend` | **Unit test double.** Tasks run synchronously on the caller's thread; no extra threads. | Tests only |
+| `:fiber` | `DeterministicScheduler` / `FiberBackend` | **Experimental validation backend.** Runs tasks as Ruby Fibers to verify that framework components are truly non-blocking. Use in CI to catch inadvertent blocking; never use in production. Not a planned production replacement for `:thread`; preemptive scheduling will not be added. | No |
+
+Note: `:cooperative` is a deprecated alias for `:immediate` and must not be used in new code.
+
 ### Rule 1 — Cooperative-first for core control
 
 The core control flow of every Phronomy component — **Agent, Workflow, Tool
@@ -212,3 +222,22 @@ When writing or reviewing any Phronomy component, apply this checklist:
 - Issue #334: Promote DeterministicScheduler to production cooperative runtime
 - Issue #332: `:cooperative` alias deprecation (resolved 2026-05-25)
 - Issue #280: MCP transports behind BlockingAdapterPool (pending)
+
+## Non-goals
+
+The following capabilities are intentionally out of scope for this framework's
+concurrency layer:
+
+- **CPU-bound process pool** — A `ProcessPoolExecutor` equivalent will not be
+  added to `ToolExecutor` or any other framework component. CPU-intensive tool
+  work belongs at the application layer (fork, Sidekiq, etc.).
+- **External process manager** — The framework will not spawn, monitor, or
+  restart external subprocesses.
+- **Preemptive scheduling** — The cooperative-first model is non-preemptive by
+  design. There are no plans to introduce a preemptive scheduler or to make
+  `:fiber` the production default.
+- **Additional ToolExecutor execution modes** — Only `:cooperative` and
+  `:blocking_io` are supported. `:cpu_bound` and `:external_process` are
+  compatibility aliases that fall back to `:blocking_io` with a warning.
+  Any genuinely new execution mode requires a new ADR.
+

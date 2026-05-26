@@ -54,11 +54,18 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **Parallel RAG multi-source fetch** — `Agent#build_context` fetches all `knowledge_sources` concurrently via `TaskGroup`; `config[:rag_failure_policy]` `:skip` (default) silently ignores failed sources so the agent answers with partial context, `:fail` surfaces the first error; per-source latency is emitted to `Phronomy.configuration.logger` at debug level | Beta |
 | **`VectorStore::AsyncBackend` mixin** — Pluggable async interface for `VectorStore`; default pool-backed implementations for `search_async`, `add_async`, `remove_async`, `clear_async`; backends with native async drivers override individual methods to bypass `BlockingAdapterPool` entirely; all existing backends remain unchanged | Beta |
 | **`ConcurrencyGate` — unified backpressure** — Counting semaphore that enforces per-resource concurrency caps (`max_concurrent_agent_tasks`, `max_concurrent_tool_tasks`, `max_concurrent_workflow_tasks`, `max_concurrent_llm_calls`, `max_concurrent_rag_fetches`, `max_concurrent_vector_searches`); configured via `Phronomy.configure`; backpressure behaviour follows the global `backpressure` setting (`:wait`, `:raise`/`:reject`, `:timeout`); `nil` cap = unlimited (default) | Beta |
-| **Cooperative scheduler yield points** — `Runtime#yield` (cooperative yield; yields the current task's time slice); `Runtime#yield_if_needed(every: N)` (thread-local counter, yields every N calls); CPU-bound detection when `blocking_detect_threshold_ms` is set (warns and increments `tasks_waiting_over_threshold` when a task runs longer than the threshold without yielding); `starvation_threshold_ms` configuration field (default: 50ms) | Beta |
+| **Cooperative scheduler yield points** — `Runtime#yield` (cooperative yield; yields the current task's time slice); `Runtime#yield_if_needed(every: N)` (thread-local counter, yields every N calls); CPU-bound detection when `blocking_detect_threshold_ms` is set (warns and increments `non_yield_threshold_violation_count` when a task runs longer than the threshold without yielding); `starvation_threshold_ms` configuration field (default: 50ms) | Beta |
 | **`ScopePolicy`** — Configurable policy callable that maps (tool, scope, agent) to `:allow`/`:approve`/`:reject`; default policy auto-routes high-risk scopes through the approval gate | Experimental |
 | **`PromptInjectionGuardrail`** — Built-in `InputGuardrail` subclass that detects prompt-injection patterns; usable standalone or as part of a guardrail chain | Beta |
 | **`Tool::Base.redact_params` / `.max_result_size`** — Class-level DSL: `redact_params` masks parameter values in log/trace output; `max_result_size` truncates oversized tool results before they reach the LLM | Beta |
 | **`Phronomy::Metrics`** — `Phronomy::Metrics.snapshot` returns task-tree and pool counters; task-centric keys: `active_agent_tasks`, `active_tool_tasks`, `active_workflow_tasks`, `active_rag_tasks`, `active_llm_tasks`, `task_wait_time_p50_ms`, `task_wait_time_p95_ms`, `task_run_time_p50_ms`, `task_run_time_p95_ms`, `cancelled_tasks`, `failed_tasks`, `non_yield_threshold_violation_count`; pool/event-loop keys remain for backward compatibility; `Runtime#task_snapshot` exposes task-centric metrics directly | Beta |
+
+> **Public API boundary**: The table above is the complete list of classes, modules, and features
+> intended for gem consumers. Every entry has an associated stability label.
+> All other classes, modules, and methods — including everything in the
+> [Advanced / Internal APIs](#advanced--internal-apis) section below — are
+> marked `@api private` in source and may change without notice. Do not
+> depend on internal APIs in application code.
 
 ## Advanced / Internal APIs
 
@@ -70,7 +77,7 @@ The APIs listed below are intended for advanced use cases, framework internals, 
 |---|---|
 | **`Phronomy::Diagnostics`** — Snapshot of scheduler internals for debug/monitoring; `SchedulerReentrancyError` raised on invalid re-entrant scheduler use; `Runtime.in_scheduler_context?` returns `true` when called from inside a scheduler task | Experimental |
 | **`Phronomy::Testing::FakeClock` / `FakeScheduler` / `SchedulerHelpers`** — Test helpers for deterministic concurrency specs: `FakeClock#advance(seconds)` controls time; `FakeScheduler` runs tasks synchronously and records `event_log`; `FakeScheduler#assert_order` / `#assert_cancelled` for ordering assertions; `FakeClock#advance_to_next_timer` fires the next pending callback; `Testing::SchedulerHelpers#with_fake_scheduler` replaces the global Runtime for the duration of a block | Beta |
-| **`Configuration#runtime_backend`** — `:thread` (default, one OS thread per task), `:immediate` (tests — tasks run synchronously, no extra threads), `:fiber` (**EXPERIMENTAL** Fiber-based cooperative scheduler — not for production use). `:cooperative` is a **deprecated alias** for `:immediate` — do not use in new code | Beta |
+| **`Configuration#runtime_backend`** — `:thread` (default, one OS thread per task), `:immediate` (tests — tasks run synchronously, no extra threads), `:fiber` (**EXPERIMENTAL** — experimental validation backend only: runs tasks as Ruby Fibers on a cooperative scheduler to verify that framework components are truly non-blocking; **not for production use** and not a planned production replacement for `:thread`; no preemptive scheduling will be added). `:cooperative` is a **deprecated alias** for `:immediate` — do not use in new code | Beta |
 | **`Configuration#strict_runtime_guards`** — When `true`, calling `Agent#invoke` from inside a scheduler task raises `SchedulerReentrancyError`; when `false` (default) a warning is logged instead | Beta |
 
 ## Installation

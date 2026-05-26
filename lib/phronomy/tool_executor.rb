@@ -21,6 +21,23 @@ module Phronomy
   # +BlockingAdapterPool::PendingOperation+), so callers can collect results
   # uniformly.
   #
+  # @note Non-goals
+  #   ToolExecutor deliberately does NOT provide:
+  #   - A CPU-bound process pool. CPU-intensive tool work must be handled at the
+  #     application layer (e.g., fork, Sidekiq, separate OS processes). The
+  #     framework will not add a +ProcessPoolExecutor+ equivalent.
+  #   - An external process manager. Spawning or supervising subprocesses is
+  #     out of scope for this module.
+  #   - Additional execution modes beyond +:cooperative+ and +:blocking_io+.
+  #     The +:cpu_bound+ and +:external_process+ modes are accepted for
+  #     compatibility but both fall back to +:blocking_io+ routing with a
+  #     one-time warning. If a genuinely new execution mode is needed, a new
+  #     ADR is required.
+  #   These non-goals follow from the cooperative-first, non-preemptive
+  #   concurrency model (ADR-010): framework components must not assume the
+  #   caller's concurrency model, and CPU/process management belongs to the
+  #   application layer.
+  #
   # @api private
   module ToolExecutor
     # Tracks tool classes that have already emitted an execution_mode warning so

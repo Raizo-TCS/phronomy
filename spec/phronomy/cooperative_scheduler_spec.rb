@@ -134,7 +134,7 @@ RSpec.describe "Cooperative scheduler yield points (Issue #306)" do
       Phronomy.configuration.logger = original_logger
     end
 
-    it "increments tasks_waiting_over_threshold counter" do
+    it "increments non_yield_threshold_violation_count counter" do
       Phronomy.configuration.blocking_detect_threshold_ms = 1 # 1ms threshold
 
       runtime = Phronomy::Runtime.new
@@ -143,7 +143,7 @@ RSpec.describe "Cooperative scheduler yield points (Issue #306)" do
         runtime.yield
       end.await
 
-      expect(runtime.tasks_waiting_over_threshold).to be >= 1
+      expect(runtime.non_yield_threshold_violation_count).to be >= 1
     end
 
     it "does not increment counter when detection is disabled (nil threshold)" do
@@ -155,7 +155,7 @@ RSpec.describe "Cooperative scheduler yield points (Issue #306)" do
         runtime.yield
       end.await
 
-      expect(runtime.tasks_waiting_over_threshold).to eq(0)
+      expect(runtime.non_yield_threshold_violation_count).to eq(0)
     end
   end
 

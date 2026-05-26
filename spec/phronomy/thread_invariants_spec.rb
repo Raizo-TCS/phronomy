@@ -185,3 +185,38 @@ RSpec.describe "Thread.new confinement (Issue #286)", :issue_286 do
       "#{violations.join("\n")}"
   end
 end
+
+# Issue #370 — EventLoop must always use a dedicated ThreadScheduler regardless
+# of the application-level runtime_backend setting.  This invariant is required
+# by ADR-010 Rule 2: EventLoop owns an infinite dispatch loop and therefore must
+# run in a real OS thread, even when the global backend is :immediate or :fiber.
+#
+# This is the *only* legitimate place in Phronomy where a component uses a
+# dedicated ThreadScheduler instead of Runtime.instance.spawn.  Any additional
+# deliberate-thread exception requires a new ADR.
+RSpec.describe "EventLoop always uses a dedicated ThreadScheduler (Issue #370)", :issue_370 do
+  let(:event_loop) { Phronomy::EventLoop.instance }
+
+  after do
+    begin
+      event_loop.stop
+    rescue
+      nil
+    end
+    Phronomy.configure { |c| c.runtime_backend = :thread }
+  end
+
+  [:thread, :immediate].each do |backend|
+    it "EventLoop#start spawns its loop task on a ThreadBackend::Task regardless of :#{backend} backend" do
+      Phronomy.configure { |c| c.runtime_backend = backend }
+      event_loop.start
+      sleep 0.02
+
+      task = event_loop.instance_variable_get(:@task)
+      task_backend = task.instance_variable_get(:@backend)
+      expect(task_backend).to be_a(Phronomy::Task::ThreadBackend),
+        "Expected EventLoop task backend to be a Task::ThreadBackend (ADR-010 Rule 2), " \
+        "but got #{task_backend.class} with backend :#{backend}"
+    end
+  end
+end

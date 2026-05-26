@@ -80,7 +80,7 @@ module Phronomy
         # #await, so results are collected uniformly below.
         ct = @cancellation_token
         max = @max_parallel_tools
-        thread_results = tool_calls.each_slice(max).flat_map do |batch|
+        tool_results = tool_calls.each_slice(max).flat_map do |batch|
           if ct&.cancelled?
             raise Phronomy::CancellationError, "invocation cancelled before tool execution"
           end
@@ -112,7 +112,7 @@ module Phronomy
 
         # Phase 3 — post-execution callbacks and message recording (sequential).
         halt_result = nil
-        thread_results.each do |item|
+        tool_results.each do |item|
           result = item[:result]
           @on[:tool_result]&.call(result)
           tool_payload = result.is_a?(RubyLLM::Tool::Halt) ? result.content : result

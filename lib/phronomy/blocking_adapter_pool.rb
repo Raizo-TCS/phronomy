@@ -72,6 +72,18 @@ module Phronomy
       # resumed on the scheduler's ready queue once the worker thread completes
       # the operation.
       #
+      # @note **Cooperative cancellation semantics** (ADR-010):
+      #   Phronomy uses a non-preemptive, cooperative-first concurrency model.
+      #   Cancellation is *cooperative*, not preemptive:
+      #   - When a +cancellation_token+ is cancelled (or the timeout fires),
+      #     +CancellationError+ is raised to the +await+ caller immediately,
+      #     but the underlying worker thread is **not** forcibly stopped.
+      #   - The worker thread will complete its submitted block naturally.
+      #     Code inside the block must call +token.check!+ at suitable
+      #     checkpoints to observe the cancelled state and exit early.
+      #   - There is no +Thread#kill+ or +Thread#raise+ involved. The framework
+      #     never forcibly terminates worker threads.
+      #
       # @note **Cooperative timeout limitation**: the +timeout:+ parameter passed
       #   to +await+ is *not* enforced on the cooperative path.  The calling Fiber
       #   remains suspended until the worker thread finishes regardless of how many

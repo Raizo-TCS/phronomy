@@ -147,7 +147,7 @@ module Phronomy
     # When +blocking_detect_threshold_ms+ is configured, checks whether the
     # current task has exceeded that threshold without yielding; if so, emits a
     # warning via the configured logger and increments
-    # +tasks_waiting_over_threshold+.
+    # +non_yield_threshold_violation_count+.
     #
     # Call this inside tight loops or CPU-intensive sections of tool +execute+
     # methods and Workflow actions to keep the scheduler responsive.
@@ -178,7 +178,7 @@ module Phronomy
     # Resets to 0 when the Runtime is recreated.
     # @return [Integer]
     # @api private
-    def tasks_waiting_over_threshold
+    def non_yield_threshold_violation_count
       @metrics.starvation_count
     end
 
