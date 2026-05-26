@@ -22,45 +22,62 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 > **Note**: The `main` branch contains unreleased development work. Pin to a released gem
 > version (`gem "phronomy", "~> 0.x"`) for stability in production.
 
+**Core building blocks**
+
 | Feature | Stability |
 |---|---|
 | **Workflow** — Stateful, branching workflows with wait_state/send_event | Stable |
 | **Workflow action_timeout** — Per-state `action_timeout:` keyword on `state` DSL; cancels Task-returning entry actions that exceed the limit and raises `Phronomy::ActionTimeoutError` | Beta |
-| **Workflow EventLoop Mode** — Opt-in event-driven execution: `Phronomy.configure { \|c\| c.event_loop = true }` | Experimental |
-| **Agent EventLoop Mode** — `Agent#invoke` (non-blocking via EventLoop), `Agent#run_as_child` (child-FSM pattern for Workflow integration), parallel tool dispatch via `ParallelToolChat` | Experimental |
-| **Workflow Parallel Node** — Concurrent branches via application-level threads | Beta |
 | **Agent** — ReAct-style tool-calling agents with guardrails and conversation history | Stable |
 | **Before-Completion Hook** — Three-tier LLM parameter injection | Stable |
 | **Context Management** — Token budget calculation, estimation, and pruning | Stable |
+| **Guardrails** — Input/output validation with custom `InputGuardrail`/`OutputGuardrail` | Beta |
+| **`PromptInjectionGuardrail`** — Built-in `InputGuardrail` subclass that detects prompt-injection patterns; usable standalone or as part of a guardrail chain | Beta |
+| **`Tool::Base.redact_params` / `.max_result_size`** — Class-level DSL: `redact_params` masks parameter values in log/trace output; `max_result_size` truncates oversized tool results before they reach the LLM | Beta |
+| **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses | Stable |
+| **Eval Framework** — Dataset-driven evaluation with multiple scorer types | Beta |
+| **Tracing** — Pluggable span-based observability | Stable |
+| **Error Taxonomy** — `RateLimitError`, `AuthenticationError`, `ContextLengthError`, `TransportError` (subclasses of `Phronomy::Error`) raised at the agent retry boundary | Beta |
+
+**Knowledge and integration**
+
+| Feature | Stability |
+|---|---|
 | **Knowledge/RAG** — Retrieval sources with pluggable loaders, splitters, and vector stores; `static_knowledge_refresh!` for runtime cache invalidation | Beta |
 | **`VectorStore#size`** — Returns document count for all three backends (InMemory, RedisSearch, Pgvector) | Beta |
+| **`VectorStore::AsyncBackend` mixin** — Pluggable async interface for `VectorStore`; default pool-backed implementations for `search_async`, `add_async`, `remove_async`, `clear_async`; backends with native async drivers override individual methods to bypass `BlockingAdapterPool` entirely; all existing backends remain unchanged | Beta |
+| **Parallel RAG multi-source fetch** — `Agent#build_context` fetches all `knowledge_sources` concurrently via `TaskGroup`; `config[:rag_failure_policy]` `:skip` (default) silently ignores failed sources so the agent answers with partial context, `:fail` surfaces the first error; per-source latency is emitted to `Phronomy.configuration.logger` at debug level | Beta |
+| **MCP Tool** — Model Context Protocol server integration | Beta |
+
+**Execution and reliability**
+
+| Feature | Stability |
+|---|---|
+| **Workflow EventLoop Mode** — Opt-in event-driven execution: `Phronomy.configure { \|c\| c.event_loop = true }` | Experimental |
+| **Agent EventLoop Mode** — `Agent#invoke` (non-blocking via EventLoop), `Agent#run_as_child` (child-FSM pattern for Workflow integration), parallel tool dispatch via `ParallelToolChat` | Experimental |
+| **`invoke_async` / `call_async`** — `Agent::Base#invoke_async` and `Workflow#invoke_async` return a `Task`; `Tool::Base#call_async` similarly; compatible with EventLoop and standalone contexts | Experimental |
+| **CancellationToken** — Cooperative cancellation via `cancel!`/`cancelled?`/`raise_if_cancelled!`; `timeout_after(seconds)` for monotonic-clock deadlines; optional `deadline:` (wall-clock) for backward compatibility; passed as `config: { cancellation_token: token }` to agents and `dispatch_parallel`; injected into `tool.execute` when the method declares a `cancellation_token:` keyword | Experimental |
+| **`dispatch_parallel` / `fan_out` `force_kill:` option** — `force_kill: false` (default) leaves timed-out workers running and raises `TimeoutError` immediately; `force_kill: true` restores the old `Thread#kill` behaviour with a `logger.warn` | Beta |
+| **`execution_mode` DSL on `Tool::Base`** — Declares how a tool's `execute` should be dispatched: `:cooperative` (same scheduler thread), `:blocking_io` (default; offloaded to `BlockingAdapterPool`), `:cpu_bound`, `:external_process` | Experimental |
+| **`invocation_context:` keyword on `Agent#invoke` / `Workflow#invoke`** — Pass a `Phronomy::InvocationContext` directly; `thread_id`, `cancellation_token`, and `deadline`-based timeout are derived from it; `task_id` / `parent_task_id` appear in trace spans automatically; `config:` keys remain supported as backward-compat aliases | Beta |
+| **`ConcurrencyGate` — unified backpressure** — Counting semaphore that enforces per-resource concurrency caps (`max_concurrent_agent_tasks`, `max_concurrent_tool_tasks`, `max_concurrent_workflow_tasks`, `max_concurrent_llm_calls`, `max_concurrent_rag_fetches`, `max_concurrent_vector_searches`); configured via `Phronomy.configure`; backpressure behaviour follows the global `backpressure` setting (`:wait`, `:raise`/`:reject`, `:timeout`); `nil` cap = unlimited (default) | Beta |
+| **Cooperative scheduler yield points** — `Runtime#yield` (cooperative yield; yields the current task's time slice); `Runtime#yield_if_needed(every: N)` (thread-local counter, yields every N calls); CPU-bound detection when `blocking_detect_threshold_ms` is set (warns and increments `non_yield_threshold_violation_count` when a task runs longer than the threshold without yielding); `starvation_threshold_ms` configuration field (default: 50ms) | Beta |
+| **`Phronomy::Metrics`** — `Phronomy::Metrics.snapshot` returns task-tree and pool counters; task-centric keys: `active_agent_tasks`, `active_tool_tasks`, `active_workflow_tasks`, `active_rag_tasks`, `active_llm_tasks`, `task_wait_time_p50_ms`, `task_wait_time_p95_ms`, `task_run_time_p50_ms`, `task_run_time_p95_ms`, `cancelled_tasks`, `failed_tasks`, `non_yield_threshold_violation_count`; pool/event-loop keys remain for backward compatibility; `Runtime#task_snapshot` exposes task-centric metrics directly | Beta |
+| **`Phronomy.with_configuration` / `Phronomy.reset_runtime!`** — Scoped configuration override and full runtime reset for test isolation | Beta |
+
+**Agent patterns**
+
+| Feature | Stability |
+|---|---|
+| **Workflow parallel pattern** — Concurrent branches via application-level threads (no built-in parallel primitive; see the Workflow section for the recommended pattern) | Beta |
 | **Multi-agent** — Agent-as-Tool pattern and hub-and-spoke handoff routing | Beta |
 | **GeneratorVerifier** — Generator-Verifier loop with injectable prompt builders/parsers | Beta |
 | **Agent::Orchestrator** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
 | **Agent::TeamCoordinator** — Agent teams pattern: LLM coordinator + stateful workers with sequential task assignment (worker-local message history persisted across tasks) | Beta |
 | **Agent::SharedState** — Shared state pattern: peer agents collaborate via a shared KnowledgeStore; `member` DSL with per-agent instructions and `coordination` team protocol | Experimental |
-| **Guardrails** — Input/output validation with custom `InputGuardrail`/`OutputGuardrail` | Beta |
-| **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses | Stable |
-| **Eval Framework** — Dataset-driven evaluation with multiple scorer types | Beta |
-| **Tracing** — Pluggable span-based observability | Stable |
-| **MCP Tool** — Model Context Protocol server integration | Beta |
-| **Error Taxonomy** — `RateLimitError`, `AuthenticationError`, `ContextLengthError`, `TransportError` (subclasses of `Phronomy::Error`) raised at the agent retry boundary | Beta |
-| **`Phronomy.with_configuration` / `Phronomy.reset_runtime!`** — Scoped configuration override and full runtime reset for test isolation | Beta |
-| **CancellationToken** — Cooperative cancellation via `cancel!`/`cancelled?`/`raise_if_cancelled!`; `timeout_after(seconds)` for monotonic-clock deadlines; optional `deadline:` (wall-clock) for backward compatibility; passed as `config: { cancellation_token: token }` to agents and `dispatch_parallel`; injected into `tool.execute` when the method declares a `cancellation_token:` keyword | Experimental |
-| **`dispatch_parallel` / `fan_out` `force_kill:` option** — `force_kill: false` (default) leaves timed-out workers running and raises `TimeoutError` immediately; `force_kill: true` restores the old `Thread#kill` behaviour with a `logger.warn` | Beta |
-| **`execution_mode` DSL on `Tool::Base`** — Declares how a tool's `execute` should be dispatched: `:cooperative` (same scheduler thread), `:blocking_io` (default; offloaded to `BlockingAdapterPool`), `:cpu_bound`, `:external_process` | Experimental |
-| **`invoke_async` / `call_async`** — `Agent::Base#invoke_async` and `Workflow#invoke_async` return a `Task`; `Tool::Base#call_async` similarly; compatible with EventLoop and standalone contexts | Experimental |
-| **`invocation_context:` keyword on `Agent#invoke` / `Workflow#invoke`** — Pass a `Phronomy::InvocationContext` directly; `thread_id`, `cancellation_token`, and `deadline`-based timeout are derived from it; `task_id` / `parent_task_id` appear in trace spans automatically; `config:` keys remain supported as backward-compat aliases | Beta |
-| **Parallel RAG multi-source fetch** — `Agent#build_context` fetches all `knowledge_sources` concurrently via `TaskGroup`; `config[:rag_failure_policy]` `:skip` (default) silently ignores failed sources so the agent answers with partial context, `:fail` surfaces the first error; per-source latency is emitted to `Phronomy.configuration.logger` at debug level | Beta |
-| **`VectorStore::AsyncBackend` mixin** — Pluggable async interface for `VectorStore`; default pool-backed implementations for `search_async`, `add_async`, `remove_async`, `clear_async`; backends with native async drivers override individual methods to bypass `BlockingAdapterPool` entirely; all existing backends remain unchanged | Beta |
-| **`ConcurrencyGate` — unified backpressure** — Counting semaphore that enforces per-resource concurrency caps (`max_concurrent_agent_tasks`, `max_concurrent_tool_tasks`, `max_concurrent_workflow_tasks`, `max_concurrent_llm_calls`, `max_concurrent_rag_fetches`, `max_concurrent_vector_searches`); configured via `Phronomy.configure`; backpressure behaviour follows the global `backpressure` setting (`:wait`, `:raise`/`:reject`, `:timeout`); `nil` cap = unlimited (default) | Beta |
-| **Cooperative scheduler yield points** — `Runtime#yield` (cooperative yield; yields the current task's time slice); `Runtime#yield_if_needed(every: N)` (thread-local counter, yields every N calls); CPU-bound detection when `blocking_detect_threshold_ms` is set (warns and increments `non_yield_threshold_violation_count` when a task runs longer than the threshold without yielding); `starvation_threshold_ms` configuration field (default: 50ms) | Beta |
 | **`ScopePolicy`** — Configurable policy callable that maps (tool, scope, agent) to `:allow`/`:approve`/`:reject`; default policy auto-routes high-risk scopes through the approval gate | Experimental |
-| **`PromptInjectionGuardrail`** — Built-in `InputGuardrail` subclass that detects prompt-injection patterns; usable standalone or as part of a guardrail chain | Beta |
-| **`Tool::Base.redact_params` / `.max_result_size`** — Class-level DSL: `redact_params` masks parameter values in log/trace output; `max_result_size` truncates oversized tool results before they reach the LLM | Beta |
-| **`Phronomy::Metrics`** — `Phronomy::Metrics.snapshot` returns task-tree and pool counters; task-centric keys: `active_agent_tasks`, `active_tool_tasks`, `active_workflow_tasks`, `active_rag_tasks`, `active_llm_tasks`, `task_wait_time_p50_ms`, `task_wait_time_p95_ms`, `task_run_time_p50_ms`, `task_run_time_p95_ms`, `cancelled_tasks`, `failed_tasks`, `non_yield_threshold_violation_count`; pool/event-loop keys remain for backward compatibility; `Runtime#task_snapshot` exposes task-centric metrics directly | Beta |
 
-> **Public API boundary**: The table above is the complete list of classes, modules, and features
+> **Public API boundary**: The tables above are the complete list of classes, modules, and features
 > intended for gem consumers. Every entry has an associated stability label.
 > All other classes, modules, and methods — including everything in the
 > [Advanced / Internal APIs](#advanced--internal-apis) section below — are
@@ -464,9 +481,9 @@ app = Phronomy::Workflow.define(EnrichContext) do
       summary: Thread.new { Summarizer.call(s) },
       tags:    Thread.new { Tagger.call(s) }
     }
-    # For production use, wrap with Timeout.timeout to avoid unbounded waits:
-    #   require "timeout"
-    #   Timeout.timeout(30) { threads.each_value(&:join) }
+    # For bounded waits, prefer per-thread join with a deadline rather than Timeout.timeout.
+    # Timeout.timeout injects an async exception and carries the same risks as Thread#kill.
+    # Example: threads.each_value { |t| t.join(30) || t.kill }  # crude; prefer CancellationToken
     threads.each_value(&:join)
     s.merge(summary: threads[:summary].value, tags: Array(threads[:tags].value))
   end
@@ -573,7 +590,7 @@ Phronomy.configure do |c|
   c.trace_pii                       = false # default; set to true only when trace data contains no PII
   c.logger                          = nil   # optional; any object responding to #warn (e.g. Rails.logger)
   c.event_loop_stop_grace_seconds   = 5     # seconds to wait for sessions to drain on EventLoop#stop(drain: true)
-  c.runtime_backend                 = :thread   # :thread (default) or :immediate (tests, runs tasks synchronously)
+  c.runtime_backend                 = :thread   # :thread (default); :immediate (tests, synchronous); :fiber (experimental validation only); :cooperative (deprecated alias for :immediate)
   c.strict_runtime_guards           = false          # when true, raises on invoke-inside-task
 end
 ```
@@ -683,7 +700,7 @@ class MyAgent < Phronomy::Agent::Base
   max_output_tokens 4096   # override max_output_tokens from registry
   context_overhead  600    # extra reservation for system prompt + tools
   invoke_timeout    30     # raise Phronomy::TimeoutError after 30 s (wait timeout, not cancellation)
-  max_parallel_tools 4     # cap concurrent tool-call threads (default: 10)
+  max_parallel_tools 4     # cap concurrent tool executions (default: 10)
 end
 ```
 
@@ -724,9 +741,13 @@ blocks always execute.
 > - Any external I/O (database query, vector search, HTTP request) inside those calls
 >
 > For deep in-flight safety, complement `CancellationToken` with per-source or
-> per-tool timeouts (e.g. `Net::HTTP#read_timeout`, `Timeout.timeout`, connection
-> pool limits). Ruby's GVL prevents fully preemptive cancellation without
-> `Thread#kill`, which Phronomy avoids by default due to resource safety concerns.
+> per-tool timeouts. Prefer library-native timeouts such as `Net::HTTP#read_timeout`,
+> database `statement_timeout`, or Redis client timeout — these signal the I/O layer
+> to abort cleanly. Avoid `Timeout.timeout` unless you understand its async-exception
+> risks: it injects `Timeout::Error` at an arbitrary execution point (the same
+> mechanism as `Thread#kill`), which Phronomy avoids by default due to resource
+> safety concerns. Ruby's GVL prevents fully preemptive cancellation without such
+> risky interruption.
 
 ```ruby
 token = Phronomy::CancellationToken.new
