@@ -75,9 +75,10 @@ module Phronomy
       # @note **Cooperative cancellation semantics** (ADR-010):
       #   Phronomy uses a non-preemptive, cooperative-first concurrency model.
       #   Cancellation is *cooperative*, not preemptive:
-      #   - When a +cancellation_token+ is cancelled (or the timeout fires),
-      #     +CancellationError+ is raised to the +await+ caller immediately,
-      #     but the underlying worker thread is **not** forcibly stopped.
+      #   - When a +cancellation_token+ is cancelled, +CancellationError+ is
+      #     raised to the +await+ caller immediately; when the timeout fires,
+      #     +TimeoutError+ is raised instead. In both cases, the underlying
+      #     worker thread is **not** forcibly stopped.
       #   - The worker thread will complete its submitted block naturally.
       #     Code inside the block must call +token.check!+ at suitable
       #     checkpoints to observe the cancelled state and exit early.
