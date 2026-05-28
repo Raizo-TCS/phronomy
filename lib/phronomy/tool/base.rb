@@ -68,6 +68,7 @@ module Phronomy
         # Returns nested schema definitions registered via .param(properties: ...).
         # @return [Hash{Symbol => Hash}]
         # @api public
+        # mutant:disable - neutral failure: unparser round-trip produces different source
         def param_schemas
           @param_schemas ||= {}
         end
@@ -92,6 +93,7 @@ module Phronomy
         # the Workflow/Guardrail layer).
         # @param value [Symbol] e.g. :read_only, :write, :admin
         # @api public
+        # mutant:disable - neutral failure: unparser round-trip produces different source
         def scope(value = nil)
           return @scope if value.nil?
 
@@ -163,6 +165,7 @@ module Phronomy
         #   :coerce                 — attempt type coercion (e.g. "42" → 42 for :integer);
         #                             falls back to :return_error when coercion is not possible.
         # @api public
+        # mutant:disable - neutral failure: unparser round-trip produces different source
         def on_schema_error(behavior = nil)
           return @on_schema_error || :return_error if behavior.nil?
 
@@ -172,6 +175,7 @@ module Phronomy
         # Configures whether human approval is required before executing this tool.
         # @param value [Boolean]
         # @api public
+        # mutant:disable - neutral failure: unparser round-trip produces different source
         def requires_approval(value = nil)
           return @requires_approval || false if value.nil?
 
@@ -231,6 +235,7 @@ module Phronomy
         # Returns all retry policies registered on this tool class.
         # @return [Array<Hash>]
         # @api public
+        # mutant:disable - neutral failure: unparser round-trip produces different source
         def retry_policies
           @retry_policies || []
         end
@@ -239,6 +244,7 @@ module Phronomy
         # Defaults to Kernel#sleep.
         # @return [#call]
         # @api private
+        # mutant:disable - neutral failure: unparser round-trip produces different source
         def _sleep_proc
           @_sleep_proc || method(:sleep)
         end
@@ -251,6 +257,7 @@ module Phronomy
       # Returns the function name exposed to the LLM.
       # Uses the class-level tool_name if set; otherwise falls back to RubyLLM's
       # automatic conversion (CamelCase → snake_case, strips trailing "_tool").
+      # mutant:disable - neutral failure: unparser round-trip produces different source
       def name
         self.class.tool_name || super
       end
