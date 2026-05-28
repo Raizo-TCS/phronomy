@@ -692,12 +692,12 @@ Defaults to Kernel#sleep.</p>
       <pre class="lines">
 
 
-239
-240
-241</pre>
+242
+243
+244</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 239</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 242</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__sleep_proc'>_sleep_proc</span>
   <span class='ivar'>@_sleep_proc</span> <span class='op'>||</span> <span class='id identifier rubyid_method'>method</span><span class='lparen'>(</span><span class='symbol'>:sleep</span><span class='rparen'>)</span>
@@ -763,6 +763,7 @@ which runtime resource is used to dispatch the tool:</p>
 <p>Tools that perform network calls, file I/O, or database queries should use
 <code>:blocking_io</code> (the default).  Tools that only perform in-memory computation
 may declare <code>:cooperative</code> for lower overhead.</p>
+<p>mutant:disable</p>
 
   </div>
 </div>
@@ -811,8 +812,6 @@ may declare <code>:cooperative</code> for lower overhead.</p>
       <pre class="lines">
 
 
-120
-121
 122
 123
 124
@@ -820,10 +819,12 @@ may declare <code>:cooperative</code> for lower overhead.</p>
 126
 127
 128
-129</pre>
+129
+130
+131</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 120</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 122</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execution_mode'>execution_mode</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='ivar'>@execution_mode</span> <span class='op'>||</span> <span class='symbol'>:blocking_io</span> <span class='kw'>if</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -883,14 +884,14 @@ Set to <code>nil</code> to inherit the global limit.</p>
       <pre class="lines">
 
 
-200
-201
-202
 203
-204</pre>
+204
+205
+206
+207</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 200</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 203</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_result_size'>max_result_size</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='symbol'>:__unset__</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='ivar'>@max_result_size</span> <span class='kw'>if</span> <span class='id identifier rubyid_value'>value</span> <span class='op'>==</span> <span class='symbol'>:__unset__</span>
@@ -950,8 +951,6 @@ future major release.</p></div>
       <pre class="lines">
 
 
-140
-141
 142
 143
 144
@@ -962,10 +961,12 @@ future major release.</p></div>
 149
 150
 151
-152</pre>
+152
+153
+154</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 140</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 142</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_error'>on_error</span><span class='lparen'>(</span><span class='id identifier rubyid_behavior'>behavior</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='ivar'>@on_error</span> <span class='op'>||</span> <span class='symbol'>:raise</span> <span class='kw'>if</span> <span class='id identifier rubyid_behavior'>behavior</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1034,14 +1035,14 @@ falls back to :return_error when coercion is not possible.</p></div>
       <pre class="lines">
 
 
-164
-165
 166
 167
-168</pre>
+168
+169
+170</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 164</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 166</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_schema_error'>on_schema_error</span><span class='lparen'>(</span><span class='id identifier rubyid_behavior'>behavior</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='ivar'>@on_schema_error</span> <span class='op'>||</span> <span class='symbol'>:return_error</span> <span class='kw'>if</span> <span class='id identifier rubyid_behavior'>behavior</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1284,6 +1285,7 @@ and optionally :properties (for further nesting).</li>
   <div class="discussion">
     <p>Marks one or more parameter names as sensitive so their values are
 replaced with <code>&quot;[REDACTED]&quot;</code> in log and trace output.</p>
+<p>mutant:disable</p>
 
   </div>
 </div>
@@ -1330,17 +1332,17 @@ replaced with <code>&quot;[REDACTED]&quot;</code> in log and trace output.</p>
       <pre class="lines">
 
 
-185
-186
-187
 188
 189
 190
 191
-192</pre>
+192
+193
+194
+195</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 185</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 188</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_redact_params'>redact_params</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_names'>names</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_names'>names</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
@@ -1396,14 +1398,14 @@ replaced with <code>&quot;[REDACTED]&quot;</code> in log and trace output.</p>
       <pre class="lines">
 
 
-173
-174
 175
 176
-177</pre>
+177
+178
+179</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 173</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 175</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_requires_approval'>requires_approval</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='ivar'>@requires_approval</span> <span class='op'>||</span> <span class='kw'>false</span> <span class='kw'>if</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1518,13 +1520,13 @@ Multiple policies can be registered and are evaluated in order.</p>
       <pre class="lines">
 
 
-223
-224
-225
-226</pre>
+226
+227
+228
+229</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 223</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 226</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_retry_on'>retry_on</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_exception_classes'>exception_classes</span><span class='comma'>,</span> <span class='label'>times:</span> <span class='int'>1</span><span class='comma'>,</span> <span class='label'>wait:</span> <span class='int'>0</span><span class='comma'>,</span> <span class='label'>base:</span> <span class='float'>1.0</span><span class='rparen'>)</span>
   <span class='ivar'>@retry_policies</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -1572,12 +1574,12 @@ Multiple policies can be registered and are evaluated in order.</p>
       <pre class="lines">
 
 
-231
-232
-233</pre>
+234
+235
+236</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 231</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 234</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_retry_policies'>retry_policies</span>
   <span class='ivar'>@retry_policies</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -1632,14 +1634,14 @@ the Workflow/Guardrail layer).</p>
       <pre class="lines">
 
 
-94
 95
 96
 97
-98</pre>
+98
+99</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 94</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 95</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_scope'>scope</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='ivar'>@scope</span> <span class='kw'>if</span> <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1740,7 +1742,9 @@ the on_error policy, and wrap errors as ToolError.</p>
 2. Schema validation (type + enum checks).
 3. Inject +cancellation_token:+ into args when +execute+ opts in.
 4. Call super(validated_args) inside a retry loop.
-5. On persistent failure, apply on_error policy.</code></pre>
+5. On persistent failure, apply on_error policy.
+</code></pre>
+<p>mutant:disable</p>
 
   </div>
 </div>
@@ -1784,15 +1788,6 @@ the on_error policy, and wrap errors as ToolError.</p>
       <pre class="lines">
 
 
-308
-309
-310
-311
-312
-313
-314
-315
-316
 317
 318
 319
@@ -1817,10 +1812,19 @@ the on_error policy, and wrap errors as ToolError.</p>
 338
 339
 340
-341</pre>
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 308</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 317</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_args'>args</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ct'>ct</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
@@ -1876,6 +1880,7 @@ the on_error policy, and wrap errors as ToolError.</p>
 <p>Routing is governed by the class-level <span class='object_link'><a href="#execution_mode-class_method" title="Phronomy::Tool::Base.execution_mode (method)">execution_mode</a></span> setting.
 Delegates to <span class='object_link'><a href="../ToolExecutor.html#call_async-class_method" title="Phronomy::ToolExecutor.call_async (method)">Phronomy::ToolExecutor.call_async</a></span> which is the single
 place in the framework that applies the execution-mode routing rules.</p>
+<p>mutant:disable</p>
 
   </div>
 </div>
@@ -1929,16 +1934,16 @@ place in the framework that applies the execution-mode routing rules.</p>
       <pre class="lines">
 
 
-353
-354
-355
-356
-357
-358
-359</pre>
+363
+364
+365
+366
+367
+368
+369</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 353</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 363</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span><span class='id identifier rubyid_args'>args</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ToolExecutor.html" title="Phronomy::ToolExecutor (module)">ToolExecutor</a></span></span><span class='period'>.</span><span class='id identifier rubyid_call_async'><span class='object_link'><a href="../ToolExecutor.html#call_async-class_method" title="Phronomy::ToolExecutor.call_async (method)">call_async</a></span></span><span class='lparen'>(</span>
@@ -2026,12 +2031,12 @@ The return value is passed back to the LLM as the tool result.</p>
       <pre class="lines">
 
 
-388
-389
-390</pre>
+401
+402
+403</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 388</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 401</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execute'>execute</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid__args'>_args</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#execute is not implemented</span><span class='tstring_end'>&quot;</span></span>
@@ -2067,12 +2072,12 @@ automatic conversion (CamelCase → snake_case, strips trailing &quot;_tool&quot
       <pre class="lines">
 
 
-251
-252
-253</pre>
+254
+255
+256</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 251</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 254</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_name'>name</span>
   <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_tool_name'>tool_name</span> <span class='op'>||</span> <span class='kw'>super</span>
@@ -2094,7 +2099,12 @@ automatic conversion (CamelCase → snake_case, strips trailing &quot;_tool&quot
 </h3><div class="docstring">
   <div class="discussion">
     <p>Returns the JSON Schema for this tool's parameters.
-Injects &quot;enum&quot; entries for any param declared with enum: [...].</p>
+Injects &quot;enum&quot; entries for any param declared with enum: [...].
+mutant:disable - genuine equivalent mutations:</p>
+<pre class="code ruby"><code class="ruby">1. `|| schema.dig(:properties)`: dead code because RubyLLM::Tool always returns a
+ string-keyed hash; schema.dig(:properties) is always nil in practice.
+2. `return schema unless properties` guard: dead code when schema is non-nil because
+ RubyLLM::Tool always includes a &quot;properties&quot; key when parameters are declared.</code></pre>
 
   </div>
 </div>
@@ -2107,14 +2117,6 @@ Injects &quot;enum&quot; entries for any param declared with enum: [...].</p>
       <pre class="lines">
 
 
-257
-258
-259
-260
-261
-262
-263
-264
 265
 266
 267
@@ -2143,10 +2145,18 @@ Injects &quot;enum&quot; entries for any param declared with enum: [...].</p>
 290
 291
 292
-293</pre>
+293
+294
+295
+296
+297
+298
+299
+300
+301</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 257</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 265</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_params_schema'>params_schema</span>
   <span class='id identifier rubyid_schema'>schema</span> <span class='op'>=</span> <span class='kw'>super</span>
@@ -2214,12 +2224,12 @@ Injects &quot;enum&quot; entries for any param declared with enum: [...].</p>
       <pre class="lines">
 
 
-362
-363
-364</pre>
+372
+373
+374</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 362</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 372</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_requires_approval'>requires_approval</span>
   <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_requires_approval'>requires_approval</span>
@@ -2240,7 +2250,10 @@ Injects &quot;enum&quot; entries for any param declared with enum: [...].</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Instance method for requires_approval? (convenience accessor).</p>
+    <p>Instance method for requires_approval? (convenience accessor).
+mutant:disable - genuine equivalent: self.requires_approval delegates to
+self.class.requires_approval via the instance method defined above, so
+both expressions produce the same value.</p>
 
   </div>
 </div>
@@ -2266,12 +2279,12 @@ Injects &quot;enum&quot; entries for any param declared with enum: [...].</p>
       <pre class="lines">
 
 
-367
-368
-369</pre>
+380
+381
+382</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 367</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 380</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_requires_approval?'>requires_approval?</span>
   <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_requires_approval'>requires_approval</span>
@@ -2286,7 +2299,7 @@ Injects &quot;enum&quot; entries for any param declared with enum: [...].</p>
 </div>
 
       <div id="footer">
-  Generated on Tue May 26 15:37:56 2026 by
+  Generated on Thu May 28 16:50:50 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
