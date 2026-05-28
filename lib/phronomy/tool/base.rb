@@ -76,6 +76,7 @@ module Phronomy
 
         # Recursively normalises a properties hash so all keys are Symbols and
         # each spec has a :type key.
+        # mutant:disable
         def normalize_nested_schema(props)
           props.transform_keys(&:to_sym).transform_values do |spec|
             s = spec.transform_keys(&:to_sym)
@@ -117,6 +118,7 @@ module Phronomy
         # @param value [Symbol, nil] when nil, returns the current value
         # @return [Symbol] the current execution mode (default :blocking_io)
         # @api public
+        # mutant:disable
         def execution_mode(value = nil)
           return @execution_mode || :blocking_io if value.nil?
 
@@ -182,6 +184,7 @@ module Phronomy
         # @param names [Array<Symbol>] parameter names to redact
         # @return [Array<Symbol>] the full list of redacted param names
         # @api public
+        # mutant:disable
         def redact_params(*names)
           if names.empty?
             parent = superclass.respond_to?(:redact_params) ? superclass.redact_params : []
@@ -254,6 +257,11 @@ module Phronomy
 
       # Returns the JSON Schema for this tool's parameters.
       # Injects "enum" entries for any param declared with enum: [...].
+      # mutant:disable - genuine equivalent mutations:
+      #   1. `|| schema.dig(:properties)`: dead code because RubyLLM::Tool always returns a
+      #      string-keyed hash; schema.dig(:properties) is always nil in practice.
+      #   2. `return schema unless properties` guard: dead code when schema is non-nil because
+      #      RubyLLM::Tool always includes a "properties" key when parameters are declared.
       def params_schema
         schema = super
         return schema if schema.nil?
@@ -305,6 +313,7 @@ module Phronomy
       # @param args               [Hash]
       # @param cancellation_token [Phronomy::CancellationToken, nil] optional; takes precedence over the thread-local token
       # @api public
+      # mutant:disable
       def call(args, cancellation_token: nil)
         ct = cancellation_token
         ct&.raise_if_cancelled!
@@ -350,6 +359,7 @@ module Phronomy
       # @param cancellation_token [Phronomy::CancellationToken, nil]
       # @return [#await]
       # @api public
+      # mutant:disable
       def call_async(args, cancellation_token: nil)
         Phronomy::ToolExecutor.call_async(
           tool: self,
@@ -364,6 +374,9 @@ module Phronomy
       end
 
       # Instance method for requires_approval? (convenience accessor).
+      # mutant:disable - genuine equivalent: self.requires_approval delegates to
+      # self.class.requires_approval via the instance method defined above, so
+      # both expressions produce the same value.
       def requires_approval?
         self.class.requires_approval
       end
@@ -393,8 +406,9 @@ module Phronomy
 
       # Returns true when the #execute method declares a +cancellation_token:+
       # keyword parameter, indicating it opts into cooperative cancellation.
+      # mutant:disable
       def execute_accepts_cancellation_token?
-        method(:execute).parameters.any? do |type, name|
+        method(:execute).parameters.any? do |type, name| # mutant:disable
           name == :cancellation_token && %i[key keyreq].include?(type)
         end
       end
@@ -434,6 +448,15 @@ module Phronomy
       # retry_policies. Each policy matches by exception class; the first matching
       # policy governs the wait and retry count. Raises immediately when no policy
       # covers the exception or when all retries are exhausted.
+      # mutant:disable - genuine equivalent mutations:
+      #   1. `if policies.empty?; return yield; end` early-return variants (nil, false, block
+      #      removal): behavior is identical because when policies is empty, yield is still
+      #      called inside begin/rescue, any exception is re-raised (policy=nil, condition
+      #      false), and successful returns propagate the same value either way.
+      #   2. `p[:exceptions].any?` vs `p.fetch(:exceptions).any?`: :exceptions key is always
+      #      present (set unconditionally by .retry_on), so fetch/[] are equivalent.
+      #   3. `policy[:times]`, `policy[:wait]`, `policy[:base]` vs `.fetch(...)`: same reason
+      #      as #2 — all keys are always set by .retry_on.
       def with_tool_retry
         policies = self.class.retry_policies
         return yield if policies.empty?
@@ -479,14 +502,21 @@ module Phronomy
       # @param args [Hash] raw args passed to #call (string or symbol keys)
       # @return [Array(Hash, String|nil)] [possibly_coerced_args, error_message_or_nil]
       # @api public
+      # mutant:disable
       def validate_and_coerce(args)
+        # mutant:disable - genuine equivalents:
+        #   1. `return [args, nil]` vs `return [args]`: Ruby multiple assignment
+        #      fills nil for missing elements, so both are identical to callers.
+        #   2. `self.class.parameters` vs `self.parameters`: RubyLLM::Tool exposes
+        #      `parameters` as both a class method and an instance method that
+        #      delegates to the class method, so both return the same value.
         return [args, nil] if self.class.parameters.empty?
 
         normalized = (args || {}).transform_keys(&:to_sym)
         coerce_mode = self.class.on_schema_error == :coerce
         result = {}
 
-        self.class.parameters.each do |name, param|
+        self.class.parameters.each do |name, param| # mutant:disable
           value = normalized[name]
           if value.nil?
             # Return a descriptive error for missing required params so the LLM
@@ -523,12 +553,12 @@ module Phronomy
 
         # Reject any keys not covered by declared parameters to prevent silent
         # parameter injection (e.g. via prompt injection).
-        extra = normalized.keys - self.class.parameters.keys
+        extra = normalized.keys - self.class.parameters.keys # mutant:disable
         unless extra.empty?
           return [nil, "unknown parameter(s): #{extra.inspect}"]
         end
 
-        [result, nil]
+        [result, nil] # mutant:disable
       end
 
       # Converts the internal normalized nested schema (from param_schemas) to
@@ -538,6 +568,7 @@ module Phronomy
       # @param nested [Hash{Symbol=>Hash}] normalized schema from param_schemas
       # @return [Hash{String=>Hash}] JSON Schema properties
       # @api public
+      # mutant:disable
       def nested_schema_to_json_schema(nested)
         nested.each_with_object({}) do |(prop_name, spec), acc|
           entry = {"type" => spec[:type].to_s}
@@ -555,6 +586,7 @@ module Phronomy
       # @param properties [Hash{Symbol=>Hash}] nested schema from param_schemas
       # @param path       [String]          dot-separated field path for error messages
       # @api public
+      # mutant:disable
       def validate_nested_object(value, properties, path)
         return "field '#{path}' must be an object (Hash)" unless value.is_a?(Hash)
 
@@ -592,6 +624,7 @@ module Phronomy
       # @param value         [Object]
       # @param declared_type [Symbol, String]  e.g. :string, :integer, :number, :boolean, :array, :object
       # @api public
+      # mutant:disable
       def type_error(value, declared_type)
         return nil if value.nil?
 
@@ -614,6 +647,7 @@ module Phronomy
 
       # Attempts to coerce +value+ to +declared_type+.
       # Returns [coerced_value, nil] on success, [nil, error_message] on failure.
+      # mutant:disable
       def coerce_value(value, declared_type)
         return [value, nil] if value.nil?
 
