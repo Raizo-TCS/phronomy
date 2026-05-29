@@ -301,6 +301,7 @@ RSpec.describe Phronomy::WorkflowContext do
     it "preserves Symbol field values through a deep copy (they are not nil)" do
       klass2 = Class.new do
         include Phronomy::WorkflowContext
+
         field :kind, type: :replace, default: :none
         field :count, type: :replace, default: 0
       end
@@ -310,8 +311,8 @@ RSpec.describe Phronomy::WorkflowContext do
     end
 
     it "deep-duplicates non-frozen strings inside arrays" do
-      # +String.new+ produces a mutable (non-frozen) string even under frozen_string_literal: true
-      mutable_str = String.new("hello")
+      # +"hello" produces a mutable (non-frozen) string even under frozen_string_literal: true
+      mutable_str = +"hello"
       old_ctx = klass.new(tags: [mutable_str], count: 1)
       new_ctx = old_ctx.merge(count: 2)
 

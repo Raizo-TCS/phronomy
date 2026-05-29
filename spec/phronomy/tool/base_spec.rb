@@ -217,7 +217,7 @@ RSpec.describe Phronomy::Tool::Base do
           on_error :suppress
 
           def execute
-            raise RuntimeError, "boom"
+            raise "boom"
           end
         end
       end
@@ -303,12 +303,10 @@ RSpec.describe Phronomy::Tool::Base do
       end
 
       it "schema error ToolError message includes schema_error content" do
-        begin
-          named_strict_tool_class.new.call({"n" => "bad"})
-        rescue Phronomy::ToolError => e
-          expect(e.message).to include("schema error")
-          expect(e.message).to include("integer")
-        end
+        named_strict_tool_class.new.call({"n" => "bad"})
+      rescue Phronomy::ToolError => e
+        expect(e.message).to include("schema error")
+        expect(e.message).to include("integer")
       end
 
       it "schema error return string includes schema_error content" do
@@ -479,7 +477,7 @@ RSpec.describe Phronomy::Tool::Base do
           description "named suppress"
           on_error :suppress
 
-          def execute = raise RuntimeError, "boom"
+          def execute = raise "boom"
         end)
         NamedSuppressToolMT
       end
@@ -508,7 +506,7 @@ RSpec.describe Phronomy::Tool::Base do
           description "anon suppress"
           on_error :suppress
 
-          def execute = raise RuntimeError, "anon_boom"
+          def execute = raise "anon_boom"
         end.new
         msg = capture_warn_log(anon)
         expect(msg).not_to include("#<Class:")
@@ -1808,7 +1806,7 @@ RSpec.describe Phronomy::Tool::Base do
       expect {
         tool.send(:with_tool_retry) do
           calls += 1
-          raise RuntimeError, "not covered"
+          raise "not covered"
         end
       }.to raise_error(RuntimeError, "not covered")
       expect(calls).to eq(1)
@@ -1827,7 +1825,7 @@ RSpec.describe Phronomy::Tool::Base do
       calls = 0
       result = tool.send(:with_tool_retry) do
         calls += 1
-        raise RuntimeError, "transient" if calls < 3
+        raise "transient" if calls < 3
         "done"
       end
       expect(result).to eq("done")
@@ -2120,7 +2118,7 @@ RSpec.describe Phronomy::Tool::Base do
         param :opt, type: :string, desc: "optional", required: false
         param :req, type: :integer, desc: "required"
 
-        def execute(opt: nil, req:) = "#{opt}:#{req}"
+        def execute(req:, opt: nil) = "#{opt}:#{req}"
       end.new
       result, err = multi_tool.send(:validate_and_coerce, {"req" => 5})
       expect(err).to be_nil
@@ -2133,7 +2131,7 @@ RSpec.describe Phronomy::Tool::Base do
         param :opt, type: :string, desc: "optional", required: false
         param :req, type: :integer, desc: "required"
 
-        def execute(opt: nil, req:) = "#{opt}:#{req}"
+        def execute(req:, opt: nil) = "#{opt}:#{req}"
       end.new
       _result, err = multi_tool.send(:validate_and_coerce, {"req" => "bad"})
       expect(err).to include("integer")
@@ -2790,12 +2788,10 @@ RSpec.describe Phronomy::Tool::Base do
     end
 
     it "error message includes #execute is not implemented" do
-      begin
-        described_class.new.execute
-      rescue NotImplementedError => e
-        expect(e.message).to include("#execute is not implemented")
-        expect(e.message).to include("Phronomy::Tool::Base")
-      end
+      described_class.new.execute
+    rescue NotImplementedError => e
+      expect(e.message).to include("#execute is not implemented")
+      expect(e.message).to include("Phronomy::Tool::Base")
     end
 
     it "error message mentions the class name" do
@@ -2812,12 +2808,11 @@ RSpec.describe Phronomy::Tool::Base do
     it "error message uses class name format not instance representation" do
       # Kills mutation [32]: "#{self}#execute..." vs "#{self.class}#execute..."
       # self.to_s = "#<Phronomy::Tool::Base:0x...>", self.class.to_s = "Phronomy::Tool::Base"
-      begin
-        described_class.new.execute
-      rescue NotImplementedError => e
-        expect(e.message).to start_with("Phronomy::Tool::Base#execute")
-        expect(e.message).not_to include("#<Phronomy::Tool::Base:")
-      end
+
+      described_class.new.execute
+    rescue NotImplementedError => e
+      expect(e.message).to start_with("Phronomy::Tool::Base#execute")
+      expect(e.message).not_to include("#<Phronomy::Tool::Base:")
     end
   end
 

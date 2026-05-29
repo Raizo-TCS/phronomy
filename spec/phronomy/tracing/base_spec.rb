@@ -42,7 +42,10 @@ RSpec.describe Phronomy::Tracing::Base do
   describe "#trace" do
     it "yields the span returned by #start_span" do
       yielded = nil
-      tracer.trace("op") { |span| yielded = span; ["result", nil] }
+      tracer.trace("op") { |span|
+        yielded = span
+        ["result", nil]
+      }
       expect(yielded).to be_a(span_class)
     end
 
