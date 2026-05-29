@@ -1278,14 +1278,18 @@ RSpec.describe Phronomy::Tool::Base do
       end
     end
 
-    it "returns nil when the tool has no declared parameters" do
-      expect(no_params_class.new.params_schema).to be_nil
+    it "returns nil or an empty-property schema when the tool has no declared parameters" do
+      # ruby_llm >= 1.15 infers an empty-property schema from the execute signature;
+      # ruby_llm <= 1.14 returns nil.  Either way, Phronomy must not add properties.
+      schema = no_params_class.new.params_schema
+      expect(schema).to satisfy { |s| s.nil? || (s.is_a?(Hash) && s["properties"].empty?) }
     end
 
-    it "passes through a nil schema from super unchanged" do
+    it "passes through the schema from super unchanged" do
       tool = no_params_class.new
       allow(tool).to receive(:params_schema).and_call_original
-      expect(tool.params_schema).to be_nil
+      schema = tool.params_schema
+      expect(schema).to satisfy { |s| s.nil? || (s.is_a?(Hash) && s["properties"].empty?) }
     end
   end
 
