@@ -244,7 +244,7 @@ directly, as opposed to the current phase (which is the machine's state).</p>
   
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>mutant:disable - multiple genuine equivalent mutations: is_a?(Proc) vs instance_of?(Proc) (Proc has no subclasses in practice), <a href="">config</a>/fetch() for always-present :default key, @thread_id=nil removal (unset ivar is already nil), @phase=:<strong>end</strong> → nil or removal (phase method returns :<strong>end</strong> via @phase||:<strong>end</strong> fallback), raise message #inspect vs #{} (spec checks exception class not message text).</p></div></span>
   
 </li>
 
@@ -443,7 +443,8 @@ These are preserved through merge but excluded from to_h.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns true if the workflow is paused mid-execution (not yet completed).</p>
+    <p>Returns true if the workflow is paused mid-execution (not yet completed).
+mutant:disable - phase != :<strong>end</strong> vs !phase.eql?(:<strong>end</strong>) vs !phase.equal?(:<strong>end</strong>) are genuine equivalents for Symbol (Symbols are interned so == / eql? / equal? all behave identically)</p>
 
   </div>
 </div>
@@ -469,12 +470,12 @@ These are preserved through merge but excluded from to_h.</p>
       <pre class="lines">
 
 
-80
-81
-82</pre>
+82
+83
+84</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 80</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 82</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_halted?'>halted?</span>
   <span class='id identifier rubyid_phase'>phase</span> <span class='op'>!=</span> <span class='symbol'>:__end__</span>
@@ -495,7 +496,7 @@ These are preserved through merge but excluded from to_h.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    
+    <p>mutant:disable - multiple genuine equivalent mutations: is_a?(Proc) vs instance_of?(Proc) (Proc has no subclasses in practice), <a href="">config</a>/fetch() for always-present :default key, @thread_id=nil removal (unset ivar is already nil), @phase=:<strong>end</strong> → nil or removal (phase method returns :<strong>end</strong> via @phase||:<strong>end</strong> fallback), raise message #inspect vs #{} (spec checks exception class not message text)</p>
 
   </div>
 </div>
@@ -521,10 +522,6 @@ These are preserved through merge but excluded from to_h.</p>
       <pre class="lines">
 
 
-94
-95
-96
-97
 98
 99
 100
@@ -533,10 +530,14 @@ These are preserved through merge but excluded from to_h.</p>
 103
 104
 105
-106</pre>
+106
+107
+108
+109
+110</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 94</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 98</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_attrs'>attrs</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_unknown'>unknown</span> <span class='op'>=</span> <span class='id identifier rubyid_attrs'>attrs</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span> <span class='op'>-</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span>
@@ -571,7 +572,8 @@ These are preserved through merge but excluded from to_h.</p>
 Updated fields follow the field's declared <code>:type</code> semantics (:replace, :append,
 or :merge). Unchanged fields are deep-copied on a best-effort basis — objects
 that do not support <code>#dup</code> (e.g. integers, frozen objects) are carried over
-by reference. Internal workflow metadata (thread_id, phase) is preserved.</p>
+by reference. Internal workflow metadata (thread_id, phase) is preserved.
+mutant:disable - multiple genuine equivalent mutations: send/public_send/<strong>send</strong> are identical (all field accessors are public), <a href="">fields</a>/fetch() and field_<a href="">config</a>/fetch() for always-present keys, <a href="">updates</a>/fetch() when updates.key?(name) is already true, Array() wrapping for append fields that always hold Arrays, (send||{})/send equivalence for merge fields that always hold Hashes, deep_dup_value(send) vs send are equivalent under killfork (coverage selection does not trace the deep_dup_value call site across the fork boundary), raise message inspect vs to_s (spec checks exception class only)</p>
 
   </div>
 </div>
@@ -634,11 +636,6 @@ by reference. Internal workflow metadata (thread_id, phase) is preserved.</p>
       <pre class="lines">
 
 
-117
-118
-119
-120
-121
 122
 123
 124
@@ -660,10 +657,15 @@ by reference. Internal workflow metadata (thread_id, phase) is preserved.</p>
 140
 141
 142
-143</pre>
+143
+144
+145
+146
+147
+148</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 117</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 122</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='id identifier rubyid_updates'>updates</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_unknown'>unknown</span> <span class='op'>=</span> <span class='id identifier rubyid_updates'>updates</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span> <span class='op'>-</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span>
@@ -712,7 +714,9 @@ by reference. Internal workflow metadata (thread_id, phase) is preserved.</p>
 Encoding:</p>
 <pre class="code ruby"><code class="ruby">:__end__           — workflow completed (or not yet started)
 :awaiting_&lt;name&gt;   — halted at a wait_state(:awaiting_&lt;name&gt;) declaration
-:&lt;state&gt;           — resuming at &lt;state&gt; (workflow paused before its execution)</code></pre>
+:&lt;state&gt;           — resuming at &lt;state&gt; (workflow paused before its execution)
+</code></pre>
+<p>mutant:disable - @phase is always non-nil (set to :<strong>end</strong> in initialize, only changed by set_graph_metadata which never sets nil), so the || :<strong>end</strong> fallback branch is never reached — all mutations of the right-hand side are genuine equivalents</p>
 
   </div>
 </div>
@@ -738,12 +742,12 @@ Encoding:</p>
       <pre class="lines">
 
 
-73
 74
-75</pre>
+75
+76</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 73</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 74</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_phase'>phase</span>
   <span class='ivar'>@phase</span> <span class='op'>||</span> <span class='symbol'>:__end__</span>
@@ -764,7 +768,8 @@ Encoding:</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Sets internal workflow metadata. Returns self.</p>
+    <p>Sets internal workflow metadata. Returns self.
+mutant:disable - mutations replacing return value <code>self</code> with nil or removing the last line are genuine equivalents: callers chain on the return value only in merge which immediately discards it</p>
 
   </div>
 </div>
@@ -807,14 +812,14 @@ Encoding:</p>
       <pre class="lines">
 
 
-88
-89
-90
 91
-92</pre>
+92
+93
+94
+95</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 88</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 91</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>phase:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='kw'>unless</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -837,7 +842,8 @@ Encoding:</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Converts user-defined fields to a Hash (excludes internal workflow metadata).</p>
+    <p>Converts user-defined fields to a Hash (excludes internal workflow metadata).
+mutant:disable - send/public_send/<strong>send</strong> are genuine equivalents (all field accessors are public methods)</p>
 
   </div>
 </div>
@@ -863,14 +869,14 @@ Encoding:</p>
       <pre class="lines">
 
 
-148
-149
-150
-151
-152</pre>
+154
+155
+156
+157
+158</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 148</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 154</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_to_h'>to_h</span>
   <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span><span class='period'>.</span><span class='id identifier rubyid_each_with_object'>each_with_object</span><span class='lparen'>(</span><span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_h'>h</span><span class='op'>|</span>
@@ -887,7 +893,7 @@ Encoding:</p>
 </div>
 
       <div id="footer">
-  Generated on Thu May 28 18:04:49 2026 by
+  Generated on Fri May 29 11:31:05 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

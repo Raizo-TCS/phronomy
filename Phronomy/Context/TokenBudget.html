@@ -307,7 +307,7 @@ and injected knowledge within a single LLM request.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>A new instance of TokenBudget.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>mutant:disable - multiple genuine equivalent mutations: overhead/context_window/max_output_tokens .to_i vs .to_int vs Integer() vs omitted are equivalent for Integer inputs; (max_output_tokens||0).to_i vs (max_output_tokens).to_i and (||nil).to_i are genuine because nil.to_i==0; overhead:nil default is genuine because nil.to_i==0.</p></div></span>
   
 </li>
 
@@ -334,7 +334,7 @@ and injected knowledge within a single LLM request.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Returns a new instance of TokenBudget.</p>
+<p>mutant:disable - multiple genuine equivalent mutations: overhead/context_window/max_output_tokens .to_i vs .to_int vs Integer() vs omitted are equivalent for Integer inputs; (max_output_tokens||0).to_i vs (max_output_tokens).to_i and (||nil).to_i are genuine because nil.to_i==0; overhead:nil default is genuine because nil.to_i==0</p>
 
   </div>
 </div>
@@ -416,7 +416,6 @@ and model is given, uses max_output_tokens</p></div>
       <pre class="lines">
 
 
-49
 50
 51
 52
@@ -430,10 +429,11 @@ and model is given, uses max_output_tokens</p></div>
 60
 61
 62
-63</pre>
+63
+64</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/token_budget.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/token_budget.rb', line 50</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>model:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>context_window:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>max_output_tokens:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>overhead:</span> <span class='int'>0</span><span class='rparen'>)</span>
   <span class='ivar'>@overhead</span> <span class='op'>=</span> <span class='id identifier rubyid_overhead'>overhead</span><span class='period'>.</span><span class='id identifier rubyid_to_i'>to_i</span>
@@ -654,6 +654,7 @@ and model is given, uses max_output_tokens</p></div>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
 <p>Tokens still available after <code>used</code> tokens have been allocated.</p>
+<p>mutant:disable - used.to_i vs used vs used.to_int vs Integer(used) are genuine equivalents when used is an Integer; used:nil default is genuine because nil.to_i==0==default 0</p>
 
   </div>
 </div>
@@ -702,12 +703,12 @@ and model is given, uses max_output_tokens</p></div>
       <pre class="lines">
 
 
-79
-80
-81</pre>
+81
+82
+83</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/token_budget.rb', line 79</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/token_budget.rb', line 81</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_available'>available</span><span class='lparen'>(</span><span class='label'>used:</span> <span class='int'>0</span><span class='rparen'>)</span>
   <span class='lbracket'>[</span><span class='id identifier rubyid_effective_input_limit'>effective_input_limit</span> <span class='op'>-</span> <span class='id identifier rubyid_used'>used</span><span class='period'>.</span><span class='id identifier rubyid_to_i'>to_i</span><span class='comma'>,</span> <span class='int'>0</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_max'>max</span>
@@ -759,12 +760,12 @@ Always &gt;= 0.</p>
       <pre class="lines">
 
 
-70
 71
-72</pre>
+72
+73</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/token_budget.rb', line 70</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/token_budget.rb', line 71</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_effective_input_limit'>effective_input_limit</span>
   <span class='lbracket'>[</span><span class='ivar'>@context_window</span> <span class='op'>-</span> <span class='ivar'>@max_output_tokens</span> <span class='op'>-</span> <span class='ivar'>@overhead</span><span class='comma'>,</span> <span class='int'>0</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_max'>max</span>
@@ -779,7 +780,7 @@ Always &gt;= 0.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu May 28 18:04:52 2026 by
+  Generated on Fri May 29 11:31:09 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

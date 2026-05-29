@@ -207,7 +207,9 @@
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Does nothing.</p>
+    <p>Does nothing. Explicit nil is equivalent to an empty method body; the
+mutation &quot;remove nil&quot; is accepted as it does not change observable behaviour.
+mutant:disable</p>
 
   </div>
 </div>
@@ -220,10 +222,10 @@
       <pre class="lines">
 
 
-20</pre>
+22</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/null_tracer.rb', line 20</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tracing/null_tracer.rb', line 22</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_finish_span'>finish_span</span><span class='lparen'>(</span><span class='id identifier rubyid_span'>span</span><span class='comma'>,</span> <span class='op'>**</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='kw'>nil</span></pre>
     </td>
@@ -271,7 +273,7 @@
 </div>
 
       <div id="footer">
-  Generated on Thu May 28 18:04:52 2026 by
+  Generated on Fri May 29 11:31:09 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

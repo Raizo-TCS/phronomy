@@ -190,7 +190,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>mutant:disable - concurrency default value mutations (0/2) are genuine equivalent because sequential and concurrent paths produce identical results; if concurrency&lt;=1 boundary mutations (==1 / &lt;1 / &lt;=0 / .eql? / .equal? / false / nil / &lt;=2) are genuine equivalent because the concurrent path with concurrency=1 still produces the same Array<EvalResult> via each_slice(1); spawn name: mutations are genuine equivalent (name is only used for logging).</p></div></span>
   
 </li>
 
@@ -279,7 +279,7 @@
   
 </h3><div class="docstring">
   <div class="discussion">
-    
+    <p>mutant:disable - concurrency default value mutations (0/2) are genuine equivalent because sequential and concurrent paths produce identical results; if concurrency&lt;=1 boundary mutations (==1 / &lt;1 / &lt;=0 / .eql? / .equal? / false / nil / &lt;=2) are genuine equivalent because the concurrent path with concurrency=1 still produces the same Array<EvalResult> via each_slice(1); spawn name: mutations are genuine equivalent (name is only used for logging)</p>
 
   </div>
 </div>
@@ -353,7 +353,6 @@
       <pre class="lines">
 
 
-31
 32
 33
 34
@@ -379,10 +378,11 @@
 54
 55
 56
-57</pre>
+57
+58</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/runner.rb', line 31</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/runner.rb', line 32</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_run'>run</span><span class='lparen'>(</span><span class='id identifier rubyid_dataset'>dataset</span><span class='comma'>,</span> <span class='id identifier rubyid_callable'>callable</span><span class='comma'>,</span> <span class='label'>concurrency:</span> <span class='int'>1</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_cases'>cases</span> <span class='op'>=</span> <span class='id identifier rubyid_dataset'>dataset</span><span class='period'>.</span><span class='id identifier rubyid_to_a'>to_a</span>
@@ -421,7 +421,7 @@
 </div>
 
       <div id="footer">
-  Generated on Thu May 28 18:04:50 2026 by
+  Generated on Fri May 29 11:31:07 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

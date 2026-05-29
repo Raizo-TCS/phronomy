@@ -214,7 +214,7 @@ If parsing fails the scorer returns 0.0 rather than raising.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Score in [0.0, 1.0]; 0.0 on error when raise_on_error is false.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>mutant:disable - multiple genuine equivalent mutations:   actual.to_str / actual: (shorthand) are genuine (callers pass String);   expected.to_str / expected: are genuine (String);   response.content.strip (no to_s) is genuine (content is String);   lstrip/rstrip/no-strip are genuine (whitespace doesn't affect number scanning);   scan(/-?\d.?\d*/) is genuine (for [0,1] range responses, single-digit-before-decimal     matches are the same after clamp);   response.content.to_str.strip is genuine (String);   all warn variations (warn no-arg, warn(nil), warn(e), warn(nil literal),     nil-replacing-warn, warn-deletion) are genuine because the rescue block     still returns 0.0 — warn is a side-effect not tested by value assertions.</p></div></span>
   
 </li>
 
@@ -345,7 +345,17 @@ returning 0.0. Use this in batch eval pipelines where silent failures are unacce
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns score in [0.0, 1.0]; 0.0 on error when raise_on_error is false.</p>
+    <p>mutant:disable - multiple genuine equivalent mutations:</p>
+<pre class="code ruby"><code class="ruby">actual.to_str / actual: (shorthand) are genuine (callers pass String);
+expected.to_str / expected: are genuine (String);
+response.content.strip (no to_s) is genuine (content is String);
+lstrip/rstrip/no-strip are genuine (whitespace doesn&#39;t affect number scanning);
+scan(/-?\d\.?\d*/) is genuine (for [0,1] range responses, single-digit-before-decimal
+matches are the same after clamp);
+response.content.to_str.strip is genuine (String);
+all warn variations (warn no-arg, warn(nil), warn(e), warn(nil literal),
+nil-replacing-warn, warn-deletion) are genuine because the rescue block
+still returns 0.0 — warn is a side-effect not tested by value assertions</code></pre>
 
   </div>
 </div>
@@ -374,19 +384,19 @@ returning 0.0. Use this in batch eval pipelines where silent failures are unacce
       <pre class="lines">
 
 
-48
-49
-50
-51
-52
-53
-54
-55
-56
-57</pre>
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/scorer/llm_judge.rb', line 48</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/scorer/llm_judge.rb', line 59</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_score'>score</span><span class='lparen'>(</span><span class='label'>actual:</span><span class='comma'>,</span> <span class='label'>expected:</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_prompt'>prompt</span> <span class='op'>=</span> <span class='id identifier rubyid_format'>format</span><span class='lparen'>(</span><span class='ivar'>@prompt_template</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span> <span class='label'>expected:</span> <span class='id identifier rubyid_expected'>expected</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span> <span class='label'>actual:</span> <span class='id identifier rubyid_actual'>actual</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span>
@@ -408,7 +418,7 @@ returning 0.0. Use this in batch eval pipelines where silent failures are unacce
 </div>
 
       <div id="footer">
-  Generated on Thu May 28 18:04:52 2026 by
+  Generated on Fri May 29 11:31:09 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

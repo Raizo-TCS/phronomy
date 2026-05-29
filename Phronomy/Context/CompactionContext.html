@@ -306,7 +306,7 @@ as the new message list for this invocation.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>A new instance of CompactionContext.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>mutant:disable - <a href=":tokens">e</a> vs e.fetch(:tokens) and <a href=":message">e</a> vs e.fetch(:message) are genuine equivalent mutations: elements always carry both keys.</p></div></span>
   
 </li>
 
@@ -333,7 +333,7 @@ as the new message list for this invocation.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Returns a new instance of CompactionContext.</p>
+<p>mutant:disable - <a href=":tokens">e</a> vs e.fetch(:tokens) and <a href=":message">e</a> vs e.fetch(:message) are genuine equivalent mutations: elements always carry both keys</p>
 
   </div>
 </div>
@@ -408,17 +408,17 @@ for compaction records to be persisted</p></div>
       <pre class="lines">
 
 
-49
 50
 51
 52
 53
 54
 55
-56</pre>
+56
+57</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 50</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>message_elements:</span><span class='comma'>,</span> <span class='label'>budget:</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>memory:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@message_elements</span> <span class='op'>=</span> <span class='id identifier rubyid_message_elements'>message_elements</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
@@ -689,6 +689,7 @@ String that serves as the summary text. After the call, #result_messages
 reflects the replacement.</p>
 <p>If the memory object responds to #save_compaction, a compaction record
 { start_seq:, end_seq:, summary_text: } is persisted for auditability.</p>
+<p>mutant:disable - multiple genuine equivalent mutations: is_a? vs instance_of? (Array/Range have no subclasses), yield.to_s vs yield (block always returns String), [:seq]/[:message] vs .fetch(:seq)/.fetch(:message) (keys always present), range.to_i vs range/to_int/Integer() (Integer is already integer), || [] vs nothing (Array#[] never returns nil for slice), RubyLLM::Message vs Message (killfork inherits Message=Struct from integration specs, both expose identical role/content interface)</p>
 
   </div>
 </div>
@@ -769,8 +770,6 @@ reflects the replacement.</p>
       <pre class="lines">
 
 
-72
-73
 74
 75
 76
@@ -805,10 +804,12 @@ reflects the replacement.</p>
 105
 106
 107
-108</pre>
+108
+109
+110</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 72</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/context/compaction_context.rb', line 74</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_compact'>compact</span><span class='lparen'>(</span><span class='id identifier rubyid_range'>range</span><span class='rparen'>)</span>
   <span class='comment'># Normalise: Integer index → single-element Array; Range → Array slice.
@@ -857,7 +858,7 @@ reflects the replacement.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu May 28 18:04:53 2026 by
+  Generated on Fri May 29 11:31:10 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

@@ -247,7 +247,7 @@ the message count is small enough that a linear scan is fast enough.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Sorted by descending score.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>mutant:disable - genuine equivalent mutations: doc.fetch(:embedding) vs <a href=":embedding">doc</a> (key   always present); score:, metadata: doc.fetch(:metadata) shorthand+fetch vs []   (key always present); -r.fetch(:score) vs -<a href=":score">r</a> (key always present); snapshot = @documents   vs .dup is equivalent in single-threaded tests (GVL makes Hash#dup atomic, no behaviour   difference under test isolation).</p></div></span>
   
 </li>
 
@@ -487,13 +487,13 @@ adds are not guaranteed to be race-free.</p></div>
       <pre class="lines">
 
 
-67
-68
-69
-70</pre>
+72
+73
+74
+75</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 67</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 72</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear'>clear</span>
   <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_clear'>clear</span>
@@ -519,13 +519,13 @@ adds are not guaranteed to be race-free.</p></div>
       <pre class="lines">
 
 
-62
-63
-64
-65</pre>
+67
+68
+69
+70</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 62</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 67</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remove'>remove</span><span class='lparen'>(</span><span class='label'>id:</span><span class='rparen'>)</span>
   <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
@@ -547,7 +547,11 @@ adds are not guaranteed to be race-free.</p></div>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns sorted by descending score.</p>
+    <p>mutant:disable - genuine equivalent mutations: doc.fetch(:embedding) vs <a href=":embedding">doc</a> (key
+always present); score:, metadata: doc.fetch(:metadata) shorthand+fetch vs []
+(key always present); -r.fetch(:score) vs -<a href=":score">r</a> (key always present); snapshot = @documents
+vs .dup is equivalent in single-threaded tests (GVL makes Hash#dup atomic, no behaviour
+difference under test isolation)</p>
 
   </div>
 </div>
@@ -617,11 +621,6 @@ adds are not guaranteed to be race-free.</p></div>
       <pre class="lines">
 
 
-44
-45
-46
-47
-48
 49
 50
 51
@@ -633,10 +632,15 @@ adds are not guaranteed to be race-free.</p></div>
 57
 58
 59
-60</pre>
+60
+61
+62
+63
+64
+65</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 44</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 49</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_search'>search</span><span class='lparen'>(</span><span class='label'>query_embedding:</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='int'>5</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span>
@@ -700,12 +704,12 @@ adds are not guaranteed to be race-free.</p></div>
       <pre class="lines">
 
 
-74
-75
-76</pre>
+79
+80
+81</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 74</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/in_memory.rb', line 79</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_size'>size</span>
   <span class='ivar'>@documents</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
@@ -720,7 +724,7 @@ adds are not guaranteed to be race-free.</p></div>
 </div>
 
       <div id="footer">
-  Generated on Thu May 28 18:04:53 2026 by
+  Generated on Fri May 29 11:31:10 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
