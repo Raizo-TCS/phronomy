@@ -45,6 +45,45 @@ RSpec.describe Phronomy::Eval::Scorer::LlmJudge do
       expect(judge.score(actual: "a", expected: "a")).to eq(0.0)
     end
 
+    # Kill: scan(/-?\d+\.?\d+/) and scan(/-?\d+\.\d*/) — both require decimal point or digit
+    it "returns 1.0 for a whole number response without a decimal point" do
+      stub_llm_response("1")
+      expect(judge.score(actual: "a", expected: "a")).to eq(1.0)
+    end
+
+    # Kill: scan(/-?\d+\.?\d/) — matches only 1 decimal digit, truncating "0.85" to "0.8"
+    it "preserves two decimal places when parsing the LLM score" do
+      stub_llm_response("0.85")
+      expect(judge.score(actual: "a", expected: "a")).to eq(0.85)
+    end
+
+    # Kill: input: nil/""/ self.to_s, prompt = nil, ask/ask(nil) mutations
+    it "includes the input value in the prompt sent to the LLM" do
+      chat = instance_double(RubyLLM::Chat)
+      response = instance_double(RubyLLM::Message, content: "0.5")
+      expect(chat).to receive(:ask).with(include("Capital of France?")).and_return(response)
+      allow(RubyLLM).to receive(:chat).with(model: "test-model").and_return(chat)
+      judge.score(actual: "Paris", expected: "Paris", input: "Capital of France?")
+    end
+
+    # Kill: expected: nil/""/self.to_s mutations
+    it "includes the expected answer in the prompt sent to the LLM" do
+      chat = instance_double(RubyLLM::Chat)
+      response = instance_double(RubyLLM::Message, content: "0.5")
+      expect(chat).to receive(:ask).with(include("EXPECTED_REF")).and_return(response)
+      allow(RubyLLM).to receive(:chat).with(model: "test-model").and_return(chat)
+      judge.score(actual: "answer", expected: "EXPECTED_REF", input: "q")
+    end
+
+    # Kill: actual: nil/""/self.to_s mutations
+    it "includes the actual answer in the prompt sent to the LLM" do
+      chat = instance_double(RubyLLM::Chat)
+      response = instance_double(RubyLLM::Message, content: "0.5")
+      expect(chat).to receive(:ask).with(include("ACTUAL_RESPONSE")).and_return(response)
+      allow(RubyLLM).to receive(:chat).with(model: "test-model").and_return(chat)
+      judge.score(actual: "ACTUAL_RESPONSE", expected: "expected", input: "q")
+    end
+
     context "when raise_on_error: true" do
       subject(:strict_judge) { described_class.new(model: "test-model", raise_on_error: true) }
 

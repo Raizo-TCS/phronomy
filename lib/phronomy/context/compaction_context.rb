@@ -46,6 +46,7 @@ module Phronomy
       # @param memory [Object, nil] memory object; must respond to #save_compaction
       #   for compaction records to be persisted
       # @api private
+      # mutant:disable - e[:tokens] vs e.fetch(:tokens) and e[:message] vs e.fetch(:message) are genuine equivalent mutations: elements always carry both keys
       def initialize(message_elements:, budget:, thread_id: nil, memory: nil)
         @message_elements = message_elements.dup
         @budget = budget
@@ -69,6 +70,7 @@ module Phronomy
       # @yieldreturn [String] summary text to replace the selected messages
       # @return [Array] the updated result_messages array
       # @api private
+      # mutant:disable - multiple genuine equivalent mutations: is_a? vs instance_of? (Array/Range have no subclasses), yield.to_s vs yield (block always returns String), [:seq]/[:message] vs .fetch(:seq)/.fetch(:message) (keys always present), range.to_i vs range/to_int/Integer() (Integer is already integer), || [] vs nothing (Array#[] never returns nil for slice), RubyLLM::Message vs Message (killfork inherits Message=Struct from integration specs, both expose identical role/content interface)
       def compact(range)
         # Normalise: Integer index → single-element Array; Range → Array slice.
         raw = @message_elements[range]

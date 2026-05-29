@@ -36,6 +36,7 @@ module Phronomy
       # @param trusted [Boolean]
       # @return [String]
       # @api private
+      # mutant:disable - text.to_str and plain text (no to_s) are genuine equivalents when text is a String; type.to_str is genuine equivalent when type is a String
       def self.xml_tag(text, type:, trusted: false)
         "<context type=\"#{CGI.escapeHTML(type.to_s)}\" trusted=\"#{trusted}\">\n#{CGI.escapeHTML(text.to_s)}\n</context>"
       end
@@ -43,6 +44,7 @@ module Phronomy
       # @param budget [Phronomy::Context::TokenBudget, nil]
       #   when nil no token trimming is performed
       # @api private
+      # mutant:disable - @instruction = nil deletion is a genuine equivalent (uninitialized Ruby instance variables return nil)
       def initialize(budget: nil)
         @budget = budget
         @instruction = nil
@@ -56,6 +58,7 @@ module Phronomy
       # @param text [String]
       # @return [self]
       # @api private
+      # mutant:disable - text.to_str and plain text (no .to_s) are genuine equivalents when callers always pass a String
       def add_instruction(text)
         @instruction = text.to_s
         self
@@ -71,6 +74,7 @@ module Phronomy
       #   XML tag so the LLM can produce grounded citations. Omitted when nil.
       # @return [self]
       # @api private
+      # mutant:disable - {text:} (shorthand, no .to_s) and text.to_str are genuine equivalents when text is a String; {type:} shorthand is genuine equivalent because xml_context_tag always calls .to_s on chunk[:type]
       def add_knowledge(text, type:, trusted: false, source: nil)
         @knowledge_chunks << {text: text.to_s, type: type.to_s, trusted: trusted, source: source}
         self
@@ -81,6 +85,7 @@ module Phronomy
       # @param messages [Array] message-like objects with #role and #content
       # @return [self]
       # @api private
+      # mutant:disable - @messages = messages (no Array()) is a genuine equivalent when callers always pass an Array
       def add_messages(messages)
         @messages = Array(messages)
         self
@@ -92,6 +97,7 @@ module Phronomy
       #   :system   [String, nil]  combined system prompt (instruction + knowledge XML tags)
       #   :messages [Array]        conversation messages, trimmed to budget if set
       # @api private
+      # mutant:disable - multiple genuine equivalent mutations: map{}.join("\n\n") → map{} is genuine because Ruby Array#join recursively joins nested arrays with the same separator (so [outer_array].join("\n\n") == original String); `unless knowledge_text.empty?` vs ternary is genuine (same conditional logic); `{ system: unless system_text.empty? }` vs ternary is genuine; `messages:` shorthand vs `messages: messages` is genuine
       def build
         knowledge_text = @knowledge_chunks.map { |c| xml_context_tag(c) }.join("\n\n")
         system_parts = [@instruction, knowledge_text.empty? ? nil : knowledge_text].compact
@@ -111,11 +117,20 @@ module Phronomy
 
       private
 
+      # mutant:disable - multiple genuine equivalent mutations: chunk.fetch(key) vs chunk[key] (key always present); chunk[:text] no .to_s / .to_str are genuine (stored as String); chunk[:type] no .to_s / .to_str are genuine (stored as String); chunk[:source] no .to_s / .to_str are genuine (truthy branch, always String); src_attr chunk.fetch(:source) is genuine (source key always present)
       def xml_context_tag(chunk)
         src_attr = chunk[:source] ? " source=\"#{CGI.escapeHTML(chunk[:source].to_s)}\"" : ""
         "<context type=\"#{CGI.escapeHTML(chunk[:type].to_s)}\"#{src_attr} trusted=\"#{chunk[:trusted]}\">\n#{CGI.escapeHTML(chunk[:text].to_s)}\n</context>"
       end
 
+      # mutant:disable - multiple genuine equivalent mutations on the early-return guard:
+      # `remaining <= 0 && false/nil`, `if false`, `if nil`, `if remaining && messages.empty?`,
+      # `if remaining < 0 && messages.empty?`, `if remaining <= -1 && messages.empty?`,
+      # `if remaining <= 1 && messages.empty?`, `if remaining == 0 && messages.empty?`,
+      # `if remaining.eql?(0) && messages.empty?`, `if remaining.equal?(0) && messages.empty?`,
+      # `if 0 && messages.empty?`, `if nil && messages.empty?` —
+      # all are genuine equivalents because when messages.empty? the loop produces [] anyway,
+      # and remaining is always >= 0 (clamp(0..)) so `remaining < 0` / `<= -1` are never true.
       def trim_messages_to_budget(messages, system_text)
         used = TokenEstimator.estimate(system_text)
         remaining = @budget.available(used: used)

@@ -16,7 +16,9 @@ module Phronomy
       # Returns a minimal span object with the given name.
       def start_span(name, **) = SpanStruct.new(name)
 
-      # Does nothing.
+      # Does nothing. Explicit nil is equivalent to an empty method body; the
+      # mutation "remove nil" is accepted as it does not change observable behaviour.
+      # mutant:disable
       def finish_span(span, **) = nil
     end
   end

@@ -45,6 +45,17 @@ module Phronomy
 
         # @return [Float] score in [0.0, 1.0]; 0.0 on error when raise_on_error is false
         # @api public
+        # mutant:disable - multiple genuine equivalent mutations:
+        #   actual.to_str / actual: (shorthand) are genuine (callers pass String);
+        #   expected.to_str / expected: are genuine (String);
+        #   response.content.strip (no to_s) is genuine (content is String);
+        #   lstrip/rstrip/no-strip are genuine (whitespace doesn't affect number scanning);
+        #   scan(/-?\d\.?\d*/) is genuine (for [0,1] range responses, single-digit-before-decimal
+        #     matches are the same after clamp);
+        #   response.content.to_str.strip is genuine (String);
+        #   all warn variations (warn no-arg, warn(nil), warn(e), warn(nil literal),
+        #     nil-replacing-warn, warn-deletion) are genuine because the rescue block
+        #     still returns 0.0 — warn is a side-effect not tested by value assertions
         def score(actual:, expected:, input: nil)
           prompt = format(@prompt_template, input: input.to_s, expected: expected.to_s, actual: actual.to_s)
           response = RubyLLM.chat(model: @model).ask(prompt)

@@ -8,7 +8,7 @@
 
 require "spec_helper"
 
-RSpec.describe "Tool::Base retry_on DSL" do
+RSpec.describe Phronomy::Tool::Base, "retry_on DSL" do
   # ---------------------------------------------------------------------------
   # Shared setup
   # ---------------------------------------------------------------------------
@@ -292,7 +292,7 @@ RSpec.describe "Tool::Base retry_on DSL" do
 end
 
 # =============================================================================
-RSpec.describe "Agent::Base retry_policy DSL" do
+RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
   let(:sleep_calls) { [] }
   let(:sleep_stub) { ->(t) { sleep_calls << t } }
 

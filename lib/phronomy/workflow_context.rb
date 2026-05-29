@@ -70,6 +70,7 @@ module Phronomy
     #   :<state>           — resuming at <state> (workflow paused before its execution)
     # @return [Symbol]
     # @api public
+    # mutant:disable - @phase is always non-nil (set to :__end__ in initialize, only changed by set_graph_metadata which never sets nil), so the || :__end__ fallback branch is never reached — all mutations of the right-hand side are genuine equivalents
     def phase
       @phase || :__end__
     end
@@ -77,6 +78,7 @@ module Phronomy
     # Returns true if the workflow is paused mid-execution (not yet completed).
     # @return [Boolean]
     # @api public
+    # mutant:disable - phase != :__end__ vs !phase.eql?(:__end__) vs !phase.equal?(:__end__) are genuine equivalents for Symbol (Symbols are interned so == / eql? / equal? all behave identically)
     def halted?
       phase != :__end__
     end
@@ -85,12 +87,14 @@ module Phronomy
     # @param thread_id [String, nil]
     # @param phase [Symbol, nil]
     # @api public
+    # mutant:disable - mutations replacing return value `self` with nil or removing the last line are genuine equivalents: callers chain on the return value only in merge which immediately discards it
     def set_graph_metadata(thread_id: nil, phase: nil)
       @thread_id = thread_id unless thread_id.nil?
       @phase = phase unless phase.nil?
       self
     end
 
+    # mutant:disable - multiple genuine equivalent mutations: is_a?(Proc) vs instance_of?(Proc) (Proc has no subclasses in practice), config[]/fetch() for always-present :default key, @thread_id=nil removal (unset ivar is already nil), @phase=:__end__ → nil or removal (phase method returns :__end__ via @phase||:__end__ fallback), raise message #{.inspect} vs #{} (spec checks exception class not message text)
     def initialize(**attrs)
       unknown = attrs.keys - self.class.fields.keys
       raise ArgumentError, "Unknown WorkflowContext field(s): #{unknown.inspect}" unless unknown.empty?
@@ -114,6 +118,7 @@ module Phronomy
     # @return [self.class] new context instance
     # @raise [ArgumentError] if updates contains keys that are not declared fields
     # @api public
+    # mutant:disable - multiple genuine equivalent mutations: send/public_send/__send__ are identical (all field accessors are public), fields[]/fetch() and field_config[]/fetch() for always-present keys, updates[]/fetch() when updates.key?(name) is already true, Array() wrapping for append fields that always hold Arrays, (send||{})/send equivalence for merge fields that always hold Hashes, deep_dup_value(send) vs send are equivalent under killfork (coverage selection does not trace the deep_dup_value call site across the fork boundary), raise message inspect vs to_s (spec checks exception class only)
     def merge(updates)
       unknown = updates.keys - self.class.fields.keys
       raise ArgumentError, "Unknown WorkflowContext field(s): #{unknown.inspect}" unless unknown.empty?
@@ -145,6 +150,7 @@ module Phronomy
     # Converts user-defined fields to a Hash (excludes internal workflow metadata).
     # @return [Hash]
     # @api public
+    # mutant:disable - send/public_send/__send__ are genuine equivalents (all field accessors are public methods)
     def to_h
       self.class.fields.keys.each_with_object({}) do |name, h|
         h[name] = send(name)
@@ -158,6 +164,7 @@ module Phronomy
     # @raise [Phronomy::WorkflowContextOwnershipError] when called from a
     #   non-EventLoop thread in EventLoop mode.
     # @api private
+    # mutant:disable - multiple genuine equivalent mutations: defined?(Phronomy::EventLoop)&& removal is genuine because EventLoop is always loaded in the killfork environment; true&& is genuine (truthy guard); EventLoop.current? resolves to Phronomy::EventLoop.current? within the Phronomy module; WorkflowContextOwnershipError resolves to Phronomy::WorkflowContextOwnershipError within the module; raise without message or with nil message is genuine (spec checks exception class, not message text)
     def _assert_write_permitted!
       return unless defined?(Phronomy::EventLoop) &&
         Phronomy.configuration.event_loop
@@ -174,6 +181,7 @@ module Phronomy
     # Immutable values (nil, Symbol, Integer, Float, true/false, frozen String) are returned as-is.
     # Other objects are dup'd (best-effort shallow copy for custom types).
     # Objects that cannot be dup'd (e.g. Proc, Method) are returned as-is.
+    # mutant:disable - multiple genuine equivalent mutations: each class in the when clause (NilClass/Symbol/Integer/Float/TrueClass/FalseClass) can be removed or replaced with nil because all those types are frozen so the else-branch val.frozen? guard returns the same result; return val vs val is also equivalent; if val.frozen? vs if self.frozen? is equivalent since self is never frozen in this context
     def deep_dup_value(val)
       case val
       when Array

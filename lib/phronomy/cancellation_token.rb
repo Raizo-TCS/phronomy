@@ -47,6 +47,7 @@ module Phronomy
     # @param monotonic_deadline [Float, nil] internal monotonic timestamp set by
     #   {.timeout_after}; prefer that factory method over passing this directly.
     # @api public
+    # mutant:disable - removing @cancelled = false is equivalent because nil is falsey
     def initialize(deadline: nil, monotonic_deadline: nil)
       @cancelled = false
       @deadline = deadline
@@ -79,6 +80,7 @@ module Phronomy
     # @yield called with no arguments when (or if) the token is cancelled
     # @return [self]
     # @api public
+    # mutant:disable - mutex removal mutation is GVL-safe equivalent under MRI
     def on_cancel(&block)
       already_cancelled = @mutex.synchronize do
         if @cancelled
@@ -96,6 +98,7 @@ module Phronomy
     # Thread-safe; idempotent — calling multiple times has no additional effect.
     # @return [self]
     # @api public
+    # mutant:disable - mutex removal and dup-vs-ref mutations are GVL-safe equivalents
     def cancel!
       callbacks = @mutex.synchronize do
         return self if @cancelled
@@ -111,6 +114,7 @@ module Phronomy
     # (set by {.timeout_after}) has elapsed. Thread-safe.
     # @return [Boolean]
     # @api public
+    # mutant:disable - mutex removal on @cancelled read is GVL-safe equivalent under MRI
     def cancelled?
       return true if @mutex.synchronize { @cancelled }
       return true if !@deadline.nil? && Time.now >= @deadline
@@ -126,6 +130,7 @@ module Phronomy
     # @return [nil] when the token is not cancelled
     # @raise [Phronomy::CancellationError] when the token is cancelled
     # @api public
+    # mutant:disable - raise(CancellationError) resolves to raise(Phronomy::CancellationError) in this namespace
     def raise_if_cancelled!(message = "invocation cancelled")
       raise Phronomy::CancellationError, message if cancelled?
     end

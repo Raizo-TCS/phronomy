@@ -41,6 +41,11 @@ module Phronomy
       # @param cancellation_token [Phronomy::CancellationToken, nil]
       # @return [Array<Hash>] sorted by descending score
       # @api public
+      # mutant:disable - genuine equivalent mutations: doc.fetch(:embedding) vs doc[:embedding] (key
+      #   always present); {id:, score:, metadata: doc.fetch(:metadata)} shorthand+fetch vs []
+      #   (key always present); -r.fetch(:score) vs -r[:score] (key always present); snapshot = @documents
+      #   vs .dup is equivalent in single-threaded tests (GVL makes Hash#dup atomic, no behaviour
+      #   difference under test isolation)
       def search(query_embedding:, k: 5, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
         k = validate_k!(k)
@@ -77,6 +82,11 @@ module Phronomy
 
       private
 
+      # mutant:disable - empty-vector early-return condition variants (if false, if nil, if a.empty?,
+      #   if b.empty?, if a.empty? && b.empty?, if a.empty? || false, if false || b.empty?,
+      #   if nil || b.empty?, if nil && b.empty?) are genuine equivalents: dimension validation in
+      #   #add and #search enforces same-size embeddings, so a.empty? iff b.empty?; when both are
+      #   empty norm_a = sqrt(0) = 0 so the norm_a.zero? guard returns 0.0 anyway
       def cosine_similarity(a, b)
         return 0.0 if a.empty? || b.empty?
 

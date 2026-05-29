@@ -50,6 +50,7 @@ module Phronomy
       # @param seqs [Integer, Array<Integer>] seq number(s) to remove
       # @return [self]
       # @api private
+      # mutant:disable - Array(seqs).to_set vs Array(seqs) and e[:seq] vs e.fetch(:seq) are genuine equivalent: Array#include? returns identical results for both
       def remove(seqs)
         seqs_set = Array(seqs).to_set
         @message_elements.reject! { |e| seqs_set.include?(e[:seq]) }
@@ -61,12 +62,14 @@ module Phronomy
       #
       # @return [Array]
       # @api private
+      # mutant:disable - e[:message] vs e.fetch(:message) is a genuine equivalent mutation: elements always carry :message
       def messages
         @message_elements.map { |e| e[:message] }
       end
 
       private
 
+      # mutant:disable - e[:tokens] vs e.fetch(:tokens) is a genuine equivalent mutation: elements always carry :tokens
       def recalculate!
         @total_tokens = @message_elements.sum { |e| e[:tokens] }
       end

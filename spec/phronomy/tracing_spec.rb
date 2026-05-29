@@ -25,6 +25,8 @@ RSpec.describe Phronomy::Tracing::Base do
       expect(tracer.started[:name]).to eq("my_op")
       expect(tracer.finished[:output]).to eq("world")
       expect(tracer.finished[:error]).to be_nil
+      # Verify the span object returned by start_span is forwarded to finish_span.
+      expect(tracer.finished[:span]).to be(tracer.started)
     end
 
     it "passes usage to finish_span" do
@@ -44,6 +46,8 @@ RSpec.describe Phronomy::Tracing::Base do
       }.to raise_error(RuntimeError, "boom")
 
       expect(tracer.finished[:error]).to be_a(RuntimeError)
+      # Verify the original span is forwarded to finish_span even on error.
+      expect(tracer.finished[:span]).to be(tracer.started)
     end
 
     it "re-raises the exception after finishing the span" do
@@ -57,11 +61,21 @@ RSpec.describe Phronomy::Tracing::Base do
     it "raises NotImplementedError when not overridden" do
       expect { described_class.new.start_span("x") }.to raise_error(NotImplementedError)
     end
+
+    it "includes the calling class name in the error message" do
+      expect { described_class.new.start_span("x") }
+        .to raise_error(NotImplementedError, "Phronomy::Tracing::Base#start_span is not implemented")
+    end
   end
 
   describe "#finish_span" do
     it "raises NotImplementedError when not overridden" do
       expect { described_class.new.finish_span(nil) }.to raise_error(NotImplementedError)
+    end
+
+    it "includes the calling class name in the error message" do
+      expect { described_class.new.finish_span(nil) }
+        .to raise_error(NotImplementedError, "Phronomy::Tracing::Base#finish_span is not implemented")
     end
   end
 end

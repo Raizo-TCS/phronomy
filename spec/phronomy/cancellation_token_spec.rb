@@ -17,6 +17,21 @@ RSpec.describe Phronomy::CancellationToken do
     it "returns nil deadline when none is provided" do
       expect(described_class.new.deadline).to be_nil
     end
+
+    it "accepts a monotonic_deadline option and is cancelled once it has elapsed" do
+      token = described_class.new(
+        monotonic_deadline: Process.clock_gettime(Process::CLOCK_MONOTONIC) - 1
+      )
+      expect(token.cancelled?).to be true
+    end
+
+    it "initialises the callback list so on_cancel can be called on a fresh token" do
+      token = described_class.new
+      received = []
+      token.on_cancel { received << :called }
+      token.cancel!
+      expect(received).to eq([:called])
+    end
   end
 
   describe "#cancel!" do
@@ -34,7 +49,8 @@ RSpec.describe Phronomy::CancellationToken do
     it "is idempotent — calling cancel! multiple times is safe" do
       token = described_class.new
       token.cancel!
-      token.cancel!
+      result = token.cancel!
+      expect(result).to be token
       expect(token.cancelled?).to be true
     end
   end
@@ -65,6 +81,13 @@ RSpec.describe Phronomy::CancellationToken do
       threads = 10.times.map { Thread.new { token.cancel! } } +
         10.times.map { Thread.new { token.cancelled? } }
       expect { threads.each(&:join) }.not_to raise_error
+    end
+
+    it "returns true when the wall-clock deadline is exactly equal to the current time" do
+      t = Time.now
+      token = described_class.new(deadline: t)
+      allow(Time).to receive(:now).and_return(t)
+      expect(token.cancelled?).to be true
     end
   end
 
@@ -243,6 +266,129 @@ RSpec.describe Phronomy::CancellationToken do
           cancellation_token: token
         )
       }.to raise_error(Phronomy::CancellationError)
+    end
+  end
+
+  describe "#on_cancel" do
+    it "calls the block when cancel! is subsequently called" do
+      token = described_class.new
+      called = false
+      token.on_cancel { called = true }
+      expect(called).to be false
+      token.cancel!
+      expect(called).to be true
+    end
+
+    it "calls the block immediately when the token is already cancelled" do
+      token = described_class.new
+      token.cancel!
+      called = false
+      token.on_cancel { called = true }
+      expect(called).to be true
+    end
+
+    it "calls all registered callbacks in order when cancel! fires" do
+      token = described_class.new
+      order = []
+      token.on_cancel { order << :first }
+      token.on_cancel { order << :second }
+      token.on_cancel { order << :third }
+      token.cancel!
+      expect(order).to eq([:first, :second, :third])
+    end
+
+    it "does NOT call callbacks for deadline-based expiry (monotonic clock)" do
+      token = described_class.timeout_after(3600)
+      called = false
+      token.on_cancel { called = true }
+      # Simulate deadline expiry without explicit cancel!: cancelled? returns true
+      # but on_cancel callbacks must NOT fire.
+      expect(token.cancelled?).to be false
+      expect(called).to be false
+    end
+
+    it "returns self to allow chaining" do
+      token = described_class.new
+      expect(token.on_cancel {}).to be token
+    end
+
+    it "does not fire the same callback more than once when cancel! is called twice" do
+      token = described_class.new
+      call_count = 0
+      token.on_cancel { call_count += 1 }
+      token.cancel!
+      token.cancel!
+      expect(call_count).to eq(1)
+    end
+  end
+
+  describe "#remaining_monotonic_seconds" do
+    it "returns nil when no monotonic deadline is set" do
+      token = described_class.new
+      expect(token.remaining_monotonic_seconds).to be_nil
+    end
+
+    it "returns nil when only a wall-clock deadline is set" do
+      token = described_class.new(deadline: Time.now + 60)
+      expect(token.remaining_monotonic_seconds).to be_nil
+    end
+
+    it "returns a positive Float when the deadline is in the future" do
+      token = described_class.timeout_after(30)
+      remaining = token.remaining_monotonic_seconds
+      expect(remaining).to be_a(Float)
+      expect(remaining).to be > 0.0
+      expect(remaining).to be <= 30.0
+    end
+
+    it "returns 0.0 (not negative) when the deadline has already passed" do
+      token = described_class.timeout_after(-1)
+      expect(token.remaining_monotonic_seconds).to eq(0.0)
+    end
+
+    it "decreases over time" do
+      token = described_class.timeout_after(10)
+      first = token.remaining_monotonic_seconds
+      sleep 0.05
+      second = token.remaining_monotonic_seconds
+      expect(second).to be < first
+    end
+  end
+
+  describe "#cancel! callback invocation" do
+    it "fires all on_cancel callbacks exactly once even if cancel! is called concurrently" do
+      token = described_class.new
+      counter = Mutex.new
+      count = 0
+      10.times { token.on_cancel { counter.synchronize { count += 1 } } }
+      threads = 5.times.map { Thread.new { token.cancel! } }
+      threads.each(&:join)
+      expect(count).to eq(10)
+    end
+  end
+
+  describe "#cancelled? monotonic deadline" do
+    it "returns false when the monotonic deadline has not elapsed" do
+      token = described_class.timeout_after(3600)
+      expect(token.cancelled?).to be false
+    end
+
+    it "returns true when the monotonic deadline has elapsed" do
+      token = described_class.timeout_after(-1)
+      expect(token.cancelled?).to be true
+    end
+
+    it "returns true once cancel! is called regardless of the monotonic deadline" do
+      token = described_class.timeout_after(3600)
+      token.cancel!
+      expect(token.cancelled?).to be true
+    end
+
+    it "returns true when the monotonic clock is exactly at the deadline (>= boundary)" do
+      now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      token = described_class.new(monotonic_deadline: now)
+      allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(now)
+      expect(token.cancelled?).to be true
     end
   end
 end

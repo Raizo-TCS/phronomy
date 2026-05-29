@@ -44,6 +44,12 @@ RSpec.describe Phronomy::Context::TrimContext do
       expect(returned).to eq(elements)
       expect(returned).not_to be(elements)
     end
+
+    it "does not mutate the original input array when #remove is called" do
+      original_size = elements.size
+      ctx.remove(0)
+      expect(elements.size).to eq(original_size)
+    end
   end
 
   describe "#remove" do

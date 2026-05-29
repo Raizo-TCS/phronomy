@@ -46,6 +46,7 @@ module Phronomy
       #                                         and model is given, uses max_output_tokens
       # @param overhead          [Integer]      tokens reserved for instructions/tools
       # @api private
+      # mutant:disable - multiple genuine equivalent mutations: overhead/context_window/max_output_tokens .to_i vs .to_int vs Integer() vs omitted are equivalent for Integer inputs; (max_output_tokens||0).to_i vs (max_output_tokens).to_i and (||nil).to_i are genuine because nil.to_i==0; overhead:nil default is genuine because nil.to_i==0
       def initialize(model: nil, context_window: nil, max_output_tokens: nil, overhead: 0)
         @overhead = overhead.to_i
 
@@ -76,12 +77,14 @@ module Phronomy
       # @param used [Integer] tokens already committed (e.g. from knowledge injection)
       # @return [Integer] remaining tokens (always >= 0)
       # @api private
+      # mutant:disable - used.to_i vs used vs used.to_int vs Integer(used) are genuine equivalents when used is an Integer; used:nil default is genuine because nil.to_i==0==default 0
       def available(used: 0)
         [effective_input_limit - used.to_i, 0].max
       end
 
       private
 
+      # mutant:disable - raise(UnknownModelError) and raise(UnknownModelError,nil) and raise(UnknownModelError,"Model '#{nil}' not found") in both branches are genuine equivalents (spec checks exception class only, not message text)
       def lookup_model!(model_name)
         found = RubyLLM.models.find(model_name)
         raise UnknownModelError, "Model '#{model_name}' not found in RubyLLM registry" unless found

@@ -282,6 +282,43 @@ RSpec.describe Phronomy::WorkflowContext do
       expect(old_ctx.tags.first[:name]).to eq("a")
     end
 
+    it "deep-copies mutable values nested inside a Hash field" do
+      inner_array = [1, 2, 3]
+      old_ctx = klass.new(meta: {list: inner_array}, count: 1)
+      new_ctx = old_ctx.merge(count: 2)
+
+      new_ctx.meta[:list] << 4
+      expect(old_ctx.meta[:list]).to eq([1, 2, 3])
+    end
+
+    it "preserves the content of unchanged Hash fields after merge" do
+      old_ctx = klass.new(meta: {a: :foo, b: 42}, count: 1)
+      new_ctx = old_ctx.merge(count: 2)
+
+      expect(new_ctx.meta).to eq({a: :foo, b: 42})
+    end
+
+    it "preserves Symbol field values through a deep copy (they are not nil)" do
+      klass2 = Class.new do
+        include Phronomy::WorkflowContext
+        field :kind, type: :replace, default: :none
+        field :count, type: :replace, default: 0
+      end
+      old_ctx = klass2.new(kind: :active, count: 1)
+      new_ctx = old_ctx.merge(count: 2)
+      expect(new_ctx.kind).to eq(:active)
+    end
+
+    it "deep-duplicates non-frozen strings inside arrays" do
+      # +String.new+ produces a mutable (non-frozen) string even under frozen_string_literal: true
+      mutable_str = String.new("hello")
+      old_ctx = klass.new(tags: [mutable_str], count: 1)
+      new_ctx = old_ctx.merge(count: 2)
+
+      new_ctx.tags.first << " world"
+      expect(old_ctx.tags.first).to eq("hello")
+    end
+
     it "still allows updating fields with new values via merge" do
       old_ctx = klass.new(tags: ["a"], count: 0)
       new_ctx = old_ctx.merge(tags: ["b"], count: 1)
@@ -326,7 +363,7 @@ end
 # Issue #298 — WorkflowContext field setters must raise
 # WorkflowContextOwnershipError when called from outside the EventLoop dispatch
 # thread in EventLoop mode.
-RSpec.describe "WorkflowContext single-owner enforcement (Issue #298)", :issue_298 do
+RSpec.describe Phronomy::WorkflowContext, "single-owner enforcement (Issue #298)", :issue_298 do
   let(:context_class) do
     Class.new do
       include Phronomy::WorkflowContext

@@ -81,7 +81,7 @@ end
 
 # ---------------------------------------------------------------------------
 
-RSpec.describe "Tool::Base on_schema_error" do
+RSpec.describe Phronomy::Tool::Base, "on_schema_error" do
   describe ".on_schema_error DSL" do
     it "defaults to :return_error when not set" do
       expect(SchemaErrorDefaultTool.on_schema_error).to eq(:return_error)

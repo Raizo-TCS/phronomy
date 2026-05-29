@@ -157,4 +157,82 @@ RSpec.describe Phronomy::Eval::Runner do
       expect(results.first.error.message).to eq("LLM unavailable")
     end
   end
+
+  describe "#run with concurrency > 1 and no errors" do
+    let(:callable) { ->(input) { input } }
+
+    it "returns one EvalResult per EvalCase" do
+      results = described_class.new.run(dataset, callable, concurrency: 2)
+      expect(results.size).to eq(2)
+    end
+
+    it "returns EvalResult objects for each case (not nil entries)" do
+      results = described_class.new.run(dataset, callable, concurrency: 2)
+      expect(results).to all(be_a(Phronomy::Eval::EvalResult))
+    end
+
+    it "does not raise when no errors occur" do
+      expect { described_class.new.run(dataset, callable, concurrency: 2) }.not_to raise_error
+    end
+
+    it "scores each result correctly" do
+      results = described_class.new.run(dataset, callable, concurrency: 2)
+      # dataset has "2+2"=>"4" and "3+3"=>"6"; callable returns input as-is which does not match expected
+      expect(results.map(&:score)).to all(eq(0.0))
+    end
+  end
+
+  describe "#run_one latency measurement" do
+    it "records latency_ms as an Integer (milliseconds, not fractional seconds)" do
+      callable = ->(_input) { "4" }
+      results = described_class.new.run(dataset, callable)
+      # Process.clock_gettime with :millisecond returns Integer; without it returns Float
+      expect(results.first.latency_ms).to be_a(Integer)
+    end
+  end
+
+  describe "#run_one EvalResult binding" do
+    it "stores the EvalCase in EvalResult#eval_case" do
+      callable = ->(_input) { "4" }
+      results = described_class.new.run(dataset, callable)
+      expect(results.first.eval_case).not_to be_nil
+      expect(results.first.eval_case).to be_a(Phronomy::Eval::EvalCase)
+    end
+  end
+
+  # Tests below are scoped to #run_one describe so that killfork selects them
+  # when mutating run_one (killfork uses describe name prefix for test selection).
+  describe "#run_one invocation correctness" do
+    let(:runner) { described_class.new }
+    let(:single_dataset) do
+      Phronomy::Eval::Dataset.from_array([{input: "q1", expected: "answer_for_q1"}])
+    end
+    let(:callable) { ->(input) { "answer_for_#{input}" } }
+
+    it "passes eval_case.input to the callable and stores the result in actual" do
+      results = runner.run(single_dataset, callable)
+      expect(results.first.actual).to eq("answer_for_q1")
+    end
+
+    it "scores against eval_case.expected (not nil)" do
+      results = runner.run(single_dataset, callable)
+      # ExactMatch: "answer_for_q1" == "answer_for_q1" => 1.0
+      expect(results.first.score).to eq(1.0)
+    end
+
+    it "sets error to nil when scorer succeeds" do
+      results = runner.run(single_dataset, callable)
+      expect(results.first.error).to be_nil
+    end
+
+    it "stores the EvalCase (not nil) in EvalResult" do
+      results = runner.run(single_dataset, callable)
+      expect(results.first.eval_case).not_to be_nil
+    end
+
+    it "records latency_ms as an Integer" do
+      results = runner.run(single_dataset, callable)
+      expect(results.first.latency_ms).to be_a(Integer)
+    end
+  end
 end

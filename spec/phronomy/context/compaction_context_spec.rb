@@ -43,6 +43,40 @@ RSpec.describe Phronomy::Context::CompactionContext do
     it "result_messages defaults to the plain messages in order" do
       expect(ctx.result_messages).to eq(elements.map { |e| e[:message] })
     end
+
+    it "does not mutate the original input array when #compact modifies elements" do
+      original_size = elements.size
+      ctx.compact(0..1) { |_| "summary" }
+      expect(elements.size).to eq(original_size)
+    end
+
+    it "takes a snapshot of message_elements so later mutations to the source array do not affect ctx" do
+      ctx  # trigger construction with elements (5 items)
+      elements << {seq: 99, message: make_msg(:user, "added later"), tokens: 1, role: :user}
+      expect(ctx.message_elements.size).to eq(5)
+    end
+
+    context "when thread_id and memory are supplied" do
+      let(:mock_mem) { double("memory", respond_to?: true, save_compaction: nil) }
+
+      subject(:ctx_with_meta) do
+        described_class.new(message_elements: elements, budget: budget, thread_id: "t-init-test", memory: mock_mem)
+      end
+
+      it "stores thread_id so that compact can call save_compaction" do
+        allow(mock_mem).to receive(:respond_to?).with(:save_compaction).and_return(true)
+        allow(mock_mem).to receive(:save_compaction)
+        ctx_with_meta.compact(0..0) { |_| "s" }
+        expect(mock_mem).to have_received(:save_compaction).with(hash_including(thread_id: "t-init-test"))
+      end
+
+      it "stores memory so that compact can call save_compaction" do
+        allow(mock_mem).to receive(:respond_to?).with(:save_compaction).and_return(true)
+        allow(mock_mem).to receive(:save_compaction)
+        ctx_with_meta.compact(0..0) { |_| "s" }
+        expect(mock_mem).to have_received(:save_compaction)
+      end
+    end
   end
 
   describe "#compact with a Range" do
@@ -80,6 +114,13 @@ RSpec.describe Phronomy::Context::CompactionContext do
     it "compacts the correct elements" do
       result = ctx.compact(0...2) { |_| "summary" }
       expect(result.length).to eq(4) # 1 summary + 3 remaining
+    end
+
+    it "uses last - 1 as the boundary (not a literal 1)" do
+      # compact(0...4) -> last_idx = 4 - 1 = 3, remaining = elements[4..]
+      result = ctx.compact(0...4) { |_| "summary" }
+      expect(result.length).to eq(2) # 1 summary + 1 remaining (index 4)
+      expect(result.last.content).to eq("Msg 4")
     end
   end
 
@@ -139,6 +180,26 @@ RSpec.describe Phronomy::Context::CompactionContext do
 
       it "does not raise" do
         expect { ctx.compact(0..0) { |_| "summary" } }.not_to raise_error
+      end
+    end
+
+    context "when thread_id is nil and memory responds to :save_compaction" do
+      subject(:ctx) do
+        described_class.new(
+          message_elements: elements,
+          budget: budget,
+          thread_id: nil,
+          memory: mock_memory
+        )
+      end
+
+      before do
+        allow(mock_memory).to receive(:respond_to?).with(:save_compaction).and_return(true)
+      end
+
+      it "does not call save_compaction" do
+        expect(mock_memory).not_to receive(:save_compaction)
+        ctx.compact(0..1) { |_| "summary" }
       end
     end
   end

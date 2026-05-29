@@ -10,7 +10,7 @@ RSpec.describe Phronomy::VectorStore::InMemory do
     let(:store) { described_class.new(dimension: 3) }
   end
 
-  describe "#add and #size" do
+  describe "#add" do
     it "starts empty" do
       expect(store.size).to eq(0)
     end
@@ -23,6 +23,38 @@ RSpec.describe Phronomy::VectorStore::InMemory do
 
     it "returns self for chaining" do
       expect(store.add(id: "x", embedding: [1.0])).to eq(store)
+    end
+
+    it "stores the embedding so the document can be retrieved by search" do
+      store.add(id: "doc1", embedding: [1.0, 0.0], metadata: {text: "hello"})
+      results = store.search(query_embedding: [1.0, 0.0], k: 1)
+      expect(results.first[:id]).to eq("doc1")
+    end
+
+    it "stores the metadata and includes it in search results" do
+      store.add(id: "doc1", embedding: [1.0, 0.0], metadata: {label: "test-label"})
+      result = store.search(query_embedding: [1.0, 0.0], k: 1).first
+      expect(result[:metadata][:label]).to eq("test-label")
+    end
+
+    it "defaults metadata to an empty hash when not supplied" do
+      store.add(id: "doc1", embedding: [1.0, 0.0])
+      result = store.search(query_embedding: [1.0, 0.0], k: 1).first
+      expect(result[:metadata]).to eq({})
+    end
+
+    it "establishes the expected dimension from the first embedding added" do
+      store.add(id: "1", embedding: [1.0, 0.0], metadata: {})
+      expect {
+        store.add(id: "2", embedding: [1.0, 0.0, 0.5], metadata: {})
+      }.to raise_error(ArgumentError, /dimension mismatch/i)
+    end
+
+    it "raises CancellationError when the token is cancelled" do
+      cancelled = Phronomy::CancellationToken.new.tap(&:cancel!)
+      expect {
+        store.add(id: "x", embedding: [1.0, 0.0], cancellation_token: cancelled)
+      }.to raise_error(Phronomy::CancellationError)
     end
   end
 
@@ -58,6 +90,76 @@ RSpec.describe Phronomy::VectorStore::InMemory do
     it "returns empty for empty store" do
       empty_store = described_class.new
       expect(empty_store.search(query_embedding: [1.0, 0.0])).to eq([])
+    end
+
+    it "returns results in strictly descending score order" do
+      results = store.search(query_embedding: [1.0, 0.0], k: 3)
+      scores = results.map { |r| r[:score] }
+      expect(scores).to eq(scores.sort.reverse)
+      expect(scores.first).to be > scores.last
+    end
+
+    it "returns k=5 results by default when the store has 6 documents" do
+      store.add(id: "d", embedding: [0.9, 0.1], metadata: {})
+      store.add(id: "e", embedding: [0.8, 0.2], metadata: {})
+      store.add(id: "f", embedding: [0.6, 0.4], metadata: {})
+      results = store.search(query_embedding: [1.0, 0.0])
+      expect(results.length).to eq(5)
+    end
+
+    it "raises ArgumentError when k is zero" do
+      expect { store.search(query_embedding: [1.0, 0.0], k: 0) }
+        .to raise_error(ArgumentError)
+    end
+
+    it "raises ArgumentError when k is negative" do
+      expect { store.search(query_embedding: [1.0, 0.0], k: -1) }
+        .to raise_error(ArgumentError)
+    end
+
+    it "raises CancellationError when the token is cancelled" do
+      cancelled = Phronomy::CancellationToken.new.tap(&:cancel!)
+      expect {
+        store.search(query_embedding: [1.0, 0.0], cancellation_token: cancelled)
+      }.to raise_error(Phronomy::CancellationError)
+    end
+  end
+
+  describe "#cosine_similarity" do
+    # Tests via the public #search interface since cosine_similarity is private.
+    subject(:cs_store) { described_class.new }
+
+    it "returns 1.0 for two identical unit vectors" do
+      cs_store.add(id: "a", embedding: [1.0, 0.0], metadata: {})
+      result = cs_store.search(query_embedding: [1.0, 0.0], k: 1).first
+      expect(result[:score]).to eq(1.0)
+    end
+
+    it "returns the exact cosine score for non-unit-norm vectors" do
+      # [3,4] vs [4,3]: dot=3*4+4*3=24, |[3,4]|=5, |[4,3]|=5. cos=24/25=0.96
+      cs_store.add(id: "a", embedding: [4.0, 3.0], metadata: {})
+      result = cs_store.search(query_embedding: [3.0, 4.0], k: 1).first
+      expect(result[:score]).to be_within(0.0001).of(0.96)
+    end
+
+    it "returns 0.0 when the stored document has a zero-norm embedding" do
+      cs_store.add(id: "zero", embedding: [0.0, 0.0], metadata: {})
+      cs_store.add(id: "normal", embedding: [1.0, 0.0], metadata: {})
+      result = cs_store.search(query_embedding: [1.0, 0.0], k: 5).find { |r| r[:id] == "zero" }
+      expect(result[:score]).to eq(0.0)
+    end
+
+    it "returns 0.0 when the query has a zero-norm embedding" do
+      cs_store.add(id: "a", embedding: [1.0, 0.0], metadata: {})
+      results = cs_store.search(query_embedding: [0.0, 0.0], k: 5)
+      results.each { |r| expect(r[:score]).to eq(0.0) }
+    end
+
+    it "returns 0.0 for empty (dimension-0) embeddings" do
+      empty_cs = described_class.new(dimension: 0)
+      empty_cs.add(id: "e", embedding: [], metadata: {})
+      result = empty_cs.search(query_embedding: [], k: 1).first
+      expect(result[:score]).to eq(0.0)
     end
   end
 

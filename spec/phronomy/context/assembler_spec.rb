@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "ostruct"
 
 RSpec.describe Phronomy::Context::Assembler do
   def make_msg(role, content)
@@ -65,6 +66,13 @@ RSpec.describe Phronomy::Context::Assembler do
       expect(assembler.add_knowledge("fact", type: :rag)).to eq(assembler)
       expect(assembler.add_messages([])).to eq(assembler)
     end
+
+    it "separates instruction and knowledge with a double newline" do
+      assembler.add_instruction("INST")
+      assembler.add_knowledge("KNOW", type: :static)
+      result = assembler.build[:system]
+      expect(result).to start_with("INST\n\n<context")
+    end
   end
 
   describe "#build with budget" do
@@ -115,6 +123,18 @@ RSpec.describe Phronomy::Context::Assembler do
       result = described_class.xml_tag("data", type: :entity)
       expect(result).to include('type="entity"')
     end
+
+    it "HTML-escapes special characters in the type attribute" do
+      result = described_class.xml_tag("text", type: 'foo"bar')
+      expect(result).to include('type="foo&quot;bar"')
+      expect(result).not_to include('type="foo"bar"')
+    end
+
+    it "HTML-escapes special characters in the text content" do
+      result = described_class.xml_tag("<b>bold</b>", type: :static)
+      expect(result).to include("&lt;b&gt;bold&lt;/b&gt;")
+      expect(result).not_to include("<b>bold</b>")
+    end
   end
 
   # Regression tests for GitHub Issue #20 (ID-2):
@@ -163,6 +183,161 @@ RSpec.describe Phronomy::Context::Assembler do
       assembler.add_instruction("x" * 500)
       assembler.add_messages([make_msg(:user, "hello")])
       expect(assembler.build[:messages]).to be_an(Array)
+    end
+  end
+
+  describe "#initialize" do
+    it "stores the budget so that build uses it for token trimming" do
+      budget = Phronomy::Context::TokenBudget.new(context_window: 1, max_output_tokens: 0)
+      asm = described_class.new(budget: budget)
+      asm.add_messages([make_msg(:user, "x" * 100)])
+      expect(asm.build[:messages]).to eq([])
+    end
+
+    it "allows creation with no budget argument (budget defaults to nil, no trimming)" do
+      asm = described_class.new
+      asm.add_messages([make_msg(:user, "xxyy")])
+      expect(asm.build[:messages].length).to eq(1)
+    end
+
+    it "initializes messages to an empty array (no messages by default)" do
+      asm = described_class.new
+      expect(asm.build[:messages]).to eq([])
+    end
+  end
+
+  describe "#add_instruction" do
+    subject(:assembler) { described_class.new }
+
+    it "stores the instruction text as the system prompt" do
+      assembler.add_instruction("Hello")
+      expect(assembler.build[:system]).to eq("Hello")
+    end
+
+    it "replaces a previously set instruction" do
+      assembler.add_instruction("First")
+      assembler.add_instruction("Second")
+      expect(assembler.build[:system]).to eq("Second")
+    end
+  end
+
+  describe "#add_knowledge" do
+    subject(:assembler) { described_class.new }
+
+    it "converts Symbol type to the XML tag type attribute string" do
+      assembler.add_knowledge("info", type: :entity)
+      expect(assembler.build[:system]).to include('type="entity"')
+    end
+
+    it "stores knowledge text in the output" do
+      assembler.add_knowledge("Important fact.", type: :static)
+      expect(assembler.build[:system]).to include("Important fact.")
+    end
+  end
+
+  describe "#add_messages" do
+    subject(:assembler) { described_class.new }
+
+    it "stores messages for inclusion in build output" do
+      msg = make_msg(:user, "hello")
+      assembler.add_messages([msg])
+      expect(assembler.build[:messages]).to eq([msg])
+    end
+
+    it "replaces previously set messages" do
+      msg1 = make_msg(:user, "first")
+      msg2 = make_msg(:user, "second")
+      assembler.add_messages([msg1])
+      assembler.add_messages([msg2])
+      expect(assembler.build[:messages]).to eq([msg2])
+    end
+  end
+
+  describe "#build (multi-chunk knowledge separator)" do
+    subject(:assembler) { described_class.new }
+
+    it "separates multiple knowledge chunks with double newlines" do
+      assembler.add_knowledge("Chunk A", type: :static)
+      assembler.add_knowledge("Chunk B", type: :static)
+      result = assembler.build[:system]
+      expect(result).to include("</context>\n\n<context")
+    end
+  end
+
+  describe "#xml_context_tag" do
+    subject(:assembler) { described_class.new }
+
+    it "HTML-escapes special characters in the type attribute" do
+      assembler.add_knowledge("safe text", type: 'evil"type')
+      result = assembler.build[:system]
+      expect(result).to include('type="evil&quot;type"')
+      expect(result).not_to include('type="evil"type"')
+    end
+
+    it "HTML-escapes special characters in the knowledge text content" do
+      assembler.add_knowledge("<script>alert(1)</script>", type: :rag)
+      result = assembler.build[:system]
+      expect(result).to include("&lt;script&gt;")
+      expect(result).not_to include("<script>")
+    end
+  end
+
+  describe "#trim_messages_to_budget" do
+    # TokenEstimator heuristic: ceil(char_count / 4)
+    # context_window: 10, max_output_tokens: 0 → effective_input_limit = 10 tokens
+
+    let(:budget) { Phronomy::Context::TokenBudget.new(context_window: 10, max_output_tokens: 0) }
+    subject(:assembler) { described_class.new(budget: budget) }
+
+    # Kill: remaining<=0 && true, &&messages, &&messages.any?, (alone), ||messages.empty?
+    it "returns empty array when remaining budget is zero and messages are present" do
+      assembler.add_instruction("x" * 40) # ceil(40/4) = 10 tokens → remaining = 0
+      assembler.add_messages([make_msg(:user, "hello")])
+      expect(assembler.build[:messages]).to eq([])
+    end
+
+    # Kill: accumulated = 1 / accumulated = -1
+    it "includes exactly the correct number of messages that fit within the budget" do
+      tight = Phronomy::Context::TokenBudget.new(context_window: 3, max_output_tokens: 0)
+      asm = described_class.new(budget: tight)
+      # 4 messages × ceil(4/4)=1 token each; budget=3 → exactly 3 fit
+      msgs = (1..4).map { make_msg(:user, "xxyy") }
+      asm.add_messages(msgs)
+      expect(asm.build[:messages].length).to eq(3)
+    end
+
+    # Kill: used=nil, used=system_text, remaining=@budget.available, remaining=@budget.available(used: nil)
+    it "reduces the remaining budget by the number of tokens consumed by system text" do
+      # system_text = ceil(32/4) = 8 tokens → remaining = 10 - 8 = 2 tokens
+      # messages: 3 × ceil(8/4)=2 tokens each — only 1 (newest) fits in 2 remaining tokens
+      assembler.add_instruction("x" * 32)
+      msgs = [
+        make_msg(:user, "x" * 8),
+        make_msg(:user, "x" * 8),
+        make_msg(:user, "x" * 8)
+      ]
+      assembler.add_messages(msgs)
+      result = assembler.build[:messages]
+      expect(result.length).to eq(1)
+      expect(result.first.content).to eq("x" * 8)
+    end
+
+    # Kill: result.reverse → nil
+    it "returns an Array (not nil) as the messages result" do
+      assembler.add_messages([make_msg(:user, "hello")])
+      expect(assembler.build[:messages]).to be_an(Array)
+    end
+
+    # Kill: result.reverse omitted (order reversal bug)
+    it "returns messages in original chronological order" do
+      msgs = [
+        make_msg(:user, "first"),
+        make_msg(:assistant, "second"),
+        make_msg(:user, "third")
+      ]
+      assembler.add_messages(msgs)
+      result = assembler.build[:messages]
+      expect(result.map(&:content)).to eq(["first", "second", "third"]) unless result.empty?
     end
   end
 end

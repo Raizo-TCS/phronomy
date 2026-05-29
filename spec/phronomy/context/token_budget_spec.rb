@@ -20,6 +20,11 @@ RSpec.describe Phronomy::Context::TokenBudget do
         budget = described_class.new(context_window: 8192, overhead: 300)
         expect(budget.overhead).to eq(300)
       end
+
+      it "defaults overhead to 0 when not supplied" do
+        budget = described_class.new(context_window: 8192)
+        expect(budget.overhead).to eq(0)
+      end
     end
 
     context "with neither model nor context_window" do
@@ -36,6 +41,18 @@ RSpec.describe Phronomy::Context::TokenBudget do
       it "raises UnknownModelError" do
         expect {
           described_class.new(model: "does-not-exist")
+        }.to raise_error(Phronomy::Context::UnknownModelError)
+      end
+    end
+
+    context "when RubyLLM raises ModelNotFoundError during lookup" do
+      before do
+        allow(RubyLLM.models).to receive(:find).and_raise(RubyLLM::ModelNotFoundError)
+      end
+
+      it "wraps ModelNotFoundError as UnknownModelError" do
+        expect {
+          described_class.new(model: "some-unknown-model")
         }.to raise_error(Phronomy::Context::UnknownModelError)
       end
     end
@@ -90,6 +107,10 @@ RSpec.describe Phronomy::Context::TokenBudget do
 
     it "returns 0 when used exceeds effective_input_limit" do
       expect(budget.available(used: 100_000)).to eq(0)
+    end
+
+    it "returns effective_input_limit when called without arguments (used defaults to 0)" do
+      expect(budget.available).to eq(budget.effective_input_limit)
     end
   end
 end
