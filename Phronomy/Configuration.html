@@ -150,7 +150,7 @@ Configure via the Phronomy.configure block.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Default backpressure strategy for <span class='object_link'><a href="BlockingAdapterPool.html#submit-instance_method" title="Phronomy::BlockingAdapterPool#submit (method)">BlockingAdapterPool#submit</a></span> when the queue is full.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Default backpressure strategy for BlockingAdapterPool#submit when the queue is full.</p></div></span>
   
 </li>
 
@@ -725,7 +725,7 @@ Configure via the Phronomy.configure block.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Upper bound on the number of streaming token chunks that may be buffered in the <span class='object_link'><a href="AsyncQueue.html" title="Phronomy::AsyncQueue (class)">AsyncQueue</a></span> used by Agent#stream before the LLM producer is throttled.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Upper bound on the number of streaming token chunks that may be buffered in the AsyncQueue used by Agent#stream before the LLM producer is throttled.</p></div></span>
   
 </li>
 
@@ -973,7 +973,7 @@ Configure via the Phronomy.configure block.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Default backpressure strategy for <span class='object_link'><a href="BlockingAdapterPool.html#submit-instance_method" title="Phronomy::BlockingAdapterPool#submit (method)">BlockingAdapterPool#submit</a></span> when the
+    <p>Default backpressure strategy for BlockingAdapterPool#submit when the
 queue is full.  One of <code>:wait</code> (block until a slot is available),
 <code>:raise</code> (raise <span class='object_link'><a href="BackpressureError.html" title="Phronomy::BackpressureError (class)">BackpressureError</a></span>), or <code>:timeout</code> (raise
 <span class='object_link'><a href="TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span> after <code>backpressure_timeout</code> seconds).</p>
@@ -1482,7 +1482,7 @@ Default: 5 seconds.</p>
 Must be an instance of a class that inherits from
 <span class='object_link'><a href="LLMAdapter/Base.html" title="Phronomy::LLMAdapter::Base (class)">LLMAdapter::Base</a></span>.  Defaults to
 <span class='object_link'><a href="LLMAdapter/RubyLLM.html" title="Phronomy::LLMAdapter::RubyLLM (class)">LLMAdapter::RubyLLM</a></span> which delegates to <code>chat.ask</code> via
-<span class='object_link'><a href="BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span>.
+BlockingAdapterPool.
 Set to a custom adapter to swap in an alternative LLM client without
 changing any agent code.</p>
 
@@ -2215,7 +2215,7 @@ Defaults to <code>nil</code> (no persistence — state lives only for the durati
 </h3><div class="docstring">
   <div class="discussion">
     <p>Upper bound on the number of streaming token chunks that may be buffered
-in the <span class='object_link'><a href="AsyncQueue.html" title="Phronomy::AsyncQueue (class)">AsyncQueue</a></span> used by Agent#stream before the LLM producer is
+in the AsyncQueue used by Agent#stream before the LLM producer is
 throttled.  When nil (default), the queue is unbounded.</p>
 
   </div>
@@ -2455,7 +2455,7 @@ the tracing backend (OTel, Langfuse, etc.).</p>
 </div>
 
       <div id="footer">
-  Generated on Fri May 29 14:32:11 2026 by
+  Generated on Sat May 30 14:20:37 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

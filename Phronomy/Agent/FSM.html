@@ -111,7 +111,7 @@
 <p>EventLoop-registered execution unit for a single agent invocation.</p>
 <p><code>AgentFSM</code> implements the minimal interface expected by <span class='object_link'><a href="../EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span>
 (+#id+, <code>#start</code>, <code>#handle</code>) so it can be managed alongside
-<span class='object_link'><a href="../FSMSession.html" title="Phronomy::FSMSession (class)">FSMSession</a></span> instances.  It is <em>not</em> a traditional finite-state
+<span class='object_link'><a href="Lifecycle/FSMSession.html" title="Phronomy::Agent::Lifecycle::FSMSession (class)">Lifecycle::FSMSession</a></span> instances.  It is <em>not</em> a traditional finite-state
 machine; the name reflects its role in the EventLoop rather than internal
 state transitions.</p>
 <h2 id="Execution_model">Execution model</h2>
@@ -120,7 +120,7 @@ returns after spawning a <span class='object_link'><a href="../Task.html" title=
 invocation pipeline (via <code>_invoke_impl</code>).  The EventLoop thread is never
 blocked by agent execution.</p>
 <p>Inside the task, <span class='object_link'>Base#build_chat</span> returns a
-<span class='object_link'><a href="ParallelToolChat.html" title="Phronomy::Agent::ParallelToolChat (class)">ParallelToolChat</a></span> instance when EventLoop mode is enabled, allowing
+ParallelToolChat instance when EventLoop mode is enabled, allowing
 concurrent tool dispatch when the LLM returns multiple tool calls in one
 response.</p>
 <h2 id="Completion_events">Completion events</h2>
@@ -151,7 +151,7 @@ it via <span class='object_link'><a href="../EventLoop.html#register-instance_me
 </code></pre>
 <p><span class='object_link'><a href="Base.html#run_as_child-instance_method" title="Phronomy::Agent::Base#run_as_child (method)">Base#run_as_child</a></span> creates an <code>AgentFSM</code> with <code>parent_id</code> set to
 <code>ctx.thread_id</code>, registers it with the EventLoop, and returns immediately.
-The parent <span class='object_link'><a href="../FSMSession.html" title="Phronomy::FSMSession (class)">FSMSession</a></span> waits for the <code>:child_completed</code> event.</p>
+The parent FSMSession waits for the <code>:child_completed</code> event.</p>
 
   </div>
 </div>
@@ -697,7 +697,7 @@ Transitions to <code>:running</code> and spawns the agent task.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri May 29 14:32:10 2026 by
+  Generated on Sat May 30 14:20:36 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

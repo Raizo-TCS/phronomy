@@ -80,9 +80,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/loader.rb<span class="defines">,<br>
-  lib/phronomy/loader/base.rb,<br> lib/phronomy/loader/csv_loader.rb,<br> lib/phronomy/loader/markdown_loader.rb,<br> lib/phronomy/loader/plain_text_loader.rb</span>
-
+    <dd>lib/phronomy/loader.rb
 </dd>
   </dl>
   
@@ -92,27 +90,17 @@
   <div class="discussion">
     <p>Document loader implementations for ingesting files into a RAG pipeline.</p>
 <p>Sub-classes are auto-loaded by Zeitwerk:</p>
-<pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>Loader</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Loader/Base.html" title="Phronomy::Loader::Base (class)">Base</a></span></span>
-<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>Loader</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Loader/PlainTextLoader.html" title="Phronomy::Loader::PlainTextLoader (class)">PlainTextLoader</a></span></span>
-<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>Loader</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Loader/MarkdownLoader.html" title="Phronomy::Loader::MarkdownLoader (class)">MarkdownLoader</a></span></span>
-<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>Loader</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Loader/CsvLoader.html" title="Phronomy::Loader::CsvLoader (class)">CsvLoader</a></span></span></code></pre>
+<pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Context/Knowledge.html" title="Phronomy::Agent::Context::Knowledge (module)">Knowledge</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Context/Knowledge/Loader.html" title="Phronomy::Agent::Context::Knowledge::Loader (module)">Loader</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Context/Knowledge/Loader/Base.html" title="Phronomy::Agent::Context::Knowledge::Loader::Base (class)">Base</a></span></span>
+<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Context/Knowledge.html" title="Phronomy::Agent::Context::Knowledge (module)">Knowledge</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Context/Knowledge/Loader.html" title="Phronomy::Agent::Context::Knowledge::Loader (module)">Loader</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Context/Knowledge/Loader/PlainTextLoader.html" title="Phronomy::Agent::Context::Knowledge::Loader::PlainTextLoader (class)">PlainTextLoader</a></span></span>
+<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Context/Knowledge.html" title="Phronomy::Agent::Context::Knowledge (module)">Knowledge</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Context/Knowledge/Loader.html" title="Phronomy::Agent::Context::Knowledge::Loader (module)">Loader</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Context/Knowledge/Loader/MarkdownLoader.html" title="Phronomy::Agent::Context::Knowledge::Loader::MarkdownLoader (class)">MarkdownLoader</a></span></span>
+<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Context/Knowledge.html" title="Phronomy::Agent::Context::Knowledge (module)">Knowledge</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Context/Knowledge/Loader.html" title="Phronomy::Agent::Context::Knowledge::Loader (module)">Loader</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Context/Knowledge/Loader/CsvLoader.html" title="Phronomy::Agent::Context::Knowledge::Loader::CsvLoader (class)">CsvLoader</a></span></span></code></pre>
 
   </div>
 </div>
 <div class="tags">
   
 
-</div><h2>Defined Under Namespace</h2>
-<p class="children">
-  
-    
-  
-    
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Loader/Base.html" title="Phronomy::Loader::Base (class)">Base</a></span>, <span class='object_link'><a href="Loader/CsvLoader.html" title="Phronomy::Loader::CsvLoader (class)">CsvLoader</a></span>, <span class='object_link'><a href="Loader/MarkdownLoader.html" title="Phronomy::Loader::MarkdownLoader (class)">MarkdownLoader</a></span>, <span class='object_link'><a href="Loader/PlainTextLoader.html" title="Phronomy::Loader::PlainTextLoader (class)">PlainTextLoader</a></span>
-    
-  
-</p>
-
+</div>
 
 
 
@@ -124,7 +112,7 @@
 </div>
 
       <div id="footer">
-  Generated on Fri May 29 14:32:09 2026 by
+  Generated on Sat May 30 14:20:35 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

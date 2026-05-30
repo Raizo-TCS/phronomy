@@ -109,7 +109,7 @@
     <p>LLM adapter that delegates to the RubyLLM blocking client.</p>
 <p>This is the default adapter used by Phronomy agents.  It wraps
 <code>chat.ask</code> (and its streaming variant) so that the blocking HTTP
-call runs inside <span class='object_link'><a href="../BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span> rather than on the EventLoop
+call runs inside BlockingAdapterPool rather than on the EventLoop
 thread or the caller's thread directly.</p>
 
   </div>
@@ -161,7 +161,7 @@ thread or the caller's thread directly.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Delegates to <code>chat.ask(message)</code>.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Delegates to <code>chat.ask(message)</code> or <code>chat.complete</code> when message is nil.</p></div></span>
   
 </li>
 
@@ -183,7 +183,7 @@ thread or the caller's thread directly.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Delegates to <code>chat.ask(message) { |chunk| block.call(chunk) }</code>.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Delegates to <code>chat.ask(message) { |chunk| block.call(chunk) }</code> or <code>chat.complete(&amp;block)</code> when message is nil.</p></div></span>
   
 </li>
 
@@ -225,7 +225,11 @@ thread or the caller's thread directly.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Delegates to <code>chat.ask(message)</code>.</p>
+<p>Delegates to <code>chat.ask(message)</code> or <code>chat.complete</code> when message is nil.</p>
+<p>Passing <code>nil</code> for <code>message</code> is used by the ReAct loop for continuation
+turns where the user message has already been added to the chat history
+(e.g. after a tool result) and the LLM should continue without a new
+user turn.</p>
 
   </div>
 </div>
@@ -252,12 +256,12 @@ thread or the caller's thread directly.</p>
         <span class='name'>message</span>
       
       
-        <span class='type'>(<tt>String</tt>)</span>
+        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
       
       
       
         &mdash;
-        <div class='inline'><p>user message</p></div>
+        <div class='inline'><p>user message, or nil to continue the chat</p></div>
       
     </li>
   
@@ -302,15 +306,15 @@ thread or the caller's thread directly.</p>
       <pre class="lines">
 
 
-24
-25
-26</pre>
+29
+30
+31</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/ruby_llm.rb', line 24</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/ruby_llm.rb', line 29</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_ask'>ask</span><span class='lparen'>(</span><span class='id identifier rubyid_message'>message</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_message'>message</span> <span class='op'>?</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_ask'>ask</span><span class='lparen'>(</span><span class='id identifier rubyid_message'>message</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_complete'>complete</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -332,7 +336,8 @@ thread or the caller's thread directly.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Delegates to <code>chat.ask(message) { |chunk| block.call(chunk) }</code>.</p>
+<p>Delegates to <code>chat.ask(message) { |chunk| block.call(chunk) }</code> or
+<code>chat.complete(&amp;block)</code> when message is nil.</p>
 
   </div>
 </div>
@@ -359,12 +364,12 @@ thread or the caller's thread directly.</p>
         <span class='name'>message</span>
       
       
-        <span class='type'>(<tt>String</tt>)</span>
+        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
       
       
       
         &mdash;
-        <div class='inline'><p>user message</p></div>
+        <div class='inline'><p>user message, or nil to continue the chat</p></div>
       
     </li>
   
@@ -397,7 +402,7 @@ thread or the caller's thread directly.</p>
       
       
         &mdash;
-        <div class='inline'><p>streaming chunk forwarded from <code>chat.ask</code></p></div>
+        <div class='inline'><p>streaming chunk forwarded from <code>chat.ask</code> / <code>chat.complete</code></p></div>
       
     </li>
   
@@ -425,15 +430,15 @@ thread or the caller's thread directly.</p>
       <pre class="lines">
 
 
-36
-37
-38</pre>
+42
+43
+44</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/ruby_llm.rb', line 36</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/ruby_llm.rb', line 42</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_ask'>ask</span><span class='lparen'>(</span><span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_message'>message</span> <span class='op'>?</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_ask'>ask</span><span class='lparen'>(</span><span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -445,7 +450,7 @@ thread or the caller's thread directly.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri May 29 14:32:13 2026 by
+  Generated on Sat May 30 14:20:38 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

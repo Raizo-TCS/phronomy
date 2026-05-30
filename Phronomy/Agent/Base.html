@@ -146,7 +146,7 @@ and retry behaviour. Instance methods handle invocation.</p>
 
 </div><div id="subclasses">
   <h2>Direct Known Subclasses</h2>
-  <p class="children"><span class='object_link'><a href="Orchestrator.html" title="Phronomy::Agent::Orchestrator (class)">Orchestrator</a></span>, <span class='object_link'><a href="ReactAgent.html" title="Phronomy::Agent::ReactAgent (class)">ReactAgent</a></span></p>
+  <p class="children"><span class='object_link'><a href="ReactAgent.html" title="Phronomy::Agent::ReactAgent (class)">ReactAgent</a></span>, <span class='object_link'><a href="../MultiAgent/Orchestrator.html" title="Phronomy::MultiAgent::Orchestrator (class)">MultiAgent::Orchestrator</a></span></p>
 </div>
 
 
@@ -589,7 +589,7 @@ and retry behaviour. Instance methods handle invocation.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#static_knowledge_sources-class_method" title="static_knowledge_sources (class method)">.<strong>static_knowledge_sources</strong>  &#x21d2; Array&lt;Phronomy::KnowledgeSource::Base&gt; </a>
+      <a href="#static_knowledge_sources-class_method" title="static_knowledge_sources (class method)">.<strong>static_knowledge_sources</strong>  &#x21d2; Array&lt;Phronomy::Agent::Context::Knowledge::Source::Base&gt; </a>
     
 
     
@@ -745,7 +745,7 @@ and retry behaviour. Instance methods handle invocation.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns the <span class='object_link'><a href="../Context/ContextVersionCache.html" title="Phronomy::Context::ContextVersionCache (class)">Context::ContextVersionCache</a></span> built during the most recent <span class='object_link'><a href="#invoke-instance_method" title="Phronomy::Agent::Base#invoke (method)">#invoke</a></span> call on this agent instance.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the <span class='object_link'><a href="../LlmContextWindow/ContextVersionCache.html" title="Phronomy::LlmContextWindow::ContextVersionCache (class)">LlmContextWindow::ContextVersionCache</a></span> built during the most recent <span class='object_link'><a href="#invoke-instance_method" title="Phronomy::Agent::Base#invoke (method)">#invoke</a></span> call on this agent instance.</p></div></span>
   
 </li>
 
@@ -1278,7 +1278,7 @@ actually-loaded context length may differ from the catalogue value.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Sets or reads the system instructions for this agent.
-Accepts a String, a <span class='object_link'><a href="../PromptTemplate.html" title="Phronomy::PromptTemplate (class)">PromptTemplate</a></span>, or a block (Proc).
+Accepts a String, a <span class='object_link'><a href="Context/Instruction/PromptTemplate.html" title="Phronomy::Agent::Context::Instruction::PromptTemplate (class)">Context::Instruction::PromptTemplate</a></span>, or a block (Proc).
 When used as a reader (no argument, no block), returns the stored value.</p>
 
   </div>
@@ -1311,7 +1311,7 @@ When used as a reader (no argument, no block), returns the stored value.</p>
         <span class='name'>text</span>
       
       
-        <span class='type'>(<tt>String</tt>, <tt><span class='object_link'><a href="../PromptTemplate.html" title="Phronomy::PromptTemplate (class)">Phronomy::PromptTemplate</a></span></tt>, <tt>nil</tt>)</span>
+        <span class='type'>(<tt>String</tt>, <tt><span class='object_link'><a href="Context/Instruction/PromptTemplate.html" title="Phronomy::Agent::Context::Instruction::PromptTemplate (class)">Phronomy::Agent::Context::Instruction::PromptTemplate</a></span></tt>, <tt>nil</tt>)</span>
       
       
         <em class="default">(defaults to: <tt>nil</tt>)</em>
@@ -1343,7 +1343,7 @@ When used as a reader (no argument, no block), returns the stored value.</p>
     <li>
       
       
-        <span class='type'>(<tt>String</tt>, <tt><span class='object_link'><a href="../PromptTemplate.html" title="Phronomy::PromptTemplate (class)">Phronomy::PromptTemplate</a></span></tt>, <tt>Proc</tt>, <tt>nil</tt>)</span>
+        <span class='type'>(<tt>String</tt>, <tt><span class='object_link'><a href="Context/Instruction/PromptTemplate.html" title="Phronomy::Agent::Context::Instruction::PromptTemplate (class)">Phronomy::Agent::Context::Instruction::PromptTemplate</a></span></tt>, <tt>Proc</tt>, <tt>nil</tt>)</span>
       
       
       
@@ -1399,7 +1399,7 @@ agent does not finish within the given number of seconds.</p>
 <p>Has no effect when EventLoop mode is disabled (direct invoke path).
 Defaults to <code>nil</code> (no timeout).
 Inherited by subclasses; the most-specific definition wins.</p>
-<p>When the timeout fires, a <span class='object_link'><a href="../CancellationScope.html" title="Phronomy::CancellationScope (class)">CancellationScope</a></span> is cancelled
+<p>When the timeout fires, a <span class='object_link'><a href="../Concurrency/CancellationScope.html" title="Phronomy::Concurrency::CancellationScope (class)">Concurrency::CancellationScope</a></span> is cancelled
 and its token is propagated to the FSM config so that in-flight LLM,
 tool, and RAG calls observe cancellation via their <code>cancellation_token:</code>
 keyword argument.  <code>Phronomy::TimeoutError</code> is raised to the caller.</p>
@@ -1843,7 +1843,7 @@ global default from <span class='object_link'><a href="../../Phronomy.html#confi
   <div class="discussion">
     <p>Registers a callback that performs the actual compaction when the
 <code>on_compaction_trigger</code> callback fires. The block receives a
-<span class='object_link'><a href="../Context/CompactionContext.html" title="Phronomy::Context::CompactionContext (class)">Context::CompactionContext</a></span> and should call <code>ctx.compact</code>
+<span class='object_link'><a href="Context/Conversation/CompactionContext.html" title="Phronomy::Agent::Context::Conversation::CompactionContext (class)">Context::Conversation::CompactionContext</a></span> and should call <code>ctx.compact</code>
 to specify which messages to summarise.</p>
 
   </div>
@@ -1876,7 +1876,7 @@ to specify which messages to summarise.</p>
       
       
         &mdash;
-        <div class='inline'><p>Phronomy::Context::CompactionContext</p></div>
+        <div class='inline'><p>Phronomy::Agent::Context::Conversation::CompactionContext</p></div>
       
     </li>
   
@@ -1918,7 +1918,7 @@ to specify which messages to summarise.</p>
 Evaluated before every LLM call (after on_trim). If the block returns
 truthy AND an <code>on_compact</code> callback is also registered, the compact
 pipeline is executed.</p>
-<p>The block receives a read-only <span class='object_link'><a href="../Context/TriggerContext.html" title="Phronomy::Context::TriggerContext (class)">Context::TriggerContext</a></span>.</p>
+<p>The block receives a read-only <span class='object_link'><a href="Context/Conversation/TriggerContext.html" title="Phronomy::Agent::Context::Conversation::TriggerContext (class)">Context::Conversation::TriggerContext</a></span>.</p>
 
   </div>
 </div>
@@ -1948,7 +1948,7 @@ pipeline is executed.</p>
       
       
         &mdash;
-        <div class='inline'><p>Phronomy::Context::TriggerContext</p></div>
+        <div class='inline'><p>Phronomy::Agent::Context::Conversation::TriggerContext</p></div>
       
     </li>
   
@@ -2005,7 +2005,7 @@ pipeline is executed.</p>
     <p>Registers a callback that is invoked before every LLM call so the
 application can remove stale or irrelevant messages from the
 conversation history.</p>
-<p>The block receives a <span class='object_link'><a href="../Context/TrimContext.html" title="Phronomy::Context::TrimContext (class)">Context::TrimContext</a></span> and may call
+<p>The block receives a <span class='object_link'><a href="Context/Conversation/TrimContext.html" title="Phronomy::Agent::Context::Conversation::TrimContext (class)">Context::Conversation::TrimContext</a></span> and may call
 <code>ctx.remove(seqs)</code> to drop messages by seq number. Changes affect
 only the current invocation; the underlying memory store is unchanged.</p>
 
@@ -2037,7 +2037,7 @@ only the current invocation; the underlying memory store is unchanged.</p>
       
       
         &mdash;
-        <div class='inline'><p>Phronomy::Context::TrimContext</p></div>
+        <div class='inline'><p>Phronomy::Agent::Context::Conversation::TrimContext</p></div>
       
     </li>
   
@@ -2184,7 +2184,7 @@ of the process; call <span class='object_link'><a href="#static_knowledge_refres
     
       
       <pre class="example code"><code><span class='kw'>class</span> <span class='const'>PolicyAgent</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="" title="Phronomy::Agent::Base (class)">Base</a></span></span>
-  <span class='id identifier rubyid_static_knowledge'>static_knowledge</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../KnowledgeSource.html" title="Phronomy::KnowledgeSource (module)">KnowledgeSource</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../KnowledgeSource/StaticKnowledge.html" title="Phronomy::KnowledgeSource::StaticKnowledge (class)">StaticKnowledge</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../KnowledgeSource/StaticKnowledge.html#initialize-instance_method" title="Phronomy::KnowledgeSource::StaticKnowledge#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='const'>POLICY_TEXT</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_static_knowledge'>static_knowledge</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Context/Knowledge.html" title="Phronomy::Agent::Context::Knowledge (module)">Knowledge</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Context/Knowledge/Source.html" title="Phronomy::Agent::Context::Knowledge::Source (module)">Source</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Context/Knowledge/Source/StaticKnowledge.html" title="Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge (class)">StaticKnowledge</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Context/Knowledge/Source/StaticKnowledge.html#initialize-instance_method" title="Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='const'>POLICY_TEXT</span><span class='rparen'>)</span>
 <span class='kw'>end</span></code></pre>
     
   </div>
@@ -2196,7 +2196,7 @@ of the process; call <span class='object_link'><a href="#static_knowledge_refres
         <span class='name'>sources</span>
       
       
-        <span class='type'>(<tt>Array&lt;<span class='object_link'><a href="../KnowledgeSource/Base.html" title="Phronomy::KnowledgeSource::Base (class)">Phronomy::KnowledgeSource::Base</a></span>&gt;</tt>)</span>
+        <span class='type'>(<tt>Array&lt;<span class='object_link'><a href="Context/Knowledge/Source/Base.html" title="Phronomy::Agent::Context::Knowledge::Source::Base (class)">Phronomy::Agent::Context::Knowledge::Source::Base</a></span>&gt;</tt>)</span>
       
       
       
@@ -2360,7 +2360,7 @@ process.</p>
       <div class="method_details ">
   <h3 class="signature " id="static_knowledge_sources-class_method">
   
-    .<strong>static_knowledge_sources</strong>  &#x21d2; <tt>Array&lt;<span class='object_link'><a href="../KnowledgeSource/Base.html" title="Phronomy::KnowledgeSource::Base (class)">Phronomy::KnowledgeSource::Base</a></span>&gt;</tt> 
+    .<strong>static_knowledge_sources</strong>  &#x21d2; <tt>Array&lt;<span class='object_link'><a href="Context/Knowledge/Source/Base.html" title="Phronomy::Agent::Context::Knowledge::Source::Base (class)">Phronomy::Agent::Context::Knowledge::Source::Base</a></span>&gt;</tt> 
   
 
   
@@ -2380,7 +2380,7 @@ process.</p>
     <li>
       
       
-        <span class='type'>(<tt>Array&lt;<span class='object_link'><a href="../KnowledgeSource/Base.html" title="Phronomy::KnowledgeSource::Base (class)">Phronomy::KnowledgeSource::Base</a></span>&gt;</tt>)</span>
+        <span class='type'>(<tt>Array&lt;<span class='object_link'><a href="Context/Knowledge/Source/Base.html" title="Phronomy::Agent::Context::Knowledge::Source::Base (class)">Phronomy::Agent::Context::Knowledge::Source::Base</a></span>&gt;</tt>)</span>
       
       
       
@@ -2807,7 +2807,7 @@ Called by Runner during construction when routes are configured.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Returns the <span class='object_link'><a href="../Context/ContextVersionCache.html" title="Phronomy::Context::ContextVersionCache (class)">Context::ContextVersionCache</a></span> built during the most recent
+<p>Returns the <span class='object_link'><a href="../LlmContextWindow/ContextVersionCache.html" title="Phronomy::LlmContextWindow::ContextVersionCache (class)">LlmContextWindow::ContextVersionCache</a></span> built during the most recent
 <span class='object_link'><a href="#invoke-instance_method" title="Phronomy::Agent::Base#invoke (method)">#invoke</a></span> call on this agent instance.  The thread-local cache entry is
 cleaned up in the <code>ensure</code> block of <span class='object_link'><a href="#invoke-instance_method" title="Phronomy::Agent::Base#invoke (method)">#invoke</a></span>, but a reference is kept
 in <code>@last_context_version_cache</code> so callers can inspect it after invoke
@@ -2891,7 +2891,7 @@ errors occur. <span class='object_link'><a href="../GuardrailError.html" title="
       
       <pre class="example code"><code><span class='id identifier rubyid_ctx'>ctx</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../InvocationContext.html" title="Phronomy::InvocationContext (class)">InvocationContext</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../InvocationContext.html#initialize-instance_method" title="Phronomy::InvocationContext#initialize (method)">new</a></span></span><span class='lparen'>(</span>
   <span class='label'>thread_id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>conv-123</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
-  <span class='label'>deadline:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Deadline.html" title="Phronomy::Deadline (class)">Deadline</a></span></span><span class='period'>.</span><span class='id identifier rubyid_in'><span class='object_link'><a href="../Deadline.html#in-class_method" title="Phronomy::Deadline.in (method)">in</a></span></span><span class='lparen'>(</span><span class='int'>30</span><span class='rparen'>)</span><span class='comma'>,</span>
+  <span class='label'>deadline:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency/Deadline.html" title="Phronomy::Concurrency::Deadline (class)">Deadline</a></span></span><span class='period'>.</span><span class='id identifier rubyid_in'><span class='object_link'><a href="../Concurrency/Deadline.html#in-class_method" title="Phronomy::Concurrency::Deadline.in (method)">in</a></span></span><span class='lparen'>(</span><span class='int'>30</span><span class='rparen'>)</span><span class='comma'>,</span>
   <span class='label'>task_id:</span> <span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_uuid'>uuid</span>
 <span class='rparen'>)</span>
 <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>invocation_context:</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span></code></pre>
@@ -3117,7 +3117,7 @@ messages: Array }+ when the invocation was suspended awaiting tool approval.</p>
 </span>    <span class='comment'># cancellation when the deadline fires.
 </span>    <span class='id identifier rubyid_timeout_sec'>timeout_sec</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_invoke_timeout'>invoke_timeout</span>
     <span class='id identifier rubyid_effective_config'>effective_config</span><span class='comma'>,</span> <span class='id identifier rubyid_scope'>scope</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_timeout_sec'>timeout_sec</span>
-      <span class='id identifier rubyid_s'>s</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../CancellationScope.html" title="Phronomy::CancellationScope (class)">CancellationScope</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../CancellationScope.html#initialize-instance_method" title="Phronomy::CancellationScope#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>parent_token:</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_s'>s</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency/CancellationScope.html" title="Phronomy::Concurrency::CancellationScope (class)">CancellationScope</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Concurrency/CancellationScope.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationScope#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>parent_token:</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span><span class='rparen'>)</span>
       <span class='id identifier rubyid_s'>s</span><span class='period'>.</span><span class='id identifier rubyid_deadline_in'>deadline_in</span><span class='lparen'>(</span><span class='id identifier rubyid_timeout_sec'>timeout_sec</span><span class='rparen'>)</span>
       <span class='lbracket'>[</span><span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_s'>s</span><span class='period'>.</span><span class='id identifier rubyid_token'>token</span><span class='rparen'>)</span><span class='comma'>,</span> <span class='id identifier rubyid_s'>s</span><span class='rbracket'>]</span>
     <span class='kw'>else</span>
@@ -3339,7 +3339,7 @@ drains in-flight invocations before process exit.</p>
 instead of <span class='object_link'><a href="#invoke-instance_method" title="Phronomy::Agent::Base#invoke (method)">#invoke</a></span>, which would raise a deadlock error because <code>invoke</code> blocks
 on a <code>Thread::Queue</code> when EventLoop mode is active.</p>
 <p>The agent runs asynchronously in a background IO thread.  When it finishes, the
-parent <span class='object_link'><a href="../FSMSession.html" title="Phronomy::FSMSession (class)">FSMSession</a></span> receives a <code>:child_completed</code> event whose payload is the
+parent FSMSession receives a <code>:child_completed</code> event whose payload is the
 result hash <code>{ output:, messages:, usage: }</code>.  Declare an <code>on: :child_completed</code>
 transition in your Workflow to advance to the next state.</p>
 <p>The result is delivered exclusively as the <code>:child_completed</code> event payload.
@@ -3665,7 +3665,7 @@ as they are produced by the underlying LLM.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri May 29 14:32:10 2026 by
+  Generated on Sat May 30 14:20:37 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

@@ -746,7 +746,7 @@ which runtime resource is used to dispatch the tool:</p>
 </tr>
 <tr>
 <td><code>:blocking_io</code></td>
-<td><span class='object_link'><a href="../BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span> (bounded thread pool)</td>
+<td><span class='object_link'><a href="../Concurrency/BlockingAdapterPool.html" title="Phronomy::Concurrency::BlockingAdapterPool (class)">Concurrency::BlockingAdapterPool</a></span> (bounded thread pool)</td>
 <td><strong>Default</strong>. Safe for all blocking I/O (HTTP, DB, file)</td>
 </tr>
 <tr>
@@ -1774,7 +1774,7 @@ the on_error policy, and wrap errors as ToolError.</p>
         <span class='name'>cancellation_token</span>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../CancellationToken.html" title="Phronomy::CancellationToken (class)">Phronomy::CancellationToken</a></span></tt>, <tt>nil</tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="../Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">Phronomy::Concurrency::CancellationToken</a></span></tt>, <tt>nil</tt>)</span>
       
       
         <em class="default">(defaults to: <tt>nil</tt>)</em>
@@ -1884,7 +1884,7 @@ the on_error policy, and wrap errors as ToolError.</p>
   <div class="discussion">
     <p>Invokes this tool asynchronously and returns a <span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span>.</p>
 <p>Routing is governed by the class-level <span class='object_link'><a href="#execution_mode-class_method" title="Phronomy::Tool::Base.execution_mode (method)">execution_mode</a></span> setting.
-Delegates to <span class='object_link'><a href="../ToolExecutor.html#call_async-class_method" title="Phronomy::ToolExecutor.call_async (method)">Phronomy::ToolExecutor.call_async</a></span> which is the single
+Delegates to <span class='object_link'><a href="../Agent/ToolExecutor.html#call_async-class_method" title="Phronomy::Agent::ToolExecutor.call_async (method)">Agent::ToolExecutor.call_async</a></span> which is the single
 place in the framework that applies the execution-mode routing rules.</p>
 <p>mutant:disable</p>
 
@@ -1910,7 +1910,7 @@ place in the framework that applies the execution-mode routing rules.</p>
         <span class='name'>cancellation_token</span>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../CancellationToken.html" title="Phronomy::CancellationToken (class)">Phronomy::CancellationToken</a></span></tt>, <tt>nil</tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="../Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">Phronomy::Concurrency::CancellationToken</a></span></tt>, <tt>nil</tt>)</span>
       
       
         <em class="default">(defaults to: <tt>nil</tt>)</em>
@@ -1952,7 +1952,7 @@ place in the framework that applies the execution-mode routing rules.</p>
       <pre class="code"><span class="info file"># File 'lib/phronomy/tool/base.rb', line 370</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span><span class='id identifier rubyid_args'>args</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ToolExecutor.html" title="Phronomy::ToolExecutor (module)">ToolExecutor</a></span></span><span class='period'>.</span><span class='id identifier rubyid_call_async'><span class='object_link'><a href="../ToolExecutor.html#call_async-class_method" title="Phronomy::ToolExecutor.call_async (method)">call_async</a></span></span><span class='lparen'>(</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/ToolExecutor.html" title="Phronomy::Agent::ToolExecutor (module)">ToolExecutor</a></span></span><span class='period'>.</span><span class='id identifier rubyid_call_async'><span class='object_link'><a href="../Agent/ToolExecutor.html#call_async-class_method" title="Phronomy::Agent::ToolExecutor.call_async (method)">call_async</a></span></span><span class='lparen'>(</span>
     <span class='label'>tool:</span> <span class='kw'>self</span><span class='comma'>,</span>
     <span class='label'>args:</span> <span class='id identifier rubyid_args'>args</span><span class='comma'>,</span>
     <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
@@ -2306,7 +2306,7 @@ both expressions produce the same value.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri May 29 14:32:10 2026 by
+  Generated on Sat May 30 14:20:36 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

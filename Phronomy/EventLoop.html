@@ -105,7 +105,7 @@
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
     <p>Singleton event loop that manages all FSMSession instances.</p>
-<p>A single background thread reads from a global <span class='object_link'><a href="AsyncQueue.html" title="Phronomy::AsyncQueue (class)">AsyncQueue</a></span> and
+<p>A single background thread reads from a global <span class='object_link'><a href="Concurrency/AsyncQueue.html" title="Phronomy::Concurrency::AsyncQueue (class)">Concurrency::AsyncQueue</a></span> and
 dispatches events to their target FSMSession.  IO work (LLM calls, tool
 calls) must be dispatched via <code>Runtime.instance.spawn</code> or
 <code>BlockingAdapterPool</code>, then post results back to the loop via
@@ -376,7 +376,7 @@ via <code>Phronomy::EventLoop.instance.post(...)</code>.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#register-instance_method" title="#register (instance method)">#<strong>register</strong>(fsm_session)  &#x21d2; Phronomy::AsyncQueue </a>
+      <a href="#register-instance_method" title="#register (instance method)">#<strong>register</strong>(fsm_session)  &#x21d2; Phronomy::Concurrency::AsyncQueue </a>
     
 
     
@@ -492,7 +492,7 @@ via <code>Phronomy::EventLoop.instance.post(...)</code>.</p>
       <pre class="code"><span class="info file"># File 'lib/phronomy/event_loop.rb', line 74</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
-  <span class='ivar'>@queue</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="AsyncQueue.html" title="Phronomy::AsyncQueue (class)">AsyncQueue</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="AsyncQueue.html#initialize-instance_method" title="Phronomy::AsyncQueue#initialize (method)">new</a></span></span>  <span class='comment'># global event queue (thread-safe; no Mutex needed)
+  <span class='ivar'>@queue</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/AsyncQueue.html" title="Phronomy::Concurrency::AsyncQueue (class)">AsyncQueue</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/AsyncQueue.html#initialize-instance_method" title="Phronomy::Concurrency::AsyncQueue#initialize (method)">new</a></span></span>  <span class='comment'># global event queue (thread-safe; no Mutex needed)
 </span>  <span class='ivar'>@fsms</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>                  <span class='comment'># { id =&gt; FSMSession }     — EventLoop thread only
 </span>  <span class='ivar'>@waiting</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>               <span class='comment'># { id =&gt; completion_queue } — EventLoop thread only
 </span>  <span class='comment'># Mutex-backed FSM count for drain-mode shutdown.
@@ -500,7 +500,7 @@ via <code>Phronomy::EventLoop.instance.post(...)</code>.</p>
   <span class='ivar'>@fsm_count_cond</span> <span class='op'>=</span> <span class='const'>ConditionVariable</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@fsm_count</span> <span class='op'>=</span> <span class='int'>0</span>
   <span class='comment'># Token cancelled when shutdown is requested; new child sessions receive it.
-</span>  <span class='ivar'>@shutdown_token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="CancellationToken.html" title="Phronomy::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="CancellationToken.html#initialize-instance_method" title="Phronomy::CancellationToken#initialize (method)">new</a></span></span>
+</span>  <span class='ivar'>@shutdown_token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span>
   <span class='comment'># Fairness metrics (EventLoop thread only, except where noted)
 </span>  <span class='ivar'>@lag_mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@last_lag_ns</span> <span class='op'>=</span> <span class='int'>0</span>
@@ -1006,7 +1006,7 @@ measure the dispatch lag when it dequeues the event.</p>
       <div class="method_details ">
   <h3 class="signature " id="register-instance_method">
   
-    #<strong>register</strong>(fsm_session)  &#x21d2; <tt><span class='object_link'><a href="AsyncQueue.html" title="Phronomy::AsyncQueue (class)">Phronomy::AsyncQueue</a></span></tt> 
+    #<strong>register</strong>(fsm_session)  &#x21d2; <tt><span class='object_link'><a href="Concurrency/AsyncQueue.html" title="Phronomy::Concurrency::AsyncQueue (class)">Phronomy::Concurrency::AsyncQueue</a></span></tt> 
   
 
   
@@ -1037,7 +1037,7 @@ the popped value will be an Exception — callers are responsible for re-raising
         <span class='name'>fsm_session</span>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="FSMSession.html" title="Phronomy::FSMSession (class)">Phronomy::FSMSession</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="Agent/Lifecycle/FSMSession.html" title="Phronomy::Agent::Lifecycle::FSMSession (class)">Phronomy::Agent::Lifecycle::FSMSession</a></span></tt>)</span>
       
       
       
@@ -1051,7 +1051,7 @@ the popped value will be an Exception — callers are responsible for re-raising
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="AsyncQueue.html" title="Phronomy::AsyncQueue (class)">Phronomy::AsyncQueue</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="Concurrency/AsyncQueue.html" title="Phronomy::Concurrency::AsyncQueue (class)">Phronomy::Concurrency::AsyncQueue</a></span></tt>)</span>
       
       
       
@@ -1098,7 +1098,7 @@ the popped value will be an Exception — callers are responsible for re-raising
       <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Phronomy::EventLoop.instance.post(...) instead.</span><span class='tstring_end'>&quot;</span></span>
   <span class='kw'>end</span>
 
-  <span class='id identifier rubyid_completion_queue'>completion_queue</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="AsyncQueue.html" title="Phronomy::AsyncQueue (class)">AsyncQueue</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="AsyncQueue.html#initialize-instance_method" title="Phronomy::AsyncQueue#initialize (method)">new</a></span></span>
+  <span class='id identifier rubyid_completion_queue'>completion_queue</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/AsyncQueue.html" title="Phronomy::Concurrency::AsyncQueue (class)">AsyncQueue</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/AsyncQueue.html#initialize-instance_method" title="Phronomy::Concurrency::AsyncQueue#initialize (method)">new</a></span></span>
   <span class='comment'># Pass both session and completion_queue in the event payload so that the
 </span>  <span class='comment'># EventLoop thread is the sole writer of @fsms and @waiting.
 </span>  <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='lbracket'>[</span><span class='const'><span class='object_link'><a href="Event.html" title="Phronomy::Event (class)">Event</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>type:</span> <span class='symbol'>:start</span><span class='comma'>,</span> <span class='label'>target_id:</span> <span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='comma'>,</span>
@@ -1183,7 +1183,7 @@ can drain it together with all other in-flight tasks.  The task is named
   <span class='kw'>return</span> <span class='kw'>self</span> <span class='kw'>if</span> <span class='ivar'>@task</span><span class='op'>&amp;.</span><span class='id identifier rubyid_alive?'>alive?</span>
 
   <span class='comment'># Reset shutdown state so the loop can be restarted after a stop.
-</span>  <span class='ivar'>@shutdown_token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="CancellationToken.html" title="Phronomy::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="CancellationToken.html#initialize-instance_method" title="Phronomy::CancellationToken#initialize (method)">new</a></span></span>
+</span>  <span class='ivar'>@shutdown_token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span>
   <span class='ivar'>@fsm_count_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@fsm_count</span> <span class='op'>=</span> <span class='int'>0</span> <span class='rbrace'>}</span>
   <span class='ivar'>@running</span> <span class='op'>=</span> <span class='kw'>true</span>
   <span class='comment'># The dispatch loop must always run in a real background thread.
@@ -1420,7 +1420,7 @@ they were discarded and the loop was stopped</li>
 </div>
 
       <div id="footer">
-  Generated on Fri May 29 14:32:11 2026 by
+  Generated on Sat May 30 14:20:37 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

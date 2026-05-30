@@ -107,7 +107,7 @@
     <p>Abstract base class for LLM adapters.</p>
 <p>Subclasses must implement <span class='object_link'><a href="#complete-instance_method" title="Phronomy::LLMAdapter::Base#complete (method)">#complete</a></span> and <span class='object_link'><a href="#stream-instance_method" title="Phronomy::LLMAdapter::Base#stream (method)">#stream</a></span>.
 The agent pipeline calls <span class='object_link'><a href="#complete_async-instance_method" title="Phronomy::LLMAdapter::Base#complete_async (method)">#complete_async</a></span> / <span class='object_link'><a href="#stream_async-instance_method" title="Phronomy::LLMAdapter::Base#stream_async (method)">#stream_async</a></span> which wrap
-those methods in a <span class='object_link'><a href="../BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span> submission.</p>
+those methods in a BlockingAdapterPool submission.</p>
 
   </div>
 </div>
@@ -172,7 +172,7 @@ those methods in a <span class='object_link'><a href="../BlockingAdapterPool.htm
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Submits a non-streaming LLM call to <span class='object_link'><a href="../BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span> and returns a <span class='object_link'><a href="../BlockingAdapterPool/PendingOperation.html" title="Phronomy::BlockingAdapterPool::PendingOperation (class)">BlockingAdapterPool::PendingOperation</a></span>.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Submits a non-streaming LLM call to BlockingAdapterPool and returns a BlockingAdapterPool::PendingOperation.</p></div></span>
   
 </li>
 
@@ -216,7 +216,7 @@ those methods in a <span class='object_link'><a href="../BlockingAdapterPool.htm
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Submits a streaming LLM call to <span class='object_link'><a href="../BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span> and returns a <span class='object_link'><a href="../BlockingAdapterPool/PendingOperation.html" title="Phronomy::BlockingAdapterPool::PendingOperation (class)">BlockingAdapterPool::PendingOperation</a></span>.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Submits a streaming LLM call to BlockingAdapterPool and returns a BlockingAdapterPool::PendingOperation.</p></div></span>
   
 </li>
 
@@ -356,7 +356,7 @@ return the response object.</p>
       <div class="method_details ">
   <h3 class="signature " id="complete_async-instance_method">
   
-    #<strong>complete_async</strong>(chat, message, config: {}, pool: default_pool)  &#x21d2; <tt><span class='object_link'><a href="../BlockingAdapterPool/PendingOperation.html" title="Phronomy::BlockingAdapterPool::PendingOperation (class)">BlockingAdapterPool::PendingOperation</a></span></tt> 
+    #<strong>complete_async</strong>(chat, message, config: {}, pool: default_pool)  &#x21d2; <tt>BlockingAdapterPool::PendingOperation</tt> 
   
 
   
@@ -368,8 +368,8 @@ return the response object.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Submits a non-streaming LLM call to <span class='object_link'><a href="../BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span> and returns
-a <span class='object_link'><a href="../BlockingAdapterPool/PendingOperation.html" title="Phronomy::BlockingAdapterPool::PendingOperation (class)">BlockingAdapterPool::PendingOperation</a></span>.</p>
+<p>Submits a non-streaming LLM call to BlockingAdapterPool and returns
+a BlockingAdapterPool::PendingOperation.</p>
 
   </div>
 </div>
@@ -426,7 +426,7 @@ a <span class='object_link'><a href="../BlockingAdapterPool/PendingOperation.htm
         <span class='name'>pool</span>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span></tt>)</span>
+        <span class='type'>(<tt>BlockingAdapterPool</tt>)</span>
       
       
         <em class="default">(defaults to: <tt>default_pool</tt>)</em>
@@ -445,7 +445,7 @@ a <span class='object_link'><a href="../BlockingAdapterPool/PendingOperation.htm
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../BlockingAdapterPool/PendingOperation.html" title="Phronomy::BlockingAdapterPool::PendingOperation (class)">BlockingAdapterPool::PendingOperation</a></span></tt>)</span>
+        <span class='type'>(<tt>BlockingAdapterPool::PendingOperation</tt>)</span>
       
       
       
@@ -623,7 +623,7 @@ Implementors must call <code>chat.ask(message) { |chunk| block.call(chunk) }</co
       <div class="method_details ">
   <h3 class="signature " id="stream_async-instance_method">
   
-    #<strong>stream_async</strong>(chat, message, config: {}, pool: default_pool, enqueue_to: nil) {|chunk| ... } &#x21d2; <tt><span class='object_link'><a href="../BlockingAdapterPool/PendingOperation.html" title="Phronomy::BlockingAdapterPool::PendingOperation (class)">BlockingAdapterPool::PendingOperation</a></span></tt> 
+    #<strong>stream_async</strong>(chat, message, config: {}, pool: default_pool, enqueue_to: nil) {|chunk| ... } &#x21d2; <tt>BlockingAdapterPool::PendingOperation</tt> 
   
 
   
@@ -635,10 +635,10 @@ Implementors must call <code>chat.ask(message) { |chunk| block.call(chunk) }</co
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Submits a streaming LLM call to <span class='object_link'><a href="../BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span> and returns
-a <span class='object_link'><a href="../BlockingAdapterPool/PendingOperation.html" title="Phronomy::BlockingAdapterPool::PendingOperation (class)">BlockingAdapterPool::PendingOperation</a></span>.</p>
+<p>Submits a streaming LLM call to BlockingAdapterPool and returns
+a BlockingAdapterPool::PendingOperation.</p>
 <p>When <code>enqueue_to:</code> is given, streaming chunks are pushed into that
-<span class='object_link'><a href="../AsyncQueue.html" title="Phronomy::AsyncQueue (class)">AsyncQueue</a></span> from the worker thread instead of being passed directly
+AsyncQueue from the worker thread instead of being passed directly
 to the caller's block.  The queue is closed (via <code>ensure</code>) after the
 LLM call finishes so the consumer's drain loop terminates naturally.
 This keeps user-supplied blocks off the blocking-pool worker thread.</p>
@@ -701,7 +701,7 @@ backward compatibility).</p>
         <span class='name'>pool</span>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span></tt>)</span>
+        <span class='type'>(<tt>BlockingAdapterPool</tt>)</span>
       
       
         <em class="default">(defaults to: <tt>default_pool</tt>)</em>
@@ -717,7 +717,7 @@ backward compatibility).</p>
         <span class='name'>enqueue_to</span>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../AsyncQueue.html" title="Phronomy::AsyncQueue (class)">AsyncQueue</a></span></tt>, <tt>nil</tt>)</span>
+        <span class='type'>(<tt>AsyncQueue</tt>, <tt>nil</tt>)</span>
       
       
         <em class="default">(defaults to: <tt>nil</tt>)</em>
@@ -753,7 +753,7 @@ calling the block on the worker thread</p></div>
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../BlockingAdapterPool/PendingOperation.html" title="Phronomy::BlockingAdapterPool::PendingOperation (class)">BlockingAdapterPool::PendingOperation</a></span></tt>)</span>
+        <span class='type'>(<tt>BlockingAdapterPool::PendingOperation</tt>)</span>
       
       
       
@@ -815,7 +815,7 @@ calling the block on the worker thread</p></div>
 </div>
 
       <div id="footer">
-  Generated on Fri May 29 14:32:12 2026 by
+  Generated on Sat May 30 14:20:38 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

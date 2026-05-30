@@ -1013,7 +1013,7 @@ callbacks that are now due.</p>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
 <p>Marks one pending cooperative blocking-I/O await as complete.
-Called from the <span class='object_link'><a href="../BlockingAdapterPool/PendingOperation.html#on_complete-instance_method" title="Phronomy::BlockingAdapterPool::PendingOperation#on_complete (method)">BlockingAdapterPool::PendingOperation#on_complete</a></span>
+Called from the BlockingAdapterPool::PendingOperation#on_complete
 callback (on the pool worker thread) after the result is ready.
 Decrements the counter and broadcasts to wake <span class='object_link'><a href="#run_until_idle-instance_method" title="Phronomy::Runtime::DeterministicScheduler#run_until_idle (method)">#run_until_idle</a></span>.</p>
 
@@ -1082,7 +1082,7 @@ Decrements the counter and broadcasts to wake <span class='object_link'><a href=
 <p>Enqueues a callable (Fiber step or arbitrary block) onto the ready queue.
 Called by <span class='object_link'><a href="../Task/FiberBackend.html#await-instance_method" title="Phronomy::Task::FiberBackend#await (method)">Task::FiberBackend#await</a></span> to resume a waiting Fiber.
 Also wakes any thread blocked in <span class='object_link'><a href="#run_until_idle-instance_method" title="Phronomy::Runtime::DeterministicScheduler#run_until_idle (method)">#run_until_idle</a></span> waiting for external
-completion signals (e.g. from <span class='object_link'><a href="../BlockingAdapterPool.html" title="Phronomy::BlockingAdapterPool (class)">BlockingAdapterPool</a></span> worker threads).</p>
+completion signals (e.g. from BlockingAdapterPool worker threads).</p>
 
   </div>
 </div>
@@ -1638,7 +1638,7 @@ and cooperative blocking-I/O awaits:</p>
 <li>Fires any timers whose deadline has already passed on each iteration.</li>
 <li>When all ready tasks are done but future timers remain pending, sleeps
 until the next deadline and fires them.</li>
-<li>When Fibers are suspended in <span class='object_link'><a href="../BlockingAdapterPool/PendingOperation.html#await-instance_method" title="Phronomy::BlockingAdapterPool::PendingOperation#await (method)">BlockingAdapterPool::PendingOperation#await</a></span>
+<li>When Fibers are suspended in BlockingAdapterPool::PendingOperation#await
 (tracked via <span class='object_link'><a href="#track_blocking_await-instance_method" title="Phronomy::Runtime::DeterministicScheduler#track_blocking_await (method)">#track_blocking_await</a></span>), waits on a condition variable
 that is broadcast by <span class='object_link'><a href="#enqueue_fiber-instance_method" title="Phronomy::Runtime::DeterministicScheduler#enqueue_fiber (method)">#enqueue_fiber</a></span> when the worker thread completes
 (Issue #338).  This ensures run_until_idle does not exit while blocking
@@ -2233,7 +2233,7 @@ can suspend cooperatively.</p>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
 <p>Registers one pending cooperative blocking-I/O await.
-Called by <span class='object_link'><a href="../BlockingAdapterPool/PendingOperation.html#await-instance_method" title="Phronomy::BlockingAdapterPool::PendingOperation#await (method)">BlockingAdapterPool::PendingOperation#await</a></span> before
+Called by BlockingAdapterPool::PendingOperation#await before
 <code>Fiber.yield</code> so that <span class='object_link'><a href="#run_until_idle-instance_method" title="Phronomy::Runtime::DeterministicScheduler#run_until_idle (method)">#run_until_idle</a></span> knows not to exit yet.
 Each call must be balanced by a <span class='object_link'><a href="#complete_blocking_await-instance_method" title="Phronomy::Runtime::DeterministicScheduler#complete_blocking_await (method)">#complete_blocking_await</a></span> call.</p>
 
@@ -2341,7 +2341,7 @@ Each call must be balanced by a <span class='object_link'><a href="#complete_blo
 </div>
 
       <div id="footer">
-  Generated on Fri May 29 14:32:14 2026 by
+  Generated on Sat May 30 14:20:39 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
