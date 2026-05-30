@@ -97,6 +97,23 @@ module Phronomy
       !Task.current.nil?
     end
 
+    # Executes +block+ and returns +[result, elapsed_ms]+ where +elapsed_ms+
+    # is the wall-clock duration in milliseconds (Integer, rounded).
+    #
+    # Isolates all direct references to +Process.clock_gettime+ /
+    # +Process::CLOCK_MONOTONIC+ in one place so that callers stay at the
+    # framework abstraction level.
+    #
+    # @yield block to time
+    # @return [Array(Object, Integer)] +[block_return_value, elapsed_ms]+
+    # @api private
+    def self.measure_ms
+      t0     = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      result = yield
+      elapsed_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0) * 1000).round
+      [result, elapsed_ms]
+    end
+
     # The scheduler backing this runtime instance.
     # @return [Scheduler]
     attr_reader :scheduler
