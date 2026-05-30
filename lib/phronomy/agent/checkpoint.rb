@@ -91,14 +91,26 @@ module Phronomy
       # @return [Checkpoint]
       # @api public
       def self.from_h(h)
-        h = h.transform_keys { |k| k.to_sym rescue k }
+        h = h.transform_keys { |k|
+          begin
+            k.to_sym
+          rescue
+            k
+          end
+        }
         messages = Array(h[:messages]).map { |m| deserialize_message(m) }
         new(
           thread_id: h[:thread_id],
           original_input: h[:original_input],
           messages: messages,
           pending_tool_name: h[:pending_tool_name]&.to_s,
-          pending_tool_args: h[:pending_tool_args] ? h[:pending_tool_args].transform_keys { |k| k.to_sym rescue k } : {},
+          pending_tool_args: h[:pending_tool_args] ? h[:pending_tool_args].transform_keys { |k|
+            begin
+              k.to_sym
+            rescue
+              k
+            end
+          } : {},
           pending_tool_call_id: h[:pending_tool_call_id]&.to_s
         )
       end
@@ -127,22 +139,41 @@ module Phronomy
       # @return [RubyLLM::Message]
       # @api private
       def self.deserialize_message(h)
-        h = h.transform_keys { |k| k.to_sym rescue k }
+        h = h.transform_keys { |k|
+          begin
+            k.to_sym
+          rescue
+            k
+          end
+        }
         if h[:tool_calls]
           h = h.merge(tool_calls: Array(h[:tool_calls]).map { |tc|
             next tc if tc.is_a?(RubyLLM::ToolCall)
 
-            tc = tc.transform_keys { |k| k.to_sym rescue k }
+            tc = tc.transform_keys { |k|
+              begin
+                k.to_sym
+              rescue
+                k
+              end
+            }
             RubyLLM::ToolCall.new(
               id: tc[:id].to_s,
               name: tc[:name].to_s,
-              arguments: (tc[:arguments] || {}).transform_keys { |k| k.to_sym rescue k },
+              arguments: (tc[:arguments] || {}).transform_keys { |k|
+                begin
+                  k.to_sym
+                rescue
+                  k
+                end
+              },
               thought_signature: tc[:thought_signature]
             )
           })
         end
         RubyLLM::Message.new(h)
       end
+      private_class_method :deserialize_message
     end
   end
 end

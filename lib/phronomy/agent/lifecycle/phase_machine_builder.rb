@@ -200,10 +200,10 @@ module Phronomy
             enforce_timeout!(result, state_name, timeout_secs)
             task_result = result.await
             ev = if task_result.is_a?(Phronomy::WorkflowContext)
-                   Phronomy::Event.new(type: :action_completed, target_id: thread_id, payload: task_result)
-                 else
-                   Phronomy::Event.new(type: :state_completed, target_id: thread_id, payload: nil)
-                 end
+              Phronomy::Event.new(type: :action_completed, target_id: thread_id, payload: task_result)
+            else
+              Phronomy::Event.new(type: :state_completed, target_id: thread_id, payload: nil)
+            end
             Phronomy::EventLoop.instance.post(ev)
           rescue => e
             Phronomy::EventLoop.instance.post(

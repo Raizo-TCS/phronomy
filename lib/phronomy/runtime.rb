@@ -108,7 +108,7 @@ module Phronomy
     # @return [Array(Object, Integer)] +[block_return_value, elapsed_ms]+
     # @api private
     def self.measure_ms
-      t0     = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       result = yield
       elapsed_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0) * 1000).round
       [result, elapsed_ms]

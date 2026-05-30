@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-
 module Phronomy
   # KnowledgeSource provides the interface for supplying context region 3 (Knowledge)
   # to the Context::Assembler.

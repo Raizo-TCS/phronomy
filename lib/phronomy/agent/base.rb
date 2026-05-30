@@ -804,9 +804,9 @@ module Phronomy
       # @return [Hash] { system: String|nil, messages: Array }
       # @api public
       def build_context(input, messages: [], thread_id: nil, config: {})
-        history      = prepare_history(messages: messages, thread_id: thread_id, config: config)
-        budget       = build_token_budget
-        system_text  = build_cached_system_text(input)
+        history = prepare_history(messages: messages, thread_id: thread_id, config: config)
+        budget = build_token_budget
+        system_text = build_cached_system_text(input)
         user_message = extract_message(input)
 
         assembler = LlmContextWindow::Assembler.new(budget: budget)
@@ -848,9 +848,9 @@ module Phronomy
           else :skip_failed
           end
 
-        group          = Phronomy::Runtime.instance.task_group(failure_policy: failure_policy)
-        bp             = Phronomy.configuration.backpressure
-        rag_on_full    = (bp == :raise) ? :reject : (bp || :wait)
+        group = Phronomy::Runtime.instance.task_group(failure_policy: failure_policy)
+        bp = Phronomy.configuration.backpressure
+        rag_on_full = (bp == :raise) ? :reject : (bp || :wait)
         rag_bp_timeout = Phronomy.configuration.backpressure_timeout
 
         # Spawn all fetches concurrently. Results are returned in spawn order

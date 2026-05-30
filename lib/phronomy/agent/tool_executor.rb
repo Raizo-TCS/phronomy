@@ -42,67 +42,67 @@ module Phronomy
     #
     # @api private
     module ToolExecutor
-    # Tracks tool classes that have already emitted an execution_mode warning so
-    # that the same warning is only logged once per process lifetime.
-    WARNED_MODES = Set.new
-    WARNED_MODES_MUTEX = Mutex.new
-    private_constant :WARNED_MODES, :WARNED_MODES_MUTEX
+      # Tracks tool classes that have already emitted an execution_mode warning so
+      # that the same warning is only logged once per process lifetime.
+      WARNED_MODES = Set.new
+      WARNED_MODES_MUTEX = Mutex.new
+      private_constant :WARNED_MODES, :WARNED_MODES_MUTEX
 
-    # Dispatches a single tool call asynchronously according to its
-    # +execution_mode+ and returns an awaitable.
-    #
-    # @param tool               [Phronomy::Tool::Base] the tool instance to invoke
-    # @param args               [Hash]                 argument hash to pass to {Tool::Base#call}
-    # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
-    # @param runtime            [Phronomy::Runtime]    runtime to use for spawning
-    #                           (defaults to {Runtime.instance}; injectable for tests)
-    # @return [#await] a {Phronomy::Task} or {BlockingAdapterPool::PendingOperation}
-    # @api private
-    def self.call_async(tool:, args:, cancellation_token: nil, runtime: Phronomy::Runtime.instance)
-      ct = cancellation_token
-      mode = tool.class.execution_mode
+      # Dispatches a single tool call asynchronously according to its
+      # +execution_mode+ and returns an awaitable.
+      #
+      # @param tool               [Phronomy::Tool::Base] the tool instance to invoke
+      # @param args               [Hash]                 argument hash to pass to {Tool::Base#call}
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
+      # @param runtime            [Phronomy::Runtime]    runtime to use for spawning
+      #                           (defaults to {Runtime.instance}; injectable for tests)
+      # @return [#await] a {Phronomy::Task} or {BlockingAdapterPool::PendingOperation}
+      # @api private
+      def self.call_async(tool:, args:, cancellation_token: nil, runtime: Phronomy::Runtime.instance)
+        ct = cancellation_token
+        mode = tool.class.execution_mode
 
-      # Warn and normalise unsupported modes to :blocking_io.
-      # Each (tool class, mode) pair emits the warning at most once per process
-      # lifetime to avoid log flooding in high-throughput scenarios.
-      if mode == :cpu_bound || mode == :external_process
-        warn_key = [tool.class.name, mode]
-        newly_warned = WARNED_MODES_MUTEX.synchronize { WARNED_MODES.add?(warn_key) }
-        if newly_warned
-          msg = if mode == :cpu_bound
-            "[Phronomy] Tool #{tool.class.name} declares execution_mode :cpu_bound, " \
-            "which has no dedicated executor. " \
-            "Falling back to blocking_io (BlockingAdapterPool). " \
-            "Use :blocking_io explicitly to suppress this warning."
-          else
-            "[Phronomy] Tool #{tool.class.name} declares execution_mode :external_process, " \
-            "which has no dedicated process manager. " \
-            "Falling back to blocking_io (BlockingAdapterPool)."
+        # Warn and normalise unsupported modes to :blocking_io.
+        # Each (tool class, mode) pair emits the warning at most once per process
+        # lifetime to avoid log flooding in high-throughput scenarios.
+        if mode == :cpu_bound || mode == :external_process
+          warn_key = [tool.class.name, mode]
+          newly_warned = WARNED_MODES_MUTEX.synchronize { WARNED_MODES.add?(warn_key) }
+          if newly_warned
+            msg = if mode == :cpu_bound
+              "[Phronomy] Tool #{tool.class.name} declares execution_mode :cpu_bound, " \
+              "which has no dedicated executor. " \
+              "Falling back to blocking_io (BlockingAdapterPool). " \
+              "Use :blocking_io explicitly to suppress this warning."
+            else
+              "[Phronomy] Tool #{tool.class.name} declares execution_mode :external_process, " \
+              "which has no dedicated process manager. " \
+              "Falling back to blocking_io (BlockingAdapterPool)."
+            end
+            if Phronomy.configuration.logger
+              Phronomy.configuration.logger.warn(msg)
+            else
+              warn msg
+            end
           end
-          if Phronomy.configuration.logger
-            Phronomy.configuration.logger.warn(msg)
-          else
-            warn msg
+          mode = :blocking_io
+        end
+
+        pool = begin
+          runtime&.blocking_io
+        rescue
+          nil
+        end
+
+        if mode == :cooperative || pool.nil?
+          runtime.spawn(name: "tool-#{tool.class.name.to_s.split("::").last}") do
+            tool.call(args, cancellation_token: ct)
           end
+        else
+          # Submit directly to pool — no wrapping Task thread required.
+          pool.submit(cancellation_token: ct) { tool.call(args, cancellation_token: ct) }
         end
-        mode = :blocking_io
-      end
-
-      pool = begin
-        runtime&.blocking_io
-      rescue
-        nil
-      end
-
-      if mode == :cooperative || pool.nil?
-        runtime.spawn(name: "tool-#{tool.class.name.to_s.split("::").last}") do
-          tool.call(args, cancellation_token: ct)
-        end
-      else
-        # Submit directly to pool — no wrapping Task thread required.
-        pool.submit(cancellation_token: ct) { tool.call(args, cancellation_token: ct) }
       end
     end
-  end
   end
 end

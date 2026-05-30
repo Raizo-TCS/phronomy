@@ -24,7 +24,7 @@ RSpec.describe Phronomy::Agent::Checkpoint do
       original_input: "Do task X",
       messages: messages,
       pending_tool_name: "my_tool",
-      pending_tool_args: { x: 1 },
+      pending_tool_args: {x: 1},
       pending_tool_call_id: "call_abc"
     }
     described_class.new(**defaults.merge(overrides))
@@ -46,12 +46,12 @@ RSpec.describe Phronomy::Agent::Checkpoint do
       h = checkpoint(
         thread_id: "t99",
         pending_tool_name: "calc",
-        pending_tool_args: { n: 42 },
+        pending_tool_args: {n: 42},
         pending_tool_call_id: "call_xyz"
       ).to_h
       expect(h[:thread_id]).to eq("t99")
       expect(h[:pending_tool_name]).to eq("calc")
-      expect(h[:pending_tool_args]).to eq({ n: 42 })
+      expect(h[:pending_tool_args]).to eq({n: 42})
       expect(h[:pending_tool_call_id]).to eq("call_xyz")
     end
 
@@ -72,14 +72,14 @@ RSpec.describe Phronomy::Agent::Checkpoint do
 
     context "when a message contains a tool call" do
       it "serializes ToolCall objects to plain hashes" do
-        msgs = [tool_call_message(call_id: "call_1", tool_name: "calculator", args: { x: 7 })]
+        msgs = [tool_call_message(call_id: "call_1", tool_name: "calculator", args: {x: 7})]
         h = checkpoint(messages: msgs).to_h
         tool_calls = h[:messages].first[:tool_calls]
         expect(tool_calls).to be_an(Array)
         expect(tool_calls.first).to be_a(Hash)
         expect(tool_calls.first[:id]).to eq("call_1")
         expect(tool_calls.first[:name]).to eq("calculator")
-        expect(tool_calls.first[:arguments]).to eq({ x: 7 })
+        expect(tool_calls.first[:arguments]).to eq({x: 7})
       end
 
       it "contains no RubyLLM::ToolCall objects after serialization" do
@@ -121,14 +121,14 @@ RSpec.describe Phronomy::Agent::Checkpoint do
     end
 
     it "reconstructs RubyLLM::ToolCall objects inside messages" do
-      msgs = [tool_call_message(call_id: "call_1", tool_name: "my_tool", args: { n: 5 })]
+      msgs = [tool_call_message(call_id: "call_1", tool_name: "my_tool", args: {n: 5})]
       original = checkpoint(messages: msgs)
       restored = described_class.from_h(original.to_h)
       tc = restored.messages.first.tool_calls.first
       expect(tc).to be_a(RubyLLM::ToolCall)
       expect(tc.id).to eq("call_1")
       expect(tc.name).to eq("my_tool")
-      expect(tc.arguments).to eq({ n: 5 })
+      expect(tc.arguments).to eq({n: 5})
     end
 
     it "accepts nil thread_id" do
@@ -140,7 +140,7 @@ RSpec.describe Phronomy::Agent::Checkpoint do
     it "normalizes pending_tool_args keys to symbols" do
       h = checkpoint.to_h
       # Simulate JSON round-trip where string keys arrive for nested hash
-      h[:pending_tool_args] = { "x" => 1 }
+      h[:pending_tool_args] = {"x" => 1}
       restored = described_class.from_h(h)
       expect(restored.pending_tool_args.keys).to all(be_a(Symbol))
     end
@@ -153,14 +153,14 @@ RSpec.describe Phronomy::Agent::Checkpoint do
     it "preserves all fields after to_h -> JSON.generate -> JSON.parse -> from_h" do
       msgs = [
         user_message("plan X"),
-        tool_call_message(call_id: "call_z", tool_name: "exec_tool", args: { cmd: "ls" })
+        tool_call_message(call_id: "call_z", tool_name: "exec_tool", args: {cmd: "ls"})
       ]
       original = checkpoint(
         thread_id: "t-abc",
         original_input: "plan X",
         messages: msgs,
         pending_tool_name: "exec_tool",
-        pending_tool_args: { cmd: "ls" },
+        pending_tool_args: {cmd: "ls"},
         pending_tool_call_id: "call_z"
       )
 

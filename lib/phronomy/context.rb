@@ -10,4 +10,3 @@ module Phronomy
   module Context
   end
 end
-
