@@ -12,9 +12,9 @@ BenchAsmMessage = Struct.new(:content)
 
 def make_assembler(n_messages:, n_chunks:, with_budget: false)
   budget = if with_budget
-    Phronomy::Context::TokenBudget.new(context_window: 4096, max_output_tokens: 512)
+    Phronomy::LlmContextWindow::TokenBudget.new(context_window: 4096, max_output_tokens: 512)
   end
-  asm = Phronomy::Context::Assembler.new(budget: budget)
+  asm = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
   asm.add_instruction("You are a helpful assistant. Answer the user's question.")
   n_chunks.times do |i|
     asm.add_knowledge("Fact #{i}: The capital of country #{i} is City #{i}.", type: :entity, trusted: true)

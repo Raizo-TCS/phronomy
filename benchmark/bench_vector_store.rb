@@ -28,7 +28,7 @@ BENCH_VS_ITERS = {100 => 100, 1_000 => 20, 10_000 => 5}.freeze
 puts "=== bench_vector_store_inmemory ==="
 Benchmark.bm(35) do |x|
   [100, 1_000, 10_000].each do |n|
-    store = Phronomy::VectorStore::InMemory.new(dimension: DIM)
+    store = Phronomy::Agent::Context::Knowledge::VectorStore::InMemory.new(dimension: DIM)
     populate(store, n)
     iters = BENCH_VS_ITERS[n]
 
