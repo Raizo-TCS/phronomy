@@ -60,12 +60,12 @@ module Phronomy
         end
 
         # Sets or reads the system instructions for this agent.
-        # Accepts a String, a {Phronomy::PromptTemplate}, or a block (Proc).
+        # Accepts a String, a {Phronomy::Agent::Context::Instruction::PromptTemplate}, or a block (Proc).
         # When used as a reader (no argument, no block), returns the stored value.
         #
-        # @param text [String, Phronomy::PromptTemplate, nil]
+        # @param text [String, Phronomy::Agent::Context::Instruction::PromptTemplate, nil]
         # @yield optionally provide instructions as a block
-        # @return [String, Phronomy::PromptTemplate, Proc, nil]
+        # @return [String, Phronomy::Agent::Context::Instruction::PromptTemplate, Proc, nil]
         # @example String instructions
         #   class MyAgent < Phronomy::Agent::Base
         #     instructions "You are a helpful assistant."
@@ -255,10 +255,10 @@ module Phronomy
         # the first time +invoke+ is called. The cache persists for the lifetime
         # of the process; call {.static_knowledge_refresh!} to force a reload.
         #
-        # @param sources [Array<Phronomy::KnowledgeSource::Base>]
+        # @param sources [Array<Phronomy::Agent::Context::Knowledge::Source::Base>]
         # @example
         #   class PolicyAgent < Phronomy::Agent::Base
-        #     static_knowledge Phronomy::KnowledgeSource::StaticKnowledge.new(POLICY_TEXT)
+        #     static_knowledge Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge.new(POLICY_TEXT)
         #   end
         # @api public
         def static_knowledge(*sources)
@@ -269,7 +269,7 @@ module Phronomy
         end
 
         # Returns the registered static knowledge sources.
-        # @return [Array<Phronomy::KnowledgeSource::Base>]
+        # @return [Array<Phronomy::Agent::Context::Knowledge::Source::Base>]
         # @api public
         def static_knowledge_sources
           @static_knowledge_sources || []
@@ -306,11 +306,11 @@ module Phronomy
         # application can remove stale or irrelevant messages from the
         # conversation history.
         #
-        # The block receives a {Phronomy::Context::TrimContext} and may call
+        # The block receives a {Phronomy::Agent::Context::Conversation::TrimContext} and may call
         # +ctx.remove(seqs)+ to drop messages by seq number. Changes affect
         # only the current invocation; the underlying memory store is unchanged.
         #
-        # @yield [ctx] Phronomy::Context::TrimContext
+        # @yield [ctx] Phronomy::Agent::Context::Conversation::TrimContext
         # @example Drop the oldest message when over 80% of budget is used
         #   on_trim do |ctx|
         #     limit = ctx.budget&.available(used: 0) || Float::INFINITY
@@ -332,9 +332,9 @@ module Phronomy
         # truthy AND an +on_compact+ callback is also registered, the compact
         # pipeline is executed.
         #
-        # The block receives a read-only {Phronomy::Context::TriggerContext}.
+        # The block receives a read-only {Phronomy::Agent::Context::Conversation::TriggerContext}.
         #
-        # @yield [ctx] Phronomy::Context::TriggerContext
+        # @yield [ctx] Phronomy::Agent::Context::Conversation::TriggerContext
         # @return [Boolean] truthy → run on_compact; falsy → skip
         # @example Trigger when messages exceed 70% of token budget
         #   on_compaction_trigger do |ctx|
@@ -354,10 +354,10 @@ module Phronomy
 
         # Registers a callback that performs the actual compaction when the
         # +on_compaction_trigger+ callback fires. The block receives a
-        # {Phronomy::Context::CompactionContext} and should call +ctx.compact+
+        # {Phronomy::Agent::Context::Conversation::CompactionContext} and should call +ctx.compact+
         # to specify which messages to summarise.
         #
-        # @yield [ctx] Phronomy::Context::CompactionContext
+        # @yield [ctx] Phronomy::Agent::Context::Conversation::CompactionContext
         # @example Replace the first 4 messages with a short summary
         #   on_compact do |ctx|
         #     ctx.compact(0..3) do |elements|
@@ -687,7 +687,7 @@ module Phronomy
         raise
       end
 
-      # Returns the {Context::ContextVersionCache} built during the most recent
+      # Returns the {LlmContextWindow::ContextVersionCache} built during the most recent
       # {#invoke} call on this agent instance.  The thread-local cache entry is
       # cleaned up in the +ensure+ block of {#invoke}, but a reference is kept
       # in +@last_context_version_cache+ so callers can inspect it after invoke
@@ -809,7 +809,7 @@ module Phronomy
         system_text = build_cached_system_text(input)
         user_message = extract_message(input)
 
-        assembler = Context::Assembler.new(budget: budget)
+        assembler = LlmContextWindow::Assembler.new(budget: budget)
         assembler.add_instruction(system_text) if system_text
 
         sources = Array(config[:knowledge_sources])
@@ -880,16 +880,16 @@ module Phronomy
         elements = build_message_elements(Array(messages))
 
         if (trim_cb = self.class._on_trim_callback)
-          trim_ctx = Context::TrimContext.new(message_elements: elements, budget: budget)
+          trim_ctx = Context::Conversation::TrimContext.new(message_elements: elements, budget: budget)
           trim_cb.call(trim_ctx)
           elements = trim_ctx.message_elements
         end
 
         if (trigger_cb = self.class._on_compaction_trigger_callback)
-          trigger_ctx = Context::TriggerContext.new(message_elements: elements, budget: budget)
+          trigger_ctx = Context::Conversation::TriggerContext.new(message_elements: elements, budget: budget)
           if trigger_cb.call(trigger_ctx)
             if (compact_cb = self.class._on_compact_callback)
-              compact_ctx = Context::CompactionContext.new(
+              compact_ctx = Context::Conversation::CompactionContext.new(
                 message_elements: elements,
                 budget: budget,
                 thread_id: thread_id
@@ -986,19 +986,19 @@ module Phronomy
         return nil unless model_name
 
         if (cw = self.class.context_window)
-          Phronomy::Context::TokenBudget.new(
+          Phronomy::LlmContextWindow::TokenBudget.new(
             context_window: cw,
             max_output_tokens: self.class.max_output_tokens || 0,
             overhead: self.class.context_overhead
           )
         else
-          Phronomy::Context::TokenBudget.new(
+          Phronomy::LlmContextWindow::TokenBudget.new(
             model: model_name,
             max_output_tokens: self.class.max_output_tokens,
             overhead: self.class.context_overhead
           )
         end
-      rescue Phronomy::Context::UnknownModelError, RubyLLM::ModelNotFoundError
+      rescue Phronomy::LlmContextWindow::UnknownModelError, RubyLLM::ModelNotFoundError
         nil
       end
 
@@ -1011,7 +1011,7 @@ module Phronomy
       # @api public
       def build_message_elements(messages)
         Array(messages).each_with_index.map do |msg, idx|
-          tokens = Context::TokenEstimator.estimate(msg.content.to_s)
+          tokens = LlmContextWindow::TokenEstimator.estimate(msg.content.to_s)
           {seq: idx, message: msg, tokens: tokens, role: msg.role}
         end
       end
@@ -1034,11 +1034,11 @@ module Phronomy
           [instruction.to_s, *static_chunks.map { |c| c[:content] }].join("\0")
         )
 
-        cache = (@context_version_cache ||= Context::ContextVersionCache.new)
+        cache = (@context_version_cache ||= LlmContextWindow::ContextVersionCache.new)
         unless cache.valid?(fingerprint)
           parts = [instruction]
           static_chunks.each do |chunk|
-            parts << Context::Assembler.xml_tag(chunk[:content], type: chunk[:type], trusted: true)
+            parts << LlmContextWindow::Assembler.xml_tag(chunk[:content], type: chunk[:type], trusted: true)
           end
           cache.update(fingerprint: fingerprint, system_text: parts.compact.join("\n\n"))
         end
@@ -1086,7 +1086,7 @@ module Phronomy
       def build_instructions(input)
         instr = self.class.instructions
         case instr
-        when Phronomy::PromptTemplate
+        when Phronomy::Agent::Context::Instruction::PromptTemplate
           vars = input.is_a?(Hash) ? input : {input: input}
           instr.format_system(**vars) || instr.format(**vars)
         when String then instr

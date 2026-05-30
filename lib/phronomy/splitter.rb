@@ -4,9 +4,9 @@ module Phronomy
   # Text splitter implementations for chunking documents before embedding.
   #
   # Sub-classes are auto-loaded by Zeitwerk:
-  #   Phronomy::Splitter::Base
-  #   Phronomy::Splitter::FixedSizeSplitter
-  #   Phronomy::Splitter::RecursiveSplitter
+  #   Phronomy::Agent::Context::Knowledge::Splitter::Base
+  #   Phronomy::Agent::Context::Knowledge::Splitter::FixedSizeSplitter
+  #   Phronomy::Agent::Context::Knowledge::Splitter::RecursiveSplitter
   module Splitter
   end
 end

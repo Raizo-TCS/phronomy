@@ -230,8 +230,14 @@ module Phronomy
         # own native connection/read timeouts.
         begin
           complete_with_value!(@block.call)
-        rescue => e
+        rescue Exception => e # rubocop:disable Lint/RescueException
+          # Rescue all Exception subclasses (not just StandardError) so that
+          # non-StandardError raises such as NotImplementedError (< ScriptError)
+          # still complete the operation and unblock any waiting #await callers.
+          # Without this, a ScriptError in a pool worker would leave the
+          # PendingOperation permanently incomplete, causing #await to deadlock.
           complete_with_error!(e)
+          raise if e.is_a?(SignalException) || e.is_a?(SystemExit)
         end
       end
 

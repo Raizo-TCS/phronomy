@@ -147,7 +147,7 @@ RSpec.describe "Fault injection (Issue #230 — extended)" do
   # -------------------------------------------------------------------------
   describe "Knowledge source loader raises" do
     let(:exploding_knowledge_source) do
-      Class.new(Phronomy::KnowledgeSource::Base) do
+      Class.new(Phronomy::Agent::Context::Knowledge::Source::Base) do
         def fetch(query:, cancellation_token: nil)
           raise Phronomy::Error, "knowledge source unavailable"
         end

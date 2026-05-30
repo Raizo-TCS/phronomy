@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Contract tests for Phronomy::VectorStore::Base implementations (Issue #212).
+# Contract tests for Phronomy::Agent::Context::Knowledge::VectorStore::Base implementations (Issue #212).
 #
 # Usage:
 #   it_behaves_like "a vector store" do

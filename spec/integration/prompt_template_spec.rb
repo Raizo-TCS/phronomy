@@ -16,7 +16,7 @@ RSpec.describe "Group 10: PromptTemplate", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-001: PromptTemplate human_only; all variables provided; standalone invoke" do
     it "returns a Hash with :prompt and without :system" do
-      tmpl = Phronomy::PromptTemplate.new(template: "What is the capital of {{country}}?")
+      tmpl = Phronomy::Agent::Context::Instruction::PromptTemplate.new(template: "What is the capital of {{country}}?")
       result = tmpl.invoke({country: "Japan"})
       expect(result[:prompt]).to eq("What is the capital of Japan?")
       expect(result).not_to have_key(:system)
@@ -29,7 +29,7 @@ RSpec.describe "Group 10: PromptTemplate", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-006: PromptTemplate with_system; missing variable; standalone invoke" do
     it "raises KeyError when a system_template variable is absent" do
-      tmpl = Phronomy::PromptTemplate.new(
+      tmpl = Phronomy::Agent::Context::Instruction::PromptTemplate.new(
         template: "{{question}}",
         system_template: "You are a {{role}} assistant."
       )
@@ -43,7 +43,7 @@ RSpec.describe "Group 10: PromptTemplate", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-009: PromptTemplate with_system; all_provided; standalone — :system key present" do
     it "includes :system in the invoke result" do
-      tmpl = Phronomy::PromptTemplate.new(
+      tmpl = Phronomy::Agent::Context::Instruction::PromptTemplate.new(
         template: "{{question}}",
         system_template: "You are a {{role}} expert."
       )
@@ -59,7 +59,7 @@ RSpec.describe "Group 10: PromptTemplate", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-010: multi_variable PromptTemplate; all variables provided; standalone" do
     it "substitutes all variables correctly" do
-      tmpl = Phronomy::PromptTemplate.new(
+      tmpl = Phronomy::Agent::Context::Instruction::PromptTemplate.new(
         template: "Translate {{text}} from {{source_lang}} to {{target_lang}}."
       )
       result = tmpl.invoke({text: "Hello", source_lang: "English", target_lang: "French"})
@@ -67,7 +67,7 @@ RSpec.describe "Group 10: PromptTemplate", :integration do
     end
 
     it "reports all variable names via #variables" do
-      tmpl = Phronomy::PromptTemplate.new(
+      tmpl = Phronomy::Agent::Context::Instruction::PromptTemplate.new(
         template: "Translate {{text}} from {{source_lang}} to {{target_lang}}."
       )
       expect(tmpl.variables).to match_array(%i[text source_lang target_lang])
@@ -82,7 +82,7 @@ RSpec.describe "Group 10: PromptTemplate", :integration do
     after { LLMStub.deactivate }
 
     it "injects system_template as system prompt and returns non-empty output", :llm_required do
-      tmpl = Phronomy::PromptTemplate.new(
+      tmpl = Phronomy::Agent::Context::Instruction::PromptTemplate.new(
         template: "Answer this in {{lang}}: {{question}}",
         system_template: "You are a {{domain}} expert. Be concise."
       )

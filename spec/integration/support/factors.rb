@@ -204,7 +204,7 @@ module IntegrationFactors
   # Factor: memory_token_budget
   #
   # @param label [String] "nil" | "generous" | "tight"
-  # @return [Phronomy::Context::TokenBudget, nil]
+  # @return [Phronomy::LlmContextWindow::TokenBudget, nil]
   # ---------------------------------------------------------------------------
   def self.token_budget(label)
     case label
@@ -212,10 +212,10 @@ module IntegrationFactors
       nil
     when "generous"
       # 128k window, 4k output → ~124k for history; effectively unlimited
-      Phronomy::Context::TokenBudget.new(context_window: 131_072, max_output_tokens: 4096)
+      Phronomy::LlmContextWindow::TokenBudget.new(context_window: 131_072, max_output_tokens: 4096)
     when "tight"
       # Very small window to force message trimming
-      Phronomy::Context::TokenBudget.new(context_window: 256, max_output_tokens: 64)
+      Phronomy::LlmContextWindow::TokenBudget.new(context_window: 256, max_output_tokens: 64)
     else
       raise ArgumentError, "Unknown memory_token_budget label: #{label}"
     end
@@ -259,19 +259,19 @@ module IntegrationFactors
   # Factor: prompt_template_type
   #
   # @param label [String] "human_only" | "with_system" | "multi_variable"
-  # @return [Phronomy::PromptTemplate]
+  # @return [Phronomy::Agent::Context::Instruction::PromptTemplate]
   # ---------------------------------------------------------------------------
   def self.prompt_template(label)
     case label
     when "human_only"
-      Phronomy::PromptTemplate.new(template: "Answer this question: {{question}}")
+      Phronomy::Agent::Context::Instruction::PromptTemplate.new(template: "Answer this question: {{question}}")
     when "with_system"
-      Phronomy::PromptTemplate.new(
+      Phronomy::Agent::Context::Instruction::PromptTemplate.new(
         template: "Answer this question: {{question}}",
         system_template: "You are a {{role}} expert. Keep answers very short."
       )
     when "multi_variable"
-      Phronomy::PromptTemplate.new(
+      Phronomy::Agent::Context::Instruction::PromptTemplate.new(
         template: "Translate {{text}} from {{source_lang}} to {{target_lang}}.",
         system_template: "You are a professional translator."
       )
@@ -287,7 +287,7 @@ module IntegrationFactors
   #
   # @param label [String] "base" | "react"
   # @param tools [Array, Hash] tool list (default [])
-  # @param instructions [String, Phronomy::PromptTemplate] instructions
+  # @param instructions [String, Phronomy::Agent::Context::Instruction::PromptTemplate] instructions
   # @return [Class]
   # ---------------------------------------------------------------------------
   def self.streaming_agent_class(label, tools: [], instructions: "You are a helpful assistant.")
@@ -315,7 +315,7 @@ module IntegrationFactors
   # Returns a 3-D vector derived from the text's character-sum so that
   # different texts produce different (but stable) vectors.
   # ---------------------------------------------------------------------------
-  class StubEmbeddings < Phronomy::Embeddings::Base
+  class StubEmbeddings < Phronomy::Agent::Context::Knowledge::Embeddings::Base
     def embed(text, _cancellation_token = nil)
       h = text.chars.sum(&:ord).to_f
       norm = Math.sqrt(3) * (h + 1)
@@ -327,16 +327,16 @@ module IntegrationFactors
   # Factor: embeddings_adapter_type
   #
   # @param label [String] "ruby_llm_default" | "ruby_llm_explicit_model" | "stub"
-  # @return [Phronomy::Embeddings::Base]
+  # @return [Phronomy::Agent::Context::Knowledge::Embeddings::Base]
   # ---------------------------------------------------------------------------
   LM_STUDIO_EMBEDDING_MODEL = "text-embedding-nomic-embed-text-v1.5"
 
   def self.embeddings_adapter(label)
     case label
     when "ruby_llm_default"
-      Phronomy::Embeddings::RubyLLMEmbeddings.new
+      Phronomy::Agent::Context::Knowledge::Embeddings::RubyLLMEmbeddings.new
     when "ruby_llm_explicit_model"
-      Phronomy::Embeddings::RubyLLMEmbeddings.new(
+      Phronomy::Agent::Context::Knowledge::Embeddings::RubyLLMEmbeddings.new(
         model: LM_STUDIO_EMBEDDING_MODEL,
         provider: :openai,
         assume_model_exists: true
@@ -352,12 +352,12 @@ module IntegrationFactors
   # Factor: vector_store_backend
   #
   # @param label [String] "in_memory" | "pgvector" | "redis_search"
-  # @return [Phronomy::VectorStore::Base]
+  # @return [Phronomy::Agent::Context::Knowledge::VectorStore::Base]
   # ---------------------------------------------------------------------------
   def self.vector_store(label)
     case label
     when "in_memory"
-      Phronomy::VectorStore::InMemory.new
+      Phronomy::Agent::Context::Knowledge::VectorStore::InMemory.new
     when "pgvector"
       raise "Pgvector backend requires a running PostgreSQL + pgvector server"
     when "redis_search"
@@ -372,14 +372,14 @@ module IntegrationFactors
   #
   # @param label [String] "plain_text" | "markdown_with_headings" |
   #                       "markdown_no_split" | "csv_with_headers"
-  # @return [Phronomy::Loader::Base]
+  # @return [Phronomy::Agent::Context::Knowledge::Loader::Base]
   # ---------------------------------------------------------------------------
   def self.loader(label)
     case label
-    when "plain_text" then Phronomy::Loader::PlainTextLoader.new
-    when "markdown_with_headings" then Phronomy::Loader::MarkdownLoader.new(split_on_headings: true)
-    when "markdown_no_split" then Phronomy::Loader::MarkdownLoader.new(split_on_headings: false)
-    when "csv_with_headers" then Phronomy::Loader::CsvLoader.new(headers: true)
+    when "plain_text" then Phronomy::Agent::Context::Knowledge::Loader::PlainTextLoader.new
+    when "markdown_with_headings" then Phronomy::Agent::Context::Knowledge::Loader::MarkdownLoader.new(split_on_headings: true)
+    when "markdown_no_split" then Phronomy::Agent::Context::Knowledge::Loader::MarkdownLoader.new(split_on_headings: false)
+    when "csv_with_headers" then Phronomy::Agent::Context::Knowledge::Loader::CsvLoader.new(headers: true)
     else raise ArgumentError, "Unknown loader_type label: #{label}"
     end
   end
@@ -388,13 +388,13 @@ module IntegrationFactors
   # Factor: splitter_type
   #
   # @param label [String] "none" | "fixed_size" | "recursive"
-  # @return [Phronomy::Splitter::Base, nil]
+  # @return [Phronomy::Agent::Context::Knowledge::Splitter::Base, nil]
   # ---------------------------------------------------------------------------
   def self.splitter(label)
     case label
     when "none" then nil
-    when "fixed_size" then Phronomy::Splitter::FixedSizeSplitter.new(chunk_size: 200, chunk_overlap: 20)
-    when "recursive" then Phronomy::Splitter::RecursiveSplitter.new(chunk_size: 200, chunk_overlap: 20)
+    when "fixed_size" then Phronomy::Agent::Context::Knowledge::Splitter::FixedSizeSplitter.new(chunk_size: 200, chunk_overlap: 20)
+    when "recursive" then Phronomy::Agent::Context::Knowledge::Splitter::RecursiveSplitter.new(chunk_size: 200, chunk_overlap: 20)
     else raise ArgumentError, "Unknown splitter_type label: #{label}"
     end
   end
@@ -679,17 +679,17 @@ module IntegrationFactors
   # Returns an Array of StaticKnowledge sources for the given label.
   #
   # @param label [String] "none" | "single" | "multi"
-  # @return [Array<Phronomy::KnowledgeSource::StaticKnowledge>]
+  # @return [Array<Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge>]
   def self.static_knowledge_sources(label)
     case label
     when "none"
       []
     when "single"
-      [Phronomy::KnowledgeSource::StaticKnowledge.new("Policy: be concise and helpful.")]
+      [Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge.new("Policy: be concise and helpful.")]
     when "multi"
       [
-        Phronomy::KnowledgeSource::StaticKnowledge.new("Policy: be concise and helpful."),
-        Phronomy::KnowledgeSource::StaticKnowledge.new("Guide: always cite sources when possible.")
+        Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge.new("Policy: be concise and helpful."),
+        Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge.new("Guide: always cite sources when possible.")
       ]
     else
       raise ArgumentError, "Unknown ctx_static_knowledge label: #{label}"
@@ -1354,11 +1354,11 @@ module IntegrationFactors
   # Returns a fresh InMemory store with the given dimension initialisation.
   #
   # @param label [String] "explicit" | "inferred"
-  # @return [Phronomy::VectorStore::InMemory]
+  # @return [Phronomy::Agent::Context::Knowledge::VectorStore::InMemory]
   def self.vs_store(label)
     case label
-    when "explicit" then Phronomy::VectorStore::InMemory.new(dimension: 2)
-    when "inferred" then Phronomy::VectorStore::InMemory.new
+    when "explicit" then Phronomy::Agent::Context::Knowledge::VectorStore::InMemory.new(dimension: 2)
+    when "inferred" then Phronomy::Agent::Context::Knowledge::VectorStore::InMemory.new
     else raise ArgumentError, "Unknown vs_dimension_init label: #{label}"
     end
   end

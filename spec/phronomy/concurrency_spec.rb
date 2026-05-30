@@ -124,7 +124,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
   #  integrity assertions missing from that suite)
   # -----------------------------------------------------------------------
   describe "VectorStore::InMemory concurrent add/search integrity" do
-    subject(:store) { Phronomy::VectorStore::InMemory.new(dimension: 3) }
+    subject(:store) { Phronomy::Agent::Context::Knowledge::VectorStore::InMemory.new(dimension: 3) }
 
     it "returns structurally valid results when add and search interleave" do
       5.times { |i| store.add(id: "seed-#{i}", embedding: [1.0, 0.0, 0.0], metadata: {i: i}) }
