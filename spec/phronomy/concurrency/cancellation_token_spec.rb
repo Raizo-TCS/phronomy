@@ -116,6 +116,13 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
       token.cancel!
       expect(token.cancelled?).to be true
     end
+
+    it "uses Process.clock_gettime to establish the monotonic deadline" do
+      fixed_now = 100_000.0
+      allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(fixed_now)
+      token = described_class.timeout_after(30)
+      expect(token.remaining_monotonic_seconds).to be_within(0.001).of(30.0)
+    end
   end
 
   describe "#raise_if_cancelled!" do

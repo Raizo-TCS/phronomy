@@ -24,18 +24,18 @@ jobs:
             timeout_minutes: 60
           - subject: Phronomy::Tool::Base
             label: Tool::Base
-          - subject: Phronomy::Context::TokenBudget
-            label: Context::TokenBudget
-          - subject: Phronomy::Context::Assembler
-            label: Context::Assembler
-          - subject: Phronomy::Context::TrimContext
-            label: Context::TrimContext
-          - subject: Phronomy::Context::CompactionContext
-            label: Context::CompactionContext
-          - subject: Phronomy::VectorStore::InMemory
-            label: VectorStore::InMemory
-          - subject: Phronomy::CancellationToken
-            label: CancellationToken
+          - subject: Phronomy::LlmContextWindow::TokenBudget
+            label: LlmContextWindow::TokenBudget
+          - subject: Phronomy::LlmContextWindow::Assembler
+            label: LlmContextWindow::Assembler
+          - subject: Phronomy::Agent::Context::Conversation::TrimContext
+            label: Agent::Context::Conversation::TrimContext
+          - subject: Phronomy::Agent::Context::Conversation::CompactionContext
+            label: Agent::Context::Conversation::CompactionContext
+          - subject: Phronomy::Agent::Context::Knowledge::VectorStore::InMemory
+            label: Agent::Context::Knowledge::VectorStore::InMemory
+          - subject: Phronomy::Concurrency::CancellationToken
+            label: Concurrency::CancellationToken
           - subject: Phronomy::Agent::Concerns::ErrorTranslation
             label: ErrorTranslation
           - subject: Phronomy::Guardrail::InputGuardrail
