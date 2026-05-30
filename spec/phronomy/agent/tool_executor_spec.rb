@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::ToolExecutor do
+RSpec.describe Phronomy::Agent::ToolExecutor do
   # ---------------------------------------------------------------------------
   # Test doubles
   # ---------------------------------------------------------------------------

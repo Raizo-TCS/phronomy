@@ -95,7 +95,7 @@ module Phronomy
               }}
             end
 
-            awaitable = Phronomy::ToolExecutor.call_async(
+            awaitable = Phronomy::Agent::ToolExecutor.call_async(
               tool: tool,
               args: tc.arguments,
               cancellation_token: ct
@@ -138,7 +138,7 @@ module Phronomy
           }
         end
 
-        Phronomy::ToolExecutor.call_async(
+        Phronomy::Agent::ToolExecutor.call_async(
           tool: tool,
           args: tool_call.arguments,
           cancellation_token: @cancellation_token

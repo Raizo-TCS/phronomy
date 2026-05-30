@@ -359,7 +359,7 @@ module Phronomy
       # Invokes this tool asynchronously and returns a {Phronomy::Task}.
       #
       # Routing is governed by the class-level {.execution_mode} setting.
-      # Delegates to {Phronomy::ToolExecutor.call_async} which is the single
+      # Delegates to {Phronomy::Agent::ToolExecutor.call_async} which is the single
       # place in the framework that applies the execution-mode routing rules.
       #
       # @param args               [Hash]
@@ -368,7 +368,7 @@ module Phronomy
       # @api public
       # mutant:disable
       def call_async(args, cancellation_token: nil)
-        Phronomy::ToolExecutor.call_async(
+        Phronomy::Agent::ToolExecutor.call_async(
           tool: self,
           args: args,
           cancellation_token: cancellation_token

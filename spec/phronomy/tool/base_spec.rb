@@ -1239,9 +1239,9 @@ RSpec.describe Phronomy::Tool::Base do
   end
 
   describe "#call_async — direct unit tests" do
-    it "passes cancellation_token to Phronomy::ToolExecutor" do
+    it "passes cancellation_token to Phronomy::Agent::ToolExecutor" do
       ct = Phronomy::Concurrency::CancellationToken.new
-      expect(Phronomy::ToolExecutor).to receive(:call_async).with(
+      expect(Phronomy::Agent::ToolExecutor).to receive(:call_async).with(
         tool: hello_tool,
         args: {},
         cancellation_token: ct
@@ -1250,7 +1250,7 @@ RSpec.describe Phronomy::Tool::Base do
     end
 
     it "passes nil cancellation_token by default" do
-      expect(Phronomy::ToolExecutor).to receive(:call_async).with(
+      expect(Phronomy::Agent::ToolExecutor).to receive(:call_async).with(
         tool: hello_tool,
         args: {},
         cancellation_token: nil
@@ -1258,8 +1258,8 @@ RSpec.describe Phronomy::Tool::Base do
       hello_tool.call_async({})
     end
 
-    it "delegates to Phronomy::ToolExecutor (not unqualified ToolExecutor)" do
-      expect(Phronomy::ToolExecutor).to receive(:call_async).and_call_original
+    it "delegates to Phronomy::Agent::ToolExecutor (not unqualified ToolExecutor)" do
+      expect(Phronomy::Agent::ToolExecutor).to receive(:call_async).and_call_original
       result = hello_tool.call_async({})
       expect(result).to respond_to(:await)
     end
