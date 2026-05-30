@@ -18,7 +18,7 @@ RSpec.describe Phronomy::ToolExecutor do
   end
 
   let(:pool_double) do
-    pd = instance_double(Phronomy::BlockingAdapterPool)
+    pd = instance_double(Phronomy::Concurrency::BlockingAdapterPool)
     allow(pd).to receive(:submit) do |cancellation_token: nil, &blk|
       op = double("PendingOp")
       allow(op).to receive(:await).and_return(blk.call)
@@ -125,7 +125,7 @@ RSpec.describe Phronomy::ToolExecutor do
   describe "cancellation_token propagation" do
     it "passes the token to Tool#call for :cooperative tools" do
       tool = make_tool(:cooperative)
-      ct = Phronomy::CancellationToken.new
+      ct = Phronomy::Concurrency::CancellationToken.new
       allow(tool).to receive(:call).and_call_original
       described_class.call_async(tool: tool, args: {"x" => "x"}, cancellation_token: ct,
         runtime: runtime_with_pool)
@@ -134,7 +134,7 @@ RSpec.describe Phronomy::ToolExecutor do
 
     it "passes the token to pool.submit for :blocking_io tools" do
       tool = make_tool(:blocking_io)
-      ct = Phronomy::CancellationToken.new
+      ct = Phronomy::Concurrency::CancellationToken.new
       described_class.call_async(tool: tool, args: {"x" => "y"}, cancellation_token: ct,
         runtime: runtime_with_pool)
       expect(pool_double).to have_received(:submit).with(cancellation_token: ct)

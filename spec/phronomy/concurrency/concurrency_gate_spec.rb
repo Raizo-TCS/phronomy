@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe Phronomy::ConcurrencyGate do
+RSpec.describe Phronomy::Concurrency::ConcurrencyGate do
   describe "unlimited gate (max_concurrent: nil)" do
     subject(:gate) { described_class.new(max_concurrent: nil, name: :test) }
 

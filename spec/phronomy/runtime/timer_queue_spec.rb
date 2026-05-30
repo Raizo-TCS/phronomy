@@ -74,18 +74,18 @@ RSpec.describe Phronomy::Runtime::TimerQueue do
 
   describe "integration with Deadline and CancellationToken" do
     it "cancels the token when the deadline fires via timer queue" do
-      token = Phronomy::CancellationToken.new
+      token = Phronomy::Concurrency::CancellationToken.new
       fake_tq = Phronomy::Testing::FakeClock.new
-      Phronomy::Deadline.in(5).attach_to(token, timer_queue: fake_tq)
+      Phronomy::Concurrency::Deadline.in(5).attach_to(token, timer_queue: fake_tq)
       expect(token.cancelled?).to be(false)
       fake_tq.advance(6)
       expect(token.cancelled?).to be(true)
     end
 
     it "does not cancel the token before the deadline" do
-      token = Phronomy::CancellationToken.new
+      token = Phronomy::Concurrency::CancellationToken.new
       fake_tq = Phronomy::Testing::FakeClock.new
-      Phronomy::Deadline.in(5).attach_to(token, timer_queue: fake_tq)
+      Phronomy::Concurrency::Deadline.in(5).attach_to(token, timer_queue: fake_tq)
       fake_tq.advance(4)
       expect(token.cancelled?).to be(false)
     end
@@ -116,8 +116,8 @@ RSpec.describe Phronomy::Runtime::TimerQueue do
       runtime = Phronomy::Runtime.new
       before_count = Thread.list.size
 
-      tokens = Array.new(1000) { Phronomy::CancellationToken.new }
-      tokens.each { |t| Phronomy::Deadline.in(60).attach_to(t, timer_queue: runtime.timer_queue) }
+      tokens = Array.new(1000) { Phronomy::Concurrency::CancellationToken.new }
+      tokens.each { |t| Phronomy::Concurrency::Deadline.in(60).attach_to(t, timer_queue: runtime.timer_queue) }
 
       after_count = Thread.list.size
       runtime.shutdown

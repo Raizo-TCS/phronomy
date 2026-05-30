@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Phronomy
+  module Concurrency
   # A bounded, observable thread pool for blocking I/O operations.
   #
   # ## Architectural boundary
@@ -28,7 +29,7 @@ module Phronomy
   #   result = op.await   # blocks the calling thread until done
   #
   # @example With cancellation
-  #   token = Phronomy::CancellationToken.timeout_after(60)
+  #   token = Phronomy::Concurrency::CancellationToken.timeout_after(60)
   #   op = pool.submit(timeout: 30, cancellation_token: token) { expensive_call }
   #   result = op.await
   class BlockingAdapterPool
@@ -433,3 +434,4 @@ module Phronomy
     end
   end
 end
+  end

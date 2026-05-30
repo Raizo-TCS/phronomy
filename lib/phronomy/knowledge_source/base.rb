@@ -12,7 +12,7 @@ module Phronomy
       # Retrieve knowledge chunks relevant to the given query.
       #
       # @param query              [String, nil]                    the current user input used to select relevant chunks
-      # @param cancellation_token [Phronomy::CancellationToken, nil] optional token; raises CancellationError when cancelled
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil] optional token; raises CancellationError when cancelled
       # @return [Array<Hash>] array of { content: String, type: Symbol }
       # @api public
       def fetch(query: nil, cancellation_token: nil)
@@ -25,7 +25,7 @@ module Phronomy
       # Callers can fan out multiple fetches in parallel and await them all.
       #
       # @param query              [String, nil]
-      # @param cancellation_token [Phronomy::CancellationToken, nil]
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil] seconds before the operation is abandoned
       # @return [BlockingAdapterPool::PendingOperation]
       # @api public

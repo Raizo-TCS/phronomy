@@ -52,7 +52,7 @@ module Phronomy
     #
     # @param tool               [Phronomy::Tool::Base] the tool instance to invoke
     # @param args               [Hash]                 argument hash to pass to {Tool::Base#call}
-    # @param cancellation_token [Phronomy::CancellationToken, nil]
+    # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
     # @param runtime            [Phronomy::Runtime]    runtime to use for spawning
     #                           (defaults to {Runtime.instance}; injectable for tests)
     # @return [#await] a {Phronomy::Task} or {BlockingAdapterPool::PendingOperation}

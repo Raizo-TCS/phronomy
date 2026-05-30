@@ -29,7 +29,7 @@ module Phronomy
       # Embed text via RubyLLM.
       #
       # @param text               [String]
-      # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil] optional; raises CancellationError when cancelled
       # @return [Array<Float>]
       # @api public
       def embed(text, cancellation_token = nil)

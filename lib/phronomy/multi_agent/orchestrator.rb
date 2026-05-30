@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Phronomy
-  module Agent
+  module MultiAgent
     # Base class for orchestrator agents that coordinate multiple subagents.
     # Implements the Orchestrator-Subagent multi-agent coordination pattern
     # (Anthropic blog, Pattern 2).
@@ -16,7 +16,7 @@ module Phronomy
     # - +fan_out+ for parallel invocation of the same agent across multiple inputs.
     #
     # @example Declarative DSL
-    #   class ResearchOrchestrator < Phronomy::Agent::Orchestrator
+    #   class ResearchOrchestrator < Phronomy::MultiAgent::Orchestrator
     #     model "gpt-4o"
     #     instructions "You coordinate research tasks."
     #     subagent :searcher,   SearchAgent
@@ -26,7 +26,7 @@ module Phronomy
     #   result = ResearchOrchestrator.new.invoke("Research the latest AI news.")
     #
     # @example Programmatic parallel dispatch
-    #   class MyOrchestrator < Phronomy::Agent::Orchestrator
+    #   class MyOrchestrator < Phronomy::MultiAgent::Orchestrator
     #     model "gpt-4o"
     #     instructions "Dispatch tasks in parallel."
     #
@@ -41,7 +41,7 @@ module Phronomy
     #
     # @example Fan-out (same agent, multiple inputs)
     #   results = fan_out(agent: TranslationAgent, inputs: ["Hello", "World"])
-    class Orchestrator < Base
+    class Orchestrator < Agent::Base
       # Declares a named subagent and registers it as a tool accessible to the
       # LLM during an +invoke+ call.
       #
@@ -142,7 +142,7 @@ module Phronomy
       #   nil means wait indefinitely. When the deadline is exceeded,
       #   {Phronomy::TimeoutError} is raised and all surviving tasks are cancelled
       #   cooperatively.
-      # @param cancellation_token [Phronomy::CancellationToken, nil] when provided, the
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil] when provided, the
       #   token is merged into each task's config (unless the task already sets one) so
       #   that every child agent checks it before making LLM calls.
       # @param invocation_context [Phronomy::InvocationContext, nil] when provided,
@@ -313,7 +313,7 @@ module Phronomy
         end
 
         if timeout
-          deadline = Phronomy::Deadline.in(timeout)
+          deadline = Phronomy::Concurrency::Deadline.in(timeout)
           spawned.each { |t| t.join([deadline.remaining_seconds, 0].max) }
 
           alive = spawned.select(&:alive?)

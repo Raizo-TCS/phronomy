@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Phronomy
-  class Runtime
+  module Concurrency
     # Lazy cache of {ConcurrencyGate} instances, keyed by resource name.
     #
     # Gate concurrency caps are read from {Phronomy::Configuration} when a gate

@@ -3,7 +3,7 @@
 module Phronomy
   # Singleton event loop that manages all FSMSession instances.
   #
-  # A single background thread reads from a global {Phronomy::AsyncQueue} and
+  # A single background thread reads from a global {Phronomy::Concurrency::AsyncQueue} and
   # dispatches events to their target FSMSession.  IO work (LLM calls, tool
   # calls) must be dispatched via +Runtime.instance.spawn+ or
   # +BlockingAdapterPool+, then post results back to the loop via
@@ -72,7 +72,7 @@ module Phronomy
     end
 
     def initialize
-      @queue = Phronomy::AsyncQueue.new  # global event queue (thread-safe; no Mutex needed)
+      @queue = Phronomy::Concurrency::AsyncQueue.new  # global event queue (thread-safe; no Mutex needed)
       @fsms = {}                  # { id => FSMSession }     — EventLoop thread only
       @waiting = {}               # { id => completion_queue } — EventLoop thread only
       # Mutex-backed FSM count for drain-mode shutdown.
@@ -80,7 +80,7 @@ module Phronomy
       @fsm_count_cond = ConditionVariable.new
       @fsm_count = 0
       # Token cancelled when shutdown is requested; new child sessions receive it.
-      @shutdown_token = Phronomy::CancellationToken.new
+      @shutdown_token = Phronomy::Concurrency::CancellationToken.new
       # Fairness metrics (EventLoop thread only, except where noted)
       @lag_mutex = Mutex.new
       @last_lag_ns = 0
@@ -129,8 +129,8 @@ module Phronomy
     # (WorkflowContext) once the workflow finishes or halts. If an error occurred,
     # the popped value will be an Exception — callers are responsible for re-raising it.
     #
-    # @param fsm_session [Phronomy::FSMSession]
-    # @return [Phronomy::AsyncQueue] resolves to final/halted context, or an Exception
+    # @param fsm_session [Phronomy::Agent::Lifecycle::FSMSession]
+    # @return [Phronomy::Concurrency::AsyncQueue] resolves to final/halted context, or an Exception
     # @api private
     def register(fsm_session)
       if Phronomy::EventLoop.current?
@@ -141,7 +141,7 @@ module Phronomy
           "Phronomy::EventLoop.instance.post(...) instead."
       end
 
-      completion_queue = Phronomy::AsyncQueue.new
+      completion_queue = Phronomy::Concurrency::AsyncQueue.new
       # Pass both session and completion_queue in the event payload so that the
       # EventLoop thread is the sole writer of @fsms and @waiting.
       @queue.push([Event.new(type: :start, target_id: fsm_session.id,
@@ -194,7 +194,7 @@ module Phronomy
       return self if @task&.alive?
 
       # Reset shutdown state so the loop can be restarted after a stop.
-      @shutdown_token = Phronomy::CancellationToken.new
+      @shutdown_token = Phronomy::Concurrency::CancellationToken.new
       @fsm_count_mutex.synchronize { @fsm_count = 0 }
       @running = true
       # The dispatch loop must always run in a real background thread.

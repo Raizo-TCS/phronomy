@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::AsyncQueue do
+RSpec.describe Phronomy::Concurrency::AsyncQueue do
   describe "#push / #pop" do
     it "transfers values FIFO" do
       q = described_class.new
@@ -95,7 +95,7 @@ RSpec.describe Phronomy::AsyncQueue do
   end
 
   # Issue #284 — EventLoop and CancellationScope must not reference Thread::Queue
-  # directly; all queue usage must go through Phronomy::AsyncQueue so the backing
+  # directly; all queue usage must go through Phronomy::Concurrency::AsyncQueue so the backing
   # primitive can be swapped without touching call sites.
   describe "pop with timeout (Issue #284)", :issue_284 do
     it "returns nil when the queue is empty and the timeout expires" do

@@ -36,7 +36,7 @@ module Phronomy
       # Returns an empty array when query is nil or blank.
       #
       # @param query              [String, nil]
-      # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil] optional; raises CancellationError when cancelled
       # @return [Array<Hash>]
       # @api public
       def fetch(query: nil, cancellation_token: nil)

@@ -8,8 +8,6 @@ require_relative "runtime/timer_queue"
 require_relative "runtime/scheduler_timer_adapter"
 require_relative "runtime/task_registry"
 require_relative "runtime/runtime_metrics"
-require_relative "runtime/gate_registry"
-require_relative "runtime/pool_registry"
 require_relative "runtime/timer_service"
 
 module Phronomy
@@ -109,8 +107,8 @@ module Phronomy
       @scheduler = scheduler
       @task_registry = TaskRegistry.new
       @metrics = RuntimeMetrics.new
-      @gate_registry = GateRegistry.new
-      @pool_registry = PoolRegistry.new
+      @gate_registry = Phronomy::Concurrency::GateRegistry.new
+      @pool_registry = Phronomy::Concurrency::PoolRegistry.new
       @timer_service = TimerService.new(scheduler)
     end
 

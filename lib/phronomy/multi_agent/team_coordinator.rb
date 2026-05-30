@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Phronomy
-  module Agent
+  module MultiAgent
     # Implements the "Agent teams" coordination pattern (Anthropic blog, Pattern 3).
     #
     # @see https://claude.com/blog/multi-agent-coordination-patterns
@@ -24,7 +24,7 @@ module Phronomy
     # +invoke+ call, so the LLM retains context across multiple task assignments.
     #
     # @example Basic usage
-    #   class MigrationTeam < Phronomy::Agent::TeamCoordinator
+    #   class MigrationTeam < Phronomy::MultiAgent::TeamCoordinator
     #     coordinator_model        "claude-3-5-sonnet-20241022"
     #     coordinator_instructions <<~INST
     #       Analyze the request and enqueue one migration task per service.

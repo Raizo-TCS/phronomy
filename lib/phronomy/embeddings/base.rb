@@ -10,7 +10,7 @@ module Phronomy
       # Embed the given text and return a vector representation.
       #
       # @param text               [String]                         the text to embed
-      # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil] optional; raises CancellationError when cancelled
       # @return [Array<Float>] the embedding vector
       # @api public
       def embed(text, cancellation_token = nil)
@@ -22,7 +22,7 @@ module Phronomy
       # {BlockingAdapterPool::PendingOperation}.
       #
       # @param text               [String]
-      # @param cancellation_token [Phronomy::CancellationToken, nil]
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil] seconds before the operation is abandoned
       # @return [BlockingAdapterPool::PendingOperation]
       # @api public

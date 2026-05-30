@@ -37,7 +37,7 @@ class PtcApprovalTool < Phronomy::Tool::Base
   end
 end
 
-RSpec.describe Phronomy::Agent::ParallelToolChat do
+RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
   before(:each) do
     RubyLLM.configure { |c| c.openai_api_key = "test-api-key" }
   end
@@ -241,7 +241,7 @@ RSpec.describe Phronomy::Agent::ParallelToolChat do
     it "returns ParallelToolChat when EventLoop mode is on" do
       agent = agent_class.new
       Phronomy.configure { |c| c.event_loop = true }
-      expect(agent.send(:build_chat_class)).to be(Phronomy::Agent::ParallelToolChat)
+      expect(agent.send(:build_chat_class)).to be(Phronomy::MultiAgent::ParallelToolChat)
     ensure
       Phronomy.configure { |c| c.event_loop = false }
     end
@@ -253,7 +253,7 @@ RSpec.describe Phronomy::Agent::ParallelToolChat do
   context "issue #295 — direct pool dispatch, no TaskGroup wrapper", :issue_295 do
     let(:task_spawned) { [] }
     let(:pool_double) do
-      pd = instance_double(Phronomy::BlockingAdapterPool)
+      pd = instance_double(Phronomy::Concurrency::BlockingAdapterPool)
       allow(pd).to receive(:submit) do |cancellation_token: nil, &blk|
         result = blk.call
         op = double("PendingOperation")

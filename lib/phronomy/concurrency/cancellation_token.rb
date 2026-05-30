@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Phronomy
+  module Concurrency
   # Provides cooperative cancellation for agent invocations.
   #
   # Pass a token to an agent via +config: { cancellation_token: token }+.
@@ -12,20 +13,20 @@ module Phronomy
   # all access to internal state is protected by a Mutex.
   #
   # @example Explicit cancel from another thread
-  #   token = Phronomy::CancellationToken.new
+  #   token = Phronomy::Concurrency::CancellationToken.new
   #   Thread.new { sleep 5; token.cancel! }
   #   result = agent.invoke("...", config: { cancellation_token: token })
   #
   # @example Hard deadline via monotonic clock (recommended)
-  #   token = Phronomy::CancellationToken.timeout_after(30)
+  #   token = Phronomy::Concurrency::CancellationToken.timeout_after(30)
   #   result = agent.invoke("...", config: { cancellation_token: token })
   #
   # @example Hard deadline via wall-clock (legacy)
-  #   token = Phronomy::CancellationToken.new(deadline: Time.now + 30)
+  #   token = Phronomy::Concurrency::CancellationToken.new(deadline: Time.now + 30)
   #   result = agent.invoke("...", config: { cancellation_token: token })
   #
   # @example Propagate to parallel workers
-  #   token = Phronomy::CancellationToken.new
+  #   token = Phronomy::Concurrency::CancellationToken.new
   #   orchestrator.dispatch_parallel(task1, task2, cancellation_token: token)
   class CancellationToken
     # Returns a new token that will expire after +seconds+ seconds, measured
@@ -136,3 +137,4 @@ module Phronomy
     end
   end
 end
+  end

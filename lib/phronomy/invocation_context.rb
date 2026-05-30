@@ -11,7 +11,7 @@ module Phronomy
   # @example Build a context for a new agent invocation
   #   ctx = Phronomy::InvocationContext.new(
   #     thread_id:         "conv-123",
-  #     cancellation_token: Phronomy::CancellationToken.timeout_after(30),
+  #     cancellation_token: Phronomy::Concurrency::CancellationToken.timeout_after(30),
   #     max_parallel_tools: 5
   #   )
   #   agent.invoke("Hello", invocation_context: ctx)
@@ -127,7 +127,7 @@ module Phronomy
     # @return [CancellationToken]
     # @api private
     def effective_cancellation_token
-      @cancellation_token || CancellationToken.new
+      @cancellation_token || Phronomy::Concurrency::CancellationToken.new
     end
 
     # Returns the cancellation token to use for an invocation, taking both the
@@ -144,7 +144,7 @@ module Phronomy
       return @cancellation_token if @cancellation_token
       return nil if @deadline.nil?
 
-      token = CancellationToken.new
+      token = Phronomy::Concurrency::CancellationToken.new
       @deadline.attach_to(token)
       token
     end

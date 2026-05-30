@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Phronomy
-  module Agent
+  module MultiAgent
     # RubyLLM::Chat subclass that executes multiple tool calls concurrently.
     #
     # When the LLM returns more than one tool call in a single response, each
@@ -25,7 +25,7 @@ module Phronomy
     # @api private
     class ParallelToolChat < RubyLLM::Chat
       # @param max_parallel_tools [Integer] maximum simultaneous tool executions
-      # @param cancellation_token [Phronomy::CancellationToken, nil] token observed before each batch
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil] token observed before each batch
       # @param opts [Hash] remaining kwargs forwarded to RubyLLM::Chat
       # @api private
       def initialize(max_parallel_tools: 10, cancellation_token: nil, **opts)

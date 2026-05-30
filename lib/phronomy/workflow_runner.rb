@@ -160,7 +160,7 @@ module Phronomy
 
     # Builds an FSMSession for the given context. Used in EventLoop mode.
     def build_session_for(context:, recursion_limit:, resume_event: nil, resume_phase: nil)
-      Phronomy::FSMSession.new(
+      Phronomy::Agent::Lifecycle::FSMSession.new(
         id: context.thread_id,
         context: context,
         entry_point: @entry_point,

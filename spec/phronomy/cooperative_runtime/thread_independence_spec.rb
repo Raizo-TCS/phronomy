@@ -63,13 +63,13 @@ RSpec.describe "Thread-independence under FakeScheduler (Issue #309)" do
   describe "Scenario 5: Deadline — no Thread increase" do
     it "does not increase Thread count for a single Deadline" do
       before = Thread.list.length
-      _d = Phronomy::Deadline.new(5)
+      _d = Phronomy::Concurrency::Deadline.new(5)
       expect(Thread.list.length).to be <= before + 1
     end
 
     it "does not linearly increase Thread count for 100 Deadlines" do
       before = Thread.list.length
-      100.times { Phronomy::Deadline.new(30) }
+      100.times { Phronomy::Concurrency::Deadline.new(30) }
       after = Thread.list.length
       # Timer queue uses at most one background Thread; allow +1 for it.
       expect(after - before).to be <= 1

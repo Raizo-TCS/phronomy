@@ -17,7 +17,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
   # Orchestrator#dispatch_parallel — result ordering under real concurrency
   # -----------------------------------------------------------------------
   describe "Orchestrator#dispatch_parallel result ordering under concurrency" do
-    subject(:orchestrator) { Class.new(Phronomy::Agent::Orchestrator).new }
+    subject(:orchestrator) { Class.new(Phronomy::MultiAgent::Orchestrator).new }
 
     it "returns results in input order even when tasks complete in reverse order" do
       # Tasks are staggered so they finish in reverse order (task 5 first, task 1 last).
@@ -98,7 +98,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
   # -----------------------------------------------------------------------
   describe "Orchestrator#invoke_once context cleanup" do
     it "resets @_orchestrator_context to nil after invoke" do
-      orchestrator_class = Class.new(Phronomy::Agent::Orchestrator)
+      orchestrator_class = Class.new(Phronomy::MultiAgent::Orchestrator)
       # Override to avoid any real LLM call; just return immediately.
       orchestrator_class.define_method(:_invoke_impl) do |input, config: {}, thread_id: nil, **|
         super(input, config: config, thread_id: thread_id)

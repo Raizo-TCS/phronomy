@@ -995,7 +995,7 @@ RSpec.describe "Agent#invoke invoke_timeout cancellation propagation (Issue #290
       invoke_timeout 5
     end
 
-    parent_token = Phronomy::CancellationToken.new
+    parent_token = Phronomy::Concurrency::CancellationToken.new
     captured_token = nil
     allow_any_instance_of(klass).to receive(:_invoke_impl) do |_agent, _input, config:, **|
       captured_token = config[:cancellation_token]

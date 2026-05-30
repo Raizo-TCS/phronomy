@@ -1225,12 +1225,12 @@ module IntegrationFactors
   # @param on_error [Symbol] :raise | :skip
   # @param aggregate [Symbol] :with_block | :none
   # @param worker [Class] worker agent class to use in the pool
-  # @return [Class<Phronomy::Agent::TeamCoordinator>]
+  # @return [Class<Phronomy::MultiAgent::TeamCoordinator>]
   def self.tc_team_class(pool_size:, on_error:, aggregate:, worker:)
     size = (pool_size == :single) ? 1 : 2
     err = on_error
 
-    Class.new(Phronomy::Agent::TeamCoordinator) do
+    Class.new(Phronomy::MultiAgent::TeamCoordinator) do
       coordinator_model LM_MODEL_32
       coordinator_provider :openai
       coordinator_instructions "You are a task coordinator. Use enqueue_task to " \
@@ -1331,13 +1331,13 @@ module IntegrationFactors
   #
   # @param subagent_count [Symbol] :single | :multiple
   # @param on_error       [Symbol] :raise | :skip
-  # @return [Class<Phronomy::Agent::Orchestrator>]
+  # @return [Class<Phronomy::MultiAgent::Orchestrator>]
   def self.orch_declarative_class(subagent_count:, on_error:)
     sa1 = orch_subagent_class
     sa2 = orch_subagent_class
     err = on_error
 
-    Class.new(Phronomy::Agent::Orchestrator) do
+    Class.new(Phronomy::MultiAgent::Orchestrator) do
       model LM_MODEL_34
       provider :openai
       instructions "You are an orchestrator. Use dispatch_to tools to delegate."
@@ -1434,9 +1434,9 @@ module IntegrationFactors
 
   # Returns a minimal Orchestrator subclass for dispatch_parallel / fan_out tests.
   #
-  # @return [Class<Phronomy::Agent::Orchestrator>]
+  # @return [Class<Phronomy::MultiAgent::Orchestrator>]
   def self.bp_orchestrator_class
-    Class.new(Phronomy::Agent::Orchestrator)
+    Class.new(Phronomy::MultiAgent::Orchestrator)
   end
 
   # ---------------------------------------------------------------------------

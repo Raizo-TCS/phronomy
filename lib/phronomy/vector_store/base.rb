@@ -19,7 +19,7 @@ module Phronomy
       # @param id                 [String]                         unique document identifier
       # @param embedding          [Array<Float>]                   vector embedding
       # @param metadata           [Hash]                           arbitrary metadata (e.g. the original message object)
-      # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil] optional; raises CancellationError when cancelled
       # @api public
       def add(id:, embedding:, metadata: {}, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
@@ -30,7 +30,7 @@ module Phronomy
       #
       # @param query_embedding    [Array<Float>]
       # @param k                  [Integer]                        number of results
-      # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil] optional; raises CancellationError when cancelled
       # @return [Array<Hash>] each element: { id:, score:, metadata: }
       # @api public
       def search(query_embedding:, k: 5, cancellation_token: nil)

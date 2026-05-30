@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::CancellationToken do
+RSpec.describe Phronomy::Concurrency::CancellationToken do
   describe "#initialize" do
     it "starts in the non-cancelled state" do
       expect(described_class.new.cancelled?).to be false
@@ -204,7 +204,7 @@ RSpec.describe Phronomy::CancellationToken do
   end
 
   describe "Agent::Orchestrator#dispatch_parallel integration" do
-    let(:orchestrator_class) { Class.new(Phronomy::Agent::Orchestrator) }
+    let(:orchestrator_class) { Class.new(Phronomy::MultiAgent::Orchestrator) }
     subject(:orchestrator) { orchestrator_class.new }
 
     # Agent that records the cancellation token it received in its config.

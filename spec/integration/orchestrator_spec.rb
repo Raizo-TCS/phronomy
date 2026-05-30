@@ -122,7 +122,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
   # orch_on_error does not apply here; dispatch_parallel re-raises unconditionally.
   # ---------------------------------------------------------------------------
   describe "TC-003: parallel / single / skip" do
-    let(:orch_class) { Class.new(Phronomy::Agent::Orchestrator) }
+    let(:orch_class) { Class.new(Phronomy::MultiAgent::Orchestrator) }
     subject(:orch) { orch_class.new }
 
     it "returns the single result in an Array" do
@@ -152,7 +152,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
   # With multiple tasks, order is preserved in the result Array.
   # ---------------------------------------------------------------------------
   describe "TC-004: parallel / multiple / raise" do
-    let(:orch_class) { Class.new(Phronomy::Agent::Orchestrator) }
+    let(:orch_class) { Class.new(Phronomy::MultiAgent::Orchestrator) }
     subject(:orch) { orch_class.new }
 
     it "returns results in the same order as the input tasks" do
@@ -183,7 +183,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
   # fan_out runs the same agent against one input.
   # ---------------------------------------------------------------------------
   describe "TC-005: fan_out / single / raise" do
-    let(:orch_class) { Class.new(Phronomy::Agent::Orchestrator) }
+    let(:orch_class) { Class.new(Phronomy::MultiAgent::Orchestrator) }
     subject(:orch) { orch_class.new }
 
     it "returns a one-element result array" do
@@ -200,7 +200,7 @@ RSpec.describe "Group 34: Orchestrator", :integration do
   # Results are returned in the same order as the inputs Array.
   # ---------------------------------------------------------------------------
   describe "TC-006: fan_out / multiple / skip" do
-    let(:orch_class) { Class.new(Phronomy::Agent::Orchestrator) }
+    let(:orch_class) { Class.new(Phronomy::MultiAgent::Orchestrator) }
     subject(:orch) { orch_class.new }
 
     it "runs the agent for every input and returns results in input order" do

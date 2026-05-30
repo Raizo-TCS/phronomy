@@ -38,7 +38,7 @@ module Phronomy
       # @param id                 [String]
       # @param embedding          [Array<Float>]
       # @param metadata           [Hash]
-      # @param cancellation_token [Phronomy::CancellationToken, nil]
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @api public
       def add(id:, embedding:, metadata: {}, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
@@ -52,7 +52,7 @@ module Phronomy
 
       # @param query_embedding    [Array<Float>]
       # @param k                  [Integer]
-      # @param cancellation_token [Phronomy::CancellationToken, nil]
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @return [Array<Hash>] sorted by descending similarity score
       # @api public
       def search(query_embedding:, k: 5, cancellation_token: nil)

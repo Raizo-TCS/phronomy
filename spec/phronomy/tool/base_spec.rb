@@ -150,19 +150,19 @@ RSpec.describe Phronomy::Tool::Base do
       end
 
       it "injects cancellation_token into execute when it accepts ct" do
-        ct = Phronomy::CancellationToken.new
+        ct = Phronomy::Concurrency::CancellationToken.new
         result = ct_aware_class.new.call({"msg" => "hi"}, cancellation_token: ct)
         expect(result).to include("CancellationToken")
       end
 
       it "does not inject cancellation_token when execute does not accept it" do
-        ct = Phronomy::CancellationToken.new
+        ct = Phronomy::Concurrency::CancellationToken.new
         result = hello_tool.call({"name" => "Ruby"}, cancellation_token: ct)
         expect(result).to eq("Hello, Ruby!")
       end
 
       it "raises CancellationError when cancellation_token is already cancelled" do
-        ct = Phronomy::CancellationToken.new
+        ct = Phronomy::Concurrency::CancellationToken.new
         ct.cancel!
         expect { hello_tool.call({"name" => "x"}, cancellation_token: ct) }
           .to raise_error(Phronomy::CancellationError)
@@ -1106,9 +1106,9 @@ RSpec.describe Phronomy::Tool::Base do
     end
 
     it "injects the cancellation_token kwarg into execute when execute accepts it" do
-      token = Phronomy::CancellationToken.new
+      token = Phronomy::Concurrency::CancellationToken.new
       result = token_receiving_class.new.call({"msg" => "hi"}, cancellation_token: token)
-      expect(result).to eq("hi:Phronomy::CancellationToken")
+      expect(result).to eq("hi:Phronomy::Concurrency::CancellationToken")
     end
 
     it "does not inject when no cancellation_token: is passed" do
@@ -1117,13 +1117,13 @@ RSpec.describe Phronomy::Tool::Base do
     end
 
     it "does not inject when execute does not accept cancellation_token:" do
-      token = Phronomy::CancellationToken.new
+      token = Phronomy::Concurrency::CancellationToken.new
       result = token_unaware_class.new.call({"msg" => "plain"}, cancellation_token: token)
       expect(result).to eq("plain:plain")
     end
 
     it "raises CancellationError when token is cancelled and tool calls raise_if_cancelled!" do
-      token = Phronomy::CancellationToken.new
+      token = Phronomy::Concurrency::CancellationToken.new
       token.cancel!
 
       checking_class = Class.new(described_class) do
@@ -1140,7 +1140,7 @@ RSpec.describe Phronomy::Tool::Base do
     end
 
     it "raises CancellationError at call entry when a cancelled token is passed as kwarg (#242)" do
-      token = Phronomy::CancellationToken.new
+      token = Phronomy::Concurrency::CancellationToken.new
       token.cancel!
       plain_class = Class.new(described_class) do
         description "plain tool"
@@ -1155,8 +1155,8 @@ RSpec.describe Phronomy::Tool::Base do
     end
 
     it "cancellation_token: kwarg causes CancellationError at call entry when cancelled (#242)" do
-      Phronomy::CancellationToken.new
-      cancelled_kwarg_token = Phronomy::CancellationToken.new
+      Phronomy::Concurrency::CancellationToken.new
+      cancelled_kwarg_token = Phronomy::Concurrency::CancellationToken.new
       cancelled_kwarg_token.cancel!
 
       plain_class = Class.new(described_class) do
@@ -1240,7 +1240,7 @@ RSpec.describe Phronomy::Tool::Base do
 
   describe "#call_async — direct unit tests" do
     it "passes cancellation_token to Phronomy::ToolExecutor" do
-      ct = Phronomy::CancellationToken.new
+      ct = Phronomy::Concurrency::CancellationToken.new
       expect(Phronomy::ToolExecutor).to receive(:call_async).with(
         tool: hello_tool,
         args: {},

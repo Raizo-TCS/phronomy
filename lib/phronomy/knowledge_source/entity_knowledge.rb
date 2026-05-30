@@ -56,7 +56,7 @@ module Phronomy
       # Returns an empty array when no entities have been discovered.
       #
       # @param query              [String, nil]                    unused — entity knowledge is always fully injected
-      # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil] optional; raises CancellationError when cancelled
       # @return [Array<Hash>]
       # @api public
       def fetch(query: nil, cancellation_token: nil)

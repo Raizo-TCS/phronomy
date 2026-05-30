@@ -8,7 +8,7 @@
 # Scenarios requiring real backends (LLM, MCP, Redis) are tagged :integration
 # and run separately.
 RSpec.describe "Stress and resource leak tests (Issue #275)" do
-  let(:pool) { Phronomy::BlockingAdapterPool.new(pool_size: 10, queue_size: 200) }
+  let(:pool) { Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 10, queue_size: 200) }
 
   after { pool.shutdown(drain_timeout: 10) }
 
@@ -69,7 +69,7 @@ RSpec.describe "Stress and resource leak tests (Issue #275)" do
 
   describe "backpressure under pool saturation" do
     it "raises BackpressureError when queue is full with on_full: :raise" do
-      sat_pool = Phronomy::BlockingAdapterPool.new(pool_size: 1, queue_size: 2)
+      sat_pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 2)
       latch = Mutex.new
       cond = ConditionVariable.new
       released = false
@@ -98,7 +98,7 @@ RSpec.describe "Stress and resource leak tests (Issue #275)" do
 
   describe "BlockingAdapterPool graceful shutdown" do
     it "drains in-flight operations before stopping" do
-      small_pool = Phronomy::BlockingAdapterPool.new(pool_size: 2, queue_size: 10)
+      small_pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 2, queue_size: 10)
       results = []
       mutex = Mutex.new
 

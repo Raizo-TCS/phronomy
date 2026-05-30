@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Phronomy
+  module Concurrency
   # Represents a bounded execution scope that owns a {CancellationToken} and
   # optionally a {Deadline}.
   #
@@ -10,13 +11,13 @@ module Phronomy
   # token is cancelled and all child tasks that check it will stop.
   #
   # @example Time-bounded invocation
-  #   scope = Phronomy::CancellationScope.new.deadline_in(30)
+  #   scope = Phronomy::Concurrency::CancellationScope.new.deadline_in(30)
   #   result = scope.pop_queue(completion_queue) do
   #     raise Phronomy::TimeoutError, "timed out"
   #   end
   #
   # @example Explicit cancellation
-  #   scope = Phronomy::CancellationScope.new
+  #   scope = Phronomy::Concurrency::CancellationScope.new
   #   Phronomy::Runtime.instance.spawn(name: "worker") do
   #     scope.token.raise_if_cancelled!
   #     # ... do work ...
@@ -35,7 +36,7 @@ module Phronomy
     #   deadline expiry).  No polling thread is spawned.
     # @api private
     def initialize(parent_token: nil)
-      @token = Phronomy::CancellationToken.new
+      @token = Phronomy::Concurrency::CancellationToken.new
       @deadline = nil
 
       if parent_token
@@ -63,7 +64,7 @@ module Phronomy
     # @return [self]
     # @api private
     def deadline_in(seconds)
-      @deadline = Phronomy::Deadline.in(seconds)
+      @deadline = Phronomy::Concurrency::Deadline.in(seconds)
       @deadline.attach_to(@token)
       self
     end
@@ -94,7 +95,7 @@ module Phronomy
     # +fallback_timeout+ seconds when no deadline is set).  If the pop times out,
     # the scope is cancelled and the block is called (or a {TimeoutError} raised).
     #
-    # @param queue [Phronomy::AsyncQueue] the queue to pop from
+    # @param queue [Phronomy::Concurrency::AsyncQueue] the queue to pop from
     # @param fallback_timeout [Numeric, nil] used when no deadline is attached
     # @yield called when the operation times out
     # @raise [Phronomy::TimeoutError] when no block is given and a timeout occurs
@@ -121,3 +122,4 @@ module Phronomy
     end
   end
 end
+  end

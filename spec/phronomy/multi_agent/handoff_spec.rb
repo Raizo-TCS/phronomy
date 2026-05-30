@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Agent::Handoff do
+RSpec.describe Phronomy::MultiAgent::Handoff do
   let(:target_klass) do
     Class.new(Phronomy::Agent::Base) do
       def self.name
@@ -35,7 +35,7 @@ RSpec.describe Phronomy::Agent::Handoff do
 
   describe "#sentinel" do
     it "starts with the SENTINEL_PREFIX" do
-      expect(handoff.sentinel).to start_with(Phronomy::Agent::Handoff::SENTINEL_PREFIX)
+      expect(handoff.sentinel).to start_with(Phronomy::MultiAgent::Handoff::SENTINEL_PREFIX)
     end
 
     it "embeds the target agent class name" do
@@ -188,7 +188,7 @@ RSpec.describe Phronomy::Agent::Runner do
   end
 end
 
-RSpec.describe "Phronomy::Agent::Handoff sentinel uniqueness" do
+RSpec.describe "Phronomy::MultiAgent::Handoff sentinel uniqueness" do
   let(:target) do
     Class.new(Phronomy::Agent::Base) do
       model "stub-model"
@@ -197,13 +197,13 @@ RSpec.describe "Phronomy::Agent::Handoff sentinel uniqueness" do
   end
 
   it "generates a different sentinel for each Handoff instance pointing at the same target" do
-    h1 = Phronomy::Agent::Handoff.new(target_agent: target)
-    h2 = Phronomy::Agent::Handoff.new(target_agent: target)
+    h1 = Phronomy::MultiAgent::Handoff.new(target_agent: target)
+    h2 = Phronomy::MultiAgent::Handoff.new(target_agent: target)
     expect(h1.sentinel).not_to eq(h2.sentinel)
   end
 
   it "includes the target class name in the sentinel" do
-    handoff = Phronomy::Agent::Handoff.new(target_agent: target)
+    handoff = Phronomy::MultiAgent::Handoff.new(target_agent: target)
     expect(handoff.sentinel).to include(target.class.name.to_s)
   end
 end

@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Agent::TeamCoordinator do
+RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
   # Builds a stub worker agent class. The optional block receives (input, messages)
   # and returns the output string. When omitted, returns "ok".
   def stub_worker(&response_block)

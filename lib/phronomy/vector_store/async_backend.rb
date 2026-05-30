@@ -36,7 +36,7 @@ module Phronomy
       # @param id                 [String]
       # @param embedding          [Array<Float>]
       # @param metadata           [Hash]
-      # @param cancellation_token [Phronomy::CancellationToken, nil]
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil]
       # @return [BlockingAdapterPool::PendingOperation]
       # @api public
@@ -56,7 +56,7 @@ module Phronomy
       #
       # @param query_embedding    [Array<Float>]
       # @param k                  [Integer]
-      # @param cancellation_token [Phronomy::CancellationToken, nil]
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil]
       # @return [BlockingAdapterPool::PendingOperation]
       # @api public
@@ -75,7 +75,7 @@ module Phronomy
       # Override to use a native async driver.
       #
       # @param id                 [String]
-      # @param cancellation_token [Phronomy::CancellationToken, nil]
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil]
       # @return [BlockingAdapterPool::PendingOperation]
       # @api public
@@ -93,7 +93,7 @@ module Phronomy
       # Submits the clear call to {BlockingAdapterPool} by default.
       # Override to use a native async driver.
       #
-      # @param cancellation_token [Phronomy::CancellationToken, nil]
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil]
       # @return [BlockingAdapterPool::PendingOperation]
       # @api public

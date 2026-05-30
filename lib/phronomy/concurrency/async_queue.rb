@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Phronomy
+  module Concurrency
   # A thread-safe FIFO queue for passing values between concurrent tasks.
   #
   # Wraps +Thread::Queue+ so that callers do not need to reference the Ruby
@@ -8,7 +9,7 @@ module Phronomy
   # backing primitive without changing call sites.
   #
   # @example Producer / consumer
-  #   queue = Phronomy::AsyncQueue.new
+  #   queue = Phronomy::Concurrency::AsyncQueue.new
   #   Runtime.instance.spawn { queue.push(expensive_io()) }
   #   value = queue.pop   # blocks until the producer pushes
   # @api private
@@ -153,3 +154,4 @@ module Phronomy
     end
   end
 end
+  end

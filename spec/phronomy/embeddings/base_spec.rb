@@ -11,7 +11,7 @@ RSpec.describe Phronomy::Embeddings::Base do
     end
 
     it "raises CancellationError immediately when a cancelled token is passed (#242)" do
-      token = Phronomy::CancellationToken.new
+      token = Phronomy::Concurrency::CancellationToken.new
       token.cancel!
       expect { adapter.embed("hello", token) }.to raise_error(Phronomy::CancellationError)
     end

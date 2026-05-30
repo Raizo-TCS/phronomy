@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Phronomy
-  class Runtime
+  module Concurrency
     # Registry and lifecycle manager for {BlockingAdapterPool} instances.
     #
     # Maintains one unnamed "default" pool (accessed via {#default_pool}) and

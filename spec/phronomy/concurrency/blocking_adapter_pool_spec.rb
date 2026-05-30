@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::BlockingAdapterPool do
+RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
   subject(:pool) { described_class.new(pool_size: 2, queue_size: 10) }
 
   after {
@@ -29,7 +29,7 @@ RSpec.describe Phronomy::BlockingAdapterPool do
         sleep 0.5
         :done
       }
-      expect(op).to be_a(Phronomy::BlockingAdapterPool::PendingOperation)
+      expect(op).to be_a(Phronomy::Concurrency::BlockingAdapterPool::PendingOperation)
       op.await
     end
 
@@ -115,14 +115,14 @@ RSpec.describe Phronomy::BlockingAdapterPool do
 
   describe "cancellation" do
     it "raises CancellationError when the token is already cancelled" do
-      token = Phronomy::CancellationToken.new
+      token = Phronomy::Concurrency::CancellationToken.new
       token.cancel!
       op = pool.submit(cancellation_token: token) { :never_runs }
       expect { op.await }.to raise_error(Phronomy::CancellationError)
     end
 
     it "raises CancellationError when token is cancelled while waiting (Issue #288)" do
-      token = Phronomy::CancellationToken.new
+      token = Phronomy::Concurrency::CancellationToken.new
       # Submit a slow operation without a cancellation token so the worker runs
       op = pool.submit {
         sleep 10
@@ -137,7 +137,7 @@ RSpec.describe Phronomy::BlockingAdapterPool do
     end
 
     it "raises CancellationError when token passed to await is already cancelled (Issue #288)" do
-      token = Phronomy::CancellationToken.new
+      token = Phronomy::Concurrency::CancellationToken.new
       token.cancel!
       op = pool.submit { :fast }
       expect { op.await(cancellation_token: token) }.to raise_error(Phronomy::CancellationError)
@@ -310,7 +310,7 @@ RSpec.describe "Runtime#blocking_io" do
 
   it "returns a BlockingAdapterPool" do
     pool = Phronomy::Runtime.instance.blocking_io
-    expect(pool).to be_a(Phronomy::BlockingAdapterPool)
+    expect(pool).to be_a(Phronomy::Concurrency::BlockingAdapterPool)
     pool.shutdown(drain_timeout: 1)
   end
 
@@ -328,7 +328,7 @@ end
 RSpec.describe "BlockingAdapterPool cooperative await (Issue #338)" do
   let(:scheduler) { Phronomy::Runtime::DeterministicScheduler.new(autorun: true) }
   let(:runtime) { Phronomy::Runtime.new(scheduler: scheduler) }
-  let(:pool) { Phronomy::BlockingAdapterPool.new(pool_size: 2, queue_size: 10) }
+  let(:pool) { Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 2, queue_size: 10) }
 
   after do
     pool.shutdown(drain_timeout: 2)
@@ -404,7 +404,7 @@ end
 # elapsed time.  Set timeout: at submit time instead to trigger on the
 # worker side and unblock the Fiber via the normal on-complete callback.
 RSpec.describe "BlockingAdapterPool cooperative await timeout limitation (Issue #348)" do
-  let(:pool) { Phronomy::BlockingAdapterPool.new(pool_size: 1) }
+  let(:pool) { Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1) }
   let(:scheduler) { Phronomy::Runtime::DeterministicScheduler.new(autorun: true) }
   let(:runtime) { Phronomy::Runtime.new(scheduler: scheduler) }
 

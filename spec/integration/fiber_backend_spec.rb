@@ -33,7 +33,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
   # TC-002: blocking_io_await — PendingOperation#await suspends cooperatively
   # -------------------------------------------------------------------------
   describe "TC-002: blocking_io_await — PendingOperation#await suspends cooperatively" do
-    let(:pool) { Phronomy::BlockingAdapterPool.new(pool_size: 2, queue_size: 10) }
+    let(:pool) { Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 2, queue_size: 10) }
 
     after { pool.shutdown(drain_timeout: 2) }
 
@@ -84,7 +84,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
   # -------------------------------------------------------------------------
   describe "TC-003: async_queue_pop — AsyncQueue#pop suspends cooperatively" do
     it "consumer task resumes when producer pushes a value" do
-      queue = Phronomy::AsyncQueue.new
+      queue = Phronomy::Concurrency::AsyncQueue.new
       received = nil
 
       runtime.spawn(name: "consumer") do
@@ -347,7 +347,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
   describe "TC-012: stream_queue — tokens flow through AsyncQueue and :done is the final event" do
     it "cooperative producer pushes tokens then a nil sentinel; consumer collects :token/:done events in order" do
       tokens = %w[hello world]
-      queue = Phronomy::AsyncQueue.new
+      queue = Phronomy::Concurrency::AsyncQueue.new
       events = []
 
       runtime.spawn(name: "orchestrator") do

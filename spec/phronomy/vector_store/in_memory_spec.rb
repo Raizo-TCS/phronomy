@@ -51,7 +51,7 @@ RSpec.describe Phronomy::VectorStore::InMemory do
     end
 
     it "raises CancellationError when the token is cancelled" do
-      cancelled = Phronomy::CancellationToken.new.tap(&:cancel!)
+      cancelled = Phronomy::Concurrency::CancellationToken.new.tap(&:cancel!)
       expect {
         store.add(id: "x", embedding: [1.0, 0.0], cancellation_token: cancelled)
       }.to raise_error(Phronomy::CancellationError)
@@ -118,7 +118,7 @@ RSpec.describe Phronomy::VectorStore::InMemory do
     end
 
     it "raises CancellationError when the token is cancelled" do
-      cancelled = Phronomy::CancellationToken.new.tap(&:cancel!)
+      cancelled = Phronomy::Concurrency::CancellationToken.new.tap(&:cancel!)
       expect {
         store.search(query_embedding: [1.0, 0.0], cancellation_token: cancelled)
       }.to raise_error(Phronomy::CancellationError)
@@ -317,7 +317,7 @@ RSpec.describe Phronomy::VectorStore::InMemory do
   end
 
   describe "CancellationToken propagation (#242)" do
-    let(:cancelled_token) { Phronomy::CancellationToken.new.tap(&:cancel!) }
+    let(:cancelled_token) { Phronomy::Concurrency::CancellationToken.new.tap(&:cancel!) }
 
     it "#add raises CancellationError when token is cancelled" do
       expect { store.add(id: "x", embedding: [1.0, 0.0], cancellation_token: cancelled_token) }

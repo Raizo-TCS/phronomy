@@ -3,7 +3,7 @@
 require "securerandom"
 
 module Phronomy
-  module Agent
+  module MultiAgent
     # Represents a transfer edge from one agent to another.
     # Creates an anonymous Phronomy::Tool::Base subclass that the source agent
     # exposes to the LLM as a +transfer_to_<name>+ function.
@@ -12,7 +12,7 @@ module Phronomy
     #
     # @example
     #   billing = BillingAgent.new
-    #   handoff = Phronomy::Agent::Handoff.new(target_agent: billing)
+    #   handoff = Phronomy::MultiAgent::Handoff.new(target_agent: billing)
     #   tool_class = handoff.to_tool_class
     class Handoff
       # Prefix embedded in tool results so Runner can detect handoffs.

@@ -89,7 +89,7 @@ end
 
 RSpec.describe "KnowledgeSource CancellationToken propagation (#242)" do
   let(:cancelled_token) do
-    Phronomy::CancellationToken.new.tap(&:cancel!)
+    Phronomy::Concurrency::CancellationToken.new.tap(&:cancel!)
   end
 
   it "StaticKnowledge#fetch raises CancellationError when token is cancelled" do

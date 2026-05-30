@@ -108,7 +108,7 @@ module Phronomy
     # @param tasks [Array<Task>]
     # @return [Array]
     def _await_all_cooperative(tasks)
-      completion_q = AsyncQueue.new
+      completion_q = Phronomy::Concurrency::AsyncQueue.new
       tasks.each_with_index do |task, idx|
         task.on_complete do |value, error|
           completion_q.push({index: idx, value: value, error: error})

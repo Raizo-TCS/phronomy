@@ -229,7 +229,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
   # -------------------------------------------------------------------------
   describe "TC-006: queue_full — pool queue full raises BackpressureError" do
     # Use a tiny pool (1 worker, 1-deep queue) so saturation is easy.
-    let(:tiny_pool) { Phronomy::BlockingAdapterPool.new(pool_size: 1, queue_size: 1) }
+    let(:tiny_pool) { Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 1) }
 
     after { tiny_pool.shutdown(drain_timeout: 3) }
 
@@ -259,7 +259,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
   # TC-007: pool_shutdown — Submit after shutdown raises PoolShutdownError
   # -------------------------------------------------------------------------
   describe "TC-007: pool_shutdown — submit after shutdown raises PoolShutdownError" do
-    let(:fresh_pool) { Phronomy::BlockingAdapterPool.new(pool_size: 1, queue_size: 10) }
+    let(:fresh_pool) { Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 10) }
 
     it "raises PoolShutdownError when the pool has been shut down" do
       fresh_pool.shutdown(drain_timeout: 3)

@@ -199,7 +199,7 @@
     ]
   },
   {
-    "name": "Phronomy::Agent::Orchestrator",
+    "name": "Phronomy::MultiAgent::Orchestrator",
     "type": "class",
     "public_instance_methods": [
       "_add_handoff_tool",
@@ -258,7 +258,7 @@
     ]
   },
   {
-    "name": "Phronomy::Agent::TeamCoordinator",
+    "name": "Phronomy::MultiAgent::TeamCoordinator",
     "type": "class",
     "public_instance_methods": [
       "invoke",

@@ -29,7 +29,7 @@ module Phronomy
       # Returns the fixed text as a single chunk, regardless of query.
       #
       # @param query              [String, nil]                    ignored for static knowledge
-      # @param cancellation_token [Phronomy::CancellationToken, nil] optional; raises CancellationError when cancelled
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil] optional; raises CancellationError when cancelled
       # @return [Array<Hash>]
       # @api public
       def fetch(query: nil, cancellation_token: nil)

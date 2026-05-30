@@ -225,7 +225,7 @@ module Phronomy
         # Defaults to +nil+ (no timeout).
         # Inherited by subclasses; the most-specific definition wins.
         #
-        # When the timeout fires, a {Phronomy::CancellationScope} is cancelled
+        # When the timeout fires, a {Phronomy::Concurrency::CancellationScope} is cancelled
         # and its token is propagated to the FSM config so that in-flight LLM,
         # tool, and RAG calls observe cancellation via their +cancellation_token:+
         # keyword argument.  +Phronomy::TimeoutError+ is raised to the caller.
@@ -509,7 +509,7 @@ module Phronomy
       # @example With InvocationContext (deadline-based timeout)
       #   ctx = Phronomy::InvocationContext.new(
       #     thread_id: "conv-123",
-      #     deadline: Phronomy::Deadline.in(30),
+      #     deadline: Phronomy::Concurrency::Deadline.in(30),
       #     task_id: SecureRandom.uuid
       #   )
       #   result = MyAgent.new.invoke("Hello", invocation_context: ctx)
@@ -532,7 +532,7 @@ module Phronomy
           # cancellation when the deadline fires.
           timeout_sec = self.class.invoke_timeout
           effective_config, scope = if timeout_sec
-            s = Phronomy::CancellationScope.new(parent_token: config[:cancellation_token])
+            s = Phronomy::Concurrency::CancellationScope.new(parent_token: config[:cancellation_token])
             s.deadline_in(timeout_sec)
             [config.merge(cancellation_token: s.token), s]
           else
@@ -768,7 +768,7 @@ module Phronomy
           # The queue capacity is bounded by Configuration#stream_queue_max_size
           # (nil = unbounded) to provide backpressure against a fast LLM producer.
           adapter = Phronomy.configuration.llm_adapter
-          chunk_queue = Phronomy::AsyncQueue.new(max_size: Phronomy.configuration.stream_queue_max_size)
+          chunk_queue = Phronomy::Concurrency::AsyncQueue.new(max_size: Phronomy.configuration.stream_queue_max_size)
           pending = adapter.stream_async(chat, user_message, config: config, enqueue_to: chunk_queue)
 
           # Drain the chunk queue on this side (scheduler task / caller thread).
@@ -1056,7 +1056,7 @@ module Phronomy
       # Falls back to +nil+ otherwise, signalling {#build_chat} to use the
       # standard +RubyLLM.chat+ factory.
       def build_chat_class
-        Phronomy.configuration.event_loop ? Agent::ParallelToolChat : nil
+        Phronomy.configuration.event_loop ? Phronomy::MultiAgent::ParallelToolChat : nil
       end
 
       def build_chat

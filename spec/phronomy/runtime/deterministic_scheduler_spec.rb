@@ -289,7 +289,7 @@ RSpec.describe Phronomy::Runtime::DeterministicScheduler, :issue_320 do
 
     describe "ConcurrencyGate (cooperative, on_full: :wait)" do
       it "queues tasks cooperatively when the gate is at capacity" do
-        gate = Phronomy::ConcurrencyGate.new(max_concurrent: 1, name: :test)
+        gate = Phronomy::Concurrency::ConcurrencyGate.new(max_concurrent: 1, name: :test)
         log = []
 
         # Both tasks try to acquire the gate; only one can hold it at a time.

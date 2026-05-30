@@ -1,13 +1,14 @@
 # frozen_string_literal: true
 
 module Phronomy
+  module Concurrency
   # A point in time used as an upper bound for an operation.
   #
   # Uses the monotonic clock (+Process::CLOCK_MONOTONIC+) internally to avoid
   # skew from NTP adjustments or DST transitions.
   #
   # @example Create a 30-second deadline and check remaining time
-  #   deadline = Phronomy::Deadline.in(30)
+  #   deadline = Phronomy::Concurrency::Deadline.in(30)
   #   sleep 1
   #   deadline.remaining_seconds   # => ~29.0
   #   deadline.expired?            # => false
@@ -61,3 +62,4 @@ module Phronomy
     end
   end
 end
+  end

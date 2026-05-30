@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Agent::Orchestrator do
+RSpec.describe Phronomy::MultiAgent::Orchestrator do
   # Stub agent that returns a fixed output string without calling a real LLM.
   def stub_agent(output_text)
     Class.new(Phronomy::Agent::Base) do

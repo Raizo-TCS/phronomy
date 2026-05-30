@@ -21,7 +21,7 @@ RSpec.describe "Thread.new absence from core paths (Issue #272)" do
 
   describe "BlockingAdapterPool" do
     it "spawns exactly pool_size threads at initialisation, then no more on submit" do
-      pool = Phronomy::BlockingAdapterPool.new(pool_size: 2, queue_size: 10)
+      pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 2, queue_size: 10)
 
       Thread.list.count
       # Submit a trivial operation — must not spawn a new thread
@@ -40,7 +40,7 @@ RSpec.describe "Thread.new absence from core paths (Issue #272)" do
     end
 
     it "does not exceed pool_size worker threads" do
-      pool = Phronomy::BlockingAdapterPool.new(pool_size: 3, queue_size: 20)
+      pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 3, queue_size: 20)
       barrier = Mutex.new
       cond = ConditionVariable.new
       released = false
@@ -60,7 +60,7 @@ RSpec.describe "Thread.new absence from core paths (Issue #272)" do
 
     it "tracks abandoned (timed-out) operations" do
       # Use a dedicated pool so the timed-out op runs immediately (no queue wait)
-      pool = Phronomy::BlockingAdapterPool.new(pool_size: 1, queue_size: 5)
+      pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 5)
       op = pool.submit(timeout: 0.05) { sleep(5) }
 
       begin
@@ -115,7 +115,7 @@ RSpec.describe "Thread.current confinement (Issue #302)", :issue_302 do
     lib/phronomy/task/fiber_backend.rb
     lib/phronomy/runtime/scheduler.rb
     lib/phronomy/runtime/deterministic_scheduler.rb
-    lib/phronomy/blocking_adapter_pool.rb
+    lib/phronomy/concurrency/blocking_adapter_pool.rb
   ].freeze
 
   it "Thread.current is not referenced outside the allowed files" do
@@ -154,7 +154,7 @@ RSpec.describe "Thread.new confinement (Issue #286)", :issue_286 do
   # the pool is used instead and Thread.new is never called. Full migration of
   # this fallback path is tracked in Issue #360 (pending MCP transport PR).
   THREAD_NEW_ALLOWLIST = %w[
-    lib/phronomy/blocking_adapter_pool.rb
+    lib/phronomy/concurrency/blocking_adapter_pool.rb
     lib/phronomy/task/thread_backend.rb
     lib/phronomy/runtime/timer_queue.rb
     lib/phronomy/event_loop.rb

@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 module Phronomy
+  module Agent
+    module Lifecycle
   # Event-driven execution wrapper for a single workflow run.
   #
   # Created by WorkflowRunner and registered with EventLoop. All public methods
@@ -245,3 +247,5 @@ module Phronomy
     end
   end
 end
+    end
+  end

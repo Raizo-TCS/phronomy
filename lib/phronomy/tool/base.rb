@@ -109,7 +109,7 @@ module Phronomy
         # | Mode | Dispatcher | Constraint |
         # |------|-----------|------------|
         # | +:cooperative+ | +Runtime.instance.spawn+ (scheduler task) | *Must not* block the scheduler thread; use only for in-memory computation |
-        # | +:blocking_io+ | {Phronomy::BlockingAdapterPool} (bounded thread pool) | **Default**. Safe for all blocking I/O (HTTP, DB, file) |
+        # | +:blocking_io+ | {Phronomy::Concurrency::BlockingAdapterPool} (bounded thread pool) | **Default**. Safe for all blocking I/O (HTTP, DB, file) |
         # | +:cpu_bound+ | Falls back to +:blocking_io+ + emits a warning | No dedicated process pool yet; use +:blocking_io+ explicitly to suppress the warning |
         # | +:external_process+ | Falls back to +:blocking_io+ | No process manager yet |
         #
@@ -318,7 +318,7 @@ module Phronomy
       #   5. On persistent failure, apply on_error policy.
       #
       # @param args               [Hash]
-      # @param cancellation_token [Phronomy::CancellationToken, nil] optional; takes precedence over the thread-local token
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil] optional; takes precedence over the thread-local token
       # @api public
       # mutant:disable
       def call(args, cancellation_token: nil)
@@ -363,7 +363,7 @@ module Phronomy
       # place in the framework that applies the execution-mode routing rules.
       #
       # @param args               [Hash]
-      # @param cancellation_token [Phronomy::CancellationToken, nil]
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @return [#await]
       # @api public
       # mutant:disable

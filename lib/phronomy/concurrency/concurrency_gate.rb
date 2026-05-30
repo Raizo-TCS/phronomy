@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Phronomy
+  module Concurrency
   # A counting semaphore that enforces a concurrency cap across a named
   # resource category (e.g. agent tasks, tool tasks, LLM calls).
   #
@@ -15,7 +16,7 @@ module Phronomy
   #               after +timeout:+ seconds if no slot becomes available
   #
   # @example
-  #   gate = Phronomy::ConcurrencyGate.new(max_concurrent: 5, name: :agent)
+  #   gate = Phronomy::Concurrency::ConcurrencyGate.new(max_concurrent: 5, name: :agent)
   #   gate.acquire(on_full: :reject) do
   #     run_agent_task
   #   end
@@ -153,3 +154,4 @@ module Phronomy
     end
   end
 end
+  end
