@@ -916,63 +916,12 @@ module Phronomy
         end
 
         trace("agent.invoke", input: input, **caller_meta) do |_span|
-          # Run input guardrails before touching the LLM.
-          run_input_guardrails!(input)
-
-          user_message = extract_message(input)
-          chat = build_chat
-
-          # Assemble context (system prompt + history). Override #build_context to
-          # inject custom context editing logic at the Agent subclass level.
-          context = build_context(input, messages: messages, thread_id: thread_id, config: config)
-          apply_instructions(chat, context[:system]) if context[:system]
-          context[:messages].each { |msg| chat.messages << msg }
-
-          # Run before_completion hooks (global → class → instance) before the LLM call.
-          run_before_completion_hooks!(chat, config)
-
-          # Register suspension hook for approval-required tools (no-op when a
-          # synchronous on_approval_required handler is already registered).
-          _register_suspension_hook!(chat)
-
-          # Check for cancellation immediately before the LLM call.
-          check_cancellation!(config, "invocation cancelled before LLM call")
-
-          # Forward the cancellation token to ParallelToolChat explicitly
-          # via the chat instance so that tool dispatch batches can observe
-          # cancellation without needing Thread.current.
-          chat.cancellation_token = config[:cancellation_token] if chat.respond_to?(:cancellation_token=)
-
-          begin
-            # Route the LLM call through the configured LLMAdapter so that the
-            # blocking HTTP request runs inside BlockingAdapterPool and the
-            # adapter can be swapped without changing agent code.
-            adapter = Phronomy.configuration.llm_adapter
-            response = adapter.complete_async(chat, user_message, config: config).await
-          rescue SuspendSignal => signal
-            checkpoint = Checkpoint.new(
-              thread_id: thread_id,
-              original_input: input,
-              messages: chat.messages.dup,
-              pending_tool_name: signal.tool_name,
-              pending_tool_args: signal.args,
-              pending_tool_call_id: signal.tool_call_id
-            )
-            suspended_result = {output: nil, suspended: true, checkpoint: checkpoint, messages: chat.messages}
-            next [suspended_result, nil]
-          ensure
-            # Clear the chat's cancellation token reference after each LLM call.
-            chat.cancellation_token = nil if chat.respond_to?(:cancellation_token=)
-          end
-
-          output = response.content
-          usage = Phronomy::TokenUsage.from_tokens(response.tokens)
-
-          # Run output guardrails before returning to the caller.
-          run_output_guardrails!(output)
-
-          result = {output: output, messages: chat.messages, usage: usage}
-          [result, usage]
+          Agent::InvocationPipeline.new(self).run(
+            input,
+            messages: messages,
+            thread_id: thread_id,
+            config: config
+          )
         end
       end
 
