@@ -14,6 +14,7 @@ module Phronomy
     # @api private
     class InvocationPipeline
       # @param agent [Agent::Base] the agent instance driving this invocation
+      # @api private
       def initialize(agent)
         @agent = agent
       end
@@ -31,6 +32,7 @@ module Phronomy
       # @return [Array(Hash, Phronomy::TokenUsage, nil)]
       #   A two-element array: the result hash and the token usage (or nil on
       #   suspension).
+      # @api private
       def run(input, messages:, thread_id:, config:)
         @agent.instance_exec(input, messages, thread_id, config) do |inp, msgs, tid, cfg|
           # Run input guardrails before touching the LLM.

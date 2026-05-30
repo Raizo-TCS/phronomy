@@ -110,6 +110,7 @@ module Phronomy
       #
       # @param msg [RubyLLM::Message]
       # @return [Hash]
+      # @api private
       def serialize_message(msg)
         h = msg.to_h
         return h unless h[:tool_calls]
@@ -124,6 +125,7 @@ module Phronomy
       #
       # @param h [Hash]
       # @return [RubyLLM::Message]
+      # @api private
       def self.deserialize_message(h)
         h = h.transform_keys { |k| k.to_sym rescue k }
         if h[:tool_calls]

@@ -32,6 +32,7 @@ module Phronomy
         #   +[{ from:, to:, guard: }, ...]+ — all auto-fire transitions
         # @param exit_actions     [Hash{Symbol => Array<#call>}]
         #   +{ state_name => [callable, ...] }+
+        # @api private
         def initialize(
           entry_point:,
           declared_states:,
@@ -56,6 +57,7 @@ module Phronomy
         #
         # @return [Class] an anonymous class with a +state_machine :phase+ definition
         # @raise [ArgumentError] if state_machines raises during class construction
+        # @api private
         def build
           entry = @entry_point
           all_states = (@declared_states + @wait_state_names + [:__end__]).uniq
@@ -147,6 +149,7 @@ module Phronomy
         # @param state_name   [Symbol] name of the target state (for error messages)
         # @param timeout_secs [Numeric, nil] seconds before ActionTimeoutError
         # @return [Proc]
+        # @api private
         def build_entry_callback(callable, state_name, timeout_secs)
           handle = method(:handle_entry_action_result)
           ->(machine) {
@@ -165,6 +168,7 @@ module Phronomy
         # @param result        [Object]           return value of the entry callable
         # @param state_name    [Symbol]           name of the entered state
         # @param timeout_secs  [Numeric, nil]     optional timeout in seconds
+        # @api private
         def handle_entry_action_result(machine, result, state_name, timeout_secs)
           if result.is_a?(Phronomy::Task)
             if Phronomy.configuration.event_loop
@@ -188,6 +192,7 @@ module Phronomy
         # @param result        [Phronomy::Task]
         # @param state_name    [Symbol]
         # @param timeout_secs  [Numeric, nil]
+        # @api private
         def dispatch_task_in_event_loop(machine, result, state_name, timeout_secs)
           machine.async_pending = true
           thread_id = machine.context.thread_id
@@ -216,6 +221,7 @@ module Phronomy
         # @param result        [Phronomy::Task]
         # @param state_name    [Symbol]
         # @param timeout_secs  [Numeric, nil]
+        # @api private
         def await_task_blocking(machine, result, state_name, timeout_secs)
           enforce_timeout!(result, state_name, timeout_secs)
           task_result = result.await
@@ -228,6 +234,7 @@ module Phronomy
         # @param result       [Phronomy::Task]
         # @param state_name   [Symbol]
         # @param timeout_secs [Numeric, nil]
+        # @api private
         def enforce_timeout!(result, state_name, timeout_secs)
           return unless timeout_secs
           return unless result.join(timeout_secs).nil?
