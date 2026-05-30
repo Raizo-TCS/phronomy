@@ -64,6 +64,7 @@ module Phronomy
           entry_acts = @entry_actions
           exit_acts = @exit_actions
           act_timeouts = @action_timeouts
+          build_cb = method(:build_entry_callback)
 
           Class.new do
             # Holds the current WorkflowContext so guards and callbacks can read it.
@@ -112,60 +113,8 @@ module Phronomy
               #    the returned context replaces the current one on the tracker.
               entry_acts.each do |state_name, callables|
                 callables.each do |callable|
-                  timeout_secs = act_timeouts[state_name]
-                  after_transition to: state_name do |machine|
-                    result = callable.call(machine.context)
-                    if result.is_a?(Phronomy::Task)
-                      if Phronomy.configuration.event_loop
-                        # EventLoop mode: await in a background task so the EventLoop
-                        # thread is not blocked. Signal async_pending so FSMSession
-                        # skips the automatic advance_or_halt step.
-                        machine.async_pending = true
-                        ctx_ref = machine.context
-                        thread_id = ctx_ref.thread_id
-                        Phronomy::Runtime.instance.spawn(name: "wf-await-#{thread_id}") do
-                          if timeout_secs
-                            if result.join(timeout_secs).nil?
-                              result.cancel!
-                              raise Phronomy::ActionTimeoutError,
-                                "Action in state #{state_name.inspect} timed out after #{timeout_secs}s"
-                            end
-                          end
-                          task_result = result.await
-                          if task_result.is_a?(Phronomy::WorkflowContext)
-                            Phronomy::EventLoop.instance.post(
-                              Phronomy::Event.new(
-                                type: :action_completed,
-                                target_id: thread_id,
-                                payload: task_result
-                              )
-                            )
-                          else
-                            Phronomy::EventLoop.instance.post(
-                              Phronomy::Event.new(type: :state_completed, target_id: thread_id, payload: nil)
-                            )
-                          end
-                        rescue => e
-                          Phronomy::EventLoop.instance.post(
-                            Phronomy::Event.new(type: :error, target_id: thread_id, payload: e)
-                          )
-                        end
-                      else
-                        # Non-EventLoop mode: block synchronously on the task result.
-                        if timeout_secs
-                          if result.join(timeout_secs).nil?
-                            result.cancel!
-                            raise Phronomy::ActionTimeoutError,
-                              "Action in state #{state_name.inspect} timed out after #{timeout_secs}s"
-                          end
-                        end
-                        task_result = result.await
-                        machine.context = task_result if task_result.is_a?(Phronomy::WorkflowContext)
-                      end
-                    elsif result.is_a?(Phronomy::WorkflowContext)
-                      machine.context = result
-                    end
-                  end
+                  cb = build_cb.call(callable, state_name, act_timeouts[state_name])
+                  after_transition to: state_name, &cb
                 end
               end
 
@@ -183,6 +132,109 @@ module Phronomy
           end
         rescue => e
           raise ArgumentError, "Failed to build phase machine: #{e.message}"
+        end
+
+        private
+
+        # Returns a proc suitable for use as an +after_transition+ callback.
+        #
+        # The returned proc accepts a single argument (the phase machine instance),
+        # invokes the entry action callable with the current context, then delegates
+        # the result to {#handle_entry_action_result}.  Capturing this in the
+        # builder's scope lets the anonymous +Class.new+ block stay slim.
+        #
+        # @param callable     [#call]  the entry action
+        # @param state_name   [Symbol] name of the target state (for error messages)
+        # @param timeout_secs [Numeric, nil] seconds before ActionTimeoutError
+        # @return [Proc]
+        def build_entry_callback(callable, state_name, timeout_secs)
+          handle = method(:handle_entry_action_result)
+          ->(machine) {
+            result = callable.call(machine.context)
+            handle.call(machine, result, state_name, timeout_secs)
+          }
+        end
+
+        # Dispatches the return value of an entry action callable.
+        #
+        # - +Phronomy::Task+            → async or blocking task handling
+        # - +Phronomy::WorkflowContext+ → replaces the machine's context directly
+        # - anything else               → ignored
+        #
+        # @param machine       [Object]           phase machine instance
+        # @param result        [Object]           return value of the entry callable
+        # @param state_name    [Symbol]           name of the entered state
+        # @param timeout_secs  [Numeric, nil]     optional timeout in seconds
+        def handle_entry_action_result(machine, result, state_name, timeout_secs)
+          if result.is_a?(Phronomy::Task)
+            if Phronomy.configuration.event_loop
+              dispatch_task_in_event_loop(machine, result, state_name, timeout_secs)
+            else
+              await_task_blocking(machine, result, state_name, timeout_secs)
+            end
+          elsif result.is_a?(Phronomy::WorkflowContext)
+            machine.context = result
+          end
+        end
+
+        # Handles a +Phronomy::Task+ return value in EventLoop mode.
+        #
+        # Marks the machine as async-pending and spawns a cooperative background
+        # task that awaits the result, then posts the appropriate event back to
+        # the EventLoop.  +FSMSession+ will skip the automatic +advance_or_halt+
+        # step while +async_pending+ is true.
+        #
+        # @param machine       [Object]       phase machine instance
+        # @param result        [Phronomy::Task]
+        # @param state_name    [Symbol]
+        # @param timeout_secs  [Numeric, nil]
+        def dispatch_task_in_event_loop(machine, result, state_name, timeout_secs)
+          machine.async_pending = true
+          thread_id = machine.context.thread_id
+          Phronomy::Runtime.instance.spawn(name: "wf-await-#{thread_id}") do
+            enforce_timeout!(result, state_name, timeout_secs)
+            task_result = result.await
+            ev = if task_result.is_a?(Phronomy::WorkflowContext)
+                   Phronomy::Event.new(type: :action_completed, target_id: thread_id, payload: task_result)
+                 else
+                   Phronomy::Event.new(type: :state_completed, target_id: thread_id, payload: nil)
+                 end
+            Phronomy::EventLoop.instance.post(ev)
+          rescue => e
+            Phronomy::EventLoop.instance.post(
+              Phronomy::Event.new(type: :error, target_id: thread_id, payload: e)
+            )
+          end
+        end
+
+        # Handles a +Phronomy::Task+ return value in non-EventLoop mode.
+        #
+        # Blocks the current execution context until the task completes or the
+        # optional timeout elapses.
+        #
+        # @param machine       [Object]       phase machine instance
+        # @param result        [Phronomy::Task]
+        # @param state_name    [Symbol]
+        # @param timeout_secs  [Numeric, nil]
+        def await_task_blocking(machine, result, state_name, timeout_secs)
+          enforce_timeout!(result, state_name, timeout_secs)
+          task_result = result.await
+          machine.context = task_result if task_result.is_a?(Phronomy::WorkflowContext)
+        end
+
+        # Raises +ActionTimeoutError+ if the task does not complete within
+        # +timeout_secs+.  No-op when +timeout_secs+ is +nil+.
+        #
+        # @param result       [Phronomy::Task]
+        # @param state_name   [Symbol]
+        # @param timeout_secs [Numeric, nil]
+        def enforce_timeout!(result, state_name, timeout_secs)
+          return unless timeout_secs
+          return unless result.join(timeout_secs).nil?
+
+          result.cancel!
+          raise Phronomy::ActionTimeoutError,
+            "Action in state #{state_name.inspect} timed out after #{timeout_secs}s"
         end
       end
     end
