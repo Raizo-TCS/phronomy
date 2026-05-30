@@ -130,7 +130,7 @@
     ]
   },
   {
-    "name": "Phronomy::PromptTemplate",
+    "name": "Phronomy::Agent::Context::Instruction::PromptTemplate",
     "type": "class",
     "public_instance_methods": [
       "batch",
@@ -199,7 +199,7 @@
     ]
   },
   {
-    "name": "Phronomy::Agent::Orchestrator",
+    "name": "Phronomy::MultiAgent::Orchestrator",
     "type": "class",
     "public_instance_methods": [
       "_add_handoff_tool",
@@ -258,7 +258,7 @@
     ]
   },
   {
-    "name": "Phronomy::Agent::TeamCoordinator",
+    "name": "Phronomy::MultiAgent::TeamCoordinator",
     "type": "class",
     "public_instance_methods": [
       "invoke",
@@ -300,7 +300,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::VectorStore::Base",
+    "name": "Phronomy::Agent::Context::Knowledge::VectorStore::Base",
     "type": "class",
     "public_instance_methods": [
       "add",
@@ -316,7 +316,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::VectorStore::InMemory",
+    "name": "Phronomy::Agent::Context::Knowledge::VectorStore::InMemory",
     "type": "class",
     "public_instance_methods": [
       "add",
@@ -332,7 +332,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::Embeddings::Base",
+    "name": "Phronomy::Agent::Context::Knowledge::Embeddings::Base",
     "type": "class",
     "public_instance_methods": [
       "embed",
@@ -341,7 +341,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::KnowledgeSource::Base",
+    "name": "Phronomy::Agent::Context::Knowledge::Source::Base",
     "type": "class",
     "public_instance_methods": [
       "fetch",
@@ -351,7 +351,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::KnowledgeSource::StaticKnowledge",
+    "name": "Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge",
     "type": "class",
     "public_instance_methods": [
       "fetch",
@@ -361,7 +361,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::KnowledgeSource::RAGKnowledge",
+    "name": "Phronomy::Agent::Context::Knowledge::Source::RAGKnowledge",
     "type": "class",
     "public_instance_methods": [
       "fetch",

@@ -8,7 +8,7 @@ module Phronomy
     #
     # +AgentFSM+ implements the minimal interface expected by {Phronomy::EventLoop}
     # (+#id+, +#start+, +#handle+) so it can be managed alongside
-    # {Phronomy::FSMSession} instances.  It is *not* a traditional finite-state
+    # {Phronomy::Agent::Lifecycle::FSMSession} instances.  It is *not* a traditional finite-state
     # machine; the name reflects its role in the EventLoop rather than internal
     # state transitions.
     #

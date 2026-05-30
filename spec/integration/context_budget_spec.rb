@@ -38,14 +38,14 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-001: from_model; heuristic tokenizer; all messages fit — baseline" do
     it "creates a budget from the model registry and effective_input_limit > 0" do
-      budget = Phronomy::Context::TokenBudget.new(model: "openai/gpt-oss-20b")
+      budget = Phronomy::LlmContextWindow::TokenBudget.new(model: "openai/gpt-oss-20b")
       expect(budget.context_window).to be > 0
       expect(budget.effective_input_limit).to be > 0
     end
 
     it "Assembler keeps all short messages within budget" do
-      budget = Phronomy::Context::TokenBudget.new(model: "openai/gpt-oss-20b")
-      assembler = Phronomy::Context::Assembler.new(budget: budget)
+      budget = Phronomy::LlmContextWindow::TokenBudget.new(model: "openai/gpt-oss-20b")
+      assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
       assembler.add_messages(short_messages(3))
       result = assembler.build
       expect(result[:messages].length).to eq(3)
@@ -58,22 +58,22 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-002: from_model; word-count tokenizer; tight output; medium overhead; partial fit" do
     around do |example|
-      original = Phronomy::Context::TokenEstimator.tokenizer
+      original = Phronomy::LlmContextWindow::TokenEstimator.tokenizer
       # word_count tokenizer: split by whitespace
-      Phronomy::Context::TokenEstimator.tokenizer = ->(text) { text.split.length }
+      Phronomy::LlmContextWindow::TokenEstimator.tokenizer = ->(text) { text.split.length }
       example.run
     ensure
-      Phronomy::Context::TokenEstimator.tokenizer = original
+      Phronomy::LlmContextWindow::TokenEstimator.tokenizer = original
     end
 
     it "uses word-count tokenizer via TokenEstimator" do
-      count = Phronomy::Context::TokenEstimator.estimate("hello world foo bar")
+      count = Phronomy::LlmContextWindow::TokenEstimator.estimate("hello world foo bar")
       expect(count).to eq(4)
     end
 
     it "partial fit: only recent messages kept under tight budget" do
       # context_window=200, max_output=50, overhead=80 → effective_input_limit=70
-      budget = Phronomy::Context::TokenBudget.new(
+      budget = Phronomy::LlmContextWindow::TokenBudget.new(
         context_window: 200,
         max_output_tokens: 50,
         overhead: 80
@@ -83,7 +83,7 @@ RSpec.describe "Group 3: Context / Budget", :integration do
       # Each fat message has 2001+ words → token cost >> 70
       # Short messages: ~5 words each → fits several
       messages = 20.times.map { |i| Message.new("user", "word#{i} hello world ok great") }
-      assembler = Phronomy::Context::Assembler.new(budget: budget)
+      assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
       assembler.add_messages(messages)
       result = assembler.build
       # Should keep some but not all messages (70 tokens / 5 per message = 14 max)
@@ -102,11 +102,11 @@ RSpec.describe "Group 3: Context / Budget", :integration do
     it "Assembler returns empty messages when budget is exhausted" do
       # context_window=100, max_output=50 → effective_input_limit=50
       # Fat messages are 500+ tokens each
-      budget = Phronomy::Context::TokenBudget.new(
+      budget = Phronomy::LlmContextWindow::TokenBudget.new(
         context_window: 100,
         max_output_tokens: 50
       )
-      assembler = Phronomy::Context::Assembler.new(budget: budget)
+      assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
       assembler.add_messages(fat_messages(3))
       result = assembler.build
       expect(result[:messages]).to be_empty
@@ -118,16 +118,16 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-006: explicit budget; large max_output; word-count tokenizer; partial fit" do
     around do |example|
-      original = Phronomy::Context::TokenEstimator.tokenizer
-      Phronomy::Context::TokenEstimator.tokenizer = ->(text) { text.split.length }
+      original = Phronomy::LlmContextWindow::TokenEstimator.tokenizer
+      Phronomy::LlmContextWindow::TokenEstimator.tokenizer = ->(text) { text.split.length }
       example.run
     ensure
-      Phronomy::Context::TokenEstimator.tokenizer = original
+      Phronomy::LlmContextWindow::TokenEstimator.tokenizer = original
     end
 
     it "partial fit under word-count tokenizer" do
       # context_window=500, max_output=400, overhead=0 → effective_input_limit=100
-      budget = Phronomy::Context::TokenBudget.new(
+      budget = Phronomy::LlmContextWindow::TokenBudget.new(
         context_window: 500,
         max_output_tokens: 400
       )
@@ -135,7 +135,7 @@ RSpec.describe "Group 3: Context / Budget", :integration do
 
       # Each message has 8 words → 8 tokens; 100 / 8 = 12 messages max
       messages = 20.times.map { |i| Message.new("user", "a b c d e f g #{i}") }
-      assembler = Phronomy::Context::Assembler.new(budget: budget)
+      assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
       assembler.add_messages(messages)
       result = assembler.build
       expect(result[:messages].length).to be < 20
@@ -148,24 +148,24 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-007: explicit budget; large overhead; word-count tokenizer; all messages fit" do
     around do |example|
-      original = Phronomy::Context::TokenEstimator.tokenizer
-      Phronomy::Context::TokenEstimator.tokenizer = ->(text) { text.split.length }
+      original = Phronomy::LlmContextWindow::TokenEstimator.tokenizer
+      Phronomy::LlmContextWindow::TokenEstimator.tokenizer = ->(text) { text.split.length }
       example.run
     ensure
-      Phronomy::Context::TokenEstimator.tokenizer = original
+      Phronomy::LlmContextWindow::TokenEstimator.tokenizer = original
     end
 
     it "all short messages fit even with large overhead reservation" do
       # context_window=10000, max_output=0, overhead=500 → effective=9500
       # Short messages: ~5 words each × 3 = 15 tokens << 9500
-      budget = Phronomy::Context::TokenBudget.new(
+      budget = Phronomy::LlmContextWindow::TokenBudget.new(
         context_window: 10_000,
         max_output_tokens: 0,
         overhead: 500
       )
       expect(budget.effective_input_limit).to eq(9500)
 
-      assembler = Phronomy::Context::Assembler.new(budget: budget)
+      assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
       assembler.add_messages(short_messages(3))
       result = assembler.build
       expect(result[:messages].length).to eq(3)
@@ -180,8 +180,8 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   describe "TC-009: unknown_model → UnknownModelError raised at budget initialization" do
     it "raises UnknownModelError for an unrecognised model name" do
       expect {
-        Phronomy::Context::TokenBudget.new(model: "nonexistent/model-xyz-9999")
-      }.to raise_error(Phronomy::Context::UnknownModelError, /nonexistent\/model-xyz-9999/)
+        Phronomy::LlmContextWindow::TokenBudget.new(model: "nonexistent/model-xyz-9999")
+      }.to raise_error(Phronomy::LlmContextWindow::UnknownModelError, /nonexistent\/model-xyz-9999/)
     end
   end
 
@@ -191,8 +191,8 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   describe "TC-010: unknown_model → UnknownModelError (large overhead / none_fit variant)" do
     it "raises UnknownModelError regardless of overhead and context_builder_messages_fit settings" do
       expect {
-        Phronomy::Context::TokenBudget.new(model: "bad-vendor/bad-model")
-      }.to raise_error(Phronomy::Context::UnknownModelError)
+        Phronomy::LlmContextWindow::TokenBudget.new(model: "bad-vendor/bad-model")
+      }.to raise_error(Phronomy::LlmContextWindow::UnknownModelError)
     end
   end
 
@@ -201,17 +201,17 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-011: unknown_model → UnknownModelError; word_count tokenizer not reached" do
     around do |example|
-      original = Phronomy::Context::TokenEstimator.tokenizer
-      Phronomy::Context::TokenEstimator.tokenizer = ->(text) { text.split.length }
+      original = Phronomy::LlmContextWindow::TokenEstimator.tokenizer
+      Phronomy::LlmContextWindow::TokenEstimator.tokenizer = ->(text) { text.split.length }
       example.run
     ensure
-      Phronomy::Context::TokenEstimator.tokenizer = original
+      Phronomy::LlmContextWindow::TokenEstimator.tokenizer = original
     end
 
     it "raises UnknownModelError before any tokenizer is used" do
       expect {
-        Phronomy::Context::TokenBudget.new(model: "unknown/model-does-not-exist")
-      }.to raise_error(Phronomy::Context::UnknownModelError)
+        Phronomy::LlmContextWindow::TokenBudget.new(model: "unknown/model-does-not-exist")
+      }.to raise_error(Phronomy::LlmContextWindow::UnknownModelError)
     end
   end
 
@@ -221,8 +221,8 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   describe "TC-012: unknown_model → UnknownModelError; partial_fit not exercised" do
     it "raises UnknownModelError — partial_fit context_builder factor is irrelevant" do
       expect {
-        Phronomy::Context::TokenBudget.new(model: "mystery-vendor/mystery-model")
-      }.to raise_error(Phronomy::Context::UnknownModelError)
+        Phronomy::LlmContextWindow::TokenBudget.new(model: "mystery-vendor/mystery-model")
+      }.to raise_error(Phronomy::LlmContextWindow::UnknownModelError)
     end
   end
 
@@ -235,7 +235,7 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   describe "TC-014: from_model; small max_output; large context_overhead; all messages fit" do
     it "effective_input_limit is reduced by large context_overhead (overhead param)" do
       # Use an overhead that exceeds context_window - max_output_tokens so the limit clamps to 0
-      budget = Phronomy::Context::TokenBudget.new(
+      budget = Phronomy::LlmContextWindow::TokenBudget.new(
         model: "openai/gpt-oss-20b",
         max_output_tokens: 512,
         overhead: 200_000
@@ -245,12 +245,12 @@ RSpec.describe "Group 3: Context / Budget", :integration do
     end
 
     it "Assembler returns empty messages when effective_input_limit is 0" do
-      budget = Phronomy::Context::TokenBudget.new(
+      budget = Phronomy::LlmContextWindow::TokenBudget.new(
         model: "openai/gpt-oss-20b",
         max_output_tokens: 512,
         overhead: 200_000
       )
-      assembler = Phronomy::Context::Assembler.new(budget: budget)
+      assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
       assembler.add_messages(short_messages(3))
       result = assembler.build
       expect(result[:messages]).to be_empty
@@ -264,11 +264,11 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   describe "TC-015: from_model; large max_output vs. small max_output_tokens" do
     it "TokenBudget honours the explicit max_output_tokens override over registry value" do
       # Explicit small max_output_tokens overrides the registry default
-      budget_small = Phronomy::Context::TokenBudget.new(
+      budget_small = Phronomy::LlmContextWindow::TokenBudget.new(
         model: "openai/gpt-oss-20b",
         max_output_tokens: 128
       )
-      budget_large = Phronomy::Context::TokenBudget.new(
+      budget_large = Phronomy::LlmContextWindow::TokenBudget.new(
         model: "openai/gpt-oss-20b",
         max_output_tokens: 4096
       )
@@ -277,11 +277,11 @@ RSpec.describe "Group 3: Context / Budget", :integration do
     end
 
     it "Assembler keeps all short messages when effective_input_limit is large" do
-      budget = Phronomy::Context::TokenBudget.new(
+      budget = Phronomy::LlmContextWindow::TokenBudget.new(
         model: "openai/gpt-oss-20b",
         max_output_tokens: 128
       )
-      assembler = Phronomy::Context::Assembler.new(budget: budget)
+      assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
       assembler.add_messages(short_messages(3))
       result = assembler.build
       expect(result[:messages].length).to eq(3)
@@ -294,13 +294,13 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   describe "TC-016: from_model; large overhead; heuristic tokenizer; partial fit" do
     it "overhead reduces effective_input_limit causing partial fit" do
       # Use an explicit large overhead to force partial fit
-      budget = Phronomy::Context::TokenBudget.new(
+      budget = Phronomy::LlmContextWindow::TokenBudget.new(
         model: "openai/gpt-oss-20b",
         overhead: 100_000
       )
       expect(budget.effective_input_limit).to eq(0)
 
-      assembler = Phronomy::Context::Assembler.new(budget: budget)
+      assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
       assembler.add_messages(short_messages(5))
       result = assembler.build
       expect(result[:messages]).to be_empty
@@ -313,25 +313,25 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-017: from_model; word-count tokenizer; large context_overhead; all short messages fit" do
     around do |example|
-      original = Phronomy::Context::TokenEstimator.tokenizer
-      Phronomy::Context::TokenEstimator.tokenizer = ->(text) { text.split.length }
+      original = Phronomy::LlmContextWindow::TokenEstimator.tokenizer
+      Phronomy::LlmContextWindow::TokenEstimator.tokenizer = ->(text) { text.split.length }
       example.run
     ensure
-      Phronomy::Context::TokenEstimator.tokenizer = original
+      Phronomy::LlmContextWindow::TokenEstimator.tokenizer = original
     end
 
     it "word-count tokenizer is used by TokenEstimator" do
-      expect(Phronomy::Context::TokenEstimator.estimate("one two three")).to eq(3)
+      expect(Phronomy::LlmContextWindow::TokenEstimator.estimate("one two three")).to eq(3)
     end
 
     it "all short messages fit despite large context_overhead reservation" do
       # context_window=50000, max_output=0, overhead=40000 → effective=10000
-      budget = Phronomy::Context::TokenBudget.new(
+      budget = Phronomy::LlmContextWindow::TokenBudget.new(
         context_window: 50_000,
         max_output_tokens: 0,
         overhead: 40_000
       )
-      assembler = Phronomy::Context::Assembler.new(budget: budget)
+      assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
       assembler.add_messages(short_messages(3))
       result = assembler.build
       expect(result[:messages].length).to eq(3)

@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-# Lifecycle invariant tests for Phronomy::FSMSession and Phronomy::EventLoop.
+# Lifecycle invariant tests for Phronomy::Agent::Lifecycle::FSMSession and Phronomy::EventLoop.
 #
 # These specs validate four core lifecycle contracts:
 #

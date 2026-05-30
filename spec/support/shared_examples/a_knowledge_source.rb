@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Contract tests for Phronomy::KnowledgeSource::Base implementations (Issue #212).
+# Contract tests for Phronomy::Agent::Context::Knowledge::Source::Base implementations (Issue #212).
 #
 # Usage:
 #   it_behaves_like "a knowledge source" do

@@ -74,7 +74,7 @@ module Phronomy
       def build_handoffs(routes)
         routes.each do |source_agent, target_agents|
           Array(target_agents).each do |target_agent|
-            handoff = Handoff.new(target_agent: target_agent)
+            handoff = Phronomy::MultiAgent::Handoff.new(target_agent: target_agent)
             @sentinel_map[handoff.sentinel] = target_agent
             source_agent._add_handoff_tool(handoff.to_tool_class)
           end
@@ -86,7 +86,7 @@ module Phronomy
           next unless msg.role.to_sym == :tool
 
           content = msg.content.to_s
-          next unless content.start_with?(Handoff::SENTINEL_PREFIX)
+          next unless content.start_with?(Phronomy::MultiAgent::Handoff::SENTINEL_PREFIX)
 
           return @sentinel_map[content]
         end

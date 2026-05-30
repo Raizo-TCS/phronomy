@@ -27,7 +27,7 @@ def run_in_subprocess(snippet)
 end
 
 RSpec.describe "Optional dependency absence", :nightly do
-  describe "Phronomy::VectorStore::Pgvector without pgvector gem" do
+  describe "Phronomy::Agent::Context::Knowledge::VectorStore::Pgvector without pgvector gem" do
     it "raises LoadError with a helpful message if pgvector is not installed" do
       script = <<~RUBY
         require "phronomy"
@@ -35,7 +35,7 @@ RSpec.describe "Optional dependency absence", :nightly do
         $LOADED_FEATURES.reject! { |f| f.include?("/pgvector") }
         $LOAD_PATH.reject! { |p| Dir["\#{p}/pgvector.rb", "\#{p}/pgvector/**"].any? }
         begin
-          Phronomy::VectorStore::Pgvector.new(model_class: nil)
+          Phronomy::Agent::Context::Knowledge::VectorStore::Pgvector.new(model_class: nil)
           puts "LOADED_OK"
         rescue LoadError => e
           puts e.message.include?("pgvector gem is required") ? "CORRECT" : "WRONG: \#{e.message}"
@@ -46,14 +46,14 @@ RSpec.describe "Optional dependency absence", :nightly do
     end
   end
 
-  describe "Phronomy::VectorStore::RedisSearch without redis gem" do
+  describe "Phronomy::Agent::Context::Knowledge::VectorStore::RedisSearch without redis gem" do
     it "raises LoadError with a helpful message if redis is not installed" do
       script = <<~RUBY
         require "phronomy"
         $LOADED_FEATURES.reject! { |f| f =~ /\\/redis(\\.rb|\\/)/ }
         $LOAD_PATH.reject! { |p| Dir["\#{p}/redis.rb", "\#{p}/redis/**"].any? }
         begin
-          Phronomy::VectorStore::RedisSearch.new(redis: nil, dimension: 3)
+          Phronomy::Agent::Context::Knowledge::VectorStore::RedisSearch.new(redis: nil, dimension: 3)
           puts "LOADED_OK"
         rescue LoadError => e
           puts e.message.include?("redis gem is required") ? "CORRECT" : "WRONG: \#{e.message}"
@@ -93,7 +93,7 @@ RSpec.describe "Optional dependency absence", :nightly do
       expect(defined?(Phronomy::Agent::Base)).to eq("constant")
       expect(defined?(Phronomy::Tool::Base)).to eq("constant")
       expect(defined?(Phronomy::Workflow)).to eq("constant")
-      expect(defined?(Phronomy::VectorStore::InMemory)).to eq("constant")
+      expect(defined?(Phronomy::Agent::Context::Knowledge::VectorStore::InMemory)).to eq("constant")
       expect(defined?(Phronomy::Tracing::NullTracer)).to eq("constant")
     end
   end

@@ -188,7 +188,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
     # embeddings adapter. fetch_async is inherited from Base and always
     # submits to pool.submit regardless of subclass.
     let(:knowledge_source) do
-      Class.new(Phronomy::KnowledgeSource::Base) do
+      Class.new(Phronomy::Agent::Context::Knowledge::Source::Base) do
         def fetch(query: nil, cancellation_token: nil)
           [{content: "Test content.", type: :text, source: "test"}]
         end
@@ -209,7 +209,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
   # TC-005: vector_store — VectorStore#search_async routes through pool
   # -------------------------------------------------------------------------
   describe "TC-005: vector_store — VectorStore::Base#search_async routes through pool" do
-    let(:vector_store) { Phronomy::VectorStore::InMemory.new }
+    let(:vector_store) { Phronomy::Agent::Context::Knowledge::VectorStore::InMemory.new }
 
     before do
       vector_store.add(id: "v1", embedding: [0.5, 0.5], metadata: {content: "test"})
@@ -229,7 +229,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
   # -------------------------------------------------------------------------
   describe "TC-006: queue_full — pool queue full raises BackpressureError" do
     # Use a tiny pool (1 worker, 1-deep queue) so saturation is easy.
-    let(:tiny_pool) { Phronomy::BlockingAdapterPool.new(pool_size: 1, queue_size: 1) }
+    let(:tiny_pool) { Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 1) }
 
     after { tiny_pool.shutdown(drain_timeout: 3) }
 
@@ -259,7 +259,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
   # TC-007: pool_shutdown — Submit after shutdown raises PoolShutdownError
   # -------------------------------------------------------------------------
   describe "TC-007: pool_shutdown — submit after shutdown raises PoolShutdownError" do
-    let(:fresh_pool) { Phronomy::BlockingAdapterPool.new(pool_size: 1, queue_size: 10) }
+    let(:fresh_pool) { Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 10) }
 
     it "raises PoolShutdownError when the pool has been shut down" do
       fresh_pool.shutdown(drain_timeout: 3)

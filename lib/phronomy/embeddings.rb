@@ -4,8 +4,8 @@ module Phronomy
   # Embeddings adapters for converting text into vector representations.
   #
   # Sub-classes are auto-loaded by Zeitwerk:
-  #   Phronomy::Embeddings::Base
-  #   Phronomy::Embeddings::RubyLLMEmbeddings
+  #   Phronomy::Agent::Context::Knowledge::Embeddings::Base
+  #   Phronomy::Agent::Context::Knowledge::Embeddings::RubyLLMEmbeddings
   module Embeddings
   end
 end

@@ -74,16 +74,16 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
     end
   end
 
-  describe "Phronomy::VectorStore::Base" do
-    subject { Phronomy::VectorStore::Base }
+  describe "Phronomy::Agent::Context::Knowledge::VectorStore::Base" do
+    subject { Phronomy::Agent::Context::Knowledge::VectorStore::Base }
 
     it "exposes instance methods: add, search, remove, clear, size" do
       expect(subject.public_instance_methods).to include(:add, :search, :remove, :clear, :size)
     end
   end
 
-  describe "Phronomy::CancellationToken" do
-    subject { Phronomy::CancellationToken }
+  describe "Phronomy::Concurrency::CancellationToken" do
+    subject { Phronomy::Concurrency::CancellationToken }
 
     it "exposes class method: timeout_after" do
       expect(subject).to respond_to(:timeout_after)
@@ -138,7 +138,7 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
     let(:runtime) { Phronomy::Runtime.instance }
 
     it "exposes #blocking_io returning a BlockingAdapterPool" do
-      expect(runtime.blocking_io).to be_a(Phronomy::BlockingAdapterPool)
+      expect(runtime.blocking_io).to be_a(Phronomy::Concurrency::BlockingAdapterPool)
     end
 
     it "exposes #task_group returning a TaskGroup" do

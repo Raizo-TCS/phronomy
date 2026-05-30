@@ -135,14 +135,14 @@ module Phronomy
         # Run before_completion hooks before each LLM call in the ReAct loop.
         run_before_completion_hooks!(chat, config)
 
-        response = if user_asked
-          # Subsequent loop iteration — history already contains the user message;
-          # just ask the LLM to continue (e.g. after a tool result).
-          chat.complete
-        else
-          # First iteration — add the new user question and call the LLM.
-          chat.ask(extract_message(initial_input))
-        end
+        # Route the LLM call through the configured LLMAdapter so that the
+        # blocking HTTP request runs inside BlockingAdapterPool and the
+        # adapter can be swapped without changing agent code.
+        # Passing nil as message signals the adapter to call chat.complete
+        # (no new user turn) for continuation iterations.
+        adapter = Phronomy.configuration.llm_adapter
+        message = user_asked ? nil : extract_message(initial_input)
+        response = adapter.complete_async(chat, message, config: config).await
 
         usage = Phronomy::TokenUsage.from_tokens(response&.tokens)
         tool_calls = chat.messages.last&.tool_calls
@@ -181,13 +181,18 @@ module Phronomy
         # Run before_completion hooks before each LLM call in the streaming loop.
         run_before_completion_hooks!(chat, config)
 
+        # Route the streaming LLM call through the configured LLMAdapter so that
+        # the blocking HTTP request runs inside BlockingAdapterPool.
+        # Passing nil as message signals the adapter to call chat.complete
+        # (no new user turn) for continuation iterations.
+        # Streaming chunks and tool event callbacks are delivered directly via the
+        # block on the pool worker thread; pending.await yields cooperatively until
+        # streaming is complete.
+        adapter = Phronomy.configuration.llm_adapter
+        message = user_asked ? nil : extract_message(initial_input)
         streaming_block = proc { |chunk| block.call(StreamEvent.new(type: :token, payload: {content: chunk.content})) }
-
-        response = if user_asked
-          chat.complete(&streaming_block)
-        else
-          chat.ask(extract_message(initial_input), &streaming_block)
-        end
+        pending = adapter.stream_async(chat, message, config: config, &streaming_block)
+        response = pending.await
 
         usage = Phronomy::TokenUsage.from_tokens(response&.tokens)
         tool_calls = chat.messages.last&.tool_calls

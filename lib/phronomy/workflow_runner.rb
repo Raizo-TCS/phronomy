@@ -56,7 +56,16 @@ module Phronomy
       @wait_state_names = wait_state_names
       @state_store = state_store
       @action_timeouts = action_timeouts   # { state_name => seconds }
-      @phase_machine_class = build_phase_machine_class(auto_transitions, exit_actions)
+      @phase_machine_class = Agent::Lifecycle::PhaseMachineBuilder.new(
+        entry_point: @entry_point,
+        declared_states: @declared_states,
+        wait_state_names: @wait_state_names,
+        external_events: @external_events,
+        entry_actions: @entry_actions,
+        action_timeouts: @action_timeouts,
+        auto_transitions: auto_transitions,
+        exit_actions: exit_actions
+      ).build
     end
 
     # Executes the workflow from the initial state.
@@ -160,7 +169,7 @@ module Phronomy
 
     # Builds an FSMSession for the given context. Used in EventLoop mode.
     def build_session_for(context:, recursion_limit:, resume_event: nil, resume_phase: nil)
-      Phronomy::FSMSession.new(
+      Phronomy::Agent::Lifecycle::FSMSession.new(
         id: context.thread_id,
         context: context,
         entry_point: @entry_point,
@@ -310,135 +319,6 @@ module Phronomy
     #   before_transition from — exit callbacks (invoked when leaving a state)
     #
     # Guard lambdas bridge the PhaseTracker and WorkflowContext via +m.context+.
-    def build_phase_machine_class(auto_transitions, exit_actions)
-      entry = @entry_point
-      all_states = (@declared_states + @wait_state_names + [:__end__]).uniq
-      auto_trans = auto_transitions  # Array of { from:, to:, guard: }
-      ext_events = @external_events
-      entry_acts = @entry_actions
-      exit_acts = exit_actions
-      act_timeouts = @action_timeouts  # { state_name => seconds }
-
-      Class.new do
-        # Holds the current WorkflowContext so guards and callbacks can read it.
-        attr_accessor :context
-
-        # Set to true by an entry action that returned an awaitable Task.
-        # When true, FSMSession skips the automatic advance_or_halt step and
-        # waits for the async worker thread to post a state_completed event back.
-        attr_accessor :async_pending
-
-        state_machine :phase, initial: entry do
-          all_states.each { |s| state s }
-
-          # Auto-fire transitions: all auto transitions unified under :state_completed.
-          # Includes unguarded (unconditional) and guarded (conditional) transitions.
-          # Declaration order is preserved; guards are evaluated before unguarded fallbacks.
-          event :state_completed do
-            auto_trans.each do |t|
-              if t[:guard]
-                guard_proc = t[:guard]
-                transition t[:from] => t[:to], :if => ->(m) { guard_proc.call(m.context) }
-              else
-                transition t[:from] => t[:to]
-              end
-            end
-          end
-
-          # External events: human-in-the-loop triggers from wait states.
-          ext_events.each do |ev_name, transitions|
-            event ev_name do
-              transitions.each do |t|
-                if t[:guard]
-                  guard_proc = t[:guard]
-                  transition t[:from] => t[:to], :if => ->(m) { guard_proc.call(m.context) }
-                else
-                  transition t[:from] => t[:to]
-                end
-              end
-            end
-          end
-
-          # Entry callbacks: fire after_transition into each state.
-          #    Each callable is registered as a separate callback; state_machines
-          #    accumulates them and fires in declaration order.
-          #    If the callable returns a WorkflowContext (e.g. via s.merge(...)),
-          #    the returned context replaces the current one on the tracker.
-          entry_acts.each do |state_name, callables|
-            callables.each do |callable|
-              timeout_secs = act_timeouts[state_name]
-              after_transition to: state_name do |machine|
-                result = callable.call(machine.context)
-                if result.is_a?(Phronomy::Task)
-                  if Phronomy.configuration.event_loop
-                    # EventLoop mode: await in a background task so the EventLoop
-                    # thread is not blocked. Signal async_pending so FSMSession
-                    # skips the automatic advance_or_halt step.
-                    machine.async_pending = true
-                    ctx_ref = machine.context
-                    thread_id = ctx_ref.thread_id
-                    Phronomy::Runtime.instance.spawn(name: "wf-await-#{thread_id}") do
-                      if timeout_secs
-                        if result.join(timeout_secs).nil?
-                          result.cancel!
-                          raise Phronomy::ActionTimeoutError,
-                            "Action in state #{state_name.inspect} timed out after #{timeout_secs}s"
-                        end
-                      end
-                      task_result = result.await
-                      if task_result.is_a?(Phronomy::WorkflowContext)
-                        Phronomy::EventLoop.instance.post(
-                          Phronomy::Event.new(
-                            type: :action_completed,
-                            target_id: thread_id,
-                            payload: task_result
-                          )
-                        )
-                      else
-                        Phronomy::EventLoop.instance.post(
-                          Phronomy::Event.new(type: :state_completed, target_id: thread_id, payload: nil)
-                        )
-                      end
-                    rescue => e
-                      Phronomy::EventLoop.instance.post(
-                        Phronomy::Event.new(type: :error, target_id: thread_id, payload: e)
-                      )
-                    end
-                  else
-                    # Non-EventLoop mode: block synchronously on the task result.
-                    if timeout_secs
-                      if result.join(timeout_secs).nil?
-                        result.cancel!
-                        raise Phronomy::ActionTimeoutError,
-                          "Action in state #{state_name.inspect} timed out after #{timeout_secs}s"
-                      end
-                    end
-                    task_result = result.await
-                    machine.context = task_result if task_result.is_a?(Phronomy::WorkflowContext)
-                  end
-                elsif result.is_a?(Phronomy::WorkflowContext)
-                  machine.context = result
-                end
-              end
-            end
-          end
-
-          # Exit callbacks: fire before_transition out of each state.
-          #    Each callable is registered as a separate callback; state_machines
-          #    accumulates them and fires in declaration order.
-          exit_acts.each do |state_name, callables|
-            callables.each do |callable|
-              before_transition from: state_name do |machine|
-                callable.call(machine.context)
-              end
-            end
-          end
-        end
-      end
-    rescue => e
-      raise ArgumentError, "Failed to build phase machine: #{e.message}"
-    end
-
     # Creates a PhaseTracker instance initialized to +from_state+.
     def new_phase_machine(from_state)
       machine = @phase_machine_class.new

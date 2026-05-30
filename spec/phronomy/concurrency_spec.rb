@@ -17,7 +17,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
   # Orchestrator#dispatch_parallel — result ordering under real concurrency
   # -----------------------------------------------------------------------
   describe "Orchestrator#dispatch_parallel result ordering under concurrency" do
-    subject(:orchestrator) { Class.new(Phronomy::Agent::Orchestrator).new }
+    subject(:orchestrator) { Class.new(Phronomy::MultiAgent::Orchestrator).new }
 
     it "returns results in input order even when tasks complete in reverse order" do
       # Tasks are staggered so they finish in reverse order (task 5 first, task 1 last).
@@ -98,7 +98,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
   # -----------------------------------------------------------------------
   describe "Orchestrator#invoke_once context cleanup" do
     it "resets @_orchestrator_context to nil after invoke" do
-      orchestrator_class = Class.new(Phronomy::Agent::Orchestrator)
+      orchestrator_class = Class.new(Phronomy::MultiAgent::Orchestrator)
       # Override to avoid any real LLM call; just return immediately.
       orchestrator_class.define_method(:_invoke_impl) do |input, config: {}, thread_id: nil, **|
         super(input, config: config, thread_id: thread_id)
@@ -124,7 +124,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
   #  integrity assertions missing from that suite)
   # -----------------------------------------------------------------------
   describe "VectorStore::InMemory concurrent add/search integrity" do
-    subject(:store) { Phronomy::VectorStore::InMemory.new(dimension: 3) }
+    subject(:store) { Phronomy::Agent::Context::Knowledge::VectorStore::InMemory.new(dimension: 3) }
 
     it "returns structurally valid results when add and search interleave" do
       5.times { |i| store.add(id: "seed-#{i}", embedding: [1.0, 0.0, 0.0], metadata: {i: i}) }

@@ -127,7 +127,7 @@ RSpec.describe "README API smoke tests (Issue #141)" do
 
   describe "Chain DSL" do
     it "supports PromptTemplate definition and invoke as shown in README" do
-      prompt = Phronomy::PromptTemplate.new(template: "Hello {{name}}")
+      prompt = Phronomy::Agent::Context::Instruction::PromptTemplate.new(template: "Hello {{name}}")
       expect(prompt).to respond_to(:invoke)
       expect(prompt.format(name: "World")).to eq("Hello World")
     end

@@ -23,22 +23,22 @@ BENCH_TOKEN_ITERATIONS = 10_000
 puts "=== bench_token_estimator ==="
 Benchmark.bm(30) do |x|
   x.report("estimate(short text)") do
-    BENCH_TOKEN_ITERATIONS.times { Phronomy::Context::TokenEstimator.estimate(SHORT_TEXT) }
+    BENCH_TOKEN_ITERATIONS.times { Phronomy::LlmContextWindow::TokenEstimator.estimate(SHORT_TEXT) }
   end
 
   x.report("estimate(medium text 500c)") do
-    BENCH_TOKEN_ITERATIONS.times { Phronomy::Context::TokenEstimator.estimate(MEDIUM_TEXT) }
+    BENCH_TOKEN_ITERATIONS.times { Phronomy::LlmContextWindow::TokenEstimator.estimate(MEDIUM_TEXT) }
   end
 
   x.report("estimate(long text 10k c)") do
-    BENCH_TOKEN_ITERATIONS.times { Phronomy::Context::TokenEstimator.estimate(LONG_TEXT) }
+    BENCH_TOKEN_ITERATIONS.times { Phronomy::LlmContextWindow::TokenEstimator.estimate(LONG_TEXT) }
   end
 
   x.report("estimate(100 messages)") do
-    BENCH_TOKEN_ITERATIONS.times { Phronomy::Context::TokenEstimator.estimate(MESSAGES_100) }
+    BENCH_TOKEN_ITERATIONS.times { Phronomy::LlmContextWindow::TokenEstimator.estimate(MESSAGES_100) }
   end
 
   x.report("estimate(1000 messages)") do
-    (BENCH_TOKEN_ITERATIONS / 10).times { Phronomy::Context::TokenEstimator.estimate(MESSAGES_1000) }
+    (BENCH_TOKEN_ITERATIONS / 10).times { Phronomy::LlmContextWindow::TokenEstimator.estimate(MESSAGES_1000) }
   end
 end

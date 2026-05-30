@@ -8,8 +8,6 @@ require_relative "runtime/timer_queue"
 require_relative "runtime/scheduler_timer_adapter"
 require_relative "runtime/task_registry"
 require_relative "runtime/runtime_metrics"
-require_relative "runtime/gate_registry"
-require_relative "runtime/pool_registry"
 require_relative "runtime/timer_service"
 
 module Phronomy
@@ -99,6 +97,23 @@ module Phronomy
       !Task.current.nil?
     end
 
+    # Executes +block+ and returns +[result, elapsed_ms]+ where +elapsed_ms+
+    # is the wall-clock duration in milliseconds (Integer, rounded).
+    #
+    # Isolates all direct references to +Process.clock_gettime+ /
+    # +Process::CLOCK_MONOTONIC+ in one place so that callers stay at the
+    # framework abstraction level.
+    #
+    # @yield block to time
+    # @return [Array(Object, Integer)] +[block_return_value, elapsed_ms]+
+    # @api private
+    def self.measure_ms
+      t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      result = yield
+      elapsed_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0) * 1000).round
+      [result, elapsed_ms]
+    end
+
     # The scheduler backing this runtime instance.
     # @return [Scheduler]
     attr_reader :scheduler
@@ -109,8 +124,8 @@ module Phronomy
       @scheduler = scheduler
       @task_registry = TaskRegistry.new
       @metrics = RuntimeMetrics.new
-      @gate_registry = GateRegistry.new
-      @pool_registry = PoolRegistry.new
+      @gate_registry = Phronomy::Concurrency::GateRegistry.new
+      @pool_registry = Phronomy::Concurrency::PoolRegistry.new
       @timer_service = TimerService.new(scheduler)
     end
 

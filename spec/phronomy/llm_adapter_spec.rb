@@ -20,7 +20,7 @@ RSpec.describe "LLMAdapter abstraction" do
 
     describe "#complete_async" do
       it "submits the blocking complete call to the provided pool and returns a PendingOperation" do
-        pool = Phronomy::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
+        pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
         concrete = Class.new(described_class) do
           def complete(chat, message, config: {})
             "response:#{message}"
@@ -37,7 +37,7 @@ RSpec.describe "LLMAdapter abstraction" do
 
     describe "#stream_async" do
       it "submits the blocking stream call to the provided pool and returns a PendingOperation" do
-        pool = Phronomy::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
+        pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
         received_chunks = []
         concrete = Class.new(described_class) do
           def stream(chat, message, config: {}, &block)
@@ -61,8 +61,8 @@ RSpec.describe "LLMAdapter abstraction" do
 
     describe "#stream_async with enqueue_to: (Issue #292)" do
       it "pushes chunks into the given AsyncQueue and does not call the block on the worker thread" do
-        pool = Phronomy::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
-        chunk_queue = Phronomy::AsyncQueue.new
+        pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
+        chunk_queue = Phronomy::Concurrency::AsyncQueue.new
         worker_threads = []
         concrete = Class.new(described_class) do
           define_method(:stream) do |chat, message, config: {}, &blk|
@@ -95,8 +95,8 @@ RSpec.describe "LLMAdapter abstraction" do
       end
 
       it "closes the queue after the stream completes so the drain loop terminates" do
-        pool = Phronomy::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
-        chunk_queue = Phronomy::AsyncQueue.new
+        pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
+        chunk_queue = Phronomy::Concurrency::AsyncQueue.new
         concrete = Class.new(described_class) do
           def stream(chat, message, config: {}, &blk)
             blk.call("only_chunk")
@@ -180,7 +180,7 @@ RSpec.describe "LLMAdapter abstraction" do
     end
 
     let(:fake_adapter) do
-      pool = Phronomy::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
+      pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
       adapter = instance_double(Phronomy::LLMAdapter::RubyLLM)
       pending_op = pool.submit { fake_response }
       allow(adapter).to receive(:complete_async).and_return(pending_op)

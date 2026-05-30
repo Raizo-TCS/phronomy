@@ -56,6 +56,124 @@ module Phronomy
         @pending_tool_args = pending_tool_args
         @pending_tool_call_id = pending_tool_call_id
       end
+
+      # Converts this checkpoint to a plain Hash suitable for JSON / Marshal serialization.
+      #
+      # All values are plain Ruby objects (String, Symbol, Hash, Array, Numeric,
+      # nil). +RubyLLM::Message+ objects in +:messages+ are deep-converted so that
+      # any embedded +RubyLLM::ToolCall+ objects are also serialized as plain hashes.
+      #
+      # @example Round-trip via JSON
+      #   json = JSON.generate(checkpoint.to_h)
+      #   checkpoint2 = Phronomy::Agent::Checkpoint.from_h(JSON.parse(json))
+      #
+      # @return [Hash]
+      # @api public
+      def to_h
+        {
+          thread_id: @thread_id,
+          original_input: @original_input,
+          messages: @messages.map { |m| serialize_message(m) },
+          pending_tool_name: @pending_tool_name,
+          pending_tool_args: @pending_tool_args,
+          pending_tool_call_id: @pending_tool_call_id
+        }
+      end
+
+      # Reconstructs a +Checkpoint+ from a plain Hash (e.g. produced by {#to_h}
+      # and deserialized from JSON or Marshal).
+      #
+      # Hash keys may be either Symbols or Strings; both are accepted.
+      # +RubyLLM::ToolCall+ objects inside message +:tool_calls+ arrays are
+      # reconstructed from their hash representations.
+      #
+      # @param h [Hash] a hash previously produced by {#to_h}
+      # @return [Checkpoint]
+      # @api public
+      def self.from_h(h)
+        h = h.transform_keys { |k|
+          begin
+            k.to_sym
+          rescue
+            k
+          end
+        }
+        messages = Array(h[:messages]).map { |m| deserialize_message(m) }
+        new(
+          thread_id: h[:thread_id],
+          original_input: h[:original_input],
+          messages: messages,
+          pending_tool_name: h[:pending_tool_name]&.to_s,
+          pending_tool_args: h[:pending_tool_args] ? h[:pending_tool_args].transform_keys { |k|
+            begin
+              k.to_sym
+            rescue
+              k
+            end
+          } : {},
+          pending_tool_call_id: h[:pending_tool_call_id]&.to_s
+        )
+      end
+
+      private
+
+      # Converts a +RubyLLM::Message+ to a plain Hash, ensuring that any
+      # embedded +RubyLLM::ToolCall+ objects in +:tool_calls+ are also converted.
+      #
+      # @param msg [RubyLLM::Message]
+      # @return [Hash]
+      # @api private
+      def serialize_message(msg)
+        h = msg.to_h
+        return h unless h[:tool_calls]
+
+        h.merge(tool_calls: h[:tool_calls].map { |tc|
+          tc.respond_to?(:to_h) ? tc.to_h : tc
+        })
+      end
+
+      # Reconstructs a +RubyLLM::Message+ from a plain Hash.
+      # +RubyLLM::ToolCall+ entries in +:tool_calls+ are re-instantiated.
+      #
+      # @param h [Hash]
+      # @return [RubyLLM::Message]
+      # @api private
+      def self.deserialize_message(h)
+        h = h.transform_keys { |k|
+          begin
+            k.to_sym
+          rescue
+            k
+          end
+        }
+        if h[:tool_calls]
+          h = h.merge(tool_calls: Array(h[:tool_calls]).map { |tc|
+            next tc if tc.is_a?(RubyLLM::ToolCall)
+
+            tc = tc.transform_keys { |k|
+              begin
+                k.to_sym
+              rescue
+                k
+              end
+            }
+            RubyLLM::ToolCall.new(
+              id: tc[:id].to_s,
+              name: tc[:name].to_s,
+              arguments: (tc[:arguments] || {}).transform_keys { |k|
+                begin
+                  k.to_sym
+                rescue
+                  k
+                end
+              },
+              thought_signature: tc[:thought_signature]
+            )
+          })
+        end
+        RubyLLM::Message.new(h)
+      end
+      private_class_method :deserialize_message
     end
   end
 end

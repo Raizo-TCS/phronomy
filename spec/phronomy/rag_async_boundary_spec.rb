@@ -7,7 +7,7 @@ RSpec.describe "RAG async boundary (Issue #267)" do
 
   describe "KnowledgeSource#fetch_async" do
     it "delegates to fetch via BlockingAdapterPool" do
-      ks = Class.new(Phronomy::KnowledgeSource::Base) do
+      ks = Class.new(Phronomy::Agent::Context::Knowledge::Source::Base) do
         def fetch(query: nil, cancellation_token: nil)
           [{content: "result", type: "text", source: "test"}]
         end
@@ -21,7 +21,7 @@ RSpec.describe "RAG async boundary (Issue #267)" do
 
   describe "Embeddings::Base#embed_async" do
     it "delegates to embed via BlockingAdapterPool" do
-      emb = Class.new(Phronomy::Embeddings::Base) do
+      emb = Class.new(Phronomy::Agent::Context::Knowledge::Embeddings::Base) do
         def embed(text, _cancellation_token = nil)
           [0.1, 0.2, 0.3]
         end
@@ -35,7 +35,7 @@ RSpec.describe "RAG async boundary (Issue #267)" do
 
   describe "VectorStore::Base#search_async" do
     it "delegates to search via BlockingAdapterPool" do
-      vs = Class.new(Phronomy::VectorStore::Base) do
+      vs = Class.new(Phronomy::Agent::Context::Knowledge::VectorStore::Base) do
         def search(query_embedding:, k: 5, cancellation_token: nil)
           [{content: "found", score: 0.9}]
         end
@@ -70,7 +70,7 @@ RSpec.describe "RAG parallel multi-source fetch (Issue #303)" do
   let(:agent) { agent_class.new }
 
   def make_ks(chunks, delay: 0)
-    Class.new(Phronomy::KnowledgeSource::Base) do
+    Class.new(Phronomy::Agent::Context::Knowledge::Source::Base) do
       define_method(:fetch) do |query: nil, cancellation_token: nil|
         sleep delay if delay > 0
         chunks
@@ -103,7 +103,7 @@ RSpec.describe "RAG parallel multi-source fetch (Issue #303)" do
   end
 
   it "skips a failed source by default (rag_failure_policy: :skip)" do
-    bad_ks = Class.new(Phronomy::KnowledgeSource::Base) do
+    bad_ks = Class.new(Phronomy::Agent::Context::Knowledge::Source::Base) do
       def fetch(query: nil, cancellation_token: nil)
         raise Phronomy::Error, "source exploded"
       end
@@ -117,7 +117,7 @@ RSpec.describe "RAG parallel multi-source fetch (Issue #303)" do
   end
 
   it "raises when rag_failure_policy: :fail and a source fails" do
-    bad_ks = Class.new(Phronomy::KnowledgeSource::Base) do
+    bad_ks = Class.new(Phronomy::Agent::Context::Knowledge::Source::Base) do
       def fetch(query: nil, cancellation_token: nil)
         raise Phronomy::Error, "source exploded"
       end
@@ -158,7 +158,7 @@ RSpec.describe "RAG gate enforcement (Issue #319)" do
     mutex = Mutex.new
 
     make_ks = lambda do
-      Class.new(Phronomy::KnowledgeSource::Base) do
+      Class.new(Phronomy::Agent::Context::Knowledge::Source::Base) do
         define_method(:fetch) do |query: nil, cancellation_token: nil|
           mutex.synchronize do
             concurrency += 1
@@ -182,7 +182,7 @@ RSpec.describe "RAG gate enforcement (Issue #319)" do
     gate = Phronomy::Runtime.instance.gate(:rag)
     observed = []
 
-    ks = Class.new(Phronomy::KnowledgeSource::Base) do
+    ks = Class.new(Phronomy::Agent::Context::Knowledge::Source::Base) do
       define_method(:fetch) do |query: nil, cancellation_token: nil|
         observed << gate.current_count
         [{content: "x", type: "text", source: "g"}]

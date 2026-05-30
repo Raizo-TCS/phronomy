@@ -82,12 +82,12 @@ RSpec.describe Phronomy::Agent::Base do
     end
 
     it "does nothing when cancellation_token is not cancelled" do
-      token = Phronomy::CancellationToken.new
+      token = Phronomy::Concurrency::CancellationToken.new
       expect { agent.send(:check_cancellation!, {cancellation_token: token}) }.not_to raise_error
     end
 
     it "raises CancellationError when token is cancelled" do
-      token = Phronomy::CancellationToken.new
+      token = Phronomy::Concurrency::CancellationToken.new
       token.cancel!
       expect {
         agent.send(:check_cancellation!, {cancellation_token: token})
@@ -95,7 +95,7 @@ RSpec.describe Phronomy::Agent::Base do
     end
 
     it "raises CancellationError with the provided message" do
-      token = Phronomy::CancellationToken.new
+      token = Phronomy::Concurrency::CancellationToken.new
       token.cancel!
       expect {
         agent.send(:check_cancellation!, {cancellation_token: token}, "cancelled mid-RAG")
@@ -107,7 +107,7 @@ RSpec.describe Phronomy::Agent::Base do
         ks = double("KnowledgeSource")
         expect(ks).not_to receive(:fetch_async)
 
-        token = Phronomy::CancellationToken.new
+        token = Phronomy::Concurrency::CancellationToken.new
         token.cancel!
 
         expect {
@@ -122,7 +122,7 @@ RSpec.describe Phronomy::Agent::Base do
         pending_op = pool.submit { [] }
         allow(ks).to receive(:fetch_async).and_return(pending_op)
 
-        token = Phronomy::CancellationToken.new
+        token = Phronomy::Concurrency::CancellationToken.new
 
         expect {
           agent.send(:build_context, "query",
@@ -229,7 +229,7 @@ RSpec.describe Phronomy::Agent::Base do
     end
 
     it "delivers :token StreamEvents to the caller block without running the block on a pool worker thread" do
-      pool = Phronomy::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
+      pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
       worker_thread = nil
       chunk_stub = Struct.new(:content)
       fake_adapter = Class.new(Phronomy::LLMAdapter::Base) do
@@ -324,21 +324,21 @@ RSpec.describe "Agent::Base invocation_context: keyword argument (Issue #301)" d
   end
 
   it "derives cancellation_token from InvocationContext.cancellation_token" do
-    token = Phronomy::CancellationToken.new
+    token = Phronomy::Concurrency::CancellationToken.new
     ic = Phronomy::InvocationContext.new(cancellation_token: token)
     config = capture_config(agent) { agent.invoke("hi", invocation_context: ic) }
     expect(config[:cancellation_token]).to be(token)
   end
 
   it "derives cancellation_token from InvocationContext.deadline" do
-    ic = Phronomy::InvocationContext.new(deadline: Phronomy::Deadline.in(30))
+    ic = Phronomy::InvocationContext.new(deadline: Phronomy::Concurrency::Deadline.in(30))
     config = capture_config(agent) { agent.invoke("hi", invocation_context: ic) }
-    expect(config[:cancellation_token]).to be_a(Phronomy::CancellationToken)
+    expect(config[:cancellation_token]).to be_a(Phronomy::Concurrency::CancellationToken)
   end
 
   it "existing config[:cancellation_token] takes precedence over ic" do
-    explicit_token = Phronomy::CancellationToken.new
-    ic = Phronomy::InvocationContext.new(deadline: Phronomy::Deadline.in(30))
+    explicit_token = Phronomy::Concurrency::CancellationToken.new
+    ic = Phronomy::InvocationContext.new(deadline: Phronomy::Concurrency::Deadline.in(30))
     config = capture_config(agent) { agent.invoke("hi", config: {cancellation_token: explicit_token}, invocation_context: ic) }
     expect(config[:cancellation_token]).to be(explicit_token)
   end

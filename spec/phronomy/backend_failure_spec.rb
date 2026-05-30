@@ -15,7 +15,7 @@
 RSpec.describe "Backend failure scenarios (Issue #274)" do
   describe "KnowledgeSource network timeout" do
     let(:ks) do
-      Class.new(Phronomy::KnowledgeSource::Base) do
+      Class.new(Phronomy::Agent::Context::Knowledge::Source::Base) do
         def fetch(query:, cancellation_token: nil)
           sleep(10) # simulates hanging backend
           "never returned"
@@ -31,7 +31,7 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
 
   describe "Embeddings network timeout" do
     let(:embedder) do
-      Class.new(Phronomy::Embeddings::Base) do
+      Class.new(Phronomy::Agent::Context::Knowledge::Embeddings::Base) do
         def embed(text, _cancellation_token = nil)
           sleep(10)
           [0.1, 0.2]
@@ -47,7 +47,7 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
 
   describe "VectorStore network timeout" do
     let(:vs) do
-      Class.new(Phronomy::VectorStore::Base) do
+      Class.new(Phronomy::Agent::Context::Knowledge::VectorStore::Base) do
         def search(query_embedding:, k: 5, cancellation_token: nil)
           sleep(10)
           []
@@ -62,12 +62,12 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
   end
 
   describe "Cancellation during in-flight operation" do
-    let(:pool) { Phronomy::BlockingAdapterPool.new(pool_size: 2, queue_size: 10) }
+    let(:pool) { Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 2, queue_size: 10) }
 
     after { pool.shutdown(drain_timeout: 5) }
 
     it "raises CancellationError when token is cancelled before execution" do
-      token = Phronomy::CancellationToken.new
+      token = Phronomy::Concurrency::CancellationToken.new
       token.cancel!
 
       op = pool.submit(cancellation_token: token) { "should not run" }
@@ -77,7 +77,7 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
 
   describe "BlockingAdapterPool saturation — no silent drop" do
     it "raises BackpressureError (not silently drops) when queue is full" do
-      sat_pool = Phronomy::BlockingAdapterPool.new(pool_size: 1, queue_size: 1)
+      sat_pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 1)
       latch = Mutex.new
       cond = ConditionVariable.new
       released = false
@@ -106,7 +106,7 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
 
   describe "Scheduler lag under slow-backend load" do
     it "keeps EventLoop max_lag_seconds below 0.2s while pool workers are busy" do
-      pool = Phronomy::BlockingAdapterPool.new(pool_size: 4, queue_size: 20)
+      pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 4, queue_size: 20)
       el = Phronomy::EventLoop.new
       el.start
 

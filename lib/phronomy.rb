@@ -8,6 +8,7 @@ loader = Zeitwerk::Loader.for_gem
 # Teach Zeitwerk that "llm" maps to "LLM" so that file names such as
 # ruby_llm_embeddings.rb resolve to RubyLLMEmbeddings (not RubyLlmEmbeddings).
 loader.inflector.inflect("ruby_llm_embeddings" => "RubyLLMEmbeddings")
+loader.inflector.inflect("rag_knowledge" => "RAGKnowledge")
 # FSMSession: Zeitwerk would infer "FsmSession" — override to "FSMSession".
 loader.inflector.inflect("fsm_session" => "FSMSession")
 # AgentFSM: Zeitwerk would infer "Fsm" — override to "FSM".

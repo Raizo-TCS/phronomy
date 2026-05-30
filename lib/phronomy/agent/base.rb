@@ -60,12 +60,12 @@ module Phronomy
         end
 
         # Sets or reads the system instructions for this agent.
-        # Accepts a String, a {Phronomy::PromptTemplate}, or a block (Proc).
+        # Accepts a String, a {Phronomy::Agent::Context::Instruction::PromptTemplate}, or a block (Proc).
         # When used as a reader (no argument, no block), returns the stored value.
         #
-        # @param text [String, Phronomy::PromptTemplate, nil]
+        # @param text [String, Phronomy::Agent::Context::Instruction::PromptTemplate, nil]
         # @yield optionally provide instructions as a block
-        # @return [String, Phronomy::PromptTemplate, Proc, nil]
+        # @return [String, Phronomy::Agent::Context::Instruction::PromptTemplate, Proc, nil]
         # @example String instructions
         #   class MyAgent < Phronomy::Agent::Base
         #     instructions "You are a helpful assistant."
@@ -225,7 +225,7 @@ module Phronomy
         # Defaults to +nil+ (no timeout).
         # Inherited by subclasses; the most-specific definition wins.
         #
-        # When the timeout fires, a {Phronomy::CancellationScope} is cancelled
+        # When the timeout fires, a {Phronomy::Concurrency::CancellationScope} is cancelled
         # and its token is propagated to the FSM config so that in-flight LLM,
         # tool, and RAG calls observe cancellation via their +cancellation_token:+
         # keyword argument.  +Phronomy::TimeoutError+ is raised to the caller.
@@ -255,10 +255,10 @@ module Phronomy
         # the first time +invoke+ is called. The cache persists for the lifetime
         # of the process; call {.static_knowledge_refresh!} to force a reload.
         #
-        # @param sources [Array<Phronomy::KnowledgeSource::Base>]
+        # @param sources [Array<Phronomy::Agent::Context::Knowledge::Source::Base>]
         # @example
         #   class PolicyAgent < Phronomy::Agent::Base
-        #     static_knowledge Phronomy::KnowledgeSource::StaticKnowledge.new(POLICY_TEXT)
+        #     static_knowledge Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge.new(POLICY_TEXT)
         #   end
         # @api public
         def static_knowledge(*sources)
@@ -269,7 +269,7 @@ module Phronomy
         end
 
         # Returns the registered static knowledge sources.
-        # @return [Array<Phronomy::KnowledgeSource::Base>]
+        # @return [Array<Phronomy::Agent::Context::Knowledge::Source::Base>]
         # @api public
         def static_knowledge_sources
           @static_knowledge_sources || []
@@ -306,11 +306,11 @@ module Phronomy
         # application can remove stale or irrelevant messages from the
         # conversation history.
         #
-        # The block receives a {Phronomy::Context::TrimContext} and may call
+        # The block receives a {Phronomy::Agent::Context::Conversation::TrimContext} and may call
         # +ctx.remove(seqs)+ to drop messages by seq number. Changes affect
         # only the current invocation; the underlying memory store is unchanged.
         #
-        # @yield [ctx] Phronomy::Context::TrimContext
+        # @yield [ctx] Phronomy::Agent::Context::Conversation::TrimContext
         # @example Drop the oldest message when over 80% of budget is used
         #   on_trim do |ctx|
         #     limit = ctx.budget&.available(used: 0) || Float::INFINITY
@@ -332,9 +332,9 @@ module Phronomy
         # truthy AND an +on_compact+ callback is also registered, the compact
         # pipeline is executed.
         #
-        # The block receives a read-only {Phronomy::Context::TriggerContext}.
+        # The block receives a read-only {Phronomy::Agent::Context::Conversation::TriggerContext}.
         #
-        # @yield [ctx] Phronomy::Context::TriggerContext
+        # @yield [ctx] Phronomy::Agent::Context::Conversation::TriggerContext
         # @return [Boolean] truthy → run on_compact; falsy → skip
         # @example Trigger when messages exceed 70% of token budget
         #   on_compaction_trigger do |ctx|
@@ -354,10 +354,10 @@ module Phronomy
 
         # Registers a callback that performs the actual compaction when the
         # +on_compaction_trigger+ callback fires. The block receives a
-        # {Phronomy::Context::CompactionContext} and should call +ctx.compact+
+        # {Phronomy::Agent::Context::Conversation::CompactionContext} and should call +ctx.compact+
         # to specify which messages to summarise.
         #
-        # @yield [ctx] Phronomy::Context::CompactionContext
+        # @yield [ctx] Phronomy::Agent::Context::Conversation::CompactionContext
         # @example Replace the first 4 messages with a short summary
         #   on_compact do |ctx|
         #     ctx.compact(0..3) do |elements|
@@ -509,7 +509,7 @@ module Phronomy
       # @example With InvocationContext (deadline-based timeout)
       #   ctx = Phronomy::InvocationContext.new(
       #     thread_id: "conv-123",
-      #     deadline: Phronomy::Deadline.in(30),
+      #     deadline: Phronomy::Concurrency::Deadline.in(30),
       #     task_id: SecureRandom.uuid
       #   )
       #   result = MyAgent.new.invoke("Hello", invocation_context: ctx)
@@ -532,7 +532,7 @@ module Phronomy
           # cancellation when the deadline fires.
           timeout_sec = self.class.invoke_timeout
           effective_config, scope = if timeout_sec
-            s = Phronomy::CancellationScope.new(parent_token: config[:cancellation_token])
+            s = Phronomy::Concurrency::CancellationScope.new(parent_token: config[:cancellation_token])
             s.deadline_in(timeout_sec)
             [config.merge(cancellation_token: s.token), s]
           else
@@ -687,7 +687,7 @@ module Phronomy
         raise
       end
 
-      # Returns the {Context::ContextVersionCache} built during the most recent
+      # Returns the {LlmContextWindow::ContextVersionCache} built during the most recent
       # {#invoke} call on this agent instance.  The thread-local cache entry is
       # cleaned up in the +ensure+ block of {#invoke}, but a reference is kept
       # in +@last_context_version_cache+ so callers can inspect it after invoke
@@ -768,7 +768,7 @@ module Phronomy
           # The queue capacity is bounded by Configuration#stream_queue_max_size
           # (nil = unbounded) to provide backpressure against a fast LLM producer.
           adapter = Phronomy.configuration.llm_adapter
-          chunk_queue = Phronomy::AsyncQueue.new(max_size: Phronomy.configuration.stream_queue_max_size)
+          chunk_queue = Phronomy::Concurrency::AsyncQueue.new(max_size: Phronomy.configuration.stream_queue_max_size)
           pending = adapter.stream_async(chat, user_message, config: config, enqueue_to: chunk_queue)
 
           # Drain the chunk queue on this side (scheduler task / caller thread).
@@ -809,59 +809,73 @@ module Phronomy
         system_text = build_cached_system_text(input)
         user_message = extract_message(input)
 
-        assembler = Context::Assembler.new(budget: budget)
+        assembler = LlmContextWindow::Assembler.new(budget: budget)
         assembler.add_instruction(system_text) if system_text
-
-        sources = Array(config[:knowledge_sources])
-        unless sources.empty?
-          check_cancellation!(config, "invocation cancelled before RAG fetch")
-          # Determine TaskGroup failure policy: :skip (default) ignores per-source
-          # failures so the agent can still answer with partial context; :fail
-          # surfaces the first error immediately via :fail_fast.
-          failure_policy =
-            case config[:rag_failure_policy]
-            when :fail then :fail_fast
-            else :skip_failed
-            end
-
-          group = Phronomy::Runtime.instance.task_group(failure_policy: failure_policy)
-
-          bp = Phronomy.configuration.backpressure
-          rag_on_full = (bp == :raise) ? :reject : (bp || :wait)
-          rag_bp_timeout = Phronomy.configuration.backpressure_timeout
-
-          # Spawn all fetches concurrently. Results are returned in spawn order
-          # (i.e. registration order of knowledge sources) by TaskGroup#await_all.
-          sources.each do |ks|
-            group.spawn do
-              Phronomy::Runtime.instance.gate(:rag).acquire(on_full: rag_on_full, timeout: rag_bp_timeout) do
-                t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-                result = ks.fetch_async(
-                  query: user_message,
-                  cancellation_token: config[:cancellation_token],
-                  timeout: config[:rag_timeout]
-                ).await
-                elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0
-                Phronomy.configuration.logger&.debug { "RAG fetch from #{ks.class.name} completed in #{(elapsed * 1000).round}ms" }
-                result
-              end
-            end
-          end
-
-          # await_all returns results in spawn order; nil entries indicate
-          # skipped failures when using :skip_failed.
-          per_source_chunks = group.await_all
-          per_source_chunks.each do |chunks|
-            Array(chunks).each do |chunk|
-              assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
-            end
-          end
+        fetch_knowledge_chunks(user_message, config).each do |chunk|
+          assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
         end
-
         assembler.add_messages(history)
         assembler.build
       end
       protected :build_context
+
+      # Fetches knowledge chunks from all registered sources concurrently.
+      #
+      # Each source is spawned as a separate task within a {Phronomy::TaskGroup};
+      # the RAG concurrency gate enforces the +max_concurrent_rag_fetches+ cap.
+      # Results are returned in registration order (spawn order) as a flat array.
+      #
+      # This method is available to subclasses as a building block when
+      # overriding {#build_context}. Pass a custom +query+ to implement
+      # multi-hop RAG or other retrieval strategies.
+      #
+      # @param query  [String] RAG query string (typically the current user message)
+      # @param config [Hash]   invocation config; relevant keys:
+      #   +:knowledge_sources+, +:rag_failure_policy+, +:cancellation_token+, +:rag_timeout+
+      # @return [Array<Hash>] flat list of chunk hashes with +:content+, +:type+, +:source+
+      # @api private
+      def fetch_knowledge_chunks(query, config)
+        sources = Array(config[:knowledge_sources])
+        return [] if sources.empty?
+
+        check_cancellation!(config, "invocation cancelled before RAG fetch")
+
+        # :skip (default) — ignore per-source failures so the agent can still
+        # answer with partial context. :fail surfaces the first error immediately.
+        failure_policy =
+          case config[:rag_failure_policy]
+          when :fail then :fail_fast
+          else :skip_failed
+          end
+
+        group = Phronomy::Runtime.instance.task_group(failure_policy: failure_policy)
+        bp = Phronomy.configuration.backpressure
+        rag_on_full = (bp == :raise) ? :reject : (bp || :wait)
+        rag_bp_timeout = Phronomy.configuration.backpressure_timeout
+
+        # Spawn all fetches concurrently. Results are returned in spawn order
+        # (i.e. registration order of knowledge sources) by TaskGroup#await_all.
+        sources.each do |ks|
+          group.spawn do
+            Phronomy::Runtime.instance.gate(:rag).acquire(on_full: rag_on_full, timeout: rag_bp_timeout) do
+              result, elapsed_ms = Phronomy::Runtime.measure_ms do
+                ks.fetch_async(
+                  query: query,
+                  cancellation_token: config[:cancellation_token],
+                  timeout: config[:rag_timeout]
+                ).await
+              end
+              Phronomy.configuration.logger&.debug { "RAG fetch from #{ks.class.name} completed in #{elapsed_ms}ms" }
+              result
+            end
+          end
+        end
+
+        # await_all returns results in spawn order; nil entries indicate
+        # skipped failures when using :skip_failed.
+        group.await_all.flat_map { |chunks| Array(chunks) }
+      end
+      protected :fetch_knowledge_chunks
 
       # Runs the on_trim / on_compaction_trigger / on_compact pipeline on the
       # supplied message array and returns the final Array of message objects
@@ -880,16 +894,16 @@ module Phronomy
         elements = build_message_elements(Array(messages))
 
         if (trim_cb = self.class._on_trim_callback)
-          trim_ctx = Context::TrimContext.new(message_elements: elements, budget: budget)
+          trim_ctx = Context::Conversation::TrimContext.new(message_elements: elements, budget: budget)
           trim_cb.call(trim_ctx)
           elements = trim_ctx.message_elements
         end
 
         if (trigger_cb = self.class._on_compaction_trigger_callback)
-          trigger_ctx = Context::TriggerContext.new(message_elements: elements, budget: budget)
+          trigger_ctx = Context::Conversation::TriggerContext.new(message_elements: elements, budget: budget)
           if trigger_cb.call(trigger_ctx)
             if (compact_cb = self.class._on_compact_callback)
-              compact_ctx = Context::CompactionContext.new(
+              compact_ctx = Context::Conversation::CompactionContext.new(
                 message_elements: elements,
                 budget: budget,
                 thread_id: thread_id
@@ -916,63 +930,12 @@ module Phronomy
         end
 
         trace("agent.invoke", input: input, **caller_meta) do |_span|
-          # Run input guardrails before touching the LLM.
-          run_input_guardrails!(input)
-
-          user_message = extract_message(input)
-          chat = build_chat
-
-          # Assemble context (system prompt + history). Override #build_context to
-          # inject custom context editing logic at the Agent subclass level.
-          context = build_context(input, messages: messages, thread_id: thread_id, config: config)
-          apply_instructions(chat, context[:system]) if context[:system]
-          context[:messages].each { |msg| chat.messages << msg }
-
-          # Run before_completion hooks (global → class → instance) before the LLM call.
-          run_before_completion_hooks!(chat, config)
-
-          # Register suspension hook for approval-required tools (no-op when a
-          # synchronous on_approval_required handler is already registered).
-          _register_suspension_hook!(chat)
-
-          # Check for cancellation immediately before the LLM call.
-          check_cancellation!(config, "invocation cancelled before LLM call")
-
-          # Forward the cancellation token to ParallelToolChat explicitly
-          # via the chat instance so that tool dispatch batches can observe
-          # cancellation without needing Thread.current.
-          chat.cancellation_token = config[:cancellation_token] if chat.respond_to?(:cancellation_token=)
-
-          begin
-            # Route the LLM call through the configured LLMAdapter so that the
-            # blocking HTTP request runs inside BlockingAdapterPool and the
-            # adapter can be swapped without changing agent code.
-            adapter = Phronomy.configuration.llm_adapter
-            response = adapter.complete_async(chat, user_message, config: config).await
-          rescue SuspendSignal => signal
-            checkpoint = Checkpoint.new(
-              thread_id: thread_id,
-              original_input: input,
-              messages: chat.messages.dup,
-              pending_tool_name: signal.tool_name,
-              pending_tool_args: signal.args,
-              pending_tool_call_id: signal.tool_call_id
-            )
-            suspended_result = {output: nil, suspended: true, checkpoint: checkpoint, messages: chat.messages}
-            next [suspended_result, nil]
-          ensure
-            # Clear the chat's cancellation token reference after each LLM call.
-            chat.cancellation_token = nil if chat.respond_to?(:cancellation_token=)
-          end
-
-          output = response.content
-          usage = Phronomy::TokenUsage.from_tokens(response.tokens)
-
-          # Run output guardrails before returning to the caller.
-          run_output_guardrails!(output)
-
-          result = {output: output, messages: chat.messages, usage: usage}
-          [result, usage]
+          Agent::InvocationPipeline.new(self).run(
+            input,
+            messages: messages,
+            thread_id: thread_id,
+            config: config
+          )
         end
       end
 
@@ -986,19 +949,19 @@ module Phronomy
         return nil unless model_name
 
         if (cw = self.class.context_window)
-          Phronomy::Context::TokenBudget.new(
+          Phronomy::LlmContextWindow::TokenBudget.new(
             context_window: cw,
             max_output_tokens: self.class.max_output_tokens || 0,
             overhead: self.class.context_overhead
           )
         else
-          Phronomy::Context::TokenBudget.new(
+          Phronomy::LlmContextWindow::TokenBudget.new(
             model: model_name,
             max_output_tokens: self.class.max_output_tokens,
             overhead: self.class.context_overhead
           )
         end
-      rescue Phronomy::Context::UnknownModelError, RubyLLM::ModelNotFoundError
+      rescue Phronomy::LlmContextWindow::UnknownModelError, RubyLLM::ModelNotFoundError
         nil
       end
 
@@ -1011,7 +974,7 @@ module Phronomy
       # @api public
       def build_message_elements(messages)
         Array(messages).each_with_index.map do |msg, idx|
-          tokens = Context::TokenEstimator.estimate(msg.content.to_s)
+          tokens = LlmContextWindow::TokenEstimator.estimate(msg.content.to_s)
           {seq: idx, message: msg, tokens: tokens, role: msg.role}
         end
       end
@@ -1034,11 +997,11 @@ module Phronomy
           [instruction.to_s, *static_chunks.map { |c| c[:content] }].join("\0")
         )
 
-        cache = (@context_version_cache ||= Context::ContextVersionCache.new)
+        cache = (@context_version_cache ||= LlmContextWindow::ContextVersionCache.new)
         unless cache.valid?(fingerprint)
           parts = [instruction]
           static_chunks.each do |chunk|
-            parts << Context::Assembler.xml_tag(chunk[:content], type: chunk[:type], trusted: true)
+            parts << LlmContextWindow::Assembler.xml_tag(chunk[:content], type: chunk[:type], trusted: true)
           end
           cache.update(fingerprint: fingerprint, system_text: parts.compact.join("\n\n"))
         end
@@ -1056,7 +1019,7 @@ module Phronomy
       # Falls back to +nil+ otherwise, signalling {#build_chat} to use the
       # standard +RubyLLM.chat+ factory.
       def build_chat_class
-        Phronomy.configuration.event_loop ? Agent::ParallelToolChat : nil
+        Phronomy.configuration.event_loop ? Phronomy::MultiAgent::ParallelToolChat : nil
       end
 
       def build_chat
@@ -1086,7 +1049,7 @@ module Phronomy
       def build_instructions(input)
         instr = self.class.instructions
         case instr
-        when Phronomy::PromptTemplate
+        when Phronomy::Agent::Context::Instruction::PromptTemplate
           vars = input.is_a?(Hash) ? input : {input: input}
           instr.format_system(**vars) || instr.format(**vars)
         when String then instr

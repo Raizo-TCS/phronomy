@@ -239,7 +239,7 @@ RSpec.describe "Deterministic Scheduler Infrastructure (Issue #310)" do
   # ─────────────────────────────────────────────────────────────────────────
   describe "AC: streaming-tool cancellation precedes parent-task completion" do
     it "records the streaming-tool as cancelled before the parent completes" do
-      token_queue = Phronomy::AsyncQueue.new
+      token_queue = Phronomy::Concurrency::AsyncQueue.new
 
       with_fake_scheduler do |sched|
         runtime = Phronomy::Runtime.instance

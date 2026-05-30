@@ -41,13 +41,13 @@ RSpec.describe Phronomy::InvocationContext do
 
   describe "#effective_cancellation_token" do
     it "returns the assigned token when present" do
-      token = Phronomy::CancellationToken.new
+      token = Phronomy::Concurrency::CancellationToken.new
       ctx = described_class.new(cancellation_token: token)
       expect(ctx.effective_cancellation_token).to be(token)
     end
 
     it "returns a fresh token when none was assigned" do
-      expect(ctx.effective_cancellation_token).to be_a(Phronomy::CancellationToken)
+      expect(ctx.effective_cancellation_token).to be_a(Phronomy::Concurrency::CancellationToken)
     end
   end
 
@@ -57,22 +57,22 @@ RSpec.describe Phronomy::InvocationContext do
     end
 
     it "returns the explicit cancellation_token when set" do
-      token = Phronomy::CancellationToken.new
+      token = Phronomy::Concurrency::CancellationToken.new
       ic = described_class.new(cancellation_token: token)
       expect(ic.effective_timeout_token).to be(token)
     end
 
     it "returns a new token and attaches the deadline when only deadline is set" do
-      ic = described_class.new(deadline: Phronomy::Deadline.in(30))
+      ic = described_class.new(deadline: Phronomy::Concurrency::Deadline.in(30))
       tok = ic.effective_timeout_token
-      expect(tok).to be_a(Phronomy::CancellationToken)
+      expect(tok).to be_a(Phronomy::Concurrency::CancellationToken)
       expect(tok).not_to be_nil
     end
 
     it "cancels the token when an expired deadline is attached" do
       # A deadline already in the past has remaining_seconds of 0, so attach_to
       # is a no-op. Use a very short future deadline instead.
-      ic = described_class.new(deadline: Phronomy::Deadline.in(0.02))
+      ic = described_class.new(deadline: Phronomy::Concurrency::Deadline.in(0.02))
       tok = ic.effective_timeout_token
       # Token should be cancelled once the deadline fires
       sleep 0.15
@@ -82,13 +82,13 @@ RSpec.describe Phronomy::InvocationContext do
 
   describe "keyword arguments" do
     it "accepts all documented attributes" do
-      token = Phronomy::CancellationToken.new
+      token = Phronomy::Concurrency::CancellationToken.new
       ctx = described_class.new(
         thread_id: "t1",
         session_id: "s1",
         user_id: "u1",
         cancellation_token: token,
-        deadline: Phronomy::Deadline.in(30),
+        deadline: Phronomy::Concurrency::Deadline.in(30),
         token_budget: 4096,
         max_parallel_tools: 5,
         provider_limits: {openai: {rpm: 60}}

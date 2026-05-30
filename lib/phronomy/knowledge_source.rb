@@ -1,10 +1,5 @@
 # frozen_string_literal: true
 
-require_relative "knowledge_source/base"
-require_relative "knowledge_source/static_knowledge"
-require_relative "knowledge_source/rag_knowledge"
-require_relative "knowledge_source/entity_knowledge"
-
 module Phronomy
   # KnowledgeSource provides the interface for supplying context region 3 (Knowledge)
   # to the Context::Assembler.

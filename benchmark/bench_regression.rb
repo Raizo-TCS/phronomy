@@ -94,7 +94,7 @@ stub_agent_class = Class.new(Phronomy::Agent::Base) do
   define_method(:invoke_async) { |input, **_kw| Phronomy::Runtime.instance.spawn(name: "bench-stub") { invoke(input) } }
 end
 
-orchestrator_class = Class.new(Phronomy::Agent::Orchestrator)
+orchestrator_class = Class.new(Phronomy::MultiAgent::Orchestrator)
 orchestrator = orchestrator_class.new
 
 PARALLEL_ITERATIONS = 200
@@ -109,7 +109,7 @@ end
 # ---------------------------------------------------------------------------
 # Target 5: CancellationToken#cancelled? throughput (8 threads)
 # ---------------------------------------------------------------------------
-CANCEL_TOKEN = Phronomy::CancellationToken.new
+CANCEL_TOKEN = Phronomy::Concurrency::CancellationToken.new
 CANCEL_ITERATIONS = 10_000
 
 t5 = Benchmark.measure("CancellationToken#cancelled? (8 threads)") do
@@ -122,7 +122,7 @@ end
 # ---------------------------------------------------------------------------
 # Target 6: CancellationToken#raise_if_cancelled! hot path (no-op, single thread)
 # ---------------------------------------------------------------------------
-RAISE_TOKEN = Phronomy::CancellationToken.new  # not cancelled — no-op path
+RAISE_TOKEN = Phronomy::Concurrency::CancellationToken.new  # not cancelled — no-op path
 RAISE_ITERATIONS = 200_000
 
 t6 = Benchmark.measure("CancellationToken#raise_if_cancelled! (no-op)") do
@@ -135,12 +135,12 @@ end
 BenchMsg = Struct.new(:content) unless defined?(BenchMsg)
 
 TRIM_ELEMENTS = Array.new(2_000) { |i| {seq: i, message: BenchMsg.new("msg #{i}"), tokens: 10, role: :user} }
-TRIM_BUDGET = Phronomy::Context::TokenBudget.new(context_window: 4096, max_output_tokens: 512)
+TRIM_BUDGET = Phronomy::LlmContextWindow::TokenBudget.new(context_window: 4096, max_output_tokens: 512)
 TRIM_ITERATIONS = 500
 
 t7 = Benchmark.measure("TrimContext#remove (2000-element history)") do
   TRIM_ITERATIONS.times do
-    tc = Phronomy::Context::TrimContext.new(message_elements: TRIM_ELEMENTS, budget: TRIM_BUDGET)
+    tc = Phronomy::Agent::Context::Conversation::TrimContext.new(message_elements: TRIM_ELEMENTS, budget: TRIM_BUDGET)
     tc.remove((0...200).to_a)  # remove 200 oldest messages
   end
 end
