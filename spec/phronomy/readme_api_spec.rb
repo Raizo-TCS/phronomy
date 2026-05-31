@@ -10,9 +10,9 @@
 require "spec_helper"
 
 RSpec.describe "README API smoke tests (Issue #141)" do
-  describe "Tool::Base DSL" do
+  describe "Phronomy::Agent::Context::Capability::Base DSL" do
     it "supports the README quick-start Tool definition" do
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "Search the web"
         param :query, type: :string, desc: "Search query"
 
@@ -27,7 +27,7 @@ RSpec.describe "README API smoke tests (Issue #141)" do
     end
 
     it "supports nested properties on object params" do
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "nested"
         param :config, type: :object, desc: "config",
           properties: {

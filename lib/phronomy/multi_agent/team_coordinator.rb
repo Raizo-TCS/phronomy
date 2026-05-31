@@ -265,7 +265,7 @@ module Phronomy
 
       # Builds the +enqueue_task+ tool. Each call appends a task Hash to task_queue.
       def build_enqueue_tool(task_queue)
-        Class.new(Phronomy::Tool::Base) do
+        Class.new(Phronomy::Agent::Context::Capability::Base) do
           tool_name "enqueue_task"
           description "Add a task to the worker queue."
           param :description, type: :string, desc: "What the worker agent should do"
@@ -282,7 +282,7 @@ module Phronomy
       # Builds the +finalize+ tool. Signals to the coordinator LLM that all tasks
       # have been enqueued; returns a confirmation string.
       def build_finalize_tool(task_queue)
-        Class.new(Phronomy::Tool::Base) do
+        Class.new(Phronomy::Agent::Context::Capability::Base) do
           tool_name "finalize"
           description "Signal that task generation is complete. Call this after all tasks have been enqueued."
           param :summary, type: :string, desc: "Brief summary of what was enqueued", required: false

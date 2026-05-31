@@ -51,7 +51,7 @@ module Phronomy
       # Dispatches a single tool call asynchronously according to its
       # +execution_mode+ and returns an awaitable.
       #
-      # @param tool               [Phronomy::Tool::Base] the tool instance to invoke
+      # @param tool               [Phronomy::Agent::Context::Capability::Base] the tool instance to invoke
       # @param args               [Hash]                 argument hash to pass to {Tool::Base#call}
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param runtime            [Phronomy::Runtime]    runtime to use for spawning

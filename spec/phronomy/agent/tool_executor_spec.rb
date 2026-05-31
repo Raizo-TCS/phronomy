@@ -7,7 +7,7 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
   # Test doubles
   # ---------------------------------------------------------------------------
   def make_tool(mode)
-    klass = Class.new(Phronomy::Tool::Base) do
+    klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
       description "test tool"
       execution_mode mode
       param :x, type: :string, desc: "input"

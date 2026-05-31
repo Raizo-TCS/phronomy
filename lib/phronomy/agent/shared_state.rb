@@ -239,7 +239,7 @@ module Phronomy
       def build_instrumented_researcher(researcher_class, store, cycle)
         agent_key = researcher_class.name&.to_sym || researcher_class.object_id.to_s.to_sym
 
-        read_tool = Class.new(Phronomy::Tool::Base) do
+        read_tool = Class.new(Phronomy::Agent::Context::Capability::Base) do
           tool_name "read_store"
           description "Read all current findings from the shared knowledge store. " \
                       "Call this to see what other researchers have discovered."
@@ -247,7 +247,7 @@ module Phronomy
           define_method(:execute) { store.read_all.to_json }
         end
 
-        write_tool = Class.new(Phronomy::Tool::Base) do
+        write_tool = Class.new(Phronomy::Agent::Context::Capability::Base) do
           tool_name "write_finding"
           description "Record a new finding into the shared knowledge store so " \
                       "that other researchers can build on your discovery."

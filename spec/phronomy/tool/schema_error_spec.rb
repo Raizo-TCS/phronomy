@@ -7,7 +7,7 @@ require "spec_helper"
 # ---------------------------------------------------------------------------
 
 # Default behavior: on_schema_error not set → :return_error
-class SchemaErrorDefaultTool < Phronomy::Tool::Base
+class SchemaErrorDefaultTool < Phronomy::Agent::Context::Capability::Base
   tool_name "schema_default"
   description "Tool with default schema error behavior"
   param :count, type: :integer, desc: "A count"
@@ -19,7 +19,7 @@ class SchemaErrorDefaultTool < Phronomy::Tool::Base
 end
 
 # on_schema_error :return_error (explicit)
-class SchemaErrorReturnTool < Phronomy::Tool::Base
+class SchemaErrorReturnTool < Phronomy::Agent::Context::Capability::Base
   tool_name "schema_return"
   description "Tool that returns error to LLM on schema violation"
   on_schema_error :return_error
@@ -31,7 +31,7 @@ class SchemaErrorReturnTool < Phronomy::Tool::Base
 end
 
 # on_schema_error :raise
-class SchemaErrorRaiseTool < Phronomy::Tool::Base
+class SchemaErrorRaiseTool < Phronomy::Agent::Context::Capability::Base
   tool_name "schema_raise"
   description "Tool that raises on schema violation"
   on_schema_error :raise
@@ -43,7 +43,7 @@ class SchemaErrorRaiseTool < Phronomy::Tool::Base
 end
 
 # on_schema_error :coerce
-class SchemaErrorCoerceTool < Phronomy::Tool::Base
+class SchemaErrorCoerceTool < Phronomy::Agent::Context::Capability::Base
   tool_name "schema_coerce"
   description "Tool that coerces arguments"
   on_schema_error :coerce
@@ -57,7 +57,7 @@ class SchemaErrorCoerceTool < Phronomy::Tool::Base
 end
 
 # Tool with enum constraint
-class SchemaErrorEnumTool < Phronomy::Tool::Base
+class SchemaErrorEnumTool < Phronomy::Agent::Context::Capability::Base
   tool_name "schema_enum"
   description "Tool with enum constraint"
   param :lang, type: :string, desc: "Language", enum: %w[en ja fr]
@@ -68,7 +68,7 @@ class SchemaErrorEnumTool < Phronomy::Tool::Base
 end
 
 # Tool combining :coerce + enum
-class SchemaErrorCoerceEnumTool < Phronomy::Tool::Base
+class SchemaErrorCoerceEnumTool < Phronomy::Agent::Context::Capability::Base
   tool_name "schema_coerce_enum"
   description "Tool with coerce and enum"
   on_schema_error :coerce
@@ -81,7 +81,7 @@ end
 
 # ---------------------------------------------------------------------------
 
-RSpec.describe Phronomy::Tool::Base, "on_schema_error" do
+RSpec.describe Phronomy::Agent::Context::Capability::Base, "on_schema_error" do
   describe ".on_schema_error DSL" do
     it "defaults to :return_error when not set" do
       expect(SchemaErrorDefaultTool.on_schema_error).to eq(:return_error)

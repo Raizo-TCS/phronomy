@@ -198,7 +198,7 @@ RSpec.describe "LLMAdapter abstraction" do
         on_tool_result: nil)
       allow_any_instance_of(agent_class).to receive(:build_chat).and_return(chat)
       allow_any_instance_of(agent_class).to receive(:build_context).and_return(
-        {system: nil, messages: []}
+        {system: nil, messages: [], tool_classes: []}
       )
       allow_any_instance_of(agent_class).to receive(:apply_instructions)
       allow_any_instance_of(agent_class).to receive(:run_input_guardrails!)

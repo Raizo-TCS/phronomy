@@ -99,17 +99,6 @@ RSpec.describe "Group: Context Management", :integration do
       expect(result[:output]).not_to be_empty
     end
 
-    it "reuses the cached system_text on the second call (fingerprint stable)" do
-      agent = agent_klass.new
-      agent.invoke("Say 'hello'.")
-      cache = agent.context_version_cache
-      fp_after_first = cache.fingerprint
-
-      agent.invoke("Say 'hello again'.")
-      fp_after_second = agent.context_version_cache.fingerprint
-
-      expect(fp_after_second).to eq(fp_after_first)
-    end
   end
 
   # --------------------------------------------------------------------------

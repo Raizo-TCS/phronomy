@@ -3,13 +3,13 @@
 require "spec_helper"
 require "rantly/rspec_extensions"
 
-RSpec.describe "Tool::Base schema property-based tests" do
+RSpec.describe "Phronomy::Agent::Context::Capability::Base schema property-based tests" do
   # P1: Omitting any required parameter always returns an error that names the param.
   it "calling with a missing required param returns an error naming the param" do
     property_of {
       sized(4) { string(:alpha) }
     }.check do |param_name|
-      tool = Class.new(Phronomy::Tool::Base) do
+      tool = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "test"
         define_method(:execute) { |**_kwargs| "ok" }
       end
@@ -26,7 +26,7 @@ RSpec.describe "Tool::Base schema property-based tests" do
       # Prefix ensures the generated key never collides with :declared_param.
       "extra_" + sized(4) { string(:alpha) }
     }.check do |bad_key|
-      tool = Class.new(Phronomy::Tool::Base) do
+      tool = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "test"
         on_schema_error :raise
         param :declared_param, type: :string, desc: "x"
@@ -47,7 +47,7 @@ RSpec.describe "Tool::Base schema property-based tests" do
     }.check do |param_names|
       next if param_names.empty?
 
-      tool = Class.new(Phronomy::Tool::Base) do
+      tool = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "test"
         define_method(:execute) { |**_kwargs| "ok" }
       end
@@ -68,7 +68,7 @@ RSpec.describe "Tool::Base schema property-based tests" do
     }.check do |(vals, choice)|
       next if vals.nil? || choice.nil?
 
-      tool = Class.new(Phronomy::Tool::Base) do
+      tool = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "enum test"
         define_method(:execute) { |lang:| lang }
       end
@@ -87,7 +87,7 @@ RSpec.describe "Tool::Base schema property-based tests" do
       bad = "xx_" + sized(3) { string(:lower) }
       [vals, bad]
     }.check do |(vals, bad)|
-      tool = Class.new(Phronomy::Tool::Base) do
+      tool = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "enum test"
         on_schema_error :return_error
         define_method(:execute) { |lang:| lang }

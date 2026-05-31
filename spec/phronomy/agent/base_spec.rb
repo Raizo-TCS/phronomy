@@ -102,7 +102,28 @@ RSpec.describe Phronomy::Agent::Base do
       }.to raise_error(Phronomy::CancellationError, "cancelled mid-RAG")
     end
 
-    context "build_context cancellation (Issue #223)" do
+    context "fetch_knowledge_chunks cancellation (Issue #223)" do
+      let(:agent) do
+        Class.new(Phronomy::Agent::Base) do
+          model "test-model"
+
+          def build_context(input, messages: [], thread_id: nil, config: {})
+            history      = prepare_history(messages: messages, thread_id: thread_id, config: config)
+            budget       = build_token_budget
+            instruction  = build_instructions(input)
+            user_message = extract_message(input)
+            assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
+            assembler.add_instruction(instruction) if instruction
+            assembler.add_capability(self.class.tools + _handoff_tools)
+            fetch_knowledge_chunks(user_message, config).each do |chunk|
+              assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
+            end
+            assembler.add_messages(history)
+            @last_context = assembler.build
+          end
+        end.new
+      end
+
       it "raises CancellationError before fetching a knowledge source when pre-cancelled" do
         ks = double("KnowledgeSource")
         expect(ks).not_to receive(:fetch_async)
@@ -255,7 +276,7 @@ RSpec.describe Phronomy::Agent::Base do
           on_tool_result: nil)
       )
       allow(agent).to receive(:extract_message).and_return("hi")
-      allow(agent).to receive(:build_context).and_return({system: nil, messages: []})
+      allow(agent).to receive(:build_context).and_return({system: nil, messages: [], tool_classes: []})
       allow(agent).to receive(:apply_instructions)
       allow(agent).to receive(:run_input_guardrails!)
       allow(agent).to receive(:run_output_guardrails!)

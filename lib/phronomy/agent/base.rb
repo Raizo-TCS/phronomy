@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "digest"
 require "securerandom"
 require_relative "concerns/retryable"
 require_relative "concerns/guardrailable"
@@ -453,7 +452,7 @@ module Phronomy
 
       # Registers an anonymous handoff tool class on this agent instance.
       # Called by Runner during construction when routes are configured.
-      # @param tool_class [Class<Phronomy::Tool::Base>]
+      # @param tool_class [Class<Phronomy::Agent::Context::Capability::Base>]
       # @return [self]
       # @api private
       def _add_handoff_tool(tool_class)
@@ -687,19 +686,11 @@ module Phronomy
         raise
       end
 
-      # Returns the {LlmContextWindow::ContextVersionCache} built during the most recent
-      # {#invoke} call on this agent instance.  The thread-local cache entry is
-      # cleaned up in the +ensure+ block of {#invoke}, but a reference is kept
-      # in +@last_context_version_cache+ so callers can inspect it after invoke
-      # returns.
-      #
-      # NOTE: Not thread-safe.  When the same Agent instance is used concurrently,
-      # +@last_context_version_cache+ reflects the most recent +invoke+ on *any*
-      # thread.  For per-invocation isolation, use a separate Agent instance per
-      # thread.
+      # @deprecated The context version cache has been removed. Returns nil.
+      #   Retained for backward compatibility with callers using safe navigation (+&.reset+).
       # @api private
       def context_version_cache
-        @last_context_version_cache
+        nil
       end
 
       private
@@ -742,6 +733,7 @@ module Phronomy
           # inject custom context editing logic at the Agent subclass level.
           context = build_context(input, messages: messages, thread_id: thread_id, config: config)
           apply_instructions(chat, context[:system]) if context[:system]
+          (context[:tool_classes] || []).each { |tc| chat.with_tool(prepare_tool_class(tc)) }
           context[:messages].each { |msg| chat.messages << msg }
 
           # Wire per-event callbacks to yield StreamEvents.
@@ -800,22 +792,22 @@ module Phronomy
       # @param input     [String, Hash] the user's input for this turn
       # @param messages  [Array<RubyLLM::Message>] raw conversation history
       # @param thread_id [String, nil] conversation thread identifier
-      # @param config    [Hash] the invocation config (see #invoke)
-      # @return [Hash] { system: String|nil, messages: Array }
+      # @param config      [Hash] the invocation config (see #invoke)
+      # @return [Hash] { system: String|nil, messages: Array, tool_classes: Array }
       # @api public
       def build_context(input, messages: [], thread_id: nil, config: {})
         history = prepare_history(messages: messages, thread_id: thread_id, config: config)
         budget = build_token_budget
-        system_text = build_cached_system_text(input)
-        user_message = extract_message(input)
+        instruction = build_instructions(input)
 
         assembler = LlmContextWindow::Assembler.new(budget: budget)
-        assembler.add_instruction(system_text) if system_text
-        fetch_knowledge_chunks(user_message, config).each do |chunk|
-          assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
+        assembler.add_instruction(instruction) if instruction
+        assembler.add_capability(self.class.tools + _handoff_tools)
+        self.class.static_knowledge_chunks.each do |chunk|
+          assembler.add_knowledge(chunk[:content], type: chunk[:type] || :static, trusted: true, source: chunk[:source])
         end
         assembler.add_messages(history)
-        assembler.build
+        @last_context = assembler.build
       end
       protected :build_context
 
@@ -979,40 +971,6 @@ module Phronomy
         end
       end
 
-      # Builds (or returns a cached) system prompt text.
-      # The fingerprint is a SHA-256 digest of the instruction text concatenated
-      # with the content of every registered static knowledge source.
-      # When the fingerprint is unchanged the ContextVersionCache returns the
-      # previously assembled text without re-fetching any sources.
-      #
-      # @param input [String, Hash] the agent's current input (used for template evaluation)
-      # @return [String, nil] assembled system text, or nil when empty
-      # @api public
-      def build_cached_system_text(input)
-        instruction = build_instructions(input)
-
-        static_chunks = self.class.static_knowledge_chunks
-
-        fingerprint = Digest::SHA256.hexdigest(
-          [instruction.to_s, *static_chunks.map { |c| c[:content] }].join("\0")
-        )
-
-        cache = (@context_version_cache ||= LlmContextWindow::ContextVersionCache.new)
-        unless cache.valid?(fingerprint)
-          parts = [instruction]
-          static_chunks.each do |chunk|
-            parts << LlmContextWindow::Assembler.xml_tag(chunk[:content], type: chunk[:type], trusted: true)
-          end
-          cache.update(fingerprint: fingerprint, system_text: parts.compact.join("\n\n"))
-        end
-
-        # Persist a reference on the instance so that context_version_cache
-        # remains accessible after invoke completes.
-        @last_context_version_cache = cache
-
-        cache.system_text.empty? ? nil : cache.system_text
-      end
-
       # Returns the chat class to instantiate for this invocation.
       # When EventLoop mode is enabled ({Phronomy.configuration.event_loop}),
       # returns {ParallelToolChat} so that concurrent tool dispatch is enabled.
@@ -1039,10 +997,6 @@ module Phronomy
           RubyLLM.chat(**opts)
         end
         chat.with_temperature(t) if t
-        self.class.tools.each do |tool_class|
-          chat.with_tool(prepare_tool_class(tool_class))
-        end
-        _handoff_tools.each { |tc| chat.with_tool(tc) }
         chat
       end
 
@@ -1102,7 +1056,7 @@ module Phronomy
       # Builds the final tool class to register with the chat.
       #
       # When an already-instantiated tool object is passed (e.g. a
-      # {Phronomy::Tool::McpTool} returned by +McpTool.from_server+), it is
+      # {Phronomy::Agent::Context::Capability::McpTool} returned by +McpTool.from_server+), it is
       # returned as-is.  RubyLLM's +with_tool+ accepts both classes and
       # instances, so no wrapping is needed.
       #
@@ -1110,7 +1064,7 @@ module Phronomy
       #   1. Alias override — when the Hash form of .tools maps this class to an
       #      explicit name, an anonymous subclass with that tool_name is returned.
       #   2. Scope policy   — when a scope is declared on the tool, the configured
-      #      {Phronomy::Tool::ScopePolicy} (or the default) is evaluated.
+      #      {Phronomy::Agent::Context::Capability::ScopePolicy} (or the default) is evaluated.
       #      +:reject+ wraps the tool to return a denial message without executing.
       #      +:approve+ behaves like requiring approval (same as step 3 when the
       #      tool does not already have +requires_approval+).
@@ -1139,7 +1093,7 @@ module Phronomy
         # Step 2: evaluate scope policy.
         scope = resolved.scope
         if scope
-          policy = @scope_policy || Phronomy::Tool::ScopePolicy::DEFAULT
+          policy = @scope_policy || Phronomy::Agent::Context::Capability::ScopePolicy::DEFAULT
           decision = policy.call(resolved, scope, self)
           case decision
           when :reject

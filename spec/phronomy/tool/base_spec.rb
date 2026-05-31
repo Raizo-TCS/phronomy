@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Tool::Base do
+RSpec.describe Phronomy::Agent::Context::Capability::Base do
   # A simple tool for testing
   let(:hello_tool_class) do
     Class.new(described_class) do
@@ -243,7 +243,7 @@ RSpec.describe Phronomy::Tool::Base do
         allow(Phronomy.configuration).to receive(:logger).and_return(logger)
         tool = suppress_class.new
         tool.call({})
-        expect(logged.first).to match(/Phronomy::Tool::Base|Tool/)
+        expect(logged.first).to match(/Phronomy::Agent::Context::Capability::Base|Tool/)
       end
 
       it "includes e.class and e.message in the suppression message" do
@@ -2791,7 +2791,7 @@ RSpec.describe Phronomy::Tool::Base do
       described_class.new.execute
     rescue NotImplementedError => e
       expect(e.message).to include("#execute is not implemented")
-      expect(e.message).to include("Phronomy::Tool::Base")
+      expect(e.message).to include("Phronomy::Agent::Context::Capability::Base")
     end
 
     it "error message mentions the class name" do
@@ -2807,12 +2807,12 @@ RSpec.describe Phronomy::Tool::Base do
 
     it "error message uses class name format not instance representation" do
       # Kills mutation [32]: "#{self}#execute..." vs "#{self.class}#execute..."
-      # self.to_s = "#<Phronomy::Tool::Base:0x...>", self.class.to_s = "Phronomy::Tool::Base"
+      # self.to_s = "#<Phronomy::Agent::Context::Capability::Base:0x...>", self.class.to_s = "Phronomy::Agent::Context::Capability::Base"
 
       described_class.new.execute
     rescue NotImplementedError => e
-      expect(e.message).to start_with("Phronomy::Tool::Base#execute")
-      expect(e.message).not_to include("#<Phronomy::Tool::Base:")
+      expect(e.message).to start_with("Phronomy::Agent::Context::Capability::Base#execute")
+      expect(e.message).not_to include("#<Phronomy::Agent::Context::Capability::Base:")
     end
   end
 

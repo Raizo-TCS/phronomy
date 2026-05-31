@@ -91,7 +91,7 @@ RSpec.describe "Optional dependency absence", :nightly do
 
     it "exposes the expected core constants" do
       expect(defined?(Phronomy::Agent::Base)).to eq("constant")
-      expect(defined?(Phronomy::Tool::Base)).to eq("constant")
+      expect(defined?(Phronomy::Agent::Context::Capability::Base)).to eq("constant")
       expect(defined?(Phronomy::Workflow)).to eq("constant")
       expect(defined?(Phronomy::Agent::Context::Knowledge::VectorStore::InMemory)).to eq("constant")
       expect(defined?(Phronomy::Tracing::NullTracer)).to eq("constant")

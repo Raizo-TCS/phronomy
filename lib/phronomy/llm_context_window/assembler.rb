@@ -5,19 +5,21 @@ require "cgi"
 module Phronomy
   module LlmContextWindow
     # Assembler collects all four context regions and produces the final
-    # {system:, messages:} hash consumed by Agent::Base.
+    # {system:, messages:, tool_classes:} hash consumed by Agent::Base.
     #
     # Regions:
     #   1. Instruction  — system prompt text set via #add_instruction
-    #   2. Capability   — tool definitions (handled by RubyLLM, not here)
+    #   2. Capability   — tool classes registered via #add_capability
     #   3. Knowledge    — external facts injected via #add_knowledge (generates XML tags)
     #   4. Conversation — historical messages added via #add_messages
     #
     # Token budgeting:
     #   When a budget is given, conversation messages are trimmed from oldest to
-    #   newest until they fit. Knowledge chunks are always included in full (they
-    #   are assumed to be pre-screened by the caller). When no budget is given all
-    #   messages are passed through unchanged.
+    #   newest until they fit. Capability token cost is estimated and deducted
+    #   from the budget before conversation trimming so the reserve is accurate.
+    #   Knowledge chunks are always included in full (they are assumed to be
+    #   pre-screened by the caller). When no budget is given all messages are
+    #   passed through unchanged.
     #
     # @example
     #   assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
@@ -48,8 +50,21 @@ module Phronomy
       def initialize(budget: nil)
         @budget = budget
         @instruction = nil
+        @tool_classes = []
         @knowledge_chunks = []
         @messages = []
+      end
+
+      # Register tool classes (Region 2).
+      # Estimates their token cost and deducts it from the budget so that
+      # conversation trimming accounts for tool definition overhead.
+      #
+      # @param tool_classes [Array<Class, Object>] tool classes or instances
+      # @return [self]
+      # @api private
+      def add_capability(tool_classes)
+        @tool_classes = Array(tool_classes)
+        self
       end
 
       # Set the system instruction text (Region 1).
@@ -94,8 +109,9 @@ module Phronomy
       # Assemble the context.
       #
       # @return [Hash{Symbol => Object}]
-      #   :system   [String, nil]  combined system prompt (instruction + knowledge XML tags)
-      #   :messages [Array]        conversation messages, trimmed to budget if set
+      #   :system      [String, nil]  combined system prompt (instruction + knowledge XML tags)
+      #   :messages    [Array]        conversation messages, trimmed to budget if set
+      #   :tool_classes [Array]       tool classes/instances to register with the chat
       # @api private
       # mutant:disable - multiple genuine equivalent mutations: map{}.join("\n\n") → map{} is genuine because Ruby Array#join recursively joins nested arrays with the same separator (so [outer_array].join("\n\n") == original String); `unless knowledge_text.empty?` vs ternary is genuine (same conditional logic); `{ system: unless system_text.empty? }` vs ternary is genuine; `messages:` shorthand vs `messages: messages` is genuine
       def build
@@ -103,19 +119,40 @@ module Phronomy
         system_parts = [@instruction, knowledge_text.empty? ? nil : knowledge_text].compact
         system_text = system_parts.join("\n\n")
 
+        capability_tokens = estimate_capability_tokens
         messages = if @budget
-          trim_messages_to_budget(@messages, system_text)
+          trim_messages_to_budget(@messages, system_text, extra_used: capability_tokens)
         else
           @messages
         end
 
         {
           system: system_text.empty? ? nil : system_text,
-          messages: messages
+          messages: messages,
+          tool_classes: @tool_classes
         }
       end
 
       private
+
+      # Estimates the token cost of all registered tool classes.
+      # Uses each tool's description and parameter names as a proxy for its
+      # JSON Schema size. This is a deliberate simplification — exact token
+      # counts require provider-specific schema serialization which lives in
+      # RubyLLM. The estimate errs on the side of being slightly conservative
+      # so that the conversation budget is not over-allocated.
+      def estimate_capability_tokens
+        @tool_classes.sum do |tc|
+          # Instantiated tool objects (e.g. McpTool instances) may not be a Class.
+          next 0 unless tc.is_a?(Class) && tc.respond_to?(:description)
+
+          text = [tc.description.to_s]
+          if tc.respond_to?(:parameters)
+            tc.parameters.each_key { |k| text << k.to_s }
+          end
+          TokenEstimator.estimate(text.join(" "))
+        end
+      end
 
       # mutant:disable - multiple genuine equivalent mutations: chunk.fetch(key) vs chunk[key] (key always present); chunk[:text] no .to_s / .to_str are genuine (stored as String); chunk[:type] no .to_s / .to_str are genuine (stored as String); chunk[:source] no .to_s / .to_str are genuine (truthy branch, always String); src_attr chunk.fetch(:source) is genuine (source key always present)
       def xml_context_tag(chunk)
@@ -131,8 +168,8 @@ module Phronomy
       # `if 0 && messages.empty?`, `if nil && messages.empty?` —
       # all are genuine equivalents because when messages.empty? the loop produces [] anyway,
       # and remaining is always >= 0 (clamp(0..)) so `remaining < 0` / `<= -1` are never true.
-      def trim_messages_to_budget(messages, system_text)
-        used = TokenEstimator.estimate(system_text)
+      def trim_messages_to_budget(messages, system_text, extra_used: 0)
+        used = TokenEstimator.estimate(system_text) + extra_used
         remaining = @budget.available(used: used)
         return messages if remaining <= 0 && messages.empty?
 

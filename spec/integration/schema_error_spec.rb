@@ -5,7 +5,7 @@ require_relative "support/factors"
 
 # Group 19 — on_schema_error policy × schema_violation_kind
 #
-# These tests call Tool::Base#call directly (no LLM, no network).
+# These tests call Phronomy::Agent::Context::Capability::Base#call directly (no LLM, no network).
 # All 15 pairwise cases are feasible.
 #
 # Evidence: docs/integration_test_cases_schema_error.yaml

@@ -138,7 +138,7 @@ RSpec.describe "Group 21: Tool Retry", :integration do
     it "propagates GuardrailError immediately" do
       # GuardrailError from execute is caught by rescue => e in #call and wrapped
       # as ToolError. retry_on GuardrailError is NOT configured, so no retry.
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "guardrail test tool"
         def execute(**_)
           raise Phronomy::GuardrailError, "blocked by policy"
@@ -157,7 +157,7 @@ RSpec.describe "Group 21: Tool Retry", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-009: GuardrailError; linear; times=3 for other exception — not retried" do
     it "does not retry GuardrailError even when a retry policy exists for ToolError" do
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "guardrail+retry test tool"
         # Policy covers ToolError, NOT GuardrailError
         retry_on Phronomy::ToolError, times: 3, wait: :linear, base: 1.0
@@ -177,7 +177,7 @@ RSpec.describe "Group 21: Tool Retry", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-010: GuardrailError; fixed; times=2 for other exception — not retried" do
     it "does not retry GuardrailError when retry_on covers RuntimeError only" do
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "guardrail+retry test tool"
         retry_on RuntimeError, times: 2, wait: 0.5
         def execute(**_)

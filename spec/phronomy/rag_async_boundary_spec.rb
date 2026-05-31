@@ -1,7 +1,35 @@
 # frozen_string_literal: true
 
+# Helper: returns an Agent::Base subclass that overrides build_context to
+# call fetch_knowledge_chunks explicitly (the pattern D4 requires for apps
+# that need dynamic knowledge injection).
+def rag_agent_class
+  Class.new(Phronomy::Agent::Base) do
+    model "test-model"
+
+    def build_context(input, messages: [], thread_id: nil, config: {})
+      history      = prepare_history(messages: messages, thread_id: thread_id, config: config)
+      budget       = build_token_budget
+      instruction  = build_instructions(input)
+      user_message = extract_message(input)
+
+      assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
+      assembler.add_instruction(instruction) if instruction
+      assembler.add_capability(self.class.tools + _handoff_tools)
+      self.class.static_knowledge_chunks.each do |chunk|
+        assembler.add_knowledge(chunk[:content], type: chunk[:type] || :static, trusted: true, source: chunk[:source])
+      end
+      fetch_knowledge_chunks(user_message, config).each do |chunk|
+        assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
+      end
+      assembler.add_messages(history)
+      @last_context = assembler.build
+    end
+  end
+end
+
 RSpec.describe "RAG async boundary (Issue #267)" do
-  let(:agent_class) { Class.new(Phronomy::Agent::Base) { model "test-model" } }
+  let(:agent_class) { rag_agent_class }
   let(:agent) { agent_class.new }
   let(:pool) { Phronomy::Runtime.instance.blocking_io }
 
@@ -47,7 +75,7 @@ RSpec.describe "RAG async boundary (Issue #267)" do
     end
   end
 
-  describe "Agent#build_context uses fetch_async" do
+  describe "Agent#fetch_knowledge_chunks uses fetch_async" do
     it "calls fetch_async on each knowledge source" do
       ks = double("KnowledgeSource")
       pending_op = pool.submit { [{content: "ctx", type: "text", source: "src"}] }
@@ -66,7 +94,7 @@ RSpec.describe "RAG async boundary (Issue #267)" do
 end
 
 RSpec.describe "RAG parallel multi-source fetch (Issue #303)" do
-  let(:agent_class) { Class.new(Phronomy::Agent::Base) { model "test-model" } }
+  let(:agent_class) { rag_agent_class }
   let(:agent) { agent_class.new }
 
   def make_ks(chunks, delay: 0)
@@ -137,7 +165,7 @@ RSpec.describe "RAG parallel multi-source fetch (Issue #303)" do
 end
 
 RSpec.describe "RAG gate enforcement (Issue #319)" do
-  let(:agent_class) { Class.new(Phronomy::Agent::Base) { model "test-model" } }
+  let(:agent_class) { rag_agent_class }
   let(:agent) { agent_class.new }
 
   around do |example|

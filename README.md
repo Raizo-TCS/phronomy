@@ -33,7 +33,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **Context Management** — Token budget calculation, estimation, and pruning | Stable |
 | **Guardrails** — Input/output validation with custom `InputGuardrail`/`OutputGuardrail` | Beta |
 | **`PromptInjectionGuardrail`** — Built-in `InputGuardrail` subclass that detects prompt-injection patterns; usable standalone or as part of a guardrail chain | Beta |
-| **`Tool::Base.redact_params` / `.max_result_size`** — Class-level DSL: `redact_params` masks parameter values in log/trace output; `max_result_size` truncates oversized tool results before they reach the LLM | Beta |
+| **`Agent::Context::Capability::Base.redact_params` / `.max_result_size`** — Class-level DSL: `redact_params` masks parameter values in log/trace output; `max_result_size` truncates oversized tool results before they reach the LLM | Beta |
 | **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses | Stable |
 | **Eval Framework** — Dataset-driven evaluation with multiple scorer types | Beta |
 | **Tracing** — Pluggable span-based observability | Stable |
@@ -55,10 +55,10 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 |---|---|
 | **Workflow EventLoop Mode** — Opt-in event-driven execution: `Phronomy.configure { \|c\| c.event_loop = true }` | Experimental |
 | **Agent EventLoop Mode** — `Agent#invoke` (non-blocking via EventLoop), `Agent#run_as_child` (child-FSM pattern for Workflow integration), parallel tool dispatch via `ParallelToolChat` | Experimental |
-| **`invoke_async` / `call_async`** — `Agent::Base#invoke_async` and `Workflow#invoke_async` return a `Task`; `Tool::Base#call_async` similarly; compatible with EventLoop and standalone contexts | Experimental |
+| **`invoke_async` / `call_async`** — `Agent::Base#invoke_async` and `Workflow#invoke_async` return a `Task`; `Agent::Context::Capability::Base#call_async` similarly; compatible with EventLoop and standalone contexts | Experimental |
 | **CancellationToken** — Cooperative cancellation via `cancel!`/`cancelled?`/`raise_if_cancelled!`; `timeout_after(seconds)` for monotonic-clock deadlines; optional `deadline:` (wall-clock) for backward compatibility; passed as `config: { cancellation_token: token }` to agents and `dispatch_parallel`; injected into `tool.execute` when the method declares a `cancellation_token:` keyword | Experimental |
 | **`dispatch_parallel` / `fan_out` `force_kill:` option** — `force_kill: false` (default) leaves timed-out workers running and raises `TimeoutError` immediately; `force_kill: true` restores the old `Thread#kill` behaviour with a `logger.warn` | Beta |
-| **`execution_mode` DSL on `Tool::Base`** — Declares how a tool's `execute` should be dispatched: `:cooperative` (same scheduler thread), `:blocking_io` (default; offloaded to `BlockingAdapterPool`), `:cpu_bound`, `:external_process` | Experimental |
+| **`execution_mode` DSL on `Agent::Context::Capability::Base`** — Declares how a tool's `execute` should be dispatched: `:cooperative` (same scheduler thread), `:blocking_io` (default; offloaded to `BlockingAdapterPool`), `:cpu_bound`, `:external_process` | Experimental |
 | **`invocation_context:` keyword on `Agent#invoke` / `Workflow#invoke`** — Pass a `Phronomy::InvocationContext` directly; `thread_id`, `cancellation_token`, and `deadline`-based timeout are derived from it; `task_id` / `parent_task_id` appear in trace spans automatically; `config:` keys remain supported as backward-compat aliases | Beta |
 | **`ConcurrencyGate` — unified backpressure** — Counting semaphore that enforces per-resource concurrency caps (`max_concurrent_agent_tasks`, `max_concurrent_tool_tasks`, `max_concurrent_workflow_tasks`, `max_concurrent_llm_calls`, `max_concurrent_rag_fetches`, `max_concurrent_vector_searches`); configured via `Phronomy.configure`; backpressure behaviour follows the global `backpressure` setting (`:wait`, `:raise`/`:reject`, `:timeout`); `nil` cap = unlimited (default) | Beta |
 | **Cooperative scheduler yield points** — `Runtime#yield` (cooperative yield; yields the current task's time slice); `Runtime#yield_if_needed(every: N)` (thread-local counter, yields every N calls); CPU-bound detection when `blocking_detect_threshold_ms` is set (warns and increments `non_yield_threshold_violation_count` when a task runs longer than the threshold without yielding); `starvation_threshold_ms` configuration field (default: 50ms) | Beta |
@@ -140,7 +140,7 @@ Install additional gems only for the features you use:
 ### Agent — ReAct tool-calling agent
 
 ```ruby runnable
-class WebSearch < Phronomy::Tool::Base
+class WebSearch < Phronomy::Agent::Context::Capability::Base
   description "Search the web"
   param :query, type: :string, desc: "Search query"
 
@@ -216,10 +216,10 @@ transition from: :run_agent, on: :child_failed,    to: :handle_error
 
 ### Multi-Agent — Agent-as-Tool pattern
 
-Wrap sub-agents as `Tool::Base` subclasses so the orchestrator LLM can call them on demand.
+Wrap sub-agents as `Agent::Context::Capability::Base` subclasses so the orchestrator LLM can call them on demand.
 
 ```ruby
-class ResearchTool < Phronomy::Tool::Base
+class ResearchTool < Phronomy::Agent::Context::Capability::Base
   description "Research a topic and return key findings as bullet points."
   param :topic, type: :string, desc: "The topic to research"
 
@@ -233,7 +233,7 @@ class WriterAgent < Phronomy::Agent::Base
   instructions "You are a professional technical writer."
 end
 
-class WriteTool < Phronomy::Tool::Base
+class WriteTool < Phronomy::Agent::Context::Capability::Base
   description "Write a technical blog post given research notes and a writing brief."
   param :instructions, type: :string, desc: "Writing brief including research notes"
 
@@ -539,7 +539,7 @@ end
 ### MCP Tool — External tool servers
 
 ```ruby
-search_tool = Phronomy::Tool::McpTool.from_server(
+search_tool = Phronomy::Agent::Context::Capability::McpTool.from_server(
   "stdio://./mcp-server",
   tool_name: "web_search"
 )

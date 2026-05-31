@@ -5,7 +5,7 @@ require "spec_helper"
 # ---------------------------------------------------------------------------
 # Test tools
 # ---------------------------------------------------------------------------
-class ApprovalTestTool < Phronomy::Tool::Base
+class ApprovalTestTool < Phronomy::Agent::Context::Capability::Base
   tool_name "approval_test"
   description "A tool that does not require approval"
   param :value, type: :string, desc: "Input value"
@@ -15,7 +15,7 @@ class ApprovalTestTool < Phronomy::Tool::Base
   end
 end
 
-class ApprovalRequiredTool < Phronomy::Tool::Base
+class ApprovalRequiredTool < Phronomy::Agent::Context::Capability::Base
   tool_name "approval_required"
   description "A tool that requires approval"
   requires_approval true
@@ -170,7 +170,7 @@ RSpec.describe "Agent approval gate" do
     context "when an instantiated tool object is passed (e.g. McpTool instance)" do
       it "returns the instance as-is without raising NoMethodError (#383)" do
         # McpTool.from_server returns an instance, not a class.
-        # Simulate with a plain Tool::Base instance so the test does not require
+        # Simulate with a plain Phronomy::Agent::Context::Capability::Base instance so the test does not require
         # a live MCP server.
         tool_instance = ApprovalTestTool.new
         agent = ApprovalBaseAgent.new

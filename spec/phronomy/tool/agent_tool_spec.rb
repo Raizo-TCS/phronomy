@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Tool::AgentTool do
+RSpec.describe Phronomy::Agent::Context::Capability::AgentTool do
   # A minimal stub agent that echoes its input with a prefix.
   class EchoAgent < Phronomy::Agent::Base
     model "openai/gpt-4o-mini"

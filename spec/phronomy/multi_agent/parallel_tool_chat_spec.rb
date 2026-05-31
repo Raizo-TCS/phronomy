@@ -5,7 +5,7 @@ require "spec_helper"
 # ---------------------------------------------------------------------------
 # Test tools (synchronous, predictable)
 # ---------------------------------------------------------------------------
-class PtcEchoTool < Phronomy::Tool::Base
+class PtcEchoTool < Phronomy::Agent::Context::Capability::Base
   tool_name "ptc_echo"
   description "Echoes the input"
   param :value, type: :string, desc: "The value to echo"
@@ -15,7 +15,7 @@ class PtcEchoTool < Phronomy::Tool::Base
   end
 end
 
-class PtcSlowTool < Phronomy::Tool::Base
+class PtcSlowTool < Phronomy::Agent::Context::Capability::Base
   tool_name "ptc_slow"
   description "Slow echo tool"
   param :value, type: :string, desc: "The value to echo"
@@ -26,7 +26,7 @@ class PtcSlowTool < Phronomy::Tool::Base
   end
 end
 
-class PtcApprovalTool < Phronomy::Tool::Base
+class PtcApprovalTool < Phronomy::Agent::Context::Capability::Base
   tool_name "ptc_approval"
   description "A tool that requires approval"
   requires_approval true
@@ -275,7 +275,7 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
     end
 
     let(:blocking_tool_class) do
-      Class.new(Phronomy::Tool::Base) do
+      Class.new(Phronomy::Agent::Context::Capability::Base) do
         tool_name "io_dispatch_tool"
         description "IO tool for dispatch test"
         param :v, type: :string, desc: "v"
@@ -286,7 +286,7 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
     end
 
     let(:coop_tool_class) do
-      Class.new(Phronomy::Tool::Base) do
+      Class.new(Phronomy::Agent::Context::Capability::Base) do
         tool_name "coop_dispatch_tool"
         execution_mode :cooperative
         description "Cooperative tool for dispatch test"

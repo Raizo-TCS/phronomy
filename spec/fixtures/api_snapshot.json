@@ -53,7 +53,7 @@
     ]
   },
   {
-    "name": "Phronomy::Tool::Base",
+    "name": "Phronomy::Agent::Context::Capability::Base",
     "type": "class",
     "public_instance_methods": [
       "call",

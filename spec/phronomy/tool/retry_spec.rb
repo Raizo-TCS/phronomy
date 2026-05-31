@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Unit tests for the retry_on DSL on Tool::Base and the retry_policy DSL on
+# Unit tests for the retry_on DSL on Phronomy::Agent::Context::Capability::Base and the retry_policy DSL on
 # Agent::Base.
 #
 # Sleep is replaced with a recording lambda in all tests to avoid actual delays
@@ -8,7 +8,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Tool::Base, "retry_on DSL" do
+RSpec.describe Phronomy::Agent::Context::Capability::Base, "retry_on DSL" do
   # ---------------------------------------------------------------------------
   # Shared setup
   # ---------------------------------------------------------------------------
@@ -17,7 +17,7 @@ RSpec.describe Phronomy::Tool::Base, "retry_on DSL" do
 
   def make_tool(call_count_target:, exception_class: Phronomy::ToolError, **retry_opts, &result_block)
     calls = 0
-    klass = Class.new(Phronomy::Tool::Base) do
+    klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
       description "retry test tool"
       retry_on exception_class, **retry_opts
 
@@ -36,7 +36,7 @@ RSpec.describe Phronomy::Tool::Base, "retry_on DSL" do
   # ---------------------------------------------------------------------------
   describe ".retry_on / .retry_policies" do
     it "registers a single policy" do
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "t"
         retry_on Phronomy::ToolError, times: 2, wait: :exponential, base: 0.5
       end
@@ -49,7 +49,7 @@ RSpec.describe Phronomy::Tool::Base, "retry_on DSL" do
     end
 
     it "registers multiple policies" do
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "t"
         retry_on Phronomy::ToolError, times: 2
         retry_on RuntimeError, times: 1, wait: 0.5
@@ -58,7 +58,7 @@ RSpec.describe Phronomy::Tool::Base, "retry_on DSL" do
     end
 
     it "returns empty array when no policy is registered" do
-      klass = Class.new(Phronomy::Tool::Base) { description "t" }
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) { description "t" }
       expect(klass.retry_policies).to eq([])
     end
   end
@@ -68,12 +68,12 @@ RSpec.describe Phronomy::Tool::Base, "retry_on DSL" do
   # ---------------------------------------------------------------------------
   describe "._sleep_proc" do
     it "defaults to Kernel#sleep" do
-      klass = Class.new(Phronomy::Tool::Base) { description "t" }
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) { description "t" }
       expect(klass._sleep_proc).to respond_to(:call)
     end
 
     it "can be overridden for testing" do
-      klass = Class.new(Phronomy::Tool::Base) { description "t" }
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) { description "t" }
       stub = ->(t) { t }
       klass._sleep_proc = stub
       expect(klass._sleep_proc).to be(stub)
@@ -85,7 +85,7 @@ RSpec.describe Phronomy::Tool::Base, "retry_on DSL" do
   # ---------------------------------------------------------------------------
   describe "retry count" do
     it "does not retry when times: 0 (passes through immediately)" do
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "t"
         retry_on Phronomy::ToolError, times: 0
         def execute(**_)
@@ -111,7 +111,7 @@ RSpec.describe Phronomy::Tool::Base, "retry_on DSL" do
     end
 
     it "re-raises after all retries are exhausted" do
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "t"
         retry_on Phronomy::ToolError, times: 2, wait: 0
         def execute(**_)
@@ -123,7 +123,7 @@ RSpec.describe Phronomy::Tool::Base, "retry_on DSL" do
     end
 
     it "records the correct number of sleep calls" do
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "t"
         retry_on Phronomy::ToolError, times: 3, wait: 0
         def execute(**_)
@@ -142,7 +142,7 @@ RSpec.describe Phronomy::Tool::Base, "retry_on DSL" do
   # ---------------------------------------------------------------------------
   describe "wait: :exponential" do
     it "computes 2^attempt * base for each retry" do
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "t"
         retry_on Phronomy::ToolError, times: 3, wait: :exponential, base: 1.0
         def execute(**_)
@@ -156,7 +156,7 @@ RSpec.describe Phronomy::Tool::Base, "retry_on DSL" do
     end
 
     it "uses base as the multiplier" do
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "t"
         retry_on Phronomy::ToolError, times: 2, wait: :exponential, base: 0.5
         def execute(**_)
@@ -175,7 +175,7 @@ RSpec.describe Phronomy::Tool::Base, "retry_on DSL" do
   # ---------------------------------------------------------------------------
   describe "wait: :linear" do
     it "computes (attempt+1) * base for each retry" do
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "t"
         retry_on Phronomy::ToolError, times: 3, wait: :linear, base: 1.0
         def execute(**_)
@@ -194,7 +194,7 @@ RSpec.describe Phronomy::Tool::Base, "retry_on DSL" do
   # ---------------------------------------------------------------------------
   describe "wait: fixed Float" do
     it "sleeps the same duration every retry" do
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "t"
         retry_on Phronomy::ToolError, times: 3, wait: 2.5
         def execute(**_)
@@ -213,7 +213,7 @@ RSpec.describe Phronomy::Tool::Base, "retry_on DSL" do
   describe "retry_on with custom exception class" do
     it "retries on a user-specified exception" do
       calls = 0
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "t"
         retry_on RuntimeError, times: 2, wait: 0
 
@@ -229,7 +229,7 @@ RSpec.describe Phronomy::Tool::Base, "retry_on DSL" do
     end
 
     it "does not retry on an exception not covered by the policy" do
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "t"
         retry_on ArgumentError, times: 3, wait: 0
         def execute(**_)
@@ -249,7 +249,7 @@ RSpec.describe Phronomy::Tool::Base, "retry_on DSL" do
   # ---------------------------------------------------------------------------
   describe "GuardrailError is not retried" do
     it "propagates GuardrailError immediately even when retry_on covers Error" do
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "t"
         # Registering Phronomy::Error (parent) should NOT catch GuardrailError
         # because the policy match is done via is_a?, but we explicitly verify
@@ -272,7 +272,7 @@ RSpec.describe Phronomy::Tool::Base, "retry_on DSL" do
   describe "interaction with on_error: :return_empty" do
     it "retries first, then applies on_error after exhaustion" do
       call_count = 0
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "t"
         on_error :return_empty
         retry_on RuntimeError, times: 2, wait: 0

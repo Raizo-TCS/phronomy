@@ -57,7 +57,7 @@ module Phronomy
       #   proceed
       # @api public
       def self.subagent(name, agent_class, on_error: :raise)
-        tool_class = Class.new(Phronomy::Tool::Base) do
+        tool_class = Class.new(Phronomy::Agent::Context::Capability::Base) do
           tool_name "dispatch_to_#{name}"
           description "Dispatch work to the #{name} subagent (#{agent_class.name})"
           param :input, type: :string, desc: "The task or question for the subagent"

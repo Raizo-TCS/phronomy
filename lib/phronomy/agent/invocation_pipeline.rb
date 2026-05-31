@@ -45,6 +45,7 @@ module Phronomy
           # inject custom context editing logic at the Agent subclass level.
           context = build_context(inp, messages: msgs, thread_id: tid, config: cfg)
           apply_instructions(chat, context[:system]) if context[:system]
+          (context[:tool_classes] || []).each { |tc| chat.with_tool(prepare_tool_class(tc)) }
           context[:messages].each { |msg| chat.messages << msg }
 
           # Run before_completion hooks (global → class → instance) before the LLM call.

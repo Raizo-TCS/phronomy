@@ -46,8 +46,8 @@ RSpec.describe Phronomy::MultiAgent::Handoff do
   describe "#to_tool_class" do
     subject(:tool_class) { handoff.to_tool_class }
 
-    it "returns a subclass of Phronomy::Tool::Base" do
-      expect(tool_class.ancestors).to include(Phronomy::Tool::Base)
+    it "returns a subclass of Phronomy::Agent::Context::Capability::Base" do
+      expect(tool_class.ancestors).to include(Phronomy::Agent::Context::Capability::Base)
     end
 
     it "sets the tool_name on the returned class" do
@@ -219,13 +219,13 @@ RSpec.describe "Phronomy::Agent::Base#_add_handoff_tool" do
   subject(:agent) { klass.new }
 
   it "returns self for method chaining" do
-    tool_class = Class.new(Phronomy::Tool::Base)
+    tool_class = Class.new(Phronomy::Agent::Context::Capability::Base)
     expect(agent._add_handoff_tool(tool_class)).to equal(agent)
   end
 
   it "accumulates multiple handoff tools" do
-    t1 = Class.new(Phronomy::Tool::Base)
-    t2 = Class.new(Phronomy::Tool::Base)
+    t1 = Class.new(Phronomy::Agent::Context::Capability::Base)
+    t2 = Class.new(Phronomy::Agent::Context::Capability::Base)
     agent._add_handoff_tool(t1)
     agent._add_handoff_tool(t2)
     expect(agent._handoff_tools).to contain_exactly(t1, t2)

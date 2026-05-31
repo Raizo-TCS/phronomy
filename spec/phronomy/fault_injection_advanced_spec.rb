@@ -105,7 +105,24 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     end
 
     it "propagates from build_context when knowledge source raises on search and rag_failure_policy is :fail" do
-      agent_class = Class.new(Phronomy::Agent::Base) { model "test-model" }
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        model "test-model"
+
+        def build_context(input, messages: [], thread_id: nil, config: {})
+          history      = prepare_history(messages: messages, thread_id: thread_id, config: config)
+          budget       = build_token_budget
+          instruction  = build_instructions(input)
+          user_message = extract_message(input)
+          assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
+          assembler.add_instruction(instruction) if instruction
+          assembler.add_capability(self.class.tools + _handoff_tools)
+          fetch_knowledge_chunks(user_message, config).each do |chunk|
+            assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
+          end
+          assembler.add_messages(history)
+          @last_context = assembler.build
+        end
+      end
       agent = agent_class.new
 
       expect {
@@ -235,11 +252,11 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   # 8. Huge tool output — behavior when tool returns oversized content
   # -------------------------------------------------------------------------
   describe "Huge tool output" do
-    # A tool returning a very large string is allowed by Phronomy::Tool::Base.
+    # A tool returning a very large string is allowed by Phronomy::Agent::Context::Capability::Base.
     # Context budget trimming occurs inside Agent#_invoke_impl; the tool itself
     # does not enforce output size limits. This test documents that behaviour.
     let(:huge_output_tool) do
-      Class.new(Phronomy::Tool::Base) do
+      Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "Returns a huge string"
 
         def execute
@@ -262,7 +279,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     # NOT catch guardrail rejections — the exception propagates after the
     # inner ToolError retry is exhausted or bypassed.
     let(:always_fail_tool) do
-      Class.new(Phronomy::Tool::Base) do
+      Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "Fails and never succeeds"
         on_error :propagate
 
@@ -300,7 +317,26 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     # on the raw element without a nil-guard.  This test documents the current
     # propagation contract so any future nil-guard change is visible.
 
-    let(:agent_class) { Class.new(Phronomy::Agent::Base) { model "test-model" } }
+    let(:agent_class) {
+      Class.new(Phronomy::Agent::Base) do
+        model "test-model"
+
+        def build_context(input, messages: [], thread_id: nil, config: {})
+          history      = prepare_history(messages: messages, thread_id: thread_id, config: config)
+          budget       = build_token_budget
+          instruction  = build_instructions(input)
+          user_message = extract_message(input)
+          assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
+          assembler.add_instruction(instruction) if instruction
+          assembler.add_capability(self.class.tools + _handoff_tools)
+          fetch_knowledge_chunks(user_message, config).each do |chunk|
+            assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
+          end
+          assembler.add_messages(history)
+          @last_context = assembler.build
+        end
+      end
+    }
     let(:agent) { agent_class.new }
 
     it "propagates NoMethodError when KnowledgeSource#fetch returns [nil]" do
@@ -404,7 +440,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     # through Tool#call to the agent's tool execution path.
 
     let(:approval_tool_class) do
-      Class.new(Phronomy::Tool::Base) do
+      Class.new(Phronomy::Agent::Context::Capability::Base) do
         tool_name "approval_fault_tool"
         requires_approval true
         description "A tool that requires approval"

@@ -5,7 +5,7 @@ require "securerandom"
 module Phronomy
   module MultiAgent
     # Represents a transfer edge from one agent to another.
-    # Creates an anonymous Phronomy::Tool::Base subclass that the source agent
+    # Creates an anonymous Phronomy::Agent::Context::Capability::Base subclass that the source agent
     # exposes to the LLM as a +transfer_to_<name>+ function.
     # The tool's execute method returns a sentinel string that Runner uses to
     # detect which target agent to route to next.
@@ -32,14 +32,14 @@ module Phronomy
         @description = description || "Transfer the conversation to #{klass_name}."
       end
 
-      # Builds an anonymous Phronomy::Tool::Base subclass for this handoff.
-      # @return [Class<Phronomy::Tool::Base>]
+      # Builds an anonymous Phronomy::Agent::Context::Capability::Base subclass for this handoff.
+      # @return [Class<Phronomy::Agent::Context::Capability::Base>]
       # @api public
       def to_tool_class
         sentinel_value = sentinel
         tn = tool_name
         desc = description
-        Class.new(Phronomy::Tool::Base) do
+        Class.new(Phronomy::Agent::Context::Capability::Base) do
           tool_name tn
           description desc
           define_method(:execute) { sentinel_value }

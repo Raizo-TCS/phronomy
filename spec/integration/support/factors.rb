@@ -22,7 +22,7 @@ module IntegrationFactors
   # Fixture Tool classes
   # ---------------------------------------------------------------------------
 
-  class CalculatorTool < Phronomy::Tool::Base
+  class CalculatorTool < Phronomy::Agent::Context::Capability::Base
     description "Adds two integers and returns the sum as a string"
     param :a, type: :integer, desc: "First integer"
     param :b, type: :integer, desc: "Second integer"
@@ -32,7 +32,7 @@ module IntegrationFactors
     end
   end
 
-  class WeatherTool < Phronomy::Tool::Base
+  class WeatherTool < Phronomy::Agent::Context::Capability::Base
     description "Returns a brief weather description for a city"
     param :city, type: :string, desc: "Name of the city"
 
@@ -41,7 +41,7 @@ module IntegrationFactors
     end
   end
 
-  class AlwaysErrorTool < Phronomy::Tool::Base
+  class AlwaysErrorTool < Phronomy::Agent::Context::Capability::Base
     description "Always raises a RuntimeError (used to test on_error: :raise)"
     param :input, type: :string, desc: "Any string input"
 
@@ -50,7 +50,7 @@ module IntegrationFactors
     end
   end
 
-  class ReturnEmptyOnErrorTool < Phronomy::Tool::Base
+  class ReturnEmptyOnErrorTool < Phronomy::Agent::Context::Capability::Base
     description "Always raises but returns empty (used to test on_error: :return_empty)"
     param :input, type: :string, desc: "Any string input"
 
@@ -64,7 +64,7 @@ module IntegrationFactors
   # Used for tool_param_enum tests.
   # valid_value  = one of "Tokyo", "London", "Paris"
   # invalid_value = any other string — execute raises, triggering ToolError
-  class EnumCitySelectorTool < Phronomy::Tool::Base
+  class EnumCitySelectorTool < Phronomy::Agent::Context::Capability::Base
     description "Returns a short fact about a supported city: Tokyo, London, or Paris"
     on_schema_error :raise
     param :city, type: :string,
@@ -477,7 +477,7 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
 
   # A simple tool that does NOT require approval.
-  class NoApprovalTool < Phronomy::Tool::Base
+  class NoApprovalTool < Phronomy::Agent::Context::Capability::Base
     tool_name "no_approval_tool"
     description "A test tool that does not require approval"
     param :value, type: :string, desc: "Input value"
@@ -488,7 +488,7 @@ module IntegrationFactors
   end
 
   # A simple tool that DOES require approval.
-  class RequiresApprovalTool < Phronomy::Tool::Base
+  class RequiresApprovalTool < Phronomy::Agent::Context::Capability::Base
     tool_name "requires_approval_tool"
     description "A test tool that requires approval"
     requires_approval true
@@ -503,7 +503,7 @@ module IntegrationFactors
   # Factor: approval_tool_type
   #
   # @param label [String] "no_approval" | "requires_approval"
-  # @return [Class] a Phronomy::Tool::Base subclass
+  # @return [Class] a Phronomy::Agent::Context::Capability::Base subclass
   # ---------------------------------------------------------------------------
   def self.approval_tool_class(label)
     case label
@@ -534,7 +534,7 @@ module IntegrationFactors
   # tool class and approval handler.
   #
   # @param agent_label  [String]  "base" | "react"
-  # @param tool_class   [Class]   a Phronomy::Tool::Base subclass
+  # @param tool_class   [Class]   a Phronomy::Agent::Context::Capability::Base subclass
   # @param handler      [Proc, nil] returned by .approval_handler
   # @return [Phronomy::Agent::Base]
   def self.approval_agent(agent_label, tool_class:, handler:)
@@ -561,12 +561,12 @@ module IntegrationFactors
   #
   # @param policy_label   [String]  "return_error" | "raise" | "coerce"
   # @param execute_result [String]  value returned when execute runs normally
-  # @return [Class]  a Phronomy::Tool::Base subclass
+  # @return [Class]  a Phronomy::Agent::Context::Capability::Base subclass
   def self.schema_error_tool(policy_label, execute_result: "ok")
     policy = policy_label.to_sym
     result = execute_result
 
-    Class.new(Phronomy::Tool::Base) do
+    Class.new(Phronomy::Agent::Context::Capability::Base) do
       tool_name "schema_test_tool"
       description "Integration test tool for schema error policies"
       on_schema_error policy
@@ -603,11 +603,11 @@ module IntegrationFactors
   # @param base            [Float]            retry_on base:
   # @param sleep_log       [Array]            array that sleep durations are appended to
   # @param succeed_after   [Integer, nil]     succeed when total calls reach this value
-  # @return [Phronomy::Tool::Base subclass]
+  # @return [Phronomy::Agent::Context::Capability::Base subclass]
   def self.retry_tool(exception_class:, times:, wait:, base: 1.0,
     sleep_log: [], succeed_after: nil)
     calls = 0
-    klass = Class.new(Phronomy::Tool::Base) do
+    klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
       description "retry integration test tool"
       retry_on exception_class, times: times, wait: wait, base: base
 
@@ -1091,7 +1091,7 @@ module IntegrationFactors
   # @param result_value [String] value returned by the tool's execute method
   # @return [Class]
   def self.approval_tool(result_value: "approval_tool_result")
-    Class.new(Phronomy::Tool::Base) do
+    Class.new(Phronomy::Agent::Context::Capability::Base) do
       tool_name "approval_required_tool"
       description "A tool that requires approval"
       param :query, type: :string, desc: "Input for the tool"
@@ -1108,7 +1108,7 @@ module IntegrationFactors
   # @param result_value [String] value returned by the tool's execute method
   # @return [Class]
   def self.second_approval_tool(result_value: "second_approval_tool_result")
-    Class.new(Phronomy::Tool::Base) do
+    Class.new(Phronomy::Agent::Context::Capability::Base) do
       tool_name "second_approval_required_tool"
       description "A second tool that requires approval"
       param :query, type: :string, desc: "Input for the tool"
@@ -1445,7 +1445,7 @@ module IntegrationFactors
 
   # A tool with execution_mode :blocking_io (default).
   # Used to verify that blocking tools route through BlockingAdapterPool.
-  class BbBlockingTool < Phronomy::Tool::Base
+  class BbBlockingTool < Phronomy::Agent::Context::Capability::Base
     tool_name "bb_blocking_tool"
     description "A blocking_io tool used to verify pool routing"
     param :input, type: :string, desc: "Any string input"
@@ -1458,7 +1458,7 @@ module IntegrationFactors
 
   # A tool with execution_mode :cooperative.
   # Used to verify that cooperative tools do NOT use BlockingAdapterPool.
-  class BbCooperativeTool < Phronomy::Tool::Base
+  class BbCooperativeTool < Phronomy::Agent::Context::Capability::Base
     tool_name "bb_cooperative_tool"
     description "A cooperative tool used to verify it bypasses the pool"
     param :input, type: :string, desc: "Any string input"
@@ -1489,7 +1489,7 @@ module IntegrationFactors
 
   # A tool with execution_mode :blocking_io used in upper-layer fiber backend tests.
   # Routes through BlockingAdapterPool (ToolExecutor default).
-  class FbBlockingTool < Phronomy::Tool::Base
+  class FbBlockingTool < Phronomy::Agent::Context::Capability::Base
     tool_name "fb_blocking_tool"
     description "A blocking_io tool for fiber backend upper-layer tests"
     param :input, type: :string, desc: "Any string input"
@@ -1502,7 +1502,7 @@ module IntegrationFactors
 
   # A tool with execution_mode :cooperative used in upper-layer fiber backend tests.
   # Routes through Runtime#spawn (no pool allocation).
-  class FbCooperativeTool < Phronomy::Tool::Base
+  class FbCooperativeTool < Phronomy::Agent::Context::Capability::Base
     tool_name "fb_cooperative_tool"
     description "A cooperative tool for fiber backend upper-layer tests"
     param :input, type: :string, desc: "Any string input"

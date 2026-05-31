@@ -46,8 +46,8 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
     end
   end
 
-  describe "Phronomy::Tool::Base" do
-    subject { Phronomy::Tool::Base }
+  describe "Phronomy::Agent::Context::Capability::Base" do
+    subject { Phronomy::Agent::Context::Capability::Base }
 
     it "exposes DSL class methods: description, param, on_error" do
       expect(subject).to respond_to(:description, :param, :on_error)
@@ -96,9 +96,9 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
 
   # --- Cooperative / Blocking distinction (Issue #278) ---
 
-  describe "Phronomy::Tool::Base — execution_mode" do
+  describe "Phronomy::Agent::Context::Capability::Base — execution_mode" do
     it "defaults to :blocking_io when not declared" do
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "no-op"
         def execute
         end
@@ -107,7 +107,7 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
     end
 
     it "accepts :cooperative as a valid execution_mode" do
-      klass = Class.new(Phronomy::Tool::Base) do
+      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "no-op"
         execution_mode :cooperative
         def execute
@@ -118,7 +118,7 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
 
     it "raises ArgumentError for unknown execution_mode values" do
       expect {
-        Class.new(Phronomy::Tool::Base) do
+        Class.new(Phronomy::Agent::Context::Capability::Base) do
           description "no-op"
           execution_mode :unknown_mode
           def execute

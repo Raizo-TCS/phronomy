@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Tool::ScopePolicy do
+RSpec.describe Phronomy::Agent::Context::Capability::ScopePolicy do
   subject(:policy) { described_class::DEFAULT }
 
   describe "#call — default policy" do
@@ -45,7 +45,7 @@ RSpec.describe Phronomy::Tool::ScopePolicy do
 
   describe "Agent integration" do
     let(:write_tool_class) do
-      Class.new(Phronomy::Tool::Base) do
+      Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "A write-scoped tool"
         scope :write
 
@@ -56,7 +56,7 @@ RSpec.describe Phronomy::Tool::ScopePolicy do
     end
 
     let(:read_tool_class) do
-      Class.new(Phronomy::Tool::Base) do
+      Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "A read-only tool"
         scope :read_only
 

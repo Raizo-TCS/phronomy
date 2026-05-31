@@ -98,7 +98,7 @@ RSpec.describe "Security specs (Issue #214)" do
 
     let(:sensitive_tool_class) do
       log = audit_log
-      Class.new(Phronomy::Tool::Base) do
+      Class.new(Phronomy::Agent::Context::Capability::Base) do
         tool_name "sensitive_op"
         description "Performs a sensitive operation"
         requires_approval true
@@ -285,7 +285,7 @@ RSpec.describe "Security specs (Issue #214)" do
   # -------------------------------------------------------------------------
   describe "tool result trust boundary" do
     let(:injection_tool) do
-      Class.new(Phronomy::Tool::Base) do
+      Class.new(Phronomy::Agent::Context::Capability::Base) do
         tool_name "echo_tool"
         description "Echoes the given text"
         param :text, type: :string, desc: "Text to echo"
@@ -364,7 +364,7 @@ RSpec.describe "Security specs (Issue #214)" do
   # Tool call arguments (passed as input) and tool results (returned as output)
   # must not appear in any tracer span when trace_pii is false.
   #
-  # Since Tool::Base does not create independent spans, this is verified via a
+  # Since Phronomy::Agent::Context::Capability::Base does not create independent spans, this is verified via a
   # minimal Runnable that mimics the agent.invoke span shape carrying a
   # tool-result payload.  This guards against regressions if tool spans are
   # added in the future.

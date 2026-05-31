@@ -55,7 +55,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   # -------------------------------------------------------------------------
   describe "TC-002: base; single tool (return_empty, requires_approval, explicit_name, valid_enum); input guardrail" do
     let(:tool_class) do
-      Class.new(Phronomy::Tool::Base) do
+      Class.new(Phronomy::Agent::Context::Capability::Base) do
         tool_name "city_info"
         description "Returns a short fact about a supported city"
         param :city, type: :string, desc: "One of: Tokyo, London, Paris",

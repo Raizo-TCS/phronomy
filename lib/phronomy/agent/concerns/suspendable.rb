@@ -65,12 +65,12 @@ module Phronomy
           # Build a fresh chat with all tools registered.
           chat = build_chat
 
-          # Re-apply system instructions so the LLM has the same persona/context
-          # as the original invocation. build_cached_system_text is memoised, so
-          # a Proc- or PromptTemplate-based instructions block is re-evaluated
-          # against the original input rather than using a stale cached value.
-          system_text = build_cached_system_text(checkpoint.original_input)
-          apply_instructions(chat, system_text) if system_text
+          # Re-apply system instructions and register tools so the LLM has the
+          # same persona/context as the original invocation. build_context
+          # includes all tool classes (static + handoff) via add_capability.
+          context = build_context(checkpoint.original_input, messages: [])
+          apply_instructions(chat, context[:system]) if context[:system]
+          (context[:tool_classes] || []).each { |tc| chat.with_tool(prepare_tool_class(tc)) }
 
           # Restore the full conversation (history + user + assistant with tool call).
           checkpoint.messages.each { |msg| chat.messages << msg }

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Contract tests for Phronomy::Tool::Base implementations (Issue #231).
+# Contract tests for Phronomy::Agent::Context::Capability::Base implementations (Issue #231).
 #
 # Usage:
 #   it_behaves_like "a tool" do
@@ -11,8 +11,8 @@
 #   - `tool` — a fresh tool instance whose execute method returns a String
 RSpec.shared_examples "a tool" do
   describe "inheritance" do
-    it "is a subclass of Phronomy::Tool::Base" do
-      expect(tool).to be_a(Phronomy::Tool::Base)
+    it "is a subclass of Phronomy::Agent::Context::Capability::Base" do
+      expect(tool).to be_a(Phronomy::Agent::Context::Capability::Base)
     end
   end
 
@@ -60,7 +60,7 @@ RSpec.shared_examples "a tool" do
 
   describe "on_error: :suppress" do
     let(:suppressing_tool_class) do
-      Class.new(Phronomy::Tool::Base) do
+      Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "Suppressing tool"
         on_error :suppress
 
@@ -82,7 +82,7 @@ RSpec.shared_examples "a tool" do
 
   describe "on_error: :raise (default)" do
     let(:raising_tool_class) do
-      Class.new(Phronomy::Tool::Base) do
+      Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "Raising tool"
 
         def execute

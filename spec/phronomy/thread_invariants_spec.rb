@@ -158,7 +158,7 @@ RSpec.describe "Thread.new confinement (Issue #286)", :issue_286 do
     lib/phronomy/task/thread_backend.rb
     lib/phronomy/runtime/timer_queue.rb
     lib/phronomy/event_loop.rb
-    lib/phronomy/tool/mcp_tool.rb
+    lib/phronomy/agent/context/capability/mcp_tool.rb
   ].freeze
 
   it "Thread.new is not called outside the allowed files" do

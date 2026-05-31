@@ -117,20 +117,10 @@ module Phronomy
       def step(messages, initial_input, user_asked: false, thread_id: nil, config: {})
         chat = build_chat
 
-        if user_asked
-          # Subsequent loop iteration — messages already contains the full conversation
-          # (including the user's original input from the first step); apply system
-          # instructions and replay the accumulated history, then let the LLM continue.
-          system_text = build_cached_system_text(initial_input)
-          apply_instructions(chat, system_text) if system_text
-          messages.each { |m| chat.add_message(m) }
-        else
-          # First iteration — assemble context (system + history) via build_context so
-          # that trimming, compaction, and knowledge sources are applied consistently.
-          context = build_context(initial_input, messages: messages, thread_id: thread_id, config: config)
-          apply_instructions(chat, context[:system]) if context[:system]
-          context[:messages].each { |m| chat.messages << m }
-        end
+        context = build_context(initial_input, messages: messages, thread_id: thread_id, config: config)
+        apply_instructions(chat, context[:system]) if context[:system]
+        (context[:tool_classes] || []).each { |tc| chat.with_tool(prepare_tool_class(tc)) }
+        context[:messages].each { |m| chat.add_message(m) }
 
         # Run before_completion hooks before each LLM call in the ReAct loop.
         run_before_completion_hooks!(chat, config)
@@ -155,15 +145,10 @@ module Phronomy
       def stream_step(messages, initial_input, user_asked: false, thread_id: nil, config: {}, &block)
         chat = build_chat
 
-        if user_asked
-          system_text = build_cached_system_text(initial_input)
-          apply_instructions(chat, system_text) if system_text
-          messages.each { |m| chat.add_message(m) }
-        else
-          context = build_context(initial_input, messages: messages, thread_id: thread_id, config: config)
-          apply_instructions(chat, context[:system]) if context[:system]
-          context[:messages].each { |m| chat.messages << m }
-        end
+        context = build_context(initial_input, messages: messages, thread_id: thread_id, config: config)
+        apply_instructions(chat, context[:system]) if context[:system]
+        (context[:tool_classes] || []).each { |tc| chat.with_tool(prepare_tool_class(tc)) }
+        context[:messages].each { |m| chat.add_message(m) }
 
         current_tool_call = nil
         chat.on_tool_call do |tc|

@@ -2,9 +2,9 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Tool::McpTool do
-  it "is a subclass of Phronomy::Tool::Base" do
-    expect(described_class).to be < Phronomy::Tool::Base
+RSpec.describe Phronomy::Agent::Context::Capability::McpTool do
+  it "is a subclass of Phronomy::Agent::Context::Capability::Base" do
+    expect(described_class).to be < Phronomy::Agent::Context::Capability::Base
   end
 
   describe ".from_server" do
@@ -16,7 +16,7 @@ RSpec.describe Phronomy::Tool::McpTool do
 
     context "with a mocked stdio transport" do
       let(:transport_double) do
-        instance_double(Phronomy::Tool::McpTool::StdioTransport).tap do |t|
+        instance_double(Phronomy::Agent::Context::Capability::McpTool::StdioTransport).tap do |t|
           allow(t).to receive(:fetch_tool).with("search_web").and_return(
             description: "Search the web",
             parameters: [
@@ -30,7 +30,7 @@ RSpec.describe Phronomy::Tool::McpTool do
       end
 
       before do
-        allow(Phronomy::Tool::McpTool::StdioTransport).to receive(:new).and_return(transport_double)
+        allow(Phronomy::Agent::Context::Capability::McpTool::StdioTransport).to receive(:new).and_return(transport_double)
       end
 
       subject(:tool_instance) do
@@ -38,7 +38,7 @@ RSpec.describe Phronomy::Tool::McpTool do
       end
 
       it "returns a McpTool instance" do
-        expect(tool_instance).to be_a(Phronomy::Tool::McpTool)
+        expect(tool_instance).to be_a(Phronomy::Agent::Context::Capability::McpTool)
       end
 
       it "sets the description from the server response" do
@@ -67,14 +67,14 @@ RSpec.describe Phronomy::Tool::McpTool do
 
     context "when fetch_tool raises" do
       let(:failing_transport) do
-        instance_double(Phronomy::Tool::McpTool::StdioTransport).tap do |t|
+        instance_double(Phronomy::Agent::Context::Capability::McpTool::StdioTransport).tap do |t|
           allow(t).to receive(:fetch_tool).and_raise(ArgumentError, "tool not found")
           allow(t).to receive(:close)
         end
       end
 
       before do
-        allow(Phronomy::Tool::McpTool::StdioTransport).to receive(:new).and_return(failing_transport)
+        allow(Phronomy::Agent::Context::Capability::McpTool::StdioTransport).to receive(:new).and_return(failing_transport)
       end
 
       it "still closes the short-lived transport via ensure" do
@@ -86,7 +86,7 @@ RSpec.describe Phronomy::Tool::McpTool do
     end
   end
 
-  describe Phronomy::Tool::McpTool::StdioTransport do
+  describe Phronomy::Agent::Context::Capability::McpTool::StdioTransport do
     subject(:transport) { described_class.new("./echo-server") }
 
     # Helper: stub Open3.popen3 to return IO doubles that respond with one JSON line.
@@ -160,7 +160,7 @@ RSpec.describe Phronomy::Tool::McpTool do
     end
   end
 
-  describe Phronomy::Tool::McpTool::HttpTransport do
+  describe Phronomy::Agent::Context::Capability::McpTool::HttpTransport do
     subject(:transport) { described_class.new("http://localhost:8080/mcp") }
 
     def ok_response(body, content_type: "application/json")
@@ -280,19 +280,19 @@ RSpec.describe Phronomy::Tool::McpTool do
       end
 
       it "dispatches http:// URIs to HttpTransport" do
-        tool = Phronomy::Tool::McpTool.from_server("http://localhost:8080/mcp", tool_name: "search")
-        expect(tool).to be_a(Phronomy::Tool::McpTool)
+        tool = Phronomy::Agent::Context::Capability::McpTool.from_server("http://localhost:8080/mcp", tool_name: "search")
+        expect(tool).to be_a(Phronomy::Agent::Context::Capability::McpTool)
       end
 
       it "dispatches https:// URIs to HttpTransport" do
-        tool = Phronomy::Tool::McpTool.from_server("https://api.example.com/mcp", tool_name: "search")
-        expect(tool).to be_a(Phronomy::Tool::McpTool)
+        tool = Phronomy::Agent::Context::Capability::McpTool.from_server("https://api.example.com/mcp", tool_name: "search")
+        expect(tool).to be_a(Phronomy::Agent::Context::Capability::McpTool)
       end
     end
   end
 
   describe "StdioTransport process reuse (S01)" do
-    subject(:transport) { Phronomy::Tool::McpTool::StdioTransport.new("./echo-server") }
+    subject(:transport) { Phronomy::Agent::Context::Capability::McpTool::StdioTransport.new("./echo-server") }
 
     it "calls Open3.popen3 only once across multiple RPC calls" do
       json_line = JSON.generate(
@@ -313,7 +313,7 @@ RSpec.describe Phronomy::Tool::McpTool do
   end
 
   describe "StdioTransport unique request IDs (S11)" do
-    subject(:transport) { Phronomy::Tool::McpTool::StdioTransport.new("./echo-server") }
+    subject(:transport) { Phronomy::Agent::Context::Capability::McpTool::StdioTransport.new("./echo-server") }
 
     it "uses different UUIDs for each RPC call" do
       sent_payloads = []
@@ -345,7 +345,7 @@ RSpec.describe Phronomy::Tool::McpTool do
   # that StdioTransport already had. This caused server errors to be
   # silently ignored and nil returned instead of raising ToolError.
   describe "HttpTransport JSON-RPC error response (Issue #23 / ID-5)" do
-    subject(:transport) { Phronomy::Tool::McpTool::HttpTransport.new("http://localhost:8080/mcp") }
+    subject(:transport) { Phronomy::Agent::Context::Capability::McpTool::HttpTransport.new("http://localhost:8080/mcp") }
 
     def ok_response(body, content_type: "application/json")
       res = Net::HTTPSuccess.new("1.1", "200", "OK")
@@ -392,7 +392,7 @@ RSpec.describe Phronomy::Tool::McpTool do
 
   describe "HttpTransport timeout configuration (S09)" do
     it "applies custom open_timeout and read_timeout to the Net::HTTP connection" do
-      transport = Phronomy::Tool::McpTool::HttpTransport.new(
+      transport = Phronomy::Agent::Context::Capability::McpTool::HttpTransport.new(
         "http://localhost:8080/mcp",
         open_timeout: 3,
         read_timeout: 15
@@ -416,7 +416,7 @@ RSpec.describe Phronomy::Tool::McpTool do
 
   describe "HttpTransport custom headers (Issue #144)" do
     subject(:transport) do
-      Phronomy::Tool::McpTool::HttpTransport.new(
+      Phronomy::Agent::Context::Capability::McpTool::HttpTransport.new(
         "http://localhost:8080/mcp",
         headers: {"Authorization" => "Bearer secret", "X-Custom" => "value"}
       )
@@ -463,7 +463,7 @@ RSpec.describe Phronomy::Tool::McpTool do
         instance_double(Thread, join: nil)
       ])
 
-      transport = Phronomy::Tool::McpTool::StdioTransport.new(
+      transport = Phronomy::Agent::Context::Capability::McpTool::StdioTransport.new(
         "node server.js",
         env: {"MY_KEY" => "val"},
         cwd: "/tmp"
@@ -483,7 +483,7 @@ RSpec.describe Phronomy::Tool::McpTool do
         instance_double(Thread, join: nil)
       ])
 
-      transport = Phronomy::Tool::McpTool::StdioTransport.new("node server.js")
+      transport = Phronomy::Agent::Context::Capability::McpTool::StdioTransport.new("node server.js")
       begin
         transport.send(:ensure_started!)
       rescue

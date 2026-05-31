@@ -93,9 +93,9 @@ RSpec.describe "Prompt injection and tool result defenses (#271)" do
   # -------------------------------------------------------------------------
   # B. Tool result size limit
   # -------------------------------------------------------------------------
-  describe "Tool::Base result size limit" do
+  describe "Phronomy::Agent::Context::Capability::Base result size limit" do
     let(:huge_tool_class) do
-      Class.new(Phronomy::Tool::Base) do
+      Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "Returns huge output"
 
         def execute
@@ -130,9 +130,9 @@ RSpec.describe "Prompt injection and tool result defenses (#271)" do
   # -------------------------------------------------------------------------
   # C. Tool argument redaction
   # -------------------------------------------------------------------------
-  describe "Tool::Base redact_params" do
+  describe "Phronomy::Agent::Context::Capability::Base redact_params" do
     let(:secret_tool) do
-      Class.new(Phronomy::Tool::Base) do
+      Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "A tool with sensitive params"
         param :username, type: :string, desc: "Username"
         param :password, type: :string, desc: "Password"

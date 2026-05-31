@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
-require_relative "tool/base"
-require_relative "tool/mcp_tool"
-require_relative "tool/agent_tool"
-
+# This file is intentionally empty.
+# Tool definitions have moved to Phronomy::Agent::Context::Capability.
+# See lib/phronomy/agent/context/capability/.
 module Phronomy
   module Tool
   end

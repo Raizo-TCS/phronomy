@@ -5,7 +5,7 @@ require "spec_helper"
 # ---------------------------------------------------------------------------
 # Shared test fixtures
 # ---------------------------------------------------------------------------
-class SuspendTestTool < Phronomy::Tool::Base
+class SuspendTestTool < Phronomy::Agent::Context::Capability::Base
   tool_name "suspend_test"
   description "A tool requiring approval for suspend/resume tests"
   requires_approval true
@@ -24,7 +24,7 @@ end
 
 class NoApprovalToolAgent < Phronomy::Agent::Base
   model "test-model"
-  tools(Class.new(Phronomy::Tool::Base) do
+  tools(Class.new(Phronomy::Agent::Context::Capability::Base) do
     tool_name "plain_tool"
     description "Plain tool with no approval requirement"
     param :v, type: :string, desc: "v"
