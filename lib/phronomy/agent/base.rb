@@ -518,60 +518,9 @@ module Phronomy
           thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
         end
         if Phronomy.configuration.event_loop
-          # Protect against blocking the EventLoop thread itself.
-          if Phronomy::EventLoop.current?
-            raise Phronomy::Error,
-              "Cannot call Agent#invoke (EventLoop mode) from within an EventLoop " \
-              "entry action. Use agent.run_as_child(input, ctx: ctx) instead."
-          end
-
-          # Build an effective config that includes the invoke_timeout scope's
-          # CancellationToken before constructing the FSM.  This ensures that
-          # every LLM, tool, and RAG call made inside _invoke_impl observes
-          # cancellation when the deadline fires.
-          timeout_sec = self.class.invoke_timeout
-          effective_config, scope = if timeout_sec
-            s = Phronomy::Concurrency::CancellationScope.new(parent_token: config[:cancellation_token])
-            s.deadline_in(timeout_sec)
-            [config.merge(cancellation_token: s.token), s]
-          else
-            [config, nil]
-          end
-
-          fsm = Agent::FSM.new(
-            agent: self,
-            input: input,
-            messages: messages,
-            thread_id: thread_id || SecureRandom.uuid,
-            config: effective_config
-          )
-          completion_queue = Phronomy::EventLoop.instance.register(fsm)
-          result = if scope
-            scope.pop_queue(completion_queue) do
-              raise Phronomy::TimeoutError,
-                "Agent #{self.class.name} invoke timed out after #{timeout_sec}s"
-            end
-          else
-            completion_queue.pop
-          end
-          raise result if result.is_a?(Exception)
-          result
+          _invoke_via_event_loop(input, messages: messages, thread_id: thread_id, config: config)
         else
-          # Guard: calling invoke from inside a scheduler task would block the task
-          # against itself when using a cooperative backend.  Use invoke_async
-          # instead to compose agents without introducing a blocking wait.
-          if Phronomy::Task.current
-            msg = "#{self.class.name}#invoke called from inside a scheduler task. " \
-              "This blocks the scheduler until the inner invocation completes, preventing " \
-              "other tasks from making progress. Use invoke_async + await instead."
-            if Phronomy.configuration.strict_runtime_guards
-              raise Phronomy::SchedulerReentrancyError, msg
-            elsif Phronomy.configuration.logger
-              Phronomy.configuration.logger.warn(msg)
-            else
-              Kernel.warn("[phronomy] WARNING: #{msg}")
-            end
-          end
+          _check_scheduler_reentrancy
           invoke_async(input, messages: messages, thread_id: thread_id, config: config).await
         end
       end
@@ -713,30 +662,67 @@ module Phronomy
         [effective_thread_id, effective_config]
       end
 
-      # Streaming implementation for #stream.
-      def _stream_impl(input, messages: [], thread_id: nil, config: {}, &block)
-        caller_meta = {}
-        caller_meta[:user_id] = config[:user_id] if config[:user_id]
-        caller_meta[:session_id] = config[:session_id] if config[:session_id]
-        if (ic = config[:invocation_context])
-          caller_meta[:task_id] = ic.task_id if ic.task_id
-          caller_meta[:parent_task_id] = ic.parent_task_id if ic.parent_task_id
+      def _invoke_via_event_loop(input, messages:, thread_id:, config:)
+        if Phronomy::EventLoop.current?
+          raise Phronomy::Error,
+            "Cannot call Agent#invoke (EventLoop mode) from within an EventLoop " \
+            "entry action. Use agent.run_as_child(input, ctx: ctx) instead."
         end
 
-        trace("agent.invoke", input: input, **caller_meta) do |_span|
+        timeout_sec = self.class.invoke_timeout
+        effective_config, scope = if timeout_sec
+          s = Phronomy::Concurrency::CancellationScope.new(parent_token: config[:cancellation_token])
+          s.deadline_in(timeout_sec)
+          [config.merge(cancellation_token: s.token), s]
+        else
+          [config, nil]
+        end
+
+        fsm = Agent::FSM.new(
+          agent: self,
+          input: input,
+          messages: messages,
+          thread_id: thread_id || SecureRandom.uuid,
+          config: effective_config
+        )
+        completion_queue = Phronomy::EventLoop.instance.register(fsm)
+        result = if scope
+          scope.pop_queue(completion_queue) do
+            raise Phronomy::TimeoutError,
+              "Agent #{self.class.name} invoke timed out after #{timeout_sec}s"
+          end
+        else
+          completion_queue.pop
+        end
+        raise result if result.is_a?(Exception)
+        result
+      end
+
+      def _check_scheduler_reentrancy
+        return unless Phronomy::Task.current
+
+        msg = "#{self.class.name}#invoke called from inside a scheduler task. " \
+          "This blocks the scheduler until the inner invocation completes, preventing " \
+          "other tasks from making progress. Use invoke_async + await instead."
+        if Phronomy.configuration.strict_runtime_guards
+          raise Phronomy::SchedulerReentrancyError, msg
+        elsif Phronomy.configuration.logger
+          Phronomy.configuration.logger.warn(msg)
+        else
+          Kernel.warn("[phronomy] WARNING: #{msg}")
+        end
+      end
+
+      # Streaming implementation for #stream.
+      def _stream_impl(input, messages: [], thread_id: nil, config: {}, &block)
+        trace("agent.invoke", input: input, **_build_caller_meta(config)) do |_span|
           run_input_guardrails!(input)
 
           chat = build_chat
           user_message = extract_message(input)
-
-          # Assemble context (system prompt + history). Override #build_context to
-          # inject custom context editing logic at the Agent subclass level.
           context = build_context(input, messages: messages, thread_id: thread_id, config: config)
-          apply_instructions(chat, context[:system]) if context[:system]
-          (context[:tool_classes] || []).each { |tc| chat.with_tool(prepare_tool_class(tc)) }
-          context[:messages].each { |msg| chat.messages << msg }
+          _apply_context_to_chat(chat, context)
 
-          # Wire per-event callbacks to yield StreamEvents.
           current_tool_call = nil
           chat.on_tool_call do |tool_call|
             current_tool_call = tool_call
@@ -750,32 +736,9 @@ module Phronomy
             }))
           end
 
-          # Run before_completion hooks (global → class → instance) before the LLM call.
           run_before_completion_hooks!(chat, config)
 
-          # Route the LLM streaming call through the configured LLMAdapter.
-          # Chunks are pushed into a token queue by the pool worker thread and
-          # drained here (on the caller's side) so that the user block is never
-          # executed on a BlockingAdapterPool worker thread.
-          # The queue capacity is bounded by Configuration#stream_queue_max_size
-          # (nil = unbounded) to provide backpressure against a fast LLM producer.
-          adapter = Phronomy.configuration.llm_adapter
-          chunk_queue = Phronomy::Concurrency::AsyncQueue.new(max_size: Phronomy.configuration.stream_queue_max_size)
-          pending = adapter.stream_async(chat, user_message, config: config, enqueue_to: chunk_queue)
-
-          # Drain the chunk queue on this side (scheduler task / caller thread).
-          loop do
-            chunk = chunk_queue.pop
-            break if chunk.nil? # queue closed — LLM streaming complete
-            block.call(StreamEvent.new(type: :token, payload: {content: chunk.content}))
-            check_cancellation!(config, "invocation cancelled during streaming")
-          end
-
-          response = pending.await
-
-          output = response.content
-          usage = Phronomy::TokenUsage.from_tokens(response.tokens)
-
+          output, usage = _drain_stream(chat, user_message, config, &block)
           run_output_guardrails!(output)
 
           result = {output: output, messages: chat.messages, usage: usage}
@@ -913,15 +876,7 @@ module Phronomy
       # Performs a single (non-retried) invocation. Extracted so that #invoke can
       # wrap it in a retry loop without duplicating the LLM interaction logic.
       def invoke_once(input, messages: [], thread_id: nil, config: {})
-        caller_meta = {}
-        caller_meta[:user_id] = config[:user_id] if config[:user_id]
-        caller_meta[:session_id] = config[:session_id] if config[:session_id]
-        if (ic = config[:invocation_context])
-          caller_meta[:task_id] = ic.task_id if ic.task_id
-          caller_meta[:parent_task_id] = ic.parent_task_id if ic.parent_task_id
-        end
-
-        trace("agent.invoke", input: input, **caller_meta) do |_span|
+        trace("agent.invoke", input: input, **_build_caller_meta(config)) do |_span|
           Agent::InvocationPipeline.new(self).run(
             input,
             messages: messages,
@@ -929,6 +884,39 @@ module Phronomy
             config: config
           )
         end
+      end
+
+      def _build_caller_meta(config)
+        meta = {}
+        meta[:user_id] = config[:user_id] if config[:user_id]
+        meta[:session_id] = config[:session_id] if config[:session_id]
+        if (ic = config[:invocation_context])
+          meta[:task_id] = ic.task_id if ic.task_id
+          meta[:parent_task_id] = ic.parent_task_id if ic.parent_task_id
+        end
+        meta
+      end
+
+      def _apply_context_to_chat(chat, context)
+        apply_instructions(chat, context[:system]) if context[:system]
+        (context[:tool_classes] || []).each { |tc| chat.with_tool(prepare_tool_class(tc)) }
+        context[:messages].each { |msg| chat.messages << msg }
+      end
+
+      def _drain_stream(chat, user_message, config, &block)
+        adapter = Phronomy.configuration.llm_adapter
+        chunk_queue = Phronomy::Concurrency::AsyncQueue.new(max_size: Phronomy.configuration.stream_queue_max_size)
+        pending = adapter.stream_async(chat, user_message, config: config, enqueue_to: chunk_queue)
+
+        loop do
+          chunk = chunk_queue.pop
+          break if chunk.nil?
+          block.call(StreamEvent.new(type: :token, payload: {content: chunk.content}))
+          check_cancellation!(config, "invocation cancelled during streaming")
+        end
+
+        response = pending.await
+        [response.content, Phronomy::TokenUsage.from_tokens(response.tokens)]
       end
 
       # Builds a TokenBudget for this agent's model if possible.
