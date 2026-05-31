@@ -425,7 +425,8 @@ suspension).</p></div>
 93
 94
 95
-96</pre>
+96
+97</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/invocation_pipeline.rb', line 36</span>
@@ -442,6 +443,7 @@ suspension).</p></div>
 </span>    <span class='comment'># inject custom context editing logic at the Agent subclass level.
 </span>    <span class='id identifier rubyid_context'>context</span> <span class='op'>=</span> <span class='id identifier rubyid_build_context'>build_context</span><span class='lparen'>(</span><span class='id identifier rubyid_inp'>inp</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_msgs'>msgs</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_tid'>tid</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_cfg'>cfg</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_apply_instructions'>apply_instructions</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_context'>context</span><span class='lbracket'>[</span><span class='symbol'>:system</span><span class='rbracket'>]</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_context'>context</span><span class='lbracket'>[</span><span class='symbol'>:system</span><span class='rbracket'>]</span>
+    <span class='lparen'>(</span><span class='id identifier rubyid_context'>context</span><span class='lbracket'>[</span><span class='symbol'>:tool_classes</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_tc'>tc</span><span class='op'>|</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_with_tool'>with_tool</span><span class='lparen'>(</span><span class='id identifier rubyid_prepare_tool_class'>prepare_tool_class</span><span class='lparen'>(</span><span class='id identifier rubyid_tc'>tc</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
     <span class='id identifier rubyid_context'>context</span><span class='lbracket'>[</span><span class='symbol'>:messages</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_msg'>msg</span><span class='op'>|</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_messages'>messages</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_msg'>msg</span> <span class='rbrace'>}</span>
 
     <span class='comment'># Run before_completion hooks (global → class → instance) before the LLM call.
@@ -501,7 +503,7 @@ suspension).</p></div>
 </div>
 
       <div id="footer">
-  Generated on Sat May 30 15:45:57 2026 by
+  Generated on Sun May 31 01:26:08 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

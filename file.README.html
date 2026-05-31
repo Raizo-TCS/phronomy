@@ -121,7 +121,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong><code>Tool::Base.redact_params</code> / <code>.max_result_size</code></strong> — Class-level DSL: <code>redact_params</code> masks parameter values in log/trace output; <code>max_result_size</code> truncates oversized tool results before they reach the LLM</td>
+<td><strong><code>Agent::Context::Capability::Base.redact_params</code> / <code>.max_result_size</code></strong> — Class-level DSL: <code>redact_params</code> masks parameter values in log/trace output; <code>max_result_size</code> truncates oversized tool results before they reach the LLM</td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -193,7 +193,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Experimental</td>
 </tr>
 <tr>
-<td><strong><code>invoke_async</code> / <code>call_async</code></strong> — <code>Agent::Base#invoke_async</code> and <code>Workflow#invoke_async</code> return a <code>Task</code>; <code>Tool::Base#call_async</code> similarly; compatible with EventLoop and standalone contexts</td>
+<td><strong><code>invoke_async</code> / <code>call_async</code></strong> — <code>Agent::Base#invoke_async</code> and <code>Workflow#invoke_async</code> return a <code>Task</code>; <code>Agent::Context::Capability::Base#call_async</code> similarly; compatible with EventLoop and standalone contexts</td>
 <td>Experimental</td>
 </tr>
 <tr>
@@ -205,7 +205,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong><code>execution_mode</code> DSL on <code>Tool::Base</code></strong> — Declares how a tool's <code>execute</code> should be dispatched: <code>:cooperative</code> (same scheduler thread), <code>:blocking_io</code> (default; offloaded to <code>BlockingAdapterPool</code>), <code>:cpu_bound</code>, <code>:external_process</code></td>
+<td><strong><code>execution_mode</code> DSL on <code>Agent::Context::Capability::Base</code></strong> — Declares how a tool's <code>execute</code> should be dispatched: <code>:cooperative</code> (same scheduler thread), <code>:blocking_io</code> (default; offloaded to <code>BlockingAdapterPool</code>), <code>:cpu_bound</code>, <code>:external_process</code></td>
 <td>Experimental</td>
 </tr>
 <tr>
@@ -350,7 +350,7 @@ Configure your provider credentials before using agents or chains:</p>
 </table>
 <h2 id="Quick_Start">Quick Start</h2>
 <h3 id="Agent___ReAct_tool_calling_agent">Agent — ReAct tool-calling agent</h3>
-<pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>WebSearch</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tool.html" title="Phronomy::Tool (module)">Tool</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tool/Base.html" title="Phronomy::Tool::Base (class)">Base</a></span></span>
+<pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>WebSearch</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Capability.html" title="Phronomy::Agent::Context::Capability (module)">Capability</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Capability/Base.html" title="Phronomy::Agent::Context::Capability::Base (class)">Base</a></span></span>
   <span class='id identifier rubyid_description'>description</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Search the web</span><span class='tstring_end'>&quot;</span></span>
   <span class='id identifier rubyid_param'>param</span> <span class='symbol'>:query</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='symbol'>:string</span><span class='comma'>,</span> <span class='label'>desc:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Search query</span><span class='tstring_end'>&quot;</span></span>
 
@@ -418,8 +418,8 @@ dispatched. Always declare both transitions to avoid a stuck workflow:</p>
 <span class='id identifier rubyid_transition'>transition</span> <span class='label'>from:</span> <span class='symbol'>:run_agent</span><span class='comma'>,</span> <span class='label'>on:</span> <span class='symbol'>:child_failed</span><span class='comma'>,</span>    <span class='label'>to:</span> <span class='symbol'>:handle_error</span>
 </code></pre>
 <h3 id="Multi_Agent___Agent_as_Tool_pattern">Multi-Agent — Agent-as-Tool pattern</h3>
-<p>Wrap sub-agents as <code>Tool::Base</code> subclasses so the orchestrator LLM can call them on demand.</p>
-<pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>ResearchTool</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tool.html" title="Phronomy::Tool (module)">Tool</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tool/Base.html" title="Phronomy::Tool::Base (class)">Base</a></span></span>
+<p>Wrap sub-agents as <code>Agent::Context::Capability::Base</code> subclasses so the orchestrator LLM can call them on demand.</p>
+<pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>ResearchTool</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Capability.html" title="Phronomy::Agent::Context::Capability (module)">Capability</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Capability/Base.html" title="Phronomy::Agent::Context::Capability::Base (class)">Base</a></span></span>
   <span class='id identifier rubyid_description'>description</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Research a topic and return key findings as bullet points.</span><span class='tstring_end'>&quot;</span></span>
   <span class='id identifier rubyid_param'>param</span> <span class='symbol'>:topic</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='symbol'>:string</span><span class='comma'>,</span> <span class='label'>desc:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>The topic to research</span><span class='tstring_end'>&quot;</span></span>
 
@@ -433,7 +433,7 @@ dispatched. Always declare both transitions to avoid a stuck workflow:</p>
   <span class='id identifier rubyid_instructions'>instructions</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>You are a professional technical writer.</span><span class='tstring_end'>&quot;</span></span>
 <span class='kw'>end</span>
 
-<span class='kw'>class</span> <span class='const'>WriteTool</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tool.html" title="Phronomy::Tool (module)">Tool</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tool/Base.html" title="Phronomy::Tool::Base (class)">Base</a></span></span>
+<span class='kw'>class</span> <span class='const'>WriteTool</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Capability.html" title="Phronomy::Agent::Context::Capability (module)">Capability</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Capability/Base.html" title="Phronomy::Agent::Context::Capability::Base (class)">Base</a></span></span>
   <span class='id identifier rubyid_description'>description</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Write a technical blog post given research notes and a writing brief.</span><span class='tstring_end'>&quot;</span></span>
   <span class='id identifier rubyid_param'>param</span> <span class='symbol'>:instructions</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='symbol'>:string</span><span class='comma'>,</span> <span class='label'>desc:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Writing brief including research notes</span><span class='tstring_end'>&quot;</span></span>
 
@@ -690,7 +690,7 @@ a <code>state</code> action:</p>
 </span><span class='kw'>end</span>
 </code></pre>
 <h3 id="MCP_Tool___External_tool_servers">MCP Tool — External tool servers</h3>
-<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_search_tool'>search_tool</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tool.html" title="Phronomy::Tool (module)">Tool</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tool/McpTool.html" title="Phronomy::Tool::McpTool (class)">McpTool</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_server'><span class='object_link'><a href="Phronomy/Tool/McpTool.html#from_server-class_method" title="Phronomy::Tool::McpTool.from_server (method)">from_server</a></span></span><span class='lparen'>(</span>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_search_tool'>search_tool</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Capability.html" title="Phronomy::Agent::Context::Capability (module)">Capability</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Capability/McpTool.html" title="Phronomy::Agent::Context::Capability::McpTool (class)">McpTool</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_server'><span class='object_link'><a href="Phronomy/Agent/Context/Capability/McpTool.html#from_server-class_method" title="Phronomy::Agent::Context::Capability::McpTool.from_server (method)">from_server</a></span></span><span class='lparen'>(</span>
   <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stdio://./mcp-server</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
   <span class='label'>tool_name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>web_search</span><span class='tstring_end'>&quot;</span></span>
 <span class='rparen'>)</span>
@@ -1064,7 +1064,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat May 30 15:45:54 2026 by
+  Generated on Sun May 31 01:26:04 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

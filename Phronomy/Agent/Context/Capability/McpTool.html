@@ -4,25 +4,25 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-  Class: Phronomy::Tool::McpTool
+  Class: Phronomy::Agent::Context::Capability::McpTool
   
     &mdash; Documentation by YARD 0.9.44
   
 </title>
 
-  <link rel="stylesheet" href="../../css/style.css" type="text/css">
+  <link rel="stylesheet" href="../../../../css/style.css" type="text/css">
 
-  <link rel="stylesheet" href="../../css/common.css" type="text/css">
+  <link rel="stylesheet" href="../../../../css/common.css" type="text/css">
 
 <script type="text/javascript">
-  pathId = "Phronomy::Tool::McpTool";
-  relpath = '../../';
+  pathId = "Phronomy::Agent::Context::Capability::McpTool";
+  relpath = '../../../../';
 </script>
 
 
-  <script type="text/javascript" charset="utf-8" src="../../js/jquery.js"></script>
+  <script type="text/javascript" charset="utf-8" src="../../../../js/jquery.js"></script>
 
-  <script type="text/javascript" charset="utf-8" src="../../js/app.js"></script>
+  <script type="text/javascript" charset="utf-8" src="../../../../js/app.js"></script>
 
 
   </head>
@@ -30,7 +30,7 @@
     <div id="main_progress" aria-hidden="true"></div>
 
     <div class="nav_wrap">
-      <iframe id="nav" src="../../class_list.html?1"></iframe>
+      <iframe id="nav" src="../../../../class_list.html?1"></iframe>
       <div id="resizer"></div>
     </div>
 
@@ -38,8 +38,8 @@
       <div id="header">
         <div id="menu">
   
-    <a href="../../_index.html">Index (M)</a> &raquo;
-    <span class='title'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Tool.html" title="Phronomy::Tool (module)">Tool</a></span></span>
+    <a href="../../../../_index.html">Index (M)</a> &raquo;
+    <span class='title'><span class='object_link'><a href="../../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Capability.html" title="Phronomy::Agent::Context::Capability (module)">Capability</a></span></span>
      &raquo; 
     <span class="title">McpTool</span>
   
@@ -48,7 +48,7 @@
         <div id="search">
   
     <a class="full_list_link" id="class_list_link"
-        href="../../class_list.html">
+        href="../../../../class_list.html">
 
         <svg width="24" height="24">
           <rect x="0" y="4" width="24" height="4" rx="1" ry="1"></rect>
@@ -61,7 +61,7 @@
         <div class="clear"></div>
       </div>
 
-      <div id="content"><h1>Class: Phronomy::Tool::McpTool
+      <div id="content"><h1>Class: Phronomy::Agent::Context::Capability::McpTool
   
   
   
@@ -71,16 +71,16 @@
   <dl>
     <dt>Inherits:</dt>
     <dd>
-      <span class="inheritName"><span class='object_link'><a href="Base.html" title="Phronomy::Tool::Base (class)">Base</a></span></span>
+      <span class="inheritName"><span class='object_link'><a href="Base.html" title="Phronomy::Agent::Context::Capability::Base (class)">Base</a></span></span>
       
         <ul class="fullTree">
           <li>Object</li>
           
             <li class="next">RubyLLM::Tool</li>
           
-            <li class="next"><span class='object_link'><a href="Base.html" title="Phronomy::Tool::Base (class)">Base</a></span></li>
+            <li class="next"><span class='object_link'><a href="Base.html" title="Phronomy::Agent::Context::Capability::Base (class)">Base</a></span></li>
           
-            <li class="next">Phronomy::Tool::McpTool</li>
+            <li class="next">Phronomy::Agent::Context::Capability::McpTool</li>
           
         </ul>
         <a href="#" class="inheritanceTree">show all</a>
@@ -100,7 +100,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/tool/mcp_tool.rb
+    <dd>lib/phronomy/agent/context/capability/mcp_tool.rb
 </dd>
   </dl>
   
@@ -108,7 +108,7 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>A Phronomy::Tool::Base subclass that wraps a tool exposed by an external
+    <p>A Phronomy::Agent::Context::Capability::Base subclass that wraps a tool exposed by an external
 MCP (Model Context Protocol) server.</p>
 <p>Supports two transport schemes:</p>
 <ul>
@@ -126,7 +126,7 @@ HTTP/SSE MCP server using <code>net/http</code>.</li>
     <h4 class="tag_title">Examples:</h4>
     
       
-      <pre class="example code"><code><span class='id identifier rubyid_web_search'>web_search</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Tool.html" title="Phronomy::Tool (module)">Tool</a></span></span><span class='op'>::</span><span class='const'>McpTool</span><span class='period'>.</span><span class='id identifier rubyid_from_server'><span class='object_link'><a href="#from_server-class_method" title="Phronomy::Tool::McpTool.from_server (method)">from_server</a></span></span><span class='lparen'>(</span>
+      <pre class="example code"><code><span class='id identifier rubyid_web_search'>web_search</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Capability.html" title="Phronomy::Agent::Context::Capability (module)">Capability</a></span></span><span class='op'>::</span><span class='const'>McpTool</span><span class='period'>.</span><span class='id identifier rubyid_from_server'><span class='object_link'><a href="#from_server-class_method" title="Phronomy::Agent::Context::Capability::McpTool.from_server (method)">from_server</a></span></span><span class='lparen'>(</span>
   <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stdio://./mcp-server</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
   <span class='label'>tool_name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>search_web</span><span class='tstring_end'>&quot;</span></span>
 <span class='rparen'>)</span>
@@ -142,7 +142,7 @@ HTTP/SSE MCP server using <code>net/http</code>.</li>
     
   
     
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="McpTool/HttpTransport.html" title="Phronomy::Tool::McpTool::HttpTransport (class)">HttpTransport</a></span>, <span class='object_link'><a href="McpTool/StdioTransport.html" title="Phronomy::Tool::McpTool::StdioTransport (class)">StdioTransport</a></span>
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="McpTool/HttpTransport.html" title="Phronomy::Agent::Context::Capability::McpTool::HttpTransport (class)">HttpTransport</a></span>, <span class='object_link'><a href="McpTool/StdioTransport.html" title="Phronomy::Agent::Context::Capability::McpTool::StdioTransport (class)">StdioTransport</a></span>
     
   
 </p>
@@ -197,8 +197,8 @@ HTTP/SSE MCP server using <code>net/http</code>.</li>
   
   
   
-  <h3 class="inherited">Methods inherited from <span class='object_link'><a href="Base.html" title="Phronomy::Tool::Base (class)">Base</a></span></h3>
-  <p class="inherited"><span class='object_link'><a href="Base.html#call-instance_method" title="Phronomy::Tool::Base#call (method)">#call</a></span>, <span class='object_link'><a href="Base.html#call_async-instance_method" title="Phronomy::Tool::Base#call_async (method)">#call_async</a></span>, <span class='object_link'><a href="Base.html#execute-instance_method" title="Phronomy::Tool::Base#execute (method)">#execute</a></span>, <span class='object_link'><a href="Base.html#execution_mode-class_method" title="Phronomy::Tool::Base.execution_mode (method)">execution_mode</a></span>, <span class='object_link'><a href="Base.html#max_result_size-class_method" title="Phronomy::Tool::Base.max_result_size (method)">max_result_size</a></span>, <span class='object_link'><a href="Base.html#name-instance_method" title="Phronomy::Tool::Base#name (method)">#name</a></span>, <span class='object_link'><a href="Base.html#on_error-class_method" title="Phronomy::Tool::Base.on_error (method)">on_error</a></span>, <span class='object_link'><a href="Base.html#on_schema_error-class_method" title="Phronomy::Tool::Base.on_schema_error (method)">on_schema_error</a></span>, <span class='object_link'><a href="Base.html#param-class_method" title="Phronomy::Tool::Base.param (method)">param</a></span>, <span class='object_link'><a href="Base.html#param_enums-class_method" title="Phronomy::Tool::Base.param_enums (method)">param_enums</a></span>, <span class='object_link'><a href="Base.html#param_schemas-class_method" title="Phronomy::Tool::Base.param_schemas (method)">param_schemas</a></span>, <span class='object_link'><a href="Base.html#params_schema-instance_method" title="Phronomy::Tool::Base#params_schema (method)">#params_schema</a></span>, <span class='object_link'><a href="Base.html#redact_params-class_method" title="Phronomy::Tool::Base.redact_params (method)">redact_params</a></span>, <span class='object_link'><a href="Base.html#requires_approval-class_method" title="Phronomy::Tool::Base.requires_approval (method)">requires_approval</a></span>, <span class='object_link'><a href="Base.html#requires_approval-instance_method" title="Phronomy::Tool::Base#requires_approval (method)">#requires_approval</a></span>, <span class='object_link'><a href="Base.html#requires_approval%3F-instance_method" title="Phronomy::Tool::Base#requires_approval? (method)">#requires_approval?</a></span>, <span class='object_link'><a href="Base.html#retry_on-class_method" title="Phronomy::Tool::Base.retry_on (method)">retry_on</a></span>, <span class='object_link'><a href="Base.html#retry_policies-class_method" title="Phronomy::Tool::Base.retry_policies (method)">retry_policies</a></span>, <span class='object_link'><a href="Base.html#scope-class_method" title="Phronomy::Tool::Base.scope (method)">scope</a></span>, <span class='object_link'><a href="Base.html#tool_name-class_method" title="Phronomy::Tool::Base.tool_name (method)">tool_name</a></span></p>
+  <h3 class="inherited">Methods inherited from <span class='object_link'><a href="Base.html" title="Phronomy::Agent::Context::Capability::Base (class)">Base</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="Base.html#call-instance_method" title="Phronomy::Agent::Context::Capability::Base#call (method)">#call</a></span>, <span class='object_link'><a href="Base.html#call_async-instance_method" title="Phronomy::Agent::Context::Capability::Base#call_async (method)">#call_async</a></span>, <span class='object_link'><a href="Base.html#execute-instance_method" title="Phronomy::Agent::Context::Capability::Base#execute (method)">#execute</a></span>, <span class='object_link'><a href="Base.html#execution_mode-class_method" title="Phronomy::Agent::Context::Capability::Base.execution_mode (method)">execution_mode</a></span>, <span class='object_link'><a href="Base.html#max_result_size-class_method" title="Phronomy::Agent::Context::Capability::Base.max_result_size (method)">max_result_size</a></span>, <span class='object_link'><a href="Base.html#name-instance_method" title="Phronomy::Agent::Context::Capability::Base#name (method)">#name</a></span>, <span class='object_link'><a href="Base.html#on_error-class_method" title="Phronomy::Agent::Context::Capability::Base.on_error (method)">on_error</a></span>, <span class='object_link'><a href="Base.html#on_schema_error-class_method" title="Phronomy::Agent::Context::Capability::Base.on_schema_error (method)">on_schema_error</a></span>, <span class='object_link'><a href="Base.html#param-class_method" title="Phronomy::Agent::Context::Capability::Base.param (method)">param</a></span>, <span class='object_link'><a href="Base.html#param_enums-class_method" title="Phronomy::Agent::Context::Capability::Base.param_enums (method)">param_enums</a></span>, <span class='object_link'><a href="Base.html#param_schemas-class_method" title="Phronomy::Agent::Context::Capability::Base.param_schemas (method)">param_schemas</a></span>, <span class='object_link'><a href="Base.html#params_schema-instance_method" title="Phronomy::Agent::Context::Capability::Base#params_schema (method)">#params_schema</a></span>, <span class='object_link'><a href="Base.html#redact_params-class_method" title="Phronomy::Agent::Context::Capability::Base.redact_params (method)">redact_params</a></span>, <span class='object_link'><a href="Base.html#requires_approval-class_method" title="Phronomy::Agent::Context::Capability::Base.requires_approval (method)">requires_approval</a></span>, <span class='object_link'><a href="Base.html#requires_approval-instance_method" title="Phronomy::Agent::Context::Capability::Base#requires_approval (method)">#requires_approval</a></span>, <span class='object_link'><a href="Base.html#requires_approval%3F-instance_method" title="Phronomy::Agent::Context::Capability::Base#requires_approval? (method)">#requires_approval?</a></span>, <span class='object_link'><a href="Base.html#retry_on-class_method" title="Phronomy::Agent::Context::Capability::Base.retry_on (method)">retry_on</a></span>, <span class='object_link'><a href="Base.html#retry_policies-class_method" title="Phronomy::Agent::Context::Capability::Base.retry_policies (method)">retry_policies</a></span>, <span class='object_link'><a href="Base.html#scope-class_method" title="Phronomy::Agent::Context::Capability::Base.scope (method)">scope</a></span>, <span class='object_link'><a href="Base.html#tool_name-class_method" title="Phronomy::Agent::Context::Capability::Base.tool_name (method)">tool_name</a></span></p>
 
   
 
@@ -209,7 +209,7 @@ HTTP/SSE MCP server using <code>net/http</code>.</li>
       <div class="method_details first">
   <h3 class="signature first" id="from_server-class_method">
   
-    .<strong>from_server</strong>(server_uri, tool_name:)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Tool::McpTool (class)">McpTool</a></span></tt> 
+    .<strong>from_server</strong>(server_uri, tool_name:)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Agent::Context::Capability::McpTool (class)">McpTool</a></span></tt> 
   
 
   
@@ -267,7 +267,7 @@ Supported schemes:</p>
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="" title="Phronomy::Tool::McpTool (class)">McpTool</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="" title="Phronomy::Agent::Context::Capability::McpTool (class)">McpTool</a></span></tt>)</span>
       
       
       
@@ -284,8 +284,6 @@ Supported schemes:</p>
       <pre class="lines">
 
 
-40
-41
 42
 43
 44
@@ -295,10 +293,12 @@ Supported schemes:</p>
 48
 49
 50
-51</pre>
+51
+52
+53</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tool/mcp_tool.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/mcp_tool.rb', line 42</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_from_server'>from_server</span><span class='lparen'>(</span><span class='id identifier rubyid_server_uri'>server_uri</span><span class='comma'>,</span> <span class='label'>tool_name:</span><span class='rparen'>)</span>
   <span class='comment'># Use a short-lived transport only to query the tool definition,
@@ -322,7 +322,7 @@ Supported schemes:</p>
 </div>
 
       <div id="footer">
-  Generated on Sat May 30 15:45:56 2026 by
+  Generated on Sun May 31 01:26:08 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
