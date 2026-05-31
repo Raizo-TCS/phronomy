@@ -39,14 +39,14 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   # -------------------------------------------------------------------------
   describe "Embeddings#embed fault injection" do
     let(:exploding_embeddings) do
-      Class.new(Phronomy::Agent::Context::Knowledge::Embeddings::Base) do
+      Class.new(Phronomy::RAG::Embeddings::Base) do
         def embed(_text, _cancellation_token = nil)
           raise "embedding API unavailable"
         end
       end.new
     end
 
-    let(:store) { Phronomy::Agent::Context::Knowledge::VectorStore::InMemory.new(dimension: 3) }
+    let(:store) { Phronomy::RAG::VectorStore::InMemory.new(dimension: 3) }
     let(:rag_source) do
       Phronomy::Agent::Context::Knowledge::Source::RAGKnowledge.new(
         store: store,
@@ -73,7 +73,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   # -------------------------------------------------------------------------
   describe "VectorStore#search fault injection during build_context" do
     let(:exploding_store) do
-      Class.new(Phronomy::Agent::Context::Knowledge::VectorStore::Base) do
+      Class.new(Phronomy::RAG::VectorStore::Base) do
         def add(**) = self
         def remove(**) = self
         def clear = self
@@ -86,7 +86,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     end
 
     let(:stub_embeddings) do
-      Class.new(Phronomy::Agent::Context::Knowledge::Embeddings::Base) do
+      Class.new(Phronomy::RAG::Embeddings::Base) do
         def embed(_text, _cancellation_token = nil) = [1.0, 0.0, 0.0]
       end.new
     end
@@ -137,7 +137,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   # -------------------------------------------------------------------------
   describe "VectorStore#add fault injection" do
     let(:exploding_store) do
-      Class.new(Phronomy::Agent::Context::Knowledge::VectorStore::Base) do
+      Class.new(Phronomy::RAG::VectorStore::Base) do
         def add(**)
           raise ArgumentError, "dimension mismatch on ingestion"
         end

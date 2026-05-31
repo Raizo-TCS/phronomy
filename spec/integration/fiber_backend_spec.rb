@@ -327,7 +327,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
     end
 
     it "search_async awaited inside a spawned fiber returns the correct top result" do
-      store = Phronomy::Agent::Context::Knowledge::VectorStore::InMemory.new
+      store = Phronomy::RAG::VectorStore::InMemory.new
       store.add(id: "doc1", embedding: [1.0, 0.0, 0.0], metadata: {content: "hello"})
       store.add(id: "doc2", embedding: [0.0, 1.0, 0.0], metadata: {content: "world"})
 

@@ -45,7 +45,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 |---|---|
 | **Knowledge/RAG** — Retrieval sources with pluggable loaders, splitters, and vector stores; `static_knowledge_refresh!` for runtime cache invalidation | Beta |
 | **`VectorStore#size`** — Returns document count for all three backends (InMemory, RedisSearch, Pgvector) | Beta |
-| **`Agent::Context::Knowledge::VectorStore::AsyncBackend` mixin** — Pluggable async interface for `VectorStore`; default pool-backed implementations for `search_async`, `add_async`, `remove_async`, `clear_async`; backends with native async drivers override individual methods to bypass `BlockingAdapterPool` entirely; all existing backends remain unchanged | Beta |
+| **`RAG::VectorStore::AsyncBackend` mixin** — Pluggable async interface for `VectorStore`; default pool-backed implementations for `search_async`, `add_async`, `remove_async`, `clear_async`; backends with native async drivers override individual methods to bypass `BlockingAdapterPool` entirely; all existing backends remain unchanged | Beta |
 | **Parallel RAG multi-source fetch** — `Agent#build_context` fetches all `knowledge_sources` concurrently via `TaskGroup`; `config[:rag_failure_policy]` `:skip` (default) silently ignores failed sources so the agent answers with partial context, `:fail` surfaces the first error; per-source latency is emitted to `Phronomy.configuration.logger` at debug level | Beta |
 | **MCP Tool** — Model Context Protocol server integration | Beta |
 
@@ -131,8 +131,8 @@ Install additional gems only for the features you use:
 
 | Gem | Required for |
 |-----|-------------|
-| `pgvector` | `Phronomy::Agent::Context::Knowledge::VectorStore::Pgvector` |
-| `redis` | `Phronomy::Agent::Context::Knowledge::VectorStore::RedisSearch` |
+| `pgvector` | `Phronomy::RAG::VectorStore::Pgvector` |
+| `redis` | `Phronomy::RAG::VectorStore::RedisSearch` |
 | `opentelemetry-api` | `Phronomy::Tracing::OpenTelemetryTracer` |
 
 ## Quick Start
@@ -291,8 +291,8 @@ policy = Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge.new(
 )
 
 # RAG retrieval from a vector store
-store      = Phronomy::Agent::Context::Knowledge::VectorStore::InMemory.new
-embeddings = Phronomy::Agent::Context::Knowledge::Embeddings::RubyLLMEmbeddings.new(model: "text-embedding-3-small")
+store      = Phronomy::RAG::VectorStore::InMemory.new
+embeddings = Phronomy::RAG::Embeddings::RubyLLMEmbeddings.new(model: "text-embedding-3-small")
 
 # Add documents before querying
 text1 = "Refunds are processed within 5 business days."
@@ -319,8 +319,8 @@ MyAgent.static_knowledge_refresh!
 Load and split documents with built-in loaders:
 
 ```ruby
-chunks = Phronomy::Agent::Context::Knowledge::Loader::MarkdownLoader.new.load("docs/guide.md")
-         .then { |docs| Phronomy::Agent::Context::Knowledge::Splitter::RecursiveSplitter.new(chunk_size: 512).split(docs) }
+chunks = Phronomy::RAG::Loader::MarkdownLoader.new.load("docs/guide.md")
+         .then { |docs| Phronomy::RAG::Splitter::RecursiveSplitter.new(chunk_size: 512).split(docs) }
 ```
 
 ### Multi-Agent Handoff — Hub-and-spoke routing

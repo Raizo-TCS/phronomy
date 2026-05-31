@@ -9,6 +9,8 @@ loader = Zeitwerk::Loader.for_gem
 # ruby_llm_embeddings.rb resolve to RubyLLMEmbeddings (not RubyLlmEmbeddings).
 loader.inflector.inflect("ruby_llm_embeddings" => "RubyLLMEmbeddings")
 loader.inflector.inflect("rag_knowledge" => "RAGKnowledge")
+# RAG: Zeitwerk would infer "Rag" — override to "RAG".
+loader.inflector.inflect("rag" => "RAG")
 # FSMSession: Zeitwerk would infer "FsmSession" — override to "FSMSession".
 loader.inflector.inflect("fsm_session" => "FSMSession")
 # AgentFSM: Zeitwerk would infer "Fsm" — override to "FSM".

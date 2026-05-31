@@ -49,7 +49,7 @@ RSpec.describe "RAG async boundary (Issue #267)" do
 
   describe "Embeddings::Base#embed_async" do
     it "delegates to embed via BlockingAdapterPool" do
-      emb = Class.new(Phronomy::Agent::Context::Knowledge::Embeddings::Base) do
+      emb = Class.new(Phronomy::RAG::Embeddings::Base) do
         def embed(text, _cancellation_token = nil)
           [0.1, 0.2, 0.3]
         end
@@ -63,7 +63,7 @@ RSpec.describe "RAG async boundary (Issue #267)" do
 
   describe "VectorStore::Base#search_async" do
     it "delegates to search via BlockingAdapterPool" do
-      vs = Class.new(Phronomy::Agent::Context::Knowledge::VectorStore::Base) do
+      vs = Class.new(Phronomy::RAG::VectorStore::Base) do
         def search(query_embedding:, k: 5, cancellation_token: nil)
           [{content: "found", score: 0.9}]
         end

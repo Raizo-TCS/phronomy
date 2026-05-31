@@ -315,7 +315,7 @@ module IntegrationFactors
   # Returns a 3-D vector derived from the text's character-sum so that
   # different texts produce different (but stable) vectors.
   # ---------------------------------------------------------------------------
-  class StubEmbeddings < Phronomy::Agent::Context::Knowledge::Embeddings::Base
+  class StubEmbeddings < Phronomy::RAG::Embeddings::Base
     def embed(text, _cancellation_token = nil)
       h = text.chars.sum(&:ord).to_f
       norm = Math.sqrt(3) * (h + 1)
@@ -327,16 +327,16 @@ module IntegrationFactors
   # Factor: embeddings_adapter_type
   #
   # @param label [String] "ruby_llm_default" | "ruby_llm_explicit_model" | "stub"
-  # @return [Phronomy::Agent::Context::Knowledge::Embeddings::Base]
+  # @return [Phronomy::RAG::Embeddings::Base]
   # ---------------------------------------------------------------------------
   LM_STUDIO_EMBEDDING_MODEL = "text-embedding-nomic-embed-text-v1.5"
 
   def self.embeddings_adapter(label)
     case label
     when "ruby_llm_default"
-      Phronomy::Agent::Context::Knowledge::Embeddings::RubyLLMEmbeddings.new
+      Phronomy::RAG::Embeddings::RubyLLMEmbeddings.new
     when "ruby_llm_explicit_model"
-      Phronomy::Agent::Context::Knowledge::Embeddings::RubyLLMEmbeddings.new(
+      Phronomy::RAG::Embeddings::RubyLLMEmbeddings.new(
         model: LM_STUDIO_EMBEDDING_MODEL,
         provider: :openai,
         assume_model_exists: true
@@ -352,12 +352,12 @@ module IntegrationFactors
   # Factor: vector_store_backend
   #
   # @param label [String] "in_memory" | "pgvector" | "redis_search"
-  # @return [Phronomy::Agent::Context::Knowledge::VectorStore::Base]
+  # @return [Phronomy::RAG::VectorStore::Base]
   # ---------------------------------------------------------------------------
   def self.vector_store(label)
     case label
     when "in_memory"
-      Phronomy::Agent::Context::Knowledge::VectorStore::InMemory.new
+      Phronomy::RAG::VectorStore::InMemory.new
     when "pgvector"
       raise "Pgvector backend requires a running PostgreSQL + pgvector server"
     when "redis_search"
@@ -372,14 +372,14 @@ module IntegrationFactors
   #
   # @param label [String] "plain_text" | "markdown_with_headings" |
   #                       "markdown_no_split" | "csv_with_headers"
-  # @return [Phronomy::Agent::Context::Knowledge::Loader::Base]
+  # @return [Phronomy::RAG::Loader::Base]
   # ---------------------------------------------------------------------------
   def self.loader(label)
     case label
-    when "plain_text" then Phronomy::Agent::Context::Knowledge::Loader::PlainTextLoader.new
-    when "markdown_with_headings" then Phronomy::Agent::Context::Knowledge::Loader::MarkdownLoader.new(split_on_headings: true)
-    when "markdown_no_split" then Phronomy::Agent::Context::Knowledge::Loader::MarkdownLoader.new(split_on_headings: false)
-    when "csv_with_headers" then Phronomy::Agent::Context::Knowledge::Loader::CsvLoader.new(headers: true)
+    when "plain_text" then Phronomy::RAG::Loader::PlainTextLoader.new
+    when "markdown_with_headings" then Phronomy::RAG::Loader::MarkdownLoader.new(split_on_headings: true)
+    when "markdown_no_split" then Phronomy::RAG::Loader::MarkdownLoader.new(split_on_headings: false)
+    when "csv_with_headers" then Phronomy::RAG::Loader::CsvLoader.new(headers: true)
     else raise ArgumentError, "Unknown loader_type label: #{label}"
     end
   end
@@ -388,13 +388,13 @@ module IntegrationFactors
   # Factor: splitter_type
   #
   # @param label [String] "none" | "fixed_size" | "recursive"
-  # @return [Phronomy::Agent::Context::Knowledge::Splitter::Base, nil]
+  # @return [Phronomy::RAG::Splitter::Base, nil]
   # ---------------------------------------------------------------------------
   def self.splitter(label)
     case label
     when "none" then nil
-    when "fixed_size" then Phronomy::Agent::Context::Knowledge::Splitter::FixedSizeSplitter.new(chunk_size: 200, chunk_overlap: 20)
-    when "recursive" then Phronomy::Agent::Context::Knowledge::Splitter::RecursiveSplitter.new(chunk_size: 200, chunk_overlap: 20)
+    when "fixed_size" then Phronomy::RAG::Splitter::FixedSizeSplitter.new(chunk_size: 200, chunk_overlap: 20)
+    when "recursive" then Phronomy::RAG::Splitter::RecursiveSplitter.new(chunk_size: 200, chunk_overlap: 20)
     else raise ArgumentError, "Unknown splitter_type label: #{label}"
     end
   end
@@ -1354,11 +1354,11 @@ module IntegrationFactors
   # Returns a fresh InMemory store with the given dimension initialisation.
   #
   # @param label [String] "explicit" | "inferred"
-  # @return [Phronomy::Agent::Context::Knowledge::VectorStore::InMemory]
+  # @return [Phronomy::RAG::VectorStore::InMemory]
   def self.vs_store(label)
     case label
-    when "explicit" then Phronomy::Agent::Context::Knowledge::VectorStore::InMemory.new(dimension: 2)
-    when "inferred" then Phronomy::Agent::Context::Knowledge::VectorStore::InMemory.new
+    when "explicit" then Phronomy::RAG::VectorStore::InMemory.new(dimension: 2)
+    when "inferred" then Phronomy::RAG::VectorStore::InMemory.new
     else raise ArgumentError, "Unknown vs_dimension_init label: #{label}"
     end
   end
