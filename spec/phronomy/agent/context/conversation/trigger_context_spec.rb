@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Agent::History::TriggerContext do
+RSpec.describe Phronomy::Agent::Context::Conversation::TriggerContext do
   def make_msg(role, content)
     OpenStruct.new(role: role, content: content)
   end

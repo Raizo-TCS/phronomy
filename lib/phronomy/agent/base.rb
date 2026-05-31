@@ -305,11 +305,11 @@ module Phronomy
         # application can remove stale or irrelevant messages from the
         # conversation history.
         #
-        # The block receives a {Phronomy::Agent::History::TrimContext} and may call
+        # The block receives a {Phronomy::Agent::Context::Conversation::TrimContext} and may call
         # +ctx.remove(seqs)+ to drop messages by seq number. Changes affect
         # only the current invocation; the underlying memory store is unchanged.
         #
-        # @yield [ctx] Phronomy::Agent::History::TrimContext
+        # @yield [ctx] Phronomy::Agent::Context::Conversation::TrimContext
         # @example Drop the oldest message when over 80% of budget is used
         #   on_trim do |ctx|
         #     limit = ctx.budget&.available(used: 0) || Float::INFINITY
@@ -331,9 +331,9 @@ module Phronomy
         # truthy AND an +on_compact+ callback is also registered, the compact
         # pipeline is executed.
         #
-        # The block receives a read-only {Phronomy::Agent::History::TriggerContext}.
+        # The block receives a read-only {Phronomy::Agent::Context::Conversation::TriggerContext}.
         #
-        # @yield [ctx] Phronomy::Agent::History::TriggerContext
+        # @yield [ctx] Phronomy::Agent::Context::Conversation::TriggerContext
         # @return [Boolean] truthy → run on_compact; falsy → skip
         # @example Trigger when messages exceed 70% of token budget
         #   on_compaction_trigger do |ctx|
@@ -353,10 +353,10 @@ module Phronomy
 
         # Registers a callback that performs the actual compaction when the
         # +on_compaction_trigger+ callback fires. The block receives a
-        # {Phronomy::Agent::History::CompactionContext} and should call +ctx.compact+
+        # {Phronomy::Agent::Context::Conversation::CompactionContext} and should call +ctx.compact+
         # to specify which messages to summarise.
         #
-        # @yield [ctx] Phronomy::Agent::History::CompactionContext
+        # @yield [ctx] Phronomy::Agent::Context::Conversation::CompactionContext
         # @example Replace the first 4 messages with a short summary
         #   on_compact do |ctx|
         #     ctx.compact(0..3) do |elements|
@@ -796,16 +796,16 @@ module Phronomy
         elements = build_message_elements(Array(messages))
 
         if (trim_cb = self.class._on_trim_callback)
-          trim_ctx = History::TrimContext.new(message_elements: elements, budget: budget)
+          trim_ctx = Context::Conversation::TrimContext.new(message_elements: elements, budget: budget)
           trim_cb.call(trim_ctx)
           elements = trim_ctx.message_elements
         end
 
         if (trigger_cb = self.class._on_compaction_trigger_callback)
-          trigger_ctx = History::TriggerContext.new(message_elements: elements, budget: budget)
+          trigger_ctx = Context::Conversation::TriggerContext.new(message_elements: elements, budget: budget)
           if trigger_cb.call(trigger_ctx)
             if (compact_cb = self.class._on_compact_callback)
-              compact_ctx = History::CompactionContext.new(
+              compact_ctx = Context::Conversation::CompactionContext.new(
                 message_elements: elements,
                 budget: budget,
                 thread_id: thread_id

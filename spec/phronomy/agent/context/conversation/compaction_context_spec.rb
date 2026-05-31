@@ -3,7 +3,7 @@
 require "spec_helper"
 require "ostruct"
 
-RSpec.describe Phronomy::Agent::History::CompactionContext do
+RSpec.describe Phronomy::Agent::Context::Conversation::CompactionContext do
   def make_msg(role, content)
     OpenStruct.new(role: role, content: content)
   end
