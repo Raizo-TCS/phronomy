@@ -1844,7 +1844,7 @@ global default from <span class='object_link'><a href="../../Phronomy.html#confi
   <div class="discussion">
     <p>Registers a callback that performs the actual compaction when the
 <code>on_compaction_trigger</code> callback fires. The block receives a
-<span class='object_link'><a href="History/CompactionContext.html" title="Phronomy::Agent::History::CompactionContext (class)">History::CompactionContext</a></span> and should call <code>ctx.compact</code>
+<span class='object_link'><a href="Context/Conversation/CompactionContext.html" title="Phronomy::Agent::Context::Conversation::CompactionContext (class)">Context::Conversation::CompactionContext</a></span> and should call <code>ctx.compact</code>
 to specify which messages to summarise.</p>
 
   </div>
@@ -1877,7 +1877,7 @@ to specify which messages to summarise.</p>
       
       
         &mdash;
-        <div class='inline'><p>Phronomy::Agent::History::CompactionContext</p></div>
+        <div class='inline'><p>Phronomy::Agent::Context::Conversation::CompactionContext</p></div>
       
     </li>
   
@@ -1919,7 +1919,7 @@ to specify which messages to summarise.</p>
 Evaluated before every LLM call (after on_trim). If the block returns
 truthy AND an <code>on_compact</code> callback is also registered, the compact
 pipeline is executed.</p>
-<p>The block receives a read-only <span class='object_link'><a href="History/TriggerContext.html" title="Phronomy::Agent::History::TriggerContext (class)">History::TriggerContext</a></span>.</p>
+<p>The block receives a read-only <span class='object_link'><a href="Context/Conversation/TriggerContext.html" title="Phronomy::Agent::Context::Conversation::TriggerContext (class)">Context::Conversation::TriggerContext</a></span>.</p>
 
   </div>
 </div>
@@ -1949,7 +1949,7 @@ pipeline is executed.</p>
       
       
         &mdash;
-        <div class='inline'><p>Phronomy::Agent::History::TriggerContext</p></div>
+        <div class='inline'><p>Phronomy::Agent::Context::Conversation::TriggerContext</p></div>
       
     </li>
   
@@ -2006,7 +2006,7 @@ pipeline is executed.</p>
     <p>Registers a callback that is invoked before every LLM call so the
 application can remove stale or irrelevant messages from the
 conversation history.</p>
-<p>The block receives a <span class='object_link'><a href="History/TrimContext.html" title="Phronomy::Agent::History::TrimContext (class)">History::TrimContext</a></span> and may call
+<p>The block receives a <span class='object_link'><a href="Context/Conversation/TrimContext.html" title="Phronomy::Agent::Context::Conversation::TrimContext (class)">Context::Conversation::TrimContext</a></span> and may call
 <code>ctx.remove(seqs)</code> to drop messages by seq number. Changes affect
 only the current invocation; the underlying memory store is unchanged.</p>
 
@@ -2038,7 +2038,7 @@ only the current invocation; the underlying memory store is unchanged.</p>
       
       
         &mdash;
-        <div class='inline'><p>Phronomy::Agent::History::TrimContext</p></div>
+        <div class='inline'><p>Phronomy::Agent::Context::Conversation::TrimContext</p></div>
       
     </li>
   
@@ -3557,7 +3557,7 @@ as they are produced by the underlying LLM.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 31 12:50:00 2026 by
+  Generated on Sun May 31 13:29:09 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
