@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Contract tests for Phronomy::RAG::Embeddings::Base implementations (Issue #212).
+# Contract tests for Phronomy::VectorStore::Embeddings::Base implementations (Issue #212).
 #
 # Usage:
 #   it_behaves_like "an embeddings adapter" do

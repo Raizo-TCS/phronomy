@@ -1,11 +1,23 @@
 # frozen_string_literal: true
 
 module Phronomy
-  # Vector store implementations for embedding-based semantic search.
+  # Vector store infrastructure: backends, embeddings adapters, document loaders,
+  # and text splitters.
   #
-  # Sub-classes are auto-loaded by Zeitwerk:
-  #   Phronomy::RAG::VectorStore::Base
-  #   Phronomy::RAG::VectorStore::InMemory
+  # Sub-namespaces are auto-loaded by Zeitwerk:
+  #   Phronomy::VectorStore::Base
+  #   Phronomy::VectorStore::InMemory
+  #   Phronomy::VectorStore::Pgvector
+  #   Phronomy::VectorStore::RedisSearch
+  #   Phronomy::VectorStore::Embeddings::Base
+  #   Phronomy::VectorStore::Embeddings::RubyLLMEmbeddings
+  #   Phronomy::VectorStore::Loader::Base
+  #   Phronomy::VectorStore::Loader::PlainTextLoader
+  #   Phronomy::VectorStore::Loader::MarkdownLoader
+  #   Phronomy::VectorStore::Loader::CsvLoader
+  #   Phronomy::VectorStore::Splitter::Base
+  #   Phronomy::VectorStore::Splitter::FixedSizeSplitter
+  #   Phronomy::VectorStore::Splitter::RecursiveSplitter
   module VectorStore
   end
 end

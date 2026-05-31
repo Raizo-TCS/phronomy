@@ -35,16 +35,17 @@ PUBLIC_API_ENTRIES = [
   Phronomy::MultiAgent::TeamCoordinator,
   Phronomy::Guardrail::InputGuardrail,
   Phronomy::Guardrail::OutputGuardrail,
-  Phronomy::RAG::VectorStore::Base,
-  Phronomy::RAG::VectorStore::InMemory,
-  Phronomy::RAG::Embeddings::Base,
+  Phronomy::VectorStore::Base,
+  Phronomy::VectorStore::InMemory,
+  Phronomy::VectorStore::Embeddings::Base,
   Phronomy::Agent::Context::Knowledge::Base,
   Phronomy::Agent::Context::Knowledge::StaticKnowledge,
   Phronomy::Tracing::Base,
   Phronomy::Tracing::NullTracer,
   Phronomy::Eval::Runner,
   Phronomy::Tools::Mcp,
-  Phronomy::Tools::Agent
+  Phronomy::Tools::Agent,
+  Phronomy::Tools::VectorSearch
 ].freeze
 
 # Baseline methods common to all Ruby objects — excluded from the snapshot.

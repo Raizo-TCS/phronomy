@@ -209,7 +209,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
   # TC-005: vector_store — VectorStore#search_async routes through pool
   # -------------------------------------------------------------------------
   describe "TC-005: vector_store — VectorStore::Base#search_async routes through pool" do
-    let(:vector_store) { Phronomy::RAG::VectorStore::InMemory.new }
+    let(:vector_store) { Phronomy::VectorStore::InMemory.new }
 
     before do
       vector_store.add(id: "v1", embedding: [0.5, 0.5], metadata: {content: "test"})

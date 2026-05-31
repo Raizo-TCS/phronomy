@@ -28,7 +28,7 @@ RSpec.describe "Nightly: VectorStore::RedisSearch against real Redis Stack", :ni
   let(:redis) { Redis.new(url: ENV.fetch("REDIS_URL", "redis://localhost:6379")) }
   let(:index_name) { "phronomy_nightly_#{SecureRandom.hex(4)}" }
   let(:store) do
-    Phronomy::RAG::VectorStore::RedisSearch.new(
+    Phronomy::VectorStore::RedisSearch.new(
       redis: redis,
       index_name: index_name,
       dimension: 3
@@ -91,7 +91,7 @@ RSpec.describe "Nightly: VectorStore::RedisSearch against real Redis Stack", :ni
   it_behaves_like "a vector store" do
     let(:empty_store) do
       # dimension: nil → search returns [] immediately before any index is created
-      Phronomy::RAG::VectorStore::RedisSearch.new(
+      Phronomy::VectorStore::RedisSearch.new(
         redis: redis,
         index_name: index_name,
         dimension: nil

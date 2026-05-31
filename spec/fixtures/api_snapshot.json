@@ -300,7 +300,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::RAG::VectorStore::Base",
+    "name": "Phronomy::VectorStore::Base",
     "type": "class",
     "public_instance_methods": [
       "add",
@@ -316,7 +316,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::RAG::VectorStore::InMemory",
+    "name": "Phronomy::VectorStore::InMemory",
     "type": "class",
     "public_instance_methods": [
       "add",
@@ -332,7 +332,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::RAG::Embeddings::Base",
+    "name": "Phronomy::VectorStore::Embeddings::Base",
     "type": "class",
     "public_instance_methods": [
       "embed",
@@ -449,6 +449,46 @@
       "description",
       "execution_mode",
       "from_agent",
+      "max_result_size",
+      "on_error",
+      "on_schema_error",
+      "param",
+      "param_enums",
+      "param_schemas",
+      "parameters",
+      "params",
+      "params_schema_definition",
+      "provider_params",
+      "redact_params",
+      "requires_approval",
+      "retry_on",
+      "retry_policies",
+      "scope",
+      "tool_name",
+      "with_params"
+    ]
+  },
+  {
+    "name": "Phronomy::Tools::VectorSearch",
+    "type": "class",
+    "public_instance_methods": [
+      "call",
+      "call_async",
+      "description",
+      "execute",
+      "name",
+      "parameters",
+      "params_schema",
+      "provider_params",
+      "requires_approval",
+      "requires_approval?"
+    ],
+    "public_class_methods": [
+      "_sleep_proc",
+      "_sleep_proc=",
+      "description",
+      "execution_mode",
+      "from_store",
       "max_result_size",
       "on_error",
       "on_schema_error",

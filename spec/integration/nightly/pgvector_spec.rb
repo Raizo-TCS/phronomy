@@ -65,7 +65,7 @@ RSpec.describe "Nightly: VectorStore::Pgvector against real PostgreSQL", :nightl
     end
   end
 
-  let(:store) { Phronomy::RAG::VectorStore::Pgvector.new(model_class: NightlyDoc, dimension: 3) }
+  let(:store) { Phronomy::VectorStore::Pgvector.new(model_class: NightlyDoc, dimension: 3) }
 
   it "adds a document and retrieves it via search" do
     skip "Requires real PostgreSQL with pgvector" unless PGVECTOR_AVAILABLE
@@ -121,7 +121,7 @@ RSpec.describe "Nightly: VectorStore::Pgvector against real PostgreSQL", :nightl
       NightlyEmptyDoc.delete_all
     end
 
-    let(:store) { Phronomy::RAG::VectorStore::Pgvector.new(model_class: NightlyDoc, dimension: 3) }
-    let(:empty_store) { Phronomy::RAG::VectorStore::Pgvector.new(model_class: NightlyEmptyDoc, dimension: 3) }
+    let(:store) { Phronomy::VectorStore::Pgvector.new(model_class: NightlyDoc, dimension: 3) }
+    let(:empty_store) { Phronomy::VectorStore::Pgvector.new(model_class: NightlyEmptyDoc, dimension: 3) }
   end
 end

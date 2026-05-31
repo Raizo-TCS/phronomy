@@ -39,7 +39,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   # -------------------------------------------------------------------------
   describe "VectorStore#add fault injection" do
     let(:exploding_store) do
-      Class.new(Phronomy::RAG::VectorStore::Base) do
+      Class.new(Phronomy::VectorStore::Base) do
         def add(**)
           raise ArgumentError, "dimension mismatch on ingestion"
         end

@@ -31,7 +31,7 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
 
   describe "Embeddings network timeout" do
     let(:embedder) do
-      Class.new(Phronomy::RAG::Embeddings::Base) do
+      Class.new(Phronomy::VectorStore::Embeddings::Base) do
         def embed(text, _cancellation_token = nil)
           sleep(10)
           [0.1, 0.2]
@@ -47,7 +47,7 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
 
   describe "VectorStore network timeout" do
     let(:vs) do
-      Class.new(Phronomy::RAG::VectorStore::Base) do
+      Class.new(Phronomy::VectorStore::Base) do
         def search(query_embedding:, k: 5, cancellation_token: nil)
           sleep(10)
           []
