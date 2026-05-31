@@ -140,7 +140,7 @@ TRIM_ITERATIONS = 500
 
 t7 = Benchmark.measure("TrimContext#remove (2000-element history)") do
   TRIM_ITERATIONS.times do
-    tc = Phronomy::Agent::History::TrimContext.new(message_elements: TRIM_ELEMENTS, budget: TRIM_BUDGET)
+    tc = Phronomy::Agent::Context::Conversation::TrimContext.new(message_elements: TRIM_ELEMENTS, budget: TRIM_BUDGET)
     tc.remove((0...200).to_a)  # remove 200 oldest messages
   end
 end
