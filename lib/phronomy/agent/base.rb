@@ -647,12 +647,12 @@ module Phronomy
           user_message = extract_message(input)
           context = build_context(
             input,
-            messages:    messages,
-            thread_id:   thread_id,
-            config:      config,
-            budget:      build_token_budget,
+            messages: messages,
+            thread_id: thread_id,
+            config: config,
+            budget: build_token_budget,
             instruction: build_instructions(input),
-            tools:       self.class.tools + _handoff_tools
+            tools: self.class.tools + _handoff_tools
           )
           _apply_context_to_chat(chat, context)
 
@@ -701,13 +701,13 @@ module Phronomy
       # @api public
       def build_context(
         input,
-        messages:    [],
-        thread_id:   nil,
-        config:      {},
-        budget:      build_token_budget,
+        messages: [],
+        thread_id: nil,
+        config: {},
+        budget: build_token_budget,
         instruction: build_instructions(input),
-        tools:       self.class.tools + _handoff_tools,
-        knowledge:   self.class.static_knowledge_chunks + instance_knowledge_chunks
+        tools: self.class.tools + _handoff_tools,
+        knowledge: self.class.static_knowledge_chunks + instance_knowledge_chunks
       )
         assembler = LlmContextWindow::Assembler.new(budget: budget)
         assembler.add_instruction(instruction) if instruction
@@ -775,7 +775,7 @@ module Phronomy
       def compact_messages(messages, keep_tail:, &summariser)
         msgs = Array(messages)
         return msgs if msgs.size <= keep_tail
-        tail    = msgs.last(keep_tail)
+        tail = msgs.last(keep_tail)
         dropped = msgs.first(msgs.size - keep_tail)
         summary_text = summariser.call(dropped)
         [RubyLLM::Message.new(role: :system, content: summary_text)] + tail
@@ -803,10 +803,7 @@ module Phronomy
           used = msgs.sum { |m| LlmContextWindow::TokenEstimator.estimate(m.content.to_s) }
           return msgs if used <= remaining
           break if msgs.empty?
-          msgs = case strategy
-                 when :safe then trim_messages(msgs, keep: msgs.size - 1)
-                 else trim_messages(msgs, keep: msgs.size - 1)
-                 end
+          msgs = trim_messages(msgs, keep: msgs.size - 1)
         end
         msgs
       end

@@ -273,5 +273,4 @@ RSpec.describe Phronomy::LlmContextWindow::Assembler do
       expect(result).not_to include("<script>")
     end
   end
-
 end

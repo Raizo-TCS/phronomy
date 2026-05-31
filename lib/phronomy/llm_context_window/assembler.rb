@@ -186,7 +186,6 @@ module Phronomy
         src_attr = chunk[:source] ? " source=\"#{CGI.escapeHTML(chunk[:source].to_s)}\"" : ""
         "<context type=\"#{CGI.escapeHTML(chunk[:type].to_s)}\"#{src_attr} trusted=\"#{chunk[:trusted]}\">\n#{CGI.escapeHTML(chunk[:text].to_s)}\n</context>"
       end
-
     end
   end
 end

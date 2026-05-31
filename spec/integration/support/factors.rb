@@ -726,25 +726,25 @@ module IntegrationFactors
 
       define_method(:build_context) do |input, messages: [], thread_id: nil, config: {}, **kwargs|
         msgs = case t_label
-               when "none", "remove_none" then Array(messages)
-               when "remove_some"
-                 m = Array(messages)
-                 m.size <= 1 ? m : m[1..]
-               else
-                 raise ArgumentError, "Unknown trim_label: #{t_label}"
-               end
+        when "none", "remove_none" then Array(messages)
+        when "remove_some"
+          m = Array(messages)
+          (m.size <= 1) ? m : m[1..]
+        else
+          raise ArgumentError, "Unknown trim_label: #{t_label}"
+        end
 
         if g_label == "true" && c_label != "none"
           msgs = case c_label
-                 when "summarise_range"
-                   m = Array(msgs)
-                   m.empty? ? m : compact_messages(m, keep_tail: [m.size - 1, 0].max) { "Earlier conversation summary." }
-                 when "multi_range"
-                   m = Array(msgs)
-                   m.length < 2 ? m : compact_messages(m, keep_tail: [m.size - 1, 0].max) { "First compaction summary." }
-                 else
-                   msgs
-                 end
+          when "summarise_range"
+            m = Array(msgs)
+            m.empty? ? m : compact_messages(m, keep_tail: [m.size - 1, 0].max) { "Earlier conversation summary." }
+          when "multi_range"
+            m = Array(msgs)
+            (m.length < 2) ? m : compact_messages(m, keep_tail: [m.size - 1, 0].max) { "First compaction summary." }
+          else
+            msgs
+          end
         end
 
         super(input, messages: msgs, thread_id: thread_id, config: config, **kwargs)

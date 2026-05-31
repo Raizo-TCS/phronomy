@@ -119,12 +119,12 @@ module Phronomy
 
         context = build_context(
           initial_input,
-          messages:    messages,
-          thread_id:   thread_id,
-          config:      config,
-          budget:      build_token_budget,
+          messages: messages,
+          thread_id: thread_id,
+          config: config,
+          budget: build_token_budget,
           instruction: build_instructions(initial_input),
-          tools:       self.class.tools + _handoff_tools
+          tools: self.class.tools + _handoff_tools
         )
         apply_instructions(chat, context[:system]) if context[:system]
         (context[:tool_classes] || []).each { |tc| chat.with_tool(prepare_tool_class(tc)) }
@@ -155,12 +155,12 @@ module Phronomy
 
         context = build_context(
           initial_input,
-          messages:    messages,
-          thread_id:   thread_id,
-          config:      config,
-          budget:      build_token_budget,
+          messages: messages,
+          thread_id: thread_id,
+          config: config,
+          budget: build_token_budget,
           instruction: build_instructions(initial_input),
-          tools:       self.class.tools + _handoff_tools
+          tools: self.class.tools + _handoff_tools
         )
         apply_instructions(chat, context[:system]) if context[:system]
         (context[:tool_classes] || []).each { |tc| chat.with_tool(prepare_tool_class(tc)) }
