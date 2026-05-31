@@ -43,7 +43,15 @@ module Phronomy
 
           # Assemble context (system prompt + history). Override #build_context to
           # inject custom context editing logic at the Agent subclass level.
-          context = build_context(inp, messages: msgs, thread_id: tid, config: cfg)
+          context = build_context(
+            inp,
+            messages:    msgs,
+            thread_id:   tid,
+            config:      cfg,
+            budget:      build_token_budget,
+            instruction: build_instructions(inp),
+            tools:       self.class.tools + _handoff_tools
+          )
           apply_instructions(chat, context[:system]) if context[:system]
           (context[:tool_classes] || []).each { |tc| chat.with_tool(prepare_tool_class(tc)) }
           context[:messages].each { |msg| chat.messages << msg }

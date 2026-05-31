@@ -71,7 +71,7 @@ RSpec.describe "Group 3: Context / Budget", :integration do
       expect(count).to eq(4)
     end
 
-    it "partial fit: only recent messages kept under tight budget" do
+    it "raises ContextLengthError when messages exceed the tight budget" do
       # context_window=200, max_output=50, overhead=80 → effective_input_limit=70
       budget = Phronomy::LlmContextWindow::TokenBudget.new(
         context_window: 200,
@@ -80,15 +80,12 @@ RSpec.describe "Group 3: Context / Budget", :integration do
       )
       expect(budget.effective_input_limit).to eq(70)
 
-      # Each fat message has 2001+ words → token cost >> 70
-      # Short messages: ~5 words each → fits several
-      messages = 20.times.map { |i| Message.new("user", "word#{i} hello world ok great") }
+      # 10 messages × 8 words each = 80 word-count tokens > 70 budget
+      # (fat_messages only produce ~2 words per message with word-count tokenizer)
+      messages = 10.times.map { |i| Message.new("user", "a b c d e f g #{i}") }
       assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
       assembler.add_messages(messages)
-      result = assembler.build
-      # Should keep some but not all messages (70 tokens / 5 per message = 14 max)
-      expect(result[:messages].length).to be < 20
-      expect(result[:messages].length).to be >= 1
+      expect { assembler.build }.to raise_error(Phronomy::ContextLengthError)
     end
   end
 
@@ -98,8 +95,8 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   # ---------------------------------------------------------------------------
   # TC-005: explicit budget; heuristic tokenizer; none_fit → all messages pruned
   # ---------------------------------------------------------------------------
-  describe "TC-005: explicit budget; heuristic tokenizer; none_fit — all messages pruned" do
-    it "Assembler returns empty messages when budget is exhausted" do
+  describe "TC-005: explicit budget; heuristic tokenizer; messages exceed budget — ContextLengthError raised" do
+    it "raises ContextLengthError when messages cannot fit in the available budget" do
       # context_window=100, max_output=50 → effective_input_limit=50
       # Fat messages are 500+ tokens each
       budget = Phronomy::LlmContextWindow::TokenBudget.new(
@@ -108,8 +105,7 @@ RSpec.describe "Group 3: Context / Budget", :integration do
       )
       assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
       assembler.add_messages(fat_messages(3))
-      result = assembler.build
-      expect(result[:messages]).to be_empty
+      expect { assembler.build }.to raise_error(Phronomy::ContextLengthError)
     end
   end
 
@@ -125,7 +121,7 @@ RSpec.describe "Group 3: Context / Budget", :integration do
       Phronomy::LlmContextWindow::TokenEstimator.tokenizer = original
     end
 
-    it "partial fit under word-count tokenizer" do
+    it "raises ContextLengthError when messages exceed budget under word-count tokenizer" do
       # context_window=500, max_output=400, overhead=0 → effective_input_limit=100
       budget = Phronomy::LlmContextWindow::TokenBudget.new(
         context_window: 500,
@@ -133,13 +129,11 @@ RSpec.describe "Group 3: Context / Budget", :integration do
       )
       expect(budget.effective_input_limit).to eq(100)
 
-      # Each message has 8 words → 8 tokens; 100 / 8 = 12 messages max
+      # 20 messages × 8 words each = 160 word-count tokens > 100 budget
       messages = 20.times.map { |i| Message.new("user", "a b c d e f g #{i}") }
       assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
       assembler.add_messages(messages)
-      result = assembler.build
-      expect(result[:messages].length).to be < 20
-      expect(result[:messages].length).to be >= 1
+      expect { assembler.build }.to raise_error(Phronomy::ContextLengthError)
     end
   end
 
@@ -244,7 +238,7 @@ RSpec.describe "Group 3: Context / Budget", :integration do
       expect(budget.effective_input_limit).to eq(0)
     end
 
-    it "Assembler returns empty messages when effective_input_limit is 0" do
+    it "raises ContextLengthError when effective_input_limit is 0 and messages are present" do
       budget = Phronomy::LlmContextWindow::TokenBudget.new(
         model: "openai/gpt-oss-20b",
         max_output_tokens: 512,
@@ -252,8 +246,7 @@ RSpec.describe "Group 3: Context / Budget", :integration do
       )
       assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
       assembler.add_messages(short_messages(3))
-      result = assembler.build
-      expect(result[:messages]).to be_empty
+      expect { assembler.build }.to raise_error(Phronomy::ContextLengthError)
     end
   end
 
@@ -291,9 +284,9 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   # ---------------------------------------------------------------------------
   # TC-016: from_model; nil max_output; large overhead; nil tokenizer; partial_fit
   # ---------------------------------------------------------------------------
-  describe "TC-016: from_model; large overhead; heuristic tokenizer; partial fit" do
-    it "overhead reduces effective_input_limit causing partial fit" do
-      # Use an explicit large overhead to force partial fit
+  describe "TC-016: from_model; large overhead; heuristic tokenizer; messages exceed budget" do
+    it "overhead reduces effective_input_limit; raises ContextLengthError when messages present" do
+      # Use an explicit large overhead to force effective_input_limit to 0
       budget = Phronomy::LlmContextWindow::TokenBudget.new(
         model: "openai/gpt-oss-20b",
         overhead: 100_000
@@ -302,8 +295,7 @@ RSpec.describe "Group 3: Context / Budget", :integration do
 
       assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
       assembler.add_messages(short_messages(5))
-      result = assembler.build
-      expect(result[:messages]).to be_empty
+      expect { assembler.build }.to raise_error(Phronomy::ContextLengthError)
     end
   end
 

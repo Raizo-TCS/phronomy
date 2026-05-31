@@ -696,102 +696,60 @@ module IntegrationFactors
     end
   end
 
-  # Factor: ctx_on_trim
+  # Builds an agent class configured with context management via build_context override.
   #
-  # Returns a Proc or nil for on_trim based on the label.
-  # The callback receives a TrimContext; :remove_some drops the first message.
+  # Trim and compact behaviour is implemented directly in an overridden
+  # +build_context+, using the protected utility helpers:
+  # +trim_messages+, +compact_messages+.
   #
-  # @param label [String] "none" | "remove_none" | "remove_some"
-  # @return [Proc, nil]
-  def self.on_trim_callback(label)
-    case label
-    when "none"
-      nil
-    when "remove_none"
-      proc { |_ctx| }
-    when "remove_some"
-      proc do |ctx|
-        first = ctx.message_elements.first
-        ctx.remove(first[:seq]) if first
-      end
-    else
-      raise ArgumentError, "Unknown ctx_on_trim label: #{label}"
-    end
-  end
-
-  # Factor: ctx_on_compaction_trigger
-  #
-  # Returns a Proc or nil for on_compaction_trigger based on the label.
-  #
-  # @param label [String] "none" | "false" | "true"
-  # @return [Proc, nil]
-  def self.on_compaction_trigger_callback(label)
-    case label
-    when "none"
-      nil
-    when "false"
-      proc { |_ctx| false }
-    when "true"
-      proc { |_ctx| true }
-    else
-      raise ArgumentError, "Unknown ctx_on_compaction_trigger label: #{label}"
-    end
-  end
-
-  # Factor: ctx_on_compact
-  #
-  # Returns a Proc or nil for on_compact based on the label.
-  # :summarise_range compacts the first message (if any) with a fixed summary.
-  # :multi_range performs two separate compact calls on non-overlapping ranges.
-  #
-  # @param label [String] "none" | "summarise_range" | "multi_range"
-  # @return [Proc, nil]
-  def self.on_compact_callback(label)
-    case label
-    when "none"
-      nil
-    when "summarise_range"
-      proc do |ctx|
-        next if ctx.message_elements.empty?
-        ctx.compact(0..0) { |_| "Earlier conversation summary." }
-      end
-    when "multi_range"
-      proc do |ctx|
-        els = ctx.message_elements
-        next if els.length < 2
-        ctx.compact(0..0) { |_| "First compaction summary." }
-      end
-    else
-      raise ArgumentError, "Unknown ctx_on_compact label: #{label}"
-    end
-  end
-
-  # Builds an agent class configured with context management callbacks.
-  #
-  # @param static_knowledge_label  [String] ctx_static_knowledge factor label
-  # @param on_trim_label           [String] ctx_on_trim factor label
-  # @param on_trigger_label        [String] ctx_on_compaction_trigger factor label
-  # @param on_compact_label        [String] ctx_on_compact factor label
+  # @param static_knowledge_label [String] ctx_static_knowledge factor label
+  # @param trim_label             [String] ctx_trim factor ("none" | "remove_none" | "remove_some")
+  # @param trigger_label          [String] ctx_trigger factor ("none" | "false" | "true")
+  # @param compact_label          [String] ctx_compact factor ("none" | "summarise_range" | "multi_range")
   # @return [Class] anonymous Agent::Base subclass
   def self.context_agent(
     static_knowledge_label: "none",
-    on_trim_label: "none",
-    on_trigger_label: "none",
-    on_compact_label: "none"
+    trim_label: "none",
+    trigger_label: "none",
+    compact_label: "none"
   )
     sources = static_knowledge_sources(static_knowledge_label)
-    trim_cb = on_trim_callback(on_trim_label)
-    trigger_cb = on_compaction_trigger_callback(on_trigger_label)
-    compact_cb = on_compact_callback(on_compact_label)
+    t_label = trim_label
+    g_label = trigger_label
+    c_label = compact_label
 
     Class.new(Phronomy::Agent::Base) do
       model LM_STUDIO_MODEL
       provider :openai
       instructions "You are a helpful assistant."
       static_knowledge(*sources) unless sources.empty?
-      on_trim(&trim_cb) if trim_cb
-      on_compaction_trigger(&trigger_cb) if trigger_cb
-      on_compact(&compact_cb) if compact_cb
+
+      define_method(:build_context) do |input, messages: [], thread_id: nil, config: {}, **kwargs|
+        msgs = case t_label
+               when "none", "remove_none" then Array(messages)
+               when "remove_some"
+                 m = Array(messages)
+                 m.size <= 1 ? m : m[1..]
+               else
+                 raise ArgumentError, "Unknown trim_label: #{t_label}"
+               end
+
+        if g_label == "true" && c_label != "none"
+          msgs = case c_label
+                 when "summarise_range"
+                   m = Array(msgs)
+                   m.empty? ? m : compact_messages(m, keep_tail: [m.size - 1, 0].max) { "Earlier conversation summary." }
+                 when "multi_range"
+                   m = Array(msgs)
+                   m.length < 2 ? m : compact_messages(m, keep_tail: [m.size - 1, 0].max) { "First compaction summary." }
+                 else
+                   msgs
+                 end
+        end
+
+        super(input, messages: msgs, thread_id: thread_id, config: config, **kwargs)
+      end
+      protected :build_context
     end
   end
 

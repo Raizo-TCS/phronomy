@@ -7,13 +7,13 @@ require_relative "support/llm_stub"
 # Pairwise integration test cases — Group: Context Management
 #
 # Source:   docs/integration_test_cases_context_management.yaml
-# Factors:  ctx_static_knowledge, ctx_cache_state, ctx_on_trim,
-#           ctx_on_compaction_trigger, ctx_on_compact
+# Factors:  ctx_static_knowledge, ctx_cache_state, ctx_trim,
+#           ctx_trigger, ctx_compact
 # Feasible: TC-001..TC-012, TC-014 (12 tests)
 # SKIP:     TC-003 (stale/no-static infeasible), TC-013 (same)
 #
-# All tests require LM Studio running at http://192.168.122.1:1234/v1
-# with openai/gpt-oss-20b loaded.
+# Trim and compact behaviour is exercised via build_context overrides
+# (see IntegrationFactors.context_agent).
 
 RSpec.describe "Group: Context Management", :integration do
   before { @llm = LLMStub.activate(responses: ["Got it.", "Done.", "OK.", "OK.", "OK."]) }
@@ -34,15 +34,15 @@ RSpec.describe "Group: Context Management", :integration do
 
   # --------------------------------------------------------------------------
   # TC-002: none / warm / remove_none / false / summarise_range
-  # Warm cache on instruction-only agent; trim is a no-op; trigger fires but
-  # returns false so compact block is skipped.
+  # Warm cache on instruction-only agent; trim is a no-op; trigger is false
+  # so compact block is skipped.
   # --------------------------------------------------------------------------
   describe "TC-002: no static knowledge, warm cache, trim no-op, trigger=false" do
     let(:agent_klass) do
       IntegrationFactors.context_agent(
-        on_trim_label: "remove_none",
-        on_trigger_label: "false",
-        on_compact_label: "summarise_range"
+        trim_label: "remove_none",
+        trigger_label: "false",
+        compact_label: "summarise_range"
       )
     end
 
@@ -69,9 +69,9 @@ RSpec.describe "Group: Context Management", :integration do
     it "returns a non-empty output and does not raise despite trigger firing" do
       agent = IntegrationFactors.context_agent(
         static_knowledge_label: "single",
-        on_trim_label: "remove_none",
-        on_trigger_label: "true",
-        on_compact_label: "none"
+        trim_label: "remove_none",
+        trigger_label: "true",
+        compact_label: "none"
       ).new
       result = agent.invoke("What do you know about me? Reply in one sentence.")
       expect(result[:output]).to be_a(String)
@@ -87,7 +87,7 @@ RSpec.describe "Group: Context Management", :integration do
     let(:agent_klass) do
       IntegrationFactors.context_agent(
         static_knowledge_label: "single",
-        on_compact_label: "multi_range"
+        compact_label: "multi_range"
       )
     end
 
@@ -108,8 +108,8 @@ RSpec.describe "Group: Context Management", :integration do
     it "re-builds system_text after cache is invalidated and does not raise" do
       agent = IntegrationFactors.context_agent(
         static_knowledge_label: "single",
-        on_trigger_label: "false",
-        on_compact_label: "summarise_range"
+        trigger_label: "false",
+        compact_label: "summarise_range"
       ).new
       agent.invoke("Say 'first call'.")
 
@@ -124,14 +124,14 @@ RSpec.describe "Group: Context Management", :integration do
 
   # --------------------------------------------------------------------------
   # TC-007: single / cold / remove_some / false / none
-  # on_trim removes the first message; trigger fires but returns false.
+  # trim_messages removes the first message; trigger is false.
   # --------------------------------------------------------------------------
-  describe "TC-007: single static source, cold cache, on_trim removes first message" do
+  describe "TC-007: single static source, cold cache, trim removes first message" do
     it "trims the first message and still returns a valid output" do
       agent = IntegrationFactors.context_agent(
         static_knowledge_label: "single",
-        on_trim_label: "remove_some",
-        on_trigger_label: "false"
+        trim_label: "remove_some",
+        trigger_label: "false"
       ).new
 
       first = agent.invoke("Remember: my favourite color is red. Just say 'Got it.'")
@@ -151,8 +151,8 @@ RSpec.describe "Group: Context Management", :integration do
     it "performs compaction without raising and returns a non-empty output" do
       agent = IntegrationFactors.context_agent(
         static_knowledge_label: "multi",
-        on_trigger_label: "true",
-        on_compact_label: "summarise_range"
+        trigger_label: "true",
+        compact_label: "summarise_range"
       ).new
 
       first = agent.invoke("Say 'first message'.")
@@ -165,13 +165,13 @@ RSpec.describe "Group: Context Management", :integration do
 
   # --------------------------------------------------------------------------
   # TC-009: multi / warm / remove_some / none / none
-  # Multi static sources, warm cache; on_trim removes first message; no compaction.
+  # Multi static sources, warm cache; trim removes first message; no compaction.
   # --------------------------------------------------------------------------
-  describe "TC-009: multi static sources, warm cache, on_trim removes first message" do
+  describe "TC-009: multi static sources, warm cache, trim removes first message" do
     it "removes the oldest message each call and does not raise" do
       agent = IntegrationFactors.context_agent(
         static_knowledge_label: "multi",
-        on_trim_label: "remove_some"
+        trim_label: "remove_some"
       ).new
       agent.invoke("Say 'call one'.")
       result = agent.invoke("Say 'call two'.")
@@ -182,15 +182,15 @@ RSpec.describe "Group: Context Management", :integration do
 
   # --------------------------------------------------------------------------
   # TC-010: multi / stale / remove_none / none / multi_range
-  # Stale cache with multi static sources; trim is a no-op; compact block absent
-  # from trigger, so it never runs.
+  # Stale cache with multi static sources; trim is a no-op; trigger absent
+  # so compact never runs.
   # --------------------------------------------------------------------------
   describe "TC-010: multi static sources, stale cache, trim no-op, compact without trigger" do
     it "re-builds system_text on stale cache and does not invoke compact" do
       agent = IntegrationFactors.context_agent(
         static_knowledge_label: "multi",
-        on_trim_label: "remove_none",
-        on_compact_label: "multi_range"
+        trim_label: "remove_none",
+        compact_label: "multi_range"
       ).new
       agent.invoke("Say 'hello'.")
       agent.context_version_cache&.reset
@@ -209,8 +209,8 @@ RSpec.describe "Group: Context Management", :integration do
     it "does not run compaction and returns a valid output" do
       agent = IntegrationFactors.context_agent(
         static_knowledge_label: "multi",
-        on_trigger_label: "false",
-        on_compact_label: "multi_range"
+        trigger_label: "false",
+        compact_label: "multi_range"
       ).new
       result = agent.invoke("What do you know? Reply in one sentence.")
       expect(result[:output]).to be_a(String)
@@ -220,12 +220,12 @@ RSpec.describe "Group: Context Management", :integration do
 
   # --------------------------------------------------------------------------
   # TC-012: none / warm / none / true / none
-  # Instruction-only, warm cache; trigger fires but no compact block registered.
+  # Instruction-only, warm cache; trigger fires but no compact label registered.
   # --------------------------------------------------------------------------
   describe "TC-012: no static knowledge, warm cache, trigger=true but no compact block" do
     it "fires trigger without compact block and returns a valid output" do
       agent = IntegrationFactors.context_agent(
-        on_trigger_label: "true"
+        trigger_label: "true"
       ).new
       agent.invoke("Say 'first'.")
       result = agent.invoke("Say 'second'.")
@@ -242,14 +242,14 @@ RSpec.describe "Group: Context Management", :integration do
 
   # --------------------------------------------------------------------------
   # TC-014: none / cold / remove_some / none / summarise_range
-  # Instruction-only, cold cache; on_trim removes first message; compact block
+  # Instruction-only, cold cache; trim removes first message; compact block
   # present but no trigger, so compact never runs.
   # --------------------------------------------------------------------------
-  describe "TC-014: no static knowledge, on_trim removes first message, compact without trigger" do
+  describe "TC-014: no static knowledge, trim removes first message, compact without trigger" do
     it "trims first message, skips compact (no trigger), and returns a valid output" do
       agent = IntegrationFactors.context_agent(
-        on_trim_label: "remove_some",
-        on_compact_label: "summarise_range"
+        trim_label: "remove_some",
+        compact_label: "summarise_range"
       ).new
 
       first = agent.invoke("Say 'hello'.")

@@ -301,80 +301,6 @@ module Phronomy
           @static_knowledge_chunks = nil
         end
 
-        # Registers a callback that is invoked before every LLM call so the
-        # application can remove stale or irrelevant messages from the
-        # conversation history.
-        #
-        # The block receives a {Phronomy::Agent::Context::Conversation::TrimContext} and may call
-        # +ctx.remove(seqs)+ to drop messages by seq number. Changes affect
-        # only the current invocation; the underlying memory store is unchanged.
-        #
-        # @yield [ctx] Phronomy::Agent::Context::Conversation::TrimContext
-        # @example Drop the oldest message when over 80% of budget is used
-        #   on_trim do |ctx|
-        #     limit = ctx.budget&.available(used: 0) || Float::INFINITY
-        #     ctx.remove(ctx.message_elements.first[:seq]) if ctx.total_tokens > limit * 0.8
-        #   end
-        # @api public
-        def on_trim(&block)
-          @on_trim_callback = block
-        end
-
-        # @return [Proc, nil]
-        # @api private
-        def _on_trim_callback
-          @on_trim_callback
-        end
-
-        # Registers a callback that decides whether compaction should run.
-        # Evaluated before every LLM call (after on_trim). If the block returns
-        # truthy AND an +on_compact+ callback is also registered, the compact
-        # pipeline is executed.
-        #
-        # The block receives a read-only {Phronomy::Agent::Context::Conversation::TriggerContext}.
-        #
-        # @yield [ctx] Phronomy::Agent::Context::Conversation::TriggerContext
-        # @return [Boolean] truthy → run on_compact; falsy → skip
-        # @example Trigger when messages exceed 70% of token budget
-        #   on_compaction_trigger do |ctx|
-        #     limit = ctx.budget&.available(used: 0) || Float::INFINITY
-        #     ctx.total_tokens > limit * 0.7
-        #   end
-        # @api public
-        def on_compaction_trigger(&block)
-          @on_compaction_trigger_callback = block
-        end
-
-        # @return [Proc, nil]
-        # @api private
-        def _on_compaction_trigger_callback
-          @on_compaction_trigger_callback
-        end
-
-        # Registers a callback that performs the actual compaction when the
-        # +on_compaction_trigger+ callback fires. The block receives a
-        # {Phronomy::Agent::Context::Conversation::CompactionContext} and should call +ctx.compact+
-        # to specify which messages to summarise.
-        #
-        # @yield [ctx] Phronomy::Agent::Context::Conversation::CompactionContext
-        # @example Replace the first 4 messages with a short summary
-        #   on_compact do |ctx|
-        #     ctx.compact(0..3) do |elements|
-        #       texts = elements.map { |e| e[:message].content }.join(" | ")
-        #       "Earlier conversation summary: #{texts}"
-        #     end
-        #   end
-        # @api public
-        def on_compact(&block)
-          @on_compact_callback = block
-        end
-
-        # @return [Proc, nil]
-        # @api private
-        def _on_compact_callback
-          @on_compact_callback
-        end
-
         # When enabled, attaches Anthropic prompt-cache markers to the system
         # message so that the fixed instructions are served from cache on
         # subsequent turns, reducing input-token costs.
@@ -719,7 +645,15 @@ module Phronomy
 
           chat = build_chat
           user_message = extract_message(input)
-          context = build_context(input, messages: messages, thread_id: thread_id, config: config)
+          context = build_context(
+            input,
+            messages:    messages,
+            thread_id:   thread_id,
+            config:      config,
+            budget:      build_token_budget,
+            instruction: build_instructions(input),
+            tools:       self.class.tools + _handoff_tools
+          )
           _apply_context_to_chat(chat, context)
 
           current_tool_call = nil
@@ -751,74 +685,170 @@ module Phronomy
       # inject custom context editing logic without having to override
       # the full #invoke_once pipeline.
       #
-      # @param input     [String, Hash] the user's input for this turn
-      # @param messages  [Array<RubyLLM::Message>] raw conversation history
-      # @param thread_id [String, nil] conversation thread identifier
+      # The keyword arguments +budget+, +instruction+, +tools+, and +knowledge+
+      # carry pre-computed values. Override them in a subclass call to +super+
+      # to inject custom context without recomputing the defaults.
+      #
+      # @param input       [String, Hash] the user's input for this turn
+      # @param messages    [Array<RubyLLM::Message>] raw conversation history
+      # @param thread_id   [String, nil] conversation thread identifier
       # @param config      [Hash] the invocation config (see #invoke)
+      # @param budget      [LlmContextWindow::TokenBudget, nil] pre-computed token budget
+      # @param instruction [String, nil] pre-computed system instruction
+      # @param tools       [Array<Class>] tool classes to expose
+      # @param knowledge   [Array<Hash>] knowledge chunks ({ content:, type:, source: })
       # @return [Hash] { system: String|nil, messages: Array, tool_classes: Array }
       # @api public
-      def build_context(input, messages: [], thread_id: nil, config: {})
-        history = prepare_history(messages: messages, thread_id: thread_id, config: config)
-        budget = build_token_budget
-        instruction = build_instructions(input)
-
+      def build_context(
+        input,
+        messages:    [],
+        thread_id:   nil,
+        config:      {},
+        budget:      build_token_budget,
+        instruction: build_instructions(input),
+        tools:       self.class.tools + _handoff_tools,
+        knowledge:   self.class.static_knowledge_chunks + instance_knowledge_chunks
+      )
         assembler = LlmContextWindow::Assembler.new(budget: budget)
         assembler.add_instruction(instruction) if instruction
-        assembler.add_capability(self.class.tools + _handoff_tools)
-        self.class.static_knowledge_chunks.each do |chunk|
-          assembler.add_knowledge(chunk[:content], type: chunk[:type] || :static, trusted: true, source: chunk[:source])
+        assembler.add_capability(tools)
+        knowledge.each { |chunk| assembler.add_knowledge(chunk[:content], type: chunk[:type] || :static, trusted: true, source: chunk[:source]) }
+
+        msgs = Array(messages)
+
+        if budget && budget_exceeded?(msgs)
+          # Default strategy when the token budget is tight:
+          # 1. Compact: keep the most recent half of the messages verbatim and
+          #    replace the older half with a brief omission marker.
+          # 2. Trim: if the compacted history still exceeds the budget, call
+          #    trim_to_budget with the :safe strategy, which discards the oldest
+          #    message one at a time until the history fits.
+          # Subclasses can override build_context to apply a different strategy
+          # (e.g. LLM-based summarisation) before calling super.
+          keep = [msgs.size / 2, 2].max
+          msgs = compact_messages(msgs, keep_tail: keep) do |dropped|
+            "[#{dropped.size} earlier messages omitted]"
+          end
+          remaining = assembler.available_for_messages
+          msgs = trim_to_budget(msgs, remaining: remaining, strategy: :safe)
         end
-        assembler.add_messages(history)
+
+        assembler.add_messages(msgs)
         @last_context = assembler.build
       end
       protected :build_context
 
-      # Fetches knowledge chunks from all registered sources concurrently.
+      # Keeps the last +keep+ messages from +messages+, discarding older ones.
+      # Use this inside a +build_context+ override to trim conversation history.
       #
-      # Each source is spawned as a separate task within a {Phronomy::TaskGroup};
-      # the RAG concurrency gate enforces the +max_concurrent_rag_fetches+ cap.
-      # Results are returned in registration order (spawn order) as a flat array.
-      #
-      # Runs the on_trim / on_compaction_trigger / on_compact pipeline on the
-      # supplied message array and returns the final Array of message objects
-      # ready to pass to the Assembler.
-      #
-      # Override this method in a subclass to customize how conversation
-      # history is filtered or compressed before context assembly.
-      #
-      # @param messages  [Array<RubyLLM::Message>] raw conversation history
-      # @param thread_id [String, nil] conversation thread identifier
-      # @param config    [Hash] additional invocation options
-      # @return [Array] filtered and/or compacted message objects
+      # @param messages [Array<RubyLLM::Message>] conversation history
+      # @param keep     [Integer] number of messages to retain (from the tail)
+      # @return [Array<RubyLLM::Message>]
       # @api public
-      def prepare_history(messages: [], thread_id: nil, config: {})
-        budget = build_token_budget
-        elements = build_message_elements(Array(messages))
-
-        if (trim_cb = self.class._on_trim_callback)
-          trim_ctx = Context::Conversation::TrimContext.new(message_elements: elements, budget: budget)
-          trim_cb.call(trim_ctx)
-          elements = trim_ctx.message_elements
-        end
-
-        if (trigger_cb = self.class._on_compaction_trigger_callback)
-          trigger_ctx = Context::Conversation::TriggerContext.new(message_elements: elements, budget: budget)
-          if trigger_cb.call(trigger_ctx)
-            if (compact_cb = self.class._on_compact_callback)
-              compact_ctx = Context::Conversation::CompactionContext.new(
-                message_elements: elements,
-                budget: budget,
-                thread_id: thread_id
-              )
-              compact_cb.call(compact_ctx)
-              elements = build_message_elements(compact_ctx.result_messages)
-            end
-          end
-        end
-
-        elements.map { |e| e[:message] }
+      def trim_messages(messages, keep:)
+        Array(messages).last(keep)
       end
-      protected :prepare_history
+      protected :trim_messages
+
+      # Removes the oldest messages one at a time until the count is within +limit+.
+      #
+      # @param messages [Array<RubyLLM::Message>] conversation history
+      # @param limit    [Integer] maximum number of messages to retain
+      # @return [Array<RubyLLM::Message>]
+      # @api public
+      def drop_messages_over(messages, limit:)
+        msgs = Array(messages).dup
+        msgs.shift while msgs.size > limit
+        msgs
+      end
+      protected :drop_messages_over
+
+      # Replaces all but the last +keep_tail+ messages with a single system summary.
+      # The block receives the dropped messages and must return a summary String.
+      #
+      # @param messages  [Array<RubyLLM::Message>] conversation history
+      # @param keep_tail [Integer] number of recent messages to preserve verbatim
+      # @yield  [Array<RubyLLM::Message>] the messages being summarised
+      # @yieldreturn [String] summary text
+      # @return [Array<RubyLLM::Message>]
+      # @api public
+      def compact_messages(messages, keep_tail:, &summariser)
+        msgs = Array(messages)
+        return msgs if msgs.size <= keep_tail
+        tail    = msgs.last(keep_tail)
+        dropped = msgs.first(msgs.size - keep_tail)
+        summary_text = summariser.call(dropped)
+        [RubyLLM::Message.new(role: :system, content: summary_text)] + tail
+      end
+      protected :compact_messages
+
+      # Trims +messages+ to fit within +remaining+ tokens using the given
+      # +strategy+. Returns the trimmed message array without touching the
+      # assembler. The caller is responsible for passing the result to
+      # +assembler.add_messages+ and calling +assembler.build+.
+      #
+      # Supported strategies:
+      #   +:safe+ — discard the oldest message one at a time (default)
+      #
+      # @param messages  [Array<RubyLLM::Message>] conversation history
+      # @param remaining [Integer, nil] token allowance for messages; when +nil+
+      #   the messages are returned unchanged
+      # @param strategy  [Symbol] trim strategy (default +:safe+)
+      # @return [Array<RubyLLM::Message>]
+      # @api public
+      def trim_to_budget(messages, remaining:, strategy: :safe)
+        return Array(messages) unless remaining
+        msgs = Array(messages)
+        loop do
+          used = msgs.sum { |m| LlmContextWindow::TokenEstimator.estimate(m.content.to_s) }
+          return msgs if used <= remaining
+          break if msgs.empty?
+          msgs = case strategy
+                 when :safe then trim_messages(msgs, keep: msgs.size - 1)
+                 else trim_messages(msgs, keep: msgs.size - 1)
+                 end
+        end
+        msgs
+      end
+      protected :trim_to_budget
+
+      # Returns +true+ when the estimated token usage of +messages+ exceeds
+      # +threshold+ times the available context budget.
+      # Always returns +false+ when no token budget is available.
+      #
+      # @param messages  [Array<RubyLLM::Message>] conversation history
+      # @param threshold [Float] fraction of the available budget (default 0.8)
+      # @return [Boolean]
+      # @api public
+      def budget_exceeded?(messages, threshold: 0.8)
+        return false unless (b = build_token_budget)
+        total = Array(messages).sum { |m| LlmContextWindow::TokenEstimator.estimate(m.content.to_s) }
+        limit = b.available(used: 0)
+        total > limit * threshold
+      end
+      protected :budget_exceeded?
+
+      # Registers a per-instance knowledge source. Knowledge chunks from all
+      # registered sources are included in every LLM call via +build_context+.
+      #
+      # @param source [#fetch] any object responding to +fetch(query:)+
+      # @return [void]
+      # @api public
+      def add_knowledge_source(source)
+        @instance_knowledge_sources ||= []
+        @instance_knowledge_sources << source
+      end
+      protected :add_knowledge_source
+
+      # Returns knowledge chunks fetched from all instance-level knowledge sources.
+      #
+      # @return [Array<Hash>]
+      # @api private
+      def instance_knowledge_chunks
+        return [] unless @instance_knowledge_sources
+        @instance_knowledge_sources.flat_map { |ks| ks.fetch(query: nil) }
+      end
+      protected :instance_knowledge_chunks
 
       # Performs a single (non-retried) invocation. Extracted so that #invoke can
       # wrap it in a retry loop without duplicating the LLM interaction logic.
@@ -890,20 +920,6 @@ module Phronomy
         end
       rescue Phronomy::LlmContextWindow::UnknownModelError, RubyLLM::ModelNotFoundError
         nil
-      end
-
-      # Converts a flat Array of message objects into the internal message_elements
-      # format used by TrimContext, TriggerContext, and CompactionContext.
-      # Each element receives a 0-based synthetic seq number.
-      #
-      # @param messages [Array] message-like objects with #role and #content
-      # @return [Array<Hash>]
-      # @api public
-      def build_message_elements(messages)
-        Array(messages).each_with_index.map do |msg, idx|
-          tokens = LlmContextWindow::TokenEstimator.estimate(msg.content.to_s)
-          {seq: idx, message: msg, tokens: tokens, role: msg.role}
-        end
       end
 
       # Returns the chat class to instantiate for this invocation.

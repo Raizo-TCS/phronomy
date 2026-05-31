@@ -106,6 +106,21 @@ module Phronomy
         self
       end
 
+      # Returns the number of tokens available for conversation messages after
+      # accounting for instruction, knowledge, and capability overhead.
+      # Returns +nil+ when no budget is configured.
+      #
+      # @return [Integer, nil]
+      # @api private
+      def available_for_messages
+        return nil unless @budget
+        knowledge_text = @knowledge_chunks.map { |c| xml_context_tag(c) }.join("\n\n")
+        system_parts = [@instruction, knowledge_text.empty? ? nil : knowledge_text].compact
+        system_text = system_parts.join("\n\n")
+        used = TokenEstimator.estimate(system_text) + estimate_capability_tokens
+        @budget.available(used: used)
+      end
+
       # Assemble the context.
       #
       # @return [Hash{Symbol => Object}]
@@ -113,22 +128,34 @@ module Phronomy
       #   :messages    [Array]        conversation messages, trimmed to budget if set
       #   :tool_classes [Array]       tool classes/instances to register with the chat
       # @api private
-      # mutant:disable - multiple genuine equivalent mutations: map{}.join("\n\n") → map{} is genuine because Ruby Array#join recursively joins nested arrays with the same separator (so [outer_array].join("\n\n") == original String); `unless knowledge_text.empty?` vs ternary is genuine (same conditional logic); `{ system: unless system_text.empty? }` vs ternary is genuine; `messages:` shorthand vs `messages: messages` is genuine
+      # Raises {Phronomy::ContextLengthError} when a budget is set and the
+      # conversation messages do not fit within the remaining token allowance.
+      # No automatic trimming is performed — callers must pre-process messages
+      # (e.g. via Agent::Base#trim_messages or #compact_messages) before
+      # passing them to the Assembler.
+      #
+      # mutant:disable - multiple genuine equivalent mutations: map{}.join("\n\n") → map{} is genuine; `unless knowledge_text.empty?` vs ternary is genuine; `{ system: unless system_text.empty? }` vs ternary is genuine; `messages:` shorthand vs `messages: messages` is genuine
       def build
         knowledge_text = @knowledge_chunks.map { |c| xml_context_tag(c) }.join("\n\n")
         system_parts = [@instruction, knowledge_text.empty? ? nil : knowledge_text].compact
         system_text = system_parts.join("\n\n")
 
-        capability_tokens = estimate_capability_tokens
-        messages = if @budget
-          trim_messages_to_budget(@messages, system_text, extra_used: capability_tokens)
-        else
-          @messages
+        if @budget && @messages.any?
+          capability_tokens = estimate_capability_tokens
+          used = TokenEstimator.estimate(system_text) + capability_tokens
+          remaining = @budget.available(used: used)
+          msg_tokens = @messages.sum { |m| TokenEstimator.estimate(m.content.to_s) }
+          if msg_tokens > remaining
+            raise Phronomy::ContextLengthError,
+              "Context exceeds token budget: messages require #{msg_tokens} tokens but " \
+              "only #{remaining} available (context_window=#{@budget.context_window}, " \
+              "used_by_system=#{used}). Override build_context to trim or compact messages."
+          end
         end
 
         {
           system: system_text.empty? ? nil : system_text,
-          messages: messages,
+          messages: @messages,
           tool_classes: @tool_classes
         }
       end
@@ -160,36 +187,6 @@ module Phronomy
         "<context type=\"#{CGI.escapeHTML(chunk[:type].to_s)}\"#{src_attr} trusted=\"#{chunk[:trusted]}\">\n#{CGI.escapeHTML(chunk[:text].to_s)}\n</context>"
       end
 
-      # mutant:disable - multiple genuine equivalent mutations on the early-return guard:
-      # `remaining <= 0 && false/nil`, `if false`, `if nil`, `if remaining && messages.empty?`,
-      # `if remaining < 0 && messages.empty?`, `if remaining <= -1 && messages.empty?`,
-      # `if remaining <= 1 && messages.empty?`, `if remaining == 0 && messages.empty?`,
-      # `if remaining.eql?(0) && messages.empty?`, `if remaining.equal?(0) && messages.empty?`,
-      # `if 0 && messages.empty?`, `if nil && messages.empty?` —
-      # all are genuine equivalents because when messages.empty? the loop produces [] anyway,
-      # and remaining is always >= 0 (clamp(0..)) so `remaining < 0` / `<= -1` are never true.
-      def trim_messages_to_budget(messages, system_text, extra_used: 0)
-        used = TokenEstimator.estimate(system_text) + extra_used
-        remaining = @budget.available(used: used)
-        return messages if remaining <= 0 && messages.empty?
-
-        accumulated = 0
-        result = []
-        messages.reverse_each do |msg|
-          tokens = TokenEstimator.estimate(msg.content.to_s)
-          break if accumulated + tokens > remaining
-
-          accumulated += tokens
-          result.push(msg)
-        end
-
-        if result.empty? && messages.any?
-          warn "[Phronomy::Assembler] All #{messages.length} conversation message(s) dropped: " \
-               "token budget exhausted by system context (budget=#{@budget.context_window}, used_by_system=#{used})"
-        end
-
-        result.reverse
-      end
     end
   end
 end

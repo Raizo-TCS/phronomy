@@ -83,28 +83,22 @@ RSpec.describe Phronomy::LlmContextWindow::Assembler do
 
     subject(:assembler) { described_class.new(budget: budget) }
 
-    it "trims oldest messages when they exceed the budget" do
+    it "raises ContextLengthError when messages exceed the budget" do
       msgs = Array.new(6) { |i| make_msg(:user, "x" * 20 + i.to_s) }
       assembler.add_messages(msgs)
-      result = assembler.build[:messages]
-      expect(result.length).to be < 6
-      expect(result.last).to eq(msgs.last)
+      expect { assembler.build }.to raise_error(Phronomy::ContextLengthError)
     end
 
-    it "returns empty messages when budget is exhausted by system text" do
-      # Instruction consumes all tokens; messages should be dropped.
+    it "raises ContextLengthError when budget is exhausted by system text and messages are present" do
       assembler.add_instruction("x" * 200)
-      msgs = [make_msg(:user, "hello")]
-      assembler.add_messages(msgs)
-      # Cannot guarantee exact trim, just ensure no error and result is an Array.
-      expect(assembler.build[:messages]).to be_an(Array)
+      assembler.add_messages([make_msg(:user, "hello")])
+      expect { assembler.build }.to raise_error(Phronomy::ContextLengthError)
     end
 
-    it "preserves the newest messages" do
-      msgs = Array.new(10) { |i| make_msg(:user, "x" * 20 + i.to_s) }
+    it "passes all messages through without error when they fit within the budget" do
+      msgs = [make_msg(:user, "hi"), make_msg(:assistant, "ok")]
       assembler.add_messages(msgs)
-      result = assembler.build[:messages]
-      expect(result).to include(msgs.last) unless result.empty?
+      expect(assembler.build[:messages]).to eq(msgs)
     end
   end
 
@@ -162,10 +156,9 @@ RSpec.describe Phronomy::LlmContextWindow::Assembler do
     end
   end
 
-  # Regression test for GitHub Issue #34 (ID-15):
-  # trim_messages_to_budget silently returns [] when remaining <= 0 at the
-  # start of the loop. Adding messages should not silently vanish without
-  # any warning or callback invocation.
+  # Regression test for GitHub Issue #34 (ID-15) — updated:
+  # Previously trim_messages_to_budget silently dropped messages. Now the
+  # Assembler raises ContextLengthError so the problem surfaces immediately.
   describe "budget fully consumed by system context (Issue #34 / ID-15)" do
     let(:tiny_budget) do
       Phronomy::LlmContextWindow::TokenBudget.new(context_window: 10, max_output_tokens: 0)
@@ -173,25 +166,24 @@ RSpec.describe Phronomy::LlmContextWindow::Assembler do
 
     subject(:assembler) { described_class.new(budget: tiny_budget) }
 
-    it "does not raise when all budget is consumed by a large instruction" do
+    it "raises ContextLengthError when budget is exhausted by a large instruction and messages are present" do
       assembler.add_instruction("x" * 500)
       assembler.add_messages([make_msg(:user, "hello"), make_msg(:assistant, "world")])
-      expect { assembler.build }.not_to raise_error
+      expect { assembler.build }.to raise_error(Phronomy::ContextLengthError)
     end
 
-    it "returns an Array (possibly empty) for :messages when budget is exhausted" do
+    it "does not raise when budget is exhausted by a large instruction but no messages are added" do
       assembler.add_instruction("x" * 500)
-      assembler.add_messages([make_msg(:user, "hello")])
-      expect(assembler.build[:messages]).to be_an(Array)
+      expect { assembler.build }.not_to raise_error
     end
   end
 
   describe "#initialize" do
-    it "stores the budget so that build uses it for token trimming" do
+    it "raises ContextLengthError when messages exceed the budget context window" do
       budget = Phronomy::LlmContextWindow::TokenBudget.new(context_window: 1, max_output_tokens: 0)
       asm = described_class.new(budget: budget)
       asm.add_messages([make_msg(:user, "x" * 100)])
-      expect(asm.build[:messages]).to eq([])
+      expect { asm.build }.to raise_error(Phronomy::ContextLengthError)
     end
 
     it "allows creation with no budget argument (budget defaults to nil, no trimming)" do
@@ -282,62 +274,4 @@ RSpec.describe Phronomy::LlmContextWindow::Assembler do
     end
   end
 
-  describe "#trim_messages_to_budget" do
-    # TokenEstimator heuristic: ceil(char_count / 4)
-    # context_window: 10, max_output_tokens: 0 → effective_input_limit = 10 tokens
-
-    let(:budget) { Phronomy::LlmContextWindow::TokenBudget.new(context_window: 10, max_output_tokens: 0) }
-    subject(:assembler) { described_class.new(budget: budget) }
-
-    # Kill: remaining<=0 && true, &&messages, &&messages.any?, (alone), ||messages.empty?
-    it "returns empty array when remaining budget is zero and messages are present" do
-      assembler.add_instruction("x" * 40) # ceil(40/4) = 10 tokens → remaining = 0
-      assembler.add_messages([make_msg(:user, "hello")])
-      expect(assembler.build[:messages]).to eq([])
-    end
-
-    # Kill: accumulated = 1 / accumulated = -1
-    it "includes exactly the correct number of messages that fit within the budget" do
-      tight = Phronomy::LlmContextWindow::TokenBudget.new(context_window: 3, max_output_tokens: 0)
-      asm = described_class.new(budget: tight)
-      # 4 messages × ceil(4/4)=1 token each; budget=3 → exactly 3 fit
-      msgs = (1..4).map { make_msg(:user, "xxyy") }
-      asm.add_messages(msgs)
-      expect(asm.build[:messages].length).to eq(3)
-    end
-
-    # Kill: used=nil, used=system_text, remaining=@budget.available, remaining=@budget.available(used: nil)
-    it "reduces the remaining budget by the number of tokens consumed by system text" do
-      # system_text = ceil(32/4) = 8 tokens → remaining = 10 - 8 = 2 tokens
-      # messages: 3 × ceil(8/4)=2 tokens each — only 1 (newest) fits in 2 remaining tokens
-      assembler.add_instruction("x" * 32)
-      msgs = [
-        make_msg(:user, "x" * 8),
-        make_msg(:user, "x" * 8),
-        make_msg(:user, "x" * 8)
-      ]
-      assembler.add_messages(msgs)
-      result = assembler.build[:messages]
-      expect(result.length).to eq(1)
-      expect(result.first.content).to eq("x" * 8)
-    end
-
-    # Kill: result.reverse → nil
-    it "returns an Array (not nil) as the messages result" do
-      assembler.add_messages([make_msg(:user, "hello")])
-      expect(assembler.build[:messages]).to be_an(Array)
-    end
-
-    # Kill: result.reverse omitted (order reversal bug)
-    it "returns messages in original chronological order" do
-      msgs = [
-        make_msg(:user, "first"),
-        make_msg(:assistant, "second"),
-        make_msg(:user, "third")
-      ]
-      assembler.add_messages(msgs)
-      result = assembler.build[:messages]
-      expect(result.map(&:content)).to eq(["first", "second", "third"]) unless result.empty?
-    end
-  end
 end

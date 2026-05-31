@@ -14,7 +14,9 @@ module Phronomy
         #     "Our refund policy: ...",
         #     type: :policy
         #   )
-        #   agent.invoke("What is the refund policy?", config: { knowledge_sources: [ks] })
+        #   agent = MyAgent.new
+        #   agent.add_knowledge_source(ks)
+        #   agent.invoke("What is the refund policy?")
         class StaticKnowledge < Base
           # @param text   [String] the static knowledge text to inject
           # @param type   [Symbol] semantic tag for the chunk (default :static)

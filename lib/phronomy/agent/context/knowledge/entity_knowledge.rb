@@ -25,7 +25,9 @@ module Phronomy
         # @example
         #   ks = Phronomy::Agent::Context::Knowledge::EntityKnowledge.new
         #   ks.update(messages: chat_messages)
-        #   agent.invoke("What is my name?", config: { knowledge_sources: [ks] })
+        #   agent = MyAgent.new
+        #   agent.add_knowledge_source(ks)
+        #   agent.invoke("What is my name?")
         class EntityKnowledge < Base
           PATTERNS = [
             [:name, /\bmy name is\s+([A-Za-z][A-Za-z0-9 \-']*)/i],

@@ -117,7 +117,15 @@ module Phronomy
       def step(messages, initial_input, user_asked: false, thread_id: nil, config: {})
         chat = build_chat
 
-        context = build_context(initial_input, messages: messages, thread_id: thread_id, config: config)
+        context = build_context(
+          initial_input,
+          messages:    messages,
+          thread_id:   thread_id,
+          config:      config,
+          budget:      build_token_budget,
+          instruction: build_instructions(initial_input),
+          tools:       self.class.tools + _handoff_tools
+        )
         apply_instructions(chat, context[:system]) if context[:system]
         (context[:tool_classes] || []).each { |tc| chat.with_tool(prepare_tool_class(tc)) }
         context[:messages].each { |m| chat.add_message(m) }
@@ -145,7 +153,15 @@ module Phronomy
       def stream_step(messages, initial_input, user_asked: false, thread_id: nil, config: {}, &block)
         chat = build_chat
 
-        context = build_context(initial_input, messages: messages, thread_id: thread_id, config: config)
+        context = build_context(
+          initial_input,
+          messages:    messages,
+          thread_id:   thread_id,
+          config:      config,
+          budget:      build_token_budget,
+          instruction: build_instructions(initial_input),
+          tools:       self.class.tools + _handoff_tools
+        )
         apply_instructions(chat, context[:system]) if context[:system]
         (context[:tool_classes] || []).each { |tc| chat.with_tool(prepare_tool_class(tc)) }
         context[:messages].each { |m| chat.add_message(m) }
