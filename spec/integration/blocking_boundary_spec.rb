@@ -188,7 +188,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
     # embeddings adapter. fetch_async is inherited from Base and always
     # submits to pool.submit regardless of subclass.
     let(:knowledge_source) do
-      Class.new(Phronomy::Agent::Context::Knowledge::Source::Base) do
+      Class.new(Phronomy::Agent::Context::Knowledge::Base) do
         def fetch(query: nil, cancellation_token: nil)
           [{content: "Test content.", type: :text, source: "test"}]
         end

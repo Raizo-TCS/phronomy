@@ -3,7 +3,7 @@
 require "spec_helper"
 require "ostruct"
 
-RSpec.describe Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge do
+RSpec.describe Phronomy::Agent::Context::Knowledge::StaticKnowledge do
   subject(:ks) { described_class.new("Ruby is a dynamic language.") }
 
   # Contract tests: verify StaticKnowledge satisfies the knowledge source interface (Issue #212).
@@ -38,7 +38,7 @@ RSpec.describe Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge do
   end
 end
 
-RSpec.describe Phronomy::Agent::Context::Knowledge::Source::EntityKnowledge do
+RSpec.describe Phronomy::Agent::Context::Knowledge::EntityKnowledge do
   # Contract tests: verify EntityKnowledge satisfies the knowledge source interface (Issue #212).
   it_behaves_like "a knowledge source" do
     let(:source) { described_class.new }
@@ -93,17 +93,17 @@ RSpec.describe "KnowledgeSource CancellationToken propagation (#242)" do
   end
 
   it "StaticKnowledge#fetch raises CancellationError when token is cancelled" do
-    ks = Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge.new("some text")
+    ks = Phronomy::Agent::Context::Knowledge::StaticKnowledge.new("some text")
     expect { ks.fetch(cancellation_token: cancelled_token) }.to raise_error(Phronomy::CancellationError)
   end
 
   it "EntityKnowledge#fetch raises CancellationError when token is cancelled" do
-    ks = Phronomy::Agent::Context::Knowledge::Source::EntityKnowledge.new
+    ks = Phronomy::Agent::Context::Knowledge::EntityKnowledge.new
     expect { ks.fetch(cancellation_token: cancelled_token) }.to raise_error(Phronomy::CancellationError)
   end
 
   it "KnowledgeSource::Base#fetch raises CancellationError when token is cancelled" do
-    ks = Phronomy::Agent::Context::Knowledge::Source::Base.new
+    ks = Phronomy::Agent::Context::Knowledge::Base.new
     expect { ks.fetch(cancellation_token: cancelled_token) }.to raise_error(Phronomy::CancellationError)
   end
 end

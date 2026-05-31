@@ -254,10 +254,10 @@ module Phronomy
         # the first time +invoke+ is called. The cache persists for the lifetime
         # of the process; call {.static_knowledge_refresh!} to force a reload.
         #
-        # @param sources [Array<Phronomy::Agent::Context::Knowledge::Source::Base>]
+        # @param sources [Array<Phronomy::Agent::Context::Knowledge::Base>]
         # @example
         #   class PolicyAgent < Phronomy::Agent::Base
-        #     static_knowledge Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge.new(POLICY_TEXT)
+        #     static_knowledge Phronomy::Agent::Context::Knowledge::StaticKnowledge.new(POLICY_TEXT)
         #   end
         # @api public
         def static_knowledge(*sources)
@@ -268,7 +268,7 @@ module Phronomy
         end
 
         # Returns the registered static knowledge sources.
-        # @return [Array<Phronomy::Agent::Context::Knowledge::Source::Base>]
+        # @return [Array<Phronomy::Agent::Context::Knowledge::Base>]
         # @api public
         def static_knowledge_sources
           @static_knowledge_sources || []

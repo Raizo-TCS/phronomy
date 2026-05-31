@@ -341,7 +341,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::Agent::Context::Knowledge::Source::Base",
+    "name": "Phronomy::Agent::Context::Knowledge::Base",
     "type": "class",
     "public_instance_methods": [
       "fetch",
@@ -351,7 +351,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge",
+    "name": "Phronomy::Agent::Context::Knowledge::StaticKnowledge",
     "type": "class",
     "public_instance_methods": [
       "fetch",
@@ -361,7 +361,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::Agent::Context::Knowledge::Source::RAGKnowledge",
+    "name": "Phronomy::Agent::Context::Knowledge::RAGKnowledge",
     "type": "class",
     "public_instance_methods": [
       "fetch",

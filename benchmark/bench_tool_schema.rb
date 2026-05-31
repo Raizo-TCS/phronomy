@@ -43,7 +43,7 @@ end
 
 # --- static_knowledge_chunks cache ---
 
-class BenchKnowledgeSource < Phronomy::Agent::Context::Knowledge::Source::Base
+class BenchKnowledgeSource < Phronomy::Agent::Context::Knowledge::Base
   def fetch(query: nil)
     [{content: "Cached knowledge fact.", type: :static}]
   end

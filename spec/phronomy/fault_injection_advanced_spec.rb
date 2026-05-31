@@ -48,7 +48,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
 
     let(:store) { Phronomy::RAG::VectorStore::InMemory.new(dimension: 3) }
     let(:rag_source) do
-      Phronomy::Agent::Context::Knowledge::Source::RAGKnowledge.new(
+      Phronomy::Agent::Context::Knowledge::RAGKnowledge.new(
         store: store,
         embeddings: exploding_embeddings,
         k: 3
@@ -92,7 +92,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     end
 
     let(:rag_source) do
-      Phronomy::Agent::Context::Knowledge::Source::RAGKnowledge.new(
+      Phronomy::Agent::Context::Knowledge::RAGKnowledge.new(
         store: exploding_store,
         embeddings: stub_embeddings,
         k: 1

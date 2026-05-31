@@ -679,17 +679,17 @@ module IntegrationFactors
   # Returns an Array of StaticKnowledge sources for the given label.
   #
   # @param label [String] "none" | "single" | "multi"
-  # @return [Array<Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge>]
+  # @return [Array<Phronomy::Agent::Context::Knowledge::StaticKnowledge>]
   def self.static_knowledge_sources(label)
     case label
     when "none"
       []
     when "single"
-      [Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge.new("Policy: be concise and helpful.")]
+      [Phronomy::Agent::Context::Knowledge::StaticKnowledge.new("Policy: be concise and helpful.")]
     when "multi"
       [
-        Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge.new("Policy: be concise and helpful."),
-        Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge.new("Guide: always cite sources when possible.")
+        Phronomy::Agent::Context::Knowledge::StaticKnowledge.new("Policy: be concise and helpful."),
+        Phronomy::Agent::Context::Knowledge::StaticKnowledge.new("Guide: always cite sources when possible.")
       ]
     else
       raise ArgumentError, "Unknown ctx_static_knowledge label: #{label}"

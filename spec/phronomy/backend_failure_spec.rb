@@ -15,7 +15,7 @@
 RSpec.describe "Backend failure scenarios (Issue #274)" do
   describe "KnowledgeSource network timeout" do
     let(:ks) do
-      Class.new(Phronomy::Agent::Context::Knowledge::Source::Base) do
+      Class.new(Phronomy::Agent::Context::Knowledge::Base) do
         def fetch(query:, cancellation_token: nil)
           sleep(10) # simulates hanging backend
           "never returned"

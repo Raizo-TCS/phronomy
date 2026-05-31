@@ -284,7 +284,7 @@ end
 
 ```ruby
 # Static knowledge (policy files, reference docs)
-policy = Phronomy::Agent::Context::Knowledge::Source::StaticKnowledge.new(
+policy = Phronomy::Agent::Context::Knowledge::StaticKnowledge.new(
   File.read("policy.md"),
   type:   :policy,
   source: "policy.md"   # exposed to LLM for citation
@@ -300,7 +300,7 @@ text2 = "Contact support@example.com for refund requests."
 store.add(id: "doc-1", embedding: embeddings.embed(text1), metadata: { content: text1, source: "policy.md" })
 store.add(id: "doc-2", embedding: embeddings.embed(text2), metadata: { content: text2, source: "policy.md" })
 
-rag = Phronomy::Agent::Context::Knowledge::Source::RAGKnowledge.new(store: store, embeddings: embeddings, k: 5)
+rag = Phronomy::Agent::Context::Knowledge::RAGKnowledge.new(store: store, embeddings: embeddings, k: 5)
 
 # Inject at invocation time
 result = MyAgent.new.invoke("What is the refund policy?",
