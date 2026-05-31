@@ -483,31 +483,6 @@ Configure via the Phronomy.configure block.</p>
       <li class="public ">
   <span class="summary_signature">
     
-      <a href="#max_concurrent_rag_fetches-instance_method" title="#max_concurrent_rag_fetches (instance method)">#<strong>max_concurrent_rag_fetches</strong>  &#x21d2; Integer<sup>?</sup> </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Maximum number of concurrent RAG knowledge-source fetches in-flight.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#max_concurrent_tool_tasks-instance_method" title="#max_concurrent_tool_tasks (instance method)">#<strong>max_concurrent_tool_tasks</strong>  &#x21d2; Integer<sup>?</sup> </a>
     
 
@@ -898,6 +873,11 @@ Configure via the Phronomy.configure block.</p>
       <pre class="lines">
 
 
+184
+185
+186
+187
+188
 189
 190
 191
@@ -915,16 +895,10 @@ Configure via the Phronomy.configure block.</p>
 203
 204
 205
-206
-207
-208
-209
-210
-211
-212</pre>
+206</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 189</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 184</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@recursion_limit</span> <span class='op'>=</span> <span class='int'>25</span>
@@ -944,7 +918,6 @@ Configure via the Phronomy.configure block.</p>
   <span class='ivar'>@max_concurrent_workflow_tasks</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@max_concurrent_llm_calls</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@stream_queue_max_size</span> <span class='op'>=</span> <span class='kw'>nil</span>
-  <span class='ivar'>@max_concurrent_rag_fetches</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@max_concurrent_vector_searches</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@starvation_threshold_ms</span> <span class='op'>=</span> <span class='int'>50</span>
   <span class='ivar'>@runtime_backend</span> <span class='op'>=</span> <span class='symbol'>:thread</span>
@@ -1683,61 +1656,6 @@ nil = unlimited (default).</p>
 </div>
     
       
-      <span id="max_concurrent_rag_fetches=-instance_method"></span>
-      <div class="method_details ">
-  <h3 class="signature " id="max_concurrent_rag_fetches-instance_method">
-  
-    #<strong>max_concurrent_rag_fetches</strong>  &#x21d2; <tt>Integer</tt><sup>?</sup> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Maximum number of concurrent RAG knowledge-source fetches in-flight.
-nil = unlimited (default).</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-146
-147
-148</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 146</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_rag_fetches'>max_concurrent_rag_fetches</span>
-  <span class='ivar'>@max_concurrent_rag_fetches</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
       <span id="max_concurrent_tool_tasks=-instance_method"></span>
       <div class="method_details ">
   <h3 class="signature " id="max_concurrent_tool_tasks-instance_method">
@@ -1832,12 +1750,12 @@ nil = unlimited (default).</p>
       <pre class="lines">
 
 
-151
-152
-153</pre>
+146
+147
+148</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 151</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 146</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_vector_searches'>max_concurrent_vector_searches</span>
   <span class='ivar'>@max_concurrent_vector_searches</span>
@@ -2020,12 +1938,12 @@ instance immediately call <code>Phronomy::Runtime.instance = nil</code> first.</
       <pre class="lines">
 
 
-181
-182
-183</pre>
+176
+177
+178</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 181</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 176</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_runtime_backend'>runtime_backend</span>
   <span class='ivar'>@runtime_backend</span>
@@ -2134,12 +2052,12 @@ Default: 50ms.</p>
       <pre class="lines">
 
 
-160
-161
-162</pre>
+155
+156
+157</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 160</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 155</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_starvation_threshold_ms'>starvation_threshold_ms</span>
   <span class='ivar'>@starvation_threshold_ms</span>
@@ -2298,12 +2216,12 @@ is logged instead so that existing callers have time to migrate.</p>
       <pre class="lines">
 
 
-187
-188
-189</pre>
+182
+183
+184</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 187</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 182</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span>
   <span class='ivar'>@strict_runtime_guards</span>
@@ -2455,7 +2373,7 @@ the tracing backend (OTel, Langfuse, etc.).</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 31 07:20:43 2026 by
+  Generated on Sun May 31 08:22:33 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

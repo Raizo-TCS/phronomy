@@ -68,7 +68,7 @@ External contributors should expect significant churn and potential conflicts at
 We apologise for the instability this may cause.</p>
 </blockquote>
 <p><strong>Phronomy</strong> is a Ruby AI agent framework inspired by open-source AI agent frameworks.<br />
-It provides composable building blocks — Workflows, Agents, Tools, Guardrails, RAG, and Tracing — all powered by <a href="https://github.com/crmne/ruby_llm">RubyLLM</a> for LLM abstraction.</p>
+It provides composable building blocks — Workflows, Agents, Tools, Guardrails, and Tracing — all powered by <a href="https://github.com/crmne/ruby_llm">RubyLLM</a> for LLM abstraction.</p>
 <h2 id="Features">Features</h2>
 <blockquote>
 <p><strong>Stability labels</strong> (phronomy is pre-1.0, so <code>0.x</code> minor releases may include
@@ -152,7 +152,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 </thead>
 <tbody>
 <tr>
-<td><strong>Knowledge/RAG</strong> — Retrieval sources with pluggable loaders, splitters, and vector stores; <code>static_knowledge_refresh!</code> for runtime cache invalidation</td>
+<td><strong>Knowledge</strong> — Static context injection with pluggable loaders, splitters, and vector stores; <code>static_knowledge_refresh!</code> for runtime cache invalidation</td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -161,10 +161,6 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 </tr>
 <tr>
 <td><strong><code>RAG::VectorStore::AsyncBackend</code> mixin</strong> — Pluggable async interface for <code>VectorStore</code>; default pool-backed implementations for <code>search_async</code>, <code>add_async</code>, <code>remove_async</code>, <code>clear_async</code>; backends with native async drivers override individual methods to bypass <code>BlockingAdapterPool</code> entirely; all existing backends remain unchanged</td>
-<td>Beta</td>
-</tr>
-<tr>
-<td><strong>Parallel RAG multi-source fetch</strong> — <code>Agent#build_context</code> fetches all <code>knowledge_sources</code> concurrently via <code>TaskGroup</code>; <code>config[:rag_failure_policy]</code> <code>:skip</code> (default) silently ignores failed sources so the agent answers with partial context, <code>:fail</code> surfaces the first error; per-source latency is emitted to <code>Phronomy.configuration.logger</code> at debug level</td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -213,7 +209,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong><code>ConcurrencyGate</code> — unified backpressure</strong> — Counting semaphore that enforces per-resource concurrency caps (<code>max_concurrent_agent_tasks</code>, <code>max_concurrent_tool_tasks</code>, <code>max_concurrent_workflow_tasks</code>, <code>max_concurrent_llm_calls</code>, <code>max_concurrent_rag_fetches</code>, <code>max_concurrent_vector_searches</code>); configured via <code>Phronomy.configure</code>; backpressure behaviour follows the global <code>backpressure</code> setting (<code>:wait</code>, <code>:raise</code>/<code>:reject</code>, <code>:timeout</code>); <code>nil</code> cap = unlimited (default)</td>
+<td><strong><code>ConcurrencyGate</code> — unified backpressure</strong> — Counting semaphore that enforces per-resource concurrency caps (<code>max_concurrent_agent_tasks</code>, <code>max_concurrent_tool_tasks</code>, <code>max_concurrent_workflow_tasks</code>, <code>max_concurrent_llm_calls</code>, <code>max_concurrent_vector_searches</code>); configured via <code>Phronomy.configure</code>; backpressure behaviour follows the global <code>backpressure</code> setting (<code>:wait</code>, <code>:raise</code>/<code>:reject</code>, <code>:timeout</code>); <code>nil</code> cap = unlimited (default)</td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -221,7 +217,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong><code>Phronomy::Metrics</code></strong> — <code>Phronomy::Metrics.snapshot</code> returns task-tree and pool counters; task-centric keys: <code>active_agent_tasks</code>, <code>active_tool_tasks</code>, <code>active_workflow_tasks</code>, <code>active_rag_tasks</code>, <code>active_llm_tasks</code>, <code>task_wait_time_p50_ms</code>, <code>task_wait_time_p95_ms</code>, <code>task_run_time_p50_ms</code>, <code>task_run_time_p95_ms</code>, <code>cancelled_tasks</code>, <code>failed_tasks</code>, <code>non_yield_threshold_violation_count</code>; pool/event-loop keys remain for backward compatibility; <code>Runtime#task_snapshot</code> exposes task-centric metrics directly</td>
+<td><strong><code>Phronomy::Metrics</code></strong> — <code>Phronomy::Metrics.snapshot</code> returns task-tree and pool counters; task-centric keys: <code>active_agent_tasks</code>, <code>active_tool_tasks</code>, <code>active_workflow_tasks</code>, <code>active_llm_tasks</code>, <code>task_wait_time_p50_ms</code>, <code>task_wait_time_p95_ms</code>, <code>task_run_time_p50_ms</code>, <code>task_run_time_p95_ms</code>, <code>cancelled_tasks</code>, <code>failed_tasks</code>, <code>non_yield_threshold_violation_count</code>; pool/event-loop keys remain for backward compatibility; <code>Runtime#task_snapshot</code> exposes task-centric metrics directly</td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -476,7 +472,7 @@ PII scanning and content classification are <strong>not</strong> provided by the
 that logic must be implemented by the application. Reference implementations for
 common patterns are available in <code>phronomy-examples</code> (example 06).</p>
 </blockquote>
-<h3 id="Knowledge_RAG___Context_injection_and_vector_retrieval">Knowledge/RAG — Context injection and vector retrieval</h3>
+<h3 id="Knowledge___Static_context_injection">Knowledge — Static context injection</h3>
 <pre class="code ruby"><code class="ruby"><span class='comment'># Static knowledge (policy files, reference docs)
 </span><span class='id identifier rubyid_policy'>policy</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Knowledge.html" title="Phronomy::Agent::Context::Knowledge (module)">Knowledge</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Knowledge/StaticKnowledge.html" title="Phronomy::Agent::Context::Knowledge::StaticKnowledge (class)">StaticKnowledge</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Agent/Context/Knowledge/StaticKnowledge.html#initialize-instance_method" title="Phronomy::Agent::Context::Knowledge::StaticKnowledge#initialize (method)">new</a></span></span><span class='lparen'>(</span>
   <span class='const'>File</span><span class='period'>.</span><span class='id identifier rubyid_read'>read</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>policy.md</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='comma'>,</span>
@@ -484,24 +480,14 @@ common patterns are available in <code>phronomy-examples</code> (example 06).</p
   <span class='label'>source:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>policy.md</span><span class='tstring_end'>&quot;</span></span>   <span class='comment'># exposed to LLM for citation
 </span><span class='rparen'>)</span>
 
-<span class='comment'># RAG retrieval from a vector store
-</span><span class='id identifier rubyid_store'>store</span>      <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/RAG.html" title="Phronomy::RAG (module)">RAG</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/RAG/VectorStore.html" title="Phronomy::RAG::VectorStore (module)">VectorStore</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/RAG/VectorStore/InMemory.html" title="Phronomy::RAG::VectorStore::InMemory (class)">InMemory</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/RAG/VectorStore/InMemory.html#initialize-instance_method" title="Phronomy::RAG::VectorStore::InMemory#initialize (method)">new</a></span></span>
-<span class='id identifier rubyid_embeddings'>embeddings</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/RAG.html" title="Phronomy::RAG (module)">RAG</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/RAG/Embeddings.html" title="Phronomy::RAG::Embeddings (module)">Embeddings</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/RAG/Embeddings/RubyLLMEmbeddings.html" title="Phronomy::RAG::Embeddings::RubyLLMEmbeddings (class)">RubyLLMEmbeddings</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/RAG/Embeddings/RubyLLMEmbeddings.html#initialize-instance_method" title="Phronomy::RAG::Embeddings::RubyLLMEmbeddings#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>model:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>text-embedding-3-small</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
-
-<span class='comment'># Add documents before querying
-</span><span class='id identifier rubyid_text1'>text1</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Refunds are processed within 5 business days.</span><span class='tstring_end'>&quot;</span></span>
-<span class='id identifier rubyid_text2'>text2</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Contact support@example.com for refund requests.</span><span class='tstring_end'>&quot;</span></span>
-<span class='id identifier rubyid_store'>store</span><span class='period'>.</span><span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='label'>id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>doc-1</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>embedding:</span> <span class='id identifier rubyid_embeddings'>embeddings</span><span class='period'>.</span><span class='id identifier rubyid_embed'>embed</span><span class='lparen'>(</span><span class='id identifier rubyid_text1'>text1</span><span class='rparen'>)</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span> <span class='label'>content:</span> <span class='id identifier rubyid_text1'>text1</span><span class='comma'>,</span> <span class='label'>source:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>policy.md</span><span class='tstring_end'>&quot;</span></span> <span class='rbrace'>}</span><span class='rparen'>)</span>
-<span class='id identifier rubyid_store'>store</span><span class='period'>.</span><span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='label'>id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>doc-2</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>embedding:</span> <span class='id identifier rubyid_embeddings'>embeddings</span><span class='period'>.</span><span class='id identifier rubyid_embed'>embed</span><span class='lparen'>(</span><span class='id identifier rubyid_text2'>text2</span><span class='rparen'>)</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span> <span class='label'>content:</span> <span class='id identifier rubyid_text2'>text2</span><span class='comma'>,</span> <span class='label'>source:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>policy.md</span><span class='tstring_end'>&quot;</span></span> <span class='rbrace'>}</span><span class='rparen'>)</span>
-
-<span class='id identifier rubyid_rag'>rag</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Knowledge.html" title="Phronomy::Agent::Context::Knowledge (module)">Knowledge</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Knowledge/RAGKnowledge.html" title="Phronomy::Agent::Context::Knowledge::RAGKnowledge (class)">RAGKnowledge</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Agent/Context/Knowledge/RAGKnowledge.html#initialize-instance_method" title="Phronomy::Agent::Context::Knowledge::RAGKnowledge#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>store:</span> <span class='id identifier rubyid_store'>store</span><span class='comma'>,</span> <span class='label'>embeddings:</span> <span class='id identifier rubyid_embeddings'>embeddings</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='int'>5</span><span class='rparen'>)</span>
-
-<span class='comment'># Inject at invocation time
-</span><span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>What is the refund policy?</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
-  <span class='label'>config:</span> <span class='lbrace'>{</span> <span class='label'>knowledge_sources:</span> <span class='lbracket'>[</span><span class='id identifier rubyid_policy'>policy</span><span class='comma'>,</span> <span class='id identifier rubyid_rag'>rag</span><span class='rbracket'>]</span> <span class='rbrace'>}</span><span class='rparen'>)</span>
+<span class='comment'># Inject at invocation time via the agent DSL
+</span><span class='kw'>class</span> <span class='const'>MyAgent</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Base.html" title="Phronomy::Agent::Base (class)">Base</a></span></span>
+  <span class='id identifier rubyid_model'>model</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>gpt-4o-mini</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_knowledge'>knowledge</span> <span class='id identifier rubyid_policy'>policy</span>
+<span class='kw'>end</span>
 </code></pre>
-<p><code>static_knowledge_refresh!</code> invalidates the class-level cache of <em>static</em> knowledge sources
-(not RAG stores). Call it when the underlying file or content has changed:</p>
+<p><code>static_knowledge_refresh!</code> invalidates the class-level cache of static knowledge sources.
+Call it when the underlying file or content has changed:</p>
 <pre class="code ruby"><code class="ruby"><span class='comment'># Static knowledge sources are cached at the class level after the first fetch.
 </span><span class='comment'># Call refresh! when the underlying content changes (e.g. after reloading policy.md).
 </span><span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_static_knowledge_refresh!'>static_knowledge_refresh!</span>
@@ -841,8 +827,8 @@ tokenizer-backed callable:</p>
 </blockquote>
 <h3 id="CancellationToken___Cooperative_cancellation">CancellationToken — Cooperative cancellation</h3>
 <p>Pass a <code>CancellationToken</code> to any agent via <code>config: { cancellation_token: token }</code>.
-Cancellation is checked at multiple granular checkpoints: before the LLM call, before
-each RAG knowledge-source fetch, after each streaming chunk, before each parallel
+Cancellation is checked at multiple granular checkpoints: before the LLM call,
+after each streaming chunk, before each parallel
 tool-call batch, and after each <code>before_completion</code> hook. <code>CancellationError</code> is
 raised immediately and is never retried. No threads are force-killed — <code>ensure</code>
 blocks always execute.</p>
@@ -1064,7 +1050,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sun May 31 07:20:40 2026 by
+  Generated on Sun May 31 08:22:31 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
