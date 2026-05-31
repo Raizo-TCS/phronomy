@@ -164,7 +164,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong>MCP Tool</strong> — Model Context Protocol server integration</td>
+<td><strong>MCP Tool</strong> — <code>Phronomy::Tools::Mcp</code>: Model Context Protocol server integration; <code>Phronomy::Tools::Agent</code>: wraps an agent class as a callable tool via <code>from_agent</code></td>
 <td>Beta</td>
 </tr>
 </tbody>
@@ -676,7 +676,7 @@ a <code>state</code> action:</p>
 </span><span class='kw'>end</span>
 </code></pre>
 <h3 id="MCP_Tool___External_tool_servers">MCP Tool — External tool servers</h3>
-<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_search_tool'>search_tool</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Capability.html" title="Phronomy::Agent::Context::Capability (module)">Capability</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Capability/McpTool.html" title="Phronomy::Agent::Context::Capability::McpTool (class)">McpTool</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_server'><span class='object_link'><a href="Phronomy/Agent/Context/Capability/McpTool.html#from_server-class_method" title="Phronomy::Agent::Context::Capability::McpTool.from_server (method)">from_server</a></span></span><span class='lparen'>(</span>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_search_tool'>search_tool</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tools.html" title="Phronomy::Tools (module)">Tools</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tools/Mcp.html" title="Phronomy::Tools::Mcp (class)">Mcp</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_server'><span class='object_link'><a href="Phronomy/Tools/Mcp.html#from_server-class_method" title="Phronomy::Tools::Mcp.from_server (method)">from_server</a></span></span><span class='lparen'>(</span>
   <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stdio://./mcp-server</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
   <span class='label'>tool_name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>web_search</span><span class='tstring_end'>&quot;</span></span>
 <span class='rparen'>)</span>
@@ -1050,7 +1050,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sun May 31 08:22:31 2026 by
+  Generated on Sun May 31 09:45:19 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
