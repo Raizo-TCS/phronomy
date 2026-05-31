@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Agent::Context::Capability::AgentTool do
+RSpec.describe Phronomy::Tools::Agent do
   # A minimal stub agent that echoes its input with a prefix.
   class EchoAgent < Phronomy::Agent::Base
     model "openai/gpt-4o-mini"
@@ -31,7 +31,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::AgentTool do
       expect { described_class.from_agent("NotAClass") }.to raise_error(ArgumentError, /agent_class must be a Class/)
     end
 
-    it "returns a Class (subclass of AgentTool)" do
+    it "returns a Class (subclass of Agent)" do
       klass = described_class.from_agent(EchoAgent)
       expect(klass).to be_a(Class)
       expect(klass.ancestors).to include(described_class)

@@ -146,8 +146,8 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     describe "TC-001: stdio + tools_list_ok — from_server succeeds" do
       it "builds a McpTool with description and params from server" do
         server_uri = "stdio://#{RUBY_CMD} #{STDIO_SERVER}"
-        tool = Phronomy::Agent::Context::Capability::McpTool.from_server(server_uri, tool_name: "add")
-        expect(tool).to be_a(Phronomy::Agent::Context::Capability::McpTool)
+        tool = Phronomy::Tools::Mcp.from_server(server_uri, tool_name: "add")
+        expect(tool).to be_a(Phronomy::Tools::Mcp)
         expect(tool.class.description).to eq("Adds two integers and returns the sum")
       end
     end
@@ -157,7 +157,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
       it "raises ArgumentError" do
         server_uri = "stdio://#{RUBY_CMD} #{STDIO_SERVER} --empty"
         expect {
-          Phronomy::Agent::Context::Capability::McpTool.from_server(server_uri, tool_name: "add")
+          Phronomy::Tools::Mcp.from_server(server_uri, tool_name: "add")
         }.to raise_error(ArgumentError, /not found/)
       end
     end
@@ -169,7 +169,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
         # server command on every rpc_call (Open3.capture3). However, fetch_tool
         # and call_tool each spawn a separate process. We verify call_tool here by
         # calling the transport directly.
-        transport = Phronomy::Agent::Context::Capability::McpTool::StdioTransport.new("#{RUBY_CMD} #{STDIO_SERVER}")
+        transport = Phronomy::Tools::Mcp::StdioTransport.new("#{RUBY_CMD} #{STDIO_SERVER}")
         result = transport.call_tool("add", {"a" => 3, "b" => 4})
         expect(result).to eq("7")
       end
@@ -178,7 +178,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     # TC-004: stdio + tools_call_multi — execute returns Array
     describe "TC-004: stdio + tools_call_multi — execute returns Array of strings" do
       it "returns an Array when multiple content blocks are present" do
-        transport = Phronomy::Agent::Context::Capability::McpTool::StdioTransport.new(
+        transport = Phronomy::Tools::Mcp::StdioTransport.new(
           "#{RUBY_CMD} #{STDIO_SERVER} --multi"
         )
         result = transport.call_tool("add", {"a" => 1, "b" => 2})
@@ -191,7 +191,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     # TC-005: stdio + server error — ToolError raised
     describe "TC-005: stdio + server error (non-zero exit) — ToolError" do
       it "raises Phronomy::ToolError" do
-        transport = Phronomy::Agent::Context::Capability::McpTool::StdioTransport.new(
+        transport = Phronomy::Tools::Mcp::StdioTransport.new(
           "#{RUBY_CMD} #{STDIO_SERVER} --error"
         )
         expect {
@@ -210,11 +210,11 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     # TC-006: http + tools_list_ok + json — from_server returns McpTool
     describe "TC-006: http + tools_list_ok + json — from_server succeeds" do
       it "builds a McpTool instance" do
-        tool = Phronomy::Agent::Context::Capability::McpTool.from_server(
+        tool = Phronomy::Tools::Mcp.from_server(
           "http://127.0.0.1:#{mcp_port}/mcp",
           tool_name: "greet"
         )
-        expect(tool).to be_a(Phronomy::Agent::Context::Capability::McpTool)
+        expect(tool).to be_a(Phronomy::Tools::Mcp)
         expect(tool.class.description).to eq("Returns a greeting")
       end
     end
@@ -222,7 +222,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     # TC-008: http + tools_call_ok + json — call returns single text String
     describe "TC-008: http + tools_call_ok + json — HttpTransport#call_tool returns String" do
       it "returns a single String result" do
-        transport = Phronomy::Agent::Context::Capability::McpTool::HttpTransport.new(
+        transport = Phronomy::Tools::Mcp::HttpTransport.new(
           "http://127.0.0.1:#{mcp_port}/mcp"
         )
         result = transport.call_tool("greet", {"name" => "Alice"})
@@ -239,7 +239,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     describe "TC-007: http + tools_list_empty + json — ArgumentError" do
       it "raises ArgumentError when tool is not in server list" do
         expect {
-          Phronomy::Agent::Context::Capability::McpTool.from_server(
+          Phronomy::Tools::Mcp.from_server(
             "http://127.0.0.1:#{mcp_port}/mcp",
             tool_name: "greet"
           )
@@ -254,7 +254,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     # TC-009: http + tools_call_multi + json — Array returned
     describe "TC-009: http + tools_call_multi + json — returns Array" do
       it "returns an Array of Strings" do
-        transport = Phronomy::Agent::Context::Capability::McpTool::HttpTransport.new(
+        transport = Phronomy::Tools::Mcp::HttpTransport.new(
           "http://127.0.0.1:#{mcp_port}/mcp"
         )
         result = transport.call_tool("greet", {"name" => "Alice"})
@@ -270,7 +270,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     # TC-010: http + http_error (500) + json — ToolError raised
     describe "TC-010: http + 500 response — Phronomy::ToolError" do
       it "raises Phronomy::ToolError with status code in message" do
-        transport = Phronomy::Agent::Context::Capability::McpTool::HttpTransport.new(
+        transport = Phronomy::Tools::Mcp::HttpTransport.new(
           "http://127.0.0.1:#{mcp_port}/mcp"
         )
         expect {
@@ -289,18 +289,18 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     # TC-011: http + tools_list_ok + sse — from_server parses SSE JSON-RPC
     describe "TC-011: http + tools_list_ok + sse — from_server parses SSE response" do
       it "builds a McpTool from an SSE response" do
-        tool = Phronomy::Agent::Context::Capability::McpTool.from_server(
+        tool = Phronomy::Tools::Mcp.from_server(
           "http://127.0.0.1:#{mcp_port}/mcp",
           tool_name: "greet"
         )
-        expect(tool).to be_a(Phronomy::Agent::Context::Capability::McpTool)
+        expect(tool).to be_a(Phronomy::Tools::Mcp)
       end
     end
 
     # TC-016: http + tools_call_ok + sse — call_tool parses SSE JSON-RPC
     describe "TC-016: http + tools_call_ok + sse — HttpTransport#call_tool returns String" do
       it "returns a String from an SSE response" do
-        transport = Phronomy::Agent::Context::Capability::McpTool::HttpTransport.new(
+        transport = Phronomy::Tools::Mcp::HttpTransport.new(
           "http://127.0.0.1:#{mcp_port}/mcp"
         )
         result = transport.call_tool("greet", {"name" => "SSE"})
@@ -315,7 +315,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     # TC-018: sse without JSON-RPC message → ToolError
     describe "TC-018: http + sse response with no JSON-RPC data — ToolError" do
       it "raises Phronomy::ToolError" do
-        transport = Phronomy::Agent::Context::Capability::McpTool::HttpTransport.new(
+        transport = Phronomy::Tools::Mcp::HttpTransport.new(
           "http://127.0.0.1:#{mcp_port}/mcp"
         )
         expect {
@@ -330,7 +330,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
   # ===========================================================================
   describe "TC-012: https:// scheme sets use_ssl=true on Net::HTTP", real_backend: :mcp_http do
     it "configures Net::HTTP to use SSL" do
-      transport = Phronomy::Agent::Context::Capability::McpTool::HttpTransport.new("https://example.com/mcp")
+      transport = Phronomy::Tools::Mcp::HttpTransport.new("https://example.com/mcp")
       allow(Net::HTTP).to receive(:new).and_call_original
 
       http_double = instance_double(Net::HTTP, "use_ssl=": nil, "open_timeout=": nil, "read_timeout=": nil, request: nil)
@@ -366,7 +366,7 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
   describe "TC-013: unsupported transport scheme — ArgumentError", real_backend: :mcp_http do
     it "raises ArgumentError for an unknown scheme" do
       expect {
-        Phronomy::Agent::Context::Capability::McpTool.from_server("grpc://localhost:50051", tool_name: "greet")
+        Phronomy::Tools::Mcp.from_server("grpc://localhost:50051", tool_name: "greet")
       }.to raise_error(ArgumentError, /Unsupported MCP transport scheme/)
     end
   end

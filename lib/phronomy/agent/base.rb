@@ -991,7 +991,7 @@ module Phronomy
       # Builds the final tool class to register with the chat.
       #
       # When an already-instantiated tool object is passed (e.g. a
-      # {Phronomy::Agent::Context::Capability::McpTool} returned by +McpTool.from_server+), it is
+      # {Phronomy::Tools::Mcp} returned by +Phronomy::Tools::Mcp.from_server+), it is
       # returned as-is.  RubyLLM's +with_tool+ accepts both classes and
       # instances, so no wrapping is needed.
       #
@@ -1009,7 +1009,7 @@ module Phronomy
       #      (tool_name, args) and, if it returns falsy, the tool returns a denial
       #      message instead of executing.
       def prepare_tool_class(tool_class)
-        # When an instantiated tool object is passed (e.g. McpTool.from_server
+        # When an instantiated tool object is passed (e.g. Phronomy::Tools::Mcp.from_server
         # returns an instance, not a class), skip class-level processing and
         # return it directly. RubyLLM#with_tool handles both forms.
         return tool_class unless tool_class.is_a?(Class)

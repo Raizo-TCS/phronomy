@@ -143,7 +143,7 @@ module Phronomy
       # so that the conversation budget is not over-allocated.
       def estimate_capability_tokens
         @tool_classes.sum do |tc|
-          # Instantiated tool objects (e.g. McpTool instances) may not be a Class.
+          # Instantiated tool objects (e.g. Phronomy::Tools::Mcp instances) may not be a Class.
           next 0 unless tc.is_a?(Class) && tc.respond_to?(:description)
 
           text = [tc.description.to_s]

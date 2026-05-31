@@ -28,22 +28,23 @@ PUBLIC_API_ENTRIES = [
   Phronomy::Workflow,
   Phronomy::WorkflowContext,
   Phronomy::Runnable,
-  Phronomy::PromptTemplate,
+  Phronomy::Agent::Context::Instruction::PromptTemplate,
   # Beta
   Phronomy::Agent::ReactAgent,
-  Phronomy::Agent::Orchestrator,
-  Phronomy::Agent::TeamCoordinator,
+  Phronomy::MultiAgent::Orchestrator,
+  Phronomy::MultiAgent::TeamCoordinator,
   Phronomy::Guardrail::InputGuardrail,
   Phronomy::Guardrail::OutputGuardrail,
-  Phronomy::VectorStore::Base,
-  Phronomy::VectorStore::InMemory,
-  Phronomy::Embeddings::Base,
-  Phronomy::KnowledgeSource::Base,
-  Phronomy::KnowledgeSource::StaticKnowledge,
-  Phronomy::KnowledgeSource::RAGKnowledge,
+  Phronomy::RAG::VectorStore::Base,
+  Phronomy::RAG::VectorStore::InMemory,
+  Phronomy::RAG::Embeddings::Base,
+  Phronomy::Agent::Context::Knowledge::Base,
+  Phronomy::Agent::Context::Knowledge::StaticKnowledge,
   Phronomy::Tracing::Base,
   Phronomy::Tracing::NullTracer,
-  Phronomy::Eval::Runner
+  Phronomy::Eval::Runner,
+  Phronomy::Tools::Mcp,
+  Phronomy::Tools::Agent
 ].freeze
 
 # Baseline methods common to all Ruby objects — excluded from the snapshot.

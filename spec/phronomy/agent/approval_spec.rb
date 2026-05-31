@@ -167,9 +167,9 @@ RSpec.describe "Agent approval gate" do
       end
     end
 
-    context "when an instantiated tool object is passed (e.g. McpTool instance)" do
+    context "when an instantiated tool object is passed (e.g. Phronomy::Tools::Mcp instance)" do
       it "returns the instance as-is without raising NoMethodError (#383)" do
-        # McpTool.from_server returns an instance, not a class.
+        # Phronomy::Tools::Mcp.from_server returns an instance, not a class.
         # Simulate with a plain Phronomy::Agent::Context::Capability::Base instance so the test does not require
         # a live MCP server.
         tool_instance = ApprovalTestTool.new

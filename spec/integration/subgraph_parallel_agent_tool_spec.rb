@@ -143,13 +143,13 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
         "SummarizerAgent"
       end
     end
-    tool_klass = Phronomy::Agent::Context::Capability::AgentTool.from_agent(
+    tool_klass = Phronomy::Tools::Agent.from_agent(
       stub_agent,
       description: "Summarizes long documents"
     )
     expect(tool_klass.new.name).to eq("summarizer")
     expect(tool_klass.description).to eq("Summarizes long documents")
-    expect(tool_klass.ancestors).to include(Phronomy::Agent::Context::Capability::AgentTool)
+    expect(tool_klass.ancestors).to include(Phronomy::Tools::Agent)
   end
 
   # ---------------------------------------------------------------------------
@@ -161,7 +161,7 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
         "TranslatorAgent"
       end
     end
-    tool_klass = Phronomy::Agent::Context::Capability::AgentTool.from_agent(
+    tool_klass = Phronomy::Tools::Agent.from_agent(
       stub_agent,
       tool_name: "my_translator",
       description: "Translates text"
@@ -180,7 +180,7 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
     end
     sub_agent_class.define_singleton_method(:name) { "MathAgent" }
 
-    math_tool = Phronomy::Agent::Context::Capability::AgentTool.from_agent(
+    math_tool = Phronomy::Tools::Agent.from_agent(
       sub_agent_class,
       tool_name: "math_solver",
       description: "Solves arithmetic questions. Pass the full question as input."

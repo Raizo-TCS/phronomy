@@ -46,7 +46,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **Knowledge** — Static context injection with pluggable loaders, splitters, and vector stores; `static_knowledge_refresh!` for runtime cache invalidation | Beta |
 | **`VectorStore#size`** — Returns document count for all three backends (InMemory, RedisSearch, Pgvector) | Beta |
 | **`RAG::VectorStore::AsyncBackend` mixin** — Pluggable async interface for `VectorStore`; default pool-backed implementations for `search_async`, `add_async`, `remove_async`, `clear_async`; backends with native async drivers override individual methods to bypass `BlockingAdapterPool` entirely; all existing backends remain unchanged | Beta |
-| **MCP Tool** — Model Context Protocol server integration | Beta |
+| **MCP Tool** — `Phronomy::Tools::Mcp`: Model Context Protocol server integration; `Phronomy::Tools::Agent`: wraps an agent class as a callable tool via `from_agent` | Beta |
 
 **Execution and reliability**
 
@@ -528,7 +528,7 @@ end
 ### MCP Tool — External tool servers
 
 ```ruby
-search_tool = Phronomy::Agent::Context::Capability::McpTool.from_server(
+search_tool = Phronomy::Tools::Mcp.from_server(
   "stdio://./mcp-server",
   tool_name: "web_search"
 )

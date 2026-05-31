@@ -149,7 +149,7 @@ end
 # for blocking I/O isolation.
 RSpec.describe "Thread.new confinement (Issue #286)", :issue_286 do
   # Files authorised to call Thread.new directly.
-  # mcp_tool.rb: falls back to Thread.new only when no BlockingAdapterPool is
+  # tools/mcp.rb: falls back to Thread.new only when no BlockingAdapterPool is
   # available (no Runtime configured). When a Runtime with a pool is present,
   # the pool is used instead and Thread.new is never called. Full migration of
   # this fallback path is tracked in Issue #360 (pending MCP transport PR).
@@ -158,7 +158,7 @@ RSpec.describe "Thread.new confinement (Issue #286)", :issue_286 do
     lib/phronomy/task/thread_backend.rb
     lib/phronomy/runtime/timer_queue.rb
     lib/phronomy/event_loop.rb
-    lib/phronomy/agent/context/capability/mcp_tool.rb
+    lib/phronomy/tools/mcp.rb
   ].freeze
 
   it "Thread.new is not called outside the allowed files" do
