@@ -426,7 +426,15 @@ suspension).</p></div>
 94
 95
 96
-97</pre>
+97
+98
+99
+100
+101
+102
+103
+104
+105</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/invocation_pipeline.rb', line 36</span>
@@ -441,7 +449,15 @@ suspension).</p></div>
 
     <span class='comment'># Assemble context (system prompt + history). Override #build_context to
 </span>    <span class='comment'># inject custom context editing logic at the Agent subclass level.
-</span>    <span class='id identifier rubyid_context'>context</span> <span class='op'>=</span> <span class='id identifier rubyid_build_context'>build_context</span><span class='lparen'>(</span><span class='id identifier rubyid_inp'>inp</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_msgs'>msgs</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_tid'>tid</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_cfg'>cfg</span><span class='rparen'>)</span>
+</span>    <span class='id identifier rubyid_context'>context</span> <span class='op'>=</span> <span class='id identifier rubyid_build_context'>build_context</span><span class='lparen'>(</span>
+      <span class='id identifier rubyid_inp'>inp</span><span class='comma'>,</span>
+      <span class='label'>messages:</span>    <span class='id identifier rubyid_msgs'>msgs</span><span class='comma'>,</span>
+      <span class='label'>thread_id:</span>   <span class='id identifier rubyid_tid'>tid</span><span class='comma'>,</span>
+      <span class='label'>config:</span>      <span class='id identifier rubyid_cfg'>cfg</span><span class='comma'>,</span>
+      <span class='label'>budget:</span>      <span class='id identifier rubyid_build_token_budget'>build_token_budget</span><span class='comma'>,</span>
+      <span class='label'>instruction:</span> <span class='id identifier rubyid_build_instructions'>build_instructions</span><span class='lparen'>(</span><span class='id identifier rubyid_inp'>inp</span><span class='rparen'>)</span><span class='comma'>,</span>
+      <span class='label'>tools:</span>       <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_tools'>tools</span> <span class='op'>+</span> <span class='id identifier rubyid__handoff_tools'>_handoff_tools</span>
+    <span class='rparen'>)</span>
     <span class='id identifier rubyid_apply_instructions'>apply_instructions</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_context'>context</span><span class='lbracket'>[</span><span class='symbol'>:system</span><span class='rbracket'>]</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_context'>context</span><span class='lbracket'>[</span><span class='symbol'>:system</span><span class='rbracket'>]</span>
     <span class='lparen'>(</span><span class='id identifier rubyid_context'>context</span><span class='lbracket'>[</span><span class='symbol'>:tool_classes</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_tc'>tc</span><span class='op'>|</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_with_tool'>with_tool</span><span class='lparen'>(</span><span class='id identifier rubyid_prepare_tool_class'>prepare_tool_class</span><span class='lparen'>(</span><span class='id identifier rubyid_tc'>tc</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
     <span class='id identifier rubyid_context'>context</span><span class='lbracket'>[</span><span class='symbol'>:messages</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_msg'>msg</span><span class='op'>|</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_messages'>messages</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_msg'>msg</span> <span class='rbrace'>}</span>
@@ -503,7 +519,7 @@ suspension).</p></div>
 </div>
 
       <div id="footer">
-  Generated on Sun May 31 14:35:49 2026 by
+  Generated on Sun May 31 18:31:40 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

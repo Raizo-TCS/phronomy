@@ -276,6 +276,28 @@ passed through unchanged.</code></pre>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#available_for_messages-instance_method" title="#available_for_messages (instance method)">#<strong>available_for_messages</strong>  &#x21d2; Integer<sup>?</sup> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the number of tokens available for conversation messages after accounting for instruction, knowledge, and capability overhead.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#build-instance_method" title="#build (instance method)">#<strong>build</strong>  &#x21d2; Hash{Symbol =&gt; Object} </a>
     
 
@@ -861,6 +883,74 @@ XML tag so the LLM can produce grounded citations. Omitted when nil.</p></div>
 </div>
     
       <div class="method_details ">
+  <h3 class="signature " id="available_for_messages-instance_method">
+  
+    #<strong>available_for_messages</strong>  &#x21d2; <tt>Integer</tt><sup>?</sup> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns the number of tokens available for conversation messages after
+accounting for instruction, knowledge, and capability overhead.
+Returns <code>nil</code> when no budget is configured.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+115
+116
+117
+118
+119
+120
+121
+122</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 115</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_available_for_messages'>available_for_messages</span>
+  <span class='kw'>return</span> <span class='kw'>nil</span> <span class='kw'>unless</span> <span class='ivar'>@budget</span>
+  <span class='id identifier rubyid_knowledge_text'>knowledge_text</span> <span class='op'>=</span> <span class='ivar'>@knowledge_chunks</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_xml_context_tag'>xml_context_tag</span><span class='lparen'>(</span><span class='id identifier rubyid_c'>c</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>\n\n</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_system_parts'>system_parts</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='ivar'>@instruction</span><span class='comma'>,</span> <span class='id identifier rubyid_knowledge_text'>knowledge_text</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span> <span class='op'>?</span> <span class='kw'>nil</span> <span class='op'>:</span> <span class='id identifier rubyid_knowledge_text'>knowledge_text</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span>
+  <span class='id identifier rubyid_system_text'>system_text</span> <span class='op'>=</span> <span class='id identifier rubyid_system_parts'>system_parts</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>\n\n</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_used'>used</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="TokenEstimator.html" title="Phronomy::LlmContextWindow::TokenEstimator (module)">TokenEstimator</a></span></span><span class='period'>.</span><span class='id identifier rubyid_estimate'><span class='object_link'><a href="TokenEstimator.html#estimate-class_method" title="Phronomy::LlmContextWindow::TokenEstimator.estimate (method)">estimate</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_system_text'>system_text</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='id identifier rubyid_estimate_capability_tokens'>estimate_capability_tokens</span>
+  <span class='ivar'>@budget</span><span class='period'>.</span><span class='id identifier rubyid_available'>available</span><span class='lparen'>(</span><span class='label'>used:</span> <span class='id identifier rubyid_used'>used</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
   <h3 class="signature " id="build-instance_method">
   
     #<strong>build</strong>  &#x21d2; <tt>Hash{Symbol =&gt; Object}</tt> 
@@ -876,7 +966,12 @@ XML tag so the LLM can produce grounded citations. Omitted when nil.</p></div>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
 <p>Assemble the context.</p>
-<p>mutant:disable - multiple genuine equivalent mutations: map{}.join(&quot;\n\n&quot;) → map{} is genuine because Ruby Array#join recursively joins nested arrays with the same separator (so [outer_array].join(&quot;\n\n&quot;) == original String); <code>unless knowledge_text.empty?</code> vs ternary is genuine (same conditional logic); <code>{ system: unless system_text.empty? }</code> vs ternary is genuine; <code>messages:</code> shorthand vs <code>messages: messages</code> is genuine</p>
+<p>Raises <span class='object_link'><a href="../ContextLengthError.html" title="Phronomy::ContextLengthError (class)">ContextLengthError</a></span> when a budget is set and the
+conversation messages do not fit within the remaining token allowance.
+No automatic trimming is performed — callers must pre-process messages
+(e.g. via Agent::Base#trim_messages or #compact_messages) before
+passing them to the Assembler.</p>
+<p>mutant:disable - multiple genuine equivalent mutations: map{}.join(&quot;\n\n&quot;) → map{} is genuine; <code>unless knowledge_text.empty?</code> vs ternary is genuine; <code>{ system: unless system_text.empty? }</code> vs ternary is genuine; <code>messages:</code> shorthand vs <code>messages: messages</code> is genuine</p>
 
   </div>
 </div>
@@ -907,43 +1002,55 @@ XML tag so the LLM can produce grounded citations. Omitted when nil.</p></div>
       <pre class="lines">
 
 
-117
-118
-119
-120
-121
-122
-123
-124
-125
-126
-127
-128
-129
-130
-131
-132
-133
-134</pre>
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 117</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 138</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_build'>build</span>
   <span class='id identifier rubyid_knowledge_text'>knowledge_text</span> <span class='op'>=</span> <span class='ivar'>@knowledge_chunks</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_xml_context_tag'>xml_context_tag</span><span class='lparen'>(</span><span class='id identifier rubyid_c'>c</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>\n\n</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
   <span class='id identifier rubyid_system_parts'>system_parts</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='ivar'>@instruction</span><span class='comma'>,</span> <span class='id identifier rubyid_knowledge_text'>knowledge_text</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span> <span class='op'>?</span> <span class='kw'>nil</span> <span class='op'>:</span> <span class='id identifier rubyid_knowledge_text'>knowledge_text</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span>
   <span class='id identifier rubyid_system_text'>system_text</span> <span class='op'>=</span> <span class='id identifier rubyid_system_parts'>system_parts</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>\n\n</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
 
-  <span class='id identifier rubyid_capability_tokens'>capability_tokens</span> <span class='op'>=</span> <span class='id identifier rubyid_estimate_capability_tokens'>estimate_capability_tokens</span>
-  <span class='id identifier rubyid_messages'>messages</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ivar'>@budget</span>
-    <span class='id identifier rubyid_trim_messages_to_budget'>trim_messages_to_budget</span><span class='lparen'>(</span><span class='ivar'>@messages</span><span class='comma'>,</span> <span class='id identifier rubyid_system_text'>system_text</span><span class='comma'>,</span> <span class='label'>extra_used:</span> <span class='id identifier rubyid_capability_tokens'>capability_tokens</span><span class='rparen'>)</span>
-  <span class='kw'>else</span>
-    <span class='ivar'>@messages</span>
+  <span class='kw'>if</span> <span class='ivar'>@budget</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@messages</span><span class='period'>.</span><span class='id identifier rubyid_any?'>any?</span>
+    <span class='id identifier rubyid_capability_tokens'>capability_tokens</span> <span class='op'>=</span> <span class='id identifier rubyid_estimate_capability_tokens'>estimate_capability_tokens</span>
+    <span class='id identifier rubyid_used'>used</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="TokenEstimator.html" title="Phronomy::LlmContextWindow::TokenEstimator (module)">TokenEstimator</a></span></span><span class='period'>.</span><span class='id identifier rubyid_estimate'><span class='object_link'><a href="TokenEstimator.html#estimate-class_method" title="Phronomy::LlmContextWindow::TokenEstimator.estimate (method)">estimate</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_system_text'>system_text</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='id identifier rubyid_capability_tokens'>capability_tokens</span>
+    <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>=</span> <span class='ivar'>@budget</span><span class='period'>.</span><span class='id identifier rubyid_available'>available</span><span class='lparen'>(</span><span class='label'>used:</span> <span class='id identifier rubyid_used'>used</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_msg_tokens'>msg_tokens</span> <span class='op'>=</span> <span class='ivar'>@messages</span><span class='period'>.</span><span class='id identifier rubyid_sum'>sum</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_m'>m</span><span class='op'>|</span> <span class='const'><span class='object_link'><a href="TokenEstimator.html" title="Phronomy::LlmContextWindow::TokenEstimator (module)">TokenEstimator</a></span></span><span class='period'>.</span><span class='id identifier rubyid_estimate'><span class='object_link'><a href="TokenEstimator.html#estimate-class_method" title="Phronomy::LlmContextWindow::TokenEstimator.estimate (method)">estimate</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_m'>m</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+    <span class='kw'>if</span> <span class='id identifier rubyid_msg_tokens'>msg_tokens</span> <span class='op'>&gt;</span> <span class='id identifier rubyid_remaining'>remaining</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ContextLengthError.html" title="Phronomy::ContextLengthError (class)">ContextLengthError</a></span></span><span class='comma'>,</span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Context exceeds token budget: messages require </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_msg_tokens'>msg_tokens</span><span class='embexpr_end'>}</span><span class='tstring_content'> tokens but </span><span class='tstring_end'>&quot;</span></span> \
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>only </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_remaining'>remaining</span><span class='embexpr_end'>}</span><span class='tstring_content'> available (context_window=</span><span class='embexpr_beg'>#{</span><span class='ivar'>@budget</span><span class='period'>.</span><span class='id identifier rubyid_context_window'>context_window</span><span class='embexpr_end'>}</span><span class='tstring_content'>, </span><span class='tstring_end'>&quot;</span></span> \
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>used_by_system=</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_used'>used</span><span class='embexpr_end'>}</span><span class='tstring_content'>). Override build_context to trim or compact messages.</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
   <span class='kw'>end</span>
 
   <span class='lbrace'>{</span>
     <span class='label'>system:</span> <span class='id identifier rubyid_system_text'>system_text</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span> <span class='op'>?</span> <span class='kw'>nil</span> <span class='op'>:</span> <span class='id identifier rubyid_system_text'>system_text</span><span class='comma'>,</span>
-    <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span>
+    <span class='label'>messages:</span> <span class='ivar'>@messages</span><span class='comma'>,</span>
     <span class='label'>tool_classes:</span> <span class='ivar'>@tool_classes</span>
   <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
@@ -957,7 +1064,7 @@ XML tag so the LLM can produce grounded citations. Omitted when nil.</p></div>
 </div>
 
       <div id="footer">
-  Generated on Sun May 31 14:35:49 2026 by
+  Generated on Sun May 31 18:31:40 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

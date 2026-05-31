@@ -171,72 +171,6 @@ and retry behaviour. Instance methods handle invocation.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#_on_compact_callback-class_method" title="_on_compact_callback (class method)">.<strong>_on_compact_callback</strong>  &#x21d2; Proc<sup>?</sup> </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#_on_compaction_trigger_callback-class_method" title="_on_compaction_trigger_callback (class method)">.<strong>_on_compaction_trigger_callback</strong>  &#x21d2; Proc<sup>?</sup> </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#_on_trim_callback-class_method" title="_on_trim_callback (class method)">.<strong>_on_trim_callback</strong>  &#x21d2; Proc<sup>?</sup> </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#cache_instructions-class_method" title="cache_instructions (class method)">.<strong>cache_instructions</strong>(enabled = nil)  &#x21d2; Object </a>
     
 
@@ -428,72 +362,6 @@ and retry behaviour. Instance methods handle invocation.</p>
 
   
     <span class="summary_desc"><div class='inline'><p>Sets or reads the LLM model identifier for this agent.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#on_compact-class_method" title="on_compact (class method)">.<strong>on_compact</strong> {|ctx| ... } &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Registers a callback that performs the actual compaction when the <code>on_compaction_trigger</code> callback fires.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#on_compaction_trigger-class_method" title="on_compaction_trigger (class method)">.<strong>on_compaction_trigger</strong> {|ctx| ... } &#x21d2; Boolean </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Registers a callback that decides whether compaction should run.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#on_trim-class_method" title="on_trim (class method)">.<strong>on_trim</strong> {|ctx| ... } &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Registers a callback that is invoked before every LLM call so the application can remove stale or irrelevant messages from the conversation history.</p></div></span>
   
 </li>
 
@@ -917,175 +785,7 @@ Retained for backward compatibility with callers using safe navigation (+&amp;.r
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="_on_compact_callback-class_method">
-  
-    .<strong>_on_compact_callback</strong>  &#x21d2; <tt>Proc</tt><sup>?</sup> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Proc</tt>, <tt>nil</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-374
-375
-376</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 374</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid__on_compact_callback'>_on_compact_callback</span>
-  <span class='ivar'>@on_compact_callback</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="_on_compaction_trigger_callback-class_method">
-  
-    .<strong>_on_compaction_trigger_callback</strong>  &#x21d2; <tt>Proc</tt><sup>?</sup> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Proc</tt>, <tt>nil</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-350
-351
-352</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 350</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid__on_compaction_trigger_callback'>_on_compaction_trigger_callback</span>
-  <span class='ivar'>@on_compaction_trigger_callback</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="_on_trim_callback-class_method">
-  
-    .<strong>_on_trim_callback</strong>  &#x21d2; <tt>Proc</tt><sup>?</sup> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Proc</tt>, <tt>nil</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-325
-326
-327</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 325</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid__on_trim_callback'>_on_trim_callback</span>
-  <span class='ivar'>@on_trim_callback</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="cache_instructions-class_method">
+  <h3 class="signature first" id="cache_instructions-class_method">
   
     .<strong>cache_instructions</strong>(enabled = nil)  &#x21d2; <tt>Object</tt> 
   
@@ -1126,16 +826,16 @@ the model name.</p>
       <pre class="lines">
 
 
-394
-395
-396
-397
-398
-399
-400</pre>
+320
+321
+322
+323
+324
+325
+326</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 394</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 320</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cache_instructions'>cache_instructions</span><span class='lparen'>(</span><span class='id identifier rubyid_enabled'>enabled</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_enabled'>enabled</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1184,16 +884,16 @@ Subtract this from the context window before computing the memory budget.</p>
       <pre class="lines">
 
 
-444
-445
-446
-447
-448
-449
-450</pre>
+370
+371
+372
+373
+374
+375
+376</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 444</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 370</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_context_overhead'>context_overhead</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1244,16 +944,16 @@ actually-loaded context length may differ from the catalogue value.</p>
       <pre class="lines">
 
 
-428
-429
-430
-431
-432
-433
-434</pre>
+354
+355
+356
+357
+358
+359
+360</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 428</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 354</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_context_window'>context_window</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1612,16 +1312,16 @@ When nil, the model's max_output_tokens from the registry is used.</p>
       <pre class="lines">
 
 
-410
-411
-412
-413
-414
-415
-416</pre>
+336
+337
+338
+339
+340
+341
+342</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 410</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 336</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_output_tokens'>max_output_tokens</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1825,240 +1525,6 @@ global default from <span class='object_link'><a href="../../Phronomy.html#confi
   <span class='kw'>else</span>
     <span class='ivar'>@model</span> <span class='op'>||</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_default_model'>default_model</span>
   <span class='kw'>end</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="on_compact-class_method">
-  
-    .<strong>on_compact</strong> {|ctx| ... } &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Registers a callback that performs the actual compaction when the
-<code>on_compaction_trigger</code> callback fires. The block receives a
-<span class='object_link'><a href="Context/Conversation/CompactionContext.html" title="Phronomy::Agent::Context::Conversation::CompactionContext (class)">Context::Conversation::CompactionContext</a></span> and should call <code>ctx.compact</code>
-to specify which messages to summarise.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-  <div class="examples">
-    <h4 class="tag_title">Examples:</h4>
-    
-      
-        <h5 class="example_title"><div class='inline'><p>Replace the first 4 messages with a short summary</p></div></h5>
-      
-      <pre class="example code"><code><span class='id identifier rubyid_on_compact'>on_compact</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_ctx'>ctx</span><span class='op'>|</span>
-  <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span><span class='lparen'>(</span><span class='int'>0</span><span class='op'>..</span><span class='int'>3</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_elements'>elements</span><span class='op'>|</span>
-    <span class='id identifier rubyid_texts'>texts</span> <span class='op'>=</span> <span class='id identifier rubyid_elements'>elements</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_e'>e</span><span class='op'>|</span> <span class='id identifier rubyid_e'>e</span><span class='lbracket'>[</span><span class='symbol'>:message</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'> | </span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
-    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Earlier conversation summary: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_texts'>texts</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
-  <span class='kw'>end</span>
-<span class='kw'>end</span></code></pre>
-    
-  </div>
-
-<p class="tag_title">Yields:</p>
-<ul class="yield">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>ctx</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>Phronomy::Agent::Context::Conversation::CompactionContext</p></div>
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-368
-369
-370</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 368</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_on_compact'>on_compact</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='ivar'>@on_compact_callback</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="on_compaction_trigger-class_method">
-  
-    .<strong>on_compaction_trigger</strong> {|ctx| ... } &#x21d2; <tt>Boolean</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Registers a callback that decides whether compaction should run.
-Evaluated before every LLM call (after on_trim). If the block returns
-truthy AND an <code>on_compact</code> callback is also registered, the compact
-pipeline is executed.</p>
-<p>The block receives a read-only <span class='object_link'><a href="Context/Conversation/TriggerContext.html" title="Phronomy::Agent::Context::Conversation::TriggerContext (class)">Context::Conversation::TriggerContext</a></span>.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-  <div class="examples">
-    <h4 class="tag_title">Examples:</h4>
-    
-      
-        <h5 class="example_title"><div class='inline'><p>Trigger when messages exceed 70% of token budget</p></div></h5>
-      
-      <pre class="example code"><code><span class='id identifier rubyid_on_compaction_trigger'>on_compaction_trigger</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_ctx'>ctx</span><span class='op'>|</span>
-  <span class='id identifier rubyid_limit'>limit</span> <span class='op'>=</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_budget'>budget</span><span class='op'>&amp;.</span><span class='id identifier rubyid_available'>available</span><span class='lparen'>(</span><span class='label'>used:</span> <span class='int'>0</span><span class='rparen'>)</span> <span class='op'>||</span> <span class='const'>Float</span><span class='op'>::</span><span class='const'>INFINITY</span>
-  <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_total_tokens'>total_tokens</span> <span class='op'>&gt;</span> <span class='id identifier rubyid_limit'>limit</span> <span class='op'>*</span> <span class='float'>0.7</span>
-<span class='kw'>end</span></code></pre>
-    
-  </div>
-
-<p class="tag_title">Yields:</p>
-<ul class="yield">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>ctx</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>Phronomy::Agent::Context::Conversation::TriggerContext</p></div>
-      
-    </li>
-  
-</ul>
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Boolean</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>truthy → run on_compact; falsy → skip</p></div>
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-344
-345
-346</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 344</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_on_compaction_trigger'>on_compaction_trigger</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='ivar'>@on_compaction_trigger_callback</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="on_trim-class_method">
-  
-    .<strong>on_trim</strong> {|ctx| ... } &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Registers a callback that is invoked before every LLM call so the
-application can remove stale or irrelevant messages from the
-conversation history.</p>
-<p>The block receives a <span class='object_link'><a href="Context/Conversation/TrimContext.html" title="Phronomy::Agent::Context::Conversation::TrimContext (class)">Context::Conversation::TrimContext</a></span> and may call
-<code>ctx.remove(seqs)</code> to drop messages by seq number. Changes affect
-only the current invocation; the underlying memory store is unchanged.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-  <div class="examples">
-    <h4 class="tag_title">Examples:</h4>
-    
-      
-        <h5 class="example_title"><div class='inline'><p>Drop the oldest message when over 80% of budget is used</p></div></h5>
-      
-      <pre class="example code"><code><span class='id identifier rubyid_on_trim'>on_trim</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_ctx'>ctx</span><span class='op'>|</span>
-  <span class='id identifier rubyid_limit'>limit</span> <span class='op'>=</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_budget'>budget</span><span class='op'>&amp;.</span><span class='id identifier rubyid_available'>available</span><span class='lparen'>(</span><span class='label'>used:</span> <span class='int'>0</span><span class='rparen'>)</span> <span class='op'>||</span> <span class='const'>Float</span><span class='op'>::</span><span class='const'>INFINITY</span>
-  <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_remove'>remove</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_message_elements'>message_elements</span><span class='period'>.</span><span class='id identifier rubyid_first'>first</span><span class='lbracket'>[</span><span class='symbol'>:seq</span><span class='rbracket'>]</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_total_tokens'>total_tokens</span> <span class='op'>&gt;</span> <span class='id identifier rubyid_limit'>limit</span> <span class='op'>*</span> <span class='float'>0.8</span>
-<span class='kw'>end</span></code></pre>
-    
-  </div>
-
-<p class="tag_title">Yields:</p>
-<ul class="yield">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>ctx</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>Phronomy::Agent::Context::Conversation::TrimContext</p></div>
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-319
-320
-321</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 319</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_on_trim'>on_trim</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='ivar'>@on_trim_callback</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -2718,14 +2184,14 @@ Called by Runner during construction when routes are configured.</p>
       <pre class="lines">
 
 
-458
-459
-460
-461
-462</pre>
+384
+385
+386
+387
+388</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 458</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 384</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__add_handoff_tool'>_add_handoff_tool</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_class'>tool_class</span><span class='rparen'>)</span>
   <span class='ivar'>@_handoff_tools</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -2778,12 +2244,12 @@ Called by Runner during construction when routes are configured.</p>
       <pre class="lines">
 
 
-467
-468
-469</pre>
+393
+394
+395</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 467</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 393</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__handoff_tools'>_handoff_tools</span>
   <span class='ivar'>@_handoff_tools</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -2823,12 +2289,12 @@ Retained for backward compatibility with callers using safe navigation (+&amp;.r
       <pre class="lines">
 
 
-640
-641
-642</pre>
+566
+567
+568</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 640</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 566</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_context_version_cache'>context_version_cache</span>
   <span class='kw'>nil</span>
@@ -3027,20 +2493,20 @@ messages: Array }+ when the invocation was suspended awaiting tool approval.</p>
       <pre class="lines">
 
 
-515
-516
-517
-518
-519
-520
-521
-522
-523
-524
-525</pre>
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450
+451</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 515</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 441</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span>
@@ -3178,23 +2644,23 @@ drains in-flight invocations before process exit.</p>
       <pre class="lines">
 
 
-549
-550
-551
-552
-553
-554
-555
-556
-557
-558
-559
-560
-561
-562</pre>
+475
+476
+477
+478
+479
+480
+481
+482
+483
+484
+485
+486
+487
+488</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 549</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 475</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span>
@@ -3356,27 +2822,27 @@ the result arrives as a <code>:child_completed</code> event</p></div>
       <pre class="lines">
 
 
-592
-593
-594
-595
-596
-597
-598
-599
-600
-601
-602
-603
-604
-605
-606
-607
-608
-609</pre>
+518
+519
+520
+521
+522
+523
+524
+525
+526
+527
+528
+529
+530
+531
+532
+533
+534
+535</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 592</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 518</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_run_as_child'>run_as_child</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>ctx:</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='kw'>unless</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span>
@@ -3527,17 +2993,17 @@ as they are produced by the underlying LLM.</p>
       <pre class="lines">
 
 
-628
-629
-630
-631
-632
-633
-634
-635</pre>
+554
+555
+556
+557
+558
+559
+560
+561</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 628</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 554</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
@@ -3557,7 +3023,7 @@ as they are produced by the underlying LLM.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 31 14:35:47 2026 by
+  Generated on Sun May 31 18:31:38 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
