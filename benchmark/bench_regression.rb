@@ -62,7 +62,7 @@ end
 # ---------------------------------------------------------------------------
 # Target 3: Tool::Base#params_schema generation (10 params)
 # ---------------------------------------------------------------------------
-tool_class = Class.new(Phronomy::Tool::Base) do
+tool_class = Class.new(Phronomy::Agent::Context::Capability::Base) do
   description "Test tool with 10 params"
   param :p1, type: :string, desc: "param 1"
   param :p2, type: :string, desc: "param 2"
