@@ -90,7 +90,6 @@ module Phronomy
             active_agent_tasks: active[:agent].to_i,
             active_tool_tasks: active[:tool].to_i,
             active_workflow_tasks: active[:workflow].to_i,
-            active_rag_tasks: active[:rag].to_i,
             active_llm_tasks: active[:llm].to_i,
             task_wait_time_p50_ms: _percentile(wait, 50),
             task_wait_time_p95_ms: _percentile(wait, 95),

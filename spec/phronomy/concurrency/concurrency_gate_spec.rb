@@ -188,7 +188,6 @@ RSpec.describe Phronomy::Concurrency::ConcurrencyGate do
       expect(config.max_concurrent_tool_tasks).to be_nil
       expect(config.max_concurrent_workflow_tasks).to be_nil
       expect(config.max_concurrent_llm_calls).to be_nil
-      expect(config.max_concurrent_rag_fetches).to be_nil
       expect(config.max_concurrent_vector_searches).to be_nil
     end
 

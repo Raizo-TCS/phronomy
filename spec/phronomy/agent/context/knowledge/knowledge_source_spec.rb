@@ -106,4 +106,18 @@ RSpec.describe "KnowledgeSource CancellationToken propagation (#242)" do
     ks = Phronomy::Agent::Context::Knowledge::Base.new
     expect { ks.fetch(cancellation_token: cancelled_token) }.to raise_error(Phronomy::CancellationError)
   end
+
+  describe "KnowledgeSource::Base#fetch_async" do
+    it "delegates to fetch via BlockingAdapterPool" do
+      ks = Class.new(Phronomy::Agent::Context::Knowledge::Base) do
+        def fetch(query: nil, cancellation_token: nil)
+          [{content: "result", type: "text", source: "test"}]
+        end
+      end.new
+
+      op = ks.fetch_async(query: "hello")
+      result = op.await
+      expect(result).to eq([{content: "result", type: "text", source: "test"}])
+    end
+  end
 end

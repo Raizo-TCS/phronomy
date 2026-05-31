@@ -27,7 +27,6 @@ RSpec.describe Phronomy::Metrics do
         active_agent_tasks
         active_tool_tasks
         active_workflow_tasks
-        active_rag_tasks
         active_llm_tasks
         task_wait_time_p50_ms
         task_wait_time_p95_ms

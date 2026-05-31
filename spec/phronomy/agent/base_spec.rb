@@ -101,56 +101,6 @@ RSpec.describe Phronomy::Agent::Base do
         agent.send(:check_cancellation!, {cancellation_token: token}, "cancelled mid-RAG")
       }.to raise_error(Phronomy::CancellationError, "cancelled mid-RAG")
     end
-
-    context "fetch_knowledge_chunks cancellation (Issue #223)" do
-      let(:agent) do
-        Class.new(Phronomy::Agent::Base) do
-          model "test-model"
-
-          def build_context(input, messages: [], thread_id: nil, config: {})
-            history = prepare_history(messages: messages, thread_id: thread_id, config: config)
-            budget = build_token_budget
-            instruction = build_instructions(input)
-            user_message = extract_message(input)
-            assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
-            assembler.add_instruction(instruction) if instruction
-            assembler.add_capability(self.class.tools + _handoff_tools)
-            fetch_knowledge_chunks(user_message, config).each do |chunk|
-              assembler.add_knowledge(chunk[:content], type: chunk[:type], source: chunk[:source])
-            end
-            assembler.add_messages(history)
-            @last_context = assembler.build
-          end
-        end.new
-      end
-
-      it "raises CancellationError before fetching a knowledge source when pre-cancelled" do
-        ks = double("KnowledgeSource")
-        expect(ks).not_to receive(:fetch_async)
-
-        token = Phronomy::Concurrency::CancellationToken.new
-        token.cancel!
-
-        expect {
-          agent.send(:build_context, "query",
-            config: {cancellation_token: token, knowledge_sources: [ks]})
-        }.to raise_error(Phronomy::CancellationError, /RAG fetch/)
-      end
-
-      it "proceeds normally when token is not cancelled" do
-        ks = double("KnowledgeSource")
-        pool = Phronomy::Runtime.instance.blocking_io
-        pending_op = pool.submit { [] }
-        allow(ks).to receive(:fetch_async).and_return(pending_op)
-
-        token = Phronomy::Concurrency::CancellationToken.new
-
-        expect {
-          agent.send(:build_context, "query",
-            config: {cancellation_token: token, knowledge_sources: [ks]})
-        }.not_to raise_error
-      end
-    end
   end
 
   # ---------------------------------------------------------------------------

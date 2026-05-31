@@ -481,7 +481,6 @@ module Phronomy
       # @param thread_id [String, nil] conversation thread identifier, forwarded
       #   to the compaction context when on_compact is configured.
       # @param config    [Hash] additional runtime options:
-      #   +:knowledge_sources+ (Array) — dynamic knowledge sources for this turn
       #   +:user_id+    (+String+, optional) — caller identity forwarded to the tracer
       #   +:session_id+ (+String+, optional) — session identity forwarded to the tracer
       # @param invocation_context [Phronomy::InvocationContext, nil] optional first-class context
@@ -780,58 +779,6 @@ module Phronomy
       # the RAG concurrency gate enforces the +max_concurrent_rag_fetches+ cap.
       # Results are returned in registration order (spawn order) as a flat array.
       #
-      # This method is available to subclasses as a building block when
-      # overriding {#build_context}. Pass a custom +query+ to implement
-      # multi-hop RAG or other retrieval strategies.
-      #
-      # @param query  [String] RAG query string (typically the current user message)
-      # @param config [Hash]   invocation config; relevant keys:
-      #   +:knowledge_sources+, +:rag_failure_policy+, +:cancellation_token+, +:rag_timeout+
-      # @return [Array<Hash>] flat list of chunk hashes with +:content+, +:type+, +:source+
-      # @api private
-      def fetch_knowledge_chunks(query, config)
-        sources = Array(config[:knowledge_sources])
-        return [] if sources.empty?
-
-        check_cancellation!(config, "invocation cancelled before RAG fetch")
-
-        # :skip (default) — ignore per-source failures so the agent can still
-        # answer with partial context. :fail surfaces the first error immediately.
-        failure_policy =
-          case config[:rag_failure_policy]
-          when :fail then :fail_fast
-          else :skip_failed
-          end
-
-        group = Phronomy::Runtime.instance.task_group(failure_policy: failure_policy)
-        bp = Phronomy.configuration.backpressure
-        rag_on_full = (bp == :raise) ? :reject : (bp || :wait)
-        rag_bp_timeout = Phronomy.configuration.backpressure_timeout
-
-        # Spawn all fetches concurrently. Results are returned in spawn order
-        # (i.e. registration order of knowledge sources) by TaskGroup#await_all.
-        sources.each do |ks|
-          group.spawn do
-            Phronomy::Runtime.instance.gate(:rag).acquire(on_full: rag_on_full, timeout: rag_bp_timeout) do
-              result, elapsed_ms = Phronomy::Runtime.measure_ms do
-                ks.fetch_async(
-                  query: query,
-                  cancellation_token: config[:cancellation_token],
-                  timeout: config[:rag_timeout]
-                ).await
-              end
-              Phronomy.configuration.logger&.debug { "RAG fetch from #{ks.class.name} completed in #{elapsed_ms}ms" }
-              result
-            end
-          end
-        end
-
-        # await_all returns results in spawn order; nil entries indicate
-        # skipped failures when using :skip_failed.
-        group.await_all.flat_map { |chunks| Array(chunks) }
-      end
-      protected :fetch_knowledge_chunks
-
       # Runs the on_trim / on_compaction_trigger / on_compact pipeline on the
       # supplied message array and returns the final Array of message objects
       # ready to pass to the Assembler.

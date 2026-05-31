@@ -361,16 +361,6 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::Agent::Context::Knowledge::RAGKnowledge",
-    "type": "class",
-    "public_instance_methods": [
-      "fetch",
-      "fetch_async",
-      "static?"
-    ],
-    "public_class_methods": []
-  },
-  {
     "name": "Phronomy::Tracing::Base",
     "type": "class",
     "public_instance_methods": [

@@ -135,7 +135,7 @@ module Phronomy
     # is first accessed; subsequent calls return the cached gate.  To change the
     # cap at runtime, call {#reset_gate} first.
     #
-    # @param name [:agent, :tool, :workflow, :llm, :rag, :vector] resource name
+    # @param name [:agent, :tool, :workflow, :llm, :vector] resource name
     # @return [ConcurrencyGate]
     # @api private
     def gate(name)
@@ -279,7 +279,6 @@ module Phronomy
     # | `active_agent_tasks`      | currently running agent spawns |
     # | `active_tool_tasks`       | currently running tool spawns |
     # | `active_workflow_tasks`   | currently running workflow spawns |
-    # | `active_rag_tasks`        | currently running RAG fetches |
     # | `active_llm_tasks`        | currently running LLM calls |
     # | `task_wait_time_p50_ms`   | p50 spawn-to-start latency (ms) |
     # | `task_wait_time_p95_ms`   | p95 spawn-to-start latency (ms) |

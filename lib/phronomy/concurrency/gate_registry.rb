@@ -14,7 +14,6 @@ module Phronomy
         tool: :max_concurrent_tool_tasks,
         workflow: :max_concurrent_workflow_tasks,
         llm: :max_concurrent_llm_calls,
-        rag: :max_concurrent_rag_fetches,
         vector: :max_concurrent_vector_searches
       }.freeze
       private_constant :GATE_CONFIG_MAP

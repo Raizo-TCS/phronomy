@@ -7,7 +7,7 @@
 > We apologise for the instability this may cause.
 
 **Phronomy** is a Ruby AI agent framework inspired by open-source AI agent frameworks.  
-It provides composable building blocks — Workflows, Agents, Tools, Guardrails, RAG, and Tracing — all powered by [RubyLLM](https://github.com/crmne/ruby_llm) for LLM abstraction.
+It provides composable building blocks — Workflows, Agents, Tools, Guardrails, and Tracing — all powered by [RubyLLM](https://github.com/crmne/ruby_llm) for LLM abstraction.
 
 ## Features
 
@@ -43,10 +43,9 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 
 | Feature | Stability |
 |---|---|
-| **Knowledge/RAG** — Retrieval sources with pluggable loaders, splitters, and vector stores; `static_knowledge_refresh!` for runtime cache invalidation | Beta |
+| **Knowledge** — Static context injection with pluggable loaders, splitters, and vector stores; `static_knowledge_refresh!` for runtime cache invalidation | Beta |
 | **`VectorStore#size`** — Returns document count for all three backends (InMemory, RedisSearch, Pgvector) | Beta |
 | **`RAG::VectorStore::AsyncBackend` mixin** — Pluggable async interface for `VectorStore`; default pool-backed implementations for `search_async`, `add_async`, `remove_async`, `clear_async`; backends with native async drivers override individual methods to bypass `BlockingAdapterPool` entirely; all existing backends remain unchanged | Beta |
-| **Parallel RAG multi-source fetch** — `Agent#build_context` fetches all `knowledge_sources` concurrently via `TaskGroup`; `config[:rag_failure_policy]` `:skip` (default) silently ignores failed sources so the agent answers with partial context, `:fail` surfaces the first error; per-source latency is emitted to `Phronomy.configuration.logger` at debug level | Beta |
 | **MCP Tool** — Model Context Protocol server integration | Beta |
 
 **Execution and reliability**
@@ -60,9 +59,9 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **`dispatch_parallel` / `fan_out` `force_kill:` option** — `force_kill: false` (default) leaves timed-out workers running and raises `TimeoutError` immediately; `force_kill: true` restores the old `Thread#kill` behaviour with a `logger.warn` | Beta |
 | **`execution_mode` DSL on `Agent::Context::Capability::Base`** — Declares how a tool's `execute` should be dispatched: `:cooperative` (same scheduler thread), `:blocking_io` (default; offloaded to `BlockingAdapterPool`), `:cpu_bound`, `:external_process` | Experimental |
 | **`invocation_context:` keyword on `Agent#invoke` / `Workflow#invoke`** — Pass a `Phronomy::InvocationContext` directly; `thread_id`, `cancellation_token`, and `deadline`-based timeout are derived from it; `task_id` / `parent_task_id` appear in trace spans automatically; `config:` keys remain supported as backward-compat aliases | Beta |
-| **`ConcurrencyGate` — unified backpressure** — Counting semaphore that enforces per-resource concurrency caps (`max_concurrent_agent_tasks`, `max_concurrent_tool_tasks`, `max_concurrent_workflow_tasks`, `max_concurrent_llm_calls`, `max_concurrent_rag_fetches`, `max_concurrent_vector_searches`); configured via `Phronomy.configure`; backpressure behaviour follows the global `backpressure` setting (`:wait`, `:raise`/`:reject`, `:timeout`); `nil` cap = unlimited (default) | Beta |
+| **`ConcurrencyGate` — unified backpressure** — Counting semaphore that enforces per-resource concurrency caps (`max_concurrent_agent_tasks`, `max_concurrent_tool_tasks`, `max_concurrent_workflow_tasks`, `max_concurrent_llm_calls`, `max_concurrent_vector_searches`); configured via `Phronomy.configure`; backpressure behaviour follows the global `backpressure` setting (`:wait`, `:raise`/`:reject`, `:timeout`); `nil` cap = unlimited (default) | Beta |
 | **Cooperative scheduler yield points** — `Runtime#yield` (cooperative yield; yields the current task's time slice); `Runtime#yield_if_needed(every: N)` (thread-local counter, yields every N calls); CPU-bound detection when `blocking_detect_threshold_ms` is set (warns and increments `non_yield_threshold_violation_count` when a task runs longer than the threshold without yielding); `starvation_threshold_ms` configuration field (default: 50ms) | Beta |
-| **`Phronomy::Metrics`** — `Phronomy::Metrics.snapshot` returns task-tree and pool counters; task-centric keys: `active_agent_tasks`, `active_tool_tasks`, `active_workflow_tasks`, `active_rag_tasks`, `active_llm_tasks`, `task_wait_time_p50_ms`, `task_wait_time_p95_ms`, `task_run_time_p50_ms`, `task_run_time_p95_ms`, `cancelled_tasks`, `failed_tasks`, `non_yield_threshold_violation_count`; pool/event-loop keys remain for backward compatibility; `Runtime#task_snapshot` exposes task-centric metrics directly | Beta |
+| **`Phronomy::Metrics`** — `Phronomy::Metrics.snapshot` returns task-tree and pool counters; task-centric keys: `active_agent_tasks`, `active_tool_tasks`, `active_workflow_tasks`, `active_llm_tasks`, `task_wait_time_p50_ms`, `task_wait_time_p95_ms`, `task_run_time_p50_ms`, `task_run_time_p95_ms`, `cancelled_tasks`, `failed_tasks`, `non_yield_threshold_violation_count`; pool/event-loop keys remain for backward compatibility; `Runtime#task_snapshot` exposes task-centric metrics directly | Beta |
 | **`Phronomy.with_configuration` / `Phronomy.reset_runtime!`** — Scoped configuration override and full runtime reset for test isolation | Beta |
 
 **Agent patterns**
@@ -280,7 +279,7 @@ end
 > that logic must be implemented by the application. Reference implementations for
 > common patterns are available in `phronomy-examples` (example 06).
 
-### Knowledge/RAG — Context injection and vector retrieval
+### Knowledge — Static context injection
 
 ```ruby
 # Static knowledge (policy files, reference docs)
@@ -290,25 +289,15 @@ policy = Phronomy::Agent::Context::Knowledge::StaticKnowledge.new(
   source: "policy.md"   # exposed to LLM for citation
 )
 
-# RAG retrieval from a vector store
-store      = Phronomy::RAG::VectorStore::InMemory.new
-embeddings = Phronomy::RAG::Embeddings::RubyLLMEmbeddings.new(model: "text-embedding-3-small")
-
-# Add documents before querying
-text1 = "Refunds are processed within 5 business days."
-text2 = "Contact support@example.com for refund requests."
-store.add(id: "doc-1", embedding: embeddings.embed(text1), metadata: { content: text1, source: "policy.md" })
-store.add(id: "doc-2", embedding: embeddings.embed(text2), metadata: { content: text2, source: "policy.md" })
-
-rag = Phronomy::Agent::Context::Knowledge::RAGKnowledge.new(store: store, embeddings: embeddings, k: 5)
-
-# Inject at invocation time
-result = MyAgent.new.invoke("What is the refund policy?",
-  config: { knowledge_sources: [policy, rag] })
+# Inject at invocation time via the agent DSL
+class MyAgent < Phronomy::Agent::Base
+  model "gpt-4o-mini"
+  knowledge policy
+end
 ```
 
-`static_knowledge_refresh!` invalidates the class-level cache of *static* knowledge sources
-(not RAG stores). Call it when the underlying file or content has changed:
+`static_knowledge_refresh!` invalidates the class-level cache of static knowledge sources.
+Call it when the underlying file or content has changed:
 
 ```ruby
 # Static knowledge sources are cached at the class level after the first fetch.
@@ -723,8 +712,8 @@ registry the budget is silently skipped.
 ### CancellationToken — Cooperative cancellation
 
 Pass a `CancellationToken` to any agent via `config: { cancellation_token: token }`.
-Cancellation is checked at multiple granular checkpoints: before the LLM call, before
-each RAG knowledge-source fetch, after each streaming chunk, before each parallel
+Cancellation is checked at multiple granular checkpoints: before the LLM call,
+after each streaming chunk, before each parallel
 tool-call batch, and after each `before_completion` hook. `CancellationError` is
 raised immediately and is never retried. No threads are force-killed — `ensure`
 blocks always execute.
