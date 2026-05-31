@@ -4,7 +4,7 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-  Class: Phronomy::RAG::Embeddings::Base
+  Class: Phronomy::VectorStore::Embeddings::Base
   
     &mdash; Documentation by YARD 0.9.44
   
@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="../../../css/common.css" type="text/css">
 
 <script type="text/javascript">
-  pathId = "Phronomy::RAG::Embeddings::Base";
+  pathId = "Phronomy::VectorStore::Embeddings::Base";
   relpath = '../../../';
 </script>
 
@@ -39,7 +39,7 @@
         <div id="menu">
   
     <a href="../../../_index.html">Index (B)</a> &raquo;
-    <span class='title'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../RAG.html" title="Phronomy::RAG (module)">RAG</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Embeddings.html" title="Phronomy::RAG::Embeddings (module)">Embeddings</a></span></span>
+    <span class='title'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../VectorStore.html" title="Phronomy::VectorStore (module)">VectorStore</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Embeddings.html" title="Phronomy::VectorStore::Embeddings (module)">Embeddings</a></span></span>
      &raquo; 
     <span class="title">Base</span>
   
@@ -61,7 +61,7 @@
         <div class="clear"></div>
       </div>
 
-      <div id="content"><h1>Class: Phronomy::RAG::Embeddings::Base
+      <div id="content"><h1>Class: Phronomy::VectorStore::Embeddings::Base
   
   
   
@@ -76,7 +76,7 @@
         <ul class="fullTree">
           <li>Object</li>
           
-            <li class="next">Phronomy::RAG::Embeddings::Base</li>
+            <li class="next">Phronomy::VectorStore::Embeddings::Base</li>
           
         </ul>
         <a href="#" class="inheritanceTree">show all</a>
@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/rag/embeddings/base.rb
+    <dd>lib/phronomy/vector_store/embeddings/base.rb
 </dd>
   </dl>
   
@@ -105,7 +105,7 @@
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
     <p>Abstract interface for embedding adapters.</p>
-<p>Concrete implementations must override <span class='object_link'><a href="#embed-instance_method" title="Phronomy::RAG::Embeddings::Base#embed (method)">#embed</a></span> and return a vector
+<p>Concrete implementations must override <span class='object_link'><a href="#embed-instance_method" title="Phronomy::VectorStore::Embeddings::Base#embed (method)">#embed</a></span> and return a vector
 as an <code>Array&lt;Float&gt;</code>.</p>
 
   </div>
@@ -115,7 +115,7 @@ as an <code>Array&lt;Float&gt;</code>.</p>
 
 </div><div id="subclasses">
   <h2>Direct Known Subclasses</h2>
-  <p class="children"><span class='object_link'><a href="RubyLLMEmbeddings.html" title="Phronomy::RAG::Embeddings::RubyLLMEmbeddings (class)">RubyLLMEmbeddings</a></span></p>
+  <p class="children"><span class='object_link'><a href="RubyLLMEmbeddings.html" title="Phronomy::VectorStore::Embeddings::RubyLLMEmbeddings (class)">RubyLLMEmbeddings</a></span></p>
 </div>
 
 
@@ -171,7 +171,7 @@ as an <code>Array&lt;Float&gt;</code>.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Submits an <span class='object_link'><a href="#embed-instance_method" title="Phronomy::RAG::Embeddings::Base#embed (method)">#embed</a></span> call to BlockingAdapterPool and returns a BlockingAdapterPool::PendingOperation.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Submits an <span class='object_link'><a href="#embed-instance_method" title="Phronomy::VectorStore::Embeddings::Base#embed (method)">#embed</a></span> call to BlockingAdapterPool and returns a BlockingAdapterPool::PendingOperation.</p></div></span>
   
 </li>
 
@@ -279,7 +279,7 @@ as an <code>Array&lt;Float&gt;</code>.</p>
 20</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/rag/embeddings/base.rb', line 17</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/embeddings/base.rb', line 17</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_embed'>embed</span><span class='lparen'>(</span><span class='id identifier rubyid_text'>text</span><span class='comma'>,</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span>
@@ -301,7 +301,7 @@ as an <code>Array&lt;Float&gt;</code>.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Submits an <span class='object_link'><a href="#embed-instance_method" title="Phronomy::RAG::Embeddings::Base#embed (method)">#embed</a></span> call to BlockingAdapterPool and returns a
+    <p>Submits an <span class='object_link'><a href="#embed-instance_method" title="Phronomy::VectorStore::Embeddings::Base#embed (method)">#embed</a></span> call to BlockingAdapterPool and returns a
 BlockingAdapterPool::PendingOperation.</p>
 
   </div>
@@ -382,7 +382,7 @@ BlockingAdapterPool::PendingOperation.</p>
 37</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/rag/embeddings/base.rb', line 30</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/embeddings/base.rb', line 30</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_embed_async'>embed_async</span><span class='lparen'>(</span><span class='id identifier rubyid_text'>text</span><span class='comma'>,</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_blocking_io'><span class='object_link'><a href="../../Runtime.html#blocking_io-instance_method" title="Phronomy::Runtime#blocking_io (method)">blocking_io</a></span></span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
@@ -402,7 +402,7 @@ BlockingAdapterPool::PendingOperation.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 31 09:45:22 2026 by
+  Generated on Sun May 31 10:42:44 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-  Class: Phronomy::RAG::Loader::Base
+  Class: Phronomy::VectorStore::Loader::Base
   
     &mdash; Documentation by YARD 0.9.44
   
@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="../../../css/common.css" type="text/css">
 
 <script type="text/javascript">
-  pathId = "Phronomy::RAG::Loader::Base";
+  pathId = "Phronomy::VectorStore::Loader::Base";
   relpath = '../../../';
 </script>
 
@@ -39,7 +39,7 @@
         <div id="menu">
   
     <a href="../../../_index.html">Index (B)</a> &raquo;
-    <span class='title'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../RAG.html" title="Phronomy::RAG (module)">RAG</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Loader.html" title="Phronomy::RAG::Loader (module)">Loader</a></span></span>
+    <span class='title'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../VectorStore.html" title="Phronomy::VectorStore (module)">VectorStore</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Loader.html" title="Phronomy::VectorStore::Loader (module)">Loader</a></span></span>
      &raquo; 
     <span class="title">Base</span>
   
@@ -61,7 +61,7 @@
         <div class="clear"></div>
       </div>
 
-      <div id="content"><h1>Class: Phronomy::RAG::Loader::Base
+      <div id="content"><h1>Class: Phronomy::VectorStore::Loader::Base
   
   
   
@@ -76,7 +76,7 @@
         <ul class="fullTree">
           <li>Object</li>
           
-            <li class="next">Phronomy::RAG::Loader::Base</li>
+            <li class="next">Phronomy::VectorStore::Loader::Base</li>
           
         </ul>
         <a href="#" class="inheritanceTree">show all</a>
@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/rag/loader/base.rb
+    <dd>lib/phronomy/vector_store/loader/base.rb
 </dd>
   </dl>
   
@@ -109,7 +109,7 @@
 Array of document hashes understood by the rest of the pipeline:</p>
 <pre class="code ruby"><code class="ruby">[{ text: String, metadata: Hash }, ...]
 </code></pre>
-<p>Subclasses must implement <span class='object_link'><a href="#load-instance_method" title="Phronomy::RAG::Loader::Base#load (method)">#load</a></span>.</p>
+<p>Subclasses must implement <span class='object_link'><a href="#load-instance_method" title="Phronomy::VectorStore::Loader::Base#load (method)">#load</a></span>.</p>
 
   </div>
 </div>
@@ -118,7 +118,7 @@ Array of document hashes understood by the rest of the pipeline:</p>
 
 </div><div id="subclasses">
   <h2>Direct Known Subclasses</h2>
-  <p class="children"><span class='object_link'><a href="CsvLoader.html" title="Phronomy::RAG::Loader::CsvLoader (class)">CsvLoader</a></span>, <span class='object_link'><a href="MarkdownLoader.html" title="Phronomy::RAG::Loader::MarkdownLoader (class)">MarkdownLoader</a></span>, <span class='object_link'><a href="PlainTextLoader.html" title="Phronomy::RAG::Loader::PlainTextLoader (class)">PlainTextLoader</a></span></p>
+  <p class="children"><span class='object_link'><a href="CsvLoader.html" title="Phronomy::VectorStore::Loader::CsvLoader (class)">CsvLoader</a></span>, <span class='object_link'><a href="MarkdownLoader.html" title="Phronomy::VectorStore::Loader::MarkdownLoader (class)">MarkdownLoader</a></span>, <span class='object_link'><a href="PlainTextLoader.html" title="Phronomy::VectorStore::Loader::PlainTextLoader (class)">PlainTextLoader</a></span></p>
 </div>
 
 
@@ -246,7 +246,7 @@ Array of document hashes understood by the rest of the pipeline:</p>
 23</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/rag/loader/base.rb', line 21</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/loader/base.rb', line 21</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_source'>source</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#load is not implemented</span><span class='tstring_end'>&quot;</span></span>
@@ -261,7 +261,7 @@ Array of document hashes understood by the rest of the pipeline:</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 31 09:45:21 2026 by
+  Generated on Sun May 31 10:42:44 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

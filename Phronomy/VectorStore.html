@@ -80,7 +80,9 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/vector_store.rb
+    <dd>lib/phronomy/vector_store.rb<span class="defines">,<br>
+  lib/phronomy/vector_store/base.rb,<br> lib/phronomy/vector_store/pgvector.rb,<br> lib/phronomy/vector_store/in_memory.rb,<br> lib/phronomy/vector_store/loader/base.rb,<br> lib/phronomy/vector_store/redis_search.rb,<br> lib/phronomy/vector_store/async_backend.rb,<br> lib/phronomy/vector_store/splitter/base.rb,<br> lib/phronomy/vector_store/embeddings/base.rb,<br> lib/phronomy/vector_store/loader/csv_loader.rb,<br> lib/phronomy/vector_store/loader/markdown_loader.rb,<br> lib/phronomy/vector_store/loader/plain_text_loader.rb,<br> lib/phronomy/vector_store/splitter/recursive_splitter.rb,<br> lib/phronomy/vector_store/splitter/fixed_size_splitter.rb,<br> lib/phronomy/vector_store/embeddings/ruby_llm_embeddings.rb</span>
+
 </dd>
   </dl>
   
@@ -88,17 +90,41 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Vector store implementations for embedding-based semantic search.</p>
-<p>Sub-classes are auto-loaded by Zeitwerk:</p>
-<pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RAG.html" title="Phronomy::RAG (module)">RAG</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RAG/VectorStore.html" title="Phronomy::RAG::VectorStore (module)">VectorStore</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RAG/VectorStore/Base.html" title="Phronomy::RAG::VectorStore::Base (class)">Base</a></span></span>
-<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RAG.html" title="Phronomy::RAG (module)">RAG</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RAG/VectorStore.html" title="Phronomy::RAG::VectorStore (module)">VectorStore</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RAG/VectorStore/InMemory.html" title="Phronomy::RAG::VectorStore::InMemory (class)">InMemory</a></span></span></code></pre>
+    <p>Vector store infrastructure: backends, embeddings adapters, document loaders,
+and text splitters.</p>
+<p>Sub-namespaces are auto-loaded by Zeitwerk:</p>
+<pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>VectorStore</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Base.html" title="Phronomy::VectorStore::Base (class)">Base</a></span></span>
+<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>VectorStore</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/InMemory.html" title="Phronomy::VectorStore::InMemory (class)">InMemory</a></span></span>
+<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>VectorStore</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Pgvector.html" title="Phronomy::VectorStore::Pgvector (class)">Pgvector</a></span></span>
+<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>VectorStore</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/RedisSearch.html" title="Phronomy::VectorStore::RedisSearch (class)">RedisSearch</a></span></span>
+<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>VectorStore</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Embeddings.html" title="Phronomy::VectorStore::Embeddings (module)">Embeddings</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Embeddings/Base.html" title="Phronomy::VectorStore::Embeddings::Base (class)">Base</a></span></span>
+<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>VectorStore</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Embeddings.html" title="Phronomy::VectorStore::Embeddings (module)">Embeddings</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Embeddings/RubyLLMEmbeddings.html" title="Phronomy::VectorStore::Embeddings::RubyLLMEmbeddings (class)">RubyLLMEmbeddings</a></span></span>
+<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>VectorStore</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Loader.html" title="Phronomy::VectorStore::Loader (module)">Loader</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Loader/Base.html" title="Phronomy::VectorStore::Loader::Base (class)">Base</a></span></span>
+<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>VectorStore</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Loader.html" title="Phronomy::VectorStore::Loader (module)">Loader</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Loader/PlainTextLoader.html" title="Phronomy::VectorStore::Loader::PlainTextLoader (class)">PlainTextLoader</a></span></span>
+<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>VectorStore</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Loader.html" title="Phronomy::VectorStore::Loader (module)">Loader</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Loader/MarkdownLoader.html" title="Phronomy::VectorStore::Loader::MarkdownLoader (class)">MarkdownLoader</a></span></span>
+<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>VectorStore</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Loader.html" title="Phronomy::VectorStore::Loader (module)">Loader</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Loader/CsvLoader.html" title="Phronomy::VectorStore::Loader::CsvLoader (class)">CsvLoader</a></span></span>
+<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>VectorStore</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Splitter.html" title="Phronomy::VectorStore::Splitter (module)">Splitter</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Splitter/Base.html" title="Phronomy::VectorStore::Splitter::Base (class)">Base</a></span></span>
+<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>VectorStore</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Splitter.html" title="Phronomy::VectorStore::Splitter (module)">Splitter</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Splitter/FixedSizeSplitter.html" title="Phronomy::VectorStore::Splitter::FixedSizeSplitter (class)">FixedSizeSplitter</a></span></span>
+<span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>VectorStore</span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Splitter.html" title="Phronomy::VectorStore::Splitter (module)">Splitter</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="VectorStore/Splitter/RecursiveSplitter.html" title="Phronomy::VectorStore::Splitter::RecursiveSplitter (class)">RecursiveSplitter</a></span></span></code></pre>
 
   </div>
 </div>
 <div class="tags">
   
 
-</div>
+</div><h2>Defined Under Namespace</h2>
+<p class="children">
+  
+    
+      <strong class="modules">Modules:</strong> <span class='object_link'><a href="VectorStore/AsyncBackend.html" title="Phronomy::VectorStore::AsyncBackend (module)">AsyncBackend</a></span>, <span class='object_link'><a href="VectorStore/Embeddings.html" title="Phronomy::VectorStore::Embeddings (module)">Embeddings</a></span>, <span class='object_link'><a href="VectorStore/Loader.html" title="Phronomy::VectorStore::Loader (module)">Loader</a></span>, <span class='object_link'><a href="VectorStore/Splitter.html" title="Phronomy::VectorStore::Splitter (module)">Splitter</a></span>
+    
+  
+    
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="VectorStore/Base.html" title="Phronomy::VectorStore::Base (class)">Base</a></span>, <span class='object_link'><a href="VectorStore/InMemory.html" title="Phronomy::VectorStore::InMemory (class)">InMemory</a></span>, <span class='object_link'><a href="VectorStore/Pgvector.html" title="Phronomy::VectorStore::Pgvector (class)">Pgvector</a></span>, <span class='object_link'><a href="VectorStore/RedisSearch.html" title="Phronomy::VectorStore::RedisSearch (class)">RedisSearch</a></span>
+    
+  
+</p>
+
 
 
 
@@ -110,7 +136,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sun May 31 09:45:20 2026 by
+  Generated on Sun May 31 10:42:41 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

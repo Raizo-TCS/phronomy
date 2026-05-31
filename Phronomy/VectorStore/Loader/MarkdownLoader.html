@@ -4,7 +4,7 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-  Class: Phronomy::RAG::Loader::MarkdownLoader
+  Class: Phronomy::VectorStore::Loader::MarkdownLoader
   
     &mdash; Documentation by YARD 0.9.44
   
@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="../../../css/common.css" type="text/css">
 
 <script type="text/javascript">
-  pathId = "Phronomy::RAG::Loader::MarkdownLoader";
+  pathId = "Phronomy::VectorStore::Loader::MarkdownLoader";
   relpath = '../../../';
 </script>
 
@@ -39,7 +39,7 @@
         <div id="menu">
   
     <a href="../../../_index.html">Index (M)</a> &raquo;
-    <span class='title'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../RAG.html" title="Phronomy::RAG (module)">RAG</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Loader.html" title="Phronomy::RAG::Loader (module)">Loader</a></span></span>
+    <span class='title'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../VectorStore.html" title="Phronomy::VectorStore (module)">VectorStore</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Loader.html" title="Phronomy::VectorStore::Loader (module)">Loader</a></span></span>
      &raquo; 
     <span class="title">MarkdownLoader</span>
   
@@ -61,7 +61,7 @@
         <div class="clear"></div>
       </div>
 
-      <div id="content"><h1>Class: Phronomy::RAG::Loader::MarkdownLoader
+      <div id="content"><h1>Class: Phronomy::VectorStore::Loader::MarkdownLoader
   
   
   
@@ -71,14 +71,14 @@
   <dl>
     <dt>Inherits:</dt>
     <dd>
-      <span class="inheritName"><span class='object_link'><a href="Base.html" title="Phronomy::RAG::Loader::Base (class)">Base</a></span></span>
+      <span class="inheritName"><span class='object_link'><a href="Base.html" title="Phronomy::VectorStore::Loader::Base (class)">Base</a></span></span>
       
         <ul class="fullTree">
           <li>Object</li>
           
-            <li class="next"><span class='object_link'><a href="Base.html" title="Phronomy::RAG::Loader::Base (class)">Base</a></span></li>
+            <li class="next"><span class='object_link'><a href="Base.html" title="Phronomy::VectorStore::Loader::Base (class)">Base</a></span></li>
           
-            <li class="next">Phronomy::RAG::Loader::MarkdownLoader</li>
+            <li class="next">Phronomy::VectorStore::Loader::MarkdownLoader</li>
           
         </ul>
         <a href="#" class="inheritanceTree">show all</a>
@@ -98,7 +98,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/rag/loader/markdown_loader.rb
+    <dd>lib/phronomy/vector_store/loader/markdown_loader.rb
 </dd>
   </dl>
   
@@ -121,14 +121,14 @@ rather than the full file at once.</p>
       
         <h5 class="example_title"><div class='inline'><p>Single document (heading split disabled)</p></div></h5>
       
-      <pre class="example code"><code><span class='id identifier rubyid_loader'>loader</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../RAG.html" title="Phronomy::RAG (module)">RAG</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Loader.html" title="Phronomy::RAG::Loader (module)">Loader</a></span></span><span class='op'>::</span><span class='const'>MarkdownLoader</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::RAG::Loader::MarkdownLoader#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>split_on_headings:</span> <span class='kw'>false</span><span class='rparen'>)</span>
+      <pre class="example code"><code><span class='id identifier rubyid_loader'>loader</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../VectorStore.html" title="Phronomy::VectorStore (module)">VectorStore</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Loader.html" title="Phronomy::VectorStore::Loader (module)">Loader</a></span></span><span class='op'>::</span><span class='const'>MarkdownLoader</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::VectorStore::Loader::MarkdownLoader#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>split_on_headings:</span> <span class='kw'>false</span><span class='rparen'>)</span>
 <span class='id identifier rubyid_docs'>docs</span>   <span class='op'>=</span> <span class='id identifier rubyid_loader'>loader</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>README.md</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
 <span class='comment'># =&gt; [{ text: &quot;# Title\n...&quot;, metadata: { source: &quot;README.md&quot; } }]</span></code></pre>
     
       
         <h5 class="example_title"><div class='inline'><p>Split per heading (default)</p></div></h5>
       
-      <pre class="example code"><code><span class='id identifier rubyid_loader'>loader</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../RAG.html" title="Phronomy::RAG (module)">RAG</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Loader.html" title="Phronomy::RAG::Loader (module)">Loader</a></span></span><span class='op'>::</span><span class='const'>MarkdownLoader</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::RAG::Loader::MarkdownLoader#initialize (method)">new</a></span></span>
+      <pre class="example code"><code><span class='id identifier rubyid_loader'>loader</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../VectorStore.html" title="Phronomy::VectorStore (module)">VectorStore</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Loader.html" title="Phronomy::VectorStore::Loader (module)">Loader</a></span></span><span class='op'>::</span><span class='const'>MarkdownLoader</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::VectorStore::Loader::MarkdownLoader#initialize (method)">new</a></span></span>
 <span class='id identifier rubyid_docs'>docs</span>   <span class='op'>=</span> <span class='id identifier rubyid_loader'>loader</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>guide.md</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
 <span class='comment'># =&gt; [
 </span><span class='comment'>#   { text: &quot;# Section 1\n...&quot;, metadata: { source: &quot;guide.md&quot;, section: &quot;Section 1&quot; } },
@@ -232,7 +232,7 @@ rather than the full file at once.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(split_on_headings: true)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::RAG::Loader::MarkdownLoader (class)">MarkdownLoader</a></span></tt> 
+    #<strong>initialize</strong>(split_on_headings: true)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::VectorStore::Loader::MarkdownLoader (class)">MarkdownLoader</a></span></tt> 
   
 
   
@@ -278,7 +278,7 @@ rather than the full file at once.</p>
 31</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/rag/loader/markdown_loader.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/loader/markdown_loader.rb', line 29</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>split_on_headings:</span> <span class='kw'>true</span><span class='rparen'>)</span>
   <span class='ivar'>@split_on_headings</span> <span class='op'>=</span> <span class='id identifier rubyid_split_on_headings'>split_on_headings</span>
@@ -374,7 +374,7 @@ rather than the full file at once.</p>
 42</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/rag/loader/markdown_loader.rb', line 37</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/loader/markdown_loader.rb', line 37</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_source'>source</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_content'>content</span> <span class='op'>=</span> <span class='const'>File</span><span class='period'>.</span><span class='id identifier rubyid_read'>read</span><span class='lparen'>(</span><span class='id identifier rubyid_source'>source</span><span class='comma'>,</span> <span class='label'>encoding:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>UTF-8</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
@@ -392,7 +392,7 @@ rather than the full file at once.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun May 31 09:45:23 2026 by
+  Generated on Sun May 31 10:42:45 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
