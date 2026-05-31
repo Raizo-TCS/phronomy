@@ -98,7 +98,6 @@ RSpec.describe "Group: Context Management", :integration do
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end
-
   end
 
   # --------------------------------------------------------------------------

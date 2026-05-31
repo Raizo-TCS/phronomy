@@ -8,9 +8,9 @@ def rag_agent_class
     model "test-model"
 
     def build_context(input, messages: [], thread_id: nil, config: {})
-      history      = prepare_history(messages: messages, thread_id: thread_id, config: config)
-      budget       = build_token_budget
-      instruction  = build_instructions(input)
+      history = prepare_history(messages: messages, thread_id: thread_id, config: config)
+      budget = build_token_budget
+      instruction = build_instructions(input)
       user_message = extract_message(input)
 
       assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
