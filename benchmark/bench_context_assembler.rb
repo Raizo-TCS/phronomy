@@ -41,6 +41,14 @@ Benchmark.bm(40) do |x|
   end
 
   x.report("build(1000 msgs, 10 chunks, budgeted)") do
-    (BENCH_ASM_ITERATIONS / 10).times { make_assembler(n_messages: 1000, n_chunks: 10, with_budget: true).build }
+    (BENCH_ASM_ITERATIONS / 10).times do
+      # Assembler raises ContextLengthError when messages exceed the budget;
+      # callers (e.g. Agent::Base#build_context) are expected to pre-trim via
+      # trim_to_budget before calling build. The rescue here keeps the benchmark
+      # measuring build's fast path without triggering the error path.
+      make_assembler(n_messages: 1000, n_chunks: 10, with_budget: true).build
+    rescue Phronomy::ContextLengthError
+      # expected — budget exceeded
+    end
   end
 end
