@@ -130,18 +130,18 @@ t6 = Benchmark.measure("CancellationToken#raise_if_cancelled! (no-op)") do
 end
 
 # ---------------------------------------------------------------------------
-# Target 7: Context::TrimContext#remove on a 2000-element history
+# Target 7: Agent::Base#trim_messages on a 2000-message history
 # ---------------------------------------------------------------------------
 BenchMsg = Struct.new(:content) unless defined?(BenchMsg)
 
-TRIM_ELEMENTS = Array.new(2_000) { |i| {seq: i, message: BenchMsg.new("msg #{i}"), tokens: 10, role: :user} }
-TRIM_BUDGET = Phronomy::LlmContextWindow::TokenBudget.new(context_window: 4096, max_output_tokens: 512)
+TRIM_MESSAGES = Array.new(2_000) { |i| BenchMsg.new("msg #{i}") }
 TRIM_ITERATIONS = 500
 
-t7 = Benchmark.measure("TrimContext#remove (2000-element history)") do
+bench_trim_agent = Class.new(Phronomy::Agent::Base).new
+
+t7 = Benchmark.measure("Agent::Base#trim_messages (2000-msg history)") do
   TRIM_ITERATIONS.times do
-    tc = Phronomy::Agent::Context::Conversation::TrimContext.new(message_elements: TRIM_ELEMENTS, budget: TRIM_BUDGET)
-    tc.remove((0...200).to_a)  # remove 200 oldest messages
+    bench_trim_agent.send(:trim_messages, TRIM_MESSAGES, keep: 1_800)
   end
 end
 
@@ -159,7 +159,7 @@ metrics = {
   "dispatch_parallel_10" => [t4, PARALLEL_ITERATIONS],
   "cancellation_token_cancelled" => [t5, 8 * CANCEL_ITERATIONS],
   "cancellation_token_raise_if_cancelled_noop" => [t6, RAISE_ITERATIONS],
-  "trim_context_remove_2000" => [t7, TRIM_ITERATIONS]
+  "trim_messages_2000" => [t7, TRIM_ITERATIONS]
 }
 
 REGRESSION_RESULTS = {} # rubocop:disable Style/MutableConstant
