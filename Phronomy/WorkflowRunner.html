@@ -387,7 +387,7 @@ directly by WorkflowRunner before the main execution loop begins.</p>
   <span class='ivar'>@wait_state_names</span> <span class='op'>=</span> <span class='id identifier rubyid_wait_state_names'>wait_state_names</span>
   <span class='ivar'>@state_store</span> <span class='op'>=</span> <span class='id identifier rubyid_state_store'>state_store</span>
   <span class='ivar'>@action_timeouts</span> <span class='op'>=</span> <span class='id identifier rubyid_action_timeouts'>action_timeouts</span>   <span class='comment'># { state_name =&gt; seconds }
-</span>  <span class='ivar'>@phase_machine_class</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Lifecycle.html" title="Phronomy::Agent::Lifecycle (module)">Lifecycle</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/Lifecycle/PhaseMachineBuilder.html" title="Phronomy::Agent::Lifecycle::PhaseMachineBuilder (class)">PhaseMachineBuilder</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Agent/Lifecycle/PhaseMachineBuilder.html#initialize-instance_method" title="Phronomy::Agent::Lifecycle::PhaseMachineBuilder#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+</span>  <span class='ivar'>@phase_machine_class</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Workflow.html" title="Phronomy::Workflow (class)">Workflow</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Workflow/PhaseMachineBuilder.html" title="Phronomy::Workflow::PhaseMachineBuilder (class)">PhaseMachineBuilder</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Workflow/PhaseMachineBuilder.html#initialize-instance_method" title="Phronomy::Workflow::PhaseMachineBuilder#initialize (method)">new</a></span></span><span class='lparen'>(</span>
     <span class='label'>entry_point:</span> <span class='ivar'>@entry_point</span><span class='comma'>,</span>
     <span class='label'>declared_states:</span> <span class='ivar'>@declared_states</span><span class='comma'>,</span>
     <span class='label'>wait_state_names:</span> <span class='ivar'>@wait_state_names</span><span class='comma'>,</span>
@@ -396,7 +396,7 @@ directly by WorkflowRunner before the main execution loop begins.</p>
     <span class='label'>action_timeouts:</span> <span class='ivar'>@action_timeouts</span><span class='comma'>,</span>
     <span class='label'>auto_transitions:</span> <span class='id identifier rubyid_auto_transitions'>auto_transitions</span><span class='comma'>,</span>
     <span class='label'>exit_actions:</span> <span class='id identifier rubyid_exit_actions'>exit_actions</span>
-  <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_build'><span class='object_link'><a href="Agent/Lifecycle/PhaseMachineBuilder.html#build-instance_method" title="Phronomy::Agent::Lifecycle::PhaseMachineBuilder#build (method)">build</a></span></span>
+  <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_build'><span class='object_link'><a href="Workflow/PhaseMachineBuilder.html#build-instance_method" title="Phronomy::Workflow::PhaseMachineBuilder#build (method)">build</a></span></span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -920,7 +920,7 @@ for the current wait state and fires it.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Jun  1 05:22:33 2026 by
+  Generated on Tue Jun  2 16:38:39 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
