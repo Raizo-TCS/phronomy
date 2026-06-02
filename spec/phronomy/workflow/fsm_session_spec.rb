@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-# Unit tests for Phronomy::Agent::Lifecycle::FSMSession.
+# Unit tests for Phronomy::Workflow::FSMSession.
 #
 # FSMSession is an internal class orchestrated by EventLoop.
 # These tests exercise its behaviour by injecting a fake EventLoop double
@@ -15,7 +15,7 @@ require "spec_helper"
 #   3. Inject a fake EventLoop (FakeLoop) to capture posted events without
 #      requiring a real background thread.
 #   4. Assert the events posted by FSMSession in response to each scenario.
-RSpec.describe Phronomy::Agent::Lifecycle::FSMSession do
+RSpec.describe Phronomy::Workflow::FSMSession do
   # Minimal fake event loop that captures all posted events.
   # Does not start a thread — events are captured synchronously.
   class FakeLoop

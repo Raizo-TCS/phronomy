@@ -192,7 +192,7 @@ RSpec.describe "Fault injection (Issue #230 — extended)" do
       loop.instance_variable_get(:@shutdown_token).cancel!
 
       # Build a minimal FSMSession double that can be inspected
-      fsm_double = instance_double(Phronomy::Agent::Lifecycle::FSMSession,
+      fsm_double = instance_double(Phronomy::Workflow::FSMSession,
         id: "test-session-#{rand(100_000)}",
         start: nil)
 

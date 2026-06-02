@@ -56,7 +56,7 @@ module Phronomy
       @wait_state_names = wait_state_names
       @state_store = state_store
       @action_timeouts = action_timeouts   # { state_name => seconds }
-      @phase_machine_class = Agent::Lifecycle::PhaseMachineBuilder.new(
+      @phase_machine_class = Workflow::PhaseMachineBuilder.new(
         entry_point: @entry_point,
         declared_states: @declared_states,
         wait_state_names: @wait_state_names,
@@ -169,7 +169,7 @@ module Phronomy
 
     # Builds an FSMSession for the given context. Used in EventLoop mode.
     def build_session_for(context:, recursion_limit:, resume_event: nil, resume_phase: nil)
-      Phronomy::Agent::Lifecycle::FSMSession.new(
+      Phronomy::Workflow::FSMSession.new(
         id: context.thread_id,
         context: context,
         entry_point: @entry_point,
