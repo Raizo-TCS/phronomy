@@ -55,8 +55,9 @@ module Phronomy
         # - +consumed?(checkpoint_id)+ ⇒ Boolean
         # - +consume!(checkpoint_id)+  ⇒ void; raises {Phronomy::CheckpointAlreadyResumedError} on duplicate
         #
-        # Defaults to a per-instance {Phronomy::Agent::CheckpointStore} (in-memory, Mutex-protected).
+        # Defaults to a per-instance {Phronomy::Agent::CheckpointStore} (in-memory, not thread-safe).
         # Assign a shared persistent store when resuming across processes (e.g. Redis-backed).
+        # Custom stores are responsible for ensuring thread-safety if shared across threads.
         #
         # @param store [#consumed?, #consume!]
         # @return [void]
