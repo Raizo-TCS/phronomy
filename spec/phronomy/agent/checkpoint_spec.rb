@@ -37,6 +37,7 @@ RSpec.describe Phronomy::Agent::Checkpoint do
     it "returns a Hash with expected top-level keys" do
       h = checkpoint.to_h
       expect(h.keys).to match_array(%i[
+        checkpoint_id agent_class requested_at
         thread_id original_input messages
         pending_tool_name pending_tool_args pending_tool_call_id
       ])

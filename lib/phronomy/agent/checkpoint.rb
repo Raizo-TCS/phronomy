@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "securerandom"
+
 module Phronomy
   module Agent
     # Encapsulates the suspended state of an agent invocation.
@@ -19,6 +21,18 @@ module Phronomy
     #   end
     #   puts result[:output]
     class Checkpoint
+      # @return [String] a globally unique identifier for this checkpoint;
+      #   used as an idempotency key when guarding against duplicate resumes
+      attr_reader :checkpoint_id
+
+      # @return [String, nil] the fully-qualified name of the agent class that
+      #   created this checkpoint (e.g. +"MyApp::ReviewAgent"+); used by the
+      #   class-level +resume+ method to validate the correct agent is used
+      attr_reader :agent_class
+
+      # @return [Time] the UTC timestamp when this checkpoint was created
+      attr_reader :requested_at
+
       # @return [String, nil] the thread_id from the invocation config
       attr_reader :thread_id
 
@@ -41,6 +55,9 @@ module Phronomy
       #   inject the tool result message on resume)
       attr_reader :pending_tool_call_id
 
+      # @param checkpoint_id        [String] unique identifier; defaults to a new UUID
+      # @param agent_class           [String, nil] fully-qualified agent class name
+      # @param requested_at          [Time] when the checkpoint was created; defaults to +Time.now.utc+
       # @param thread_id            [String, nil]
       # @param original_input       [String, Hash] the input passed to the original #invoke call
       # @param messages             [Array<RubyLLM::Message>]
@@ -48,7 +65,11 @@ module Phronomy
       # @param pending_tool_args    [Hash]
       # @param pending_tool_call_id [String]
       # @api public
-      def initialize(thread_id:, original_input:, messages:, pending_tool_name:, pending_tool_args:, pending_tool_call_id:)
+      def initialize(thread_id:, original_input:, messages:, pending_tool_name:, pending_tool_args:, pending_tool_call_id:,
+                     checkpoint_id: SecureRandom.uuid, agent_class: nil, requested_at: Time.now.utc)
+        @checkpoint_id = checkpoint_id
+        @agent_class = agent_class
+        @requested_at = requested_at
         @thread_id = thread_id
         @original_input = original_input
         @messages = messages.dup.freeze
@@ -71,6 +92,9 @@ module Phronomy
       # @api public
       def to_h
         {
+          checkpoint_id: @checkpoint_id,
+          agent_class: @agent_class,
+          requested_at: @requested_at&.iso8601,
           thread_id: @thread_id,
           original_input: @original_input,
           messages: @messages.map { |m| serialize_message(m) },
@@ -99,7 +123,12 @@ module Phronomy
           end
         }
         messages = Array(h[:messages]).map { |m| deserialize_message(m) }
+        requested_at_raw = h[:requested_at]
+        requested_at = requested_at_raw ? Time.parse(requested_at_raw.to_s).utc : nil
         new(
+          checkpoint_id: h[:checkpoint_id]&.to_s || SecureRandom.uuid,
+          agent_class: h[:agent_class]&.to_s,
+          requested_at: requested_at || Time.now.utc,
           thread_id: h[:thread_id],
           original_input: h[:original_input],
           messages: messages,

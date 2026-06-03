@@ -374,6 +374,27 @@ module Phronomy
             @context_overhead = val.to_i
           end
         end
+
+        # Resumes a suspended invocation identified by +checkpoint+ without
+        # requiring the original agent instance to be kept in memory.
+        #
+        # Validates that the checkpoint was created by this agent class, then
+        # instantiates a fresh agent and delegates to {Suspendable#resume}.
+        #
+        # @param checkpoint [Phronomy::Agent::Checkpoint]
+        # @param approved   [Boolean] +true+ to execute the pending tool; +false+ to deny
+        # @param config     [Hash] same runtime options as {#invoke}
+        # @return [Hash] same shape as {#invoke} — may contain +suspended: true+ if
+        #   another approval-required tool is encountered during continuation
+        # @raise [ArgumentError] when +checkpoint.agent_class+ does not match this class
+        # @api public
+        def resume(checkpoint, approved:, config: {})
+          if checkpoint.agent_class && checkpoint.agent_class != name
+            raise ArgumentError,
+              "checkpoint belongs to #{checkpoint.agent_class}, cannot resume with #{name}"
+          end
+          new.resume(checkpoint, approved: approved, config: config)
+        end
       end
 
       # Registers an anonymous handoff tool class on this agent instance.

@@ -79,6 +79,9 @@ module Phronomy
             response = adapter.complete_async(chat, user_message, config: cfg).await
           rescue SuspendSignal => signal
             checkpoint = Checkpoint.new(
+              checkpoint_id: SecureRandom.uuid,
+              agent_class: self.class.name,
+              requested_at: Time.now.utc,
               thread_id: tid,
               original_input: inp,
               messages: chat.messages.dup,
