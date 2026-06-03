@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "set"
-
 module Phronomy
   module Agent
     # Default in-memory idempotency store for {Checkpoint} resume operations.

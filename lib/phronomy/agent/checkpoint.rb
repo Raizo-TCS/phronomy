@@ -66,7 +66,7 @@ module Phronomy
       # @param pending_tool_call_id [String]
       # @api public
       def initialize(thread_id:, original_input:, messages:, pending_tool_name:, pending_tool_args:, pending_tool_call_id:,
-                     checkpoint_id: SecureRandom.uuid, agent_class: nil, requested_at: Time.now.utc)
+        checkpoint_id: SecureRandom.uuid, agent_class: nil, requested_at: Time.now.utc)
         @checkpoint_id = checkpoint_id
         @agent_class = agent_class
         @requested_at = requested_at
