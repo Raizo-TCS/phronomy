@@ -251,13 +251,13 @@ shared store — see Suspendable#checkpoint_store=.</p>
       <pre class="lines">
 
 
+29
+30
 31
-32
-33
-34</pre>
+32</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/checkpoint_store.rb', line 31</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/checkpoint_store.rb', line 29</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@consumed</span> <span class='op'>=</span> <span class='const'>Set</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
@@ -329,18 +329,18 @@ same process cannot both succeed for the same ID.</p>
       <pre class="lines">
 
 
+52
+53
 54
 55
 56
 57
 58
 59
-60
-61
-62</pre>
+60</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/checkpoint_store.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/checkpoint_store.rb', line 52</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_consume!'>consume!</span><span class='lparen'>(</span><span class='id identifier rubyid_checkpoint_id'>checkpoint_id</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -408,12 +408,12 @@ same process cannot both succeed for the same ID.</p>
       <pre class="lines">
 
 
-41
-42
-43</pre>
+39
+40
+41</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/checkpoint_store.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/checkpoint_store.rb', line 39</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_consumed?'>consumed?</span><span class='lparen'>(</span><span class='id identifier rubyid_checkpoint_id'>checkpoint_id</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@consumed</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_checkpoint_id'>checkpoint_id</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
@@ -428,7 +428,7 @@ same process cannot both succeed for the same ID.</p>
 </div>
 
       <div id="footer">
-  Generated on Wed Jun  3 15:58:56 2026 by
+  Generated on Wed Jun  3 17:02:35 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

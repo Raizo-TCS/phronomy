@@ -641,7 +641,7 @@ obtaining an approval decision from the user or an external system.</p>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/checkpoint.rb', line 68</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>original_input:</span><span class='comma'>,</span> <span class='label'>messages:</span><span class='comma'>,</span> <span class='label'>pending_tool_name:</span><span class='comma'>,</span> <span class='label'>pending_tool_args:</span><span class='comma'>,</span> <span class='label'>pending_tool_call_id:</span><span class='comma'>,</span>
-               <span class='label'>checkpoint_id:</span> <span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_uuid'>uuid</span><span class='comma'>,</span> <span class='label'>agent_class:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>requested_at:</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span><span class='period'>.</span><span class='id identifier rubyid_utc'>utc</span><span class='rparen'>)</span>
+  <span class='label'>checkpoint_id:</span> <span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_uuid'>uuid</span><span class='comma'>,</span> <span class='label'>agent_class:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>requested_at:</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span><span class='period'>.</span><span class='id identifier rubyid_utc'>utc</span><span class='rparen'>)</span>
   <span class='ivar'>@checkpoint_id</span> <span class='op'>=</span> <span class='id identifier rubyid_checkpoint_id'>checkpoint_id</span>
   <span class='ivar'>@agent_class</span> <span class='op'>=</span> <span class='id identifier rubyid_agent_class'>agent_class</span>
   <span class='ivar'>@requested_at</span> <span class='op'>=</span> <span class='id identifier rubyid_requested_at'>requested_at</span>
@@ -1419,7 +1419,7 @@ any embedded <code>RubyLLM::ToolCall</code> objects are also serialized as plain
 </div>
 
       <div id="footer">
-  Generated on Wed Jun  3 15:58:55 2026 by
+  Generated on Wed Jun  3 17:02:34 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
