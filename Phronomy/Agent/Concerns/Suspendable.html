@@ -126,6 +126,28 @@ has been registered, the invocation is suspended and a
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#checkpoint_store=-instance_method" title="#checkpoint_store= (instance method)">#<strong>checkpoint_store=</strong>(store)  &#x21d2; void </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Sets the idempotency store used to guard against duplicate resumes.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#on_approval_required-instance_method" title="#on_approval_required (instance method)">#<strong>on_approval_required</strong>(&amp;block)  &#x21d2; self </a>
     
 
@@ -200,7 +222,68 @@ has been registered, the invocation is suspended and a
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="on_approval_required-instance_method">
+  <h3 class="signature first" id="checkpoint_store=-instance_method">
+  
+    #<strong>checkpoint_store=</strong>(store)  &#x21d2; <tt>void</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note returns_void">This method returns an undefined value.</p><p>Sets the idempotency store used to guard against duplicate resumes.</p>
+<p>The store must respond to:</p>
+<ul>
+<li><code>consumed?(checkpoint_id)</code> ⇒ Boolean</li>
+<li><code>consume!(checkpoint_id)</code>  ⇒ void; raises <span class='object_link'><a href="../../CheckpointAlreadyResumedError.html" title="Phronomy::CheckpointAlreadyResumedError (class)">CheckpointAlreadyResumedError</a></span> on duplicate</li>
+</ul>
+<p>Defaults to a per-instance <span class='object_link'><a href="../CheckpointStore.html" title="Phronomy::Agent::CheckpointStore (class)">Phronomy::Agent::CheckpointStore</a></span> (in-memory, Mutex-protected).
+Assign a shared persistent store when resuming across processes (e.g. Redis-backed).</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>store</span>
+      
+      
+        <span class='type'>(<tt>#consumed?</tt>, <tt>#consume!</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+64
+65
+66</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 64</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_checkpoint_store='>checkpoint_store=</span><span class='lparen'>(</span><span class='id identifier rubyid_store'>store</span><span class='rparen'>)</span>
+  <span class='ivar'>@checkpoint_store</span> <span class='op'>=</span> <span class='id identifier rubyid_store'>store</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="on_approval_required-instance_method">
   
     #<strong>on_approval_required</strong>(&amp;block)  &#x21d2; <tt>self</tt> 
   
@@ -259,13 +342,13 @@ obtaining an approval decision from the user or an external system.</p>
       <pre class="lines">
 
 
-30
-31
 32
-33</pre>
+33
+34
+35</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 30</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 32</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_approval_required'>on_approval_required</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='ivar'>@approval_handler</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -361,7 +444,9 @@ to inject a denial message and let the LLM handle it gracefully</p></div>
       
       
         &mdash;
-        <div class='inline'><p><code>{ output: String, suspended: false, messages: Array, usage: Phronomy::TokenUsage }</code></p></div>
+        <div class='inline'><p><code>{ output: String, suspended: false, messages: Array, usage: Phronomy::TokenUsage }</code>
+or <code>{ output: nil, suspended: true, checkpoint: Phronomy::Agent::Checkpoint, messages: Array }</code>
+when a second approval-required tool is encountered during continuation</p></div>
       
     </li>
   
@@ -381,6 +466,18 @@ to inject a denial message and let the LLM handle it gracefully</p></div>
       
     </li>
   
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="../../CheckpointAlreadyResumedError.html" title="Phronomy::CheckpointAlreadyResumedError (class)">Phronomy::CheckpointAlreadyResumedError</a></span></tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>when the checkpoint has already been consumed</p></div>
+      
+    </li>
+  
 </ul>
 
 </div><table class="source_code">
@@ -389,27 +486,6 @@ to inject a denial message and let the LLM handle it gracefully</p></div>
       <pre class="lines">
 
 
-64
-65
-66
-67
-68
-69
-70
-71
-72
-73
-74
-75
-76
-77
-78
-79
-80
-81
-82
-83
-84
 85
 86
 87
@@ -428,12 +504,59 @@ to inject a denial message and let the LLM handle it gracefully</p></div>
 100
 101
 102
-103</pre>
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 64</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 85</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='id identifier rubyid_checkpoint'>checkpoint</span><span class='comma'>,</span> <span class='label'>approved:</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+  <span class='comment'># Guard against duplicate resumes using the idempotency store.
+</span>  <span class='id identifier rubyid__checkpoint_store'>_checkpoint_store</span><span class='period'>.</span><span class='id identifier rubyid_consume!'>consume!</span><span class='lparen'>(</span><span class='id identifier rubyid_checkpoint'>checkpoint</span><span class='period'>.</span><span class='id identifier rubyid_checkpoint_id'>checkpoint_id</span><span class='rparen'>)</span>
   <span class='comment'># Build a fresh chat with all tools registered.
 </span>  <span class='id identifier rubyid_chat'>chat</span> <span class='op'>=</span> <span class='id identifier rubyid_build_chat'>build_chat</span>
 
@@ -463,8 +586,30 @@ to inject a denial message and let the LLM handle it gracefully</p></div>
     <span class='label'>tool_call_id:</span> <span class='id identifier rubyid_checkpoint'>checkpoint</span><span class='period'>.</span><span class='id identifier rubyid_pending_tool_call_id'>pending_tool_call_id</span>
   <span class='rparen'>)</span>
 
-  <span class='comment'># Continue the React loop.
-</span>  <span class='id identifier rubyid_response'>response</span> <span class='op'>=</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_complete'>complete</span>
+  <span class='comment'># Re-register the suspension hook so that any further requires_approval
+</span>  <span class='comment'># tools encountered during continuation are intercepted rather than
+</span>  <span class='comment'># executed without approval (cascading / chained approval scenario).
+</span>  <span class='id identifier rubyid__register_suspension_hook!'>_register_suspension_hook!</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='rparen'>)</span>
+
+  <span class='comment'># Continue the LLM loop. Rescue SuspendSignal so that a second
+</span>  <span class='comment'># approval-required tool produces a new checkpoint instead of running
+</span>  <span class='comment'># without consent.
+</span>  <span class='kw'>begin</span>
+    <span class='id identifier rubyid_response'>response</span> <span class='op'>=</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_complete'>complete</span>
+  <span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="../SuspendSignal.html" title="Phronomy::Agent::SuspendSignal (class)">SuspendSignal</a></span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_signal'>signal</span>
+    <span class='id identifier rubyid_new_checkpoint'>new_checkpoint</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Checkpoint.html" title="Phronomy::Agent::Checkpoint (class)">Checkpoint</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Checkpoint.html#initialize-instance_method" title="Phronomy::Agent::Checkpoint#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+      <span class='label'>checkpoint_id:</span> <span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_uuid'>uuid</span><span class='comma'>,</span>
+      <span class='label'>agent_class:</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span>
+      <span class='label'>requested_at:</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span><span class='period'>.</span><span class='id identifier rubyid_utc'>utc</span><span class='comma'>,</span>
+      <span class='label'>thread_id:</span> <span class='id identifier rubyid_checkpoint'>checkpoint</span><span class='period'>.</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
+      <span class='label'>original_input:</span> <span class='id identifier rubyid_checkpoint'>checkpoint</span><span class='period'>.</span><span class='id identifier rubyid_original_input'>original_input</span><span class='comma'>,</span>
+      <span class='label'>messages:</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span><span class='comma'>,</span>
+      <span class='label'>pending_tool_name:</span> <span class='id identifier rubyid_signal'>signal</span><span class='period'>.</span><span class='id identifier rubyid_tool_name'>tool_name</span><span class='comma'>,</span>
+      <span class='label'>pending_tool_args:</span> <span class='id identifier rubyid_signal'>signal</span><span class='period'>.</span><span class='id identifier rubyid_args'>args</span><span class='comma'>,</span>
+      <span class='label'>pending_tool_call_id:</span> <span class='id identifier rubyid_signal'>signal</span><span class='period'>.</span><span class='id identifier rubyid_tool_call_id'>tool_call_id</span>
+    <span class='rparen'>)</span>
+    <span class='kw'>return</span> <span class='lbrace'>{</span><span class='label'>output:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>suspended:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>checkpoint:</span> <span class='id identifier rubyid_new_checkpoint'>new_checkpoint</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_messages'>messages</span><span class='rbrace'>}</span>
+  <span class='kw'>end</span>
 
   <span class='id identifier rubyid_output'>output</span> <span class='op'>=</span> <span class='id identifier rubyid_response'>response</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span>
   <span class='id identifier rubyid_usage'>usage</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../TokenUsage.html" title="Phronomy::TokenUsage (class)">TokenUsage</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_tokens'><span class='object_link'><a href="../../TokenUsage.html#from_tokens-class_method" title="Phronomy::TokenUsage.from_tokens (method)">from_tokens</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_response'>response</span><span class='period'>.</span><span class='id identifier rubyid_tokens'>tokens</span><span class='rparen'>)</span>
@@ -529,12 +674,12 @@ to inject a denial message and let the LLM handle it gracefully</p></div>
       <pre class="lines">
 
 
-46
-47
-48</pre>
+48
+49
+50</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 46</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 48</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_scope_policy='>scope_policy=</span><span class='lparen'>(</span><span class='id identifier rubyid_policy'>policy</span><span class='rparen'>)</span>
   <span class='ivar'>@scope_policy</span> <span class='op'>=</span> <span class='id identifier rubyid_policy'>policy</span>
@@ -549,7 +694,7 @@ to inject a denial message and let the LLM handle it gracefully</p></div>
 </div>
 
       <div id="footer">
-  Generated on Tue Jun  2 16:38:38 2026 by
+  Generated on Wed Jun  3 15:58:53 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

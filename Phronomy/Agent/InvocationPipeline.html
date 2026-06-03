@@ -434,7 +434,10 @@ suspension).</p></div>
 102
 103
 104
-105</pre>
+105
+106
+107
+108</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/invocation_pipeline.rb', line 36</span>
@@ -485,6 +488,9 @@ suspension).</p></div>
       <span class='id identifier rubyid_response'>response</span> <span class='op'>=</span> <span class='id identifier rubyid_adapter'>adapter</span><span class='period'>.</span><span class='id identifier rubyid_complete_async'>complete_async</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_user_message'>user_message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_cfg'>cfg</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_await'>await</span>
     <span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="SuspendSignal.html" title="Phronomy::Agent::SuspendSignal (class)">SuspendSignal</a></span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_signal'>signal</span>
       <span class='id identifier rubyid_checkpoint'>checkpoint</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Checkpoint.html" title="Phronomy::Agent::Checkpoint (class)">Checkpoint</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Checkpoint.html#initialize-instance_method" title="Phronomy::Agent::Checkpoint#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+        <span class='label'>checkpoint_id:</span> <span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_uuid'>uuid</span><span class='comma'>,</span>
+        <span class='label'>agent_class:</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span>
+        <span class='label'>requested_at:</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span><span class='period'>.</span><span class='id identifier rubyid_utc'>utc</span><span class='comma'>,</span>
         <span class='label'>thread_id:</span> <span class='id identifier rubyid_tid'>tid</span><span class='comma'>,</span>
         <span class='label'>original_input:</span> <span class='id identifier rubyid_inp'>inp</span><span class='comma'>,</span>
         <span class='label'>messages:</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_messages'>messages</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span><span class='comma'>,</span>
@@ -519,7 +525,7 @@ suspension).</p></div>
 </div>
 
       <div id="footer">
-  Generated on Tue Jun  2 16:38:41 2026 by
+  Generated on Wed Jun  3 15:58:57 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

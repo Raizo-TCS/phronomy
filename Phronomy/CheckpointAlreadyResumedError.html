@@ -4,7 +4,7 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-  Exception: Phronomy::PoolShutdownError
+  Exception: Phronomy::CheckpointAlreadyResumedError
   
     &mdash; Documentation by YARD 0.9.44
   
@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="../css/common.css" type="text/css">
 
 <script type="text/javascript">
-  pathId = "Phronomy::PoolShutdownError";
+  pathId = "Phronomy::CheckpointAlreadyResumedError";
   relpath = '../';
 </script>
 
@@ -38,10 +38,10 @@
       <div id="header">
         <div id="menu">
   
-    <a href="../_index.html">Index (P)</a> &raquo;
+    <a href="../_index.html">Index (C)</a> &raquo;
     <span class='title'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span>
      &raquo; 
-    <span class="title">PoolShutdownError</span>
+    <span class="title">CheckpointAlreadyResumedError</span>
   
 </div>
 
@@ -61,7 +61,7 @@
         <div class="clear"></div>
       </div>
 
-      <div id="content"><h1>Exception: Phronomy::PoolShutdownError
+      <div id="content"><h1>Exception: Phronomy::CheckpointAlreadyResumedError
   
   
   
@@ -80,7 +80,7 @@
           
             <li class="next"><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></li>
           
-            <li class="next">Phronomy::PoolShutdownError</li>
+            <li class="next">Phronomy::CheckpointAlreadyResumedError</li>
           
         </ul>
         <a href="#" class="inheritanceTree">show all</a>
@@ -108,8 +108,11 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Raised when an operation is submitted to a BlockingAdapterPool that has
-already been shut down via BlockingAdapterPool#shutdown.</p>
+    <p>Raised when <span class='object_link'><a href="Agent/Base.html#resume-class_method" title="Phronomy::Agent::Base.resume (method)">Agent::Base.resume</a></span> (or the class-level equivalent) is called
+with a <span class='object_link'><a href="Agent/Checkpoint.html" title="Phronomy::Agent::Checkpoint (class)">Agent::Checkpoint</a></span> whose <code>checkpoint_id</code> has already been consumed
+by a previous <code>resume</code> call on the same store.</p>
+<p>This protects against duplicate resume executions caused by webhook retries
+or queue message redelivery.</p>
 
   </div>
 </div>

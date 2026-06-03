@@ -109,8 +109,7 @@
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
     <p>Wraps a Phronomy::Agent::Base subclass as a callable tool so that a parent
-ReactAgent (or any agent that supports tools) can delegate sub-tasks to a
-fully-capable agent.</p>
+agent can delegate sub-tasks to a fully-capable sub-agent.</p>
 <p>Use Agent.from_agent to generate a concrete tool class.  The generated
 class is anonymous; assign it to a constant when you need a stable name.</p>
 
@@ -130,7 +129,7 @@ class is anonymous; assign it to a constant when you need a stable name.</p>
   <span class='label'>description:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Summarizes a long text and returns a brief summary</span><span class='tstring_end'>&quot;</span></span>
 <span class='rparen'>)</span>
 
-<span class='kw'>class</span> <span class='const'>OrchestratorAgent</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/ReactAgent.html" title="Phronomy::Agent::ReactAgent (class)">ReactAgent</a></span></span>
+<span class='kw'>class</span> <span class='const'>OrchestratorAgent</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/Base.html" title="Phronomy::Agent::Base (class)">Base</a></span></span>
   <span class='id identifier rubyid_model'>model</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>openai/gpt-4o-mini</span><span class='tstring_end'>&quot;</span></span>
   <span class='id identifier rubyid_instructions'>instructions</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>You are an orchestrator that delegates to specialist agents.</span><span class='tstring_end'>&quot;</span></span>
   <span class='id identifier rubyid_tools'>tools</span> <span class='const'>SummarizerTool</span>
@@ -305,6 +304,7 @@ defaults to &quot;Delegates to <AgentClassName>&quot;</p></div>
       <pre class="lines">
 
 
+38
 39
 40
 41
@@ -321,11 +321,10 @@ defaults to &quot;Delegates to <AgentClassName>&quot;</p></div>
 52
 53
 54
-55
-56</pre>
+55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/agent.rb', line 39</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/agent.rb', line 38</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_from_agent'>from_agent</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_class'>agent_class</span><span class='comma'>,</span> <span class='label'>tool_name:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>description:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent_class must be a Class</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_agent_class'>agent_class</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Class</span><span class='rparen'>)</span>
@@ -355,7 +354,7 @@ defaults to &quot;Delegates to <AgentClassName>&quot;</p></div>
 </div>
 
       <div id="footer">
-  Generated on Tue Jun  2 16:38:39 2026 by
+  Generated on Wed Jun  3 15:58:55 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
