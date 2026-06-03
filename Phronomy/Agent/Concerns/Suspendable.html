@@ -238,8 +238,9 @@ has been registered, the invocation is suspended and a
 <li><code>consumed?(checkpoint_id)</code> ⇒ Boolean</li>
 <li><code>consume!(checkpoint_id)</code>  ⇒ void; raises <span class='object_link'><a href="../../CheckpointAlreadyResumedError.html" title="Phronomy::CheckpointAlreadyResumedError (class)">CheckpointAlreadyResumedError</a></span> on duplicate</li>
 </ul>
-<p>Defaults to a per-instance <span class='object_link'><a href="../CheckpointStore.html" title="Phronomy::Agent::CheckpointStore (class)">Phronomy::Agent::CheckpointStore</a></span> (in-memory, Mutex-protected).
-Assign a shared persistent store when resuming across processes (e.g. Redis-backed).</p>
+<p>Defaults to a per-instance <span class='object_link'><a href="../CheckpointStore.html" title="Phronomy::Agent::CheckpointStore (class)">Phronomy::Agent::CheckpointStore</a></span> (in-memory, not thread-safe).
+Assign a shared persistent store when resuming across processes (e.g. Redis-backed).
+Custom stores are responsible for ensuring thread-safety if shared across threads.</p>
 
   </div>
 </div>
@@ -267,12 +268,12 @@ Assign a shared persistent store when resuming across processes (e.g. Redis-back
       <pre class="lines">
 
 
-64
 65
-66</pre>
+66
+67</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 64</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 65</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_checkpoint_store='>checkpoint_store=</span><span class='lparen'>(</span><span class='id identifier rubyid_store'>store</span><span class='rparen'>)</span>
   <span class='ivar'>@checkpoint_store</span> <span class='op'>=</span> <span class='id identifier rubyid_store'>store</span>
@@ -486,7 +487,6 @@ when a second approval-required tool is encountered during continuation</p></div
       <pre class="lines">
 
 
-85
 86
 87
 88
@@ -549,10 +549,11 @@ when a second approval-required tool is encountered during continuation</p></div
 145
 146
 147
-148</pre>
+148
+149</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 85</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/suspendable.rb', line 86</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='id identifier rubyid_checkpoint'>checkpoint</span><span class='comma'>,</span> <span class='label'>approved:</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='comment'># Guard against duplicate resumes using the idempotency store.
@@ -694,7 +695,7 @@ when a second approval-required tool is encountered during continuation</p></div
 </div>
 
       <div id="footer">
-  Generated on Wed Jun  3 17:02:32 2026 by
+  Generated on Wed Jun  3 23:44:11 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
