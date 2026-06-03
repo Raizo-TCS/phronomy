@@ -12,8 +12,8 @@ require_relative "support/llm_stub"
 # Infeasible cases (skipped):
 #   TC-002: no_block × tool_call_and_result — no_block falls back to invoke; no events emitted
 #   TC-004: done_only × with_block — LM Studio streams partial tokens; cannot guarantee zero :token events
-#   TC-007: ReactAgent + no_block × error — no_block does not emit events; cannot observe :error
-#   TC-009: ReactAgent + no_block + blocking_input — blocking_input raises before any event;
+#   TC-007: Base + no_block × error — no_block does not emit events; cannot observe :error
+#   TC-009: Base + no_block + blocking_input — blocking_input raises before any event;
 #           no_block path does not capture events either
 #   TC-018/TC-019/TC-020: done_only — same reason as TC-004; LM Studio always streams tokens
 #
@@ -24,7 +24,7 @@ LM_MODEL_9 = IntegrationFactors::LM_STUDIO_MODEL
 
 # Build a streaming-capable agent class
 def build_streaming_agent(klass_label:, tools: [], instructions: "You are a helpful assistant.")
-  base = (klass_label == "react") ? Phronomy::Agent::ReactAgent : Phronomy::Agent::Base
+  base = Phronomy::Agent::Base
   tool_arg = tools
 
   Class.new(base) do
@@ -103,13 +103,13 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
   end
 
   # ---------------------------------------------------------------------------
-  # TC-006: ReactAgent + with_block + passing_input + single_tool
+  # TC-006: Base + with_block + passing_input + single_tool
   #         Expect: :done event with non-empty output
   # ---------------------------------------------------------------------------
-  describe "TC-006: ReactAgent + with_block + passing_input + single_tool — :done event" do
+  describe "TC-006: Base + with_block + passing_input + single_tool — :done event" do
     it "emits a :done event and returns output" do
       klass = build_streaming_agent(
-        klass_label: "react",
+        klass_label: "base",
         tools: [IntegrationFactors::CalculatorTool],
         instructions: "You are a calculator assistant. Use the calculator tool to answer math questions."
       )
@@ -126,11 +126,11 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
   end
 
   # ---------------------------------------------------------------------------
-  # TC-007: ReactAgent + no_block — fallback to invoke; no events
+  # TC-007: Base + no_block — fallback to invoke; no events
   # ---------------------------------------------------------------------------
-  describe "TC-007: ReactAgent + no_block — falls back to #invoke" do
+  describe "TC-007: Base + no_block — falls back to #invoke" do
     it "returns a Hash with :output" do
-      klass = build_streaming_agent(klass_label: "react")
+      klass = build_streaming_agent(klass_label: "base")
       result = klass.new.stream("Say the word yes.")
       expect(result).to include(:output, :messages, :usage)
       expect(result[:output]).not_to be_empty
@@ -138,12 +138,12 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
   end
 
   # ---------------------------------------------------------------------------
-  # TC-008: ReactAgent + with_block + blocking_input
+  # TC-008: Base + with_block + blocking_input
   #         Expect: :error event + GuardrailError
   # ---------------------------------------------------------------------------
-  describe "TC-008: ReactAgent + with_block + blocking_input — :error event then raises" do
+  describe "TC-008: Base + with_block + blocking_input — :error event then raises" do
     it "emits :error event and raises GuardrailError" do
-      klass = build_streaming_agent(klass_label: "react")
+      klass = build_streaming_agent(klass_label: "base")
       agent = klass.new
       agent.add_input_guardrail(IntegrationFactors::BlockingInputGuardrail.new)
 
@@ -157,12 +157,12 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
   end
 
   # ---------------------------------------------------------------------------
-  # TC-010: ReactAgent + no_block + no guardrail + multi tools — fallback
+  # TC-010: Base + no_block + no guardrail + multi tools — fallback
   # ---------------------------------------------------------------------------
-  describe "TC-010: ReactAgent + no_block + multi tools — invoke fallback" do
+  describe "TC-010: Base + no_block + multi tools — invoke fallback" do
     it "returns a Hash with :output" do
       klass = build_streaming_agent(
-        klass_label: "react",
+        klass_label: "base",
         tools: [IntegrationFactors::CalculatorTool, IntegrationFactors::WeatherTool]
       )
       result = klass.new.stream("Say the word yes.")

@@ -55,18 +55,18 @@ RSpec.describe "Group 25: before_completion Hook", :integration do
   # TC-002, TC-003, TC-004: SKIP — bc_hook_return irrelevant when bc_hook_tier=none
 
   # ---------------------------------------------------------------------------
-  # TC-005: global × nil × react × invoke
-  #         Global hook returning nil; ReactAgent invoke; hook is called.
-  # [LLM REQUIRED - ReactAgent needs LLM to respond without tool calls]
+  # TC-005: global × nil × base × invoke
+  #         Global hook returning nil; Base invoke; hook is called.
+  # [LLM REQUIRED]
   # ---------------------------------------------------------------------------
-  describe "TC-005: global hook returning nil; ReactAgent.invoke — hook is called" do
+  describe "TC-005: global hook returning nil; Base.invoke — hook is called" do
     it "calls the global hook with a BeforeCompletionContext" do
       received_ctx = nil
       Phronomy.configuration.before_completion = ->(ctx) {
         received_ctx = ctx
         nil
       }
-      klass = IntegrationFactors.bc_agent_class("react")
+      klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
       klass.new.invoke("Say hello.")
       expect(received_ctx).to be_a(Phronomy::Agent::BeforeCompletionContext)
@@ -78,7 +78,7 @@ RSpec.describe "Group 25: before_completion Hook", :integration do
         hook_returned = {}
         nil
       }
-      klass = IntegrationFactors.bc_agent_class("react")
+      klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
       klass.new.invoke("Say hello.")
       expect(hook_returned).to eq({})
@@ -112,17 +112,17 @@ RSpec.describe "Group 25: before_completion Hook", :integration do
   end
 
   # ---------------------------------------------------------------------------
-  # TC-007: global × param_merge × react × invoke
-  #         Global hook merging {temperature: 0.1}; ReactAgent invoke;
+  # TC-007: global × param_merge × base × invoke
+  #         Global hook merging {temperature: 0.1}; Base invoke;
   #         temperature appears in the intercepted request body.
   # ---------------------------------------------------------------------------
-  describe "TC-007: global hook merging temperature; ReactAgent.invoke — temperature sent to LLM" do
+  describe "TC-007: global hook merging temperature; Base.invoke — temperature sent to LLM" do
     it "hook is called and request body contains temperature" do
       hook_result = nil
       Phronomy.configuration.before_completion = ->(ctx) {
         hook_result = {temperature: 0.1}
       }
-      klass = IntegrationFactors.bc_agent_class("react")
+      klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
       klass.new.invoke("Say hello.")
       expect(hook_result).to eq({temperature: 0.1})
@@ -145,13 +145,13 @@ RSpec.describe "Group 25: before_completion Hook", :integration do
   end
 
   # ---------------------------------------------------------------------------
-  # TC-010: class_level × empty_hash × react × invoke
-  #         Class-level hook returning {}; ReactAgent invoke; hook is called.
+  # TC-010: class_level × empty_hash × base × invoke
+  #         Class-level hook returning {}; Base invoke; hook is called.
   # ---------------------------------------------------------------------------
-  describe "TC-010: class-level hook returning {}; ReactAgent.invoke — hook called" do
+  describe "TC-010: class-level hook returning {}; Base.invoke — hook called" do
     it "calls the class-level hook" do
       called = false
-      klass = IntegrationFactors.bc_agent_class("react")
+      klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
       klass.before_completion ->(_ctx) {
         called = true

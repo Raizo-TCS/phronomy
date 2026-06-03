@@ -10,9 +10,9 @@ class StreamingBasicAgent < Phronomy::Agent::Base
   instructions "You are a helpful assistant."
 end
 
-class StreamingReactAgent < Phronomy::Agent::ReactAgent
+class StreamingReactAgent < Phronomy::Agent::Base
   model "test-model"
-  instructions "You are a ReAct assistant."
+  instructions "You are a helpful assistant."
 end
 
 # ---------------------------------------------------------------------------
@@ -117,7 +117,7 @@ RSpec.describe "Agent streaming" do
   end
 
   # -------------------------------------------------------------------------
-  describe Phronomy::Agent::ReactAgent, "#stream" do
+  describe Phronomy::Agent::Base, "#stream (via StreamingReactAgent)" do
     subject(:agent) { StreamingReactAgent.new }
 
     it "yields :token events" do
@@ -145,8 +145,8 @@ RSpec.describe "Agent streaming" do
 
   # ---------------------------------------------------------------------------
   # Regression tests for issue #40:
-  # Agent::Base#stream and ReactAgent#stream must produce a trace span.
-  # Before the fix, neither stream method called trace(), so streaming
+  # Agent::Base#stream must produce a trace span.
+  # Before the fix, the stream method did not call trace(), so streaming
   # invocations produced no span in Langfuse / OpenTelemetry.
   # ---------------------------------------------------------------------------
   describe "stream produces a trace span (issue #40)" do
@@ -188,7 +188,7 @@ RSpec.describe "Agent streaming" do
       end
     end
 
-    context "ReactAgent#stream" do
+    context "Agent::Base#stream (via StreamingReactAgent)" do
       subject(:agent) { StreamingReactAgent.new }
 
       it "creates a span named 'agent.invoke'" do

@@ -3,8 +3,7 @@
 module Phronomy
   module Tools
     # Wraps a Phronomy::Agent::Base subclass as a callable tool so that a parent
-    # ReactAgent (or any agent that supports tools) can delegate sub-tasks to a
-    # fully-capable agent.
+    # agent can delegate sub-tasks to a fully-capable sub-agent.
     #
     # Use Agent.from_agent to generate a concrete tool class.  The generated
     # class is anonymous; assign it to a constant when you need a stable name.
@@ -16,7 +15,7 @@ module Phronomy
     #     description: "Summarizes a long text and returns a brief summary"
     #   )
     #
-    #   class OrchestratorAgent < Phronomy::Agent::ReactAgent
+    #   class OrchestratorAgent < Phronomy::Agent::Base
     #     model "openai/gpt-4o-mini"
     #     instructions "You are an orchestrator that delegates to specialist agents."
     #     tools SummarizerTool

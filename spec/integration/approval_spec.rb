@@ -40,15 +40,15 @@ RSpec.describe "Group 18: approval gate", :integration do
     end
   end
 
-  # TC-002: no_approval, approves, react
-  # Tool without requires_approval; approving handler registered; ReactAgent.
+  # TC-002: no_approval, approves, base
+  # Tool without requires_approval; approving handler registered; Base agent.
   # Expected: prepare_tool_class returns the original class unchanged
   #           (handler is NOT consulted for non-approval tools);
   #           tool executes normally.
-  describe "TC-002: no_approval tool; approving handler; ReactAgent" do
+  describe "TC-002: no_approval tool; approving handler; Base agent" do
     let(:tool_class) { IntegrationFactors.approval_tool_class("no_approval") }
     let(:handler) { IntegrationFactors.approval_handler("approves") }
-    let(:agent) { IntegrationFactors.approval_agent("react", tool_class: tool_class, handler: handler) }
+    let(:agent) { IntegrationFactors.approval_agent("base", tool_class: tool_class, handler: handler) }
     let(:handler_calls) { [] }
 
     before do
@@ -82,13 +82,13 @@ RSpec.describe "Group 18: approval gate", :integration do
     end
   end
 
-  # TC-004: requires_approval, none, react
-  # Tool with requires_approval; NO handler registered; ReactAgent.
+  # TC-004: requires_approval, none, base
+  # Tool with requires_approval; NO handler registered; Base agent.
   # Expected: backward-compatible path — tool executes without approval check.
-  describe "TC-004: requires_approval tool; no handler; ReactAgent (backward compat)" do
+  describe "TC-004: requires_approval tool; no handler; Base agent (backward compat)" do
     let(:tool_class) { IntegrationFactors.approval_tool_class("requires_approval") }
     let(:handler) { IntegrationFactors.approval_handler("none") }
-    let(:agent) { IntegrationFactors.approval_agent("react", tool_class: tool_class, handler: handler) }
+    let(:agent) { IntegrationFactors.approval_agent("base", tool_class: tool_class, handler: handler) }
 
     it "prepare_tool_class returns the original class (no handler → no wrapping)" do
       expect(agent.send(:prepare_tool_class, tool_class)).to be(tool_class)
@@ -133,14 +133,14 @@ RSpec.describe "Group 18: approval gate", :integration do
     end
   end
 
-  # TC-006: requires_approval, denies, react
-  # Tool with requires_approval; denying handler; ReactAgent.
+  # TC-006: requires_approval, denies, base
+  # Tool with requires_approval; denying handler; Base agent.
   # Expected: handler is invoked and returns false → tool returns denial message,
   #           execute is never called.
-  describe "TC-006: requires_approval tool; denying handler; ReactAgent" do
+  describe "TC-006: requires_approval tool; denying handler; Base agent" do
     let(:tool_class) { IntegrationFactors.approval_tool_class("requires_approval") }
     let(:handler) { IntegrationFactors.approval_handler("denies") }
-    let(:agent) { IntegrationFactors.approval_agent("react", tool_class: tool_class, handler: handler) }
+    let(:agent) { IntegrationFactors.approval_agent("base", tool_class: tool_class, handler: handler) }
 
     it "tool returns a denial message" do
       wrapped = agent.send(:prepare_tool_class, tool_class)

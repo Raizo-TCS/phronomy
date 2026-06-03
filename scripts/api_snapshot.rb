@@ -30,7 +30,6 @@ PUBLIC_API_ENTRIES = [
   Phronomy::Runnable,
   Phronomy::Agent::Context::Instruction::PromptTemplate,
   # Beta
-  Phronomy::Agent::ReactAgent,
   Phronomy::MultiAgent::Orchestrator,
   Phronomy::MultiAgent::TeamCoordinator,
   Phronomy::Guardrail::InputGuardrail,

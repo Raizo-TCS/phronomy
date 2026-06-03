@@ -5,7 +5,7 @@ require_relative "support/llm_stub"
 
 # Group 13: Subgraph nesting / Agent-as-Tool (rewritten with Phronomy::Workflow DSL)
 # TC-001..TC-003: pure workflow tests (no LLM calls)
-# TC-008..TC-010: LLM-required tests (AgentTool with ReactAgent)
+# TC-008..TC-010: LLM-required tests (AgentTool with Agent::Base)
 
 RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
   class G13BaseState
@@ -170,9 +170,9 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
   end
 
   # ---------------------------------------------------------------------------
-  # TC-010: ReactAgent uses AgentTool to delegate to a sub-agent (LLM required)
+  # TC-010: Base uses AgentTool to delegate to a sub-agent (LLM required)
   # ---------------------------------------------------------------------------
-  it "TC-010: ReactAgent delegates a question to a wrapped sub-agent via AgentTool" do
+  it "TC-010: Base delegates a question to a wrapped sub-agent via AgentTool" do
     sub_agent_class = Class.new(Phronomy::Agent::Base) do
       model LM_STUDIO_MODEL
       provider :openai
@@ -186,7 +186,7 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
       description: "Solves arithmetic questions. Pass the full question as input."
     )
 
-    parent_class = Class.new(Phronomy::Agent::ReactAgent) do
+    parent_class = Class.new(Phronomy::Agent::Base) do
       model LM_STUDIO_MODEL
       provider :openai
       instructions "You are an orchestrator. Use the math_solver tool to answer math questions. Do not answer yourself."

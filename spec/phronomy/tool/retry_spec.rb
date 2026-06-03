@@ -429,20 +429,18 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
 
   # ---------------------------------------------------------------------------
   # Regression tests for issue #39:
-  # ReactAgent#invoke must respect retry_policy.
-  # Before the fix, ReactAgent overrode #invoke entirely, so the retry loop in
-  # Base#invoke was never reached for ReactAgent subclasses.
+  # Agent::Base#invoke must respect retry_policy.
   # ---------------------------------------------------------------------------
-  describe "retry_policy is honoured by ReactAgent (issue #39)" do
+  describe "retry_policy is honoured by Agent::Base (issue #39)" do
     def make_react_agent(fail_times:, times: 2, wait: 0)
       invocations = 0
-      agent_class = Class.new(Phronomy::Agent::ReactAgent) do
+      agent_class = Class.new(Phronomy::Agent::Base) do
         retry_policy times: times, wait: wait, base: 1.0
       end
       agent_class._sleep_proc = sleep_stub
 
       agent = agent_class.new
-      # Stub invoke_once (the private method that ReactAgent now overrides).
+      # Stub invoke_once (the private method called by the retry loop).
       allow(agent).to receive(:invoke_once) do
         invocations += 1
         raise "transient" if invocations <= fail_times
@@ -466,7 +464,7 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
     end
 
     it "does not retry GuardrailError" do
-      agent_class = Class.new(Phronomy::Agent::ReactAgent) do
+      agent_class = Class.new(Phronomy::Agent::Base) do
         retry_policy times: 3, wait: 0
       end
       agent_class._sleep_proc = sleep_stub

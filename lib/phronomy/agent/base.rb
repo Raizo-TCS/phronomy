@@ -539,8 +539,8 @@ module Phronomy
       #
       # Events emitted (in order):
       #   :token       — each content delta from the LLM
-      #   :tool_call   — when the LLM requests a tool (ReactAgent subclasses only)
-      #   :tool_result — after a tool completes (ReactAgent subclasses only)
+      #   :tool_call   — when the LLM requests a tool
+      #   :tool_result — after a tool completes
       #   :done        — final event carrying output, messages, and usage
       #   :error       — if an unrecoverable error occurs
       #

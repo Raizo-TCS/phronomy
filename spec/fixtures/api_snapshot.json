@@ -140,53 +140,6 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::Agent::ReactAgent",
-    "type": "class",
-    "public_instance_methods": [
-      "_add_handoff_tool",
-      "_handoff_tools",
-      "add_input_guardrail",
-      "add_output_guardrail",
-      "batch",
-      "before_completion",
-      "before_completion=",
-      "context_version_cache",
-      "invoke",
-      "invoke_async",
-      "on_approval_required",
-      "resume",
-      "run_as_child",
-      "scope_policy=",
-      "stream",
-      "trace"
-    ],
-    "public_class_methods": [
-      "_before_completion",
-      "_retry_policy",
-      "_sleep_proc",
-      "_sleep_proc=",
-      "before_completion",
-      "cache_instructions",
-      "context_overhead",
-      "context_window",
-      "instructions",
-      "invoke_timeout",
-      "max_iterations",
-      "max_output_tokens",
-      "max_parallel_tools",
-      "model",
-      "provider",
-      "retry_policy",
-      "static_knowledge",
-      "static_knowledge_chunks",
-      "static_knowledge_refresh!",
-      "static_knowledge_sources",
-      "temperature",
-      "tool_aliases",
-      "tools"
-    ]
-  },
-  {
     "name": "Phronomy::MultiAgent::Orchestrator",
     "type": "class",
     "public_instance_methods": [

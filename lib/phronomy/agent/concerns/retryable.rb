@@ -49,7 +49,7 @@ module Phronomy
 
         private
 
-        # Retry loop for #invoke. Separated so that ReactAgent can override #invoke_once.
+        # Retry loop for #invoke.
         def _invoke_impl(input, messages: [], thread_id: nil, config: {})
           # Fail fast when the token is already cancelled before any LLM call.
           if (token = config[:cancellation_token]) && token.cancelled?

@@ -114,12 +114,12 @@ module IntegrationFactors
   #
   # Builds an anonymous agent subclass pre-configured with the given tools.
   #
-  # @param label [String] "base" | "react"
+  # @param label [String] "base"
   # @param tools [Array, Hash] tool list in splat or hash form (default: [])
   # @return [Class]
   # ---------------------------------------------------------------------------
   def self.agent_class(label, tools: [])
-    base_klass = (label == "react") ? Phronomy::Agent::ReactAgent : Phronomy::Agent::Base
+    base_klass = Phronomy::Agent::Base
     model_name = LM_STUDIO_MODEL
     tool_arg = tools
 
@@ -285,13 +285,13 @@ module IntegrationFactors
   #
   # Builds an agent class pre-configured for streaming tests.
   #
-  # @param label [String] "base" | "react"
+  # @param label [String] "base"
   # @param tools [Array, Hash] tool list (default [])
   # @param instructions [String, Phronomy::Agent::Context::Instruction::PromptTemplate] instructions
   # @return [Class]
   # ---------------------------------------------------------------------------
   def self.streaming_agent_class(label, tools: [], instructions: "You are a helpful assistant.")
-    base_klass = (label == "react") ? Phronomy::Agent::ReactAgent : Phronomy::Agent::Base
+    base_klass = Phronomy::Agent::Base
     model_name = LM_STUDIO_MODEL
     tool_arg = tools
     instr = instructions
@@ -530,19 +530,15 @@ module IntegrationFactors
     end
   end
 
-  # Builds an agent instance (Base or ReactAgent) configured with the given
+  # Builds an agent instance (Base) configured with the given
   # tool class and approval handler.
   #
-  # @param agent_label  [String]  "base" | "react"
+  # @param agent_label  [String]  "base"
   # @param tool_class   [Class]   a Phronomy::Agent::Context::Capability::Base subclass
   # @param handler      [Proc, nil] returned by .approval_handler
   # @return [Phronomy::Agent::Base]
   def self.approval_agent(agent_label, tool_class:, handler:)
-    base_class = case agent_label
-    when "base" then Phronomy::Agent::Base
-    when "react" then Phronomy::Agent::ReactAgent
-    else raise ArgumentError, "Unknown agent_class label: #{agent_label}"
-    end
+    base_class = Phronomy::Agent::Base
 
     agent_class = Class.new(base_class) do
       model "test-model"
@@ -779,8 +775,8 @@ module IntegrationFactors
 
   # Returns a fresh agent class for the given bc_agent_class label.
   #
-  # @param label [String] "base" or "react"
-  # @return [Class] anonymous subclass of Agent::Base or Agent::ReactAgent
+  # @param label [String] "base"
+  # @return [Class] anonymous subclass of Agent::Base
   def self.bc_agent_class(label)
     case label
     when "base"
@@ -788,13 +784,6 @@ module IntegrationFactors
         model LM_STUDIO_MODEL
         provider :openai
         instructions "You are a helpful assistant."
-      end
-    when "react"
-      Class.new(Phronomy::Agent::ReactAgent) do
-        model LM_STUDIO_MODEL
-        provider :openai
-        instructions "You are a helpful assistant."
-        tools IntegrationFactors::CalculatorTool
       end
     else
       raise ArgumentError, "Unknown bc_agent_class label: #{label}"
@@ -846,7 +835,7 @@ module IntegrationFactors
   # Builds a pair of anonymous agent classes for linear handoff tests.
   # Returns [entry_class, target_class].
   def self.handoff_linear_classes
-    entry_klass = Class.new(Phronomy::Agent::ReactAgent) do
+    entry_klass = Class.new(Phronomy::Agent::Base) do
       model LM_MODEL_26
       provider :openai
       instructions "You are a triage assistant. Route billing questions to billing."
@@ -870,7 +859,7 @@ module IntegrationFactors
       end
     end
 
-    hub_klass = Class.new(Phronomy::Agent::ReactAgent) do
+    hub_klass = Class.new(Phronomy::Agent::Base) do
       model LM_MODEL_26
       provider :openai
       instructions "You are a hub agent. Route to spokes when needed."
@@ -888,23 +877,16 @@ module IntegrationFactors
   # Model identifier used in all Group 27 agents.
   LM_MODEL_27 = LM_STUDIO_MODEL
 
-  # Builds an anonymous Base or ReactAgent class for AgentJob tests.
+  # Builds an anonymous Base class for AgentJob tests.
   # @param label [String] "base" or "react"
   # @return [Class<Phronomy::Agent::Base>]
   def self.job_agent_class(label)
     case label
-    when "base"
+    when "base", "react"
       Class.new(Phronomy::Agent::Base) do
         model LM_MODEL_27
         provider :openai
         instructions "You are a helpful assistant."
-      end
-    when "react"
-      Class.new(Phronomy::Agent::ReactAgent) do
-        model LM_MODEL_27
-        provider :openai
-        instructions "You are a helpful assistant."
-        tools IntegrationFactors::CalculatorTool
       end
     else
       raise ArgumentError, "Unknown job_agent_type label: #{label}"

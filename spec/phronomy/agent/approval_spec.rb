@@ -41,13 +41,13 @@ class ApprovalRequiredBaseAgent < Phronomy::Agent::Base
   tools ApprovalRequiredTool
 end
 
-class ApprovalReactAgent < Phronomy::Agent::ReactAgent
+class ApprovalReactAgent < Phronomy::Agent::Base
   model "test-model"
   instructions "You are a helpful assistant."
   tools ApprovalTestTool
 end
 
-class ApprovalRequiredReactAgent < Phronomy::Agent::ReactAgent
+class ApprovalRequiredReactAgent < Phronomy::Agent::Base
   model "test-model"
   instructions "You are a helpful assistant."
   tools ApprovalRequiredTool
@@ -187,7 +187,7 @@ RSpec.describe "Agent approval gate" do
       end
     end
 
-    context "with ReactAgent subclass" do
+    context "with Base subclass" do
       it "wraps requires_approval tool when handler approves" do
         agent = ApprovalRequiredReactAgent.new
         agent.on_approval_required { |_name, _args| true }

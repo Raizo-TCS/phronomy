@@ -10,17 +10,11 @@ class HookBaseAgent < Phronomy::Agent::Base
   instructions "You are a helpful assistant."
 end
 
-class HookReactAgent < Phronomy::Agent::ReactAgent
-  model "test-model"
-  instructions "You are a helpful assistant."
-end
-
 # ---------------------------------------------------------------------------
 RSpec.describe "before_completion hook" do
   # Reset class-level hooks and global config between tests.
   before do
     HookBaseAgent.instance_variable_set(:@before_completion, nil)
-    HookReactAgent.instance_variable_set(:@before_completion, nil)
     Phronomy.configuration.before_completion = nil
   end
 
