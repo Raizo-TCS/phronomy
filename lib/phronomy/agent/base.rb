@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "securerandom"
+require_relative "checkpoint_store"
 require_relative "concerns/retryable"
 require_relative "concerns/guardrailable"
 require_relative "concerns/before_completion"

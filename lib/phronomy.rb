@@ -98,6 +98,14 @@ module Phronomy
     end
   end
 
+  # Raised when {Agent::Base#resume} (or the class-level equivalent) is called
+  # with a {Agent::Checkpoint} whose +checkpoint_id+ has already been consumed
+  # by a previous +resume+ call on the same store.
+  #
+  # This protects against duplicate resume executions caused by webhook retries
+  # or queue message redelivery.
+  class CheckpointAlreadyResumedError < Error; end
+
   # Raised when an operation is submitted to a {BlockingAdapterPool} that has
   # already been shut down via {BlockingAdapterPool#shutdown}.
   class PoolShutdownError < Error; end

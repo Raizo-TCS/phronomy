@@ -47,6 +47,22 @@ module Phronomy
           @scope_policy = policy
         end
 
+        # Sets the idempotency store used to guard against duplicate resumes.
+        #
+        # The store must respond to:
+        # - +consumed?(checkpoint_id)+ ⇒ Boolean
+        # - +consume!(checkpoint_id)+  ⇒ void; raises {Phronomy::CheckpointAlreadyResumedError} on duplicate
+        #
+        # Defaults to a per-instance {Phronomy::Agent::CheckpointStore} (in-memory, Mutex-protected).
+        # Assign a shared persistent store when resuming across processes (e.g. Redis-backed).
+        #
+        # @param store [#consumed?, #consume!]
+        # @return [void]
+        # @api public
+        def checkpoint_store=(store)
+          @checkpoint_store = store
+        end
+
         # Resumes a previously suspended invocation from a {Phronomy::Agent::Checkpoint}.
         #
         # This method reconstructs the conversation state captured at suspension
@@ -59,9 +75,14 @@ module Phronomy
         #   to inject a denial message and let the LLM handle it gracefully
         # @param config     [Hash] same runtime options as #invoke
         # @return [Hash] +{ output: String, suspended: false, messages: Array, usage: Phronomy::TokenUsage }+
+        #   or +{ output: nil, suspended: true, checkpoint: Phronomy::Agent::Checkpoint, messages: Array }+
+        #   when a second approval-required tool is encountered during continuation
         # @raise [Phronomy::GuardrailError] when an output guardrail rejects the value
+        # @raise [Phronomy::CheckpointAlreadyResumedError] when the checkpoint has already been consumed
         # @api private
         def resume(checkpoint, approved:, config: {})
+          # Guard against duplicate resumes using the idempotency store.
+          _checkpoint_store.consume!(checkpoint.checkpoint_id)
           # Build a fresh chat with all tools registered.
           chat = build_chat
 
@@ -128,6 +149,15 @@ module Phronomy
               )
             end
           end
+        end
+
+        # Returns the checkpoint idempotency store for this instance, lazily
+        # initialising a default in-memory {Phronomy::Agent::CheckpointStore}.
+        #
+        # @return [#consumed?, #consume!]
+        # @api private
+        def _checkpoint_store
+          @checkpoint_store ||= CheckpointStore.new
         end
       end
     end
