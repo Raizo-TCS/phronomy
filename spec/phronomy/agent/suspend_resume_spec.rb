@@ -143,6 +143,7 @@ RSpec.describe "Agent::Base suspend/resume" do
     allow(dbl).to receive(:messages) { messages_list }
     allow(dbl).to receive(:tools) { tools_hash }
     allow(dbl).to receive(:add_message)
+    allow(dbl).to receive(:on_tool_call)
     allow(dbl).to receive(:complete).and_return(final_response)
     dbl
   end
@@ -401,6 +402,69 @@ RSpec.describe "Agent::Base suspend/resume" do
         allow(RubyLLM).to receive(:chat).and_return(chat_dbl)
         expect(tool_instance).not_to receive(:call)
         agent.resume(checkpoint, approved: false)
+      end
+    end
+
+    context "cascading approval (second requires_approval tool during continuation)" do
+      let(:second_tool_call) do
+        double("ToolCall2",
+          name: "suspend_test",
+          arguments: {"value" => "second"},
+          id: "call_002")
+      end
+      let(:tool_instance2) do
+        tool = SuspendTestTool.new
+        allow(tool).to receive(:requires_approval).and_return(true)
+        tool
+      end
+
+      it "returns suspended: true with a new checkpoint when a second tool needs approval" do
+        # Simulate chat.complete triggering another SuspendSignal via on_tool_call hook
+        chat_dbl = double("ResumeChat2")
+        allow(chat_dbl).to receive(:with_instructions).and_return(chat_dbl)
+        allow(chat_dbl).to receive(:with_tool).and_return(chat_dbl)
+        allow(chat_dbl).to receive(:messages) { [] }
+        allow(chat_dbl).to receive(:tools) { {suspend_test: tool_instance2} }
+        allow(chat_dbl).to receive(:add_message)
+        stored_hook = nil
+        allow(chat_dbl).to receive(:on_tool_call) { |&blk| stored_hook = blk }
+        allow(chat_dbl).to receive(:complete) do
+          # Trigger the hook with the second tool call
+          stored_hook&.call(second_tool_call)
+          double("Resp", content: "done", tokens: fake_tokens)
+        end
+        allow(RubyLLM).to receive(:chat).and_return(chat_dbl)
+        allow(tool_instance).to receive(:call).and_return("first result")
+
+        result = agent.resume(checkpoint, approved: true)
+
+        expect(result[:suspended]).to be true
+        expect(result[:checkpoint]).to be_a(Phronomy::Agent::Checkpoint)
+        expect(result[:checkpoint].pending_tool_name).to eq("suspend_test")
+        expect(result[:checkpoint].pending_tool_call_id).to eq("call_002")
+        expect(result[:checkpoint].checkpoint_id).not_to eq(checkpoint.checkpoint_id)
+      end
+
+      it "propagates original_input and thread_id to the cascading checkpoint" do
+        chat_dbl = double("ResumeChat3")
+        allow(chat_dbl).to receive(:with_instructions).and_return(chat_dbl)
+        allow(chat_dbl).to receive(:with_tool).and_return(chat_dbl)
+        allow(chat_dbl).to receive(:messages) { [] }
+        allow(chat_dbl).to receive(:tools) { {suspend_test: tool_instance2} }
+        allow(chat_dbl).to receive(:add_message)
+        stored_hook = nil
+        allow(chat_dbl).to receive(:on_tool_call) { |&blk| stored_hook = blk }
+        allow(chat_dbl).to receive(:complete) do
+          stored_hook&.call(second_tool_call)
+          double("Resp", content: "done", tokens: fake_tokens)
+        end
+        allow(RubyLLM).to receive(:chat).and_return(chat_dbl)
+        allow(tool_instance).to receive(:call).and_return("first result")
+
+        result = agent.resume(checkpoint, approved: true)
+
+        expect(result[:checkpoint].thread_id).to eq(checkpoint.thread_id)
+        expect(result[:checkpoint].original_input).to eq(checkpoint.original_input)
       end
     end
   end

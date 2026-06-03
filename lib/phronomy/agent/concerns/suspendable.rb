@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "securerandom"
+
 module Phronomy
   module Agent
     module Concerns
@@ -112,8 +114,30 @@ module Phronomy
             tool_call_id: checkpoint.pending_tool_call_id
           )
 
-          # Continue the React loop.
-          response = chat.complete
+          # Re-register the suspension hook so that any further requires_approval
+          # tools encountered during continuation are intercepted rather than
+          # executed without approval (cascading / chained approval scenario).
+          _register_suspension_hook!(chat)
+
+          # Continue the LLM loop. Rescue SuspendSignal so that a second
+          # approval-required tool produces a new checkpoint instead of running
+          # without consent.
+          begin
+            response = chat.complete
+          rescue SuspendSignal => signal
+            new_checkpoint = Checkpoint.new(
+              checkpoint_id: SecureRandom.uuid,
+              agent_class: self.class.name,
+              requested_at: Time.now.utc,
+              thread_id: checkpoint.thread_id,
+              original_input: checkpoint.original_input,
+              messages: chat.messages.dup,
+              pending_tool_name: signal.tool_name,
+              pending_tool_args: signal.args,
+              pending_tool_call_id: signal.tool_call_id
+            )
+            return {output: nil, suspended: true, checkpoint: new_checkpoint, messages: chat.messages}
+          end
 
           output = response.content
           usage = Phronomy::TokenUsage.from_tokens(response.tokens)
