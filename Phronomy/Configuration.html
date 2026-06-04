@@ -558,6 +558,31 @@ Configure via the Phronomy.configure block.</p>
       <li class="public ">
   <span class="summary_signature">
     
+      <a href="#parallel_tool_execution-instance_method" title="#parallel_tool_execution (instance method)">#<strong>parallel_tool_execution</strong>  &#x21d2; Boolean </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>When true, agent LLM calls use <span class='object_link'><a href="MultiAgent/ParallelToolChat.html" title="Phronomy::MultiAgent::ParallelToolChat (class)">MultiAgent::ParallelToolChat</a></span> for concurrent tool dispatch within a single agent turn.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#recursion_limit-instance_method" title="#recursion_limit (instance method)">#<strong>recursion_limit</strong>  &#x21d2; Object </a>
     
 
@@ -873,18 +898,6 @@ Configure via the Phronomy.configure block.</p>
       <pre class="lines">
 
 
-184
-185
-186
-187
-188
-189
-190
-191
-192
-193
-194
-195
 196
 197
 198
@@ -895,16 +908,30 @@ Configure via the Phronomy.configure block.</p>
 203
 204
 205
-206</pre>
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 184</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 196</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@recursion_limit</span> <span class='op'>=</span> <span class='int'>25</span>
   <span class='ivar'>@tracer</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Tracing.html" title="Phronomy::Tracing (module)">Tracing</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Tracing/NullTracer.html" title="Phronomy::Tracing::NullTracer (class)">NullTracer</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@trace_pii</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@event_loop</span> <span class='op'>=</span> <span class='kw'>false</span>
+  <span class='ivar'>@parallel_tool_execution</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@event_loop_stop_grace_seconds</span> <span class='op'>=</span> <span class='int'>5</span>
   <span class='ivar'>@llm_adapter</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="LLMAdapter.html" title="Phronomy::LLMAdapter (module)">LLMAdapter</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="LLMAdapter/RubyLLM.html" title="Phronomy::LLMAdapter::RubyLLM (class)">RubyLLM</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@backpressure</span> <span class='op'>=</span> <span class='symbol'>:wait</span>
@@ -975,12 +1002,12 @@ queue is full.  One of <code>:wait</code> (block until a slot is available),
       <pre class="lines">
 
 
-87
-88
-89</pre>
+99
+100
+101</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 87</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 99</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_backpressure'>backpressure</span>
   <span class='ivar'>@backpressure</span>
@@ -1030,12 +1057,12 @@ queue is full.  One of <code>:wait</code> (block until a slot is available),
       <pre class="lines">
 
 
-92
-93
-94</pre>
+104
+105
+106</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 92</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 104</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_backpressure_timeout'>backpressure_timeout</span>
   <span class='ivar'>@backpressure_timeout</span>
@@ -1129,12 +1156,12 @@ yielded the scheduler emits a warning log.  nil disables the check.</p>
       <pre class="lines">
 
 
-114
-115
-116</pre>
+126
+127
+128</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 114</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 126</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_blocking_detect_threshold_ms'>blocking_detect_threshold_ms</span>
   <span class='ivar'>@blocking_detect_threshold_ms</span>
@@ -1316,12 +1343,12 @@ Set to <code>nil</code> to disable the warning.</p>
       <pre class="lines">
 
 
-104
-105
-106</pre>
+116
+117
+118</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 104</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 116</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_loop_dispatch_threshold_seconds'>event_loop_dispatch_threshold_seconds</span>
   <span class='ivar'>@event_loop_dispatch_threshold_seconds</span>
@@ -1372,12 +1399,12 @@ Set to <code>nil</code> to disable the warning.</p>
       <pre class="lines">
 
 
-98
-99
-100</pre>
+110
+111
+112</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 98</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 110</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_loop_starvation_threshold_seconds'>event_loop_starvation_threshold_seconds</span>
   <span class='ivar'>@event_loop_starvation_threshold_seconds</span>
@@ -1423,12 +1450,12 @@ Default: 5 seconds.</p>
       <pre class="lines">
 
 
-54
-55
-56</pre>
+66
+67
+68</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 66</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span>
   <span class='ivar'>@event_loop_stop_grace_seconds</span>
@@ -1478,12 +1505,12 @@ changing any agent code.</p>
       <pre class="lines">
 
 
-80
-81
-82</pre>
+92
+93
+94</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 80</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 92</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_llm_adapter'>llm_adapter</span>
   <span class='ivar'>@llm_adapter</span>
@@ -1529,12 +1556,12 @@ via <code>Kernel#warn</code>.</p>
       <pre class="lines">
 
 
-47
-48
-49</pre>
+59
+60
+61</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 47</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 59</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_logger'>logger</span>
   <span class='ivar'>@logger</span>
@@ -1585,12 +1612,12 @@ nil = unlimited (default).  When at capacity, behaviour is controlled by
       <pre class="lines">
 
 
-120
-121
-122</pre>
+132
+133
+134</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 120</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 132</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_agent_tasks'>max_concurrent_agent_tasks</span>
   <span class='ivar'>@max_concurrent_agent_tasks</span>
@@ -1640,12 +1667,12 @@ nil = unlimited (default).</p>
       <pre class="lines">
 
 
-135
-136
-137</pre>
+147
+148
+149</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 135</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 147</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_llm_calls'>max_concurrent_llm_calls</span>
   <span class='ivar'>@max_concurrent_llm_calls</span>
@@ -1695,12 +1722,12 @@ nil = unlimited (default).</p>
       <pre class="lines">
 
 
-125
-126
-127</pre>
+137
+138
+139</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 125</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 137</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_tool_tasks'>max_concurrent_tool_tasks</span>
   <span class='ivar'>@max_concurrent_tool_tasks</span>
@@ -1750,12 +1777,12 @@ nil = unlimited (default).</p>
       <pre class="lines">
 
 
-146
-147
-148</pre>
+158
+159
+160</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 146</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 158</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_vector_searches'>max_concurrent_vector_searches</span>
   <span class='ivar'>@max_concurrent_vector_searches</span>
@@ -1805,15 +1832,82 @@ nil = unlimited (default).</p>
       <pre class="lines">
 
 
-130
-131
-132</pre>
+142
+143
+144</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 130</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 142</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_workflow_tasks'>max_concurrent_workflow_tasks</span>
   <span class='ivar'>@max_concurrent_workflow_tasks</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="parallel_tool_execution=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="parallel_tool_execution-instance_method">
+  
+    #<strong>parallel_tool_execution</strong>  &#x21d2; <tt>Boolean</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>When true, agent LLM calls use <span class='object_link'><a href="MultiAgent/ParallelToolChat.html" title="Phronomy::MultiAgent::ParallelToolChat (class)">MultiAgent::ParallelToolChat</a></span>
+for concurrent tool dispatch within a single agent turn.
+Defaults to false.</p>
+<p>Previously, this was automatically enabled when <code>event_loop</code> was true.
+As of Phase 3, <code>parallel_tool_execution</code> is a separate setting that must
+be explicitly enabled.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="examples">
+    <h4 class="tag_title">Examples:</h4>
+    
+      
+      <pre class="example code"><code><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="../Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_parallel_tool_execution'>parallel_tool_execution</span> <span class='op'>=</span> <span class='kw'>true</span> <span class='rbrace'>}</span></code></pre>
+    
+  </div>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+46
+47
+48</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 46</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_parallel_tool_execution'>parallel_tool_execution</span>
+  <span class='ivar'>@parallel_tool_execution</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1938,12 +2032,12 @@ instance immediately call <code>Phronomy::Runtime.instance = nil</code> first.</
       <pre class="lines">
 
 
-176
-177
-178</pre>
+188
+189
+190</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 176</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 188</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_runtime_backend'>runtime_backend</span>
   <span class='ivar'>@runtime_backend</span>
@@ -1993,12 +2087,12 @@ Equivalent to setting all diagnostic thresholds to their defaults.</p>
       <pre class="lines">
 
 
-109
-110
-111</pre>
+121
+122
+123</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 109</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 121</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_scheduler_debug'>scheduler_debug</span>
   <span class='ivar'>@scheduler_debug</span>
@@ -2052,12 +2146,12 @@ Default: 50ms.</p>
       <pre class="lines">
 
 
-155
-156
-157</pre>
+167
+168
+169</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 155</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 167</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_starvation_threshold_ms'>starvation_threshold_ms</span>
   <span class='ivar'>@starvation_threshold_ms</span>
@@ -2104,12 +2198,12 @@ Defaults to <code>nil</code> (no persistence — state lives only for the durati
       <pre class="lines">
 
 
-62
-63
-64</pre>
+74
+75
+76</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 62</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 74</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_state_store'>state_store</span>
   <span class='ivar'>@state_store</span>
@@ -2160,12 +2254,12 @@ throttled.  When nil (default), the queue is unbounded.</p>
       <pre class="lines">
 
 
-141
-142
-143</pre>
+153
+154
+155</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 141</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 153</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream_queue_max_size'>stream_queue_max_size</span>
   <span class='ivar'>@stream_queue_max_size</span>
@@ -2216,12 +2310,12 @@ is logged instead so that existing callers have time to migrate.</p>
       <pre class="lines">
 
 
-182
-183
-184</pre>
+194
+195
+196</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 182</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 194</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span>
   <span class='ivar'>@strict_runtime_guards</span>
@@ -2267,12 +2361,12 @@ and a warning is logged.  Set to <code>nil</code> (default) to disable truncatio
       <pre class="lines">
 
 
-69
-70
-71</pre>
+81
+82
+83</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 69</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 81</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_result_max_size'>tool_result_max_size</span>
   <span class='ivar'>@tool_result_max_size</span>
@@ -2311,12 +2405,12 @@ the tracing backend (OTel, Langfuse, etc.).</p>
       <pre class="lines">
 
 
-40
-41
-42</pre>
+52
+53
+54</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 52</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_trace_pii'>trace_pii</span>
   <span class='ivar'>@trace_pii</span>
@@ -2373,7 +2467,7 @@ the tracing backend (OTel, Langfuse, etc.).</p>
 </div>
 
       <div id="footer">
-  Generated on Thu Jun  4 16:26:48 2026 by
+  Generated on Thu Jun  4 23:38:18 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
