@@ -33,6 +33,18 @@ module Phronomy
     # @see Phronomy::EventLoop
     attr_accessor :event_loop
 
+    # When true, agent LLM calls use {Phronomy::MultiAgent::ParallelToolChat}
+    # for concurrent tool dispatch within a single agent turn.
+    # Defaults to false.
+    #
+    # Previously, this was automatically enabled when +event_loop+ was true.
+    # As of Phase 3, +parallel_tool_execution+ is a separate setting that must
+    # be explicitly enabled.
+    # @example
+    #   Phronomy.configure { |c| c.parallel_tool_execution = true }
+    # @return [Boolean]
+    attr_accessor :parallel_tool_execution
+
     # When true, user input and LLM output are recorded in trace spans.
     # Defaults to false; set to true only in environments where PII capture is acceptable.
     # Set to false in privacy-sensitive environments to prevent PII from reaching
@@ -186,6 +198,7 @@ module Phronomy
       @tracer = Phronomy::Tracing::NullTracer.new
       @trace_pii = false
       @event_loop = false
+      @parallel_tool_execution = false
       @event_loop_stop_grace_seconds = 5
       @llm_adapter = Phronomy::LLMAdapter::RubyLLM.new
       @backpressure = :wait

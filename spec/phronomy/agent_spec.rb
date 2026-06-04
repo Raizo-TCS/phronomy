@@ -630,12 +630,12 @@ end
 # that LLM, tool, and RAG calls observe cancellation when the deadline fires.
 RSpec.describe "Agent#invoke invoke_timeout cancellation propagation (Issue #290)", :issue_290 do
   around do |example|
-    Phronomy.configure { |c| c.event_loop = true }
-    Phronomy::EventLoop.instance.start
+    Phronomy.configure { |c| c.runtime_backend = :thread }
+    Phronomy::Runtime.instance_variable_set(:@instance, nil)
     example.run
   ensure
-    Phronomy::EventLoop.instance.stop
-    Phronomy.configure { |c| c.event_loop = false }
+    Phronomy.reset_configuration!
+    Phronomy::Runtime.instance_variable_set(:@instance, nil)
   end
 
   it "passes a CancellationToken that is cancelled after timeout to _invoke_impl config" do

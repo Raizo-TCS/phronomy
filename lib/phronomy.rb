@@ -12,8 +12,6 @@ loader.inflector.inflect("ruby_llm_embeddings" => "RubyLLMEmbeddings")
 loader.inflector.inflect("rag" => "RAG")
 # FSMSession: Zeitwerk would infer "FsmSession" — override to "FSMSession".
 loader.inflector.inflect("fsm_session" => "FSMSession")
-# AgentFSM: Zeitwerk would infer "Fsm" — override to "FSM".
-loader.inflector.inflect("fsm" => "FSM")
 # LLMAdapter: Zeitwerk would infer "LlmAdapter" — override to "LLMAdapter".
 loader.inflector.inflect("llm_adapter" => "LLMAdapter")
 # LLMAdapter::RubyLLM: "ruby_llm" maps to "RubyLLM" (not "RubyLlm").

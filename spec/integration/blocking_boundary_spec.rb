@@ -88,9 +88,9 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
     end
 
     before do
-      # Enable EventLoop mode so ParallelToolChat is used as the chat class.
+      # Enable parallel_tool_execution so ParallelToolChat is used as the chat class.
       # This makes Phase 2 (pool.submit dispatch) active for :blocking_io tools.
-      Phronomy.configure { |c| c.event_loop = true }
+      Phronomy.configure { |c| c.parallel_tool_execution = true }
 
       # Two tool calls in a single response trigger Phase 2 (parallel dispatch)
       # in ParallelToolChat#handle_tool_calls, which routes each via pool.submit.

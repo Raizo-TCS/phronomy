@@ -150,23 +150,6 @@ module Phronomy
       completion_queue
     end
 
-    # Enqueues an {AgentFSM} as a fire-and-forget child session.
-    #
-    # Unlike {#register}, this method:
-    # - Is safe to call from the EventLoop thread (entry actions).
-    # - Does NOT block — no completion queue is created.
-    # - Delegates `:finished`/`:error` cleanup to the EventLoop via posted events.
-    #
-    # @param agent_fsm [Phronomy::Agent::FSM]
-    # @return [nil]
-    # @api private
-    def enqueue_child(agent_fsm)
-      @queue.push([Event.new(type: :start, target_id: agent_fsm.id,
-        payload: {session: agent_fsm, completion: nil}),
-        Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)])
-      nil
-    end
-
     # Posts an event to the loop. Safe to call from any thread (including IO threads).
     # The current monotonic clock time is recorded so that the EventLoop can
     # measure the dispatch lag when it dequeues the event.

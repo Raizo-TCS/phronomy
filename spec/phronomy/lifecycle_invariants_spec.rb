@@ -35,6 +35,32 @@ RSpec.describe "Lifecycle invariants" do
     end
   end
 
+  # Minimal duck-type session for EventLoop lifecycle tests.
+  # Satisfies the #id / #start / #handle interface expected by EventLoop#register.
+  # start spawns a thread that sleeps for +duration+ seconds then posts :finished.
+  class FakeSlowSession
+    attr_reader :id
+
+    def initialize(id:, duration: 0.1)
+      @id = id
+      @duration = duration
+    end
+
+    def start
+      dur = @duration
+      session_id = @id
+      Thread.new do
+        sleep dur
+        Phronomy::EventLoop.instance.post(
+          Phronomy::Event.new(type: :finished, target_id: session_id, payload: "done")
+        )
+      end
+    end
+
+    def handle(_event)
+    end
+  end
+
   def with_fake_loop
     fake = LifecycleFakeLoop.new
     allow(Phronomy::EventLoop).to receive(:instance).and_return(fake)
@@ -139,86 +165,62 @@ RSpec.describe "Lifecycle invariants" do
   # ===========================================================================
   # 2. child_failed propagation
   # ===========================================================================
-  describe "child_failed propagation (AgentFSM → parent FSMSession)" do
-    # Stub a failing agent: _invoke_impl raises RuntimeError.
-    def stub_failing_agent(error)
-      agent = double("FailingAgent")
-      allow(agent).to receive(:send) { raise error }
-      allow(agent).to receive(:class).and_return(double(respond_to?: false))
-      agent
+  describe "child_failed propagation (run_as_child → parent FSMSession)" do
+    # Use real threads so run_as_child can spawn concurrently.
+    around do |ex|
+      Phronomy.configure { |c|
+        c.event_loop = true
+        c.runtime_backend = :thread
+      }
+      Phronomy::Runtime.instance_variable_set(:@instance, nil)
+      ex.run
+    ensure
+      Phronomy.reset_configuration!
+      Phronomy::Runtime.instance_variable_set(:@instance, nil)
     end
 
-    # Stub a succeeding agent: _invoke_impl returns a fixed hash.
-    def stub_succeeding_agent(result = {output: "ok", messages: [], usage: nil})
-      agent = double("SucceedingAgent")
-      allow(agent).to receive(:send) do |meth, *|
-        expect(meth).to eq(:_invoke_impl)
-        result
-      end
-      allow(agent).to receive(:class).and_return(double(respond_to?: false))
-      agent
+    def make_agent_raising(error)
+      klass = Class.new(Phronomy::Agent::Base) { model "test" }
+      allow_any_instance_of(klass).to receive(:_invoke_impl).and_raise(error)
+      klass.new
+    end
+
+    def make_agent_succeeding(result = {output: "ok", messages: [], usage: nil})
+      klass = Class.new(Phronomy::Agent::Base) { model "test" }
+      allow_any_instance_of(klass).to receive(:_invoke_impl).and_return(result)
+      klass.new
     end
 
     it "posts :child_failed to parent_id when the agent raises" do
       error = RuntimeError.new("child crashed")
-      agent = stub_failing_agent(error)
-      fsm = Phronomy::Agent::FSM.new(
-        agent: agent,
-        input: "hi",
-        thread_id: "child-fsm-1",
-        parent_id: "parent-fsm-1"
-      )
+      agent = make_agent_raising(error)
+      ctx = double("ctx", thread_id: "parent-fsm-1")
 
-      fake = LifecycleFakeLoop.new
-      allow(Phronomy::EventLoop).to receive(:instance).and_return(fake)
+      with_fake_loop do |fake|
+        agent.run_as_child("hi", ctx: ctx)
+        sleep 0.2
 
-      fsm.start
-      sleep 0.2  # allow the IO thread to finish
-
-      fail_ev = fake.events.find { |e| e.type == :child_failed }
-      expect(fail_ev).not_to be_nil
-      expect(fail_ev.target_id).to eq("parent-fsm-1")
-      expect(fail_ev.payload).to eq(error)
+        fail_ev = fake.events.find { |e| e.type == :child_failed }
+        expect(fail_ev).not_to be_nil
+        expect(fail_ev.target_id).to eq("parent-fsm-1")
+        expect(fail_ev.payload).to eq(error)
+      end
     end
 
-    it "still posts :error to the child FSM id alongside :child_failed" do
-      error = RuntimeError.new("child crashed")
-      agent = stub_failing_agent(error)
-      fsm = Phronomy::Agent::FSM.new(
-        agent: agent,
-        input: "hi",
-        thread_id: "child-fsm-2",
-        parent_id: "parent-fsm-2"
-      )
+    it "posts :child_completed to parent_id when the agent succeeds" do
+      result = {output: "child done", messages: [], usage: nil}
+      agent = make_agent_succeeding(result)
+      ctx = double("ctx", thread_id: "parent-fsm-2")
 
-      fake = LifecycleFakeLoop.new
-      allow(Phronomy::EventLoop).to receive(:instance).and_return(fake)
+      with_fake_loop do |fake|
+        agent.run_as_child("hi", ctx: ctx)
+        sleep 0.2
 
-      fsm.start
-      sleep 0.2
-
-      err_ev = fake.events.find { |e| e.type == :error }
-      expect(err_ev).not_to be_nil
-      expect(err_ev.target_id).to eq("child-fsm-2")
-    end
-
-    it "does NOT post :child_failed when parent_id is nil" do
-      error = RuntimeError.new("orphan error")
-      agent = stub_failing_agent(error)
-      fsm = Phronomy::Agent::FSM.new(
-        agent: agent,
-        input: "hi",
-        thread_id: "child-fsm-3",
-        parent_id: nil
-      )
-
-      fake = LifecycleFakeLoop.new
-      allow(Phronomy::EventLoop).to receive(:instance).and_return(fake)
-
-      fsm.start
-      sleep 0.2
-
-      expect(fake.events.map(&:type)).not_to include(:child_failed)
+        completed_ev = fake.events.find { |e| e.type == :child_completed }
+        expect(completed_ev).not_to be_nil
+        expect(completed_ev.target_id).to eq("parent-fsm-2")
+        expect(completed_ev.payload).to eq(result)
+      end
     end
   end
 
@@ -383,32 +385,16 @@ RSpec.describe "Lifecycle invariants" do
       Phronomy.reset_configuration!
     end
 
-    # Shared helper: build a quick stub agent that returns immediately.
-    def quick_agent_double(result: {output: "done", messages: [], usage: nil})
-      agent = double("QuickAgent")
-      allow(agent).to receive(:send) { result }
-      allow(agent).to receive(:class).and_return(double(respond_to?: false))
-      agent
-    end
-
-    it "@fsm_count returns to zero after a completed AgentFSM" do
-      # Verifies that a successful FSMSession does not leave a leaked entry in
-      # the EventLoop registry (@fsm_count must decrement back to 0 after the
-      # session's :finished event is processed).
+    it "@fsm_count returns to zero after a completed session" do
+      # Verifies that @fsm_count decrements back to 0 after a session
+      # completes and posts :finished to the EventLoop.
       Phronomy.configure { |c| c.event_loop = true }
       el = Phronomy::EventLoop.instance
 
-      fsm = Phronomy::Agent::FSM.new(
-        agent: quick_agent_double,
-        input: "hi",
-        thread_id: "count-cleanup-test"
-      )
-      cq = el.register(fsm)
+      session = FakeSlowSession.new(id: "count-cleanup-test", duration: 0.05)
+      cq = el.register(session)
       cq.pop  # block until EventLoop processes :finished and pushes to cq
 
-      # @fsm_count is decremented synchronously in the same EventLoop iteration
-      # that pushes to cq.  A brief sleep guards against a scheduler preemption
-      # between the push and the decrement.
       sleep 0.05
       expect(el.instance_variable_get(:@fsm_count)).to eq(0)
     end
@@ -440,28 +426,29 @@ RSpec.describe "Lifecycle invariants" do
       el = Phronomy::EventLoop.instance
 
       started_q = Thread::Queue.new
-      results = []
-      agent = double("SlowAgent")
-      allow(agent).to receive(:send) do
-        started_q.push(:started)  # signal that @fsm_count has been incremented
-        sleep 0.15
-        results << :completed
-        {output: "done", messages: [], usage: nil}
-      end
-      allow(agent).to receive(:class).and_return(double(respond_to?: false))
+      completed = []
+      session_id = "drain-invariant-test"
 
-      fsm = Phronomy::Agent::FSM.new(
-        agent: agent,
-        input: "hi",
-        thread_id: "drain-invariant-test"
-      )
-      el.register(fsm)
-      started_q.pop  # block until the IO thread has started (guarantees @fsm_count > 0)
+      # Custom session that signals start and records completion.
+      session = FakeSlowSession.new(id: session_id, duration: 0.15)
+      session.define_singleton_method(:start) do
+        started_q.push(:started)
+        Thread.new do
+          sleep 0.15
+          completed << :completed
+          Phronomy::EventLoop.instance.post(
+            Phronomy::Event.new(type: :finished, target_id: session_id, payload: "done")
+          )
+        end
+      end
+
+      el.register(session)
+      started_q.pop  # block until session has started (guarantees @fsm_count > 0)
 
       status = el.stop(drain: true, timeout: 5, force_kill: true)
 
       expect(status).to eq(:clean)
-      expect(results).to include(:completed)
+      expect(completed).to include(:completed)
     end
   end
 
@@ -501,25 +488,21 @@ RSpec.describe "Lifecycle invariants" do
 
       # Register a session that sleeps far longer than the stop timeout.
       started_q = Thread::Queue.new
-      agent = double("SlowAgentForceKill")
-      allow(agent).to receive(:send) do
+      session_id = "leak-force-kill-#{SecureRandom.hex(4)}"
+      session = FakeSlowSession.new(id: session_id, duration: 10)
+      session.define_singleton_method(:start) do
         started_q.push(:started)
-        sleep 10 # intentionally outlasts the stop timeout
-        {output: "done", messages: [], usage: nil}
+        Thread.new do
+          sleep 10
+          Phronomy::EventLoop.instance.post(
+            Phronomy::Event.new(type: :finished, target_id: session_id, payload: "done")
+          )
+        end
       end
-      allow(agent).to receive(:class).and_return(double(respond_to?: false))
 
-      fsm = Phronomy::Agent::FSM.new(
-        agent: agent,
-        input: "hi",
-        thread_id: "leak-force-kill-#{SecureRandom.hex(4)}"
-      )
-      el.register(fsm)
-      started_q.pop # ensure the IO thread is running before we call stop
+      el.register(session)
+      started_q.pop  # ensure the IO thread is running before we call stop
 
-      # stop with force_kill so the loop task is definitively terminated even
-      # if an IO thread is still sleeping.  The loop task itself exits cleanly
-      # once @running = false is observed; IO threads are independent.
       status = el.stop(timeout: 2, force_kill: true)
 
       expect([:clean, :force_killed]).to include(status)
@@ -535,20 +518,19 @@ RSpec.describe "Lifecycle invariants" do
       first_task = el_first.instance_variable_get(:@task)
 
       started_q = Thread::Queue.new
-      agent = double("SlowAgentReset")
-      allow(agent).to receive(:send) do
+      session_id = "leak-reset-#{SecureRandom.hex(4)}"
+      session = FakeSlowSession.new(id: session_id, duration: 10)
+      session.define_singleton_method(:start) do
         started_q.push(:started)
-        sleep 10
-        {output: "done", messages: [], usage: nil}
+        Thread.new do
+          sleep 10
+          Phronomy::EventLoop.instance.post(
+            Phronomy::Event.new(type: :finished, target_id: session_id, payload: "done")
+          )
+        end
       end
-      allow(agent).to receive(:class).and_return(double(respond_to?: false))
 
-      fsm = Phronomy::Agent::FSM.new(
-        agent: agent,
-        input: "hi",
-        thread_id: "leak-reset-#{SecureRandom.hex(4)}"
-      )
-      el_first.register(fsm)
+      el_first.register(session)
       started_q.pop
 
       el_first.stop(timeout: 0.1, force_kill: true)

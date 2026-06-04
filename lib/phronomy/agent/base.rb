@@ -464,12 +464,35 @@ module Phronomy
         if invocation_context
           thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
         end
-        if Phronomy.configuration.event_loop
-          _invoke_via_event_loop(input, messages: messages, thread_id: thread_id, config: config)
-        else
-          _check_scheduler_reentrancy
-          invoke_async(input, messages: messages, thread_id: thread_id, config: config).await
+        _check_scheduler_reentrancy
+
+        timeout_sec = self.class.invoke_timeout
+        unless timeout_sec
+          return invoke_async(input, messages: messages, thread_id: thread_id, config: config).await
         end
+
+        # invoke_timeout: create a CancellationScope with deadline, pass its token
+        # to the async invocation, and use scope.pop_queue so the calling thread
+        # unblocks as soon as either the result arrives or the deadline fires.
+        scope = Phronomy::Concurrency::CancellationScope.new(parent_token: config[:cancellation_token])
+        scope.deadline_in(timeout_sec)
+        effective_config = config.merge(cancellation_token: scope.token)
+        task = invoke_async(input, messages: messages, thread_id: thread_id, config: effective_config)
+
+        # Bridge the task result to an AsyncQueue so scope.pop_queue can observe the deadline.
+        completion_queue = Phronomy::Concurrency::AsyncQueue.new
+        Phronomy::Runtime.instance.spawn(name: "invoke-timeout-bridge:#{(self.class.name || "agent").downcase}") do
+          completion_queue.push(task.await)
+        rescue => e
+          completion_queue.push(e)
+        end
+
+        result = scope.pop_queue(completion_queue) do
+          raise Phronomy::TimeoutError,
+            "Agent #{self.class.name} invoke timed out after #{timeout_sec}s"
+        end
+        raise result if result.is_a?(Exception)
+        result
       end
 
       # Invokes this agent asynchronously and returns a {Phronomy::Task}.
@@ -544,15 +567,18 @@ module Phronomy
             "Enable with: Phronomy.configure { |c| c.event_loop = true }"
         end
 
-        fsm = Agent::FSM.new(
-          agent: self,
-          input: input,
-          messages: messages,
-          thread_id: "#{ctx.thread_id}_agent_#{SecureRandom.uuid}",
-          config: config,
-          parent_id: ctx.thread_id
-        )
-        Phronomy::EventLoop.instance.enqueue_child(fsm)
+        parent_id = ctx.thread_id
+        thread_id = "#{parent_id}_agent_#{SecureRandom.uuid}"
+        Phronomy::Runtime.instance.spawn(name: "agent-child:#{thread_id}") do
+          result = _invoke_impl(input, messages: messages, thread_id: thread_id, config: config)
+          Phronomy::EventLoop.instance.post(
+            Phronomy::Event.new(type: :child_completed, target_id: parent_id, payload: result)
+          )
+        rescue => e
+          Phronomy::EventLoop.instance.post(
+            Phronomy::Event.new(type: :child_failed, target_id: parent_id, payload: e)
+          )
+        end
         nil
       end
 
@@ -607,42 +633,6 @@ module Phronomy
           end
         end
         [effective_thread_id, effective_config]
-      end
-
-      def _invoke_via_event_loop(input, messages:, thread_id:, config:)
-        if Phronomy::EventLoop.current?
-          raise Phronomy::Error,
-            "Cannot call Agent#invoke (EventLoop mode) from within an EventLoop " \
-            "entry action. Use agent.run_as_child(input, ctx: ctx) instead."
-        end
-
-        timeout_sec = self.class.invoke_timeout
-        effective_config, scope = if timeout_sec
-          s = Phronomy::Concurrency::CancellationScope.new(parent_token: config[:cancellation_token])
-          s.deadline_in(timeout_sec)
-          [config.merge(cancellation_token: s.token), s]
-        else
-          [config, nil]
-        end
-
-        fsm = Agent::FSM.new(
-          agent: self,
-          input: input,
-          messages: messages,
-          thread_id: thread_id || SecureRandom.uuid,
-          config: effective_config
-        )
-        completion_queue = Phronomy::EventLoop.instance.register(fsm)
-        result = if scope
-          scope.pop_queue(completion_queue) do
-            raise Phronomy::TimeoutError,
-              "Agent #{self.class.name} invoke timed out after #{timeout_sec}s"
-          end
-        else
-          completion_queue.pop
-        end
-        raise result if result.is_a?(Exception)
-        result
       end
 
       def _check_scheduler_reentrancy
@@ -942,12 +932,12 @@ module Phronomy
       end
 
       # Returns the chat class to instantiate for this invocation.
-      # When EventLoop mode is enabled ({Phronomy.configuration.event_loop}),
+      # When {Phronomy.configuration.parallel_tool_execution} is true,
       # returns {ParallelToolChat} so that concurrent tool dispatch is enabled.
       # Falls back to +nil+ otherwise, signalling {#build_chat} to use the
       # standard +RubyLLM.chat+ factory.
       def build_chat_class
-        Phronomy.configuration.event_loop ? Phronomy::MultiAgent::ParallelToolChat : nil
+        Phronomy.configuration.parallel_tool_execution ? Phronomy::MultiAgent::ParallelToolChat : nil
       end
 
       def build_chat

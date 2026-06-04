@@ -230,20 +230,20 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
       end
     end
 
-    it "returns nil when EventLoop mode is off" do
+    it "returns nil when parallel_tool_execution is off" do
       agent = agent_class.new
-      Phronomy.configure { |c| c.event_loop = false }
+      Phronomy.configure { |c| c.parallel_tool_execution = false }
       expect(agent.send(:build_chat_class)).to be_nil
     ensure
-      Phronomy.configure { |c| c.event_loop = false }
+      Phronomy.configure { |c| c.parallel_tool_execution = false }
     end
 
-    it "returns ParallelToolChat when EventLoop mode is on" do
+    it "returns ParallelToolChat when parallel_tool_execution is on" do
       agent = agent_class.new
-      Phronomy.configure { |c| c.event_loop = true }
+      Phronomy.configure { |c| c.parallel_tool_execution = true }
       expect(agent.send(:build_chat_class)).to be(Phronomy::MultiAgent::ParallelToolChat)
     ensure
-      Phronomy.configure { |c| c.event_loop = false }
+      Phronomy.configure { |c| c.parallel_tool_execution = false }
     end
   end
 

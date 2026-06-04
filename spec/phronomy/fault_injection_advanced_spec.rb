@@ -59,24 +59,34 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   end
 
   # -------------------------------------------------------------------------
-  # 4. Child FSM unhandled error — parent receives :child_failed event
+  # 4. run_as_child unhandled error — parent receives :child_failed event
   # -------------------------------------------------------------------------
-  describe "Child FSM unhandled error" do
+  describe "run_as_child unhandled error" do
+    around do |ex|
+      Phronomy.configure { |c|
+        c.event_loop = true
+        c.runtime_backend = :thread
+      }
+      Phronomy::Runtime.instance_variable_set(:@instance, nil)
+      ex.run
+    ensure
+      Phronomy.reset_configuration!
+      Phronomy::Runtime.instance_variable_set(:@instance, nil)
+    end
+
     it "posts :child_failed to parent_id with the exception as payload" do
-      loop_dbl = double("EventLoop")
+      error = RuntimeError.new("child agent blew up")
+      agent_class = Class.new(Phronomy::Agent::Base) { model "test" }
+      agent = agent_class.new
+      allow(agent).to receive(:_invoke_impl).and_raise(error)
+
       events = []
+      loop_dbl = double("EventLoop")
       allow(loop_dbl).to receive(:post) { |ev| events << ev }
       allow(Phronomy::EventLoop).to receive(:instance).and_return(loop_dbl)
 
-      error = RuntimeError.new("child agent blew up")
-      agent = double("Agent")
-      allow(agent).to receive(:send).and_raise(error)
-
-      fsm = Phronomy::Agent::FSM.new(
-        agent: agent, input: "hi",
-        thread_id: "child-2", parent_id: "parent-2"
-      )
-      fsm.start
+      ctx = double("ctx", thread_id: "parent-2")
+      agent.run_as_child("hi", ctx: ctx)
       sleep 0.2
 
       fail_ev = events.find { |e| e.type == :child_failed }
@@ -87,24 +97,34 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   end
 
   # -------------------------------------------------------------------------
-  # 5. Child FSM CancellationError — parent session behaviour
+  # 5. run_as_child CancellationError — parent session behaviour
   # -------------------------------------------------------------------------
-  describe "Child FSM CancellationError" do
+  describe "run_as_child CancellationError" do
+    around do |ex|
+      Phronomy.configure { |c|
+        c.event_loop = true
+        c.runtime_backend = :thread
+      }
+      Phronomy::Runtime.instance_variable_set(:@instance, nil)
+      ex.run
+    ensure
+      Phronomy.reset_configuration!
+      Phronomy::Runtime.instance_variable_set(:@instance, nil)
+    end
+
     it "posts :child_failed to parent_id with CancellationError as payload" do
-      loop_dbl = double("EventLoop")
+      cancel_error = Phronomy::CancellationError.new("cancelled by timeout")
+      agent_class = Class.new(Phronomy::Agent::Base) { model "test" }
+      agent = agent_class.new
+      allow(agent).to receive(:_invoke_impl).and_raise(cancel_error)
+
       events = []
+      loop_dbl = double("EventLoop")
       allow(loop_dbl).to receive(:post) { |ev| events << ev }
       allow(Phronomy::EventLoop).to receive(:instance).and_return(loop_dbl)
 
-      cancel_error = Phronomy::CancellationError.new("cancelled by timeout")
-      agent = double("Agent")
-      allow(agent).to receive(:send).and_raise(cancel_error)
-
-      fsm = Phronomy::Agent::FSM.new(
-        agent: agent, input: "hi",
-        thread_id: "child-3", parent_id: "parent-3"
-      )
-      fsm.start
+      ctx = double("ctx", thread_id: "parent-3")
+      agent.run_as_child("hi", ctx: ctx)
       sleep 0.2
 
       fail_ev = events.find { |e| e.type == :child_failed }
@@ -258,15 +278,9 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
       # Simulate shutdown state without stopping the thread (token only).
       el.instance_variable_get(:@shutdown_token).cancel!
 
-      agent = double("Agent")
-      allow(agent).to receive(:class).and_return(double(respond_to?: false))
-
-      fsm = Phronomy::Agent::FSM.new(
-        agent: agent,
-        input: "hi",
-        thread_id: "shutdown-reject-test"
-      )
-      cq = el.register(fsm)
+      # Use a minimal duck-type session — Agent::FSM no longer exists.
+      fake_session = double("Session", id: "shutdown-reject-test")
+      cq = el.register(fake_session)
       result = cq.pop
 
       expect(result).to be_a(Phronomy::CancellationError)
