@@ -28,6 +28,8 @@ module Phronomy
     # @example Duck-type contract required by any replacement
     #   # consumed?(checkpoint_id) => Boolean
     #   # consume!(checkpoint_id)  => void; raises CheckpointAlreadyResumedError if duplicate
+    #   # cleanup!(checkpoint_id)  => void (optional); removes tracking for the checkpoint
+    #   # clear!                   => void (optional); removes all tracked checkpoints
     #
     # @api public
     class CheckpointStore
@@ -56,6 +58,39 @@ module Phronomy
             "checkpoint #{checkpoint_id} has already been resumed"
         end
         @consumed.add(checkpoint_id)
+        nil
+      end
+
+      # Removes tracking for a specific checkpoint ID.
+      #
+      # Use this to explicitly discard a checkpoint when the application
+      # determines it is no longer needed (e.g., user abandons an approval
+      # workflow).
+      #
+      # This method is optional in the duck-type contract. Custom store
+      # implementations may choose not to implement it.
+      #
+      # @param checkpoint_id [String]
+      # @return [void]
+      # @api public
+      def cleanup!(checkpoint_id)
+        @consumed.delete(checkpoint_id)
+        nil
+      end
+
+      # Removes all tracked checkpoint IDs.
+      #
+      # Use this for test cleanup, periodic maintenance, or application
+      # shutdown.
+      #
+      # This method is optional in the duck-type contract. Custom store
+      # implementations may choose not to implement it.
+      #
+      # @return [void]
+      # @api public
+      def clear!
+        @consumed.clear
+        nil
       end
     end
   end
