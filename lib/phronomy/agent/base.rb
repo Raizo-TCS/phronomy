@@ -863,12 +863,30 @@ module Phronomy
       # wrap it in a retry loop without duplicating the LLM interaction logic.
       def invoke_once(input, messages: [], thread_id: nil, config: {})
         trace("agent.invoke", input: input, **_build_caller_meta(config)) do |_span|
-          Agent::InvocationPipeline.new(self).run(
+          run_input_guardrails!(input)
+
+          user_message = extract_message(input)
+          chat = build_chat
+          context = build_context(
             input,
-            messages: messages,
-            thread_id: thread_id,
-            config: config
+            messages: messages, thread_id: thread_id, config: config,
+            budget: build_token_budget, instruction: build_instructions(input),
+            tools: self.class.tools + _handoff_tools
           )
+          _apply_context_to_chat(chat, context)
+
+          run_before_completion_hooks!(chat, config)
+          _register_suspension_hook!(chat)
+          check_cancellation!(config, "invocation cancelled before LLM call")
+
+          result, usage = _complete_with_suspension_guard(
+            chat, user_message, config,
+            thread_id: thread_id, original_input: input
+          )
+          next [result, usage] if result[:suspended]
+
+          run_output_guardrails!(result[:output])
+          [result, usage]
         end
       end
 
@@ -887,6 +905,36 @@ module Phronomy
         apply_instructions(chat, context[:system]) if context[:system]
         (context[:tool_classes] || []).each { |tc| chat.with_tool(prepare_tool_class(tc)) }
         context[:messages].each { |msg| chat.messages << msg }
+      end
+
+      # Submits the LLM call via LLMAdapter and handles SuspendSignal.
+      # Sets/clears the chat cancellation token around the call so that
+      # ParallelToolChat can observe cancellation without Thread.current.
+      # Returns [result_hash, usage_or_nil].
+      def _complete_with_suspension_guard(chat, user_message, config, thread_id:, original_input:)
+        chat.cancellation_token = config[:cancellation_token] if chat.respond_to?(:cancellation_token=)
+        begin
+          adapter = Phronomy.configuration.llm_adapter
+          response = adapter.complete_async(chat, user_message, config: config).await
+        rescue SuspendSignal => signal
+          checkpoint = Checkpoint.new(
+            checkpoint_id: SecureRandom.uuid,
+            agent_class: self.class.name,
+            requested_at: Time.now.utc,
+            thread_id: thread_id,
+            original_input: original_input,
+            messages: chat.messages.dup,
+            pending_tool_name: signal.tool_name,
+            pending_tool_args: signal.args,
+            pending_tool_call_id: signal.tool_call_id
+          )
+          return [{output: nil, suspended: true, checkpoint: checkpoint, messages: chat.messages}, nil]
+        ensure
+          chat.cancellation_token = nil if chat.respond_to?(:cancellation_token=)
+        end
+        output = response.content
+        usage = Phronomy::TokenUsage.from_tokens(response.tokens)
+        [{output: output, messages: chat.messages, usage: usage}, usage]
       end
 
       def _drain_stream(chat, user_message, config, &block)
