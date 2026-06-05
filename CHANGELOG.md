@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.9.1] - 2026-06-06
+
 ### Added
 
 - **`Phronomy::Diagnostics` and `SchedulerReentrancyError`** (#278, #279):
@@ -174,10 +178,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tasks are treated the same as errors and follow the existing `on_error:` policy (`:raise`
   or `:skip`).
 
-- **MCP `HttpTransport` custom authentication headers** (#144): `McpTool.from_server` now
-  accepts `headers: {}`, forwarded all the way to `HttpTransport#initialize`. Arbitrary
-  headers (e.g. `Authorization: Bearer …`) are injected into every JSON-RPC request,
-  enabling use of MCP servers that require bearer tokens or API keys.
+- **MCP `HttpTransport` custom authentication headers** (#144): `Phronomy::Tools::Mcp::HttpTransport#initialize`
+  now accepts `headers: {}`. Arbitrary headers (e.g. `Authorization: Bearer …`) are injected
+  into every JSON-RPC request, enabling use of MCP servers that require bearer tokens or
+  API keys. Threading `headers:` through `Mcp.from_server` is tracked in issue #144 and
+  pending in PR #151.
 
 - **`StdioTransport` — `env:`, `cwd:`, and `startup_timeout:` options** (#145):
   Three new keyword arguments are now accepted when constructing a `StdioTransport` (and
@@ -226,7 +231,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `dispatch_parallel` and `fan_out` accept `cancellation_token:` and automatically
   inject it into every worker task's config unless the task already supplies its own.
 
+### Added (post-v0.9.0)
+
+- **`Phronomy::Agent::CheckpointStore` — idempotency store for HITL resume** (post-v0.9.0):
+  New in-memory store tracks consumed checkpoint IDs. Calling `Agent::Base#resume` twice
+  with the same checkpoint raises `Phronomy::CheckpointAlreadyResumedError` instead of
+  silently re-executing the approved tool. Custom stores can be injected via
+  `agent.checkpoint_store = MyRedis::CheckpointStore.new`. Duck-type contract:
+  `consumed?(id)`, `consume!(id)`, and optionally `cleanup!(id)` / `clear!`.
+
+- **`checkpoint_id`, `agent_class`, `requested_at` on `Checkpoint`; `Agent::Base.resume` class method** (post-v0.9.0):
+  `Checkpoint` now carries a UUID `checkpoint_id` (idempotency key), `agent_class`
+  (fully-qualified class name), and `requested_at` (UTC timestamp). The new class-level
+  `Agent::Base.resume(checkpoint, approved:)` method instantiates the correct agent class
+  automatically and delegates to `#resume`, simplifying job-queue resume flows.
+
+- **`CheckpointStore#cleanup!` and `#clear!`** (post-v0.9.0):
+  Optional methods on the `CheckpointStore` duck-type contract. `cleanup!(checkpoint_id)`
+  removes a single checkpoint entry; `clear!` wipes all tracking state.
+
 ### Removed
+
+- **`Phronomy::ReactAgent` class removed** (post-v0.9.0):
+  Use `Phronomy::Agent::Base` directly. `ReactAgent` had no distinct public API beyond
+  `Agent::Base` and was not listed in the stability table.
+
+- **`Phronomy::Agent::FSM` class removed** (post-v0.9.0, internal):
+  The agent invocation path is now unified through `Agent::Base#invoke` with inline logic.
+  No public API impact.
+
+- **`Phronomy::Agent::Lifecycle::FSMSession` and `::PhaseMachineBuilder` moved to `Workflow` namespace** (post-v0.9.0, internal):
+  These internal classes now live at `Phronomy::Workflow::FSMSession` and
+  `Phronomy::Workflow::PhaseMachineBuilder`. No public API impact.
 
 - **BREAKING: `Agent::Base#run_as_child` drops `&result_writer` block parameter** (#265):
   The optional block form `run_as_child(input, ctx: ctx) { |r| ctx.answer = r[:output] }`

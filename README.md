@@ -76,6 +76,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **Agent::TeamCoordinator** — Agent teams pattern: LLM coordinator + stateful workers with sequential task assignment (worker-local message history persisted across tasks) | Beta |
 | **Agent::SharedState** — Shared state pattern: peer agents collaborate via a shared KnowledgeStore; `member` DSL with per-agent instructions and `coordination` team protocol | Experimental |
 | **`ScopePolicy`** — Configurable policy callable that maps (tool, scope, agent) to `:allow`/`:approve`/`:reject`; default policy auto-routes high-risk scopes through the approval gate | Experimental |
+| **HITL Checkpoint/Resume** — `Agent::Base#invoke` returns `{ suspended: true, checkpoint: Checkpoint }` when an approval-required tool is encountered without a synchronous handler; `Agent::Base#resume(checkpoint, approved:)` resumes execution; `Agent::Base.resume(checkpoint, approved:)` (class-level) resolves the agent class automatically; `Checkpoint#to_h` / `Checkpoint.from_h` for serialization; `Agent::Base#checkpoint_store=` for custom idempotency backends; `CheckpointAlreadyResumedError` raised on duplicate resume | Experimental |
 
 > **Public API boundary**: The tables above are the complete list of classes, modules, and features
 > intended for gem consumers. Every entry has an associated stability label.
