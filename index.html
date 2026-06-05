@@ -267,6 +267,10 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td><strong><code>ScopePolicy</code></strong> — Configurable policy callable that maps (tool, scope, agent) to <code>:allow</code>/<code>:approve</code>/<code>:reject</code>; default policy auto-routes high-risk scopes through the approval gate</td>
 <td>Experimental</td>
 </tr>
+<tr>
+<td><strong>HITL Checkpoint/Resume</strong> — <code>Agent::Base#invoke</code> returns <code>{ suspended: true, checkpoint: Checkpoint }</code> when an approval-required tool is encountered without a synchronous handler; <code>Agent::Base#resume(checkpoint, approved:)</code> resumes execution; <code>Agent::Base.resume(checkpoint, approved:)</code> (class-level) resolves the agent class automatically; <code>Checkpoint#to_h</code> / <code>Checkpoint.from_h</code> for serialization; <code>Agent::Base#checkpoint_store=</code> for custom idempotency backends; <code>CheckpointAlreadyResumedError</code> raised on duplicate resume</td>
+<td>Experimental</td>
+</tr>
 </tbody>
 </table>
 <blockquote>
@@ -1054,7 +1058,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Fri Jun  5 15:06:54 2026 by
+  Generated on Fri Jun  5 18:08:20 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

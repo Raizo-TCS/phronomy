@@ -65,6 +65,8 @@
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<hr />
+<h2 id="_0_9_1____2026_06_06">[0.9.1] - 2026-06-06</h2>
 <h3 id="Added">Added</h3>
 <ul>
 <li>
@@ -255,10 +257,11 @@ tasks are treated the same as errors and follow the existing <code>on_error:</co
 or <code>:skip</code>).</p>
 </li>
 <li>
-<p><strong>MCP <code>HttpTransport</code> custom authentication headers</strong> (#144): <code>McpTool.from_server</code> now
-accepts <code>headers: {}</code>, forwarded all the way to <code>HttpTransport#initialize</code>. Arbitrary
-headers (e.g. <code>Authorization: Bearer …</code>) are injected into every JSON-RPC request,
-enabling use of MCP servers that require bearer tokens or API keys.</p>
+<p><strong>MCP <code>HttpTransport</code> custom authentication headers</strong> (#144): <code>Phronomy::Tools::Mcp::HttpTransport#initialize</code>
+now accepts <code>headers: {}</code>. Arbitrary headers (e.g. <code>Authorization: Bearer …</code>) are injected
+into every JSON-RPC request, enabling use of MCP servers that require bearer tokens or
+API keys. Threading <code>headers:</code> through <code>Mcp.from_server</code> is tracked in issue #144 and
+pending in PR #151.</p>
 </li>
 <li>
 <p><strong><code>StdioTransport</code> — <code>env:</code>, <code>cwd:</code>, and <code>startup_timeout:</code> options</strong> (#145):
@@ -315,8 +318,46 @@ before <code>chat.ask</code>. <code>CancellationError</code> is never retried by
 inject it into every worker task's config unless the task already supplies its own.</p>
 </li>
 </ul>
+<h3 id="Added__post_v0_9_0_">Added (post-v0.9.0)</h3>
+<ul>
+<li>
+<p><strong><code>Phronomy::Agent::CheckpointStore</code> — idempotency store for HITL resume</strong> (post-v0.9.0):
+New in-memory store tracks consumed checkpoint IDs. Calling <code>Agent::Base#resume</code> twice
+with the same checkpoint raises <code>Phronomy::CheckpointAlreadyResumedError</code> instead of
+silently re-executing the approved tool. Custom stores can be injected via
+<code>agent.checkpoint_store = MyRedis::CheckpointStore.new</code>. Duck-type contract:
+<code>consumed?(id)</code>, <code>consume!(id)</code>, and optionally <code>cleanup!(id)</code> / <code>clear!</code>.</p>
+</li>
+<li>
+<p><strong><code>checkpoint_id</code>, <code>agent_class</code>, <code>requested_at</code> on <code>Checkpoint</code>; <code>Agent::Base.resume</code> class method</strong> (post-v0.9.0):
+<code>Checkpoint</code> now carries a UUID <code>checkpoint_id</code> (idempotency key), <code>agent_class</code>
+(fully-qualified class name), and <code>requested_at</code> (UTC timestamp). The new class-level
+<code>Agent::Base.resume(checkpoint, approved:)</code> method instantiates the correct agent class
+automatically and delegates to <code>#resume</code>, simplifying job-queue resume flows.</p>
+</li>
+<li>
+<p><strong><code>CheckpointStore#cleanup!</code> and <code>#clear!</code></strong> (post-v0.9.0):
+Optional methods on the <code>CheckpointStore</code> duck-type contract. <code>cleanup!(checkpoint_id)</code>
+removes a single checkpoint entry; <code>clear!</code> wipes all tracking state.</p>
+</li>
+</ul>
 <h3 id="Removed">Removed</h3>
 <ul>
+<li>
+<p><strong><code>Phronomy::ReactAgent</code> class removed</strong> (post-v0.9.0):
+Use <code>Phronomy::Agent::Base</code> directly. <code>ReactAgent</code> had no distinct public API beyond
+<code>Agent::Base</code> and was not listed in the stability table.</p>
+</li>
+<li>
+<p><strong><code>Phronomy::Agent::FSM</code> class removed</strong> (post-v0.9.0, internal):
+The agent invocation path is now unified through <code>Agent::Base#invoke</code> with inline logic.
+No public API impact.</p>
+</li>
+<li>
+<p><strong><code>Phronomy::Agent::Lifecycle::FSMSession</code> and <code>::PhaseMachineBuilder</code> moved to <code>Workflow</code> namespace</strong> (post-v0.9.0, internal):
+These internal classes now live at <code>Phronomy::Workflow::FSMSession</code> and
+<code>Phronomy::Workflow::PhaseMachineBuilder</code>. No public API impact.</p>
+</li>
 <li>
 <p><strong>BREAKING: <code>Agent::Base#run_as_child</code> drops <code>&amp;result_writer</code> block parameter</strong> (#265):
 The optional block form <code>run_as_child(input, ctx: ctx) { |r| ctx.answer = r[:output] }</code>
@@ -1030,7 +1071,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Fri Jun  5 15:06:55 2026 by
+  Generated on Fri Jun  5 18:08:21 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
