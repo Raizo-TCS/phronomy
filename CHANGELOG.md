@@ -11,7 +11,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.9.1] - 2026-06-06
+## [0.10.0] - 2026-06-08
+
+### Added
+
+- **`Task#map` — transform a Task's completed value** (#384):
+  `task.map { |result| ctx.merge(answer: result[:output]) }` returns a new `Task`
+  whose completed value is the block's return value. Primary use-case: wire
+  `Agent::Base#invoke_async` into a Workflow entry action so the agent result
+  reaches `WorkflowContext` through the standard `:action_completed` path without
+  requiring any changes to `FSMSession`. If the source task fails or is cancelled,
+  the mapped task propagates the error without calling the block.
+
+### Removed
+
+- **`Agent::Base#run_as_child` removed** (#384):
+  Introduced when agents had their own FSM (`Agent::FSM`). After `Agent::FSM` was
+  removed in v0.9.0, the `:child_completed` event payload was silently discarded by
+  `FSMSession`, so `ctx.answer` was never populated. Migrate to
+  `invoke_async + Task#map`:
+
+  ```ruby
+  # Before (removed)
+  entry :translate, ->(ctx) { TranslationAgent.new.run_as_child(ctx.query, ctx: ctx) }
+  transition from: :translate, on: :child_completed, to: :done
+
+  # After (recommended)
+  entry :translate, ->(ctx) {
+    TranslationAgent.new.invoke_async(ctx.query).map { |r| ctx.merge(answer: r[:output]) }
+  }
+  transition from: :translate, to: :done
+  ```
 
 ### Added
 
