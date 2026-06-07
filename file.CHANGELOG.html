@@ -70,6 +70,15 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h3 id="Added">Added</h3>
 <ul>
 <li>
+<p><strong><code>Task#map</code> — transform a Task's completed value</strong> (post-v0.9.0):
+<code>task.map { |result| ctx.merge(answer: result[:output]) }</code> returns a new <code>Task</code>
+whose completed value is the block's return value.  The primary use-case is
+connecting <code>Agent::Base#invoke_async</code> to a Workflow entry action so the agent
+result populates the <code>WorkflowContext</code> through the standard <code>:action_completed</code>
+path.  If the source task fails or is cancelled, the mapped task propagates the
+error without calling the block.</p>
+</li>
+<li>
 <p><strong><code>Phronomy::Diagnostics</code> and <code>SchedulerReentrancyError</code></strong> (#278, #279):
 <code>Phronomy::Diagnostics</code> exposes a snapshot of current scheduler state
 (<code>pending_count</code>, <code>active_tasks</code>, <code>pool_utilization</code>, etc.) for debugging and
@@ -320,6 +329,23 @@ inject it into every worker task's config unless the task already supplies its o
 </ul>
 <h3 id="Added__post_v0_9_0_">Added (post-v0.9.0)</h3>
 <ul>
+<li>
+<p><strong><code>Agent::Base#run_as_child</code> removed</strong> (post-v0.9.0):
+<code>run_as_child</code> was introduced when agents had their own FSM.  After <code>Agent::FSM</code>
+was removed, the <code>:child_completed</code> event payload was silently discarded by
+<code>FSMSession</code>, meaning <code>ctx.answer</code> was never populated.  The method has been
+removed.  Use <code>invoke_async + Task#map</code> instead:</p>
+<pre class="code ruby"><code class="ruby"><span class='comment'># Before (deprecated)
+</span><span class='id identifier rubyid_entry'>entry</span> <span class='symbol'>:translate</span><span class='comma'>,</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span> <span class='const'>TranslationAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_run_as_child'>run_as_child</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_query'>query</span><span class='comma'>,</span> <span class='label'>ctx:</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+<span class='id identifier rubyid_transition'>transition</span> <span class='label'>from:</span> <span class='symbol'>:translate</span><span class='comma'>,</span> <span class='label'>on:</span> <span class='symbol'>:child_completed</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:done</span>
+
+<span class='comment'># After (recommended)
+</span><span class='id identifier rubyid_entry'>entry</span> <span class='symbol'>:translate</span><span class='comma'>,</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+  <span class='const'>TranslationAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_query'>query</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_r'>r</span><span class='op'>|</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>answer:</span> <span class='id identifier rubyid_r'>r</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+<span class='rbrace'>}</span>
+<span class='id identifier rubyid_transition'>transition</span> <span class='label'>from:</span> <span class='symbol'>:translate</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:done</span>
+</code></pre>
+</li>
 <li>
 <p><strong><code>Phronomy::Agent::CheckpointStore</code> — idempotency store for HITL resume</strong> (post-v0.9.0):
 New in-memory store tracks consumed checkpoint IDs. Calling <code>Agent::Base#resume</code> twice
@@ -1071,7 +1097,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Fri Jun  5 18:08:21 2026 by
+  Generated on Sun Jun  7 16:20:21 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

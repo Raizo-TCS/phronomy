@@ -688,28 +688,6 @@ Retained for backward compatibility with callers using safe navigation (+&amp;.r
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#run_as_child-instance_method" title="#run_as_child (instance method)">#<strong>run_as_child</strong>(input, ctx:, messages: [], config: {})  &#x21d2; nil </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Registers this agent as a child AgentFSM inside the given Workflow context.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#stream-instance_method" title="#stream (instance method)">#<strong>stream</strong>(input, messages: [], thread_id: nil, config: {}) {|Phronomy::Agent::StreamEvent| ... } &#x21d2; Hash </a>
     
 
@@ -2439,12 +2417,12 @@ Retained for backward compatibility with callers using safe navigation (+&amp;.r
       <pre class="lines">
 
 
-614
-615
-616</pre>
+564
+565
+566</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 614</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 564</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_context_version_cache'>context_version_cache</span>
   <span class='kw'>nil</span>
@@ -2878,198 +2856,6 @@ drains in-flight invocations before process exit.</p>
 </div>
     
       <div class="method_details ">
-  <h3 class="signature " id="run_as_child-instance_method">
-  
-    #<strong>run_as_child</strong>(input, ctx:, messages: [], config: {})  &#x21d2; <tt>nil</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Registers this agent as a child AgentFSM inside the given Workflow context.</p>
-<p>Use this method from a Workflow entry action (running on the EventLoop thread)
-instead of <span class='object_link'><a href="#invoke-instance_method" title="Phronomy::Agent::Base#invoke (method)">#invoke</a></span>, which would raise a deadlock error because <code>invoke</code> blocks
-on a <code>Thread::Queue</code> when EventLoop mode is active.</p>
-<p>The agent runs asynchronously in a background IO thread.  When it finishes, the
-parent FSMSession receives a <code>:child_completed</code> event whose payload is the
-result hash <code>{ output:, messages:, usage: }</code>.  Declare an <code>on: :child_completed</code>
-transition in your Workflow to advance to the next state.</p>
-<p>The result is delivered exclusively as the <code>:child_completed</code> event payload.
-The parent Workflow task is the sole owner of the parent <code>WorkflowContext</code> and
-applies the result after receiving the event — no background thread writes to
-the parent context directly.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-  <div class="examples">
-    <h4 class="tag_title">Examples:</h4>
-    
-      
-      <pre class="example code"><code><span class='id identifier rubyid_entry'>entry</span> <span class='symbol'>:run_agent</span><span class='comma'>,</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span> <span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_run_as_child'>run_as_child</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_query'>query</span><span class='comma'>,</span> <span class='label'>ctx:</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
-<span class='id identifier rubyid_transition'>transition</span> <span class='label'>from:</span> <span class='symbol'>:run_agent</span><span class='comma'>,</span> <span class='label'>on:</span> <span class='symbol'>:child_completed</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:process_result</span></code></pre>
-    
-  </div>
-<p class="tag_title">Parameters:</p>
-<ul class="param">
-  
-    <li>
-      
-        <span class='name'>input</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>Hash</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>user input passed to the agent</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>ctx</span>
-      
-      
-        <span class='type'>(<tt>Object</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>a WorkflowContext that responds to <code>#thread_id</code></p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>messages</span>
-      
-      
-        <span class='type'>(<tt>Array</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>[]</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>prior conversation history</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>config</span>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>{}</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>invocation config (forwarded to <code>_invoke_impl</code>)</p></div>
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>nil</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>the caller must not wait on any return value;
-the result arrives as a <code>:child_completed</code> event</p></div>
-      
-    </li>
-  
-</ul>
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../Error.html" title="Phronomy::Error (class)">Phronomy::Error</a></span></tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>when EventLoop mode is not enabled</p></div>
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-563
-564
-565
-566
-567
-568
-569
-570
-571
-572
-573
-574
-575
-576
-577
-578
-579
-580
-581
-582
-583</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 563</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_run_as_child'>run_as_child</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>ctx:</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='kw'>unless</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span>
-    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span>
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>run_as_child requires EventLoop mode. </span><span class='tstring_end'>&quot;</span></span> \
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Enable with: Phronomy.configure { |c| c.event_loop = true }</span><span class='tstring_end'>&quot;</span></span>
-  <span class='kw'>end</span>
-
-  <span class='id identifier rubyid_parent_id'>parent_id</span> <span class='op'>=</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_thread_id'>thread_id</span>
-  <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_parent_id'>parent_id</span><span class='embexpr_end'>}</span><span class='tstring_content'>_agent_</span><span class='embexpr_beg'>#{</span><span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_uuid'>uuid</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
-  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_spawn'><span class='object_link'><a href="../Runtime.html#spawn-instance_method" title="Phronomy::Runtime#spawn (method)">spawn</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent-child:</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid__invoke_impl'>_invoke_impl</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
-    <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../EventLoop.html#instance-class_method" title="Phronomy::EventLoop.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_post'>post</span><span class='lparen'>(</span>
-      <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Event.html" title="Phronomy::Event (class)">Event</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>type:</span> <span class='symbol'>:child_completed</span><span class='comma'>,</span> <span class='label'>target_id:</span> <span class='id identifier rubyid_parent_id'>parent_id</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span>
-    <span class='rparen'>)</span>
-  <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
-    <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../EventLoop.html#instance-class_method" title="Phronomy::EventLoop.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_post'>post</span><span class='lparen'>(</span>
-      <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Event.html" title="Phronomy::Event (class)">Event</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>type:</span> <span class='symbol'>:child_failed</span><span class='comma'>,</span> <span class='label'>target_id:</span> <span class='id identifier rubyid_parent_id'>parent_id</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='id identifier rubyid_e'>e</span><span class='rparen'>)</span>
-    <span class='rparen'>)</span>
-  <span class='kw'>end</span>
-  <span class='kw'>nil</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
   <h3 class="signature " id="stream-instance_method">
   
     #<strong>stream</strong>(input, messages: [], thread_id: nil, config: {}) {|Phronomy::Agent::StreamEvent| ... } &#x21d2; <tt>Hash</tt> 
@@ -3195,17 +2981,17 @@ as they are produced by the underlying LLM.</p>
       <pre class="lines">
 
 
-602
-603
-604
-605
-606
-607
-608
-609</pre>
+552
+553
+554
+555
+556
+557
+558
+559</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 602</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 552</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
@@ -3225,7 +3011,7 @@ as they are produced by the underlying LLM.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri Jun  5 18:08:22 2026 by
+  Generated on Sun Jun  7 16:20:22 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
