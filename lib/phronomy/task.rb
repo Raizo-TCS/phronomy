@@ -4,6 +4,7 @@ require_relative "task/backend"
 require_relative "task/thread_backend"
 require_relative "task/immediate_backend"
 require_relative "task/fiber_backend"
+require_relative "task/mapped_backend"
 
 module Phronomy
   # A single unit of concurrent work.
@@ -193,6 +194,58 @@ module Phronomy
       end
       callback.call(*fire_args) if fire_now
       self
+    end
+
+    # Returns a new {Task} whose completed value is the result of applying
+    # +block+ to this task's completed value.
+    #
+    # If this task fails or is cancelled, the mapped task also fails/is
+    # cancelled with the same error.  The block is never called in error cases.
+    #
+    # The primary use-case is transforming an agent result into a
+    # {WorkflowContext} so that a Workflow entry action can return a Task
+    # whose value is picked up by {Workflow::FSMSession} via the existing
+    # +:action_completed+ path:
+    #
+    # @example Returning agent output into a Workflow state field
+    #   entry :translate, ->(ctx) {
+    #     TranslationAgent.new.invoke_async(ctx.query).map do |result|
+    #       ctx.merge(answer: result[:output])   # returns WorkflowContext
+    #     end
+    #   }
+    #
+    # @yield  [value] the completed value of this task
+    # @yieldreturn [Object] the value for the mapped task
+    # @return [Task] a new task that completes when this task does
+    # @api public
+    def map(&block)
+      # MappedBackend drives the task lifecycle entirely via on_complete;
+      # it never spawns a thread of its own.
+      mapped = self.class.spawn(
+        name: "#{@name}-mapped",
+        parent: @parent,
+        backend_class: MappedBackend
+      ) {}
+
+      on_complete do |value, error|
+        mapped_value = nil
+        mapped_error = error
+        unless error
+          begin
+            mapped_value = block.call(value)
+          rescue => e
+            mapped_error = e
+          end
+        end
+        if mapped_error
+          mapped.transition!(:failed, error: mapped_error)
+        else
+          mapped.transition!(:completed, value: mapped_value)
+        end
+        # Unblock mapped.await / mapped.join after the terminal transition.
+        mapped.backend.unblock(mapped_value, mapped_error)
+      end
+      mapped
     end
 
     # Returns +true+ once the task has finished (success, error, or cancellation).

@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`Task#map` — transform a Task's completed value** (post-v0.9.0):
+  `task.map { |result| ctx.merge(answer: result[:output]) }` returns a new `Task`
+  whose completed value is the block's return value.  The primary use-case is
+  connecting `Agent::Base#invoke_async` to a Workflow entry action so the agent
+  result populates the `WorkflowContext` through the standard `:action_completed`
+  path.  If the source task fails or is cancelled, the mapped task propagates the
+  error without calling the block.
+
 - **`Phronomy::Diagnostics` and `SchedulerReentrancyError`** (#278, #279):
   `Phronomy::Diagnostics` exposes a snapshot of current scheduler state
   (`pending_count`, `active_tasks`, `pool_utilization`, etc.) for debugging and
@@ -232,6 +240,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inject it into every worker task's config unless the task already supplies its own.
 
 ### Added (post-v0.9.0)
+
+- **`Agent::Base#run_as_child` removed** (post-v0.9.0):
+  `run_as_child` was introduced when agents had their own FSM.  After `Agent::FSM`
+  was removed, the `:child_completed` event payload was silently discarded by
+  `FSMSession`, meaning `ctx.answer` was never populated.  The method has been
+  removed.  Use `invoke_async + Task#map` instead:
+
+  ```ruby
+  # Before (deprecated)
+  entry :translate, ->(ctx) { TranslationAgent.new.run_as_child(ctx.query, ctx: ctx) }
+  transition from: :translate, on: :child_completed, to: :done
+
+  # After (recommended)
+  entry :translate, ->(ctx) {
+    TranslationAgent.new.invoke_async(ctx.query).map { |r| ctx.merge(answer: r[:output]) }
+  }
+  transition from: :translate, to: :done
+  ```
 
 - **`Phronomy::Agent::CheckpointStore` — idempotency store for HITL resume** (post-v0.9.0):
   New in-memory store tracks consumed checkpoint IDs. Calling `Agent::Base#resume` twice

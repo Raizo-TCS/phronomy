@@ -123,7 +123,8 @@ module Phronomy
   # Raised when a {Phronomy::WorkflowContext} field is mutated from a thread
   # that does not own the context (i.e. not the EventLoop dispatch thread).
   # Only raised in EventLoop mode.  Use +context.merge(...)+ to produce a new
-  # context, or deliver updates as +:child_completed+ event payloads.
+  # context, or deliver updates as +:action_completed+ event payloads
+  # via {Agent::Base#invoke_async} + {Task#map}.
   class WorkflowContextOwnershipError < Error; end
 
   class << self

@@ -532,56 +532,6 @@ module Phronomy
         end
       end
 
-      # Registers this agent as a child {AgentFSM} inside the given Workflow context.
-      #
-      # Use this method from a Workflow entry action (running on the EventLoop thread)
-      # instead of {#invoke}, which would raise a deadlock error because +invoke+ blocks
-      # on a +Thread::Queue+ when EventLoop mode is active.
-      #
-      # The agent runs asynchronously in a background IO thread.  When it finishes, the
-      # parent {FSMSession} receives a +:child_completed+ event whose payload is the
-      # result hash +{ output:, messages:, usage: }+.  Declare an +on: :child_completed+
-      # transition in your Workflow to advance to the next state.
-      #
-      # The result is delivered exclusively as the +:child_completed+ event payload.
-      # The parent Workflow task is the sole owner of the parent +WorkflowContext+ and
-      # applies the result after receiving the event — no background thread writes to
-      # the parent context directly.
-      #
-      # @example
-      #   entry :run_agent, ->(ctx) { MyAgent.new.run_as_child(ctx.query, ctx: ctx) }
-      #   transition from: :run_agent, on: :child_completed, to: :process_result
-      #
-      # @param input     [String, Hash]  user input passed to the agent
-      # @param ctx       [Object]        a WorkflowContext that responds to +#thread_id+
-      # @param messages  [Array]         prior conversation history
-      # @param config    [Hash]          invocation config (forwarded to +_invoke_impl+)
-      # @return [nil]  the caller must not wait on any return value;
-      #                the result arrives as a +:child_completed+ event
-      # @raise [Phronomy::Error] when EventLoop mode is not enabled
-      # @api public
-      def run_as_child(input, ctx:, messages: [], config: {})
-        unless Phronomy.configuration.event_loop
-          raise Phronomy::Error,
-            "run_as_child requires EventLoop mode. " \
-            "Enable with: Phronomy.configure { |c| c.event_loop = true }"
-        end
-
-        parent_id = ctx.thread_id
-        thread_id = "#{parent_id}_agent_#{SecureRandom.uuid}"
-        Phronomy::Runtime.instance.spawn(name: "agent-child:#{thread_id}") do
-          result = _invoke_impl(input, messages: messages, thread_id: thread_id, config: config)
-          Phronomy::EventLoop.instance.post(
-            Phronomy::Event.new(type: :child_completed, target_id: parent_id, payload: result)
-          )
-        rescue => e
-          Phronomy::EventLoop.instance.post(
-            Phronomy::Event.new(type: :child_failed, target_id: parent_id, payload: e)
-          )
-        end
-        nil
-      end
-
       # Streaming version of #invoke. Yields {Phronomy::Agent::StreamEvent} objects
       # as they are produced by the underlying LLM.
       #

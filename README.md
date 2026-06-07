@@ -54,8 +54,9 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | Feature | Stability |
 |---|---|
 | **Workflow EventLoop Mode** — Opt-in event-driven execution: `Phronomy.configure { \|c\| c.event_loop = true }` | Experimental |
-| **Agent EventLoop Mode** — `Agent#invoke` (non-blocking via EventLoop), `Agent#run_as_child` (child-FSM pattern for Workflow integration), parallel tool dispatch via `ParallelToolChat` | Experimental |
+| **Agent EventLoop Mode** — `Agent#invoke` (non-blocking via EventLoop), `Agent#invoke_async` + `Task#map` (child-agent pattern for Workflow integration), parallel tool dispatch via `ParallelToolChat` | Experimental |
 | **`invoke_async` / `call_async`** — `Agent::Base#invoke_async` and `Workflow#invoke_async` return a `Task`; `Agent::Context::Capability::Base#call_async` similarly; compatible with EventLoop and standalone contexts | Experimental |
+| **`Task#map`** — transforms a `Task`'s completed value via a block; returns a new `Task` whose value is the block's return value; if the source task fails or is cancelled the mapped task propagates the error without calling the block; primary use-case: `invoke_async.map { \|r\| ctx.merge(answer: r[:output]) }` to wire agent results into a `WorkflowContext` | Experimental |
 | **CancellationToken** — Cooperative cancellation via `cancel!`/`cancelled?`/`raise_if_cancelled!`; `timeout_after(seconds)` for monotonic-clock deadlines; optional `deadline:` (wall-clock) for backward compatibility; passed as `config: { cancellation_token: token }` to agents and `dispatch_parallel`; injected into `tool.execute` when the method declares a `cancellation_token:` keyword | Experimental |
 | **`dispatch_parallel` / `fan_out` `force_kill:` option** — `force_kill: false` (default) leaves timed-out workers running and raises `TimeoutError` immediately; `force_kill: true` restores the old `Thread#kill` behaviour with a `logger.warn` | Beta |
 | **`execution_mode` DSL on `Agent::Context::Capability::Base`** — Declares how a tool's `execute` should be dispatched: `:cooperative` (same scheduler thread), `:blocking_io` (default; offloaded to `BlockingAdapterPool`), `:cpu_bound`, `:external_process` | Experimental |
@@ -199,20 +200,18 @@ final = app.send_event(state: state, event: :approve)
 puts "Approved: #{final.approved}"  # => true
 ```
 
-In EventLoop mode (`c.event_loop = true`), `Agent#run_as_child` spawns a child agent
-asynchronously. When the child succeeds, `:child_completed` is dispatched with the result
-`{ output:, messages:, usage: }` as its payload; when it fails, `:child_failed` is
-dispatched. Always declare both transitions to avoid a stuck workflow:
+In EventLoop mode (`c.event_loop = true`), use `invoke_async + Task#map` to run an agent
+asynchronously inside a Workflow entry action.  The mapped Task returns a `WorkflowContext`,
+which `FSMSession` picks up via the standard `:action_completed` path:
 
 ```ruby
-# EventLoop mode: workflow that runs an agent as a child FSM.
-# The result { output:, messages:, usage: } arrives as the :child_completed event
-# payload — write it back to the context in the target state's entry action.
-entry :run_agent, ->(ctx) {
-  MyAgent.new.run_as_child(ctx.query, ctx: ctx)
+# EventLoop mode: workflow that runs an agent and captures the result.
+entry :translate, ->(ctx) {
+  TranslationAgent.new.invoke_async(ctx.query).map do |result|
+    ctx.merge(answer: result[:output])   # returns WorkflowContext
+  end
 }
-transition from: :run_agent, on: :child_completed, to: :done
-transition from: :run_agent, on: :child_failed,    to: :handle_error
+transition from: :translate, to: :done   # no on: needed
 ```
 
 ### Multi-Agent — Agent-as-Tool pattern

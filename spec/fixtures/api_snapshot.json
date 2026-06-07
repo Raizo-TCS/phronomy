@@ -15,7 +15,6 @@
       "invoke_async",
       "on_approval_required",
       "resume",
-      "run_as_child",
       "scope_policy=",
       "stream",
       "trace"
@@ -157,7 +156,6 @@
       "invoke_async",
       "on_approval_required",
       "resume",
-      "run_as_child",
       "scope_policy=",
       "stream",
       "subagent",

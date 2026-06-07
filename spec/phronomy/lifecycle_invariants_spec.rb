@@ -163,69 +163,7 @@ RSpec.describe "Lifecycle invariants" do
   end
 
   # ===========================================================================
-  # 2. child_failed propagation
-  # ===========================================================================
-  describe "child_failed propagation (run_as_child → parent FSMSession)" do
-    # Use real threads so run_as_child can spawn concurrently.
-    around do |ex|
-      Phronomy.configure { |c|
-        c.event_loop = true
-        c.runtime_backend = :thread
-      }
-      Phronomy::Runtime.instance_variable_set(:@instance, nil)
-      ex.run
-    ensure
-      Phronomy.reset_configuration!
-      Phronomy::Runtime.instance_variable_set(:@instance, nil)
-    end
-
-    def make_agent_raising(error)
-      klass = Class.new(Phronomy::Agent::Base) { model "test" }
-      allow_any_instance_of(klass).to receive(:_invoke_impl).and_raise(error)
-      klass.new
-    end
-
-    def make_agent_succeeding(result = {output: "ok", messages: [], usage: nil})
-      klass = Class.new(Phronomy::Agent::Base) { model "test" }
-      allow_any_instance_of(klass).to receive(:_invoke_impl).and_return(result)
-      klass.new
-    end
-
-    it "posts :child_failed to parent_id when the agent raises" do
-      error = RuntimeError.new("child crashed")
-      agent = make_agent_raising(error)
-      ctx = double("ctx", thread_id: "parent-fsm-1")
-
-      with_fake_loop do |fake|
-        agent.run_as_child("hi", ctx: ctx)
-        sleep 0.2
-
-        fail_ev = fake.events.find { |e| e.type == :child_failed }
-        expect(fail_ev).not_to be_nil
-        expect(fail_ev.target_id).to eq("parent-fsm-1")
-        expect(fail_ev.payload).to eq(error)
-      end
-    end
-
-    it "posts :child_completed to parent_id when the agent succeeds" do
-      result = {output: "child done", messages: [], usage: nil}
-      agent = make_agent_succeeding(result)
-      ctx = double("ctx", thread_id: "parent-fsm-2")
-
-      with_fake_loop do |fake|
-        agent.run_as_child("hi", ctx: ctx)
-        sleep 0.2
-
-        completed_ev = fake.events.find { |e| e.type == :child_completed }
-        expect(completed_ev).not_to be_nil
-        expect(completed_ev.target_id).to eq("parent-fsm-2")
-        expect(completed_ev.payload).to eq(result)
-      end
-    end
-  end
-
-  # ===========================================================================
-  # 3. Unknown event handling
+  # 2. Unknown event handling
   # ===========================================================================
   describe "unknown event handling (undeclared event type → :error posted)" do
     # A workflow that halts at a wait state awaiting :approve only.

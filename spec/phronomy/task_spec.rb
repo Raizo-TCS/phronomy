@@ -192,4 +192,45 @@ RSpec.describe Phronomy::Task do
       described_class.default_backend_class = original
     end
   end
+
+  describe "#map" do
+    it "transforms the completed value" do
+      source = described_class.spawn { 21 }
+      mapped = source.map { |v| v * 2 }
+      expect(mapped.await).to eq(42)
+    end
+
+    it "propagates the original error without calling the block" do
+      err = RuntimeError.new("source failed")
+      source = described_class.spawn { raise err }
+      called = false
+      mapped = source.map { |_| called = true }
+      expect { mapped.await }.to raise_error(RuntimeError, "source failed")
+      expect(called).to be false
+    end
+
+    it "fails the mapped task when the block raises" do
+      source = described_class.spawn { 1 }
+      mapped = source.map { |_| raise "block error" }
+      expect { mapped.await }.to raise_error(RuntimeError, "block error")
+    end
+
+    it "returns a Task" do
+      source = described_class.spawn { 1 }
+      mapped = source.map { |v| v + 1 }
+      expect(mapped).to be_a(described_class)
+    end
+
+    it "can chain maps" do
+      source = described_class.spawn { 1 }
+      result = source.map { |v| v + 1 }.map { |v| v * 10 }.await
+      expect(result).to eq(20)
+    end
+
+    it "works with ImmediateBackend (already-completed task)" do
+      source = described_class.spawn(backend_class: Phronomy::Task::ImmediateBackend) { "hello" }
+      mapped = source.map { |v| v.upcase }
+      expect(mapped.await).to eq("HELLO")
+    end
+  end
 end
