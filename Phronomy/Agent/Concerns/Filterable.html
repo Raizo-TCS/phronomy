@@ -307,6 +307,8 @@ caller.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Registers an input filter on this instance.
+Accepts either a <span class='object_link'><a href="../../Filter/Base.html" title="Phronomy::Filter::Base (class)">Filter::Base</a></span> instance or a subclass;
+when a class is given it is instantiated with <code>.new</code>.
 Runs in addition to any class-level input filters.</p>
 
   </div>
@@ -320,7 +322,7 @@ Runs in addition to any class-level input filters.</p>
         <span class='name'>filter</span>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../../Filter/Base.html" title="Phronomy::Filter::Base (class)">Phronomy::Filter::Base</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="../../Filter/Base.html" title="Phronomy::Filter::Base (class)">Phronomy::Filter::Base</a></span></tt>, <tt>Class&lt;<span class='object_link'><a href="../../Filter/Base.html" title="Phronomy::Filter::Base (class)">Phronomy::Filter::Base</a></span>&gt;</tt>)</span>
       
       
       
@@ -348,18 +350,18 @@ Runs in addition to any class-level input filters.</p>
       <pre class="lines">
 
 
-77
-78
-79
-80
-81</pre>
+95
+96
+97
+98
+99</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/filterable.rb', line 77</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/filterable.rb', line 95</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_input_filter'>add_input_filter</span><span class='lparen'>(</span><span class='id identifier rubyid_filter'>filter</span><span class='rparen'>)</span>
   <span class='ivar'>@_instance_input_filters</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
-  <span class='ivar'>@_instance_input_filters</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_filter'>filter</span>
+  <span class='ivar'>@_instance_input_filters</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid__resolve_filter'>_resolve_filter</span><span class='lparen'>(</span><span class='id identifier rubyid_filter'>filter</span><span class='rparen'>)</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -379,6 +381,8 @@ Runs in addition to any class-level input filters.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Registers an output filter on this instance.
+Accepts either a <span class='object_link'><a href="../../Filter/Base.html" title="Phronomy::Filter::Base (class)">Filter::Base</a></span> instance or a subclass;
+when a class is given it is instantiated with <code>.new</code>.
 Runs in addition to any class-level output filters.</p>
 
   </div>
@@ -392,7 +396,7 @@ Runs in addition to any class-level output filters.</p>
         <span class='name'>filter</span>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../../Filter/Base.html" title="Phronomy::Filter::Base (class)">Phronomy::Filter::Base</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="../../Filter/Base.html" title="Phronomy::Filter::Base (class)">Phronomy::Filter::Base</a></span></tt>, <tt>Class&lt;<span class='object_link'><a href="../../Filter/Base.html" title="Phronomy::Filter::Base (class)">Phronomy::Filter::Base</a></span>&gt;</tt>)</span>
       
       
       
@@ -420,18 +424,18 @@ Runs in addition to any class-level output filters.</p>
       <pre class="lines">
 
 
-88
-89
-90
-91
-92</pre>
+108
+109
+110
+111
+112</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/filterable.rb', line 88</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/filterable.rb', line 108</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_output_filter'>add_output_filter</span><span class='lparen'>(</span><span class='id identifier rubyid_filter'>filter</span><span class='rparen'>)</span>
   <span class='ivar'>@_instance_output_filters</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
-  <span class='ivar'>@_instance_output_filters</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_filter'>filter</span>
+  <span class='ivar'>@_instance_output_filters</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid__resolve_filter'>_resolve_filter</span><span class='lparen'>(</span><span class='id identifier rubyid_filter'>filter</span><span class='rparen'>)</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -456,7 +460,9 @@ Runs in addition to any class-level output filters.</p>
   <div class="discussion">
     <p>Registers a tool result filter on this instance.</p>
 <p>When called with two arguments, the filter is scoped to the given tool
-class only.  When called with one argument, it applies to all tools.</p>
+class only.  When called with one argument, it applies to all tools.
+Accepts either a <span class='object_link'><a href="../../Filter/Base.html" title="Phronomy::Filter::Base (class)">Filter::Base</a></span> instance or a subclass;
+when a class is given it is instantiated with <code>.new</code>.</p>
 
   </div>
 </div>
@@ -483,7 +489,7 @@ class only.  When called with one argument, it applies to all tools.</p>
         <span class='name'>filter</span>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../../Filter/Base.html" title="Phronomy::Filter::Base (class)">Phronomy::Filter::Base</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="../../Filter/Base.html" title="Phronomy::Filter::Base (class)">Phronomy::Filter::Base</a></span></tt>, <tt>Class&lt;<span class='object_link'><a href="../../Filter/Base.html" title="Phronomy::Filter::Base (class)">Phronomy::Filter::Base</a></span>&gt;</tt>)</span>
       
       
       
@@ -530,7 +536,7 @@ class only.  When called with one argument, it applies to all tools.</p>
         <span class='name'>filter</span>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../../Filter/Base.html" title="Phronomy::Filter::Base (class)">Phronomy::Filter::Base</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="../../Filter/Base.html" title="Phronomy::Filter::Base (class)">Phronomy::Filter::Base</a></span></tt>, <tt>Class&lt;<span class='object_link'><a href="../../Filter/Base.html" title="Phronomy::Filter::Base (class)">Phronomy::Filter::Base</a></span>&gt;</tt>)</span>
       
       
       
@@ -564,31 +570,31 @@ class only.  When called with one argument, it applies to all tools.</p>
       <pre class="lines">
 
 
-106
-107
-108
-109
-110
-111
-112
-113
-114
-115
-116
-117</pre>
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/filterable.rb', line 106</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/filterable.rb', line 128</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_tool_result_filter'>add_tool_result_filter</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_class_or_filter'>tool_class_or_filter</span><span class='comma'>,</span> <span class='id identifier rubyid_filter'>filter</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_filter'>filter</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
     <span class='comment'># Single-argument form: apply to all tools.
 </span>    <span class='ivar'>@_instance_tool_result_filters</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
-    <span class='ivar'>@_instance_tool_result_filters</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_tool_class_or_filter'>tool_class_or_filter</span>
+    <span class='ivar'>@_instance_tool_result_filters</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid__resolve_filter'>_resolve_filter</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_class_or_filter'>tool_class_or_filter</span><span class='rparen'>)</span>
   <span class='kw'>else</span>
     <span class='comment'># Two-argument form: scoped to one tool class.
 </span>    <span class='ivar'>@_scoped_tool_result_filters</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
-    <span class='lparen'>(</span><span class='ivar'>@_scoped_tool_result_filters</span><span class='lbracket'>[</span><span class='id identifier rubyid_tool_class_or_filter'>tool_class_or_filter</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_filter'>filter</span>
+    <span class='lparen'>(</span><span class='ivar'>@_scoped_tool_result_filters</span><span class='lbracket'>[</span><span class='id identifier rubyid_tool_class_or_filter'>tool_class_or_filter</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid__resolve_filter'>_resolve_filter</span><span class='lparen'>(</span><span class='id identifier rubyid_filter'>filter</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
@@ -602,7 +608,7 @@ class only.  When called with one argument, it applies to all tools.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Jun 14 13:22:23 2026 by
+  Generated on Sun Jun 14 15:49:34 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
