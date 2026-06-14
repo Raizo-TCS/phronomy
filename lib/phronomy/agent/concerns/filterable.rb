@@ -24,30 +24,36 @@ module Phronomy
         # Class-level DSL mixed into the including agent class.
         module ClassMethods
           # Registers a filter applied to every invocation's user input.
-          # @param filter [Phronomy::Filter::Base]
+          # Accepts either a {Phronomy::Filter::Base} instance or a subclass;
+          # when a class is given it is instantiated with +.new+.
+          # @param filter [Phronomy::Filter::Base, Class<Phronomy::Filter::Base>]
           # @return [void]
           # @api public
           def input_filter(filter)
             @_class_input_filters ||= []
-            @_class_input_filters << filter
+            @_class_input_filters << _resolve_filter(filter)
           end
 
           # Registers a filter applied to every invocation's final LLM output.
-          # @param filter [Phronomy::Filter::Base]
+          # Accepts either a {Phronomy::Filter::Base} instance or a subclass;
+          # when a class is given it is instantiated with +.new+.
+          # @param filter [Phronomy::Filter::Base, Class<Phronomy::Filter::Base>]
           # @return [void]
           # @api public
           def output_filter(filter)
             @_class_output_filters ||= []
-            @_class_output_filters << filter
+            @_class_output_filters << _resolve_filter(filter)
           end
 
           # Registers a filter applied to every tool result for all tools.
-          # @param filter [Phronomy::Filter::Base]
+          # Accepts either a {Phronomy::Filter::Base} instance or a subclass;
+          # when a class is given it is instantiated with +.new+.
+          # @param filter [Phronomy::Filter::Base, Class<Phronomy::Filter::Base>]
           # @return [void]
           # @api public
           def tool_result_filter(filter)
             @_class_tool_result_filters ||= []
-            @_class_tool_result_filters << filter
+            @_class_tool_result_filters << _resolve_filter(filter)
           end
 
           # @return [Array<Phronomy::Filter::Base>]
@@ -67,27 +73,41 @@ module Phronomy
           def _class_tool_result_filters
             @_class_tool_result_filters || []
           end
+
+          private
+
+          # Coerce +filter+ to an instance: if a Class is passed, call +.new+;
+          # otherwise return the object as-is.
+          # @param filter [Phronomy::Filter::Base, Class<Phronomy::Filter::Base>]
+          # @return [Phronomy::Filter::Base]
+          def _resolve_filter(filter)
+            filter.is_a?(Class) ? filter.new : filter
+          end
         end
 
         # Registers an input filter on this instance.
+        # Accepts either a {Phronomy::Filter::Base} instance or a subclass;
+        # when a class is given it is instantiated with +.new+.
         # Runs in addition to any class-level input filters.
-        # @param filter [Phronomy::Filter::Base]
+        # @param filter [Phronomy::Filter::Base, Class<Phronomy::Filter::Base>]
         # @return [self]
         # @api public
         def add_input_filter(filter)
           @_instance_input_filters ||= []
-          @_instance_input_filters << filter
+          @_instance_input_filters << _resolve_filter(filter)
           self
         end
 
         # Registers an output filter on this instance.
+        # Accepts either a {Phronomy::Filter::Base} instance or a subclass;
+        # when a class is given it is instantiated with +.new+.
         # Runs in addition to any class-level output filters.
-        # @param filter [Phronomy::Filter::Base]
+        # @param filter [Phronomy::Filter::Base, Class<Phronomy::Filter::Base>]
         # @return [self]
         # @api public
         def add_output_filter(filter)
           @_instance_output_filters ||= []
-          @_instance_output_filters << filter
+          @_instance_output_filters << _resolve_filter(filter)
           self
         end
 
@@ -95,23 +115,25 @@ module Phronomy
         #
         # When called with two arguments, the filter is scoped to the given tool
         # class only.  When called with one argument, it applies to all tools.
+        # Accepts either a {Phronomy::Filter::Base} instance or a subclass;
+        # when a class is given it is instantiated with +.new+.
         #
         # @overload add_tool_result_filter(filter)
-        #   @param filter [Phronomy::Filter::Base] applied to every tool
+        #   @param filter [Phronomy::Filter::Base, Class<Phronomy::Filter::Base>] applied to every tool
         # @overload add_tool_result_filter(tool_class, filter)
         #   @param tool_class [Class] scope the filter to this tool
-        #   @param filter [Phronomy::Filter::Base]
+        #   @param filter [Phronomy::Filter::Base, Class<Phronomy::Filter::Base>]
         # @return [self]
         # @api public
         def add_tool_result_filter(tool_class_or_filter, filter = nil)
           if filter.nil?
             # Single-argument form: apply to all tools.
             @_instance_tool_result_filters ||= []
-            @_instance_tool_result_filters << tool_class_or_filter
+            @_instance_tool_result_filters << _resolve_filter(tool_class_or_filter)
           else
             # Two-argument form: scoped to one tool class.
             @_scoped_tool_result_filters ||= {}
-            (@_scoped_tool_result_filters[tool_class_or_filter] ||= []) << filter
+            (@_scoped_tool_result_filters[tool_class_or_filter] ||= []) << _resolve_filter(filter)
           end
           self
         end
@@ -152,6 +174,14 @@ module Phronomy
           global = self.class._class_tool_result_filters + (@_instance_tool_result_filters || [])
           scoped = (@_scoped_tool_result_filters || {})[tool_class] || []
           global + scoped
+        end
+
+        # Coerce +filter+ to an instance: if a Class is passed, call +.new+;
+        # otherwise return the object as-is.
+        # @param filter [Phronomy::Filter::Base, Class<Phronomy::Filter::Base>]
+        # @return [Phronomy::Filter::Base]
+        def _resolve_filter(filter)
+          filter.is_a?(Class) ? filter.new : filter
         end
       end
     end

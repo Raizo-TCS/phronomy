@@ -110,6 +110,16 @@ RSpec.describe "Agent::Base filter integration (Issue #389)" do
       expect(result[:output]).to eq("result:HELLO")
     end
 
+    it "accepts a Class and instantiates it automatically" do
+      filter_class = Class.new(Phronomy::Filter::Base) do
+        def call(value, **_context) = value.to_s.upcase
+      end
+      agent = build_agent_class.new
+      agent.add_input_filter(filter_class)   # pass the class, not .new
+      result = agent.invoke("hello")
+      expect(result[:output]).to eq("result:HELLO")
+    end
+
     it "blocks the call when the filter raises FilterBlockError" do
       agent = build_agent_class.new
       agent.add_input_filter(blocking_filter)
@@ -129,9 +139,19 @@ RSpec.describe "Agent::Base filter integration (Issue #389)" do
   end
 
   describe ".input_filter (class DSL)" do
-    it "applies to every instance" do
+    it "applies to every instance when given an instance" do
       klass = build_agent_class
       klass.input_filter(upcasing_filter)
+      result = klass.new.invoke("hello")
+      expect(result[:output]).to eq("result:HELLO")
+    end
+
+    it "accepts a Class and instantiates it automatically" do
+      filter_class = Class.new(Phronomy::Filter::Base) do
+        def call(value, **_context) = value.to_s.upcase
+      end
+      klass = build_agent_class
+      klass.input_filter(filter_class)   # pass the class, not .new
       result = klass.new.invoke("hello")
       expect(result[:output]).to eq("result:HELLO")
     end
