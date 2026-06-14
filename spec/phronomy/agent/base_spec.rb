@@ -228,8 +228,6 @@ RSpec.describe Phronomy::Agent::Base do
       allow(agent).to receive(:extract_message).and_return("hi")
       allow(agent).to receive(:build_context).and_return({system: nil, messages: [], tool_classes: []})
       allow(agent).to receive(:apply_instructions)
-      allow(agent).to receive(:run_input_guardrails!)
-      allow(agent).to receive(:run_output_guardrails!)
       allow(agent).to receive(:run_before_completion_hooks!)
       allow(agent).to receive(:trace).and_yield(nil)
 

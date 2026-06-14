@@ -70,18 +70,14 @@ RSpec.describe "Agent::Base guardrail integration" do
     end.new
   end
 
-  describe "#add_input_guardrail" do
-    it "returns self for chaining" do
-      expect(agent.add_input_guardrail(no_bad_input)).to be(agent)
-    end
-
+  describe "#add_input_filter (with a guardrail)" do
     it "raises GuardrailError on invoke when input fails the check" do
-      agent.add_input_guardrail(no_bad_input)
+      agent.add_input_filter(no_bad_input)
       expect { agent.invoke("bad content") }.to raise_error(Phronomy::GuardrailError, /bad/)
     end
 
     it "does not raise when input passes the check" do
-      agent.add_input_guardrail(no_bad_input)
+      agent.add_input_filter(no_bad_input)
       chat_double = instance_double(RubyLLM::Chat)
       response = double("response", content: "ok", tokens: double(input: 5, output: 2, cached: 0, cache_creation: 0))
       allow(RubyLLM).to receive(:chat).and_return(chat_double)
@@ -93,13 +89,9 @@ RSpec.describe "Agent::Base guardrail integration" do
     end
   end
 
-  describe "#add_output_guardrail" do
-    it "returns self for chaining" do
-      expect(agent.add_output_guardrail(no_secret_output)).to be(agent)
-    end
-
+  describe "#add_output_filter (with a guardrail)" do
     it "raises GuardrailError when output fails the check" do
-      agent.add_output_guardrail(no_secret_output)
+      agent.add_output_filter(no_secret_output)
       chat_double = instance_double(RubyLLM::Chat)
       response = double("response", content: "here is your SECRET key", tokens: double(input: 5, output: 10, cached: 0, cache_creation: 0))
       allow(RubyLLM).to receive(:chat).and_return(chat_double)
@@ -112,7 +104,7 @@ RSpec.describe "Agent::Base guardrail integration" do
   end
 
   describe "multiple guardrails" do
-    it "runs all input guardrails in order and raises on the first failure" do
+    it "runs all input filters in order and raises on the first failure" do
       g1 = Class.new(Phronomy::Guardrail::InputGuardrail) do
         def check(v)
         end
@@ -123,8 +115,8 @@ RSpec.describe "Agent::Base guardrail integration" do
         end
       end.new
 
-      agent.add_input_guardrail(g1)
-      agent.add_input_guardrail(g2)
+      agent.add_input_filter(g1)
+      agent.add_input_filter(g2)
       expect { agent.invoke("anything") }.to raise_error(Phronomy::GuardrailError, "g2 rejected")
     end
   end

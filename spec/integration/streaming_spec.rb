@@ -89,7 +89,7 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
     it "emits an :error event before raising GuardrailError" do
       klass = build_streaming_agent(klass_label: "base")
       agent = klass.new
-      agent.add_input_guardrail(IntegrationFactors::BlockingInputGuardrail.new)
+      agent.add_input_filter(IntegrationFactors::BlockingInputGuardrail.new)
 
       events = []
       expect {
@@ -114,7 +114,7 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
         instructions: "You are a calculator assistant. Use the calculator tool to answer math questions."
       )
       agent = klass.new
-      agent.add_input_guardrail(IntegrationFactors::PassingInputGuardrail.new)
+      agent.add_input_filter(IntegrationFactors::PassingInputGuardrail.new)
 
       events = []
       result = agent.stream("What is 9 + 6?") { |e| events << e }
@@ -145,7 +145,7 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
     it "emits :error event and raises GuardrailError" do
       klass = build_streaming_agent(klass_label: "base")
       agent = klass.new
-      agent.add_input_guardrail(IntegrationFactors::BlockingInputGuardrail.new)
+      agent.add_input_filter(IntegrationFactors::BlockingInputGuardrail.new)
 
       events = []
       expect {
@@ -179,7 +179,7 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
     it "returns a Hash (invoke fallback)" do
       klass = build_streaming_agent(klass_label: "base")
       agent = klass.new
-      agent.add_input_guardrail(IntegrationFactors::PassingInputGuardrail.new)
+      agent.add_input_filter(IntegrationFactors::PassingInputGuardrail.new)
       result = agent.stream("Say the word yes.")
       expect(result[:output]).not_to be_empty
     end
@@ -196,7 +196,7 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
         tools: {IntegrationFactors::CalculatorTool => "calc"}
       )
       agent = klass.new
-      agent.add_input_guardrail(IntegrationFactors::BlockingInputGuardrail.new)
+      agent.add_input_filter(IntegrationFactors::BlockingInputGuardrail.new)
 
       events = []
       expect {
@@ -218,7 +218,7 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
         tools: {IntegrationFactors::CalculatorTool => nil}
       )
       agent = klass.new
-      agent.add_input_guardrail(IntegrationFactors::PassingInputGuardrail.new)
+      agent.add_input_filter(IntegrationFactors::PassingInputGuardrail.new)
 
       events = []
       agent.stream("Say the word yes.") { |e| events << e }

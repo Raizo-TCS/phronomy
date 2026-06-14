@@ -256,21 +256,24 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
       dbl
     end
 
-    it "propagates the hook exception and does not invoke the output guardrail" do
+    it "propagates the hook exception and does not invoke the output filter" do
       agent = agent_class.new
       agent.before_completion = ->(_ctx) { raise "hook exploded" }
 
-      guardrail_invoked = false
-      spy_guardrail = double("SpyGuardrail")
-      allow(spy_guardrail).to receive(:run!) { guardrail_invoked = true }
-
-      agent.instance_variable_set(:@output_guardrails, [spy_guardrail])
+      spy_filter = Class.new(Phronomy::Filter::Base) do
+        attr_accessor :invoked
+        def call(val, **_ctx)
+          @invoked = true
+          val
+        end
+      end.new
+      agent.add_output_filter(spy_filter)
 
       expect {
         agent.send(:run_before_completion_hooks!, chat_double, {})
       }.to raise_error(RuntimeError, "hook exploded")
 
-      expect(guardrail_invoked).to be(false)
+      expect(spy_filter.invoked).to be_falsey
     end
   end
 

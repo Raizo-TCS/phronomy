@@ -56,10 +56,11 @@ RSpec.describe "README API smoke tests (Issue #141)" do
       expect(klass.max_iterations).to eq(5)
     end
 
-    it "supports add_input_guardrail and add_output_guardrail" do
-      guardrail_class = Class.new(Phronomy::Guardrail::InputGuardrail) do
-        def check(input)
-          fail!("Not allowed") if input.include?("forbidden")
+    it "supports add_input_filter and add_output_filter" do
+      filter_class = Class.new(Phronomy::Filter::Base) do
+        def call(value, **_context)
+          raise Phronomy::FilterBlockError, "Not allowed" if value.to_s.include?("forbidden")
+          value
         end
       end
 
@@ -69,7 +70,7 @@ RSpec.describe "README API smoke tests (Issue #141)" do
       end
 
       agent = klass.new
-      expect { agent.add_input_guardrail(guardrail_class.new) }.not_to raise_error
+      expect { agent.add_input_filter(filter_class.new) }.not_to raise_error
     end
   end
 

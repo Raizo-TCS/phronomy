@@ -10,7 +10,6 @@ module Phronomy
       #   - *output*      — the final LLM output string, before it is returned
       #   - *tool result* — the return value of each tool call
       #
-      # Filters run after legacy {Phronomy::Guardrail} checks (which only block).
       # Each filter in the chain receives the value returned by the previous one.
       # A {Phronomy::FilterBlockError} raised inside any filter propagates to the
       # caller.
@@ -140,30 +139,24 @@ module Phronomy
 
         private
 
-        # Run input filters (guardrails first, then class-level, then instance-level).
-        # Guardrails registered via +add_input_guardrail+ implement the Filter::Base
-        # interface via +Guardrail::Base#call+ and are included at the front of the chain.
+        # Run input filters (class-level then instance-level).
         # @param input [String, Hash] the raw user input
         # @return [String, Hash] the (possibly transformed) input
         # @api private
         def run_input_filters!(input)
-          guardrails = @input_guardrails || []
           class_filters = self.class._class_input_filters
           inst_filters = @_instance_input_filters || []
-          (guardrails + class_filters + inst_filters).inject(input) { |val, f| f.call(val) }
+          (class_filters + inst_filters).inject(input) { |val, f| f.call(val) }
         end
 
-        # Run output filters (guardrails first, then class-level, then instance-level).
-        # Guardrails registered via +add_output_guardrail+ implement the Filter::Base
-        # interface via +Guardrail::Base#call+ and are included at the front of the chain.
+        # Run output filters (class-level then instance-level).
         # @param output [String] the LLM output
         # @return [String] the (possibly transformed) output
         # @api private
         def run_output_filters!(output)
-          guardrails = @output_guardrails || []
           class_filters = self.class._class_output_filters
           inst_filters = @_instance_output_filters || []
-          (guardrails + class_filters + inst_filters).inject(output) { |val, f| f.call(val) }
+          (class_filters + inst_filters).inject(output) { |val, f| f.call(val) }
         end
 
         # Collect all tool-result filters (global + scoped) for a given tool class.

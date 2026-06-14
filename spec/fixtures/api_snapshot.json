@@ -6,9 +6,7 @@
       "_add_handoff_tool",
       "_handoff_tools",
       "add_input_filter",
-      "add_input_guardrail",
       "add_output_filter",
-      "add_output_guardrail",
       "add_tool_result_filter",
       "batch",
       "before_completion",
@@ -156,9 +154,7 @@
       "_add_handoff_tool",
       "_handoff_tools",
       "add_input_filter",
-      "add_input_guardrail",
       "add_output_filter",
-      "add_output_guardrail",
       "add_tool_result_filter",
       "batch",
       "before_completion",
@@ -240,6 +236,7 @@
     "name": "Phronomy::Guardrail::InputGuardrail",
     "type": "class",
     "public_instance_methods": [
+      "call",
       "check",
       "run!"
     ],
@@ -249,6 +246,7 @@
     "name": "Phronomy::Guardrail::OutputGuardrail",
     "type": "class",
     "public_instance_methods": [
+      "call",
       "check",
       "run!"
     ],

@@ -285,29 +285,4 @@ RSpec.describe "Agent::Base filter integration (Issue #389)" do
       expect(result[:output]).to eq("RESULT:HI")
     end
   end
-
-  # ──────────────────────────────────────────────────────────────────────────
-  # Backward compatibility: existing guardrails still work
-  # ──────────────────────────────────────────────────────────────────────────
-
-  describe "backward compatibility with existing guardrails" do
-    it "runs input guardrails before input filters" do
-      order = []
-      guardrail = Class.new(Phronomy::Guardrail::InputGuardrail) do
-        define_method(:check) { |_val| order << :guardrail }
-      end.new
-      filter_inst = Class.new(Phronomy::Filter::Base) do
-        define_method(:call) { |val, **_ctx|
-          order << :filter
-          val
-        }
-      end.new
-
-      agent = build_agent_class.new
-      agent.add_input_guardrail(guardrail)
-      agent.add_input_filter(filter_inst)
-      agent.invoke("hello")
-      expect(order).to eq([:guardrail, :filter])
-    end
-  end
 end

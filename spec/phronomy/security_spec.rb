@@ -209,7 +209,7 @@ RSpec.describe "Security specs (Issue #214)" do
 
     it "does not call the LLM when input guardrail rejects" do
       agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
-      agent.add_input_guardrail(rejecting_guardrail)
+      agent.add_input_filter(rejecting_guardrail)
 
       # RubyLLM.chat must never be called when the guardrail fires before it.
       expect(RubyLLM).not_to receive(:chat)
@@ -220,7 +220,7 @@ RSpec.describe "Security specs (Issue #214)" do
 
     it "raises GuardrailError before any LLM interaction occurs" do
       agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
-      agent.add_input_guardrail(rejecting_guardrail)
+      agent.add_input_filter(rejecting_guardrail)
 
       error = nil
       begin
@@ -250,7 +250,7 @@ RSpec.describe "Security specs (Issue #214)" do
       raw_llm_output = "Here is your key: sk-abcdefghijklmnopqrstuvwxyz123456789"
 
       agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
-      agent.add_output_guardrail(secret_filter_guardrail)
+      agent.add_output_filter(secret_filter_guardrail)
 
       chat_double = instance_double(RubyLLM::Chat)
       response = double("response",
@@ -341,7 +341,7 @@ RSpec.describe "Security specs (Issue #214)" do
       end.new
 
       agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
-      agent.add_input_guardrail(reject_all)
+      agent.add_input_filter(reject_all)
 
       begin
         agent.invoke(sensitive_input)

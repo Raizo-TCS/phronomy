@@ -201,8 +201,6 @@ RSpec.describe "LLMAdapter abstraction" do
         {system: nil, messages: [], tool_classes: []}
       )
       allow_any_instance_of(agent_class).to receive(:apply_instructions)
-      allow_any_instance_of(agent_class).to receive(:run_input_guardrails!)
-      allow_any_instance_of(agent_class).to receive(:run_output_guardrails!)
       allow_any_instance_of(agent_class).to receive(:run_before_completion_hooks!)
       allow_any_instance_of(agent_class).to receive(:check_cancellation!)
       allow(chat).to receive(:respond_to?).with(:cancellation_token=).and_return(false)

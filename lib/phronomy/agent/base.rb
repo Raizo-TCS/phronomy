@@ -3,7 +3,6 @@
 require "securerandom"
 require_relative "checkpoint_store"
 require_relative "concerns/retryable"
-require_relative "concerns/guardrailable"
 require_relative "concerns/filterable"
 require_relative "concerns/before_completion"
 require_relative "concerns/suspendable"
@@ -35,7 +34,6 @@ module Phronomy
     class Base
       include Phronomy::Runnable
       include Concerns::Retryable
-      include Concerns::Guardrailable
       include Concerns::Filterable
       include Concerns::BeforeCompletion
       include Concerns::Suspendable
