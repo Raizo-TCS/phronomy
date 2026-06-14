@@ -62,6 +62,8 @@ module Phronomy
             invoke_once(input, messages: messages, thread_id: thread_id, config: config)
           rescue Phronomy::GuardrailError
             raise
+          rescue Phronomy::FilterBlockError
+            raise
           rescue Phronomy::CancellationError
             raise # Never retry after cancellation.
           rescue

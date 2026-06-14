@@ -96,6 +96,18 @@ module Phronomy
     end
   end
 
+  # Raised by a {Phronomy::Filter::Base} subclass when the filter rejects a
+  # value (analogous to {GuardrailError} for guardrails).
+  # @api public
+  class FilterBlockError < Error
+    attr_reader :filter
+
+    def initialize(message, filter: nil)
+      super(message)
+      @filter = filter
+    end
+  end
+
   # Raised when {Agent::Base#resume} (or the class-level equivalent) is called
   # with a {Agent::Checkpoint} whose +checkpoint_id+ has already been consumed
   # by a previous +resume+ call on the same store.

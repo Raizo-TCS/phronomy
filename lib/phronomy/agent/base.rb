@@ -4,6 +4,7 @@ require "securerandom"
 require_relative "checkpoint_store"
 require_relative "concerns/retryable"
 require_relative "concerns/guardrailable"
+require_relative "concerns/filterable"
 require_relative "concerns/before_completion"
 require_relative "concerns/suspendable"
 require_relative "concerns/error_translation"
@@ -35,6 +36,7 @@ module Phronomy
       include Phronomy::Runnable
       include Concerns::Retryable
       include Concerns::Guardrailable
+      include Concerns::Filterable
       include Concerns::BeforeCompletion
       include Concerns::Suspendable
       include Concerns::ErrorTranslation
@@ -604,6 +606,7 @@ module Phronomy
       def _stream_impl(input, messages: [], thread_id: nil, config: {}, &block)
         trace("agent.invoke", input: input, **_build_caller_meta(config)) do |_span|
           run_input_guardrails!(input)
+          input = run_input_filters!(input)
 
           chat = build_chat
           user_message = extract_message(input)
@@ -635,6 +638,7 @@ module Phronomy
 
           output, usage = _drain_stream(chat, user_message, config, &block)
           run_output_guardrails!(output)
+          output = run_output_filters!(output)
 
           result = {output: output, messages: chat.messages, usage: usage}
           block.call(StreamEvent.new(type: :done, payload: result))
@@ -814,6 +818,7 @@ module Phronomy
       def invoke_once(input, messages: [], thread_id: nil, config: {})
         trace("agent.invoke", input: input, **_build_caller_meta(config)) do |_span|
           run_input_guardrails!(input)
+          input = run_input_filters!(input)
 
           user_message = extract_message(input)
           chat = build_chat
@@ -836,6 +841,8 @@ module Phronomy
           next [result, usage] if result[:suspended]
 
           run_output_guardrails!(result[:output])
+          filtered_output = run_output_filters!(result[:output])
+          result = result.merge(output: filtered_output) unless filtered_output.equal?(result[:output])
           [result, usage]
         end
       end
@@ -1076,21 +1083,34 @@ module Phronomy
         end
 
         # Step 3: wrap with approval gate when handler is registered.
-        return resolved unless resolved.requires_approval && @approval_handler
-
-        handler = @approval_handler
-        # Capture the effective tool name before building the anonymous subclass.
-        # Class-level instance variables (@tool_name) are not inherited through
-        # subclassing, so the wrapper must set it explicitly.
-        effective_name = resolved.new.name
-        Class.new(resolved) do
-          tool_name effective_name
-          define_method(:call) do |args|
-            if handler.call(name, args)
-              super(args)
-            else
-              "Tool execution denied."
+        if resolved.requires_approval && @approval_handler
+          handler = @approval_handler
+          # Capture the effective tool name before building the anonymous subclass.
+          # Class-level instance variables (@tool_name) are not inherited through
+          # subclassing, so the wrapper must set it explicitly.
+          effective_name = resolved.new.name
+          resolved = Class.new(resolved) do
+            tool_name effective_name
+            define_method(:call) do |args|
+              if handler.call(name, args)
+                super(args)
+              else
+                "Tool execution denied."
+              end
             end
+          end
+        end
+
+        # Step 4: wrap with tool result filters when registered.
+        result_filters = _tool_result_filters_for(tool_class)
+        return resolved if result_filters.empty?
+
+        effective_name4 = resolved.new.name
+        Class.new(resolved) do
+          tool_name effective_name4
+          define_method(:call) do |args|
+            result = super(args)
+            result_filters.inject(result) { |val, f| f.call(val, tool_name: name, args: args) }
           end
         end
       end

@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`Phronomy::Filter::Base` — unified value filter interface** (#389):
+  A single abstract base class `Filter::Base` with one method `call(value, **context)`
+  covers all three agent boundaries — user input, LLM output, and tool return values.
+  Subclasses return the (possibly transformed) value to continue, or call `block!` /
+  `raise Phronomy::FilterBlockError` to reject.  The same filter instance can be
+  registered at multiple call sites.  Filter chains are composable and run after
+  legacy guardrails.
+
+  ```ruby
+  class PiiMaskFilter < Phronomy::Filter::Base
+    def call(value, **_context)
+      value.to_s.gsub(/\b\d{2,4}-\d{2,4}-\d{4}\b/, "[PHONE]")
+    end
+  end
+
+  f = PiiMaskFilter.new
+  agent.add_input_filter(f)
+  agent.add_output_filter(f)
+  agent.add_tool_result_filter(CustomerDataTool, f)
+  ```
+
+  Class-level DSL counterparts: `input_filter`, `output_filter`, `tool_result_filter`.
+  The `tools(Hash)` DSL also accepts a `:result_filter` key for per-tool scoping.
+
 ---
 
 ## [0.10.0] - 2026-06-08
