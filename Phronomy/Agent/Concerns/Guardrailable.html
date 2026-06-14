@@ -136,7 +136,7 @@ before the result is returned to the caller.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'><p>Attach a guardrail that validates input before every #invoke call.</p></div></span>
@@ -158,7 +158,7 @@ before the result is returned to the caller.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'><p>Attach a guardrail that validates output before it is returned.</p></div></span>
@@ -187,11 +187,9 @@ before the result is returned to the caller.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Attach a guardrail that validates input before every #invoke call.</p>
+    <p>Attach a guardrail that validates input before every #invoke call.
+The guardrail is included in the input filter chain and runs before
+any filters registered via #add_input_filter.</p>
 
   </div>
 </div>
@@ -232,14 +230,14 @@ before the result is returned to the caller.</p>
       <pre class="lines">
 
 
-17
-18
 19
 20
-21</pre>
+21
+22
+23</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/guardrailable.rb', line 17</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/guardrailable.rb', line 19</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_input_guardrail'>add_input_guardrail</span><span class='lparen'>(</span><span class='id identifier rubyid_guardrail'>guardrail</span><span class='rparen'>)</span>
   <span class='ivar'>@input_guardrails</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -262,11 +260,9 @@ before the result is returned to the caller.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Attach a guardrail that validates output before it is returned.</p>
+    <p>Attach a guardrail that validates output before it is returned.
+The guardrail is included in the output filter chain and runs before
+any filters registered via #add_output_filter.</p>
 
   </div>
 </div>
@@ -307,14 +303,14 @@ before the result is returned to the caller.</p>
       <pre class="lines">
 
 
-27
-28
-29
-30
-31</pre>
+31
+32
+33
+34
+35</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/guardrailable.rb', line 27</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/guardrailable.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_output_guardrail'>add_output_guardrail</span><span class='lparen'>(</span><span class='id identifier rubyid_guardrail'>guardrail</span><span class='rparen'>)</span>
   <span class='ivar'>@output_guardrails</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -331,7 +327,7 @@ before the result is returned to the caller.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Jun 14 13:09:42 2026 by
+  Generated on Sun Jun 14 13:22:23 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

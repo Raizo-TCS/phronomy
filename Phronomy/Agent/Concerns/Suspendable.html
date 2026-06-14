@@ -615,7 +615,7 @@ when a second approval-required tool is encountered during continuation</p></div
   <span class='id identifier rubyid_output'>output</span> <span class='op'>=</span> <span class='id identifier rubyid_response'>response</span><span class='period'>.</span><span class='id identifier rubyid_content'>content</span>
   <span class='id identifier rubyid_usage'>usage</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../TokenUsage.html" title="Phronomy::TokenUsage (class)">TokenUsage</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_tokens'><span class='object_link'><a href="../../TokenUsage.html#from_tokens-class_method" title="Phronomy::TokenUsage.from_tokens (method)">from_tokens</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_response'>response</span><span class='period'>.</span><span class='id identifier rubyid_tokens'>tokens</span><span class='rparen'>)</span>
 
-  <span class='id identifier rubyid_run_output_guardrails!'>run_output_guardrails!</span><span class='lparen'>(</span><span class='id identifier rubyid_output'>output</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_output'>output</span> <span class='op'>=</span> <span class='id identifier rubyid_run_output_filters!'>run_output_filters!</span><span class='lparen'>(</span><span class='id identifier rubyid_output'>output</span><span class='rparen'>)</span>
 
   <span class='lbrace'>{</span><span class='label'>output:</span> <span class='id identifier rubyid_output'>output</span><span class='comma'>,</span> <span class='label'>suspended:</span> <span class='kw'>false</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_chat'>chat</span><span class='period'>.</span><span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>usage:</span> <span class='id identifier rubyid_usage'>usage</span><span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
@@ -695,7 +695,7 @@ when a second approval-required tool is encountered during continuation</p></div
 </div>
 
       <div id="footer">
-  Generated on Sun Jun 14 13:09:42 2026 by
+  Generated on Sun Jun 14 13:22:23 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

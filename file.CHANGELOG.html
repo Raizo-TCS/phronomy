@@ -73,8 +73,8 @@ A single abstract base class <code>Filter::Base</code> with one method <code>cal
 covers all three agent boundaries — user input, LLM output, and tool return values.
 Subclasses return the (possibly transformed) value to continue, or call <code>block!</code> /
 <code>raise Phronomy::FilterBlockError</code> to reject.  The same filter instance can be
-registered at multiple call sites.  Filter chains are composable and run after
-legacy guardrails.</p>
+registered at multiple sites.  Guardrails registered via <code>add_input_guardrail</code> /
+<code>add_output_guardrail</code> are automatically included at the front of the filter chain.</p>
 <pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>PiiMaskFilter</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Filter.html" title="Phronomy::Filter (module)">Filter</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Filter/Base.html" title="Phronomy::Filter::Base (class)">Base</a></span></span>
   <span class='kw'>def</span> <span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid__context'>_context</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='period'>.</span><span class='id identifier rubyid_gsub'>gsub</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\b\d{2,4}-\d{2,4}-\d{4}\b</span><span class='regexp_end'>/</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[PHONE]</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
@@ -89,8 +89,22 @@ legacy guardrails.</p>
 <p>Class-level DSL counterparts: <code>input_filter</code>, <code>output_filter</code>, <code>tool_result_filter</code>.
 The <code>tools(Hash)</code> DSL also accepts a <code>:result_filter</code> key for per-tool scoping.</p>
 </li>
+<li>
+<p><strong><code>Guardrail::Base#call</code> — Filter::Base-compatible interface</strong>:
+<code>Guardrail::Base</code> now implements <code>call(value, **_context)</code>, which calls <code>check(value)</code>
+and returns the value unchanged (or raises <code>GuardrailError</code>).  Existing guardrail
+subclasses require no changes.</p>
+</li>
 </ul>
-<hr />
+<h3 id="Changed">Changed</h3>
+<ul>
+<li><strong>Guardrail execution unified into the filter chain</strong>:
+Guardrails registered via <code>add_input_guardrail</code> / <code>add_output_guardrail</code> now run
+as the first entries in <code>run_input_filters!</code> / <code>run_output_filters!</code>.  The separate
+<code>run_input_guardrails!</code> / <code>run_output_guardrails!</code> call sites in <code>invoke_once</code>,
+<code>_stream_impl</code>, and <code>Suspendable#resume</code> have been removed.  Behaviour is unchanged
+— guardrails still run before any filters and <code>GuardrailError</code> still propagates.</li>
+</ul>
 <h2 id="_0_10_0____2026_06_08">[0.10.0] - 2026-06-08</h2>
 <h3 id="Added">Added</h3>
 <ul>
@@ -1152,7 +1166,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sun Jun 14 13:09:42 2026 by
+  Generated on Sun Jun 14 13:22:23 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
