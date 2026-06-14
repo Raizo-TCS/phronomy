@@ -16,8 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   covers all three agent boundaries — user input, LLM output, and tool return values.
   Subclasses return the (possibly transformed) value to continue, or call `block!` /
   `raise Phronomy::FilterBlockError` to reject.  The same filter instance can be
-  registered at multiple call sites.  Filter chains are composable and run after
-  legacy guardrails.
+  registered at multiple sites.  Guardrails registered via `add_input_guardrail` /
+  `add_output_guardrail` are automatically included at the front of the filter chain.
 
   ```ruby
   class PiiMaskFilter < Phronomy::Filter::Base
@@ -35,7 +35,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Class-level DSL counterparts: `input_filter`, `output_filter`, `tool_result_filter`.
   The `tools(Hash)` DSL also accepts a `:result_filter` key for per-tool scoping.
 
----
+- **`Guardrail::Base#call` — Filter::Base-compatible interface**:
+  `Guardrail::Base` now implements `call(value, **_context)`, which calls `check(value)`
+  and returns the value unchanged (or raises `GuardrailError`).  Existing guardrail
+  subclasses require no changes.
+
+### Changed
+
+- **Guardrail execution unified into the filter chain**:
+  Guardrails registered via `add_input_guardrail` / `add_output_guardrail` now run
+  as the first entries in `run_input_filters!` / `run_output_filters!`.  The separate
+  `run_input_guardrails!` / `run_output_guardrails!` call sites in `invoke_once`,
+  `_stream_impl`, and `Suspendable#resume` have been removed.  Behaviour is unchanged
+  — guardrails still run before any filters and `GuardrailError` still propagates.
+
+
 
 ## [0.10.0] - 2026-06-08
 

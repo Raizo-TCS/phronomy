@@ -605,7 +605,6 @@ module Phronomy
       # Streaming implementation for #stream.
       def _stream_impl(input, messages: [], thread_id: nil, config: {}, &block)
         trace("agent.invoke", input: input, **_build_caller_meta(config)) do |_span|
-          run_input_guardrails!(input)
           input = run_input_filters!(input)
 
           chat = build_chat
@@ -637,7 +636,6 @@ module Phronomy
           run_before_completion_hooks!(chat, config)
 
           output, usage = _drain_stream(chat, user_message, config, &block)
-          run_output_guardrails!(output)
           output = run_output_filters!(output)
 
           result = {output: output, messages: chat.messages, usage: usage}
@@ -817,7 +815,6 @@ module Phronomy
       # wrap it in a retry loop without duplicating the LLM interaction logic.
       def invoke_once(input, messages: [], thread_id: nil, config: {})
         trace("agent.invoke", input: input, **_build_caller_meta(config)) do |_span|
-          run_input_guardrails!(input)
           input = run_input_filters!(input)
 
           user_message = extract_message(input)
@@ -840,7 +837,6 @@ module Phronomy
           )
           next [result, usage] if result[:suspended]
 
-          run_output_guardrails!(result[:output])
           filtered_output = run_output_filters!(result[:output])
           result = result.merge(output: filtered_output) unless filtered_output.equal?(result[:output])
           [result, usage]

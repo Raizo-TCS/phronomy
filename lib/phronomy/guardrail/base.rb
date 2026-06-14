@@ -22,6 +22,19 @@ module Phronomy
         raise NotImplementedError, "#{self.class}#check is not implemented"
       end
 
+      # Run the check and return the value unchanged when it passes.
+      # Satisfies the {Phronomy::Filter::Base} interface so that guardrails can
+      # participate in the unified filter chain.
+      #
+      # @param value [Object]
+      # @return [Object] the original value when the check passes
+      # @raise [Phronomy::GuardrailError] if the guardrail rejects the value
+      # @api public
+      def call(value, **_context)
+        check(value)
+        value
+      end
+
       # Run the check, raising GuardrailError on failure.
       # @param value [Object]
       # @return [Object] the original value (unchanged) when the check passes

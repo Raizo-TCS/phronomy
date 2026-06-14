@@ -143,7 +143,7 @@ module Phronomy
           output = response.content
           usage = Phronomy::TokenUsage.from_tokens(response.tokens)
 
-          run_output_guardrails!(output)
+          output = run_output_filters!(output)
 
           {output: output, suspended: false, messages: chat.messages, usage: usage}
         end

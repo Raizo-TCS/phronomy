@@ -118,22 +118,30 @@ module Phronomy
 
         private
 
-        # Run input filters (class-level then instance-level).
+        # Run input filters (guardrails first, then class-level, then instance-level).
+        # Guardrails registered via +add_input_guardrail+ implement the Filter::Base
+        # interface via +Guardrail::Base#call+ and are included at the front of the chain.
         # @param input [String, Hash] the raw user input
         # @return [String, Hash] the (possibly transformed) input
         # @api private
         def run_input_filters!(input)
-          filters = self.class._class_input_filters + (@_instance_input_filters || [])
-          filters.inject(input) { |val, f| f.call(val) }
+          guardrails = @input_guardrails || []
+          class_filters = self.class._class_input_filters
+          inst_filters = @_instance_input_filters || []
+          (guardrails + class_filters + inst_filters).inject(input) { |val, f| f.call(val) }
         end
 
-        # Run output filters (class-level then instance-level).
+        # Run output filters (guardrails first, then class-level, then instance-level).
+        # Guardrails registered via +add_output_guardrail+ implement the Filter::Base
+        # interface via +Guardrail::Base#call+ and are included at the front of the chain.
         # @param output [String] the LLM output
         # @return [String] the (possibly transformed) output
         # @api private
         def run_output_filters!(output)
-          filters = self.class._class_output_filters + (@_instance_output_filters || [])
-          filters.inject(output) { |val, f| f.call(val) }
+          guardrails = @output_guardrails || []
+          class_filters = self.class._class_output_filters
+          inst_filters = @_instance_output_filters || []
+          (guardrails + class_filters + inst_filters).inject(output) { |val, f| f.call(val) }
         end
 
         # Collect all tool-result filters (global + scoped) for a given tool class.
