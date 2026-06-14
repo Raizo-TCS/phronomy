@@ -277,6 +277,10 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td><strong>HITL Checkpoint/Resume</strong> — <code>Agent::Base#invoke</code> returns <code>{ suspended: true, checkpoint: Checkpoint }</code> when an approval-required tool is encountered without a synchronous handler; <code>Agent::Base#resume(checkpoint, approved:)</code> resumes execution; <code>Agent::Base.resume(checkpoint, approved:)</code> (class-level) resolves the agent class automatically; <code>Checkpoint#to_h</code> / <code>Checkpoint.from_h</code> for serialization; <code>Agent::Base#checkpoint_store=</code> for custom idempotency backends; <code>CheckpointAlreadyResumedError</code> raised on duplicate resume</td>
 <td>Experimental</td>
 </tr>
+<tr>
+<td><strong><code>Filter::Base</code> — unified value filter interface</strong> — <code>Phronomy::Filter::Base</code> with a single abstract method <code>call(value, **context)</code>; apply to user input (<code>add_input_filter</code> / <code>input_filter</code> DSL), final LLM output (<code>add_output_filter</code> / <code>output_filter</code> DSL), or individual tool return values (<code>add_tool_result_filter(tool_class?, filter)</code> / <code>tool_result_filter</code> DSL); filters transform values and return the result, or raise <code>Phronomy::FilterBlockError</code> to reject; filter chains are composable and run after legacy guardrails; the same filter instance can be reused across all three sites</td>
+<td>Experimental</td>
+</tr>
 </tbody>
 </table>
 <blockquote>
@@ -1062,7 +1066,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sun Jun  7 16:49:18 2026 by
+  Generated on Sun Jun 14 13:09:42 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
