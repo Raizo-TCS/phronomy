@@ -249,8 +249,8 @@ module IntegrationFactors
   def self.apply_guardrails(agent, list)
     list.each do |g|
       case g
-      when Phronomy::Guardrail::InputGuardrail then agent.add_input_guardrail(g)
-      when Phronomy::Guardrail::OutputGuardrail then agent.add_output_guardrail(g)
+      when Phronomy::Guardrail::InputGuardrail then agent.add_input_filter(g)
+      when Phronomy::Guardrail::OutputGuardrail then agent.add_output_filter(g)
       end
     end
   end
