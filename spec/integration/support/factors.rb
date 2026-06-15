@@ -1148,6 +1148,7 @@ module IntegrationFactors
     Class.new(Phronomy::Agent::Base) do
       model LM_MODEL_32
       provider :openai
+      context_window 32_768
       instructions "You are a worker agent."
 
       if failing
