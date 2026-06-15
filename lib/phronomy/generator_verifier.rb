@@ -66,8 +66,7 @@ module Phronomy
     # @!attribute [r] trusted
     #   @return [Boolean] true when confidence >= threshold
     Result = Struct.new(
-      :output, :confidence, :citations, :iterations, :review_notes, :trusted,
-      keyword_init: true
+      :output, :confidence, :citations, :iterations, :review_notes, :trusted
     ) do
       # @return [Boolean] true when confidence >= threshold
       alias_method :trusted?, :trusted

@@ -47,8 +47,7 @@ module Phronomy
         :index,    # Integer — 0-based worker index
         :agent,    # Agent::Base instance
         :messages, # Array  — accumulated conversation history
-        :status,   # Symbol — :idle | :available | :done
-        keyword_init: true
+        :status    # Symbol — :idle | :available | :done
       ) do
         # Returns true when this worker is ready to accept the next task.
         def available? = [:idle, :available].include?(status)

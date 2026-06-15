@@ -118,7 +118,7 @@ RSpec.describe Phronomy::OutputParser::JsonParser do
 end
 
 RSpec.describe Phronomy::OutputParser::StructuredParser do
-  let(:schema) { Struct.new(:name, :age, keyword_init: true) }
+  let(:schema) { Struct.new(:name, :age) }
   let(:parser) { described_class.new(schema) }
 
   describe "#parse" do

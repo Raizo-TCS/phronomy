@@ -12,7 +12,7 @@ require_relative "spec_helper"
 # :integration tag is kept for consistency with the other integration groups.
 
 # Schema used for StructuredParser tests.
-PersonSchema = Struct.new(:name, :age, keyword_init: true)
+PersonSchema = Struct.new(:name, :age)
 
 RSpec.describe "Group 4: OutputParser / Tracing", :integration do
   # ---------------------------------------------------------------------------

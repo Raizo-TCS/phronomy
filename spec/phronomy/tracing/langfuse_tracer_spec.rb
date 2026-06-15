@@ -58,7 +58,7 @@ RSpec.describe Phronomy::Tracing::LangfuseTracer do
         .with { |req|
           posted_bodies << JSON.parse(req.body)
           true
-      }
+        }
         .to_return(status: 200, body: "{}")
 
       span = tracer.start_span("timed_op")
@@ -92,7 +92,7 @@ RSpec.describe Phronomy::Tracing::LangfuseTracer do
         .with { |req|
           posted_bodies << JSON.parse(req.body)
           true
-      }
+        }
         .to_return(status: 200, body: "{}")
 
       span = tracer.start_span("success_op")
@@ -108,7 +108,7 @@ RSpec.describe Phronomy::Tracing::LangfuseTracer do
         .with { |req|
           posted_bodies << JSON.parse(req.body)
           true
-      }
+        }
         .to_return(status: 200, body: "{}")
 
       span = tracer.start_span("failing_op")
@@ -127,7 +127,7 @@ RSpec.describe Phronomy::Tracing::LangfuseTracer do
         .with { |req|
           posted_bodies << JSON.parse(req.body)
           true
-      }
+        }
         .to_return(status: 200, body: "{}")
 
       usage = Phronomy::TokenUsage.new(input: 20, output: 10, cached: 0, cache_creation: 0)
@@ -163,7 +163,7 @@ RSpec.describe Phronomy::Tracing::LangfuseTracer do
         .with { |req|
           posted_bodies << JSON.parse(req.body)
           true
-      }
+        }
         .to_return(status: 200, body: "{}")
 
       expect {
