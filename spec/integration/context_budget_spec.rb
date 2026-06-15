@@ -38,13 +38,13 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-001: from_model; heuristic tokenizer; all messages fit — baseline" do
     it "creates a budget from the model registry and effective_input_limit > 0" do
-      budget = Phronomy::LlmContextWindow::TokenBudget.new(model: "openai/gpt-oss-20b")
+      budget = Phronomy::LlmContextWindow::TokenBudget.new(model: "gpt-4o")
       expect(budget.context_window).to be > 0
       expect(budget.effective_input_limit).to be > 0
     end
 
     it "Assembler keeps all short messages within budget" do
-      budget = Phronomy::LlmContextWindow::TokenBudget.new(model: "openai/gpt-oss-20b")
+      budget = Phronomy::LlmContextWindow::TokenBudget.new(model: "gpt-4o")
       assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
       assembler.add_messages(short_messages(3))
       result = assembler.build
@@ -230,7 +230,7 @@ RSpec.describe "Group 3: Context / Budget", :integration do
     it "effective_input_limit is reduced by large context_overhead (overhead param)" do
       # Use an overhead that exceeds context_window - max_output_tokens so the limit clamps to 0
       budget = Phronomy::LlmContextWindow::TokenBudget.new(
-        model: "openai/gpt-oss-20b",
+        model: "gpt-4o",
         max_output_tokens: 512,
         overhead: 200_000
       )
@@ -240,7 +240,7 @@ RSpec.describe "Group 3: Context / Budget", :integration do
 
     it "raises ContextLengthError when effective_input_limit is 0 and messages are present" do
       budget = Phronomy::LlmContextWindow::TokenBudget.new(
-        model: "openai/gpt-oss-20b",
+        model: "gpt-4o",
         max_output_tokens: 512,
         overhead: 200_000
       )
@@ -258,11 +258,11 @@ RSpec.describe "Group 3: Context / Budget", :integration do
     it "TokenBudget honours the explicit max_output_tokens override over registry value" do
       # Explicit small max_output_tokens overrides the registry default
       budget_small = Phronomy::LlmContextWindow::TokenBudget.new(
-        model: "openai/gpt-oss-20b",
+        model: "gpt-4o",
         max_output_tokens: 128
       )
       budget_large = Phronomy::LlmContextWindow::TokenBudget.new(
-        model: "openai/gpt-oss-20b",
+        model: "gpt-4o",
         max_output_tokens: 4096
       )
       # Larger max_output means less effective_input_limit
@@ -271,7 +271,7 @@ RSpec.describe "Group 3: Context / Budget", :integration do
 
     it "Assembler keeps all short messages when effective_input_limit is large" do
       budget = Phronomy::LlmContextWindow::TokenBudget.new(
-        model: "openai/gpt-oss-20b",
+        model: "gpt-4o",
         max_output_tokens: 128
       )
       assembler = Phronomy::LlmContextWindow::Assembler.new(budget: budget)
@@ -286,10 +286,11 @@ RSpec.describe "Group 3: Context / Budget", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-016: from_model; large overhead; heuristic tokenizer; messages exceed budget" do
     it "overhead reduces effective_input_limit; raises ContextLengthError when messages present" do
-      # Use an explicit large overhead to force effective_input_limit to 0
+      # Use an overhead large enough to exhaust context_window - max_output_tokens for any
+      # well-known model (gpt-4o: 128000 - 16384 = 111616; overhead 200_000 > that).
       budget = Phronomy::LlmContextWindow::TokenBudget.new(
-        model: "openai/gpt-oss-20b",
-        overhead: 100_000
+        model: "gpt-4o",
+        overhead: 200_000
       )
       expect(budget.effective_input_limit).to eq(0)
 

@@ -330,11 +330,14 @@ RSpec.describe "Group 32: TeamCoordinator", :integration do
 
     it "the second worker LLM call receives messages accumulated from the first task" do
       team_class.new.invoke("Process tasks")
-      # Call index 4: Worker processes Task A (config[:messages] is empty).
-      # Call index 5: Worker processes Task B (config[:messages] holds Task A's history).
-      first_task_msg_count = @llm.messages_for(4).size
-      second_task_msg_count = @llm.messages_for(5).size
-      expect(second_task_msg_count).to be > first_task_msg_count
+      # Call index 4: Worker processes Task A (prior messages: empty).
+      # Call index 5: Worker processes Task B (prior messages: Task A's history).
+      # Count only non-system/non-developer messages to avoid sensitivity to
+      # RubyLLM version differences in how the system prompt role is named.
+      user_roles = %w[user assistant]
+      first_non_system = @llm.messages_for(4).count { |m| user_roles.include?(m["role"]) }
+      second_non_system = @llm.messages_for(5).count { |m| user_roles.include?(m["role"]) }
+      expect(second_non_system).to be > first_non_system
     end
 
     it "the accumulated messages include the first task's user and assistant turns" do
@@ -342,7 +345,8 @@ RSpec.describe "Group 32: TeamCoordinator", :integration do
       second_task_messages = @llm.messages_for(5)
       roles = second_task_messages.map { |m| m["role"] }
       expect(roles).to include("user")
-      expect(roles).to include("assistant")
+      # Accept either "assistant" or "ai" depending on RubyLLM version
+      expect(roles.any? { |r| %w[assistant ai].include?(r) }).to be true
     end
   end
 end
