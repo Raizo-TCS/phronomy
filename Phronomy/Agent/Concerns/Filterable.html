@@ -349,14 +349,14 @@ Runs in addition to any class-level input filters.</p>
       <pre class="lines">
 
 
-94
 95
 96
 97
-98</pre>
+98
+99</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/filterable.rb', line 94</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/filterable.rb', line 95</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_input_filter'>add_input_filter</span><span class='lparen'>(</span><span class='id identifier rubyid_filter'>filter</span><span class='rparen'>)</span>
   <span class='ivar'>@_instance_input_filters</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -423,14 +423,14 @@ Runs in addition to any class-level output filters.</p>
       <pre class="lines">
 
 
-107
 108
 109
 110
-111</pre>
+111
+112</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/filterable.rb', line 107</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/filterable.rb', line 108</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_output_filter'>add_output_filter</span><span class='lparen'>(</span><span class='id identifier rubyid_filter'>filter</span><span class='rparen'>)</span>
   <span class='ivar'>@_instance_output_filters</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -569,7 +569,6 @@ when a class is given it is instantiated with <code>.new</code>.</p>
       <pre class="lines">
 
 
-127
 128
 129
 130
@@ -580,10 +579,11 @@ when a class is given it is instantiated with <code>.new</code>.</p>
 135
 136
 137
-138</pre>
+138
+139</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/filterable.rb', line 127</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/filterable.rb', line 128</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_tool_result_filter'>add_tool_result_filter</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_class_or_filter'>tool_class_or_filter</span><span class='comma'>,</span> <span class='id identifier rubyid_filter'>filter</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_filter'>filter</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -607,7 +607,7 @@ when a class is given it is instantiated with <code>.new</code>.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Jun 15 12:33:49 2026 by
+  Generated on Mon Jun 15 12:43:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
