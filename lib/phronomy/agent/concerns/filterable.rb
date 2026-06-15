@@ -79,6 +79,7 @@ module Phronomy
           # otherwise return the object as-is.
           # @param filter [Phronomy::Filter::Base, Class<Phronomy::Filter::Base>]
           # @return [Phronomy::Filter::Base]
+          # @api private
           def _resolve_filter(filter)
             filter.is_a?(Class) ? filter.new : filter
           end
@@ -173,6 +174,7 @@ module Phronomy
         # otherwise return the object as-is.
         # @param filter [Phronomy::Filter::Base, Class<Phronomy::Filter::Base>]
         # @return [Phronomy::Filter::Base]
+        # @api private
         def _resolve_filter(filter)
           filter.is_a?(Class) ? filter.new : filter
         end
