@@ -448,7 +448,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Sets the access scope for this tool (metadata; enforcement is the responsibility of the Workflow/Guardrail layer).</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Sets the access scope for this tool (metadata; enforcement is the responsibility of the Workflow/Filter layer).</p></div></span>
   
 </li>
 
@@ -1436,7 +1436,7 @@ mutant:disable - neutral failure: unparser round-trip produces different source<
 <p>When the tool raises one of the listed exception classes, it will be
 retried up to <code>times</code> times with the specified wait strategy.
 Multiple policies can be registered and are evaluated in order.</p>
-<p>GuardrailError is never retried regardless of this configuration.</p>
+<p>FilterBlockError is never retried regardless of this configuration.</p>
 
   </div>
 </div>
@@ -1606,7 +1606,7 @@ mutant:disable - neutral failure: unparser round-trip produces different source<
 </h3><div class="docstring">
   <div class="discussion">
     <p>Sets the access scope for this tool (metadata; enforcement is the responsibility of
-the Workflow/Guardrail layer).
+the Workflow/Filter layer).
 mutant:disable - neutral failure: unparser round-trip produces different source</p>
 
   </div>
@@ -2306,7 +2306,7 @@ both expressions produce the same value.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Jun 15 12:43:07 2026 by
+  Generated on Tue Jun 16 13:19:15 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
