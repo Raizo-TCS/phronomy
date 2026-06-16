@@ -200,9 +200,10 @@ RSpec.describe "Security specs (Issue #214)" do
   # -------------------------------------------------------------------------
   describe "input guardrail LLM gate" do
     let(:rejecting_guardrail) do
-      Class.new(Phronomy::Guardrail::InputGuardrail) do
-        def check(input)
-          fail!("blocked input") if input.to_s.include?("DROP TABLE")
+      Class.new(Phronomy::Filter::Base) do
+        def call(input, **_ctx)
+          block!("blocked input") if input.to_s.include?("DROP TABLE")
+          input
         end
       end.new
     end
@@ -215,17 +216,17 @@ RSpec.describe "Security specs (Issue #214)" do
       expect(RubyLLM).not_to receive(:chat)
 
       expect { agent.invoke("DROP TABLE users; --") }
-        .to raise_error(Phronomy::GuardrailError, /blocked input/)
+        .to raise_error(Phronomy::FilterBlockError, /blocked input/)
     end
 
-    it "raises GuardrailError before any LLM interaction occurs" do
+    it "raises FilterBlockError before any LLM interaction occurs" do
       agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
       agent.add_input_filter(rejecting_guardrail)
 
       error = nil
       begin
         agent.invoke("DROP TABLE users; --")
-      rescue Phronomy::GuardrailError => e
+      rescue Phronomy::FilterBlockError => e
         error = e
       end
 
@@ -239,14 +240,15 @@ RSpec.describe "Security specs (Issue #214)" do
   # -------------------------------------------------------------------------
   describe "output guardrail intercept" do
     let(:secret_filter_guardrail) do
-      Class.new(Phronomy::Guardrail::OutputGuardrail) do
-        def check(output)
-          fail!("response contains a secret API key") if output.to_s.match?(/sk-[A-Za-z0-9]{20,}/)
+      Class.new(Phronomy::Filter::Base) do
+        def call(output, **_ctx)
+          block!("response contains a secret API key") if output.to_s.match?(/sk-[A-Za-z0-9]{20,}/)
+          output
         end
       end.new
     end
 
-    it "raises GuardrailError with the guardrail reason, not the raw LLM output" do
+    it "raises FilterBlockError with the guardrail reason, not the raw LLM output" do
       raw_llm_output = "Here is your key: sk-abcdefghijklmnopqrstuvwxyz123456789"
 
       agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
@@ -265,7 +267,7 @@ RSpec.describe "Security specs (Issue #214)" do
       error = nil
       begin
         agent.invoke("what is the key?")
-      rescue Phronomy::GuardrailError => e
+      rescue Phronomy::FilterBlockError => e
         error = e
       end
 
@@ -334,9 +336,9 @@ RSpec.describe "Security specs (Issue #214)" do
       sensitive_input = "my SSN is 123-45-6789"
 
       # Guardrail rejects the input so we never need a real LLM.
-      reject_all = Class.new(Phronomy::Guardrail::InputGuardrail) do
-        def check(_input)
-          fail!("always blocked")
+      reject_all = Class.new(Phronomy::Filter::Base) do
+        def call(_input, **_ctx)
+          block!("always blocked")
         end
       end.new
 
@@ -345,7 +347,7 @@ RSpec.describe "Security specs (Issue #214)" do
 
       begin
         agent.invoke(sensitive_input)
-      rescue Phronomy::GuardrailError
+      rescue Phronomy::FilterBlockError
         # expected
       end
 

@@ -72,6 +72,7 @@
     "public_class_methods": [
       "_sleep_proc",
       "_sleep_proc=",
+      "desc",
       "description",
       "execution_mode",
       "max_result_size",
@@ -233,22 +234,18 @@
     ]
   },
   {
-    "name": "Phronomy::Guardrail::InputGuardrail",
+    "name": "Phronomy::Filter::Base",
     "type": "class",
     "public_instance_methods": [
-      "call",
-      "check",
-      "run!"
+      "call"
     ],
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::Guardrail::OutputGuardrail",
+    "name": "Phronomy::Filter::PromptInjectionFilter",
     "type": "class",
     "public_instance_methods": [
-      "call",
-      "check",
-      "run!"
+      "call"
     ],
     "public_class_methods": []
   },
@@ -359,6 +356,7 @@
     "public_class_methods": [
       "_sleep_proc",
       "_sleep_proc=",
+      "desc",
       "description",
       "execution_mode",
       "from_server",
@@ -399,6 +397,7 @@
     "public_class_methods": [
       "_sleep_proc",
       "_sleep_proc=",
+      "desc",
       "description",
       "execution_mode",
       "from_agent",
@@ -439,6 +438,7 @@
     "public_class_methods": [
       "_sleep_proc",
       "_sleep_proc=",
+      "desc",
       "description",
       "execution_mode",
       "from_store",

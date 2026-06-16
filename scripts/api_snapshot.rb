@@ -32,8 +32,8 @@ PUBLIC_API_ENTRIES = [
   # Beta
   Phronomy::MultiAgent::Orchestrator,
   Phronomy::MultiAgent::TeamCoordinator,
-  Phronomy::Guardrail::InputGuardrail,
-  Phronomy::Guardrail::OutputGuardrail,
+  Phronomy::Filter::Base,
+  Phronomy::Filter::PromptInjectionFilter,
   Phronomy::VectorStore::Base,
   Phronomy::VectorStore::InMemory,
   Phronomy::VectorStore::Embeddings::Base,

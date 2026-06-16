@@ -92,7 +92,7 @@ module Phronomy
             public
 
             # Sets the access scope for this tool (metadata; enforcement is the responsibility of
-            # the Workflow/Guardrail layer).
+            # the Workflow/Filter layer).
             # @param value [Symbol] e.g. :read_only, :write, :admin
             # @api public
             # mutant:disable - neutral failure: unparser round-trip produces different source
@@ -218,7 +218,7 @@ module Phronomy
             # retried up to +times+ times with the specified wait strategy.
             # Multiple policies can be registered and are evaluated in order.
             #
-            # GuardrailError is never retried regardless of this configuration.
+            # FilterBlockError is never retried regardless of this configuration.
             #
             # @param exception_classes [Array<Class>] exception classes to retry on
             # @param times  [Integer] maximum retry attempts (default: 1)

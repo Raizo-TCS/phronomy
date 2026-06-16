@@ -2,78 +2,70 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Guardrail::Base do
-  let(:guardrail) do
+# Guardrail classes have been removed. Blocking filters are now implemented
+# directly as Phronomy::Filter::Base subclasses that call block!.
+# This file tests the equivalent behaviour via Filter::Base.
+
+RSpec.describe Phronomy::Filter::Base do
+  let(:blocking_filter) do
     Class.new(described_class) do
-      def check(value)
-        fail!("rejected") if value.to_s.include?("bad")
+      def call(value, **_ctx)
+        block!("rejected") if value.to_s.include?("bad")
+        value
       end
     end.new
   end
 
-  describe "#run!" do
-    it "returns the value unchanged when the check passes" do
-      expect(guardrail.run!("good input")).to eq("good input")
+  describe "#call" do
+    it "returns the value unchanged when it passes" do
+      expect(blocking_filter.call("good input")).to eq("good input")
     end
 
-    it "raises GuardrailError when the check fails" do
-      expect { guardrail.run!("bad input") }.to raise_error(Phronomy::GuardrailError, "rejected")
+    it "raises FilterBlockError when the value is rejected" do
+      expect { blocking_filter.call("bad input") }.to raise_error(Phronomy::FilterBlockError, "rejected")
     end
 
-    it "attaches the guardrail instance to the error" do
-      guardrail.run!("bad input")
-    rescue Phronomy::GuardrailError => e
-      expect(e.guardrail).to be(guardrail)
+    it "attaches the filter instance to the error" do
+      blocking_filter.call("bad input")
+    rescue Phronomy::FilterBlockError => e
+      expect(e.filter).to be(blocking_filter)
     end
   end
 
-  describe "#check" do
-    it "raises NotImplementedError when not overridden" do
+  describe "#call (not overridden)" do
+    it "raises NotImplementedError" do
       base = described_class.new
-      expect { base.check("anything") }.to raise_error(NotImplementedError)
+      expect { base.call("anything") }.to raise_error(NotImplementedError)
     end
   end
 end
 
-RSpec.describe Phronomy::Guardrail::InputGuardrail do
-  it "is a subclass of Guardrail::Base" do
-    expect(described_class).to be < Phronomy::Guardrail::Base
-  end
-end
-
-RSpec.describe Phronomy::Guardrail::OutputGuardrail do
-  it "is a subclass of Guardrail::Base" do
-    expect(described_class).to be < Phronomy::Guardrail::Base
-  end
-end
-
-RSpec.describe "Agent::Base guardrail integration" do
-  let(:agent_class) do
-    Class.new(Phronomy::Agent::Base)
-  end
-
+RSpec.describe "Agent::Base blocking filter integration" do
+  let(:agent_class) { Class.new(Phronomy::Agent::Base) }
   let(:agent) { agent_class.new }
 
   let(:no_bad_input) do
-    Class.new(Phronomy::Guardrail::InputGuardrail) do
-      def check(input)
-        fail!("input contains 'bad'") if input.to_s.include?("bad")
+    Class.new(Phronomy::Filter::Base) do
+      def call(value, **_ctx)
+        block!("input contains 'bad'") if value.to_s.include?("bad")
+        value
       end
     end.new
   end
 
   let(:no_secret_output) do
-    Class.new(Phronomy::Guardrail::OutputGuardrail) do
-      def check(output)
-        fail!("output contains 'SECRET'") if output.to_s.include?("SECRET")
+    Class.new(Phronomy::Filter::Base) do
+      def call(value, **_ctx)
+        block!("output contains 'SECRET'") if value.to_s.include?("SECRET")
+        value
       end
     end.new
   end
 
-  describe "#add_input_filter (with a guardrail)" do
-    it "raises GuardrailError on invoke when input fails the check" do
+  describe "#add_input_filter" do
+    it "raises FilterBlockError on invoke when input fails the check" do
       agent.add_input_filter(no_bad_input)
-      expect { agent.invoke("bad content") }.to raise_error(Phronomy::GuardrailError, /bad/)
+      expect { agent.invoke("bad content") }.to raise_error(Phronomy::FilterBlockError, /bad/)
     end
 
     it "does not raise when input passes the check" do
@@ -89,8 +81,8 @@ RSpec.describe "Agent::Base guardrail integration" do
     end
   end
 
-  describe "#add_output_filter (with a guardrail)" do
-    it "raises GuardrailError when output fails the check" do
+  describe "#add_output_filter" do
+    it "raises FilterBlockError when output fails the check" do
       agent.add_output_filter(no_secret_output)
       chat_double = instance_double(RubyLLM::Chat)
       response = double("response", content: "here is your SECRET key", tokens: double(input: 5, output: 10, cached: 0, cache_creation: 0))
@@ -99,25 +91,24 @@ RSpec.describe "Agent::Base guardrail integration" do
       allow(chat_double).to receive(:with_instructions)
       allow(chat_double).to receive(:ask).and_return(response)
       allow(chat_double).to receive(:messages).and_return([])
-      expect { agent.invoke("tell me the key") }.to raise_error(Phronomy::GuardrailError, /SECRET/)
+      expect { agent.invoke("tell me the key") }.to raise_error(Phronomy::FilterBlockError, /SECRET/)
     end
   end
 
-  describe "multiple guardrails" do
+  describe "multiple blocking filters" do
     it "runs all input filters in order and raises on the first failure" do
-      g1 = Class.new(Phronomy::Guardrail::InputGuardrail) do
-        def check(v)
-        end
+      f1 = Class.new(Phronomy::Filter::Base) do
+        def call(v, **_ctx) = v
       end.new
-      g2 = Class.new(Phronomy::Guardrail::InputGuardrail) do
-        def check(v)
-          fail!("g2 rejected")
+      f2 = Class.new(Phronomy::Filter::Base) do
+        def call(v, **_ctx)
+          block!("f2 rejected")
         end
       end.new
 
-      agent.add_input_filter(g1)
-      agent.add_input_filter(g2)
-      expect { agent.invoke("anything") }.to raise_error(Phronomy::GuardrailError, "g2 rejected")
+      agent.add_input_filter(f1)
+      agent.add_input_filter(f2)
+      expect { agent.invoke("anything") }.to raise_error(Phronomy::FilterBlockError, "f2 rejected")
     end
   end
 end

@@ -7,7 +7,7 @@
 > We apologise for the instability this may cause.
 
 **Phronomy** is a Ruby AI agent framework inspired by open-source AI agent frameworks.  
-It provides composable building blocks — Workflows, Agents, Tools, Guardrails, and Tracing — all powered by [RubyLLM](https://github.com/crmne/ruby_llm) for LLM abstraction.
+It provides composable building blocks — Workflows, Agents, Tools, Filters, and Tracing — all powered by [RubyLLM](https://github.com/crmne/ruby_llm) for LLM abstraction.
 
 ## Features
 
@@ -31,8 +31,8 @@ It provides composable building blocks — Workflows, Agents, Tools, Guardrails,
 | **Agent** — ReAct-style tool-calling agents with guardrails and conversation history | Stable |
 | **Before-Completion Hook** — Three-tier LLM parameter injection | Stable |
 | **Context Management** — Token budget calculation, estimation, and pruning; `Agent::Base` protected hooks: `build_context` (overridable), `trim_messages`, `trim_to_budget`, `compact_messages`, `budget_exceeded?`, `drop_messages_over` | Stable |
-| **Guardrails** — Input/output validation with custom `InputGuardrail`/`OutputGuardrail` | Beta |
-| **`PromptInjectionGuardrail`** — Built-in `InputGuardrail` subclass that detects prompt-injection patterns; usable standalone or as part of a guardrail chain | Beta |
+| **Filters** — Input/output transformation and blocking via `Filter::Base`; call `block!(reason)` to reject and raise `FilterBlockError` | Beta |
+| **`PromptInjectionFilter`** — Built-in `Filter::Base` subclass that detects prompt-injection patterns; usable standalone or as part of a filter chain | Beta |
 | **`Agent::Context::Capability::Base.redact_params` / `.max_result_size`** — Class-level DSL: `redact_params` masks parameter values in log/trace output; `max_result_size` truncates oversized tool results before they reach the LLM | Beta |
 | **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses | Stable |
 | **Eval Framework** — Dataset-driven evaluation with multiple scorer types | Beta |
@@ -253,30 +253,31 @@ result = OrchestratorAgent.new.invoke("Write a blog post about Ruby 3.4 features
 puts result[:output]
 ```
 
-### Guardrails — Input/output validation
+### Filters — Input/output transformation and blocking
 
-Call `fail!(reason)` inside `check` to reject — it raises `Phronomy::GuardrailError`.
-When a guardrail rejects, `invoke` raises instead of returning an output.
+Filters sit between user input and the LLM (input filters) or between the LLM response and the caller (output filters).
+A filter may **transform** the value (return the modified value) or **block** it (call `block!(reason)`, which raises `Phronomy::FilterBlockError`).
 
 ```ruby
-class NoSensitiveDataGuardrail < Phronomy::Guardrail::InputGuardrail
-  def check(input)
-    fail!("Credit card numbers are not allowed") if input.match?(/\d{4}-\d{4}-\d{4}-\d{4}/)
+class NoCreditCardFilter < Phronomy::Filter::Base
+  def call(value, **_context)
+    block!("Credit card numbers are not allowed") if value.match?(/\d{4}-\d{4}-\d{4}-\d{4}/)
+    value
   end
 end
 
 agent = ResearchAgent.new
-agent.add_input_guardrail(NoSensitiveDataGuardrail.new)
+agent.add_input_filter(NoCreditCardFilter.new)
 
 begin
   agent.invoke("Charge 4111-1111-1111-1111")
-rescue Phronomy::GuardrailError => e
+rescue Phronomy::FilterBlockError => e
   puts e.message   # => "Credit card numbers are not allowed"
 end
 ```
 
-> **Note:** Phronomy includes `PromptInjectionGuardrail`, a built-in pattern-based
-> input guardrail that detects common injection patterns (see the feature table above).
+> **Note:** Phronomy includes `PromptInjectionFilter`, a built-in pattern-based
+> input filter that detects common injection patterns (see the feature table above).
 > PII scanning and content classification are **not** provided by the framework;
 > that logic must be implemented by the application. Reference implementations for
 > common patterns are available in `phronomy-examples` (example 06).
@@ -852,11 +853,11 @@ span attributes by default (`trace_pii: false`). To include full content in trac
 Phronomy configuration. Evaluate whether your tracing backend (OTLP collector, Jaeger,
 Honeycomb, etc.) meets your data-retention and privacy requirements.
 
-**Prompt injection** — Phronomy provides `PromptInjectionGuardrail`, a built-in
-pattern-based input guardrail that detects common injection patterns (ignore/override
+**Prompt injection** — Phronomy provides `PromptInjectionFilter`, a built-in
+pattern-based input filter that detects common injection patterns (ignore/override
 instructions, role-switching phrases, etc.). It is a useful starting point, not a
 comprehensive defence; applications processing untrusted input should layer additional
-custom guardrails as needed (see the Guardrails section above).
+custom filters as needed (see the Filters section above).
 
 **Tool and MCP security** — Tools can perform real-world side effects (database
 writes, API calls, file deletion). Treat tool execution as a privileged operation:

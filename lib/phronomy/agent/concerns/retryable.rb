@@ -6,7 +6,7 @@ module Phronomy
       # Adds configurable retry behaviour to an agent.
       #
       # Included in {Phronomy::Agent::Base}. The retry loop wraps the full
-      # #invoke_once call; {Phronomy::GuardrailError} is never retried.
+      # #invoke_once call; {Phronomy::FilterBlockError} is never retried.
       # @api private
       module Retryable
         def self.included(base)
@@ -16,7 +16,7 @@ module Phronomy
         # Class-level DSL methods mixed into the including agent class.
         module ClassMethods
           # Configures a retry policy that wraps the full #invoke call.
-          # GuardrailError is never retried regardless of this setting.
+          # FilterBlockError is never retried regardless of this setting.
           #
           # @param times [Integer] maximum retry attempts (default: 0)
           # @param wait  [Symbol, Numeric] :exponential, :linear, or a fixed Float
@@ -60,8 +60,6 @@ module Phronomy
           attempt = 0
           begin
             invoke_once(input, messages: messages, thread_id: thread_id, config: config)
-          rescue Phronomy::GuardrailError
-            raise
           rescue Phronomy::FilterBlockError
             raise
           rescue Phronomy::CancellationError

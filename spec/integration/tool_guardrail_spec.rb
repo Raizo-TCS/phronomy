@@ -11,8 +11,8 @@ require_relative "support/llm_stub"
 # Infeasible (3): R-enum — tool_param_enum != none with agent_tools = none
 #
 # Strategy:
-#   - blocking_input cases: LLM never called → GuardrailError without LLM
-#   - blocking_output cases: 1 LLM call → GuardrailError after
+#   - blocking_input cases: LLM never called → FilterBlockError without LLM
+#   - blocking_output cases: 1 LLM call → FilterBlockError after
 #   - invalid_value (tool_param_enum): direct tool.call() confirms ToolError (no LLM needed)
 #   - requires_approval?: verified via tool instance (no LLM needed)
 #   - All other cases: agent.invoke smoke test — expect String output
@@ -136,8 +136,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
         guardrails: IntegrationFactors.guardrails("blocking_input"))
     end
 
-    it "raises GuardrailError before the LLM is called" do
-      expect { agent.invoke("Any input") }.to raise_error(Phronomy::GuardrailError)
+    it "raises FilterBlockError before the LLM is called" do
+      expect { agent.invoke("Any input") }.to raise_error(Phronomy::FilterBlockError)
     end
   end
 
@@ -153,8 +153,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
 
     before { @llm = LLMStub.activate(responses: ["I am an AI assistant."]) }
 
-    it "raises GuardrailError after the LLM call (output guardrail)" do
-      expect { agent.invoke("Describe yourself briefly.") }.to raise_error(Phronomy::GuardrailError)
+    it "raises FilterBlockError after the LLM call (output guardrail)" do
+      expect { agent.invoke("Describe yourself briefly.") }.to raise_error(Phronomy::FilterBlockError)
     end
   end
 
@@ -226,8 +226,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
       expect(tool_class.new.requires_approval?).to be true
     end
 
-    it "raises GuardrailError before LLM (blocking_input)" do
-      expect { agent.invoke("Add 1 and 2.") }.to raise_error(Phronomy::GuardrailError)
+    it "raises FilterBlockError before LLM (blocking_input)" do
+      expect { agent.invoke("Add 1 and 2.") }.to raise_error(Phronomy::FilterBlockError)
     end
   end
 
@@ -353,8 +353,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
         guardrails: IntegrationFactors.guardrails("blocking_input"))
     end
 
-    it "raises GuardrailError before LLM" do
-      expect { agent.invoke("Add 1 and 2.") }.to raise_error(Phronomy::GuardrailError)
+    it "raises FilterBlockError before LLM" do
+      expect { agent.invoke("Add 1 and 2.") }.to raise_error(Phronomy::FilterBlockError)
     end
   end
 
@@ -369,8 +369,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
 
     before { @llm = LLMStub.activate(responses: ["Tokyo is the capital of Japan."]) }
 
-    it "raises GuardrailError after LLM (blocking_output)" do
-      expect { agent.invoke("Tell me about Tokyo.") }.to raise_error(Phronomy::GuardrailError)
+    it "raises FilterBlockError after LLM (blocking_output)" do
+      expect { agent.invoke("Tell me about Tokyo.") }.to raise_error(Phronomy::FilterBlockError)
     end
   end
 
@@ -431,8 +431,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
         guardrails: IntegrationFactors.guardrails("blocking_input"))
     end
 
-    it "raises GuardrailError before LLM" do
-      expect { agent.invoke("Compute 1 + 1.") }.to raise_error(Phronomy::GuardrailError)
+    it "raises FilterBlockError before LLM" do
+      expect { agent.invoke("Compute 1 + 1.") }.to raise_error(Phronomy::FilterBlockError)
     end
   end
 
@@ -447,8 +447,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
 
     before { @llm = LLMStub.activate(responses: ["The answer is 10."]) }
 
-    it "raises GuardrailError after LLM (blocking_output)" do
-      expect { agent.invoke("What is 5 + 5?") }.to raise_error(Phronomy::GuardrailError)
+    it "raises FilterBlockError after LLM (blocking_output)" do
+      expect { agent.invoke("What is 5 + 5?") }.to raise_error(Phronomy::FilterBlockError)
     end
   end
 
@@ -517,8 +517,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
 
     before { @llm = LLMStub.activate(responses: ["2"]) }
 
-    it "raises GuardrailError after LLM (blocking_output)" do
-      expect { agent.invoke("Add 1 and 1.") }.to raise_error(Phronomy::GuardrailError)
+    it "raises FilterBlockError after LLM (blocking_output)" do
+      expect { agent.invoke("Add 1 and 1.") }.to raise_error(Phronomy::FilterBlockError)
     end
   end
 
@@ -584,8 +584,8 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
 
     before { @llm = LLMStub.activate(responses: ["4"]) }
 
-    it "raises GuardrailError after LLM (blocking_output)" do
-      expect { agent.invoke("Add 2 and 2.") }.to raise_error(Phronomy::GuardrailError)
+    it "raises FilterBlockError after LLM (blocking_output)" do
+      expect { agent.invoke("Add 2 and 2.") }.to raise_error(Phronomy::FilterBlockError)
     end
   end
 

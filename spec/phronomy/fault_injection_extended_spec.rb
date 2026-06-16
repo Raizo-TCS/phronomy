@@ -19,42 +19,42 @@ RSpec.describe "Fault injection (Issue #230 — extended)" do
   # -------------------------------------------------------------------------
   describe "Output guardrail fault isolation" do
     let(:always_reject_guardrail) do
-      Class.new(Phronomy::Guardrail::OutputGuardrail) do
-        def check(output)
-          fail!("Guardrail always rejects: #{output}")
+      Class.new(Phronomy::Filter::Base) do
+        def call(output, **_ctx)
+          block!("Guardrail always rejects: #{output}")
+          output
         end
       end.new
     end
 
     let(:exploding_guardrail) do
-      Class.new(Phronomy::Guardrail::OutputGuardrail) do
-        def check(_output)
+      Class.new(Phronomy::Filter::Base) do
+        def call(_output, **_ctx)
           raise "guardrail itself exploded"
         end
       end.new
     end
 
-    it "raises GuardrailError when output guardrail rejects" do
-      expect { always_reject_guardrail.run!("some output") }.to raise_error(Phronomy::GuardrailError)
+    it "raises FilterBlockError when output guardrail rejects" do
+      expect { always_reject_guardrail.call("some output") }.to raise_error(Phronomy::FilterBlockError)
     end
 
-    it "includes the rejection reason in GuardrailError message" do
-      expect { always_reject_guardrail.run!("test") }
-        .to raise_error(Phronomy::GuardrailError, /always rejects/)
+    it "includes the rejection reason in FilterBlockError message" do
+      expect { always_reject_guardrail.call("test") }
+        .to raise_error(Phronomy::FilterBlockError, /always rejects/)
     end
 
     it "propagates unexpected exceptions from guardrail#check unchanged" do
-      expect { exploding_guardrail.run!("test") }
+      expect { exploding_guardrail.call("test") }
         .to raise_error(RuntimeError, "guardrail itself exploded")
     end
 
     it "passes the guardrail for valid output" do
-      passing_guardrail = Class.new(Phronomy::Guardrail::OutputGuardrail) do
-        def check(_output)
-        end
+      passing_guardrail = Class.new(Phronomy::Filter::Base) do
+        def call(value, **_ctx) = value
       end.new
 
-      expect { passing_guardrail.run!("fine output") }.not_to raise_error
+      expect { passing_guardrail.call("fine output") }.not_to raise_error
     end
   end
 

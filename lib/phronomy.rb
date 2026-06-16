@@ -87,17 +87,8 @@ module Phronomy
     end
   end
 
-  class GuardrailError < Error
-    attr_reader :guardrail
-
-    def initialize(message, guardrail: nil)
-      super(message)
-      @guardrail = guardrail
-    end
-  end
-
   # Raised by a {Phronomy::Filter::Base} subclass when the filter rejects a
-  # value (analogous to {GuardrailError} for guardrails).
+  # value without transforming it (blocking the pipeline).
   # @api public
   class FilterBlockError < Error
     attr_reader :filter

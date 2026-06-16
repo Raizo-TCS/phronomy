@@ -243,24 +243,24 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base, "retry_on DSL" do
   end
 
   # ---------------------------------------------------------------------------
-  # GuardrailError — must not be retried by tool-level retry
-  # GuardrailError is raised by the agent layer, not by Tool#call, but we verify
+  # FilterBlockError — must not be retried by tool-level retry
+  # FilterBlockError is raised by the agent layer, not by Tool#call, but we verify
   # that if it somehow reaches with_tool_retry it is not swallowed.
   # ---------------------------------------------------------------------------
-  describe "GuardrailError is not retried" do
-    it "propagates GuardrailError immediately even when retry_on covers Error" do
+  describe "FilterBlockError is not retried" do
+    it "propagates FilterBlockError immediately even when retry_on covers Error" do
       klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "t"
-        # Registering Phronomy::Error (parent) should NOT catch GuardrailError
+        # Registering Phronomy::Error (parent) should NOT catch FilterBlockError
         # because the policy match is done via is_a?, but we explicitly verify
         # the guard in the agent layer separately.
         retry_on RuntimeError, times: 3, wait: 0
         def execute(**_)
-          raise Phronomy::GuardrailError, "blocked"
+          raise Phronomy::FilterBlockError, "blocked"
         end
       end
       klass._sleep_proc = sleep_stub
-      # GuardrailError is not a RuntimeError, so no retry occurs.
+      # FilterBlockError is not a RuntimeError, so no retry occurs.
       expect { klass.new.call({}) }.to raise_error(Phronomy::ToolError, /blocked/)
       expect(sleep_calls).to be_empty
     end
@@ -376,14 +376,14 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
       expect { agent.invoke("hi") }.to raise_error(RuntimeError, /boom/)
     end
 
-    it "never retries GuardrailError" do
+    it "never retries FilterBlockError" do
       agent_class = Class.new(Phronomy::Agent::Base) do
         retry_policy times: 5, wait: 0
       end
       agent_class._sleep_proc = sleep_stub
       agent = agent_class.new
-      allow(agent).to receive(:invoke_once).and_raise(Phronomy::GuardrailError, "blocked")
-      expect { agent.invoke("hi") }.to raise_error(Phronomy::GuardrailError)
+      allow(agent).to receive(:invoke_once).and_raise(Phronomy::FilterBlockError, "blocked")
+      expect { agent.invoke("hi") }.to raise_error(Phronomy::FilterBlockError)
       expect(sleep_calls).to be_empty
     end
   end
@@ -463,14 +463,14 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
       expect(inv.call).to eq(3) # 1 initial + 2 retries
     end
 
-    it "does not retry GuardrailError" do
+    it "does not retry FilterBlockError" do
       agent_class = Class.new(Phronomy::Agent::Base) do
         retry_policy times: 3, wait: 0
       end
       agent_class._sleep_proc = sleep_stub
       agent = agent_class.new
-      allow(agent).to receive(:invoke_once).and_raise(Phronomy::GuardrailError, "blocked")
-      expect { agent.invoke("hi") }.to raise_error(Phronomy::GuardrailError)
+      allow(agent).to receive(:invoke_once).and_raise(Phronomy::FilterBlockError, "blocked")
+      expect { agent.invoke("hi") }.to raise_error(Phronomy::FilterBlockError)
       expect(sleep_calls).to be_empty
     end
   end

@@ -418,7 +418,7 @@ module Phronomy
 
       # Invokes the agent with the given input and returns a result Hash.
       # Applies the retry policy configured via {.retry_policy} when transient
-      # errors occur. {Phronomy::GuardrailError} is never retried.
+      # errors occur. {Phronomy::FilterBlockError} is never retried.
       #
       # @param input     [String, Hash] the user message; a Hash may supply
       #   +:message+, +:query+, or +:user+ as the text key, plus any template
@@ -439,7 +439,7 @@ module Phronomy
       # @return [Hash] +{ output: String, messages: Array, usage: Phronomy::TokenUsage }+,
       #   or +{ output: nil, suspended: true, checkpoint: Phronomy::Agent::Checkpoint,
       #   messages: Array }+ when the invocation was suspended awaiting tool approval.
-      # @raise [Phronomy::GuardrailError] when an input or output guardrail rejects the value
+      # @raise [Phronomy::FilterBlockError] when an input or output filter rejects the value
       # @example Normal invocation
       #   result = MyAgent.new.invoke("What is Ruby?")
       #   puts result[:output]

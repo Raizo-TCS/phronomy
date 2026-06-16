@@ -80,7 +80,7 @@ module Phronomy
         # @return [Hash] +{ output: String, suspended: false, messages: Array, usage: Phronomy::TokenUsage }+
         #   or +{ output: nil, suspended: true, checkpoint: Phronomy::Agent::Checkpoint, messages: Array }+
         #   when a second approval-required tool is encountered during continuation
-        # @raise [Phronomy::GuardrailError] when an output guardrail rejects the value
+        # @raise [Phronomy::FilterBlockError] when an output filter rejects the value
         # @raise [Phronomy::CheckpointAlreadyResumedError] when the checkpoint has already been consumed
         # @api private
         def resume(checkpoint, approved:, config: {})

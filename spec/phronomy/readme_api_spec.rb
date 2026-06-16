@@ -111,18 +111,19 @@ RSpec.describe "README API smoke tests (Issue #141)" do
     end
   end
 
-  describe "Guardrail DSL" do
-    it "supports InputGuardrail with fail! as shown in README" do
-      guardrail_class = Class.new(Phronomy::Guardrail::InputGuardrail) do
-        def check(input)
-          fail!("Credit card numbers are not allowed") if input.match?(/\d{4}-\d{4}-\d{4}-\d{4}/)
+  describe "Filter DSL" do
+    it "supports Filter::Base with block! as shown in README" do
+      filter_class = Class.new(Phronomy::Filter::Base) do
+        def call(input, **_ctx)
+          block!("Credit card numbers are not allowed") if input.match?(/\d{4}-\d{4}-\d{4}-\d{4}/)
+          input
         end
       end
 
-      guardrail = guardrail_class.new
-      expect { guardrail.check("Hello, how are you?") }.not_to raise_error
-      expect { guardrail.check("My card is 1234-5678-9012-3456") }
-        .to raise_error(Phronomy::GuardrailError, /Credit card/)
+      filter = filter_class.new
+      expect { filter.call("Hello, how are you?") }.not_to raise_error
+      expect { filter.call("My card is 1234-5678-9012-3456") }
+        .to raise_error(Phronomy::FilterBlockError, /Credit card/)
     end
   end
 

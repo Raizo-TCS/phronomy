@@ -83,22 +83,22 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
 
   # ---------------------------------------------------------------------------
   # TC-003: Base + with_block + blocking_input guardrail
-  #         Expect: :error event emitted, then GuardrailError raised
+  #         Expect: :error event emitted, then FilterBlockError raised
   # ---------------------------------------------------------------------------
   describe "TC-003: Base + with_block + blocking_input guardrail — :error event then raises" do
-    it "emits an :error event before raising GuardrailError" do
+    it "emits an :error event before raising FilterBlockError" do
       klass = build_streaming_agent(klass_label: "base")
       agent = klass.new
-      agent.add_input_filter(IntegrationFactors::BlockingInputGuardrail.new)
+      agent.add_input_filter(IntegrationFactors::BlockingInputFilter.new)
 
       events = []
       expect {
         agent.stream("hello") { |e| events << e }
-      }.to raise_error(Phronomy::GuardrailError)
+      }.to raise_error(Phronomy::FilterBlockError)
 
       expect(events.map(&:type)).to include(:error)
       error_event = events.find { |e| e.type == :error }
-      expect(error_event.payload[:error]).to be_a(Phronomy::GuardrailError)
+      expect(error_event.payload[:error]).to be_a(Phronomy::FilterBlockError)
     end
   end
 
@@ -114,7 +114,7 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
         instructions: "You are a calculator assistant. Use the calculator tool to answer math questions."
       )
       agent = klass.new
-      agent.add_input_filter(IntegrationFactors::PassingInputGuardrail.new)
+      agent.add_input_filter(IntegrationFactors::PassingInputFilter.new)
 
       events = []
       result = agent.stream("What is 9 + 6?") { |e| events << e }
@@ -139,18 +139,18 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
 
   # ---------------------------------------------------------------------------
   # TC-008: Base + with_block + blocking_input
-  #         Expect: :error event + GuardrailError
+  #         Expect: :error event + FilterBlockError
   # ---------------------------------------------------------------------------
   describe "TC-008: Base + with_block + blocking_input — :error event then raises" do
-    it "emits :error event and raises GuardrailError" do
+    it "emits :error event and raises FilterBlockError" do
       klass = build_streaming_agent(klass_label: "base")
       agent = klass.new
-      agent.add_input_filter(IntegrationFactors::BlockingInputGuardrail.new)
+      agent.add_input_filter(IntegrationFactors::BlockingInputFilter.new)
 
       events = []
       expect {
         agent.stream("hello") { |e| events << e }
-      }.to raise_error(Phronomy::GuardrailError)
+      }.to raise_error(Phronomy::FilterBlockError)
 
       expect(events.map(&:type)).to include(:error)
     end
@@ -179,7 +179,7 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
     it "returns a Hash (invoke fallback)" do
       klass = build_streaming_agent(klass_label: "base")
       agent = klass.new
-      agent.add_input_filter(IntegrationFactors::PassingInputGuardrail.new)
+      agent.add_input_filter(IntegrationFactors::PassingInputFilter.new)
       result = agent.stream("Say the word yes.")
       expect(result[:output]).not_to be_empty
     end
@@ -187,7 +187,7 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
 
   # ---------------------------------------------------------------------------
   # TC-012: Base + with_block + blocking_input + hash_alias tool
-  #         Expect: :error event + GuardrailError (tool irrelevant — blocked before LLM)
+  #         Expect: :error event + FilterBlockError (tool irrelevant — blocked before LLM)
   # ---------------------------------------------------------------------------
   describe "TC-012: Base + with_block + blocking_input + hash_alias tool — :error event" do
     it "emits :error before LLM is called regardless of tool config" do
@@ -196,12 +196,12 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
         tools: {IntegrationFactors::CalculatorTool => "calc"}
       )
       agent = klass.new
-      agent.add_input_filter(IntegrationFactors::BlockingInputGuardrail.new)
+      agent.add_input_filter(IntegrationFactors::BlockingInputFilter.new)
 
       events = []
       expect {
         agent.stream("hello") { |e| events << e }
-      }.to raise_error(Phronomy::GuardrailError)
+      }.to raise_error(Phronomy::FilterBlockError)
 
       expect(events.map(&:type)).to include(:error)
     end
@@ -218,7 +218,7 @@ RSpec.describe "Group 9: Agent Token-Level Streaming", :integration do
         tools: {IntegrationFactors::CalculatorTool => nil}
       )
       agent = klass.new
-      agent.add_input_filter(IntegrationFactors::PassingInputGuardrail.new)
+      agent.add_input_filter(IntegrationFactors::PassingInputFilter.new)
 
       events = []
       agent.stream("Say the word yes.") { |e| events << e }

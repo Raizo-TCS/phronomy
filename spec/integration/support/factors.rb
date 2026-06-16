@@ -82,30 +82,28 @@ module IntegrationFactors
   end
 
   # ---------------------------------------------------------------------------
-  # Fixture Guardrail classes
+  # Fixture blocking filter classes
   # ---------------------------------------------------------------------------
 
-  class PassingInputGuardrail < Phronomy::Guardrail::InputGuardrail
+  class PassingInputFilter < Phronomy::Filter::Base
     # no-op: always passes
-    def check(_input)
+    def call(value, **_ctx) = value
+  end
+
+  class BlockingInputFilter < Phronomy::Filter::Base
+    def call(_value, **_ctx)
+      block!("Blocked: input rejected by BlockingInputFilter")
     end
   end
 
-  class BlockingInputGuardrail < Phronomy::Guardrail::InputGuardrail
-    def check(_input)
-      fail!("Blocked: input rejected by BlockingInputGuardrail")
-    end
-  end
-
-  class PassingOutputGuardrail < Phronomy::Guardrail::OutputGuardrail
+  class PassingOutputFilter < Phronomy::Filter::Base
     # no-op: always passes
-    def check(_output)
-    end
+    def call(value, **_ctx) = value
   end
 
-  class BlockingOutputGuardrail < Phronomy::Guardrail::OutputGuardrail
-    def check(_output)
-      fail!("Blocked: output rejected by BlockingOutputGuardrail")
+  class BlockingOutputFilter < Phronomy::Filter::Base
+    def call(_value, **_ctx)
+      block!("Blocked: output rejected by BlockingOutputFilter")
     end
   end
 
@@ -222,35 +220,36 @@ module IntegrationFactors
   end
 
   # ---------------------------------------------------------------------------
-  # Factor: agent_guardrails
+  # Factor: agent_guardrails (now: agent_filters)
   #
   # @param label [String] "none" | "input_only" | "output_only" | "both" |
   #                       "blocking_input" | "blocking_output"
-  # @return [Array<Phronomy::Guardrail::Base>]
+  # @return [Array<Phronomy::Filter::Base>]
   # ---------------------------------------------------------------------------
   def self.guardrails(label)
     case label
     when "none" then []
-    when "input_only" then [PassingInputGuardrail.new]
-    when "output_only" then [PassingOutputGuardrail.new]
-    when "both" then [PassingInputGuardrail.new, PassingOutputGuardrail.new]
-    when "blocking_input" then [BlockingInputGuardrail.new]
-    when "blocking_output" then [BlockingOutputGuardrail.new]
+    when "input_only" then [PassingInputFilter.new]
+    when "output_only" then [PassingOutputFilter.new]
+    when "both" then [PassingInputFilter.new, PassingOutputFilter.new]
+    when "blocking_input" then [BlockingInputFilter.new]
+    when "blocking_output" then [BlockingOutputFilter.new]
     else raise ArgumentError, "Unknown agent_guardrails label: #{label}"
     end
   end
 
   # ---------------------------------------------------------------------------
-  # Helper: attach a list of guardrail instances to an agent
+  # Helper: attach a list of filter instances to an agent
   #
   # @param agent [Phronomy::Agent::Base] agent instance
-  # @param list  [Array<Phronomy::Guardrail::Base>] guardrails to attach
+  # @param list  [Array<Phronomy::Filter::Base>] filters to attach
   # ---------------------------------------------------------------------------
   def self.apply_guardrails(agent, list)
     list.each do |g|
-      case g
-      when Phronomy::Guardrail::InputGuardrail then agent.add_input_filter(g)
-      when Phronomy::Guardrail::OutputGuardrail then agent.add_output_filter(g)
+      if g.is_a?(PassingInputFilter) || g.is_a?(BlockingInputFilter)
+        agent.add_input_filter(g)
+      else
+        agent.add_output_filter(g)
       end
     end
   end
@@ -585,7 +584,7 @@ module IntegrationFactors
     case label
     when "tool_error" then Phronomy::ToolError
     when "runtime_error" then RuntimeError
-    when "guardrail_error" then Phronomy::GuardrailError
+    when "guardrail_error" then Phronomy::FilterBlockError
     else raise ArgumentError, "Unknown retry_exception_class label: #{label}"
     end
   end

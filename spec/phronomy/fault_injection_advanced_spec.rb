@@ -81,16 +81,16 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   # -------------------------------------------------------------------------
   describe "Output guardrail raises during streaming" do
     let(:exploding_guardrail) do
-      Class.new(Phronomy::Guardrail::OutputGuardrail) do
-        def check(_output)
+      Class.new(Phronomy::Filter::Base) do
+        def call(_output, **_ctx)
           raise "guardrail exploded during streaming"
         end
       end.new
     end
 
     it "propagates the guardrail exception unchanged" do
-      # run! calls check internally; an unhandled exception propagates to caller.
-      expect { exploding_guardrail.run!("partial stream output") }
+      # call raises an unhandled exception that propagates to caller.
+      expect { exploding_guardrail.call("partial stream output") }
         .to raise_error(RuntimeError, "guardrail exploded during streaming")
     end
   end
@@ -122,7 +122,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   # 9. Output guardrail rejection + tool retry_on interaction
   # -------------------------------------------------------------------------
   describe "Output guardrail rejection + tool retry_on interaction" do
-    # GuardrailError is not a ToolError subclass, so retry_on ToolError does
+    # FilterBlockError is not a ToolError subclass, so retry_on ToolError does
     # NOT catch guardrail rejections — the exception propagates after the
     # inner ToolError retry is exhausted or bypassed.
     let(:always_fail_tool) do
@@ -137,9 +137,10 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     end
 
     let(:always_reject_guardrail) do
-      Class.new(Phronomy::Guardrail::OutputGuardrail) do
-        def check(output)
-          fail!("rejected: #{output}")
+      Class.new(Phronomy::Filter::Base) do
+        def call(output, **_ctx)
+          block!("rejected: #{output}")
+          output
         end
       end.new
     end
@@ -148,10 +149,10 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
       expect { always_fail_tool.call({}) }.to raise_error(Phronomy::ToolError, "tool always fails")
     end
 
-    it "guardrail raises GuardrailError regardless of any tool retry policy" do
-      # GuardrailError is orthogonal to ToolError retry — they do not interact.
-      expect { always_reject_guardrail.run!("some output") }
-        .to raise_error(Phronomy::GuardrailError, /rejected/)
+    it "guardrail raises FilterBlockError regardless of any tool retry policy" do
+      # FilterBlockError is orthogonal to ToolError retry — they do not interact.
+      expect { always_reject_guardrail.call("some output") }
+        .to raise_error(Phronomy::FilterBlockError, /rejected/)
     end
   end
 
