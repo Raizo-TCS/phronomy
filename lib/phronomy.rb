@@ -11,6 +11,8 @@ loader.inflector.inflect("ruby_llm_embeddings" => "RubyLLMEmbeddings")
 # RAG: Zeitwerk would infer "Rag" — override to "RAG".
 loader.inflector.inflect("rag" => "RAG")
 # FSMSession: Zeitwerk would infer "FsmSession" — override to "FSMSession".
+# Phronomy::FSMSession is the top-level cooperative execution engine shared by
+# WorkflowRunner and Agent::InvocationSession.
 loader.inflector.inflect("fsm_session" => "FSMSession")
 # LLMAdapter: Zeitwerk would infer "LlmAdapter" — override to "LLMAdapter".
 loader.inflector.inflect("llm_adapter" => "LLMAdapter")

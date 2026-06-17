@@ -204,7 +204,7 @@ module Phronomy
     #
     # The primary use-case is transforming an agent result into a
     # {WorkflowContext} so that a Workflow entry action can return a Task
-    # whose value is picked up by {Workflow::FSMSession} via the existing
+    # whose value is picked up by {FSMSession} via the existing
     # +:action_completed+ path:
     #
     # @example Returning agent output into a Workflow state field

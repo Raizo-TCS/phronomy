@@ -129,7 +129,7 @@ module Phronomy
     # (WorkflowContext) once the workflow finishes or halts. If an error occurred,
     # the popped value will be an Exception — callers are responsible for re-raising it.
     #
-    # @param fsm_session [Phronomy::Workflow::FSMSession]
+    # @param fsm_session [Phronomy::FSMSession]
     # @return [Phronomy::Concurrency::AsyncQueue] resolves to final/halted context, or an Exception
     # @api private
     def register(fsm_session)
