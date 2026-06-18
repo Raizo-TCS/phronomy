@@ -98,15 +98,15 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
       state :nested
       state :after
       entry :before, ->(s) {
-        s.value = "init"
-        s.step = 0
+        s.merge(value: "init", step: 0)
       }
       entry :nested, ->(s) {
-        result = sub.invoke({value: s.value, step: s.step})
-        s.value = result.value
-        s.step = result.step
+        Phronomy::Task.spawn {
+          result = sub.invoke({value: s.value, step: s.step})
+          s.merge(value: result.value, step: result.step)
+        }
       }
-      entry :after, ->(s) { s.value = "#{s.value}_after" }
+      entry :after, ->(s) { s.merge(value: "#{s.value}_after") }
       transition from: :before, to: :nested
       transition from: :nested, to: :after
       transition from: :after, to: :__finish__
@@ -125,8 +125,12 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
       initial :nested
       state :nested
       entry :nested, ->(s) {
-        result = sub.invoke({value: "high_input", step: 0})
-        s.value = result.value
+        # Sub-workflow calls from EventLoop entry actions must use Task.spawn
+        # so the EventLoop thread is not blocked awaiting sub-session completion.
+        Phronomy::Task.spawn {
+          result = sub.invoke({value: "high_input", step: 0})
+          s.merge(value: result.value)
+        }
       }
       transition from: :nested, to: :__finish__
     end

@@ -264,7 +264,6 @@ RSpec.describe "Lifecycle invariants" do
     end
 
     it "stops the background task cleanly when no sessions are active" do
-      Phronomy.configure { |c| c.event_loop = true }
       el = Phronomy::EventLoop.instance
       task = el.instance_variable_get(:@task)
       expect(task).to be_alive
@@ -276,7 +275,6 @@ RSpec.describe "Lifecycle invariants" do
     end
 
     it "unblocks a waiting caller with an Exception when the loop crashes" do
-      Phronomy.configure { |c| c.event_loop = true }
       el = Phronomy::EventLoop.instance
 
       # Register a fake session that never posts a completion event —
@@ -326,7 +324,6 @@ RSpec.describe "Lifecycle invariants" do
     it "@fsm_count returns to zero after a completed session" do
       # Verifies that @fsm_count decrements back to 0 after a session
       # completes and posts :finished to the EventLoop.
-      Phronomy.configure { |c| c.event_loop = true }
       el = Phronomy::EventLoop.instance
 
       session = FakeSlowSession.new(id: "count-cleanup-test", duration: 0.05)
@@ -341,7 +338,6 @@ RSpec.describe "Lifecycle invariants" do
       # Verifies that EventLoop.reset! fully tears down the background task and
       # clears @instance, so a subsequent EventLoop.instance starts cleanly with
       # no residual state from the previous run.
-      Phronomy.configure { |c| c.event_loop = true }
       first = Phronomy::EventLoop.instance
       first_task = first.instance_variable_get(:@task)
       expect(first_task).to be_alive
@@ -360,7 +356,6 @@ RSpec.describe "Lifecycle invariants" do
     it "EventLoop#stop(drain: true) waits for in-flight sessions before the loop thread exits" do
       # Verifies that stop(drain: true) blocks until @fsm_count reaches 0,
       # meaning all queued sessions have completed before the loop shuts down.
-      Phronomy.configure { |c| c.event_loop = true }
       el = Phronomy::EventLoop.instance
 
       started_q = Thread::Queue.new
@@ -419,7 +414,6 @@ RSpec.describe "Lifecycle invariants" do
       # Verifies that stop (regardless of :clean or :force_killed outcome) always
       # sets @task to nil and leaves the background task no longer alive,
       # even when a session IO thread is still running at shutdown time.
-      Phronomy.configure { |c| c.event_loop = true }
       el = Phronomy::EventLoop.instance
       loop_task = el.instance_variable_get(:@task)
       expect(loop_task).to be_alive
@@ -451,7 +445,6 @@ RSpec.describe "Lifecycle invariants" do
     it "a subsequent EventLoop.instance starts with a fresh task after force_kill" do
       # Verifies that EventLoop.reset! followed by .instance creates a new,
       # alive task — no residual contamination from the killed instance.
-      Phronomy.configure { |c| c.event_loop = true }
       el_first = Phronomy::EventLoop.instance
       first_task = el_first.instance_variable_get(:@task)
 

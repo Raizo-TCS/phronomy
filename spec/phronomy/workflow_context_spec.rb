@@ -373,24 +373,15 @@ RSpec.describe Phronomy::WorkflowContext, "single-owner enforcement (Issue #298)
     end
   end
 
-  context "when EventLoop mode is disabled (event_loop = false)" do
-    it "allows field mutation from any thread" do
-      ctx = context_class.new
-      # Must not raise regardless of which thread calls the setter.
-      t = Thread.new { ctx.answer = "from thread" }
-      t.join
-      expect(ctx.answer).to eq("from thread")
-    end
-  end
-
-  context "when EventLoop mode is enabled (event_loop = true)" do
+  context "WorkflowContext ownership enforcement (EventLoop always active)" do
     around do |example|
-      Phronomy.configure { |c| c.event_loop = true }
+      # EventLoop is always active; just ensure it is started before and cleaned
+      # up after (spec_helper also calls reset_runtime! after each example, but
+      # explicit start/reset here makes the intent clear for this context).
       Phronomy::EventLoop.instance.start
       example.run
     ensure
-      Phronomy::EventLoop.instance.stop
-      Phronomy.configure { |c| c.event_loop = false }
+      Phronomy::EventLoop.reset!
     end
 
     it "raises WorkflowContextOwnershipError when mutated from a non-EventLoop thread" do

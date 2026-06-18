@@ -12,17 +12,19 @@ RSpec.describe "Awaitable Workflow actions (#264)" do
     end
   end
 
+  after { Phronomy::EventLoop.reset! }
+
   # -------------------------------------------------------------------------
-  # A. Non-EventLoop mode — Task returned from entry action is awaited inline
+  # A. Entry action returning a Task is awaited via EventLoop (always active)
   # -------------------------------------------------------------------------
-  describe "non-EventLoop mode: entry action returning a Task" do
+  describe "entry action returning a Task" do
     it "awaits the task and propagates the returned WorkflowContext" do
       app = Phronomy::Workflow.define(context_class) do
         initial :compute
 
         state :compute, action: ->(state) {
           Phronomy::Task.spawn do
-            sleep 0.01  # simulate async work
+            sleep 0.01
             state.merge(step_value: "async_result")
           end
         }
@@ -34,45 +36,13 @@ RSpec.describe "Awaitable Workflow actions (#264)" do
       expect(result.step_value).to eq("async_result")
     end
 
-    it "awaits the task when task does NOT return a WorkflowContext" do
-      app = Phronomy::Workflow.define(context_class) do
-        initial :simple
-
-        state :simple, action: ->(state) {
-          Phronomy::Task.spawn { 42 }
-        }
-
-        transition from: :simple, to: :__finish__
-      end
-
-      # Should not raise; context unchanged
-      result, = app.invoke({}, config: {thread_id: SecureRandom.uuid})
-      expect(result.step_value).to be_nil
-    end
-  end
-
-  # -------------------------------------------------------------------------
-  # B. EventLoop mode — entry action returning a Task does not block EventLoop
-  # -------------------------------------------------------------------------
-  describe "EventLoop mode: entry action returning a Task" do
-    before do
-      Phronomy.configure { |c| c.event_loop = true }
-    end
-
-    after do
-      Phronomy::EventLoop.reset!
-      Phronomy.configure { |c| c.event_loop = false }
-    end
-
-    it "awaits the task without blocking the EventLoop thread" do
-      Thread.current
-
+    it "does not block the EventLoop thread while awaiting the Task" do
       app = Phronomy::Workflow.define(context_class) do
         initial :fetch
 
         state :fetch, action: ->(state) {
           Phronomy::Task.spawn do
-            sleep 0.02  # simulate slow IO
+            sleep 0.02
             state.merge(step_value: "fetched")
           end
         }
@@ -120,13 +90,28 @@ RSpec.describe "Awaitable Workflow actions (#264)" do
       expect(result.step_value).to eq("a")
       expect(result.results).to include("b")
     end
+
+    it "awaits the task when task does NOT return a WorkflowContext" do
+      app = Phronomy::Workflow.define(context_class) do
+        initial :simple
+
+        state :simple, action: ->(state) {
+          Phronomy::Task.spawn { 42 }
+        }
+
+        transition from: :simple, to: :__finish__
+      end
+
+      result, = app.invoke({}, config: {thread_id: SecureRandom.uuid})
+      expect(result.step_value).to be_nil
+    end
   end
 
   # -------------------------------------------------------------------------
-  # C. action_timeout: — per-state timeout on Task-returning entry actions
+  # B. action_timeout: — per-state timeout on Task-returning entry actions
   # -------------------------------------------------------------------------
   describe "action_timeout: raises ActionTimeoutError when the Task exceeds the limit" do
-    it "raises ActionTimeoutError in non-EventLoop mode when task is too slow" do
+    it "raises ActionTimeoutError when task is too slow" do
       app = Phronomy::Workflow.define(context_class) do
         initial :slow_step
 
@@ -158,33 +143,6 @@ RSpec.describe "Awaitable Workflow actions (#264)" do
 
       result, = app.invoke({}, config: {thread_id: SecureRandom.uuid})
       expect(result.step_value).to eq("done")
-    end
-
-    context "in EventLoop mode" do
-      before { Phronomy.configure { |c| c.event_loop = true } }
-      after do
-        Phronomy::EventLoop.reset!
-        Phronomy.configure { |c| c.event_loop = false }
-      end
-
-      it "raises ActionTimeoutError when task exceeds action_timeout" do
-        app = Phronomy::Workflow.define(context_class) do
-          initial :slow_step
-
-          state :slow_step, action: ->(state) {
-            Phronomy::Task.spawn {
-              sleep 10
-              state.merge(step_value: "never")
-            }
-          }, action_timeout: 0.05
-
-          transition from: :slow_step, to: :__finish__
-        end
-
-        expect {
-          app.invoke({}, config: {thread_id: SecureRandom.uuid})
-        }.to raise_error(Phronomy::ActionTimeoutError, /slow_step.*timed out/i)
-      end
     end
   end
 end

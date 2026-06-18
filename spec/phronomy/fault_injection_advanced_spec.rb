@@ -199,7 +199,6 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     end
 
     it "pushes CancellationError to the completion_queue when the shutdown token is active" do
-      Phronomy.configure { |c| c.event_loop = true }
       el = Phronomy::EventLoop.instance
       # Simulate shutdown state without stopping the thread (token only).
       el.instance_variable_get(:@shutdown_token).cancel!

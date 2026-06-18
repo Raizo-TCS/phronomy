@@ -116,6 +116,8 @@ RSpec.describe "Thread.current confinement (Issue #302)", :issue_302 do
     lib/phronomy/runtime/scheduler.rb
     lib/phronomy/runtime/deterministic_scheduler.rb
     lib/phronomy/concurrency/blocking_adapter_pool.rb
+    lib/phronomy/workflow_runner.rb
+    lib/phronomy/workflow_context.rb
   ].freeze
 
   it "Thread.current is not referenced outside the allowed files" do

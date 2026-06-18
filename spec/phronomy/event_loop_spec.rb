@@ -121,7 +121,6 @@ RSpec.describe Phronomy::EventLoop do
 
   describe "linear workflow (no wait states)" do
     it "drives the workflow to completion and returns the final context" do
-      Phronomy.configure { |c| c.event_loop = true }
       app = build_linear_app(ctx_class)
       result = app.invoke({value: 0})
 
@@ -130,7 +129,6 @@ RSpec.describe Phronomy::EventLoop do
     end
 
     it "is isolated per thread_id (multiple sequential invocations)" do
-      Phronomy.configure { |c| c.event_loop = true }
       app = build_linear_app(ctx_class)
 
       r1 = app.invoke({value: 10})
@@ -143,7 +141,6 @@ RSpec.describe Phronomy::EventLoop do
 
   describe "workflow with wait state (halt and resume)" do
     it "halts at the wait state and returns a halted context" do
-      Phronomy.configure { |c| c.event_loop = true }
       app = build_approval_app(str_ctx_class)
       halted = app.invoke({value: "start"})
 
@@ -152,7 +149,6 @@ RSpec.describe Phronomy::EventLoop do
     end
 
     it "resumes after send_event and reaches :__end__" do
-      Phronomy.configure { |c| c.event_loop = true }
       app = build_approval_app(str_ctx_class)
       halted = app.invoke({value: "start"})
       final = app.send_event(state: halted, event: :approve)
@@ -177,12 +173,10 @@ RSpec.describe Phronomy::EventLoop do
     end
 
     it "re-raises the exception in the calling thread" do
-      Phronomy.configure { |c| c.event_loop = true }
       expect { boom_app.invoke({value: 0}) }.to raise_error(RuntimeError, "deliberate error")
     end
 
     it "leaves the EventLoop running after a single workflow error" do
-      Phronomy.configure { |c| c.event_loop = true }
       begin
         boom_app.invoke({value: 0})
       rescue RuntimeError
@@ -202,7 +196,6 @@ RSpec.describe Phronomy::EventLoop do
 
   describe "unknown target_id warning" do
     it "emits a warn message when an event has no registered handler" do
-      Phronomy.configure { |c| c.event_loop = true }
       loop_instance = Phronomy::EventLoop.instance
       unknown_event = Phronomy::Event.new(type: :custom, target_id: "nonexistent-id", payload: {})
       warning_output = nil
@@ -222,7 +215,6 @@ RSpec.describe Phronomy::EventLoop do
 
   describe "cooperative stop (issue #135)" do
     it "stops without force-killing the thread when no events are in-flight" do
-      Phronomy.configure { |c| c.event_loop = true }
       loop_instance = Phronomy::EventLoop.instance
       # Ensure the loop is running.
       expect(loop_instance.instance_variable_get(:@task)).not_to be_nil
@@ -233,7 +225,6 @@ RSpec.describe Phronomy::EventLoop do
     end
 
     it "accepts the timeout keyword argument" do
-      Phronomy.configure { |c| c.event_loop = true }
       loop_instance = Phronomy::EventLoop.instance
       expect { loop_instance.stop(timeout: 1) }.not_to raise_error
     end
@@ -241,13 +232,11 @@ RSpec.describe Phronomy::EventLoop do
 
   describe "force_kill: option (Issue #235)" do
     it "returns :clean when the loop stops cooperatively regardless of force_kill:" do
-      Phronomy.configure { |c| c.event_loop = true }
       loop_instance = Phronomy::EventLoop.instance
       expect(loop_instance.stop(timeout: 2, force_kill: false)).to eq(:clean)
     end
 
     it "returns :clean with force_kill: true when the loop stops cooperatively" do
-      Phronomy.configure { |c| c.event_loop = true }
       loop_instance = Phronomy::EventLoop.instance
       expect(loop_instance.stop(timeout: 2, force_kill: true)).to eq(:clean)
     end

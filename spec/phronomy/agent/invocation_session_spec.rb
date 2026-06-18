@@ -11,17 +11,17 @@ RSpec.describe Phronomy::Agent::InvocationSession do
   describe ".build" do
     it "returns a Phronomy::FSMSession" do
       session = described_class.build(
-        agent:    agent,
-        input:    "hello",
+        agent: agent,
+        input: "hello",
         messages: [],
-        config:   { thread_id: "t-1" }
+        config: {thread_id: "t-1"}
       )
       expect(session).to be_a(Phronomy::FSMSession)
     end
 
     it "uses thread_id from config as session id" do
       session = described_class.build(
-        agent: agent, input: "hi", messages: [], config: { thread_id: "my-id" }
+        agent: agent, input: "hi", messages: [], config: {thread_id: "my-id"}
       )
       expect(session.id).to eq("my-id")
     end

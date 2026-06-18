@@ -366,9 +366,7 @@ module Phronomy
       @task_registry.drain
       # Drain EventLoop events before stopping pools so that in-flight
       # Workflow / Agent FSM sessions can complete their final LLM calls.
-      if Phronomy.configuration.event_loop
-        Phronomy::EventLoop.instance.stop(drain: true)
-      end
+      Phronomy::EventLoop.instance.stop(drain: true)
       @pool_registry.shutdown
       @timer_service.shutdown
     end

@@ -78,7 +78,7 @@ RSpec.describe Phronomy::FSMSession do
       Phronomy::Workflow.define(ctx_class) do
         initial :step
         state :step
-        entry :step, ->(s) { s.value = s.value + 1 }
+        entry :step, ->(s) { s.merge(value: s.value + 1) }
         transition from: :step, to: :__finish__
       end
     end
@@ -126,7 +126,7 @@ RSpec.describe Phronomy::FSMSession do
         initial :prepare
         state :prepare
         wait_state :awaiting
-        entry :prepare, ->(s) { s.value = s.value + 1 }
+        entry :prepare, ->(s) { s.merge(value: s.value + 1) }
         transition from: :prepare, to: :awaiting
         transition from: :awaiting, on: :approve, to: :__finish__
       end
@@ -165,8 +165,8 @@ RSpec.describe Phronomy::FSMSession do
         state :prepare
         wait_state :awaiting
         state :confirm
-        entry :prepare, ->(s) { s.value = s.value + 10 }
-        entry :confirm, ->(s) { s.value = s.value + 100 }
+        entry :prepare, ->(s) { s.merge(value: s.value + 10) }
+        entry :confirm, ->(s) { s.merge(value: s.value + 100) }
         transition from: :prepare, to: :awaiting
         transition from: :awaiting, on: :approve, to: :confirm
         transition from: :confirm, to: :__finish__

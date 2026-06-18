@@ -122,6 +122,10 @@ module Phronomy
         return
       end
 
+      # When :state_completed arrives from an async Task (non-WorkflowContext result),
+      # async_pending may still be true from the spawn. Clear it before advancing.
+      @tracker.async_pending = false if event.type == :state_completed && @tracker.async_pending
+
       fire_and_advance!(event.type)
     rescue => e
       finish_with_error(e)

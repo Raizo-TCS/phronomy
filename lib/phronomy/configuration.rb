@@ -28,11 +28,6 @@ module Phronomy
     # Recursion limit for graph execution (default: 25)
     attr_accessor :recursion_limit
 
-    # When true, workflow execution is driven by EventLoop instead of a
-    # synchronous loop in the calling thread. Defaults to false (sync mode).
-    # @see Phronomy::EventLoop
-    attr_accessor :event_loop
-
     # When true, agent LLM calls use {Phronomy::MultiAgent::ParallelToolChat}
     # for concurrent tool dispatch within a single agent turn.
     # Defaults to false.
@@ -197,7 +192,6 @@ module Phronomy
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new
       @trace_pii = false
-      @event_loop = false
       @parallel_tool_execution = false
       @event_loop_stop_grace_seconds = 5
       @llm_adapter = Phronomy::LLMAdapter::RubyLLM.new

@@ -66,7 +66,6 @@ RSpec.describe "Cooperative scheduler fairness (Issue #269)" do
       allow(logger).to receive(:warn)
 
       Phronomy.configure do |c|
-        c.event_loop = true
         c.event_loop_starvation_threshold_seconds = 0 # fire on every event
         c.logger = logger
       end
@@ -89,7 +88,6 @@ RSpec.describe "Cooperative scheduler fairness (Issue #269)" do
     ensure
       Phronomy::EventLoop.reset!
       Phronomy.configure do |c|
-        c.event_loop = false
         c.event_loop_starvation_threshold_seconds = nil
         c.logger = nil
       end

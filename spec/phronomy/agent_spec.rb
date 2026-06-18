@@ -430,12 +430,10 @@ RSpec.describe "Phronomy::Agent::Base invoke_timeout DSL (Issue #116)" do
 
   describe "#invoke in EventLoop mode" do
     around do |example|
-      Phronomy.configure { |c| c.event_loop = true }
       Phronomy::EventLoop.instance.start
       example.run
     ensure
       Phronomy::EventLoop.instance.stop
-      Phronomy.configure { |c| c.event_loop = false }
     end
 
     it "raises Phronomy::TimeoutError when the agent does not finish in time" do

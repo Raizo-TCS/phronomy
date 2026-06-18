@@ -28,8 +28,8 @@ RSpec.describe Phronomy::Configuration do
       expect(config.trace_pii).to be false
     end
 
-    it "defaults event_loop to false" do
-      expect(config.event_loop).to be false
+    it "EventLoop is always active (no event_loop toggle)" do
+      expect(config).not_to respond_to(:event_loop)
     end
   end
 

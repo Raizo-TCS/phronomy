@@ -181,7 +181,6 @@ RSpec.describe "Fault injection (Issue #213)" do
   # -------------------------------------------------------------------------
   describe "EventLoop unknown target_id fault tolerance" do
     before do
-      Phronomy.configure { |c| c.event_loop = true }
     end
 
     it "does not raise when posting an event with an unknown target_id" do

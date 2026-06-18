@@ -5,10 +5,10 @@ require "spec_helper"
 RSpec.describe Phronomy::Agent::InvocationContext do
   subject(:ctx) do
     described_class.new(
-      agent:    double("agent"),
-      input:    "hello",
+      agent: double("agent"),
+      input: "hello",
       messages: [],
-      config:   { thread_id: "t-1" }
+      config: {thread_id: "t-1"}
     )
   end
 

@@ -170,11 +170,7 @@ module Phronomy
       # @api private
       def handle_entry_action_result(machine, result, state_name, timeout_secs)
         if result.is_a?(Phronomy::Task)
-          if Phronomy.configuration.event_loop
-            dispatch_task_in_event_loop(machine, result, state_name, timeout_secs)
-          else
-            await_task_blocking(machine, result, state_name, timeout_secs)
-          end
+          dispatch_task_in_event_loop(machine, result, state_name, timeout_secs)
         elsif result.is_a?(Phronomy::WorkflowContext)
           machine.context = result
         end

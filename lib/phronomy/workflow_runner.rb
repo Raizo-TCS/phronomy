@@ -92,11 +92,7 @@ module Phronomy
 
         state = @state_class.new(**initial_fields)
         state.set_graph_metadata(thread_id: thread_id)
-        result = if Phronomy.configuration.event_loop
-          run_via_event_loop(state, recursion_limit: recursion_limit)
-        else
-          run_workflow(state, recursion_limit: recursion_limit)
-        end
+        result = run_via_event_loop(state, recursion_limit: recursion_limit)
         store&.save(thread_id, {fields: result.to_h, phase: result.phase.to_s}) if config[:thread_id]
         [result, nil]
       end
@@ -142,13 +138,9 @@ module Phronomy
         event
       end
 
-      if Phronomy.configuration.event_loop
-        run_via_event_loop(state,
-          recursion_limit: Phronomy.configuration.recursion_limit,
-          resume_event: ev_to_fire, resume_phase: current_phase)
-      else
-        run_workflow(state, resume_event: ev_to_fire, resume_phase: current_phase)
-      end
+      run_via_event_loop(state,
+        recursion_limit: Phronomy.configuration.recursion_limit,
+        resume_event: ev_to_fire, resume_phase: current_phase)
     end
 
     # Streaming execution. Yields { state: Symbol, context: Object } after each state action completes.
@@ -201,6 +193,19 @@ module Phronomy
     end
 
     def run_workflow(ctx, resume_event: nil, resume_phase: nil, recursion_limit: 25, &event_block)
+      # Mark the current thread as a synchronous execution context.
+      # This allows WorkflowContext field mutations via setters without raising
+      # WorkflowContextOwnershipError (which would otherwise fire since EventLoop
+      # is always active and run_workflow runs on the caller's thread).
+      Thread.current[:phronomy_sync_execution] = Thread.current[:phronomy_sync_execution].to_i + 1
+      _run_workflow_body(ctx, resume_event: resume_event, resume_phase: resume_phase,
+        recursion_limit: recursion_limit, &event_block)
+    ensure
+      depth = Thread.current[:phronomy_sync_execution].to_i - 1
+      Thread.current[:phronomy_sync_execution] = (depth > 0) ? depth : nil
+    end
+
+    def _run_workflow_body(ctx, resume_event: nil, resume_phase: nil, recursion_limit: 25, &event_block)
       if resume_event
         # -- Resume from a wait state -------------------------------------------
         # Fire the external event on a tracker positioned at the wait state.

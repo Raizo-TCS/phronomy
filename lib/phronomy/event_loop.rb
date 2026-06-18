@@ -9,7 +9,7 @@ module Phronomy
   # +BlockingAdapterPool+, then post results back to the loop via
   # {EventLoop#post}.
   #
-  # Activated with: +Phronomy.configure { |c| c.event_loop = true }+
+  # Always active — all Workflow and Agent invocations use the EventLoop.
   #
   # == Threading exception (see ADR-010 Rule 2)
   #

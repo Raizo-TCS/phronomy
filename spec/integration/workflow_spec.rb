@@ -350,8 +350,8 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
 
   # ---------------------------------------------------------------------------
   # TC-merge-EL: EventLoop mode — entry action s.merge(...) return value adoption
-  # (Issue #111) Verifies that the FSMSession path (event_loop=true) adopts
-  # WorkflowContext returned by entry actions, matching synchronous runner semantics.
+  # (Issue #111) Verifies that the FSMSession path adopts
+  # WorkflowContext returned by entry actions.
   # ---------------------------------------------------------------------------
 
   describe "TC-merge-EL: entry action s.merge(...) in EventLoop mode (Issue #111)" do
@@ -362,8 +362,6 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
 
     # TC-merge-EL-01: fresh-start entry action returns s.merge(...) — EventLoop path
     it "TC-merge-EL-01: fresh-start entry action returning s.merge(...) is adopted in EventLoop mode" do
-      Phronomy.configure { |c| c.event_loop = true }
-
       app = Phronomy::Workflow.define(WorkflowTestContext) do
         initial :step
         state :step
@@ -379,8 +377,6 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
 
     # TC-merge-EL-03: post-resume entry action returns s.merge(...) after send_event — EventLoop path
     it "TC-merge-EL-03: post-resume entry action returning s.merge(...) is adopted after send_event in EventLoop mode" do
-      Phronomy.configure { |c| c.event_loop = true }
-
       app = Phronomy::Workflow.define(WorkflowTestContext) do
         initial :prepare
         state :prepare
