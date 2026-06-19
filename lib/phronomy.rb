@@ -18,6 +18,11 @@ loader.inflector.inflect("fsm_session" => "FSMSession")
 loader.inflector.inflect("llm_adapter" => "LLMAdapter")
 # LLMAdapter::RubyLLM: "ruby_llm" maps to "RubyLLM" (not "RubyLlm").
 loader.inflector.inflect("ruby_llm" => "RubyLLM")
+# Collapse engine/ so that its contents autoload directly under Phronomy::
+# (no Engine:: prefix).  e.g. engine/event_loop.rb => Phronomy::EventLoop.
+# This allows the execution engine to be organised in its own subdirectory
+# without changing any class names or callers.
+loader.collapse("#{__dir__}/phronomy/engine")
 loader.setup
 
 require_relative "phronomy/version"

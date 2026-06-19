@@ -108,14 +108,14 @@ end
 RSpec.describe "Thread.current confinement (Issue #302)", :issue_302 do
   # Files permitted to reference Thread.current directly.
   THREAD_CURRENT_ALLOWLIST = %w[
-    lib/phronomy/event_loop.rb
-    lib/phronomy/task.rb
-    lib/phronomy/task/thread_backend.rb
-    lib/phronomy/task/immediate_backend.rb
-    lib/phronomy/task/fiber_backend.rb
-    lib/phronomy/runtime/scheduler.rb
-    lib/phronomy/runtime/deterministic_scheduler.rb
-    lib/phronomy/concurrency/blocking_adapter_pool.rb
+    lib/phronomy/engine/event_loop.rb
+    lib/phronomy/engine/task.rb
+    lib/phronomy/engine/task/thread_backend.rb
+    lib/phronomy/engine/task/immediate_backend.rb
+    lib/phronomy/engine/task/fiber_backend.rb
+    lib/phronomy/engine/runtime/scheduler.rb
+    lib/phronomy/engine/runtime/deterministic_scheduler.rb
+    lib/phronomy/engine/concurrency/blocking_adapter_pool.rb
     lib/phronomy/workflow_runner.rb
     lib/phronomy/workflow_context.rb
   ].freeze
@@ -156,10 +156,10 @@ RSpec.describe "Thread.new confinement (Issue #286)", :issue_286 do
   # the pool is used instead and Thread.new is never called. Full migration of
   # this fallback path is tracked in Issue #360 (pending MCP transport PR).
   THREAD_NEW_ALLOWLIST = %w[
-    lib/phronomy/concurrency/blocking_adapter_pool.rb
-    lib/phronomy/task/thread_backend.rb
-    lib/phronomy/runtime/timer_queue.rb
-    lib/phronomy/event_loop.rb
+    lib/phronomy/engine/concurrency/blocking_adapter_pool.rb
+    lib/phronomy/engine/task/thread_backend.rb
+    lib/phronomy/engine/runtime/timer_queue.rb
+    lib/phronomy/engine/event_loop.rb
     lib/phronomy/tools/mcp.rb
   ].freeze
 

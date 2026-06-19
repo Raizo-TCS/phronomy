@@ -19,8 +19,8 @@ RSpec.describe "Task.spawn discipline (Issue #340)" do
 
   LIB_ROOT = File.expand_path("../../lib/phronomy", __dir__)
   EXEMPT_PATHS = [
-    File.join(LIB_ROOT, "runtime"),
-    File.join(LIB_ROOT, "task.rb")
+    File.join(LIB_ROOT, "engine", "runtime"),
+    File.join(LIB_ROOT, "engine", "task.rb")
   ].freeze
 
   # Collect all .rb files under lib/phronomy/ that are not exempt.
