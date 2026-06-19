@@ -256,16 +256,15 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
       # cooperative-first rule: invoke would block the fiber synchronously on
       # completion_queue.pop, preventing the scheduler from running fast_task.
       #
-      # The test still fails because of a framework-level bug in AsyncQueue:
-      # AsyncQueue#push only raises the coop_signal when Scheduler.current is
-      # non-nil on the calling thread. The EventLoop runs on a dedicated
-      # ThreadScheduler thread where Scheduler.current is nil, so the push from
-      # EventLoop never wakes the DeterministicScheduler fiber waiting on
-      # completion_queue.pop.
-      #
-      # Fix required: AsyncQueue#push must store the waiting scheduler reference
-      # and raise_signal from any thread (cross-thread signal propagation).
-      pending "Framework bug: AsyncQueue#push does not propagate coop_signal across scheduler boundaries (ThreadScheduler -> DeterministicScheduler)"
+      # The test is pending because of interacting framework limitations:
+      # 1. AsyncQueue#push only raises @coop_signal when Scheduler.current is
+      #    non-nil. The EventLoop runs on a dedicated ThreadScheduler thread
+      #    where Scheduler.current is nil, so the push does not wake the
+      #    DeterministicScheduler fiber waiting in _pop_cooperative.
+      # 2. DeterministicScheduler.run_until_idle exits when @pending_awaits is
+      #    zero and the ready queue is empty, before the EventLoop push arrives.
+      # Both issues must be fixed together in AsyncQueue and DeterministicScheduler.
+      pending "Framework limitation: cross-thread signal propagation between EventLoop (ThreadScheduler) and DeterministicScheduler fiber not yet implemented"
 
       order = []
 
