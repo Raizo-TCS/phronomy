@@ -20,6 +20,9 @@ module Phronomy
       def initialize(max_size: nil)
         @queue = max_size ? SizedQueue.new(max_size) : Thread::Queue.new
         @max_size = max_size
+        @waiter_mutex = Mutex.new
+        @cross_thread_waiter = nil    # [fiber, scheduler] set by _pop_cooperative; consumed by push
+        @cross_thread_scheduler = nil # set by expect_cross_thread_push
       end
 
       # Enqueues +item+.
@@ -37,6 +40,24 @@ module Phronomy
         else
           @queue.push(item)
           scheduler.raise_signal(@coop_signal) if scheduler && @coop_signal
+          # Wake a cross-thread waiter if one is registered.
+          # Handles the case where a DeterministicScheduler Fiber is suspended
+          # in _pop_cooperative waiting for a push from a non-scheduler thread
+          # (e.g. EventLoop thread where Scheduler.current is nil).
+          # enqueue_fiber is thread-safe; complete_blocking_await decrements
+          # @pending_awaits so run_until_idle can eventually exit.
+          if @cross_thread_scheduler
+            waiter = @waiter_mutex.synchronize do
+              w = @cross_thread_waiter
+              @cross_thread_waiter = nil
+              w
+            end
+            if waiter
+              fiber, sched = waiter
+              sched.complete_blocking_await
+              sched.enqueue_fiber(-> { fiber.resume })
+            end
+          end
         end
         self
       end
@@ -103,14 +124,37 @@ module Phronomy
         self
       end
 
+      # Marks this queue as expecting pushes from a non-scheduler OS thread.
+      # When set, {#pop} in cooperative mode uses +track_blocking_await+ so that
+      # {Runtime::DeterministicScheduler#run_until_idle} does not exit while
+      # waiting for the cross-thread push.  Called by {EventLoop#register} when
+      # a cooperative scheduler is active on the calling thread.
+      # @param scheduler [Runtime::Scheduler]
+      # @return [self]
+      # @api private
+      def expect_cross_thread_push(scheduler)
+        @cross_thread_scheduler = scheduler
+        self
+      end
+
       private
 
       # Cooperative pop for DeterministicScheduler context.
       # Suspends the current Fiber via the scheduler's signal mechanism rather than
-      # blocking the OS thread.  Because cooperative mode is single-threaded, the
-      # empty?/pop pair is race-free (no other Fiber can run between the two calls).
-      # After dequeuing, notifies any push-waiter so that a backpressure-suspended
-      # producer can be unblocked.
+      # blocking the OS thread.
+      #
+      # Two suspension paths:
+      # * **Same-scheduler** (default): uses {CoopSignal} — the producer is another
+      #   Fiber on the same DeterministicScheduler.  run_until_idle is allowed to
+      #   exit; the producer's push will enqueue the consumer Fiber.
+      # * **Cross-thread** ({#expect_cross_thread_push} was called): uses
+      #   +track_blocking_await+ so that run_until_idle does not exit while waiting
+      #   for a push from a non-scheduler OS thread (e.g. EventLoop).  The push
+      #   side calls +complete_blocking_await+ + +enqueue_fiber+ to resume.
+      #
+      # The empty?/register pair for the cross-thread path is wrapped in
+      # @waiter_mutex to eliminate the race between the empty check and the
+      # registration of the waker.
       # @api private
       # @param scheduler [Runtime::Scheduler]
       # @param timeout [Numeric, nil]
@@ -127,7 +171,26 @@ module Phronomy
             return item
           end
           return nil if deadline && scheduler.virtual_time >= deadline
-          scheduler.wait_for_signal(@coop_signal)
+
+          if @cross_thread_scheduler
+            # Cross-thread path: atomically check the queue and register a waker
+            # so that a concurrent push cannot slip between the empty? check above
+            # and the registration below.
+            will_yield = false
+            @waiter_mutex.synchronize do
+              if @queue.empty?
+                @cross_thread_waiter = [Fiber.current, scheduler]
+                scheduler.track_blocking_await
+                will_yield = true
+              end
+              # else: push arrived between the loop's empty? check and here;
+              # will_yield stays false and the next loop iteration dequeues it.
+            end
+            Fiber.yield(:cooperative_suspend) if will_yield
+          else
+            scheduler.wait_for_signal(@coop_signal)
+          end
+
           return nil if deadline && scheduler.virtual_time >= deadline
         end
       end

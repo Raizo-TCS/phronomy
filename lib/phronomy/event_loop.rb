@@ -142,6 +142,12 @@ module Phronomy
       end
 
       completion_queue = Phronomy::Concurrency::AsyncQueue.new
+      # When called from a DeterministicScheduler Fiber (e.g. :fiber backend),
+      # mark the queue so that _pop_cooperative uses track_blocking_await.
+      # This prevents run_until_idle from exiting before the EventLoop thread
+      # (a different OS thread where Scheduler.current is nil) pushes the result.
+      scheduler = Phronomy::Runtime::Scheduler.current
+      completion_queue.expect_cross_thread_push(scheduler) if scheduler
       # Pass both session and completion_queue in the event payload so that the
       # EventLoop thread is the sole writer of @fsms and @waiting.
       @queue.push([Event.new(type: :start, target_id: fsm_session.id,

@@ -99,6 +99,13 @@ module Phronomy
         @pending_awaits = 0
         @await_mutex = Mutex.new
         @await_cond = ConditionVariable.new
+        # Tracks which OS thread is currently executing run_until_idle.
+        # When a spawn is called from a DIFFERENT thread while run_until_idle is
+        # active, creating a FiberBackend on that thread would produce a Fiber
+        # that the run_until_idle owner thread cannot resume (Ruby 3+ restriction).
+        # The mutex is separate from @mutex/@await_mutex to avoid lock-ordering issues.
+        @rui_mutex = Mutex.new
+        @run_until_idle_thread = nil
       end
 
       # Returns +true+ when this scheduler is in autorun mode.
@@ -116,6 +123,23 @@ module Phronomy
       # @return [Task]
       # @api private
       def spawn(name:, parent:, &block)
+        inside_tick = Thread.current.thread_variable_get(SCHEDULER_KEY)
+        rui_thread = @rui_mutex.synchronize { @run_until_idle_thread }
+
+        # Cross-thread guard: if run_until_idle is active on a DIFFERENT OS thread
+        # (e.g. the EventLoop calling Runtime.instance.spawn while the test thread
+        # is blocked in run_until_idle waiting for a cross-thread push), creating a
+        # FiberBackend here would produce a Fiber owned by THIS thread.  The
+        # run_until_idle owner thread cannot resume it, which raises:
+        #   FiberError: fiber called across threads
+        # Fall back to ThreadBackend so the block runs on its own OS thread instead,
+        # and broadcast @await_cond so the owner thread is notified of new work.
+        if !inside_tick && rui_thread && rui_thread != Thread.current
+          task = Task.spawn(name: name, parent: parent, backend_class: Task::ThreadBackend, &block)
+          @await_mutex.synchronize { @await_cond.broadcast }
+          return task
+        end
+
         task = Task.spawn(name: name, parent: parent, backend_class: Task::FiberBackend, &block)
         backend = task.backend
         # Build a self-rescheduling step: after each step, re-enqueue if the
@@ -130,7 +154,7 @@ module Phronomy
         # When SCHEDULER_KEY is set, the calling code is already inside a managed
         # Fiber; the outer run_until_idle loop will pick up the new task on the
         # next iteration without a recursive re-entry.
-        run_until_idle if @autorun && Thread.current.thread_variable_get(SCHEDULER_KEY).nil?
+        run_until_idle if @autorun && !inside_tick
         task
       end
 
@@ -202,6 +226,7 @@ module Phronomy
       # @return [self]
       # @api private
       def run_until_idle
+        @rui_mutex.synchronize { @run_until_idle_thread = Thread.current }
         if @autorun
           loop do
             fire_real_timers
@@ -230,6 +255,8 @@ module Phronomy
           tick until idle?
         end
         self
+      ensure
+        @rui_mutex.synchronize { @run_until_idle_thread = nil }
       end
 
       # Advances the virtual clock by +seconds+ and enqueues any timer
