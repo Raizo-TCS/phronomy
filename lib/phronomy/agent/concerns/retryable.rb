@@ -59,7 +59,7 @@ module Phronomy
           policy = self.class._retry_policy
           attempt = 0
           begin
-            invoke_once(input, messages: messages, thread_id: thread_id, config: config)
+            _invoke_via_fsm(input, messages: messages, thread_id: thread_id, config: config)
           rescue Phronomy::FilterBlockError
             raise
           rescue Phronomy::CancellationError

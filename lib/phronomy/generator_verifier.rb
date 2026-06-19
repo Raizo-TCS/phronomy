@@ -192,21 +192,30 @@ module Phronomy
         entry :draft, ->(state) {
           feedback = state.review_notes.last
           prompt = dpb.call(state.input, feedback)
-          result = draft_agent.invoke(prompt)
-          parsed = drp.call(result[:output])
-          state.draft = parsed[:answer].to_s
-          state.self_score = pipeline.__send__(:clamp, parsed[:confidence])
-          state.citations = pipeline.__send__(:normalize_citations, parsed[:citations])
-          state.iteration = state.iteration + 1
+          # Return a Task so WorkflowRunner awaits it off the EventLoop thread,
+          # then posts :action_completed with the new context back to EventLoop.
+          draft_agent.invoke_async(prompt).map do |result|
+            parsed = drp.call(result[:output])
+            state.merge(
+              draft: parsed[:answer].to_s,
+              self_score: pipeline.__send__(:clamp, parsed[:confidence]),
+              citations: pipeline.__send__(:normalize_citations, parsed[:citations]),
+              iteration: state.iteration + 1
+            )
+          end
         }
 
         entry :review, ->(state) {
           prompt = rpb.call(state.input, state.draft, state.citations)
-          result = review_agent.invoke(prompt)
-          parsed = rrp.call(result[:output])
-          state.review_score = pipeline.__send__(:clamp, parsed[:score])
-          state.approved = parsed[:approved] == true
-          state.review_notes << parsed[:feedback].to_s
+          # Return a Task so WorkflowRunner awaits it off the EventLoop thread.
+          review_agent.invoke_async(prompt).map do |result|
+            parsed = rrp.call(result[:output])
+            state.merge(
+              review_score: pipeline.__send__(:clamp, parsed[:score]),
+              approved: parsed[:approved] == true,
+              review_notes: [parsed[:feedback].to_s]
+            )
+          end
         }
 
         entry :finalize, ->(state) { state.output = state.draft }

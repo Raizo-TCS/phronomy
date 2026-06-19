@@ -375,13 +375,12 @@ RSpec.describe Phronomy::WorkflowContext, "single-owner enforcement (Issue #298)
 
   context "WorkflowContext ownership enforcement (EventLoop always active)" do
     around do |example|
-      # EventLoop is always active; just ensure it is started before and cleaned
-      # up after (spec_helper also calls reset_runtime! after each example, but
-      # explicit start/reset here makes the intent clear for this context).
+      # EventLoop is always active; just ensure it is started before this
+      # context's examples run. No need to stop/reset between tests —
+      # reset_runtime! in after(:each) resets configuration without stopping
+      # the EventLoop (stopping it would cost ~5s grace period per test).
       Phronomy::EventLoop.instance.start
       example.run
-    ensure
-      Phronomy::EventLoop.reset!
     end
 
     it "raises WorkflowContextOwnershipError when mutated from a non-EventLoop thread" do

@@ -59,24 +59,15 @@ end
 RSpec.describe "Agent::Base filter integration (Issue #389)" do
   def build_agent_class
     klass = Class.new(Phronomy::Agent::Base) { model "test" }
-    # Stub _complete_with_suspension_guard so no real LLM is called.
-    # The stub captures the user message from chat and returns it in the output.
-    allow_any_instance_of(klass).to receive(:_complete_with_suspension_guard) do |agent, chat, user_message, _config, **_kw|
-      [{output: "result:#{user_message}", messages: chat.messages, usage: nil}, nil]
-    end
-    # Stub build_chat to return a minimal double
-    allow_any_instance_of(klass).to receive(:build_chat) do
-      chat = double("chat")
-      allow(chat).to receive(:messages).and_return([])
-      allow(chat).to receive(:with_instructions)
-      allow(chat).to receive(:with_tool)
-      allow(chat).to receive(:with_temperature)
-      allow(chat).to receive(:cancellation_token=)
-      chat
-    end
-    # Stub build_context to return minimal context
-    allow_any_instance_of(klass).to receive(:build_context).and_wrap_original do |_orig, agent_self, input, **_opts|
-      {system: nil, messages: [], tool_classes: []}
+    # Stub _invoke_via_fsm to skip the real FSM/LLM pipeline while still
+    # exercising the filter layer. Filters run inside _invoke_via_fsm and
+    # transform the input before the (stubbed) LLM call returns.
+    allow_any_instance_of(klass).to receive(:_invoke_via_fsm) do |agent_self, input, messages: [], thread_id: nil, config: {}|
+      filtered = agent_self.send(:run_input_filters!, input)
+      user_message = agent_self.send(:extract_message, filtered)
+      raw_output = "result:#{user_message}"
+      filtered_output = agent_self.send(:run_output_filters!, raw_output)
+      {output: filtered_output, messages: [], usage: nil}
     end
     klass
   end

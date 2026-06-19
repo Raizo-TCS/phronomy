@@ -18,7 +18,7 @@ end
 # ---------------------------------------------------------------------------
 RSpec.describe "Agent streaming" do
   let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0) }
-  let(:fake_response) { double("Response", role: :assistant, content: "Hello, world!", tool_calls: nil, tokens: fake_tokens) }
+  let(:fake_response) { double("Response", role: :assistant, content: "Hello, world!", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
 
   # Build a chat double that supports streaming callbacks
   def build_streaming_chat(response)
@@ -26,6 +26,7 @@ RSpec.describe "Agent streaming" do
     allow(dbl).to receive(:with_instructions).and_return(dbl)
     allow(dbl).to receive(:with_tool).and_return(dbl)
     allow(dbl).to receive(:with_temperature).and_return(dbl)
+    allow(dbl).to receive(:cancellation_token=)
     allow(dbl).to receive(:messages).and_return([response])
     allow(dbl).to receive(:on_tool_call)
     allow(dbl).to receive(:on_tool_result)
@@ -99,6 +100,7 @@ RSpec.describe "Agent streaming" do
         allow(bad_chat).to receive(:with_instructions).and_return(bad_chat)
         allow(bad_chat).to receive(:with_tool).and_return(bad_chat)
         allow(bad_chat).to receive(:with_temperature).and_return(bad_chat)
+        allow(bad_chat).to receive(:cancellation_token=)
         allow(bad_chat).to receive(:on_tool_call)
         allow(bad_chat).to receive(:on_tool_result)
         allow(bad_chat).to receive(:ask).and_raise(RuntimeError, "LLM exploded")

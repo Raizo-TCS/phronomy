@@ -19,13 +19,16 @@ end
 
 RSpec.describe Phronomy::Agent::Base do
   let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0) }
-  let(:fake_message) { double("Message", content: "LLM response", tool_calls: nil, tokens: fake_tokens) }
+  let(:fake_message) { double("Message", content: "LLM response", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
   let(:fake_messages) { [fake_message] }
   let(:fake_chat) do
     dbl = double("Chat")
     allow(dbl).to receive(:with_instructions).and_return(dbl)
     allow(dbl).to receive(:with_tool).and_return(dbl)
     allow(dbl).to receive(:with_temperature).and_return(dbl)
+    allow(dbl).to receive(:cancellation_token=)
+    allow(dbl).to receive(:on_tool_call)
+    allow(dbl).to receive(:on_tool_result)
     allow(dbl).to receive(:ask).and_return(fake_message)
     allow(dbl).to receive(:messages).and_return(fake_messages)
     allow(dbl).to receive(:last_message).and_return(fake_message)
@@ -264,7 +267,10 @@ RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
     dbl = double("Chat")
     allow(dbl).to receive(:with_instructions).and_return(dbl)
     allow(dbl).to receive(:with_tool).and_return(dbl)
-    allow(dbl).to receive(:ask).and_return(double("Msg", content: "ok", tool_calls: nil, tokens: alias_tokens))
+    allow(dbl).to receive(:cancellation_token=)
+    allow(dbl).to receive(:on_tool_call)
+    allow(dbl).to receive(:on_tool_result)
+    allow(dbl).to receive(:ask).and_return(double("Msg", content: "ok", tool_calls: nil, tokens: alias_tokens, tool_call?: false))
     allow(dbl).to receive(:messages).and_return([])
     dbl
   end
@@ -350,13 +356,16 @@ end
 # code is actually correct. These specs document and lock in the correct behavior.
 RSpec.describe "Phronomy::Agent::Base temperature DSL zero value (Issue #30 / ID-12)" do
   let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0) }
-  let(:fake_message) { double("Message", content: "LLM response", tool_calls: nil, tokens: fake_tokens) }
+  let(:fake_message) { double("Message", content: "LLM response", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
   let(:fake_messages) { [fake_message] }
   let(:fake_chat) do
     dbl = double("Chat")
     allow(dbl).to receive(:with_instructions).and_return(dbl)
     allow(dbl).to receive(:with_tool).and_return(dbl)
     allow(dbl).to receive(:with_temperature).and_return(dbl)
+    allow(dbl).to receive(:cancellation_token=)
+    allow(dbl).to receive(:on_tool_call)
+    allow(dbl).to receive(:on_tool_result)
     allow(dbl).to receive(:ask).and_return(fake_message)
     allow(dbl).to receive(:messages).and_return(fake_messages)
     allow(dbl).to receive(:last_message).and_return(fake_message)
@@ -433,7 +442,7 @@ RSpec.describe "Phronomy::Agent::Base invoke_timeout DSL (Issue #116)" do
       Phronomy::EventLoop.instance.start
       example.run
     ensure
-      Phronomy::EventLoop.instance.stop
+      Phronomy::EventLoop.instance.stop(timeout: 0)
     end
 
     it "raises Phronomy::TimeoutError when the agent does not finish in time" do
@@ -511,12 +520,15 @@ RSpec.describe "Agent thread-local context cache cleanup (issue #128)" do
 
   let(:reply_tokens) { double("Tokens", input: 5, output: 5, cached: 0, cache_creation: 0) }
   let(:reply_msg) do
-    double("Msg", role: :assistant, content: "hi", tool_calls: nil, tokens: reply_tokens)
+    double("Msg", role: :assistant, content: "hi", tool_calls: nil, tokens: reply_tokens, tool_call?: false)
   end
   let(:chat) do
     dbl = double("Chat")
     allow(dbl).to receive(:with_instructions).and_return(dbl)
     allow(dbl).to receive(:with_tool).and_return(dbl)
+    allow(dbl).to receive(:cancellation_token=)
+    allow(dbl).to receive(:on_tool_call)
+    allow(dbl).to receive(:on_tool_result)
     allow(dbl).to receive(:messages).and_return([reply_msg])
     allow(dbl).to receive(:ask).and_return(reply_msg)
     dbl
@@ -560,12 +572,15 @@ RSpec.describe "Agent static_knowledge caching (issue #127)" do
 
   let(:reply_tokens) { double("Tokens", input: 5, output: 5, cached: 0, cache_creation: 0) }
   let(:reply_msg) do
-    double("Msg", role: :assistant, content: "answer", tool_calls: nil, tokens: reply_tokens)
+    double("Msg", role: :assistant, content: "answer", tool_calls: nil, tokens: reply_tokens, tool_call?: false)
   end
   let(:chat) do
     dbl = double("Chat")
     allow(dbl).to receive(:with_instructions).and_return(dbl)
     allow(dbl).to receive(:with_tool).and_return(dbl)
+    allow(dbl).to receive(:cancellation_token=)
+    allow(dbl).to receive(:on_tool_call)
+    allow(dbl).to receive(:on_tool_result)
     allow(dbl).to receive(:messages).and_return([reply_msg])
     allow(dbl).to receive(:ask).and_return(reply_msg)
     dbl

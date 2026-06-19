@@ -339,8 +339,8 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
       agent_class._sleep_proc = sleep_stub
 
       agent = agent_class.new
-      # Stub invoke_once to simulate transient failures.
-      allow(agent).to receive(:invoke_once) do
+      # Stub _invoke_via_fsm to simulate transient failures.
+      allow(agent).to receive(:_invoke_via_fsm) do
         invocations += 1
         raise exception_class, "transient" if invocations <= fail_times
         {output: "recovered", messages: [], usage: nil}
@@ -372,7 +372,7 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
     it "does not retry when no policy is set" do
       agent_class = Class.new(Phronomy::Agent::Base)
       agent = agent_class.new
-      allow(agent).to receive(:invoke_once).and_raise(RuntimeError, "boom")
+      allow(agent).to receive(:_invoke_via_fsm).and_raise(RuntimeError, "boom")
       expect { agent.invoke("hi") }.to raise_error(RuntimeError, /boom/)
     end
 
@@ -382,7 +382,7 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
       end
       agent_class._sleep_proc = sleep_stub
       agent = agent_class.new
-      allow(agent).to receive(:invoke_once).and_raise(Phronomy::FilterBlockError, "blocked")
+      allow(agent).to receive(:_invoke_via_fsm).and_raise(Phronomy::FilterBlockError, "blocked")
       expect { agent.invoke("hi") }.to raise_error(Phronomy::FilterBlockError)
       expect(sleep_calls).to be_empty
     end
@@ -398,7 +398,7 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
       end
       agent_class._sleep_proc = sleep_stub
       agent = agent_class.new
-      allow(agent).to receive(:invoke_once).and_raise(RuntimeError, "always")
+      allow(agent).to receive(:_invoke_via_fsm).and_raise(RuntimeError, "always")
       agent
     end
 
@@ -440,8 +440,8 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
       agent_class._sleep_proc = sleep_stub
 
       agent = agent_class.new
-      # Stub invoke_once (the private method called by the retry loop).
-      allow(agent).to receive(:invoke_once) do
+      # Stub _invoke_via_fsm (the private method called by the retry loop).
+      allow(agent).to receive(:_invoke_via_fsm) do
         invocations += 1
         raise "transient" if invocations <= fail_times
         {output: "recovered", messages: [], usage: Phronomy::TokenUsage.zero,
@@ -469,7 +469,7 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
       end
       agent_class._sleep_proc = sleep_stub
       agent = agent_class.new
-      allow(agent).to receive(:invoke_once).and_raise(Phronomy::FilterBlockError, "blocked")
+      allow(agent).to receive(:_invoke_via_fsm).and_raise(Phronomy::FilterBlockError, "blocked")
       expect { agent.invoke("hi") }.to raise_error(Phronomy::FilterBlockError)
       expect(sleep_calls).to be_empty
     end

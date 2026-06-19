@@ -74,12 +74,15 @@ end
 # ---------------------------------------------------------------------------
 RSpec.describe "Agent::Base instructions with PromptTemplate" do
   let(:fake_tokens) { double("Tokens", input: 5, output: 3, cached: 0, cache_creation: 0) }
-  let(:fake_response) { double("Response", content: "answer", tool_calls: nil, tokens: fake_tokens) }
+  let(:fake_response) { double("Response", content: "answer", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
   let(:fake_chat) do
     dbl = double("Chat")
     allow(dbl).to receive(:with_instructions).and_return(dbl)
     allow(dbl).to receive(:with_tool).and_return(dbl)
     allow(dbl).to receive(:with_temperature).and_return(dbl)
+    allow(dbl).to receive(:cancellation_token=)
+    allow(dbl).to receive(:on_tool_call)
+    allow(dbl).to receive(:on_tool_result)
     allow(dbl).to receive(:ask).and_return(fake_response)
     allow(dbl).to receive(:messages).and_return([fake_response])
     dbl

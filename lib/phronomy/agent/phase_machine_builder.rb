@@ -15,20 +15,29 @@ module Phronomy
     #   - One automatic event (+:state_completed+) that FSMSession fires after
     #     each entry action completes.
     #   - Two external events (+:approve+, +:reject+) for HITL.
+    #   - after_transition callbacks for each state's entry actions.
     #
     # Guard methods (+input_passed?+, +tool_call_pending?+, etc.) are delegated
     # to the +InvocationContext+ stored in +attr_accessor :context+.
     #
-    # == State transition table
-    #
-    # See docs/refactoring_agent_fsm_20260617.md for the full specification.
-    #
     # @api private
     class PhaseMachineBuilder
+      # @param entry_actions   [Hash{Symbol => Array<#call>}]
+      # @param action_timeouts [Hash{Symbol => Numeric}]
+      # @api private
+      def initialize(entry_actions: {}, action_timeouts: {})
+        @entry_actions = entry_actions
+        @action_timeouts = action_timeouts
+      end
+
       # Builds and returns the PhaseTracker class.
       # @return [Class]
       # @api private
       def build
+        entry_acts = @entry_actions
+        act_timeouts = @action_timeouts
+        build_cb = method(:build_entry_callback)
+
         Class.new do
           # state_machines requires a class-level state machine definition.
           state_machine :phase, initial: :idle do
@@ -83,20 +92,87 @@ module Phronomy
             event :reject do
               transition awaiting_approval: :blocked
             end
+
+            # ----------------------------------------------------------------
+            # Entry action after_transition callbacks
+            # Each state's callables are fired after entering that state.
+            # ----------------------------------------------------------------
+            entry_acts.each do |state_name, callables|
+              callables.each do |callable|
+                timeout_secs = act_timeouts[state_name]
+                cb = build_cb.call(callable, state_name, timeout_secs)
+                after_transition to: state_name, do: cb
+              end
+            end
           end
 
           # Holds the InvocationContext so guard lambdas can access it.
           attr_accessor :context
 
-          # async_pending flag: set by FSMSession when an entry action returns
-          # a Task. Mirrors the same flag used by Workflow::PhaseMachineBuilder.
+          # async_pending flag: set when an entry action returns a Task.
           attr_accessor :async_pending
+
+          # FSM session id — set by FSMSession so async task spawns know the
+          # target_id for EventLoop events.
+          attr_accessor :session_id
 
           def initialize
             super
             @context = nil
             @async_pending = false
+            @session_id = nil
           end
+        end
+      end
+
+      private
+
+      # Returns a proc suitable for use as an after_transition callback.
+      # @api private
+      def build_entry_callback(callable, state_name, timeout_secs)
+        handle = method(:handle_entry_action_result)
+        ->(machine) {
+          result = callable.call(machine.context)
+          handle.call(machine, result, state_name, timeout_secs)
+        }
+      end
+
+      # Dispatches the return value of an entry action.
+      # - Task    → async: set async_pending and spawn a background task
+      # - context → sync:  update machine.context
+      # @api private
+      def handle_entry_action_result(machine, result, state_name, timeout_secs)
+        if result.is_a?(Phronomy::Task)
+          dispatch_task(machine, result, state_name, timeout_secs)
+        elsif result.respond_to?(:set_graph_metadata)
+          machine.context = result
+        end
+      end
+
+      # Marks the machine async-pending and spawns a Task to await the result.
+      # @api private
+      def dispatch_task(machine, result, state_name, timeout_secs)
+        machine.async_pending = true
+        session_id = machine.session_id
+        Phronomy::Runtime.instance.spawn(name: "agent-await-#{session_id}") do
+          if timeout_secs
+            if result.join(timeout_secs).nil?
+              result.cancel!
+              raise Phronomy::ActionTimeoutError,
+                "Action in state #{state_name.inspect} timed out after #{timeout_secs}s"
+            end
+          end
+          task_result = result.await
+          ev = if task_result.respond_to?(:set_graph_metadata)
+            Phronomy::Event.new(type: :action_completed, target_id: session_id, payload: task_result)
+          else
+            Phronomy::Event.new(type: :state_completed, target_id: session_id, payload: nil)
+          end
+          Phronomy::EventLoop.instance.post(ev)
+        rescue => e
+          Phronomy::EventLoop.instance.post(
+            Phronomy::Event.new(type: :error, target_id: session_id, payload: e)
+          )
         end
       end
     end

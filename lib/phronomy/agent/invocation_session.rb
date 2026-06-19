@@ -11,7 +11,7 @@ module Phronomy
     # FSMSession with the correct phase machine class, entry actions, and
     # context, then hands it to EventLoop for execution.
     #
-    # == Usage (Phase 2 — not wired to invoke_once yet)
+    # == Usage
     #
     #   session = Agent::InvocationSession.build(
     #     agent:    my_agent,
@@ -19,7 +19,8 @@ module Phronomy
     #     messages: [],
     #     config:   { thread_id: "t-1" }
     #   )
-    #   # session is a Phronomy::FSMSession ready to be registered with EventLoop
+    #   completion_queue = Phronomy::EventLoop.instance.register(session)
+    #   ctx = completion_queue.pop
     #
     # == Streaming mode
     #
@@ -67,12 +68,26 @@ module Phronomy
           build_stream_entry_actions(agent, on_event) :
           build_entry_actions(agent)
 
+        # Calculate recursion_limit for the FSM:
+        # Base states: idle→filtering_input→building_context→calling_llm→
+        #              output_filtering→completed = 6 transitions
+        # Each tool call loop: calling_llm→executing_tool→calling_llm = 2 transitions
+        # Safety margin: +4
+        iterations = agent.class.max_iterations || 10
+        fsm_recursion_limit = 6 + (iterations * 2) + 4
+
+        # Entry actions are registered as after_transition callbacks in the
+        # phase machine class. Pass empty hash to FSMSession (it uses @entry_actions
+        # only for the entry_point state, which has no action for :idle).
+        phase_machine = Agent::PhaseMachineBuilder.new(entry_actions: actions).build
+        session_id = config[:thread_id] || SecureRandom.uuid
+
         Phronomy::FSMSession.new(
-          id: config[:thread_id] || SecureRandom.uuid,
+          id: session_id,
           context: ctx,
           entry_point: :idle,
-          phase_machine_class: Agent::PhaseMachineBuilder.new.build,
-          entry_actions: actions,
+          phase_machine_class: phase_machine,
+          entry_actions: {},
           auto_state_set: AUTO_STATE_SET,
           declared_states: DECLARED_STATES,
           wait_state_names: %i[awaiting_approval],
@@ -80,14 +95,47 @@ module Phronomy
             approve: [{from: :awaiting_approval, to: :executing_tool, guard: nil}],
             reject: [{from: :awaiting_approval, to: :blocked, guard: nil}]
           },
-          recursion_limit: agent.class.max_iterations
+          recursion_limit: fsm_recursion_limit
+        )
+      end
+
+      # Builds a FSMSession that resumes an existing InvocationContext
+      # from a wait state (e.g. :awaiting_approval) using an external event.
+      #
+      # @param agent        [Phronomy::Agent::Base]
+      # @param context      [Phronomy::Agent::InvocationContext] suspended context
+      # @param resume_event [Symbol] e.g. :approve or :reject
+      # @param resume_phase [Symbol] the wait state to resume from
+      # @return [Phronomy::FSMSession]
+      # @api private
+      def self.build_for_resume(agent:, context:, resume_event:, resume_phase:)
+        actions = build_entry_actions(agent)
+        phase_machine = Agent::PhaseMachineBuilder.new(entry_actions: actions).build
+
+        iterations = agent.class.max_iterations || 10
+        fsm_recursion_limit = 6 + (iterations * 2) + 4
+
+        Phronomy::FSMSession.new(
+          id: context.session_id || SecureRandom.uuid,
+          context: context,
+          entry_point: :idle,
+          phase_machine_class: phase_machine,
+          entry_actions: {},
+          auto_state_set: AUTO_STATE_SET,
+          declared_states: DECLARED_STATES,
+          wait_state_names: %i[awaiting_approval],
+          external_events: {
+            approve: [{from: :awaiting_approval, to: :executing_tool, guard: nil}],
+            reject: [{from: :awaiting_approval, to: :blocked, guard: nil}]
+          },
+          recursion_limit: fsm_recursion_limit,
+          resume_event: resume_event,
+          resume_phase: resume_phase
         )
       end
 
       # ---------------------------------------------------------------------------
       # Entry action builders
-      # Each lambda receives the InvocationContext and may return a Task (async)
-      # or update the context and return the context (sync).
       # ---------------------------------------------------------------------------
 
       # @api private
@@ -139,27 +187,45 @@ module Phronomy
           tools: agent.class.tools + agent.send(:_handoff_tools)
         )
         agent.send(:_apply_context_to_chat, ctx.chat, context)
+        # Run before-completion hooks (e.g. memory injection) once per invocation.
+        agent.send(:run_before_completion_hooks!, ctx.chat, ctx.config)
+        # Register the tool-call interceptor so every tool call routes through
+        # :executing_tool in the FSM instead of executing inside RubyLLM's loop.
+        ctx.chat.on_tool_call do |tool_call|
+          raise Phronomy::Agent::ToolCallIntercepted.new(tool_call)
+        end
         ctx
       end
       private_class_method :building_context_action
 
       def self.calling_llm_action(agent, ctx)
         # Returns a Task — FSMSession will await it asynchronously.
-        user_message = agent.send(:extract_message, ctx.input)
+        # First call: send user message. Subsequent calls (after tool execution):
+        # pass nil so the adapter calls chat.complete (continue after tool result).
+        user_message = ctx.user_message_sent ? nil : agent.send(:extract_message, ctx.input)
         Phronomy::Runtime.instance.spawn(name: "agent-llm:#{ctx.thread_id}") do
+          agent.send(:check_cancellation!, ctx.config, "invocation cancelled before LLM call")
           adapter = Phronomy.configuration.llm_adapter
-          response = adapter.complete_async(ctx.chat, user_message, config: ctx.config).await
-          ctx.output = response.content
-          ctx.usage = Phronomy::TokenUsage.from_tokens(response.tokens)
-          ctx.messages = ctx.chat.messages
-          ctx.tool_call_pending = response.tool_call?
+          begin
+            response = adapter.complete_async(ctx.chat, user_message, config: ctx.config).await
+            ctx.user_message_sent = true
+            ctx.output = response.content
+            ctx.usage = Phronomy::TokenUsage.from_tokens(response.tokens)
+            ctx.messages = ctx.chat.messages
+            ctx.tool_call_pending = false
+          rescue Phronomy::Agent::ToolCallIntercepted => e
+            ctx.user_message_sent = true
+            ctx.pending_tool_call = e.tool_call
+            ctx.tool_call_pending = true
+            ctx.messages = ctx.chat.messages
+          end
           ctx
         end
       end
       private_class_method :calling_llm_action
 
       def self.calling_llm_stream_action(agent, on_event, ctx)
-        user_message = agent.send(:extract_message, ctx.input)
+        user_message = ctx.user_message_sent ? nil : agent.send(:extract_message, ctx.input)
         Phronomy::Runtime.instance.spawn(name: "agent-llm-stream:#{ctx.thread_id}") do
           adapter = Phronomy.configuration.llm_adapter
           chunk_queue = Phronomy::Concurrency::AsyncQueue.new(
@@ -178,28 +244,65 @@ module Phronomy
             ))
           end
           response = pending.await
+          ctx.user_message_sent = true
           ctx.output = response.content
           ctx.usage = Phronomy::TokenUsage.from_tokens(response.tokens)
           ctx.messages = ctx.chat.messages
-          ctx.tool_call_pending = response.tool_call?
+          ctx.tool_call_pending = false
           ctx
         end
       end
       private_class_method :calling_llm_stream_action
 
       def self.executing_tool_action(agent, ctx)
-        # Tool execution is handled inside RubyLLM's chat loop.
-        # After calling_llm returns tool_call_pending? == true, we continue
-        # the LLM call cycle (chat.complete) to let RubyLLM execute the tool.
-        # The result is written back via on_tool_result callbacks.
-        # approval_required is set if the tool's requires_approval flag is active.
-        #
-        # NOTE: Full tool execution wiring is completed in Phase 2 when
-        # invoke_once is replaced. This placeholder sets tool_call_pending
-        # to false and returns so the FSM can transition out of :executing_tool.
-        ctx.tool_call_pending = false
-        ctx.approval_required = false
-        ctx
+        tc = ctx.pending_tool_call
+        tool_instance = ctx.chat.tools[tc.name.to_sym]
+
+        unless tool_instance
+          # Tool not found — inject an error result and continue the LLM loop.
+          ctx.chat.add_message(
+            role: :tool,
+            content: "Tool not found.",
+            tool_call_id: tc.id
+          )
+          ctx.pending_tool_call = nil
+          ctx.tool_call_pending = false
+          ctx.approval_required = false
+          return ctx
+        end
+
+        if tool_instance.requires_approval && !ctx.sync_approval_handler
+          if ctx.approved
+            # Human approved via Agent.approve — execute the tool and continue.
+            ctx.approved = false  # consume the approval flag
+          else
+            # No sync handler and not yet approved — suspend for HITL.
+            ctx.approval_required = true
+            return ctx
+          end
+        end
+
+        # Execute the tool off the EventLoop thread via Runtime.instance.spawn.
+        # Tool implementations (e.g. Orchestrator sub-agent dispatch) may call
+        # agent.invoke_async().await which would deadlock if run directly on the
+        # EventLoop dispatch thread. Returning a Task causes
+        # PhaseMachineBuilder#dispatch_task to await the result off the EventLoop
+        # and post :action_completed back when done.
+        tc_id = tc.id
+        tc_args = tc.arguments
+        tc_name = tc.name
+        Phronomy::Runtime.instance.spawn(name: "tool-exec:#{tc_name}") do
+          result = tool_instance.call(tc_args)
+          ctx.chat.add_message(
+            role: :tool,
+            content: result.to_s,
+            tool_call_id: tc_id
+          )
+          ctx.pending_tool_call = nil
+          ctx.tool_call_pending = false
+          ctx.approval_required = false
+          ctx
+        end
       end
       private_class_method :executing_tool_action
 

@@ -117,6 +117,8 @@ RSpec.describe "Thread-independence under FakeScheduler (Issue #309)" do
   # ---------------------------------------------------------------------------
   describe "Scenario 10: Runtime#shutdown — Thread count at baseline" do
     it "does not leave extra Threads after shutdown" do
+      # Measure the baseline *after* accounting for the always-running EventLoop
+      # thread (which is now persistent across tests since Phase 2).
       before = Thread.list.length
       rt = Phronomy::Runtime.new(scheduler: Phronomy::Runtime::FakeScheduler.new)
       5.times { rt.spawn { :work } }

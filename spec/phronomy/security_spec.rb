@@ -254,13 +254,18 @@ RSpec.describe "Security specs (Issue #214)" do
       agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
       agent.add_output_filter(secret_filter_guardrail)
 
-      chat_double = instance_double(RubyLLM::Chat)
+      chat_double = double("Chat")
       response = double("response",
         content: raw_llm_output,
+        tool_call?: false,
         tokens: double(input: 5, output: 20, cached: 0, cache_creation: 0))
       allow(RubyLLM).to receive(:chat).and_return(chat_double)
-      allow(chat_double).to receive(:with_tool)
-      allow(chat_double).to receive(:with_instructions)
+      allow(chat_double).to receive(:with_tool).and_return(chat_double)
+      allow(chat_double).to receive(:with_instructions).and_return(chat_double)
+      allow(chat_double).to receive(:with_temperature).and_return(chat_double)
+      allow(chat_double).to receive(:cancellation_token=)
+      allow(chat_double).to receive(:on_tool_call)
+      allow(chat_double).to receive(:on_tool_result)
       allow(chat_double).to receive(:ask).and_return(response)
       allow(chat_double).to receive(:messages).and_return([])
 

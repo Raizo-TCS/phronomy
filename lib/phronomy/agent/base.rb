@@ -1,11 +1,9 @@
 # frozen_string_literal: true
 
 require "securerandom"
-require_relative "checkpoint_store"
 require_relative "concerns/retryable"
 require_relative "concerns/filterable"
 require_relative "concerns/before_completion"
-require_relative "concerns/suspendable"
 require_relative "concerns/error_translation"
 
 module Phronomy
@@ -36,7 +34,6 @@ module Phronomy
       include Concerns::Retryable
       include Concerns::Filterable
       include Concerns::BeforeCompletion
-      include Concerns::Suspendable
       include Concerns::ErrorTranslation
 
       class << self
@@ -376,25 +373,21 @@ module Phronomy
           end
         end
 
-        # Resumes a suspended invocation identified by +checkpoint+ without
-        # requiring the original agent instance to be kept in memory.
+        # Continues a suspended invocation identified by +session_id+.
         #
-        # Validates that the checkpoint was created by this agent class, then
-        # instantiates a fresh agent and delegates to {Suspendable#resume}.
+        # Instantiates a fresh agent and delegates to the instance-level #approve.
+        # When +approved: false+, the agent rejects the pending tool call and ends
+        # the invocation.
         #
-        # @param checkpoint [Phronomy::Agent::Checkpoint]
+        # @param session_id [String] the session_id from the suspended result hash
         # @param approved   [Boolean] +true+ to execute the pending tool; +false+ to deny
         # @param config     [Hash] same runtime options as {#invoke}
         # @return [Hash] same shape as {#invoke} — may contain +suspended: true+ if
         #   another approval-required tool is encountered during continuation
-        # @raise [ArgumentError] when +checkpoint.agent_class+ does not match this class
+        # @raise [ArgumentError] when no suspended session matches +session_id+
         # @api public
-        def resume(checkpoint, approved:, config: {})
-          if checkpoint.agent_class && checkpoint.agent_class != name
-            raise ArgumentError,
-              "checkpoint belongs to #{checkpoint.agent_class}, cannot resume with #{name}"
-          end
-          new.resume(checkpoint, approved: approved, config: config)
+        def approve(session_id, approved: true, config: {})
+          new.approve(session_id, approved: approved, config: config)
         end
       end
 
@@ -415,6 +408,35 @@ module Phronomy
       def _handoff_tools
         @_handoff_tools || []
       end
+
+      # Registers a synchronous approval callback that is invoked before
+      # executing any tool that has +requires_approval true+ set.
+      # The block receives the tool name (String) and the arguments Hash, and
+      # must return a truthy value to allow execution.
+      # Returning a falsy value causes the tool to return a denial message.
+      #
+      # When no handler is registered and a tool with +requires_approval+ is
+      # called, #invoke returns a suspended result hash containing a
+      # +session_id+. Call #approve to continue execution.
+      #
+      # @example
+      #   agent.on_approval_required { |tool_name, args| prompt_user(tool_name, args) }
+      # @return [self]
+      # @api public
+      def on_approval_required(&block)
+        @approval_handler = block
+        self
+      end
+
+      # Registers a scope policy callable for this agent instance.
+      #
+      # The callable receives +(tool_class, scope, agent)+ and must return
+      # +:allow+, +:reject+, or +:approve+.
+      #
+      # @param policy [#call]
+      # @return [void]
+      # @api public
+      attr_writer :scope_policy
 
       # Invokes the agent with the given input and returns a result Hash.
       # Applies the retry policy configured via {.retry_policy} when transient
@@ -809,35 +831,88 @@ module Phronomy
       end
       protected :instance_knowledge_chunks
 
-      # Performs a single (non-retried) invocation. Extracted so that #invoke can
-      # wrap it in a retry loop without duplicating the LLM interaction logic.
-      def invoke_once(input, messages: [], thread_id: nil, config: {})
-        trace("agent.invoke", input: input, **_build_caller_meta(config)) do |_span|
-          input = run_input_filters!(input)
-
-          user_message = extract_message(input)
-          chat = build_chat
-          context = build_context(
-            input,
-            messages: messages, thread_id: thread_id, config: config,
-            budget: build_token_budget, instruction: build_instructions(input),
-            tools: self.class.tools + _handoff_tools
+      # Runs the agent invocation through the FSM-based execution engine.
+      # Called by Retryable#_invoke_impl (which wraps it in a retry loop).
+      # Returns the result hash: { output:, messages:, usage: } on success,
+      # or { suspended: true, session_id:, messages: } when awaiting approval.
+      # @api private
+      def _invoke_via_fsm(input, messages: [], thread_id: nil, config: {})
+        effective_config = thread_id ? config.merge(thread_id: thread_id) : config
+        # Fail fast when the token is already cancelled before any LLM call.
+        check_cancellation!(effective_config, "invocation cancelled")
+        # Ensure EventLoop is running. start is idempotent when already alive.
+        Phronomy::EventLoop.instance.start
+        trace("agent.invoke", input: input, **_build_caller_meta(effective_config)) do |_span|
+          session = Agent::InvocationSession.build(
+            agent: self,
+            input: input,
+            messages: messages,
+            config: effective_config
           )
-          _apply_context_to_chat(chat, context)
+          completion_queue = Phronomy::EventLoop.instance.register(session)
+          ctx = completion_queue.pop
+          raise ctx if ctx.is_a?(Exception)
+          result = _extract_invoke_result(ctx, session.id)
+          [result, result[:usage]]
+        end
+      end
 
-          run_before_completion_hooks!(chat, config)
-          _register_suspension_hook!(chat)
-          check_cancellation!(config, "invocation cancelled before LLM call")
+      # Continues a suspended invocation identified by +session_id+.
+      # When +approved: true+, executes the pending tool and continues.
+      # When +approved: false+, rejects the tool call and ends the invocation.
+      #
+      # @param session_id [String]
+      # @param approved   [Boolean]
+      # @param config     [Hash]
+      # @return [Hash]
+      # @api public
+      def approve(session_id, approved: true, config: {})
+        ctx = Agent::SuspendedSessionRegistry.fetch(session_id)
+        raise ArgumentError, "No suspended session found: #{session_id}" unless ctx
 
-          result, usage = _complete_with_suspension_guard(
-            chat, user_message, config,
-            thread_id: thread_id, original_input: input
-          )
-          next [result, usage] if result[:suspended]
+        # Reset approval_required so executing_tool_action proceeds instead of
+        # re-suspending when called after the :approve FSM transition.
+        ctx.approval_required = false
+        ctx.approved = true if approved  # signals executing_tool to run the tool
+        ctx.rejected = !approved  # signals _extract_invoke_result for rejection
 
-          filtered_output = run_output_filters!(result[:output])
-          result = result.merge(output: filtered_output) unless filtered_output.equal?(result[:output])
-          [result, usage]
+        if approved
+          _resume_fsm(ctx, :approve)
+        else
+          _resume_fsm(ctx, :reject)
+        end
+      end
+      public :approve
+
+      # Builds and runs a resume FSMSession for the given context and event.
+      # @api private
+      def _resume_fsm(ctx, event)
+        session = Agent::InvocationSession.build_for_resume(
+          agent: self,
+          context: ctx,
+          resume_event: event,
+          resume_phase: :awaiting_approval
+        )
+        completion_queue = Phronomy::EventLoop.instance.register(session)
+        resumed_ctx = completion_queue.pop
+        raise resumed_ctx if resumed_ctx.is_a?(Exception)
+        _extract_invoke_result(resumed_ctx, session.id)
+      end
+
+      # Interprets the InvocationContext after FSM completion/halt and returns
+      # the appropriate result hash or raises the block error.
+      # @api private
+      def _extract_invoke_result(ctx, session_id)
+        if ctx.phase == :awaiting_approval
+          Agent::SuspendedSessionRegistry.store(session_id, ctx)
+          {suspended: true, session_id: session_id, messages: ctx.messages}
+        elsif ctx.input_blocked? || ctx.output_blocked?
+          raise ctx.block_error
+        elsif ctx.rejected
+          # Rejected path: :reject event → :blocked terminal
+          {rejected: true, messages: ctx.messages}
+        else
+          {output: ctx.output, messages: ctx.messages, usage: ctx.usage}
         end
       end
 
@@ -856,36 +931,6 @@ module Phronomy
         apply_instructions(chat, context[:system]) if context[:system]
         (context[:tool_classes] || []).each { |tc| chat.with_tool(prepare_tool_class(tc)) }
         context[:messages].each { |msg| chat.messages << msg }
-      end
-
-      # Submits the LLM call via LLMAdapter and handles SuspendSignal.
-      # Sets/clears the chat cancellation token around the call so that
-      # ParallelToolChat can observe cancellation without Thread.current.
-      # Returns [result_hash, usage_or_nil].
-      def _complete_with_suspension_guard(chat, user_message, config, thread_id:, original_input:)
-        chat.cancellation_token = config[:cancellation_token] if chat.respond_to?(:cancellation_token=)
-        begin
-          adapter = Phronomy.configuration.llm_adapter
-          response = adapter.complete_async(chat, user_message, config: config).await
-        rescue SuspendSignal => signal
-          checkpoint = Checkpoint.new(
-            checkpoint_id: SecureRandom.uuid,
-            agent_class: self.class.name,
-            requested_at: Time.now.utc,
-            thread_id: thread_id,
-            original_input: original_input,
-            messages: chat.messages.dup,
-            pending_tool_name: signal.tool_name,
-            pending_tool_args: signal.args,
-            pending_tool_call_id: signal.tool_call_id
-          )
-          return [{output: nil, suspended: true, checkpoint: checkpoint, messages: chat.messages}, nil]
-        ensure
-          chat.cancellation_token = nil if chat.respond_to?(:cancellation_token=)
-        end
-        output = response.content
-        usage = Phronomy::TokenUsage.from_tokens(response.tokens)
-        [{output: output, messages: chat.messages, usage: usage}, usage]
       end
 
       def _drain_stream(chat, user_message, config, &block)

@@ -35,9 +35,28 @@ RSpec.configure do |config|
     c.syntax = :expect
   end
 
-  # Reset all Phronomy runtime state between examples to prevent test pollution.
-  # This stops any running EventLoop thread and reinitialises configuration.
+  # Reduce EventLoop stop grace period to zero in tests so that
+  # EventLoop.reset! / stop calls return immediately instead of
+  # waiting up to 5s for the task to exit.
+  config.before(:suite) do
+    Phronomy.configure { |c| c.event_loop_stop_grace_seconds = 0 }
+  end
+
+  # Reset configuration between examples to prevent test pollution.
+  # The EventLoop is intentionally NOT stopped here: since Phase 2, every
+  # Agent#invoke goes through FSMSession + EventLoop. Stopping the EventLoop
+  # after each test adds overhead per test. Tests that explicitly need a
+  # fresh EventLoop must call Phronomy::EventLoop.reset! themselves.
+  # run_via_event_loop and _invoke_via_fsm restart it lazily if needed.
   config.after(:each) do
     Phronomy.reset_runtime!
+  end
+
+  # Clean shutdown after the suite so that the EventLoop thread does not
+  # prevent the process from exiting.
+  config.after(:suite) do
+    Phronomy::EventLoop.instance.stop(drain: false)
+  rescue
+    nil
   end
 end

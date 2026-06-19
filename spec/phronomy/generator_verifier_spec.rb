@@ -4,10 +4,16 @@ require "spec_helper"
 
 RSpec.describe Phronomy::GeneratorVerifier do
   # Stub agent that returns a fixed JSON payload without calling a real LLM.
+  # Both invoke and invoke_async are stubbed so that GeneratorVerifier's
+  # invoke_async-based entry actions work correctly in unit tests.
   def stub_agent(output_json)
+    out = output_json
     Class.new(Phronomy::Agent::Base) do
-      define_method(:invoke) do |_input, config: {}|
-        {output: output_json, messages: []}
+      define_method(:invoke) do |_input, config: {}, **_kw|
+        {output: out, messages: []}
+      end
+      define_method(:invoke_async) do |input, **_kw|
+        Phronomy::Runtime.instance.spawn(name: "stub-agent") { invoke(input) }
       end
     end
   end

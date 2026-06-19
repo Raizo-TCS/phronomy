@@ -101,14 +101,6 @@ module Phronomy
     end
   end
 
-  # Raised when {Agent::Base#resume} (or the class-level equivalent) is called
-  # with a {Agent::Checkpoint} whose +checkpoint_id+ has already been consumed
-  # by a previous +resume+ call on the same store.
-  #
-  # This protects against duplicate resume executions caused by webhook retries
-  # or queue message redelivery.
-  class CheckpointAlreadyResumedError < Error; end
-
   # Raised when an operation is submitted to a {BlockingAdapterPool} that has
   # already been shut down via {BlockingAdapterPool#shutdown}.
   class PoolShutdownError < Error; end
@@ -189,8 +181,17 @@ module Phronomy
     #   config.around { |ex| Phronomy.reset_runtime! ; ex.run ; Phronomy.reset_runtime! }
     # @api public
     def reset_runtime!
-      Phronomy::EventLoop.reset!
+      # Do NOT stop the EventLoop here. Since Phase 2, all Agent#invoke calls
+      # go through FSMSession + EventLoop. Stopping and restarting the EventLoop
+      # on every after(:each) hook would add thread creation overhead per test.
+      # run_via_event_loop and _invoke_via_fsm restart it lazily if it was reset.
+      #
+      # Preserve event_loop_stop_grace_seconds from the current configuration
+      # so that test suites that set it to 0 (for fast teardown) keep that value
+      # across configuration resets.
+      prev_grace = @configuration&.event_loop_stop_grace_seconds
       @configuration = Configuration.new
+      @configuration.event_loop_stop_grace_seconds = prev_grace if prev_grace
     end
   end
 end

@@ -61,6 +61,7 @@ module Phronomy
         @current_state = @resume_phase
         @tracker = build_tracker(@current_state)
         @tracker.context = @ctx
+        @tracker.session_id = @id if @tracker.respond_to?(:session_id=)
         fire_and_advance!(@resume_event)
       else
         # Fresh start: state_machines does not fire callbacks on initialization,
@@ -68,6 +69,7 @@ module Phronomy
         @current_state = @entry_point
         @tracker = build_tracker(@current_state)
         @tracker.context = @ctx
+        @tracker.session_id = @id if @tracker.respond_to?(:session_id=)
         (@entry_actions[@current_state] || []).each do |c|
           result = c.call(@ctx)
           if result.is_a?(Phronomy::Task)
@@ -85,7 +87,7 @@ module Phronomy
                 end
               end
               task_result = result.await
-              if task_result.is_a?(Phronomy::WorkflowContext)
+              if _fsm_context?(task_result)
                 event_loop.post(Event.new(type: :action_completed, target_id: session_id, payload: task_result))
               else
                 event_loop.post(Event.new(type: :state_completed, target_id: session_id, payload: nil))
@@ -94,7 +96,7 @@ module Phronomy
               event_loop.post(Event.new(type: :error, target_id: session_id, payload: e))
             end
             break # Only one async action at a time per state
-          elsif result.is_a?(Phronomy::WorkflowContext)
+          elsif _fsm_context?(result)
             @ctx = result
           end
         end
@@ -115,7 +117,7 @@ module Phronomy
 
       if event.type == :action_completed
         # An awaitable entry action completed: update context and advance.
-        @ctx = event.payload if event.payload.is_a?(Phronomy::WorkflowContext)
+        @ctx = event.payload if _fsm_context?(event.payload)
         @tracker.context = @ctx
         @tracker.async_pending = false  # Reset flag set by start or fire_and_advance!
         advance_or_halt
@@ -223,6 +225,15 @@ module Phronomy
 
     def event_loop
       Phronomy::EventLoop.instance
+    end
+
+    # Returns true when +obj+ is an FSM execution context (responds to
+    # +set_graph_metadata+). Used to distinguish context objects from other
+    # Task return values (strings, hashes, etc.) without hard-coding a specific
+    # class. Both WorkflowContext and Agent::InvocationContext qualify.
+    # @api private
+    def _fsm_context?(obj)
+      obj.respond_to?(:set_graph_metadata)
     end
   end
 end

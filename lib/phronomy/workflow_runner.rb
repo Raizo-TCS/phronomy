@@ -182,6 +182,9 @@ module Phronomy
     # Blocks the calling thread on a completion queue until the workflow
     # finishes, halts at a wait state, or raises an error.
     def run_via_event_loop(context, recursion_limit:, resume_event: nil, resume_phase: nil)
+      # Ensure EventLoop is running. In tests, reset_runtime! resets the
+      # singleton without restarting it; start is idempotent when already alive.
+      Phronomy::EventLoop.instance.start
       session = build_session_for(
         context: context, recursion_limit: recursion_limit,
         resume_event: resume_event, resume_phase: resume_phase

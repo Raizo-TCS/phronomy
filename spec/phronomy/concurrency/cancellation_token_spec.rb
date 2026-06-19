@@ -197,7 +197,7 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
       call_count = 0
       retry_agent = Class.new(Phronomy::Agent::Base) do
         retry_policy times: 3, wait: 0
-        define_method(:invoke_once) do |_input, messages: [], thread_id: nil, config: {}|
+        define_method(:_invoke_via_fsm) do |_input, messages: [], thread_id: nil, config: {}|
           call_count += 1
           raise Phronomy::CancellationError, "cancelled"
         end
