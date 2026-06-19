@@ -252,31 +252,27 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
     after { LLMStub.deactivate }
 
     it "fast fiber runs while LLM call is pending in the pool" do
-      # Phase 2: Agent#invoke routes through FSMSession + EventLoop which
-      # runs in a dedicated ThreadScheduler thread. When called from a
-      # DeterministicScheduler fiber, the completion_queue.pop waits for the
-      # EventLoop thread to push the result. The EventLoop calls
-      # enqueue_fiber (via notify_one) on the DeterministicScheduler, but
-      # run_until_idle may have already completed before that enqueue occurs,
-      # leaving the fiber suspended indefinitely.
+      # NOTE: invoke_async.await is used (not invoke) following the
+      # cooperative-first rule: invoke would block the fiber synchronously on
+      # completion_queue.pop, preventing the scheduler from running fast_task.
       #
-      # Root cause: DeterministicScheduler.run_until_idle exits when its
-      # ready queue is empty, but EventLoop's enqueue_fiber arrives after
-      # run_until_idle has already finished — the broadcast on @await_cond
-      # has no listener at that point.
+      # The test still fails because of a framework-level bug in AsyncQueue:
+      # AsyncQueue#push only raises the coop_signal when Scheduler.current is
+      # non-nil on the calling thread. The EventLoop runs on a dedicated
+      # ThreadScheduler thread where Scheduler.current is nil, so the push from
+      # EventLoop never wakes the DeterministicScheduler fiber waiting on
+      # completion_queue.pop.
       #
-      # A proper fix requires DeterministicScheduler to stay alive while
-      # cross-thread enqueues are in-flight. Tracked as a known
-      # DeterministicScheduler + EventLoop incompatibility introduced in
-      # Phase 2 (FSM-based invoke).
-      pending "Phase 2 regression: DeterministicScheduler.run_until_idle exits before EventLoop enqueue_fiber arrives"
+      # Fix required: AsyncQueue#push must store the waiting scheduler reference
+      # and raise_signal from any thread (cross-thread signal propagation).
+      pending "Framework bug: AsyncQueue#push does not propagate coop_signal across scheduler boundaries (ThreadScheduler -> DeterministicScheduler)"
 
       order = []
 
       runtime.spawn(name: "orchestrator") do
         slow_task = runtime.spawn(name: "llm-task") do
           order << :before_llm
-          agent_class.new.invoke("query")
+          agent_class.new.invoke_async("query").await
           order << :after_llm
         end
 
