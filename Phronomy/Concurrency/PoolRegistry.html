@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/concurrency/pool_registry.rb
+    <dd>lib/phronomy/engine/concurrency/pool_registry.rb
 </dd>
   </dl>
   
@@ -265,7 +265,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
 16</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/pool_registry.rb', line 12</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 12</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
@@ -364,7 +364,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
 29</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/pool_registry.rb', line 23</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_default_pool'>default_pool</span><span class='lparen'>(</span><span class='label'>pool_size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='rparen'>)</span>
   <span class='ivar'>@default</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="BlockingAdapterPool.html" title="Phronomy::Concurrency::BlockingAdapterPool (class)">BlockingAdapterPool</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="BlockingAdapterPool.html#initialize-instance_method" title="Phronomy::Concurrency::BlockingAdapterPool#initialize (method)">new</a></span></span><span class='lparen'>(</span>
@@ -471,7 +471,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
 45</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/pool_registry.rb', line 37</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 37</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_named_pool'>named_pool</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -522,7 +522,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
 54</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/pool_registry.rb', line 50</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 50</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span>
   <span class='ivar'>@default</span><span class='op'>&amp;.</span><span class='id identifier rubyid_shutdown'>shutdown</span>
@@ -539,7 +539,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
 </div>
 
       <div id="footer">
-  Generated on Tue Jun 16 16:31:10 2026 by
+  Generated on Fri Jun 19 06:33:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

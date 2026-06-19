@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/runtime/deterministic_scheduler.rb
+    <dd>lib/phronomy/engine/runtime/deterministic_scheduler.rb
 </dd>
   </dl>
   
@@ -264,7 +264,7 @@ All methods must be called from within a <span class='object_link'><a href="../D
 49</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 46</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/deterministic_scheduler.rb', line 46</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_scheduler'>scheduler</span><span class='rparen'>)</span>
   <span class='ivar'>@scheduler</span> <span class='op'>=</span> <span class='id identifier rubyid_scheduler'>scheduler</span>
@@ -316,7 +316,7 @@ All methods must be called from within a <span class='object_link'><a href="../D
 76</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 73</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/deterministic_scheduler.rb', line 73</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_notify_all'>notify_all</span>
   <span class='id identifier rubyid_waiters'>waiters</span><span class='comma'>,</span> <span class='ivar'>@waiters</span> <span class='op'>=</span> <span class='ivar'>@waiters</span><span class='comma'>,</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -361,7 +361,7 @@ All methods must be called from within a <span class='object_link'><a href="../D
 68</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 65</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/deterministic_scheduler.rb', line 65</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_notify_one'>notify_one</span>
   <span class='id identifier rubyid_waiter'>waiter</span> <span class='op'>=</span> <span class='ivar'>@waiters</span><span class='period'>.</span><span class='id identifier rubyid_shift'>shift</span>
@@ -409,7 +409,7 @@ All methods must be called from within a <span class='object_link'><a href="../D
 60</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/deterministic_scheduler.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/deterministic_scheduler.rb', line 54</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_wait'>wait</span>
   <span class='ivar'>@waiters</span> <span class='op'>&lt;&lt;</span> <span class='const'>Fiber</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span>
@@ -428,7 +428,7 @@ All methods must be called from within a <span class='object_link'><a href="../D
 </div>
 
       <div id="footer">
-  Generated on Tue Jun 16 16:31:11 2026 by
+  Generated on Fri Jun 19 06:33:04 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

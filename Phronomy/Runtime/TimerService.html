@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/runtime/timer_service.rb
+    <dd>lib/phronomy/engine/runtime/timer_service.rb
 </dd>
   </dl>
   
@@ -259,7 +259,7 @@ other schedulers.</p>
 19</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/timer_service.rb', line 15</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_service.rb', line 15</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_scheduler'>scheduler</span><span class='rparen'>)</span>
   <span class='ivar'>@scheduler</span> <span class='op'>=</span> <span class='id identifier rubyid_scheduler'>scheduler</span>
@@ -311,7 +311,7 @@ other schedulers.</p>
 39</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/timer_service.rb', line 37</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_service.rb', line 37</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@timer</span><span class='op'>&amp;.</span><span class='id identifier rubyid_shutdown'>shutdown</span> <span class='rbrace'>}</span>
@@ -373,7 +373,7 @@ other schedulers.</p>
 32</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/timer_service.rb', line 24</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_service.rb', line 24</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_timer_queue'>timer_queue</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -394,7 +394,7 @@ other schedulers.</p>
 </div>
 
       <div id="footer">
-  Generated on Tue Jun 16 16:31:09 2026 by
+  Generated on Fri Jun 19 06:33:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

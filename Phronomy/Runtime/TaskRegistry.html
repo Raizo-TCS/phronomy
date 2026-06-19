@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/runtime/task_registry.rb
+    <dd>lib/phronomy/engine/runtime/task_registry.rb
 </dd>
   </dl>
   
@@ -266,7 +266,7 @@ to the registry in the first place.</p>
 17</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/task_registry.rb', line 14</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/task_registry.rb', line 14</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
@@ -332,7 +332,7 @@ to the registry in the first place.</p>
 33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/task_registry.rb', line 31</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/task_registry.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_deregister'>deregister</span><span class='lparen'>(</span><span class='id identifier rubyid_task'>task</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@tasks</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_task'>task</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
@@ -380,7 +380,7 @@ to the registry in the first place.</p>
 45</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/task_registry.rb', line 38</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/task_registry.rb', line 38</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_drain'>drain</span>
   <span class='id identifier rubyid_tasks'>tasks</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@tasks</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span> <span class='rbrace'>}</span>
@@ -443,7 +443,7 @@ to the registry in the first place.</p>
 25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/task_registry.rb', line 23</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/task_registry.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_register'>register</span><span class='lparen'>(</span><span class='id identifier rubyid_task'>task</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@tasks</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_task'>task</span> <span class='kw'>unless</span> <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_done?'>done?</span> <span class='rbrace'>}</span>
@@ -458,7 +458,7 @@ to the registry in the first place.</p>
 </div>
 
       <div id="footer">
-  Generated on Tue Jun 16 16:31:09 2026 by
+  Generated on Fri Jun 19 06:33:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

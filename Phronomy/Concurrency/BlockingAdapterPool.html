@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/concurrency/blocking_adapter_pool.rb
+    <dd>lib/phronomy/engine/concurrency/blocking_adapter_pool.rb
 </dd>
   </dl>
   
@@ -533,7 +533,7 @@ observable at runtime.</li>
 289</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/blocking_adapter_pool.rb', line 276</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 276</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>pool_size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='comma'>,</span> <span class='label'>name:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>logger:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@pool_size</span> <span class='op'>=</span> <span class='id identifier rubyid_pool_size'>pool_size</span>
@@ -606,7 +606,7 @@ observable at runtime.</li>
 400</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/blocking_adapter_pool.rb', line 398</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 398</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_name'>name</span>
   <span class='ivar'>@name</span>
@@ -663,7 +663,7 @@ observable at runtime.</li>
 394</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/blocking_adapter_pool.rb', line 392</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 392</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pool_size'>pool_size</span>
   <span class='ivar'>@pool_size</span>
@@ -720,7 +720,7 @@ observable at runtime.</li>
 397</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/blocking_adapter_pool.rb', line 395</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 395</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_queue_size'>queue_size</span>
   <span class='ivar'>@queue_size</span>
@@ -786,7 +786,7 @@ observable at runtime.</li>
 377</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/blocking_adapter_pool.rb', line 375</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 375</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_abandoned_count'>abandoned_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@abandoned_count</span> <span class='rbrace'>}</span>
@@ -845,7 +845,7 @@ observable at runtime.</li>
 365</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/blocking_adapter_pool.rb', line 363</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 363</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_active_count'>active_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@active_count</span> <span class='rbrace'>}</span>
@@ -906,7 +906,7 @@ waiting for a worker.  Returns 0.0 when no operations have completed yet.</p>
 389</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/blocking_adapter_pool.rb', line 383</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 383</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_average_wait_seconds'>average_wait_seconds</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -969,7 +969,7 @@ waiting for a worker.  Returns 0.0 when no operations have completed yet.</p>
 371</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/blocking_adapter_pool.rb', line 369</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 369</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_queue_depth'>queue_depth</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
@@ -1051,7 +1051,7 @@ remaining items, without blocking on a full-queue push.</p>
 357</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/blocking_adapter_pool.rb', line 352</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 352</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span><span class='label'>drain_timeout:</span> <span class='int'>30</span><span class='rparen'>)</span>
   <span class='ivar'>@shutdown</span> <span class='op'>=</span> <span class='kw'>true</span>
@@ -1242,7 +1242,7 @@ Returns a <span class='object_link'><a href="BlockingAdapterPool/PendingOperatio
 341</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/blocking_adapter_pool.rb', line 309</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 309</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on_full:</span> <span class='symbol'>:wait</span><span class='comma'>,</span> <span class='label'>full_timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../PoolShutdownError.html" title="Phronomy::PoolShutdownError (class)">PoolShutdownError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>pool has been shut down</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='ivar'>@shutdown</span>
@@ -1287,7 +1287,7 @@ Returns a <span class='object_link'><a href="BlockingAdapterPool/PendingOperatio
 </div>
 
       <div id="footer">
-  Generated on Tue Jun 16 16:31:11 2026 by
+  Generated on Fri Jun 19 06:33:04 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

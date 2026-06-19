@@ -511,11 +511,7 @@ directly by WorkflowRunner before the main execution loop begins.</p>
 96
 97
 98
-99
-100
-101
-102
-103</pre>
+99</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 76</span>
@@ -539,11 +535,7 @@ directly by WorkflowRunner before the main execution loop begins.</p>
 
     <span class='id identifier rubyid_state'>state</span> <span class='op'>=</span> <span class='ivar'>@state_class</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_initial_fields'>initial_fields</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span>
-      <span class='id identifier rubyid_run_via_event_loop'>run_via_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>recursion_limit:</span> <span class='id identifier rubyid_recursion_limit'>recursion_limit</span><span class='rparen'>)</span>
-    <span class='kw'>else</span>
-      <span class='id identifier rubyid_run_workflow'>run_workflow</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>recursion_limit:</span> <span class='id identifier rubyid_recursion_limit'>recursion_limit</span><span class='rparen'>)</span>
-    <span class='kw'>end</span>
+    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_run_via_event_loop'>run_via_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>recursion_limit:</span> <span class='id identifier rubyid_recursion_limit'>recursion_limit</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_store'>store</span><span class='op'>&amp;.</span><span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='lbrace'>{</span><span class='label'>fields:</span> <span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span><span class='comma'>,</span> <span class='label'>phase:</span> <span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_phase'>phase</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rbrace'>}</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:thread_id</span><span class='rbracket'>]</span>
     <span class='lbracket'>[</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='rbracket'>]</span>
   <span class='kw'>end</span>
@@ -631,12 +623,12 @@ directly by WorkflowRunner before the main execution loop begins.</p>
       <pre class="lines">
 
 
-110
-111
-112</pre>
+106
+107
+108</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 110</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 106</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='label'>state:</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_send_event'>send_event</span><span class='lparen'>(</span><span class='label'>state:</span> <span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>event:</span> <span class='symbol'>:resume</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
@@ -740,6 +732,10 @@ for the current wait state and fires it.</p>
       <pre class="lines">
 
 
+120
+121
+122
+123
 124
 125
 126
@@ -760,18 +756,10 @@ for the current wait state and fires it.</p>
 141
 142
 143
-144
-145
-146
-147
-148
-149
-150
-151
-152</pre>
+144</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 124</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 120</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_send_event'>send_event</span><span class='lparen'>(</span><span class='label'>state:</span><span class='comma'>,</span> <span class='label'>event:</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_state'>state</span> <span class='op'>=</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_input'>input</span>
@@ -794,13 +782,9 @@ for the current wait state and fires it.</p>
     <span class='id identifier rubyid_event'>event</span>
   <span class='kw'>end</span>
 
-  <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span>
-    <span class='id identifier rubyid_run_via_event_loop'>run_via_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='comma'>,</span>
-      <span class='label'>recursion_limit:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_recursion_limit'>recursion_limit</span><span class='comma'>,</span>
-      <span class='label'>resume_event:</span> <span class='id identifier rubyid_ev_to_fire'>ev_to_fire</span><span class='comma'>,</span> <span class='label'>resume_phase:</span> <span class='id identifier rubyid_current_phase'>current_phase</span><span class='rparen'>)</span>
-  <span class='kw'>else</span>
-    <span class='id identifier rubyid_run_workflow'>run_workflow</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>resume_event:</span> <span class='id identifier rubyid_ev_to_fire'>ev_to_fire</span><span class='comma'>,</span> <span class='label'>resume_phase:</span> <span class='id identifier rubyid_current_phase'>current_phase</span><span class='rparen'>)</span>
-  <span class='kw'>end</span>
+  <span class='id identifier rubyid_run_via_event_loop'>run_via_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='comma'>,</span>
+    <span class='label'>recursion_limit:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_recursion_limit'>recursion_limit</span><span class='comma'>,</span>
+    <span class='label'>resume_event:</span> <span class='id identifier rubyid_ev_to_fire'>ev_to_fire</span><span class='comma'>,</span> <span class='label'>resume_phase:</span> <span class='id identifier rubyid_current_phase'>current_phase</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -892,16 +876,16 @@ for the current wait state and fires it.</p>
       <pre class="lines">
 
 
-160
-161
-162
-163
-164
-165
-166</pre>
+152
+153
+154
+155
+156
+157
+158</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 160</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_runner.rb', line 152</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_uuid'>uuid</span>
@@ -920,7 +904,7 @@ for the current wait state and fires it.</p>
 </div>
 
       <div id="footer">
-  Generated on Tue Jun 16 16:31:08 2026 by
+  Generated on Fri Jun 19 06:33:01 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

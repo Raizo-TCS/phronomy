@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/runtime/timer_queue.rb
+    <dd>lib/phronomy/engine/runtime/timer_queue.rb
 </dd>
   </dl>
   
@@ -290,7 +290,7 @@ Override in tests to inject a fake clock.</p></div>
 27</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/timer_queue.rb', line 19</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 19</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>clock:</span> <span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='ivar'>@clock</span> <span class='op'>=</span> <span class='id identifier rubyid_clock'>clock</span>
@@ -359,7 +359,7 @@ Override in tests to inject a fake clock.</p></div>
 63</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/timer_queue.rb', line 61</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 61</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pending_count'>pending_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@heap</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span> <span class='rbrace'>}</span>
@@ -439,7 +439,7 @@ Override in tests to inject a fake clock.</p></div>
 43</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/timer_queue.rb', line 35</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 35</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_schedule'>schedule</span><span class='lparen'>(</span><span class='label'>seconds:</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_fire_at'>fire_at</span> <span class='op'>=</span> <span class='ivar'>@clock</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span> <span class='op'>+</span> <span class='id identifier rubyid_seconds'>seconds</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span>
@@ -506,7 +506,7 @@ Override in tests to inject a fake clock.</p></div>
 56</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/timer_queue.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/timer_queue.rb', line 49</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -526,7 +526,7 @@ Override in tests to inject a fake clock.</p></div>
 </div>
 
       <div id="footer">
-  Generated on Tue Jun 16 16:31:09 2026 by
+  Generated on Fri Jun 19 06:33:02 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

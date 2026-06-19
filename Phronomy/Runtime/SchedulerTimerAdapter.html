@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/runtime/scheduler_timer_adapter.rb
+    <dd>lib/phronomy/engine/runtime/scheduler_timer_adapter.rb
 </dd>
   </dl>
   
@@ -306,7 +306,7 @@ so that Fiber-based tasks can await real time without blocking OS threads.</p>
 43</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler_timer_adapter.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/scheduler_timer_adapter.rb', line 41</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_scheduler'>scheduler</span><span class='rparen'>)</span>
   <span class='ivar'>@scheduler</span> <span class='op'>=</span> <span class='id identifier rubyid_scheduler'>scheduler</span>
@@ -369,7 +369,7 @@ so that Fiber-based tasks can await real time without blocking OS threads.</p>
 76</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler_timer_adapter.rb', line 74</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/scheduler_timer_adapter.rb', line 74</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pending_count'>pending_count</span>
   <span class='ivar'>@scheduler</span><span class='period'>.</span><span class='id identifier rubyid_pending_real_timer_count'>pending_real_timer_count</span>
@@ -478,7 +478,7 @@ the behaviour of <span class='object_link'><a href="TimerQueue.html#schedule-ins
 60</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler_timer_adapter.rb', line 55</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/scheduler_timer_adapter.rb', line 55</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_schedule'>schedule</span><span class='lparen'>(</span><span class='label'>seconds:</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../PoolShutdownError.html" title="Phronomy::PoolShutdownError (class)">PoolShutdownError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>SchedulerTimerAdapter has been shut down</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='ivar'>@stopped</span>
@@ -539,7 +539,7 @@ Present for API compatibility with <span class='object_link'><a href="TimerQueue
 69</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/scheduler_timer_adapter.rb', line 66</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/scheduler_timer_adapter.rb', line 66</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span>
   <span class='ivar'>@stopped</span> <span class='op'>=</span> <span class='kw'>true</span>
@@ -555,7 +555,7 @@ Present for API compatibility with <span class='object_link'><a href="TimerQueue
 </div>
 
       <div id="footer">
-  Generated on Tue Jun 16 16:31:11 2026 by
+  Generated on Fri Jun 19 06:33:04 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

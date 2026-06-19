@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/concurrency/cancellation_token.rb
+    <dd>lib/phronomy/engine/concurrency/cancellation_token.rb
 </dd>
   </dl>
   
@@ -439,7 +439,7 @@ all access to internal state is protected by a Mutex.</p>
 58</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/cancellation_token.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_token.rb', line 52</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>deadline:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>monotonic_deadline:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@cancelled</span> <span class='op'>=</span> <span class='kw'>false</span>
@@ -505,7 +505,7 @@ all access to internal state is protected by a Mutex.</p>
 63</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/cancellation_token.rb', line 61</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_token.rb', line 61</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_deadline'>deadline</span>
   <span class='ivar'>@deadline</span>
@@ -586,7 +586,7 @@ adjustments and DST transitions.</p>
 43</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/cancellation_token.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_token.rb', line 40</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_timeout_after'>timeout_after</span><span class='lparen'>(</span><span class='id identifier rubyid_seconds'>seconds</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_monotonic_deadline'>monotonic_deadline</span> <span class='op'>=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='id identifier rubyid_seconds'>seconds</span>
@@ -653,7 +653,7 @@ mutant:disable - mutex removal and dup-vs-ref mutations are GVL-safe equivalents
 111</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/cancellation_token.rb', line 103</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_token.rb', line 103</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancel!'>cancel!</span>
   <span class='id identifier rubyid_callbacks'>callbacks</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -717,7 +717,7 @@ mutant:disable - mutex removal on @cancelled read is GVL-safe equivalent under M
 124</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/cancellation_token.rb', line 119</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_token.rb', line 119</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancelled?'>cancelled?</span>
   <span class='kw'>return</span> <span class='kw'>true</span> <span class='kw'>if</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@cancelled</span> <span class='rbrace'>}</span>
@@ -803,7 +803,7 @@ is called immediately (still within the caller's thread).</p>
 96</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/cancellation_token.rb', line 85</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_token.rb', line 85</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_cancel'>on_cancel</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_already_cancelled'>already_cancelled</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -906,7 +906,7 @@ RAG loaders, and hooks, replacing the <code>if cancelled? then raise</code> patt
 137</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/cancellation_token.rb', line 135</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_token.rb', line 135</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span><span class='lparen'>(</span><span class='id identifier rubyid_message'>message</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>invocation cancelled</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span> <span class='kw'>if</span> <span class='id identifier rubyid_cancelled?'>cancelled?</span>
@@ -961,7 +961,7 @@ when no monotonic deadline is set.  Returns 0.0 if already past.</p>
 71</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/concurrency/cancellation_token.rb', line 67</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_token.rb', line 67</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remaining_monotonic_seconds'>remaining_monotonic_seconds</span>
   <span class='kw'>return</span> <span class='kw'>nil</span> <span class='kw'>if</span> <span class='ivar'>@monotonic_deadline</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -978,7 +978,7 @@ when no monotonic deadline is set.  Returns 0.0 if already past.</p>
 </div>
 
       <div id="footer">
-  Generated on Tue Jun 16 16:31:10 2026 by
+  Generated on Fri Jun 19 06:33:04 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

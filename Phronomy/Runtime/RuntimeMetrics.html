@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/runtime/runtime_metrics.rb
+    <dd>lib/phronomy/engine/runtime/runtime_metrics.rb
 </dd>
   </dl>
   
@@ -335,7 +335,7 @@ unbounded.</p>
 23</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/runtime_metrics.rb', line 15</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/runtime_metrics.rb', line 15</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
@@ -392,7 +392,7 @@ the configured <code>blocking_detect_threshold_ms</code> threshold).</p>
 69</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/runtime_metrics.rb', line 67</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/runtime_metrics.rb', line 67</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_increment_starvation'>increment_starvation</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@starvation_count</span> <span class='op'>+=</span> <span class='int'>1</span> <span class='rbrace'>}</span>
@@ -484,7 +484,7 @@ the configured <code>blocking_detect_threshold_ms</code> threshold).</p>
 61</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/runtime_metrics.rb', line 50</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/runtime_metrics.rb', line 50</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_record_end'>record_end</span><span class='lparen'>(</span><span class='id identifier rubyid_type'>type</span><span class='comma'>,</span> <span class='id identifier rubyid_outcome'>outcome</span><span class='comma'>,</span> <span class='id identifier rubyid_run_start_ms'>run_start_ms</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_run_ms'>run_ms</span> <span class='op'>=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='comma'>,</span> <span class='symbol'>:millisecond</span><span class='rparen'>)</span> <span class='op'>-</span> <span class='id identifier rubyid_run_start_ms'>run_start_ms</span>
@@ -551,7 +551,7 @@ the configured <code>blocking_detect_threshold_ms</code> threshold).</p>
 31</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/runtime_metrics.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/runtime_metrics.rb', line 29</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_record_start'>record_start</span><span class='lparen'>(</span><span class='id identifier rubyid_type'>type</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@active_by_type</span><span class='lbracket'>[</span><span class='id identifier rubyid_type'>type</span><span class='rbracket'>]</span> <span class='op'>+=</span> <span class='int'>1</span> <span class='rbrace'>}</span>
@@ -612,7 +612,7 @@ the configured <code>blocking_detect_threshold_ms</code> threshold).</p>
 42</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/runtime_metrics.rb', line 37</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/runtime_metrics.rb', line 37</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_record_wait'>record_wait</span><span class='lparen'>(</span><span class='id identifier rubyid_wait_ms'>wait_ms</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -691,7 +691,7 @@ the configured <code>blocking_detect_threshold_ms</code> threshold).</p>
 103</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/runtime_metrics.rb', line 81</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/runtime_metrics.rb', line 81</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_snapshot'>snapshot</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -767,7 +767,7 @@ the configured <code>blocking_detect_threshold_ms</code> threshold).</p>
 76</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/runtime_metrics.rb', line 74</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/runtime_metrics.rb', line 74</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_starvation_count'>starvation_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@starvation_count</span> <span class='rbrace'>}</span>
@@ -782,7 +782,7 @@ the configured <code>blocking_detect_threshold_ms</code> threshold).</p>
 </div>
 
       <div id="footer">
-  Generated on Tue Jun 16 16:31:10 2026 by
+  Generated on Fri Jun 19 06:33:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

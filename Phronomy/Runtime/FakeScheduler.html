@@ -98,7 +98,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/runtime/fake_scheduler.rb
+    <dd>lib/phronomy/engine/runtime/fake_scheduler.rb
 </dd>
   </dl>
   
@@ -461,7 +461,7 @@ pending callbacks are surfaced as <code>pending_timers</code>.</p>
 57</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/fake_scheduler.rb', line 52</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@event_log</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -528,7 +528,7 @@ surface pending timers.  When <code>nil</code>, a real monotonic clock is used.<
 52</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 50</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/fake_scheduler.rb', line 50</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clock'>clock</span>
   <span class='ivar'>@clock</span>
@@ -595,7 +595,7 @@ Each entry is <code>{ type:, task_name:, at: }</code> where <code>type</code> is
 43</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/fake_scheduler.rb', line 41</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_log'>event_log</span>
   <span class='ivar'>@event_log</span>
@@ -658,7 +658,7 @@ Each entry is <code>{ task:, name:, status: }</code>.</p></div>
 47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 45</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/fake_scheduler.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tasks'>tasks</span>
   <span class='ivar'>@tasks</span>
@@ -744,7 +744,7 @@ Each entry is <code>{ task:, name:, status: }</code>.</p></div>
 155</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 148</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/fake_scheduler.rb', line 148</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_assert_cancelled'>assert_cancelled</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_names'>names</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_cancelled'>cancelled</span> <span class='op'>=</span> <span class='ivar'>@event_log</span><span class='period'>.</span><span class='id identifier rubyid_select'>select</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_e'>e</span><span class='op'>|</span> <span class='id identifier rubyid_e'>e</span><span class='lbracket'>[</span><span class='symbol'>:type</span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='symbol'>:cancelled</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_e'>e</span><span class='op'>|</span> <span class='id identifier rubyid_e'>e</span><span class='lbracket'>[</span><span class='symbol'>:task_name</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
@@ -817,7 +817,7 @@ Intended for use inside RSpec examples.</p>
 141</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 134</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/fake_scheduler.rb', line 134</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_assert_order'>assert_order</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_names'>names</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_completed'>completed</span> <span class='op'>=</span> <span class='ivar'>@event_log</span><span class='period'>.</span><span class='id identifier rubyid_select'>select</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_e'>e</span><span class='op'>|</span> <span class='id identifier rubyid_e'>e</span><span class='lbracket'>[</span><span class='symbol'>:type</span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='symbol'>:completed</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_e'>e</span><span class='op'>|</span> <span class='id identifier rubyid_e'>e</span><span class='lbracket'>[</span><span class='symbol'>:task_name</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
@@ -884,7 +884,7 @@ Intended for use inside RSpec examples.</p>
 125</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 121</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/fake_scheduler.rb', line 121</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pending_timers'>pending_timers</span>
   <span class='kw'>return</span> <span class='lbracket'>[</span><span class='rbracket'>]</span> <span class='kw'>unless</span> <span class='ivar'>@clock</span>
@@ -986,7 +986,7 @@ Lifecycle events are recorded in <span class='object_link'><a href="#event_log-i
 85</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 67</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/fake_scheduler.rb', line 67</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_spawn'>spawn</span><span class='lparen'>(</span><span class='label'>name:</span><span class='comma'>,</span> <span class='label'>parent:</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid__log_event'>_log_event</span><span class='lparen'>(</span><span class='symbol'>:spawned</span><span class='comma'>,</span> <span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
@@ -1062,7 +1062,7 @@ compatibility with cooperative scheduler interfaces.</p>
 98</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 96</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/fake_scheduler.rb', line 96</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tick'>tick</span>
   <span class='kw'>self</span>
@@ -1163,7 +1163,7 @@ evaluated once; if it is already met this method returns immediately.</p>
 114</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/runtime/fake_scheduler.rb', line 108</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime/fake_scheduler.rb', line 108</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tick_until'>tick_until</span><span class='lparen'>(</span><span class='label'>max_ticks:</span> <span class='int'>1000</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_max_ticks'>max_ticks</span><span class='period'>.</span><span class='id identifier rubyid_times'>times</span> <span class='kw'>do</span>
@@ -1182,7 +1182,7 @@ evaluated once; if it is already met this method returns immediately.</p>
 </div>
 
       <div id="footer">
-  Generated on Tue Jun 16 16:31:09 2026 by
+  Generated on Fri Jun 19 06:33:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

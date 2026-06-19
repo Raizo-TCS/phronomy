@@ -98,7 +98,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/task/thread_backend.rb
+    <dd>lib/phronomy/engine/task/thread_backend.rb
 </dd>
   </dl>
   
@@ -355,7 +355,7 @@ run outside the scheduler (e.g. inside BlockingAdapterPool).</p>
 39</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/thread_backend.rb', line 16</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task/thread_backend.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>task:</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='kw'>super</span>
@@ -439,7 +439,7 @@ run outside the scheduler (e.g. inside BlockingAdapterPool).</p>
 55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/thread_backend.rb', line 53</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task/thread_backend.rb', line 53</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_alive?'>alive?</span>
   <span class='ivar'>@thread</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
@@ -511,7 +511,7 @@ run outside the scheduler (e.g. inside BlockingAdapterPool).</p>
 49</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/thread_backend.rb', line 44</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task/thread_backend.rb', line 44</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_await'>await</span>
   <span class='ivar'>@thread</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span>
@@ -571,7 +571,7 @@ run outside the scheduler (e.g. inside BlockingAdapterPool).</p>
 62</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/thread_backend.rb', line 59</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task/thread_backend.rb', line 59</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancel!'>cancel!</span>
   <span class='ivar'>@thread</span><span class='period'>.</span><span class='id identifier rubyid_raise'>raise</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Task cancelled</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='ivar'>@thread</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
@@ -628,7 +628,7 @@ run outside the scheduler (e.g. inside BlockingAdapterPool).</p>
 81</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/thread_backend.rb', line 79</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task/thread_backend.rb', line 79</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_completed_error'>completed_error</span>
   <span class='ivar'>@error</span>
@@ -684,7 +684,7 @@ run outside the scheduler (e.g. inside BlockingAdapterPool).</p>
 75</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/thread_backend.rb', line 73</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task/thread_backend.rb', line 73</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_completed_value'>completed_value</span>
   <span class='ivar'>@value</span>
@@ -757,7 +757,7 @@ run outside the scheduler (e.g. inside BlockingAdapterPool).</p>
 69</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/task/thread_backend.rb', line 67</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task/thread_backend.rb', line 67</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='id identifier rubyid_limit'>limit</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@thread</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='id identifier rubyid_limit'>limit</span><span class='rparen'>)</span>
@@ -772,7 +772,7 @@ run outside the scheduler (e.g. inside BlockingAdapterPool).</p>
 </div>
 
       <div id="footer">
-  Generated on Tue Jun 16 16:31:09 2026 by
+  Generated on Fri Jun 19 06:33:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

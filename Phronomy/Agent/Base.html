@@ -91,7 +91,7 @@
   
   <dl>
       <dt>Includes:</dt>
-      <dd><span class='object_link'><a href="Concerns/BeforeCompletion.html" title="Phronomy::Agent::Concerns::BeforeCompletion (module)">Concerns::BeforeCompletion</a></span>, <span class='object_link'><a href="Concerns/ErrorTranslation.html" title="Phronomy::Agent::Concerns::ErrorTranslation (module)">Concerns::ErrorTranslation</a></span>, <span class='object_link'><a href="Concerns/Filterable.html" title="Phronomy::Agent::Concerns::Filterable (module)">Concerns::Filterable</a></span>, <span class='object_link'><a href="Concerns/Retryable.html" title="Phronomy::Agent::Concerns::Retryable (module)">Concerns::Retryable</a></span>, <span class='object_link'><a href="Concerns/Suspendable.html" title="Phronomy::Agent::Concerns::Suspendable (module)">Concerns::Suspendable</a></span>, <span class='object_link'><a href="../Runnable.html" title="Phronomy::Runnable (module)">Runnable</a></span></dd>
+      <dd><span class='object_link'><a href="Concerns/BeforeCompletion.html" title="Phronomy::Agent::Concerns::BeforeCompletion (module)">Concerns::BeforeCompletion</a></span>, <span class='object_link'><a href="Concerns/ErrorTranslation.html" title="Phronomy::Agent::Concerns::ErrorTranslation (module)">Concerns::ErrorTranslation</a></span>, <span class='object_link'><a href="Concerns/Filterable.html" title="Phronomy::Agent::Concerns::Filterable (module)">Concerns::Filterable</a></span>, <span class='object_link'><a href="Concerns/Retryable.html" title="Phronomy::Agent::Concerns::Retryable (module)">Concerns::Retryable</a></span>, <span class='object_link'><a href="../Runnable.html" title="Phronomy::Runnable (module)">Runnable</a></span></dd>
   </dl>
   
   
@@ -152,9 +152,41 @@ and retry behaviour. Instance methods handle invocation.</p>
 
 
 
+  <h2>Instance Attribute Summary <small><a href="#" class="summary_toggle">collapse</a></small></h2>
+  <ul class="summary">
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#scope_policy=-instance_method" title="#scope_policy= (instance method)">#<strong>scope_policy</strong>  &#x21d2; void </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+      <span class="note title writeonly">writeonly</span>
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Registers a scope policy callable for this agent instance.</p></div></span>
+  
+</li>
+
+    
+  </ul>
 
 
-  <h2>Instance Attribute Summary</h2>
+
+  
   
   <h3 class="inherited">Attributes included from <span class='object_link'><a href="Concerns/BeforeCompletion.html" title="Phronomy::Agent::Concerns::BeforeCompletion (module)">Concerns::BeforeCompletion</a></span></h3>
   <p class="inherited"><span class='object_link'><a href="Concerns/BeforeCompletion.html#before_completion-instance_method" title="Phronomy::Agent::Concerns::BeforeCompletion#before_completion (method)">#before_completion</a></span></p>
@@ -167,6 +199,28 @@ and retry behaviour. Instance methods handle invocation.</p>
     </h2>
 
     <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#approve-class_method" title="approve (class method)">.<strong>approve</strong>(session_id, approved: true, config: {})  &#x21d2; Hash </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Continues a suspended invocation identified by <code>session_id</code>.</p></div></span>
+  
+</li>
+
       
         <li class="public ">
   <span class="summary_signature">
@@ -391,28 +445,6 @@ and retry behaviour. Instance methods handle invocation.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#resume-class_method" title="resume (class method)">.<strong>resume</strong>(checkpoint, approved:, config: {})  &#x21d2; Hash </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Resumes a suspended invocation identified by <code>checkpoint</code> without requiring the original agent instance to be kept in memory.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#static_knowledge-class_method" title="static_knowledge (class method)">.<strong>static_knowledge</strong>(*sources)  &#x21d2; Object </a>
     
 
@@ -618,6 +650,28 @@ and retry behaviour. Instance methods handle invocation.</p>
 </li>
 
       
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#approve-instance_method" title="#approve (instance method)">#<strong>approve</strong>(session_id, approved: true, config: {})  &#x21d2; Hash </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Continues a suspended invocation identified by <code>session_id</code>.</p></div></span>
+  
+</li>
+
+      
         <li class="public deprecated">
   <span class="summary_signature">
     
@@ -688,6 +742,28 @@ Retained for backward compatibility with callers using safe navigation (+&amp;.r
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#on_approval_required-instance_method" title="#on_approval_required (instance method)">#<strong>on_approval_required</strong>(&amp;block)  &#x21d2; self </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Registers a synchronous approval callback that is invoked before executing any tool that has <code>requires_approval true</code> set.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#stream-instance_method" title="#stream (instance method)">#<strong>stream</strong>(input, messages: [], thread_id: nil, config: {}) {|Phronomy::Agent::StreamEvent| ... } &#x21d2; Hash </a>
     
 
@@ -719,18 +795,6 @@ Retained for backward compatibility with callers using safe navigation (+&amp;.r
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  <h3 class="inherited">Methods included from <span class='object_link'><a href="Concerns/Suspendable.html" title="Phronomy::Agent::Concerns::Suspendable (module)">Concerns::Suspendable</a></span></h3>
-  <p class="inherited"><span class='object_link'><a href="Concerns/Suspendable.html#checkpoint_store=-instance_method" title="Phronomy::Agent::Concerns::Suspendable#checkpoint_store= (method)">#checkpoint_store=</a></span>, <span class='object_link'><a href="Concerns/Suspendable.html#on_approval_required-instance_method" title="Phronomy::Agent::Concerns::Suspendable#on_approval_required (method)">#on_approval_required</a></span>, <span class='object_link'><a href="Concerns/Suspendable.html#resume-instance_method" title="Phronomy::Agent::Concerns::Suspendable#resume (method)">#resume</a></span>, <span class='object_link'><a href="Concerns/Suspendable.html#scope_policy=-instance_method" title="Phronomy::Agent::Concerns::Suspendable#scope_policy= (method)">#scope_policy=</a></span></p>
-
   
   
   
@@ -779,13 +843,201 @@ Retained for backward compatibility with callers using safe navigation (+&amp;.r
   <h3 class="inherited">Methods included from <span class='object_link'><a href="../Runnable.html" title="Phronomy::Runnable (module)">Runnable</a></span></h3>
   <p class="inherited"><span class='object_link'><a href="../Runnable.html#batch-instance_method" title="Phronomy::Runnable#batch (method)">#batch</a></span>, <span class='object_link'><a href="../Runnable.html#trace-instance_method" title="Phronomy::Runnable#trace (method)">#trace</a></span></p>
 
+  <div id="instance_attr_details" class="attr_details">
+    <h2>Instance Attribute Details</h2>
+    
+      
+      <span id=""></span>
+      <div class="method_details first">
+  <h3 class="signature first" id="scope_policy=-instance_method">
+  
+    #<strong>scope_policy=</strong>(value)  &#x21d2; <tt>void</tt>  <span class="extras">(writeonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note returns_void">This method returns an undefined value.</p><p>Registers a scope policy callable for this agent instance.</p>
+<p>The callable receives <code>(tool_class, scope, agent)</code> and must return
+<code>:allow</code>, <code>:reject</code>, or <code>:approve</code>.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>policy</span>
+      
+      
+        <span class='type'>(<tt>#call</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+439
+440
+441</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 439</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_scope_policy='>scope_policy=</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
+  <span class='ivar'>@scope_policy</span> <span class='op'>=</span> <span class='id identifier rubyid_value'>value</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
 
   <div id="class_method_details" class="method_details_list">
     <h2>Class Method Details</h2>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="cache_instructions-class_method">
+  <h3 class="signature first" id="approve-class_method">
+  
+    .<strong>approve</strong>(session_id, approved: true, config: {})  &#x21d2; <tt>Hash</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Continues a suspended invocation identified by <code>session_id</code>.</p>
+<p>Instantiates a fresh agent and delegates to the instance-level #approve.
+When <code>approved: false</code>, the agent rejects the pending tool call and ends
+the invocation.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>session_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>the session_id from the suspended result hash</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>approved</span>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>true</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p><code>true</code> to execute the pending tool; <code>false</code> to deny</p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>config</span>
+      
+      
+        <span class='type'>(<tt>Hash</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>{}</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>same runtime options as <span class='object_link'><a href="#invoke-instance_method" title="Phronomy::Agent::Base#invoke (method)">#invoke</a></span></p></div>
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Hash</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>same shape as <span class='object_link'><a href="#invoke-instance_method" title="Phronomy::Agent::Base#invoke (method)">#invoke</a></span> — may contain <code>suspended: true</code> if
+another approval-required tool is encountered during continuation</p></div>
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>when no suspended session matches <code>session_id</code></p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+389
+390
+391</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 389</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_approve'>approve</span><span class='lparen'>(</span><span class='id identifier rubyid_session_id'>session_id</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_approve'>approve</span><span class='lparen'>(</span><span class='id identifier rubyid_session_id'>session_id</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='id identifier rubyid_approved'>approved</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="cache_instructions-class_method">
   
     .<strong>cache_instructions</strong>(enabled = nil)  &#x21d2; <tt>Object</tt> 
   
@@ -826,16 +1078,16 @@ the model name.</p>
       <pre class="lines">
 
 
+318
+319
+320
 321
 322
 323
-324
-325
-326
-327</pre>
+324</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 321</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 318</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cache_instructions'>cache_instructions</span><span class='lparen'>(</span><span class='id identifier rubyid_enabled'>enabled</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_enabled'>enabled</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -884,16 +1136,16 @@ Subtract this from the context window before computing the memory budget.</p>
       <pre class="lines">
 
 
+368
+369
+370
 371
 372
 373
-374
-375
-376
-377</pre>
+374</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 371</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 368</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_context_overhead'>context_overhead</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -944,16 +1196,16 @@ actually-loaded context length may differ from the catalogue value.</p>
       <pre class="lines">
 
 
+352
+353
+354
 355
 356
 357
-358
-359
-360
-361</pre>
+358</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 355</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 352</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_context_window'>context_window</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1058,17 +1310,17 @@ When used as a reader (no argument, no block), returns the stored value.</p>
       <pre class="lines">
 
 
+75
+76
+77
 78
 79
 80
 81
-82
-83
-84
-85</pre>
+82</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 78</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 75</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_instructions'>instructions</span><span class='lparen'>(</span><span class='id identifier rubyid_text'>text</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_text'>text</span> <span class='op'>||</span> <span class='id identifier rubyid_block_given?'>block_given?</span>
@@ -1156,6 +1408,9 @@ keyword argument.  <code>Phronomy::TimeoutError</code> is raised to the caller.<
       <pre class="lines">
 
 
+237
+238
+239
 240
 241
 242
@@ -1164,13 +1419,10 @@ keyword argument.  <code>Phronomy::TimeoutError</code> is raised to the caller.<
 245
 246
 247
-248
-249
-250
-251</pre>
+248</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 240</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 237</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke_timeout'>invoke_timeout</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1254,16 +1506,16 @@ Each tool call and follow-up counts as one iteration. Defaults to 10.</p>
       <pre class="lines">
 
 
+182
+183
+184
 185
 186
 187
-188
-189
-190
-191</pre>
+188</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 185</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 182</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_iterations'>max_iterations</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span>
@@ -1312,16 +1564,16 @@ When nil, the model's max_output_tokens from the registry is used.</p>
       <pre class="lines">
 
 
+334
+335
+336
 337
 338
 339
-340
-341
-342
-343</pre>
+340</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 337</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 334</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_output_tokens'>max_output_tokens</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1403,6 +1655,9 @@ Inherited by subclasses; the most-specific definition wins.</p>
       <pre class="lines">
 
 
+204
+205
+206
 207
 208
 209
@@ -1411,13 +1666,10 @@ Inherited by subclasses; the most-specific definition wins.</p>
 212
 213
 214
-215
-216
-217
-218</pre>
+215</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 207</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 204</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_parallel_tools'>max_parallel_tools</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1508,16 +1760,16 @@ global default from <span class='object_link'><a href="../../Phronomy.html#confi
       <pre class="lines">
 
 
+51
+52
+53
 54
 55
 56
-57
-58
-59
-60</pre>
+57</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 51</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_model'>model</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_name'>name</span>
@@ -1601,17 +1853,17 @@ Required when using a model not registered in RubyLLM's model registry
       <pre class="lines">
 
 
+145
+146
+147
 148
 149
 150
 151
-152
-153
-154
-155</pre>
+152</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 148</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 145</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_provider'>provider</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_name'>name</span>
@@ -1620,134 +1872,6 @@ Required when using a model not registered in RubyLLM's model registry
     <span class='kw'>return</span> <span class='ivar'>@provider</span> <span class='kw'>if</span> <span class='id identifier rubyid_instance_variable_defined?'>instance_variable_defined?</span><span class='lparen'>(</span><span class='symbol'>:@provider</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_superclass'>superclass</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:provider</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id identifier rubyid_superclass'>superclass</span><span class='period'>.</span><span class='id identifier rubyid_provider'>provider</span> <span class='op'>:</span> <span class='kw'>nil</span>
   <span class='kw'>end</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="resume-class_method">
-  
-    .<strong>resume</strong>(checkpoint, approved:, config: {})  &#x21d2; <tt>Hash</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Resumes a suspended invocation identified by <code>checkpoint</code> without
-requiring the original agent instance to be kept in memory.</p>
-<p>Validates that the checkpoint was created by this agent class, then
-instantiates a fresh agent and delegates to Suspendable#resume.</p>
-
-  </div>
-</div>
-<div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
-  
-    <li>
-      
-        <span class='name'>checkpoint</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="Checkpoint.html" title="Phronomy::Agent::Checkpoint (class)">Phronomy::Agent::Checkpoint</a></span></tt>)</span>
-      
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>approved</span>
-      
-      
-        <span class='type'>(<tt>Boolean</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p><code>true</code> to execute the pending tool; <code>false</code> to deny</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>config</span>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>{}</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>same runtime options as <span class='object_link'><a href="#invoke-instance_method" title="Phronomy::Agent::Base#invoke (method)">#invoke</a></span></p></div>
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>same shape as <span class='object_link'><a href="#invoke-instance_method" title="Phronomy::Agent::Base#invoke (method)">#invoke</a></span> — may contain <code>suspended: true</code> if
-another approval-required tool is encountered during continuation</p></div>
-      
-    </li>
-  
-</ul>
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>ArgumentError</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>when <code>checkpoint.agent_class</code> does not match this class</p></div>
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-392
-393
-394
-395
-396
-397
-398</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 392</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='id identifier rubyid_checkpoint'>checkpoint</span><span class='comma'>,</span> <span class='label'>approved:</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='kw'>if</span> <span class='id identifier rubyid_checkpoint'>checkpoint</span><span class='period'>.</span><span class='id identifier rubyid_agent_class'>agent_class</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_checkpoint'>checkpoint</span><span class='period'>.</span><span class='id identifier rubyid_agent_class'>agent_class</span> <span class='op'>!=</span> <span class='id identifier rubyid_name'>name</span>
-    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span>
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>checkpoint belongs to </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_checkpoint'>checkpoint</span><span class='period'>.</span><span class='id identifier rubyid_agent_class'>agent_class</span><span class='embexpr_end'>}</span><span class='tstring_content'>, cannot resume with </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
-  <span class='kw'>end</span>
-  <span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span><span class='id identifier rubyid_checkpoint'>checkpoint</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='id identifier rubyid_approved'>approved</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1806,15 +1930,15 @@ of the process; call <span class='object_link'><a href="#static_knowledge_refres
       <pre class="lines">
 
 
+261
+262
+263
 264
 265
-266
-267
-268
-269</pre>
+266</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 264</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 261</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_static_knowledge'>static_knowledge</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_sources'>sources</span><span class='rparen'>)</span>
   <span class='ivar'>@static_knowledge_sources</span> <span class='op'>=</span> <span class='id identifier rubyid_sources'>sources</span><span class='period'>.</span><span class='id identifier rubyid_flatten'>flatten</span>
@@ -1866,14 +1990,14 @@ only once regardless of how many times the agent is invoked.</p>
       <pre class="lines">
 
 
+280
+281
+282
 283
-284
-285
-286
-287</pre>
+284</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 283</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 280</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_static_knowledge_chunks'>static_knowledge_chunks</span>
   <span class='ivar'>@static_knowledge_chunks</span> <span class='op'>||=</span> <span class='id identifier rubyid_static_knowledge_sources'>static_knowledge_sources</span><span class='period'>.</span><span class='id identifier rubyid_flat_map'>flat_map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_ks'>ks</span><span class='op'>|</span>
@@ -1937,12 +2061,12 @@ process.</p>
       <pre class="lines">
 
 
-301
-302
-303</pre>
+298
+299
+300</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 301</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 298</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_static_knowledge_refresh!'>static_knowledge_refresh!</span>
   <span class='ivar'>@static_knowledge_chunks</span> <span class='op'>=</span> <span class='kw'>nil</span>
@@ -1989,12 +2113,12 @@ process.</p>
       <pre class="lines">
 
 
-274
-275
-276</pre>
+271
+272
+273</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 274</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 271</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_static_knowledge_sources'>static_knowledge_sources</span>
   <span class='ivar'>@static_knowledge_sources</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -2072,16 +2196,16 @@ When nil, the provider's default is used.</p>
       <pre class="lines">
 
 
+164
+165
+166
 167
 168
 169
-170
-171
-172
-173</pre>
+170</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 167</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 164</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_temperature'>temperature</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span>
@@ -2134,17 +2258,17 @@ Subclass-specific aliases take precedence over parent aliases.</p>
       <pre class="lines">
 
 
+124
+125
+126
 127
 128
 129
 130
-131
-132
-133
-134</pre>
+131</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 127</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 124</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_aliases'>tool_aliases</span>
   <span class='id identifier rubyid_own'>own</span> <span class='op'>=</span> <span class='ivar'>@tool_aliases</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
@@ -2206,6 +2330,9 @@ The alias form is useful when two tools share the same auto-generated name
       <pre class="lines">
 
 
+101
+102
+103
 104
 105
 106
@@ -2219,13 +2346,10 @@ The alias form is useful when two tools share the same auto-generated name
 114
 115
 116
-117
-118
-119
-120</pre>
+117</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 104</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 101</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tools'>tools</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_args'>args</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_args'>args</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
@@ -2312,14 +2436,14 @@ Called by Runner during construction when routes are configured.</p>
       <pre class="lines">
 
 
-406
-407
-408
-409
-410</pre>
+399
+400
+401
+402
+403</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 406</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 399</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__add_handoff_tool'>_add_handoff_tool</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_class'>tool_class</span><span class='rparen'>)</span>
   <span class='ivar'>@_handoff_tools</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -2372,15 +2496,149 @@ Called by Runner during construction when routes are configured.</p>
       <pre class="lines">
 
 
-415
-416
-417</pre>
+408
+409
+410</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 415</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 408</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__handoff_tools'>_handoff_tools</span>
   <span class='ivar'>@_handoff_tools</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="approve-instance_method">
+  
+    #<strong>approve</strong>(session_id, approved: true, config: {})  &#x21d2; <tt>Hash</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Continues a suspended invocation identified by <code>session_id</code>.
+When <code>approved: true</code>, executes the pending tool and continues.
+When <code>approved: false</code>, rejects the tool call and ends the invocation.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>session_id</span>
+      
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>approved</span>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>true</tt>)</em>
+      
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>config</span>
+      
+      
+        <span class='type'>(<tt>Hash</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>{}</tt>)</em>
+      
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Hash</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+869
+870
+871
+872
+873
+874
+875
+876
+877
+878
+879
+880
+881
+882
+883
+884</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 869</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_approve'>approve</span><span class='lparen'>(</span><span class='id identifier rubyid_session_id'>session_id</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_ctx'>ctx</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="SuspendedSessionRegistry.html" title="Phronomy::Agent::SuspendedSessionRegistry (module)">SuspendedSessionRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_fetch'><span class='object_link'><a href="SuspendedSessionRegistry.html#fetch-class_method" title="Phronomy::Agent::SuspendedSessionRegistry.fetch (method)">fetch</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_session_id'>session_id</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>No suspended session found: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_session_id'>session_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_ctx'>ctx</span>
+
+  <span class='comment'># Reset approval_required so executing_tool_action proceeds instead of
+</span>  <span class='comment'># re-suspending when called after the :approve FSM transition.
+</span>  <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_approval_required'>approval_required</span> <span class='op'>=</span> <span class='kw'>false</span>
+  <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_approved'>approved</span> <span class='op'>=</span> <span class='kw'>true</span> <span class='kw'>if</span> <span class='id identifier rubyid_approved'>approved</span>  <span class='comment'># signals executing_tool to run the tool
+</span>  <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_rejected'>rejected</span> <span class='op'>=</span> <span class='op'>!</span><span class='id identifier rubyid_approved'>approved</span>  <span class='comment'># signals _extract_invoke_result for rejection
+</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_approved'>approved</span>
+    <span class='id identifier rubyid__resume_fsm'>_resume_fsm</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='comma'>,</span> <span class='symbol'>:approve</span><span class='rparen'>)</span>
+  <span class='kw'>else</span>
+    <span class='id identifier rubyid__resume_fsm'>_resume_fsm</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='comma'>,</span> <span class='symbol'>:reject</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -2417,12 +2675,12 @@ Retained for backward compatibility with callers using safe navigation (+&amp;.r
       <pre class="lines">
 
 
-564
-565
-566</pre>
+586
+587
+588</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 564</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 586</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_context_version_cache'>context_version_cache</span>
   <span class='kw'>nil</span>
@@ -2621,28 +2879,6 @@ messages: Array }+ when the invocation was suspended awaiting tool approval.</p>
       <pre class="lines">
 
 
-463
-464
-465
-466
-467
-468
-469
-470
-471
-472
-473
-474
-475
-476
-477
-478
-479
-480
-481
-482
-483
-484
 485
 486
 487
@@ -2654,10 +2890,32 @@ messages: Array }+ when the invocation was suspended awaiting tool approval.</p>
 493
 494
 495
-496</pre>
+496
+497
+498
+499
+500
+501
+502
+503
+504
+505
+506
+507
+508
+509
+510
+511
+512
+513
+514
+515
+516
+517
+518</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 463</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 485</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span>
@@ -2818,23 +3076,23 @@ drains in-flight invocations before process exit.</p>
       <pre class="lines">
 
 
-520
-521
-522
-523
-524
-525
-526
-527
-528
-529
-530
-531
-532
-533</pre>
+542
+543
+544
+545
+546
+547
+548
+549
+550
+551
+552
+553
+554
+555</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 520</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 542</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span>
@@ -2849,6 +3107,75 @@ drains in-flight invocations before process exit.</p>
       <span class='id identifier rubyid__invoke_impl'>_invoke_impl</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="on_approval_required-instance_method">
+  
+    #<strong>on_approval_required</strong>(&amp;block)  &#x21d2; <tt>self</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Registers a synchronous approval callback that is invoked before
+executing any tool that has <code>requires_approval true</code> set.
+The block receives the tool name (String) and the arguments Hash, and
+must return a truthy value to allow execution.
+Returning a falsy value causes the tool to return a denial message.</p>
+<p>When no handler is registered and a tool with <code>requires_approval</code> is
+called, #invoke returns a suspended result hash containing a
+<code>session_id</code>. Call #approve to continue execution.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="examples">
+    <h4 class="tag_title">Examples:</h4>
+    
+      
+      <pre class="example code"><code><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_on_approval_required'>on_approval_required</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_tool_name'>tool_name</span><span class='comma'>,</span> <span class='id identifier rubyid_args'>args</span><span class='op'>|</span> <span class='id identifier rubyid_prompt_user'>prompt_user</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_name'>tool_name</span><span class='comma'>,</span> <span class='id identifier rubyid_args'>args</span><span class='rparen'>)</span> <span class='rbrace'>}</span></code></pre>
+    
+  </div>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>self</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+426
+427
+428
+429</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 426</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_on_approval_required'>on_approval_required</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='ivar'>@approval_handler</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
+  <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -2981,17 +3308,17 @@ as they are produced by the underlying LLM.</p>
       <pre class="lines">
 
 
-552
-553
-554
-555
-556
-557
-558
-559</pre>
+574
+575
+576
+577
+578
+579
+580
+581</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 552</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 574</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
@@ -3011,7 +3338,7 @@ as they are produced by the underlying LLM.</p>
 </div>
 
       <div id="footer">
-  Generated on Tue Jun 16 16:31:08 2026 by
+  Generated on Fri Jun 19 06:33:00 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
