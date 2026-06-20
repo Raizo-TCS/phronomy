@@ -163,8 +163,11 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
     # An agent that short-circuits invoke to avoid real LLM calls.
     let(:success_agent_class) do
       Class.new(Phronomy::Agent::Base) do
-        define_method(:_invoke_impl) do |_input, messages: [], thread_id: nil, config: {}|
+        define_method(:invoke) do |_input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
           {output: "ok", messages: []}
+        end
+        define_method(:invoke_async) do |input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
+          Phronomy::Task.spawn(name: "stub-async") { invoke(input, messages: messages, thread_id: thread_id, config: config) }
         end
       end
     end
@@ -197,9 +200,12 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
       call_count = 0
       retry_agent = Class.new(Phronomy::Agent::Base) do
         retry_policy times: 3, wait: 0
-        define_method(:_invoke_via_fsm) do |_input, messages: [], thread_id: nil, config: {}|
+        define_method(:invoke) do |_input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
           call_count += 1
           raise Phronomy::CancellationError, "cancelled"
+        end
+        define_method(:invoke_async) do |input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
+          Phronomy::Task.spawn(name: "stub-async") { invoke(input, messages: messages, thread_id: thread_id, config: config) }
         end
       end
 
@@ -218,9 +224,12 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
     def token_capturing_agent
       received_tokens = []
       agent_class = Class.new(Phronomy::Agent::Base) do
-        define_method(:_invoke_impl) do |_input, config: {}, thread_id: nil, messages: []|
+        define_method(:invoke) do |_input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
           received_tokens << config[:cancellation_token]
           {output: "ok", messages: []}
+        end
+        define_method(:invoke_async) do |input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
+          Phronomy::Task.spawn(name: "stub-async") { invoke(input, messages: messages, thread_id: thread_id, config: config) }
         end
       end
       [agent_class, received_tokens]
@@ -245,9 +254,12 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
       received_tokens = []
 
       agent_class = Class.new(Phronomy::Agent::Base) do
-        define_method(:_invoke_impl) do |_input, config: {}, thread_id: nil, messages: []|
+        define_method(:invoke) do |_input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
           received_tokens << config[:cancellation_token]
           {output: "ok", messages: []}
+        end
+        define_method(:invoke_async) do |input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
+          Phronomy::Task.spawn(name: "stub-async") { invoke(input, messages: messages, thread_id: thread_id, config: config) }
         end
       end
 

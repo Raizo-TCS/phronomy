@@ -26,7 +26,7 @@ RSpec.describe Phronomy::VectorStore::Embeddings::Base do
       end.new
 
       op = emb.embed_async("hello")
-      result = op.await
+      result = op.wait_result
       expect(result).to eq([0.1, 0.2, 0.3])
     end
   end

@@ -41,7 +41,7 @@ module Phronomy
       # @return [Object]
       # @raise [Exception]
       # @api private
-      def await
+      def wait_result
         @thread.join
         raise @error if @error
 

@@ -73,27 +73,36 @@ module Phronomy
         (@entry_actions[@current_state] || []).each do |c|
           result = c.call(@ctx)
           if result.is_a?(Phronomy::Task)
-            # Awaitable action: spawn a task to await without blocking EventLoop.
+            # Awaitable action: resume via on_complete without blocking EventLoop.
             @tracker.async_pending = true
             session_id = @id
             current_state_name = @current_state
             timeout_secs = @action_timeouts[current_state_name]
-            Phronomy::Runtime.instance.spawn(name: "fsm-await-#{session_id}") do
-              if timeout_secs
-                if result.join(timeout_secs).nil?
-                  result.cancel!
-                  raise Phronomy::ActionTimeoutError,
-                    "Action in state #{current_state_name.inspect} timed out after #{timeout_secs}s"
-                end
+            if timeout_secs
+              Phronomy::Runtime.instance.timer_queue.schedule(seconds: timeout_secs) do
+                next if result.done?
+
+                event_loop.post(
+                  Event.new(
+                    type: :error,
+                    target_id: session_id,
+                    payload: Phronomy::ActionTimeoutError.new(
+                      "Action in state #{current_state_name.inspect} timed out after #{timeout_secs}s"
+                    )
+                  )
+                )
               end
-              task_result = result.await
+            end
+            result.on_complete do |task_result, error|
+              if error
+                event_loop.post(Event.new(type: :error, target_id: session_id, payload: error))
+                next
+              end
               if _fsm_context?(task_result)
                 event_loop.post(Event.new(type: :action_completed, target_id: session_id, payload: task_result))
               else
                 event_loop.post(Event.new(type: :state_completed, target_id: session_id, payload: nil))
               end
-            rescue => e
-              event_loop.post(Event.new(type: :error, target_id: session_id, payload: e))
             end
             break # Only one async action at a time per state
           elsif _fsm_context?(result)

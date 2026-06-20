@@ -42,13 +42,13 @@ RSpec.describe Phronomy::Runtime do
     it "returns a Task" do
       task = described_class.instance.spawn { 7 }
       expect(task).to be_a(Phronomy::Task)
-      expect(task.await).to eq(7)
+      expect(task.wait_result).to eq(7)
     end
 
     it "accepts an optional name" do
       task = described_class.instance.spawn(name: "rt-task") { :ok }
       expect(task.name).to eq("rt-task")
-      task.await
+      task.wait_result
     end
   end
 
@@ -66,7 +66,7 @@ RSpec.describe Phronomy::Runtime do
     it "spawns tasks through the injected scheduler" do
       task = runtime.spawn { 99 }
       expect(task).to be_a(Phronomy::Task)
-      expect(task.await).to eq(99)
+      expect(task.wait_result).to eq(99)
     end
   end
 
@@ -151,7 +151,7 @@ RSpec.describe Phronomy::Runtime do
 
     it "removes a completed task from the registry" do
       task = runtime.spawn { :done }
-      task.await
+      task.wait_result
       tasks = runtime.instance_variable_get(:@task_registry).instance_variable_get(:@tasks)
       expect(tasks).not_to include(task)
     end
@@ -159,7 +159,7 @@ RSpec.describe Phronomy::Runtime do
     it "removes a failed task from the registry" do
       task = runtime.spawn { raise ArgumentError, "boom" }
       begin
-        task.await
+        task.wait_result
       rescue
         nil
       end
@@ -168,7 +168,7 @@ RSpec.describe Phronomy::Runtime do
     end
 
     it "does not accumulate tasks across many spawns" do
-      20.times { runtime.spawn { :done }.await }
+      20.times { runtime.spawn { :done }.wait_result }
       tasks = runtime.instance_variable_get(:@task_registry).instance_variable_get(:@tasks)
       expect(tasks.length).to eq(0)
     end
@@ -273,7 +273,7 @@ RSpec.describe Phronomy::Runtime do
         42
       end
       expect(results).to eq([:done])
-      expect(task.await).to eq(42)
+      expect(task.wait_result).to eq(42)
     end
   end
 end

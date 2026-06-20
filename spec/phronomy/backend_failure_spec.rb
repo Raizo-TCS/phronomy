@@ -25,7 +25,7 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
 
     it "raises TimeoutError via fetch_async when backend hangs" do
       op = ks.fetch_async(query: "test", cancellation_token: nil, timeout: 0.1)
-      expect { op.await }.to raise_error(Phronomy::TimeoutError)
+      expect { op.wait_result }.to raise_error(Phronomy::TimeoutError)
     end
   end
 
@@ -41,7 +41,7 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
 
     it "raises TimeoutError via embed_async when backend hangs" do
       op = embedder.embed_async("hello", timeout: 0.1)
-      expect { op.await }.to raise_error(Phronomy::TimeoutError)
+      expect { op.wait_result }.to raise_error(Phronomy::TimeoutError)
     end
   end
 
@@ -57,7 +57,7 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
 
     it "raises TimeoutError via search_async when backend hangs" do
       op = vs.search_async(query_embedding: [0.1], k: 3, timeout: 0.1)
-      expect { op.await }.to raise_error(Phronomy::TimeoutError)
+      expect { op.wait_result }.to raise_error(Phronomy::TimeoutError)
     end
   end
 
@@ -71,7 +71,7 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
       token.cancel!
 
       op = pool.submit(cancellation_token: token) { "should not run" }
-      expect { op.await }.to raise_error(Phronomy::CancellationError)
+      expect { op.wait_result }.to raise_error(Phronomy::CancellationError)
     end
   end
 
@@ -115,7 +115,7 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
         ops = 4.times.map { pool.submit { sleep(0.1) } }
 
         # Wait for ops to finish
-        ops.each(&:await)
+        ops.each(&:blocking_wait)
         sleep(0.05)
 
         expect(el.max_lag_seconds).to be < 0.2

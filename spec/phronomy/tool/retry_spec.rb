@@ -339,11 +339,32 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
       agent_class._sleep_proc = sleep_stub
 
       agent = agent_class.new
-      # Stub _invoke_via_fsm to simulate transient failures.
-      allow(agent).to receive(:_invoke_via_fsm) do
+      allow(agent).to receive(:_start_invoke_attempt) do |result_task, input, messages:, thread_id:, config:, attempt:|
         invocations += 1
-        raise exception_class, "transient" if invocations <= fail_times
-        {output: "recovered", messages: [], usage: nil}
+        if invocations <= fail_times
+          err = exception_class.new("transient")
+          policy = agent.class._retry_policy
+          retriable = policy && attempt < policy[:times] &&
+            !err.is_a?(Phronomy::FilterBlockError) &&
+            !err.is_a?(Phronomy::CancellationError)
+          if retriable
+            wait_sec = agent.send(:compute_agent_retry_wait, policy[:wait], policy[:base], attempt)
+            agent.class._sleep_proc.call(wait_sec) if wait_sec > 0
+            agent.send(:_start_invoke_attempt, result_task, input, messages: messages, thread_id: thread_id, config: config,
+              attempt: attempt + 1)
+          else
+            begin
+              agent.send(:translate_and_reraise!, err)
+            rescue => translated
+              result_task.backend.unblock(nil, translated)
+              result_task.transition!(:failed, error: translated)
+            end
+          end
+        else
+          result = {output: "recovered", messages: [], usage: nil}
+          result_task.backend.unblock(result, nil)
+          result_task.transition!(:completed, value: result)
+        end
       end
       [agent, -> { invocations }]
     end
@@ -372,7 +393,11 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
     it "does not retry when no policy is set" do
       agent_class = Class.new(Phronomy::Agent::Base)
       agent = agent_class.new
-      allow(agent).to receive(:_invoke_via_fsm).and_raise(RuntimeError, "boom")
+      allow(agent).to receive(:_start_invoke_attempt) do |result_task, *|
+        err = RuntimeError.new("boom")
+        result_task.backend.unblock(nil, err)
+        result_task.transition!(:failed, error: err)
+      end
       expect { agent.invoke("hi") }.to raise_error(RuntimeError, /boom/)
     end
 
@@ -382,7 +407,11 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
       end
       agent_class._sleep_proc = sleep_stub
       agent = agent_class.new
-      allow(agent).to receive(:_invoke_via_fsm).and_raise(Phronomy::FilterBlockError, "blocked")
+      allow(agent).to receive(:_start_invoke_attempt) do |result_task, *|
+        err = Phronomy::FilterBlockError.new("blocked")
+        result_task.backend.unblock(nil, err)
+        result_task.transition!(:failed, error: err)
+      end
       expect { agent.invoke("hi") }.to raise_error(Phronomy::FilterBlockError)
       expect(sleep_calls).to be_empty
     end
@@ -398,7 +427,26 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
       end
       agent_class._sleep_proc = sleep_stub
       agent = agent_class.new
-      allow(agent).to receive(:_invoke_via_fsm).and_raise(RuntimeError, "always")
+      allow(agent).to receive(:_start_invoke_attempt) do |result_task, input, messages:, thread_id:, config:, attempt:|
+        err = RuntimeError.new("always")
+        policy = agent.class._retry_policy
+        retriable = policy && attempt < policy[:times] &&
+          !err.is_a?(Phronomy::FilterBlockError) &&
+          !err.is_a?(Phronomy::CancellationError)
+        if retriable
+          wait_sec = agent.send(:compute_agent_retry_wait, policy[:wait], policy[:base], attempt)
+          agent.class._sleep_proc.call(wait_sec) if wait_sec > 0
+          agent.send(:_start_invoke_attempt, result_task, input, messages: messages, thread_id: thread_id, config: config,
+            attempt: attempt + 1)
+        else
+          begin
+            agent.send(:translate_and_reraise!, err)
+          rescue => translated
+            result_task.backend.unblock(nil, translated)
+            result_task.transition!(:failed, error: translated)
+          end
+        end
+      end
       agent
     end
 
@@ -440,12 +488,33 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
       agent_class._sleep_proc = sleep_stub
 
       agent = agent_class.new
-      # Stub _invoke_via_fsm (the private method called by the retry loop).
-      allow(agent).to receive(:_invoke_via_fsm) do
+      allow(agent).to receive(:_start_invoke_attempt) do |result_task, input, messages:, thread_id:, config:, attempt:|
         invocations += 1
-        raise "transient" if invocations <= fail_times
-        {output: "recovered", messages: [], usage: Phronomy::TokenUsage.zero,
-         iterations_exhausted: false}
+        if invocations <= fail_times
+          err = RuntimeError.new("transient")
+          policy = agent.class._retry_policy
+          retriable = policy && attempt < policy[:times] &&
+            !err.is_a?(Phronomy::FilterBlockError) &&
+            !err.is_a?(Phronomy::CancellationError)
+          if retriable
+            wait_sec = agent.send(:compute_agent_retry_wait, policy[:wait], policy[:base], attempt)
+            agent.class._sleep_proc.call(wait_sec) if wait_sec > 0
+            agent.send(:_start_invoke_attempt, result_task, input, messages: messages, thread_id: thread_id, config: config,
+              attempt: attempt + 1)
+          else
+            begin
+              agent.send(:translate_and_reraise!, err)
+            rescue => translated
+              result_task.backend.unblock(nil, translated)
+              result_task.transition!(:failed, error: translated)
+            end
+          end
+        else
+          result = {output: "recovered", messages: [], usage: Phronomy::TokenUsage.zero,
+                    iterations_exhausted: false}
+          result_task.backend.unblock(result, nil)
+          result_task.transition!(:completed, value: result)
+        end
       end
       [agent, -> { invocations }]
     end
@@ -469,7 +538,11 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
       end
       agent_class._sleep_proc = sleep_stub
       agent = agent_class.new
-      allow(agent).to receive(:_invoke_via_fsm).and_raise(Phronomy::FilterBlockError, "blocked")
+      allow(agent).to receive(:_start_invoke_attempt) do |result_task, *|
+        err = Phronomy::FilterBlockError.new("blocked")
+        result_task.backend.unblock(nil, err)
+        result_task.transition!(:failed, error: err)
+      end
       expect { agent.invoke("hi") }.to raise_error(Phronomy::FilterBlockError)
       expect(sleep_calls).to be_empty
     end

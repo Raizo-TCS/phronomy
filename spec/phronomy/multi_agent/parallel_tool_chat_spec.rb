@@ -49,7 +49,7 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
     runtime_dbl = instance_double(Phronomy::Runtime, blocking_io: pool_double)
     allow(runtime_dbl).to receive(:spawn) do |name: nil, &blk|
       t = double("Task-#{name}")
-      allow(t).to receive(:await).and_return(blk.call)
+      allow(t).to receive(:wait_result).and_return(blk.call)
       t
     end
     allow(Phronomy::Runtime).to receive(:instance).and_return(runtime_dbl)
@@ -257,7 +257,7 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
       allow(pd).to receive(:submit) do |cancellation_token: nil, &blk|
         result = blk.call
         op = double("PendingOperation")
-        allow(op).to receive(:await).and_return(result)
+        allow(op).to receive(:wait_result).and_return(result)
         op
       end
       pd
@@ -268,7 +268,7 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
       allow(runtime).to receive(:spawn) do |name: nil, &blk|
         task_spawned << :spawned
         t = double("Task#{task_spawned.size}")
-        allow(t).to receive(:await).and_return(blk.call)
+        allow(t).to receive(:wait_result).and_return(blk.call)
         t
       end
       allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)

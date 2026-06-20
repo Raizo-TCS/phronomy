@@ -35,7 +35,11 @@ module Phronomy
           # @return [Hash, nil]
           attr_reader :_retry_policy
 
-          # Injectable sleep callable for testing (shared with Tool::Base pattern).
+          # Injectable sleep callable for testing.
+          # In the EventLoop-driven invoke path, actual delay is handled by
+          # timer_queue (non-blocking); _sleep_proc is called only as an
+          # instrumentation hook.  The default is a no-op; tests override it
+          # with a spy lambda to record sleep durations.
           # @return [#call]
           # @api private
           def _sleep_proc

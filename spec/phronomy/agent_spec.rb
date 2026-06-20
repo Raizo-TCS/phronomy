@@ -451,10 +451,8 @@ RSpec.describe "Phronomy::Agent::Base invoke_timeout DSL (Issue #116)" do
         invoke_timeout 0.1
       end
 
-      # Stub _invoke_impl to block indefinitely
-      allow_any_instance_of(klass).to receive(:_invoke_impl) do
-        sleep 10
-      end
+      # Stub _start_invoke_attempt to never complete the result_task (simulates a slow agent)
+      allow_any_instance_of(klass).to receive(:_start_invoke_attempt)
 
       expect { klass.new.invoke("test") }.to raise_error(Phronomy::TimeoutError, /timed out/)
     end
@@ -465,8 +463,10 @@ RSpec.describe "Phronomy::Agent::Base invoke_timeout DSL (Issue #116)" do
         invoke_timeout 5
       end
 
-      allow_any_instance_of(klass).to receive(:_invoke_impl)
-        .and_return({output: "ok", messages: [], usage: nil})
+      allow_any_instance_of(klass).to receive(:_start_invoke_attempt) do |_instance, result_task, *|
+        result_task.backend.unblock({output: "ok", messages: [], usage: nil}, nil)
+        result_task.transition!(:completed, value: {output: "ok", messages: [], usage: nil})
+      end
 
       result = klass.new.invoke("hi")
       expect(result[:output]).to eq("ok")
@@ -658,9 +658,9 @@ RSpec.describe "Agent#invoke invoke_timeout cancellation propagation (Issue #290
     end
 
     captured_token = nil
-    allow_any_instance_of(klass).to receive(:_invoke_impl) do |_agent, _input, config:, **|
+    allow_any_instance_of(klass).to receive(:_start_invoke_attempt) do |_instance, result_task, _input, messages:, thread_id:, config:, attempt:|
       captured_token = config[:cancellation_token]
-      sleep 10 # simulate a slow LLM/tool call
+      # Never complete the task — simulate a slow LLM/tool call
     end
 
     expect { klass.new.invoke("test") }.to raise_error(Phronomy::TimeoutError)
@@ -679,9 +679,10 @@ RSpec.describe "Agent#invoke invoke_timeout cancellation propagation (Issue #290
 
     parent_token = Phronomy::Concurrency::CancellationToken.new
     captured_token = nil
-    allow_any_instance_of(klass).to receive(:_invoke_impl) do |_agent, _input, config:, **|
+    allow_any_instance_of(klass).to receive(:_start_invoke_attempt) do |_instance, result_task, _input, messages:, thread_id:, config:, attempt:|
       captured_token = config[:cancellation_token]
-      {output: "ok", messages: [], usage: nil}
+      result_task.backend.unblock({output: "ok", messages: [], usage: nil}, nil)
+      result_task.transition!(:completed, value: {output: "ok", messages: [], usage: nil})
     end
 
     klass.new.invoke("test", config: {cancellation_token: parent_token})

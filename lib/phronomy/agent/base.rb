@@ -490,7 +490,10 @@ module Phronomy
 
         timeout_sec = self.class.invoke_timeout
         unless timeout_sec
-          return invoke_async(input, messages: messages, thread_id: thread_id, config: config).await
+          return trace("agent.invoke", input: input, **_build_caller_meta(config)) do |_span|
+            result = invoke_async(input, messages: messages, thread_id: thread_id, config: config).wait_result
+            [result, result[:usage]]
+          end
         end
 
         # invoke_timeout: create a CancellationScope with deadline, pass its token
@@ -504,7 +507,7 @@ module Phronomy
         # Bridge the task result to an AsyncQueue so scope.pop_queue can observe the deadline.
         completion_queue = Phronomy::Concurrency::AsyncQueue.new
         Phronomy::Runtime.instance.spawn(name: "invoke-timeout-bridge:#{(self.class.name || "agent").downcase}") do
-          completion_queue.push(task.await)
+          completion_queue.push(task.wait_result)
         rescue => e
           completion_queue.push(e)
         end
@@ -530,7 +533,7 @@ module Phronomy
       #
       # @example
       #   task = agent.invoke_async("Hello!")
-      #   result = task.await   # => { output: "...", messages: [...], usage: ... }
+      #   result = task.wait_result   # => { output: "...", messages: [...], usage: ... }
       #
       # @param input    [String, Hash]
       # @param messages [Array]
@@ -546,11 +549,11 @@ module Phronomy
         bp = Phronomy.configuration.backpressure
         on_full = (bp == :raise) ? :reject : (bp || :wait)
         bp_timeout = Phronomy.configuration.backpressure_timeout
+        result_task = Phronomy::Task.deferred(name: "agent-#{(self.class.name || "anonymous").downcase}-async")
         gate = Phronomy::Runtime.instance.gate(:agent)
-        Phronomy::Runtime.instance.spawn(name: "agent-#{(self.class.name || "anonymous").downcase}-async") do
-          gate.acquire(on_full: on_full, timeout: bp_timeout) do
-            _invoke_impl(input, messages: messages, thread_id: thread_id, config: config)
-          end
+        gate.acquire(on_full: on_full, timeout: bp_timeout) do
+          _start_invoke_attempt(result_task, input, messages: messages, thread_id: thread_id, config: config, attempt: 0)
+          return result_task
         end
       end
 
@@ -857,6 +860,72 @@ module Phronomy
         end
       end
 
+      # Starts a single invocation attempt and wires retry/translation onto result_task.
+      # Non-blocking: registers with EventLoop and returns immediately.
+      # On error, retries via timer_queue when policy allows; otherwise translates
+      # and resolves result_task as failed.
+      # @api private
+      def _start_invoke_attempt(result_task, input, messages:, thread_id:, config:, attempt:)
+        effective_config = thread_id ? config.merge(thread_id: thread_id) : config
+        check_cancellation!(effective_config, "invocation cancelled")
+        Phronomy::EventLoop.instance.start
+        session = Agent::InvocationSession.build(
+          agent: self,
+          input: input,
+          messages: messages,
+          config: effective_config
+        )
+        source_task = Phronomy::Task.deferred(name: "#{result_task.name}-attempt-#{attempt}")
+        Phronomy::EventLoop.instance.register(session, completion: source_task)
+        session_id = session.id
+        policy = self.class._retry_policy
+
+        source_task.on_complete do |ctx, error|
+          retriable = error &&
+            !error.is_a?(Phronomy::FilterBlockError) &&
+            !error.is_a?(Phronomy::CancellationError) &&
+            policy && attempt < policy[:times]
+
+          if retriable
+            wait = compute_agent_retry_wait(policy[:wait], policy[:base], attempt)
+            # Call _sleep_proc for instrumentation (test spy records the duration;
+            # in production this is a no-op since timer_queue handles the actual delay).
+            self.class._sleep_proc.call(wait) if wait > 0
+            do_retry = -> {
+              _start_invoke_attempt(
+                result_task, input,
+                messages: messages, thread_id: thread_id, config: config,
+                attempt: attempt + 1
+              )
+            }
+            if wait > 0
+              Phronomy::Runtime.instance.timer_queue.schedule(seconds: wait, &do_retry)
+            else
+              do_retry.call
+            end
+          elsif error
+            begin
+              translate_and_reraise!(error)
+            rescue => translated
+              result_task.backend.unblock(nil, translated)
+              result_task.transition!(:failed, error: translated)
+            end
+          else
+            begin
+              result = _extract_invoke_result(ctx, session_id)
+              result_task.backend.unblock(result, nil)
+              result_task.transition!(:completed, value: result)
+            rescue => e
+              result_task.backend.unblock(nil, e)
+              result_task.transition!(:failed, error: e)
+            end
+          end
+        end
+      rescue => e
+        result_task.backend.unblock(nil, e)
+        result_task.transition!(:failed, error: e)
+      end
+
       # Continues a suspended invocation identified by +session_id+.
       # When +approved: true+, executes the pending tool and continues.
       # When +approved: false+, rejects the tool call and ends the invocation.
@@ -945,7 +1014,7 @@ module Phronomy
           check_cancellation!(config, "invocation cancelled during streaming")
         end
 
-        response = pending.await
+        response = pending.blocking_wait
         [response.content, Phronomy::TokenUsage.from_tokens(response.tokens)]
       end
 

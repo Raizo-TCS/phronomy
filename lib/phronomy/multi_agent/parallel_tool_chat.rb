@@ -77,7 +77,7 @@ module Phronomy
         # Thread that previously wrapped each pool operation.
         #
         # Both Phronomy::Task and BlockingAdapterPool::PendingOperation support
-        # #await, so results are collected uniformly below.
+        # #wait_result, so results are collected uniformly below.
         ct = @cancellation_token
         max = @max_parallel_tools
         tool_results = tool_calls.each_slice(max).flat_map do |batch|
@@ -105,7 +105,7 @@ module Phronomy
 
           # Await all dispatched operations in original order.
           dispatched.map do |item|
-            result = item[:awaitable] ? item[:awaitable].await : item[:result]
+            result = item[:awaitable] ? item[:awaitable].wait_result : item[:result]
             {tool_call: item[:tool_call], result: result}
           end
         end
@@ -142,7 +142,7 @@ module Phronomy
           tool: tool,
           args: tool_call.arguments,
           cancellation_token: @cancellation_token
-        ).await
+        ).wait_result
       end
     end
   end

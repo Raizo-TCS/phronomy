@@ -26,12 +26,12 @@ module Phronomy
     #
     # @example Submitting a blocking LLM call
     #   op = runtime.blocking_io.submit(timeout: 30) { chat.ask(message) }
-    #   result = op.await   # blocks the calling thread until done
+    #   result = op.blocking_wait   # blocks the calling thread until done
     #
     # @example With cancellation
     #   token = Phronomy::Concurrency::CancellationToken.timeout_after(60)
     #   op = pool.submit(timeout: 30, cancellation_token: token) { expensive_call }
-    #   result = op.await
+    #   result = op.blocking_wait
     class BlockingAdapterPool
       # Represents the pending result of a submitted blocking operation.
       # Returned immediately by {BlockingAdapterPool#submit}; call {#await} to
@@ -103,7 +103,7 @@ module Phronomy
         # @raise [Phronomy::CancellationError]
         # @raise [Exception] error raised inside the submitted block
         # @api private
-        def await(timeout: nil, cancellation_token: nil)
+        def blocking_wait(timeout: nil, cancellation_token: nil)
           effective_timeout = [timeout, @timeout].compact.min
           effective_token = cancellation_token || @cancellation_token
 
@@ -173,6 +173,12 @@ module Phronomy
 
           @value
         end
+
+        # Unified wait interface compatible with {Phronomy::Task#wait_result}.
+        # Delegates to {#blocking_wait} so that callers treating the return value
+        # of {ToolExecutor.call_async} uniformly as +#wait_result+ work correctly
+        # regardless of whether a Task or PendingOperation is returned.
+        alias_method :wait_result, :blocking_wait
 
         # Registers a callback to be called when the operation finishes.
         # If the operation has already finished the callback is invoked immediately

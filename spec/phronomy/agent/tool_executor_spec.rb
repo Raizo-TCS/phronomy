@@ -21,7 +21,7 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
     pd = instance_double(Phronomy::Concurrency::BlockingAdapterPool)
     allow(pd).to receive(:submit) do |cancellation_token: nil, &blk|
       op = double("PendingOp")
-      allow(op).to receive(:await).and_return(blk.call)
+      allow(op).to receive(:wait_result).and_return(blk.call)
       op
     end
     pd
@@ -31,7 +31,7 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
     r = instance_double(Phronomy::Runtime, blocking_io: pool_double)
     allow(r).to receive(:spawn) do |name: nil, &blk|
       t = double("Task-#{name}")
-      allow(t).to receive(:await).and_return(blk.call)
+      allow(t).to receive(:wait_result).and_return(blk.call)
       t
     end
     r
@@ -41,7 +41,7 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
     r = instance_double(Phronomy::Runtime, blocking_io: nil)
     allow(r).to receive(:spawn) do |name: nil, &blk|
       t = double("Task-no-pool-#{name}")
-      allow(t).to receive(:await).and_return(blk.call)
+      allow(t).to receive(:wait_result).and_return(blk.call)
       t
     end
     r
@@ -55,7 +55,7 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
       tool = make_tool(:cooperative)
       awaitable = described_class.call_async(tool: tool, args: {"x" => "hi"},
         runtime: runtime_with_pool)
-      expect(awaitable.await).to eq("cooperative:hi")
+      expect(awaitable.wait_result).to eq("cooperative:hi")
       expect(pool_double).not_to have_received(:submit)
     end
   end
@@ -68,7 +68,7 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
       tool = make_tool(:blocking_io)
       awaitable = described_class.call_async(tool: tool, args: {"x" => "io"},
         runtime: runtime_with_pool)
-      expect(awaitable.await).to eq("blocking_io:io")
+      expect(awaitable.wait_result).to eq("blocking_io:io")
       expect(pool_double).to have_received(:submit).once
     end
 
@@ -76,7 +76,7 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
       tool = make_tool(:blocking_io)
       awaitable = described_class.call_async(tool: tool, args: {"x" => "fallback"},
         runtime: runtime_no_pool)
-      expect(awaitable.await).to eq("blocking_io:fallback")
+      expect(awaitable.wait_result).to eq("blocking_io:fallback")
     end
   end
 
@@ -99,7 +99,7 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
       Phronomy.configuration.logger = suppress_output
       awaitable = described_class.call_async(tool: tool, args: {"x" => "cpu"},
         runtime: runtime_with_pool)
-      expect(awaitable.await).to eq("cpu_bound:cpu")
+      expect(awaitable.wait_result).to eq("cpu_bound:cpu")
     ensure
       Phronomy.configuration.logger = nil
     end

@@ -23,9 +23,9 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
   # TC-001: spawn_await_value — spawn + await returns the task's return value
   # -------------------------------------------------------------------------
   describe "TC-001: spawn_await_value — spawn + await returns the task's return value" do
-    it "task.await returns the value produced by the spawned block" do
+    it "task.wait_result returns the value produced by the spawned block" do
       task = runtime.spawn(name: "value-task") { 42 }
-      expect(task.await).to eq(42)
+      expect(task.wait_result).to eq(42)
     end
   end
 
@@ -41,7 +41,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
       result = nil
       runtime.spawn(name: "io-task") do
         op = pool.submit { :from_worker }
-        result = op.await
+        result = op.blocking_wait
       end
       expect(result).to eq(:from_worker)
     end
@@ -60,7 +60,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
             :slow_result
           end
           order << :before_await
-          op.await
+          op.blocking_wait
           order << :after_await
         end
 
@@ -68,11 +68,11 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
           order << :fast_ran
         end
 
-        slow_task.await
-        fast_task.await
+        slow_task.wait_result
+        fast_task.wait_result
       end
 
-      # fast-task must run while slow-task is suspended in op.await
+      # fast-task must run while slow-task is suspended in op.blocking_wait
       expect(order).to include(:fast_ran)
       expect(order.index(:fast_ran)).to be < order.index(:after_await)
       expect(order.first).to eq(:before_await)
@@ -108,7 +108,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
 
       runtime.spawn(name: "parent") do
         child = runtime.spawn(name: "child") { :child_value }
-        parent_result = child.await
+        parent_result = child.wait_result
       end
 
       expect(parent_result).to eq(:child_value)
@@ -118,14 +118,14 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
   # -------------------------------------------------------------------------
   # TC-005: error_propagation — exception from spawned block propagates through await
   # -------------------------------------------------------------------------
-  describe "TC-005: error_propagation — exception propagates through task.await" do
+  describe "TC-005: error_propagation — exception propagates through task.wait_result" do
     it "raises the original exception class and message in the awaiting fiber" do
       raised = nil
 
       runtime.spawn(name: "catcher") do
         child = runtime.spawn(name: "raiser") { raise ArgumentError, "fiber error" }
         begin
-          child.await
+          child.wait_result
         rescue ArgumentError => e
           raised = e
         end
@@ -148,7 +148,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
           # Block on an inner spawn to create a cooperative yield point;
           # the task is scheduled but not yet dispatched when cancel! fires.
           inner = runtime.spawn(name: "inner") { :inner_value }
-          inner.await
+          inner.wait_result
           :should_not_reach
         end
 
@@ -222,7 +222,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
     end
 
     it "invoke_async returns a Task; await resolves to the same result structure" do
-      result = agent_class.new.invoke_async("hello").await
+      result = agent_class.new.invoke_async("hello").wait_result
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end
@@ -257,7 +257,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
       runtime.spawn(name: "orchestrator") do
         slow_task = runtime.spawn(name: "llm-task") do
           order << :before_llm
-          agent_class.new.invoke_async("query").await
+          agent_class.new.invoke_async("query").wait_result
           order << :after_llm
         end
 
@@ -265,8 +265,8 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
           order << :fast_ran
         end
 
-        slow_task.await
-        fast_task.await
+        slow_task.wait_result
+        fast_task.wait_result
       end
 
       expect(order).to include(:fast_ran)
@@ -289,7 +289,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
     it "FbBlockingTool#call_async routes through the pool and returns the correct result" do
       result = nil
       runtime.spawn(name: "blocking-caller") do
-        result = IntegrationFactors::FbBlockingTool.new.call_async({input: "x"}).await
+        result = IntegrationFactors::FbBlockingTool.new.call_async({input: "x"}).wait_result
       end
       expect(result).to eq("blocking:x")
     end
@@ -297,7 +297,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
     it "FbCooperativeTool#call_async routes through Runtime#spawn and returns the correct result" do
       result = nil
       runtime.spawn(name: "coop-caller") do
-        result = IntegrationFactors::FbCooperativeTool.new.call_async({input: "y"}).await
+        result = IntegrationFactors::FbCooperativeTool.new.call_async({input: "y"}).wait_result
       end
       expect(result).to eq("cooperative:y")
     end
@@ -307,8 +307,8 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
       runtime.spawn(name: "orchestrator") do
         t1 = IntegrationFactors::FbBlockingTool.new.call_async({input: "a"})
         t2 = IntegrationFactors::FbCooperativeTool.new.call_async({input: "b"})
-        results << t1.await
-        results << t2.await
+        results << t1.wait_result
+        results << t2.wait_result
       end
       expect(results).to contain_exactly("blocking:a", "cooperative:b")
     end
@@ -333,7 +333,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
 
       result = nil
       runtime.spawn(name: "searcher") do
-        results = store.search_async(query_embedding: [1.0, 0.0, 0.0], k: 1).await
+        results = store.search_async(query_embedding: [1.0, 0.0, 0.0], k: 1).wait_result
         result = results.first
       end
 
@@ -365,8 +365,8 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
           queue.push(nil) # nil sentinel wakes the waiting consumer and signals end-of-stream
         end
 
-        producer_task.await
-        consumer_task.await
+        producer_task.wait_result
+        consumer_task.wait_result
       end
 
       expect(events.map { |e| e[:type] }).to eq([:token, :token, :done])

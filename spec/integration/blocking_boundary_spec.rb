@@ -197,7 +197,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
 
     it "routes KnowledgeSource#fetch_async through pool.submit" do
       PoolSpy.instrument(pool) do |counts|
-        result = knowledge_source.fetch_async(query: "anything").await
+        result = knowledge_source.fetch_async(query: "anything").wait_result
         expect(result).to be_an(Array)
         expect(result.first[:content]).to eq("Test content.")
         expect(counts.size).to eq(1)
@@ -217,7 +217,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
 
     it "routes search_async through pool.submit" do
       PoolSpy.instrument(pool) do |counts|
-        result = vector_store.search_async(query_embedding: [0.5, 0.5], k: 1).await
+        result = vector_store.search_async(query_embedding: [0.5, 0.5], k: 1).wait_result
         expect(result).to be_an(Array)
         expect(counts.size).to eq(1)
       end
@@ -275,7 +275,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
   describe "TC-008: operation_timeout — timed-out operation is tracked as abandoned" do
     it "marks the PendingOperation as abandoned after TimeoutError" do
       op = pool.submit(timeout: 0.001) { sleep(1) }
-      expect { op.await }.to raise_error(Phronomy::TimeoutError)
+      expect { op.wait_result }.to raise_error(Phronomy::TimeoutError)
       expect(op).to be_abandoned
     end
   end

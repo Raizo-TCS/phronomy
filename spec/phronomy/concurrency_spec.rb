@@ -8,8 +8,12 @@ require "spec_helper"
 # ---------------------------------------------------------------------------
 RSpec.describe "Race / Concurrency (Issue #208)" do
   def stub_agent(output)
+    out = output
     Class.new(Phronomy::Agent::Base) do
-      define_method(:_invoke_impl) { |*| {output: output, messages: []} }
+      define_method(:invoke) { |*| {output: out, messages: []} }
+      define_method(:invoke_async) do |input, **kw|
+        Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
+      end
     end
   end
 
@@ -25,9 +29,12 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
       agents = (1..5).map do |i|
         delay = (5 - i) * 0.01
         Class.new(Phronomy::Agent::Base) do
-          define_method(:_invoke_impl) do |*|
+          define_method(:invoke) do |*|
             sleep delay
             {output: "task#{i}", messages: []}
+          end
+          define_method(:invoke_async) do |input, **kw|
+            Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
           end
         end
       end
@@ -46,14 +53,20 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
 
       slow_fail = Class.new(Phronomy::Agent::Base) do
         e = error_0
-        define_method(:_invoke_impl) { |*|
+        define_method(:invoke) { |*|
           sleep 0.03
           raise e
         }
+        define_method(:invoke_async) do |input, **kw|
+          Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
+        end
       end
       fast_fail = Class.new(Phronomy::Agent::Base) do
         e = error_2
-        define_method(:_invoke_impl) { |*| raise e }
+        define_method(:invoke) { |*| raise e }
+        define_method(:invoke_async) do |input, **kw|
+          Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
+        end
       end
       good = stub_agent("ok")
 
@@ -73,7 +86,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
       state_mutex = Mutex.new
 
       throttled = Class.new(Phronomy::Agent::Base) do
-        define_method(:_invoke_impl) do |*|
+        define_method(:invoke) do |*|
           state_mutex.synchronize do
             active += 1
             peak_active = active if active > peak_active
@@ -81,6 +94,9 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
           sleep 0.02
           state_mutex.synchronize { active -= 1 }
           {output: "ok", messages: []}
+        end
+        define_method(:invoke_async) do |input, **kw|
+          Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
         end
       end
 
@@ -100,10 +116,11 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
     it "resets @_orchestrator_context to nil after invoke" do
       orchestrator_class = Class.new(Phronomy::MultiAgent::Orchestrator)
       # Override to avoid any real LLM call; just return immediately.
-      orchestrator_class.define_method(:_invoke_impl) do |input, config: {}, thread_id: nil, **|
-        super(input, config: config, thread_id: thread_id)
-      rescue
+      orchestrator_class.define_method(:invoke) do |input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
         {output: "done", messages: []}
+      end
+      orchestrator_class.define_method(:invoke_async) do |input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
+        Phronomy::Task.spawn(name: "stub-async") { invoke(input, messages: messages, thread_id: thread_id, config: config) }
       end
 
       orchestrator = orchestrator_class.new

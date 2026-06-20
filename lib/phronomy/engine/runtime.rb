@@ -32,7 +32,7 @@ module Phronomy
   # @example Test usage — no extra threads
   #   runtime = Phronomy::Runtime.new(scheduler: Phronomy::Runtime::FakeScheduler.new)
   #   task = runtime.spawn { 42 }
-  #   expect(task.await).to eq(42)
+  #   expect(task.wait_result).to eq(42)
   class Runtime
     # Returns the process-wide default Runtime.
     #

@@ -154,25 +154,34 @@ module Phronomy
       def dispatch_task(machine, result, state_name, timeout_secs)
         machine.async_pending = true
         session_id = machine.session_id
-        Phronomy::Runtime.instance.spawn(name: "agent-await-#{session_id}") do
-          if timeout_secs
-            if result.join(timeout_secs).nil?
-              result.cancel!
-              raise Phronomy::ActionTimeoutError,
-                "Action in state #{state_name.inspect} timed out after #{timeout_secs}s"
-            end
+        if timeout_secs
+          Phronomy::Runtime.instance.timer_queue.schedule(seconds: timeout_secs) do
+            next if result.done?
+
+            Phronomy::EventLoop.instance.post(
+              Phronomy::Event.new(
+                type: :error,
+                target_id: session_id,
+                payload: Phronomy::ActionTimeoutError.new(
+                  "Action in state #{state_name.inspect} timed out after #{timeout_secs}s"
+                )
+              )
+            )
           end
-          task_result = result.await
+        end
+        result.on_complete do |task_result, error|
+          if error
+            Phronomy::EventLoop.instance.post(
+              Phronomy::Event.new(type: :error, target_id: session_id, payload: error)
+            )
+            next
+          end
           ev = if task_result.respond_to?(:set_graph_metadata)
             Phronomy::Event.new(type: :action_completed, target_id: session_id, payload: task_result)
           else
             Phronomy::Event.new(type: :state_completed, target_id: session_id, payload: nil)
           end
           Phronomy::EventLoop.instance.post(ev)
-        rescue => e
-          Phronomy::EventLoop.instance.post(
-            Phronomy::Event.new(type: :error, target_id: session_id, payload: e)
-          )
         end
       end
     end

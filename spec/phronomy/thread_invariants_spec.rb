@@ -33,7 +33,7 @@ RSpec.describe "Thread.new absence from core paths (Issue #272)" do
       end
 
       op = pool.submit { 42 }
-      expect(op.await).to eq(42)
+      expect(op.wait_result).to eq(42)
       expect(new_threads_during_submit).to eq(0)
     ensure
       pool.shutdown(drain_timeout: 2)
@@ -64,7 +64,7 @@ RSpec.describe "Thread.new absence from core paths (Issue #272)" do
       op = pool.submit(timeout: 0.05) { sleep(5) }
 
       begin
-        op.await
+        op.wait_result
       rescue Phronomy::TimeoutError
         # expected
       end
@@ -113,6 +113,8 @@ RSpec.describe "Thread.current confinement (Issue #302)", :issue_302 do
     lib/phronomy/engine/task/thread_backend.rb
     lib/phronomy/engine/task/immediate_backend.rb
     lib/phronomy/engine/task/fiber_backend.rb
+    lib/phronomy/engine/task/deferred_backend.rb
+    lib/phronomy/engine/task/mapped_backend.rb
     lib/phronomy/engine/runtime/scheduler.rb
     lib/phronomy/engine/runtime/deterministic_scheduler.rb
     lib/phronomy/engine/concurrency/blocking_adapter_pool.rb

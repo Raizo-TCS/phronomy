@@ -235,8 +235,11 @@ RSpec.describe Phronomy::GeneratorVerifier do
       }
 
       capturing_agent = Class.new(Phronomy::Agent::Base) do
-        define_method(:invoke) do |prompt, config: {}|
+        define_method(:invoke) do |prompt, messages: [], thread_id: nil, config: {}, invocation_context: nil|
           {output: prompt, messages: []}
+        end
+        define_method(:invoke_async) do |prompt, messages: [], thread_id: nil, config: {}, invocation_context: nil|
+          Phronomy::Task.spawn(name: "stub-async") { invoke(prompt, messages: messages, thread_id: thread_id, config: config) }
         end
       end
 

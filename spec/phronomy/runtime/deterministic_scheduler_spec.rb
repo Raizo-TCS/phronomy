@@ -68,7 +68,7 @@ RSpec.describe Phronomy::Runtime::DeterministicScheduler, :issue_320 do
     it "raises correct value from await after run_until_idle" do
       task = runtime.spawn { 99 }
       scheduler.run_until_idle
-      expect(task.await).to eq(99)
+      expect(task.wait_result).to eq(99)
     end
   end
 
@@ -237,7 +237,7 @@ RSpec.describe Phronomy::Runtime::DeterministicScheduler, :issue_320 do
         log << :outer_before
         inner_task = runtime.spawn { log << :inner }
         # This should cooperatively suspend the outer fiber until inner completes.
-        inner_task.await
+        inner_task.wait_result
         log << :outer_after
       end
 
@@ -339,7 +339,7 @@ RSpec.describe Phronomy::Runtime::DeterministicScheduler, :issue_320 do
     it "re-raises the error on await" do
       task = runtime.spawn { raise ArgumentError, "boom" }
       scheduler.run_until_idle
-      expect { task.await }.to raise_error(ArgumentError, "boom")
+      expect { task.wait_result }.to raise_error(ArgumentError, "boom")
     end
   end
 

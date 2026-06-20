@@ -16,12 +16,12 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
   describe "#submit" do
     it "executes the block and returns the value via #await" do
       op = pool.submit { 42 }
-      expect(op.await).to eq(42)
+      expect(op.blocking_wait).to eq(42)
     end
 
     it "re-raises errors from the block" do
       op = pool.submit { raise ArgumentError, "bad arg" }
-      expect { op.await }.to raise_error(ArgumentError, "bad arg")
+      expect { op.blocking_wait }.to raise_error(ArgumentError, "bad arg")
     end
 
     it "returns a PendingOperation immediately" do
@@ -30,7 +30,7 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
         :done
       }
       expect(op).to be_a(Phronomy::Concurrency::BlockingAdapterPool::PendingOperation)
-      op.await
+      op.blocking_wait
     end
 
     it "executes multiple submissions concurrently" do
@@ -40,7 +40,7 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
           sleep 0.05
           i
         }
-      }.map(&:await)
+      }.map(&:blocking_wait)
       elapsed = Time.now - start
       expect(results.sort).to eq([0, 1, 2, 3])
       # 4 tasks on 2 workers should finish in ~2 batches (~0.1 s), not ~0.2 s
@@ -51,13 +51,13 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
   describe "timeout" do
     it "raises TimeoutError when the block exceeds the timeout" do
       op = pool.submit(timeout: 0.05) { sleep 10 }
-      expect { op.await }.to raise_error(Phronomy::TimeoutError)
+      expect { op.blocking_wait }.to raise_error(Phronomy::TimeoutError)
     end
 
     it "marks the operation as abandoned after a timeout" do
       op = pool.submit(timeout: 0.05) { sleep 10 }
       begin
-        op.await
+        op.blocking_wait
       rescue
         nil
       end
@@ -67,7 +67,7 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
     it "increments abandoned_count" do
       op = pool.submit(timeout: 0.05) { sleep 10 }
       begin
-        op.await
+        op.blocking_wait
       rescue
         nil
       end
@@ -78,10 +78,10 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
       op = pool.submit(timeout: 0.05) { sleep 10 }
 
       # First await — should time out and increment abandoned_count once.
-      expect { op.await }.to raise_error(Phronomy::TimeoutError)
+      expect { op.blocking_wait }.to raise_error(Phronomy::TimeoutError)
 
       # Second await with a fresh timeout — must NOT increment abandoned_count again.
-      expect { op.await(timeout: 0.05) }.to raise_error(Phronomy::TimeoutError)
+      expect { op.blocking_wait(timeout: 0.05) }.to raise_error(Phronomy::TimeoutError)
 
       expect(pool.abandoned_count).to eq(1)
     end
@@ -105,7 +105,7 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
         :completed
       end
 
-      expect { op.await }.to raise_error(Phronomy::TimeoutError)
+      expect { op.blocking_wait }.to raise_error(Phronomy::TimeoutError)
 
       # Worker thread must be allowed to finish on its own; wait a bit longer.
       sleep 0.3
@@ -118,7 +118,7 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
       token = Phronomy::Concurrency::CancellationToken.new
       token.cancel!
       op = pool.submit(cancellation_token: token) { :never_runs }
-      expect { op.await }.to raise_error(Phronomy::CancellationError)
+      expect { op.blocking_wait }.to raise_error(Phronomy::CancellationError)
     end
 
     it "raises CancellationError when token is cancelled while waiting (Issue #288)" do
@@ -133,14 +133,14 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
         sleep 0.05
         token.cancel!
       }
-      expect { op.await(cancellation_token: token) }.to raise_error(Phronomy::CancellationError)
+      expect { op.blocking_wait(cancellation_token: token) }.to raise_error(Phronomy::CancellationError)
     end
 
     it "raises CancellationError when token passed to await is already cancelled (Issue #288)" do
       token = Phronomy::Concurrency::CancellationToken.new
       token.cancel!
       op = pool.submit { :fast }
-      expect { op.await(cancellation_token: token) }.to raise_error(Phronomy::CancellationError)
+      expect { op.blocking_wait(cancellation_token: token) }.to raise_error(Phronomy::CancellationError)
     end
   end
 
@@ -150,12 +150,12 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
         sleep 10
         :done
       }
-      expect { op.await(timeout: 0.05) }.to raise_error(Phronomy::TimeoutError)
+      expect { op.blocking_wait(timeout: 0.05) }.to raise_error(Phronomy::TimeoutError)
     end
 
     it "returns the value when the operation finishes before the await-time timeout" do
       op = pool.submit { :fast }
-      expect(op.await(timeout: 5)).to eq(:fast)
+      expect(op.blocking_wait(timeout: 5)).to eq(:fast)
     end
 
     it "uses the earlier of submit-time and await-time timeouts" do
@@ -164,7 +164,7 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
         sleep 5
         :done
       }
-      expect { op.await(timeout: 0.05) }.to raise_error(Phronomy::TimeoutError)
+      expect { op.blocking_wait(timeout: 0.05) }.to raise_error(Phronomy::TimeoutError)
     end
   end
 
@@ -173,7 +173,7 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
       result_holder = []
       op = pool.submit { 42 }
       op.on_complete { |v, e| result_holder << [v, e] }
-      op.await
+      op.blocking_wait
       # brief sleep to allow worker callback to run if not yet fired
       sleep 0.05
       expect(result_holder).to eq([[42, nil]])
@@ -184,7 +184,7 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
       op = pool.submit { raise "boom" }
       op.on_complete { |v, e| err_holder << [v, e] }
       begin
-        op.await
+        op.blocking_wait
       rescue
         nil
       end
@@ -194,7 +194,7 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
 
     it "invokes the callback immediately when the operation is already done" do
       op = pool.submit { :done }
-      op.await
+      op.blocking_wait
       fired = false
       op.on_complete { |_v, _e| fired = true }
       expect(fired).to be(true)
@@ -208,7 +208,7 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
 
   describe "metrics" do
     it "active_count is 0 when idle" do
-      pool.submit { 1 }.await
+      pool.submit { 1 }.blocking_wait
       expect(pool.active_count).to eq(0)
     end
 
@@ -223,12 +223,12 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
       # with pool_size: 2 the next submit goes to queue
       queued = pool.submit { 2 }
       expect(pool.queue_depth).to be >= 0  # best-effort; queue may drain fast
-      slow.each(&:await)
-      queued.await
+      slow.each(&:blocking_wait)
+      queued.blocking_wait
     end
 
     it "average_wait_seconds returns a non-negative float" do
-      pool.submit { 1 }.await
+      pool.submit { 1 }.blocking_wait
       expect(pool.average_wait_seconds).to be >= 0.0
     end
   end
@@ -294,12 +294,12 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
       }
       expect(op.done?).to be(false)
       barrier.unlock
-      op.await
+      op.blocking_wait
     end
 
     it "returns true after the operation completes" do
       op = pool.submit { 1 }
-      op.await
+      op.blocking_wait
       expect(op.done?).to be(true)
     end
   end
@@ -338,7 +338,7 @@ RSpec.describe "BlockingAdapterPool cooperative await (Issue #338)" do
     result = nil
     runtime.spawn(name: "test-task") do
       op = pool.submit { 42 }
-      result = op.await
+      result = op.blocking_wait
     end
     expect(result).to eq(42)
   end
@@ -348,7 +348,7 @@ RSpec.describe "BlockingAdapterPool cooperative await (Issue #338)" do
     runtime.spawn(name: "error-task") do
       op = pool.submit { raise ArgumentError, "boom" }
       begin
-        op.await
+        op.blocking_wait
       rescue ArgumentError => e
         raised_error = e
       end
@@ -370,14 +370,14 @@ RSpec.describe "BlockingAdapterPool cooperative await (Issue #338)" do
           :done
         end
         order << :a_before_await
-        op.await
+        op.blocking_wait
         order << :a_after_await
       end
       child_b = runtime.spawn(name: "task-b") do
         order << :b_ran
       end
-      child_a.await
-      child_b.await
+      child_a.blocking_wait
+      child_b.blocking_wait
     end
 
     # task-b must run while task-a is suspended awaiting the slow pool operation
@@ -388,10 +388,10 @@ RSpec.describe "BlockingAdapterPool cooperative await (Issue #338)" do
 
   it "handles an already-completed operation without suspension" do
     op = pool.submit { :immediate }
-    op.await  # ensure done in thread context first
+    op.blocking_wait  # ensure done in thread context first
     result = nil
     runtime.spawn(name: "no-yield-task") do
-      result = op.await
+      result = op.blocking_wait
     end
     expect(result).to eq(:immediate)
   end
@@ -418,7 +418,7 @@ RSpec.describe "BlockingAdapterPool cooperative await timeout limitation (Issue 
     runtime.spawn(name: "consumer") do
       # Pass a very small timeout — would fire on the thread path but is
       # ignored on the cooperative path.
-      result = op.await(timeout: 0.001)
+      result = op.blocking_wait(timeout: 0.001)
     end
     # Worker completes; Fiber is resumed with the value regardless of timeout.
     expect(result).to eq(:result)
@@ -438,7 +438,7 @@ RSpec.describe "BlockingAdapterPool cooperative await timeout limitation (Issue 
       :completed_late
     end
     runtime.spawn(name: "consumer") do
-      result = op.await
+      result = op.blocking_wait
     rescue Phronomy::TimeoutError
       result = :unexpected_timeout
     end

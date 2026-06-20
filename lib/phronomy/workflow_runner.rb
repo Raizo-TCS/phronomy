@@ -239,7 +239,7 @@ module Phronomy
                   "Action in state #{current_state.inspect} timed out after #{timeout_secs}s"
               end
             end
-            task_result = result.await
+            task_result = result.wait_result
             ctx = task_result if task_result.is_a?(Phronomy::WorkflowContext)
           elsif result.is_a?(Phronomy::WorkflowContext)
             ctx = result

@@ -84,7 +84,7 @@ module Phronomy
               input,
               thread_id: ctx[:thread_id] || parent_ic&.thread_id,
               config: task_config
-            ).await
+            ).wait_result
             result[:output]
           rescue
             raise if on_error == :raise
@@ -217,7 +217,7 @@ module Phronomy
           input,
           config: effective_config,
           thread_id: thread_id || ctx[:thread_id] || parent_ic&.thread_id
-        ).await
+        ).wait_result
       end
 
       private
@@ -306,7 +306,7 @@ module Phronomy
               task[:input],
               config: task_config,
               thread_id: task[:thread_id] || invocation_context&.thread_id
-            ).await
+            ).wait_result
           rescue => e
             errors[i] = e unless on_error == :skip
           end
@@ -324,7 +324,7 @@ module Phronomy
               "(#{alive.length} of #{spawned.length} tasks still running)"
           end
         else
-          spawned.each(&:await)
+          spawned.each(&:wait_result)
         end
 
         first_error = errors.compact.first

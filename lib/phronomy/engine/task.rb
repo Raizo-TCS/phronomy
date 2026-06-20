@@ -5,6 +5,7 @@ require_relative "task/thread_backend"
 require_relative "task/immediate_backend"
 require_relative "task/fiber_backend"
 require_relative "task/mapped_backend"
+require_relative "task/deferred_backend"
 
 module Phronomy
   # A single unit of concurrent work.
@@ -21,7 +22,7 @@ module Phronomy
   #
   # @example Basic usage (framework/test code only — prefer Runtime.instance.spawn in app code)
   #   task = Phronomy::Task.spawn { expensive_io() }
-  #   result = task.await   # blocks until done, re-raises errors
+  #   result = task.wait_result   # blocks until done, re-raises errors
   #
   # @example Cancel a running task
   #   task = Phronomy::Task.spawn { loop { Phronomy::Task.checkpoint! } }
@@ -121,6 +122,15 @@ module Phronomy
       new(name: name, parent: parent, backend_class: backend_class, &block)
     end
 
+    # Creates a task whose lifecycle is completed externally.
+    # @param name [String, nil]
+    # @param parent [Task, nil]
+    # @return [Task]
+    # @api private
+    def self.deferred(name: nil, parent: current)
+      new(name: name, parent: parent, backend_class: DeferredBackend) {}
+    end
+
     # @return [String, nil] optional human-readable label
     attr_reader :name
 
@@ -161,8 +171,8 @@ module Phronomy
     # @return [Object] the result produced by the block
     # @raise [Exception] if the block raised an error
     # @api private
-    def await
-      @backend.await
+    def wait_result
+      @backend.wait_result
     end
 
     # Registers a callback to be invoked when the task reaches a terminal state
@@ -170,7 +180,7 @@ module Phronomy
     #
     # The callback receives two arguments: +value+ (the task's return value,
     # or +nil+) and +error+ (the exception, or +nil+).  These are provided
-    # directly so the callback does not need to call +task.await+, which would
+    # directly so the callback does not need to call +task.wait_result+, which would
     # risk a self-join error when the callback runs inside the task's own thread.
     #
     # If the task is already done when this method is called, the callback is
@@ -237,13 +247,15 @@ module Phronomy
             mapped_error = e
           end
         end
+        # Unblock mapped.wait_result / mapped.join before the terminal transition.
+        # on_complete callbacks may resume a waiting Fiber immediately; the
+        # queue must already contain the result at that point.
+        mapped.backend.unblock(mapped_value, mapped_error)
         if mapped_error
           mapped.transition!(:failed, error: mapped_error)
         else
           mapped.transition!(:completed, value: mapped_value)
         end
-        # Unblock mapped.await / mapped.join after the terminal transition.
-        mapped.backend.unblock(mapped_value, mapped_error)
       end
       mapped
     end

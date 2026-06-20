@@ -1205,7 +1205,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
     it "cooperative tool: call_async returns a Task that resolves correctly" do
       task = cooperative_tool_class.new.call_async({"x" => "hi"})
       expect(task).to be_a(Phronomy::Task)
-      expect(task.await).to eq("coop:hi")
+      expect(task.wait_result).to eq("coop:hi")
     end
 
     it "blocking_io tool with pool: call_async routes through BlockingAdapterPool" do
@@ -1217,8 +1217,8 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       end
 
       awaitable = blocking_tool_class.new.call_async({"x" => "io"})
-      expect(awaitable).to respond_to(:await)
-      expect(awaitable.await).to eq("block:io")
+      expect(awaitable).to respond_to(:blocking_wait)
+      expect(awaitable.wait_result).to eq("block:io")
       expect(called).to be(true)
     end
 
@@ -1227,14 +1227,14 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       runtime = instance_double(Phronomy::Runtime, blocking_io: nil)
       allow(runtime).to receive(:spawn) do |name: nil, &blk|
         t = double("Task-fallback")
-        allow(t).to receive(:await).and_return(blk.call)
+        allow(t).to receive(:wait_result).and_return(blk.call)
         t
       end
       allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
 
       task = blocking_tool_class.new.call_async({"x" => "fallback"})
-      expect(task).to be_a(Phronomy::Task).or respond_to(:await)
-      expect(task.await).to eq("block:fallback")
+      expect(task).to be_a(Phronomy::Task).or respond_to(:wait_result)
+      expect(task.wait_result).to eq("block:fallback")
     end
   end
 
@@ -1261,7 +1261,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
     it "delegates to Phronomy::Agent::ToolExecutor (not unqualified ToolExecutor)" do
       expect(Phronomy::Agent::ToolExecutor).to receive(:call_async).and_call_original
       result = hello_tool.call_async({})
-      expect(result).to respond_to(:await)
+      expect(result).to respond_to(:blocking_wait)
     end
   end
 

@@ -36,7 +36,7 @@ module Phronomy
           when RubyLLM::Error
             raise Phronomy::TransportError, error.message
           else
-            raise # bare re-raise preserves $! and its backtrace unchanged
+            raise error # preserve original class, message, and backtrace
           end
         end
       end

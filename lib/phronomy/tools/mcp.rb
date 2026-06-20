@@ -158,7 +158,7 @@ module Phronomy
           @wait_thr = nil
           stderr_thread&.join(1)
           begin
-            stderr_op&.await(timeout: 1.0)
+            stderr_op&.blocking_wait(timeout: 1.0)
           rescue
             nil
           end

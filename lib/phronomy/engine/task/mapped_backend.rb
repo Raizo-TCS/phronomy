@@ -37,7 +37,19 @@ module Phronomy
       # @return [Object] the mapped value
       # @raise [Exception] if the source task or the map block raised an error
       # @api private
-      def await
+      def wait_result
+        scheduler = Thread.current.thread_variable_get(Task::SCHEDULER_KEY)
+        in_managed_fiber = !Fiber.respond_to?(:main) || Fiber.current != Fiber.main
+        if scheduler && in_managed_fiber && !@task.done?
+          scheduler.track_blocking_await
+          waiting_fiber = Fiber.current
+          @task.on_complete do |_value, _error|
+            scheduler.complete_blocking_await
+            scheduler.enqueue_fiber(-> { waiting_fiber.resume })
+          end
+          Fiber.yield(:cooperative_suspend)
+        end
+
         value, error = @done_queue.pop
         raise error if error
 
@@ -64,10 +76,10 @@ module Phronomy
       # @api private
       def join(limit = nil)
         if limit.nil?
-          await
+          wait_result
         else
           begin
-            Timeout.timeout(limit) { await }
+            Timeout.timeout(limit) { wait_result }
           rescue Timeout::Error
             nil
           end

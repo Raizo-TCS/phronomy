@@ -116,7 +116,7 @@ RSpec.describe "KnowledgeSource CancellationToken propagation (#242)" do
       end.new
 
       op = ks.fetch_async(query: "hello")
-      result = op.await
+      result = op.wait_result
       expect(result).to eq([{content: "result", type: "text", source: "test"}])
     end
   end

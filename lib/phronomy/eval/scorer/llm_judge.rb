@@ -58,7 +58,7 @@ module Phronomy
         #     still returns 0.0 — warn is a side-effect not tested by value assertions
         def score(actual:, expected:, input: nil)
           prompt = format(@prompt_template, input: input.to_s, expected: expected.to_s, actual: actual.to_s)
-          response = Phronomy::Runtime.instance.blocking_io.submit { RubyLLM.chat(model: @model).ask(prompt) }.await
+          response = Phronomy::Runtime.instance.blocking_io.submit { RubyLLM.chat(model: @model).ask(prompt) }.blocking_wait
           response.content.to_s.strip.scan(/-?\d+\.?\d*/).first.to_f.clamp(0.0, 1.0)
         rescue => e
           raise if @raise_on_error

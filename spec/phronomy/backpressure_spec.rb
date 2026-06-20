@@ -76,9 +76,9 @@ RSpec.describe "Backpressure limits (Issue #268)" do
         end
 
         op2 = pool.submit(on_full: :wait) { :second }
-        result = op2.await
+        result = op2.wait_result
         expect(result).to eq(:second)
-        op1.await
+        op1.wait_result
       ensure
         pool.shutdown(drain_timeout: 2)
       end

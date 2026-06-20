@@ -116,27 +116,38 @@ RSpec.describe Phronomy::Agent::Base do
     end
 
     it "returns a Task" do
-      allow_any_instance_of(Phronomy::Agent::Base).to receive(:_invoke_impl).and_return({output: "ok"})
+      allow(agent).to receive(:_start_invoke_attempt) do |result_task, *|
+        result_task.backend.unblock({output: "ok"}, nil)
+        result_task.transition!(:completed, value: {output: "ok"})
+      end
       task = agent.invoke_async("hi")
       expect(task).to be_a(Phronomy::Task)
-      task.await
+      task.wait_result
     end
 
-    it "executes _invoke_impl directly (not via invoke)" do
-      called = []
-      allow_any_instance_of(Phronomy::Agent::Base).to receive(:_invoke_impl) {
-        called << :impl
-        {output: "ok"}
-      }
-      agent.invoke_async("hi").await
-      expect(called).to eq([:impl])
+    it "executes via FSM (not via invoke)" do
+      # invoke_async must not delegate to invoke — it uses _start_invoke_attempt directly.
+      invoke_called = false
+      allow(agent).to receive(:invoke).and_wrap_original do |m, *a, **kw|
+        invoke_called = true
+        m.call(*a, **kw)
+      end
+      allow(agent).to receive(:_start_invoke_attempt) do |result_task, *|
+        result_task.backend.unblock({output: "ok"}, nil)
+        result_task.transition!(:completed, value: {output: "ok"})
+      end
+      agent.invoke_async("hi").wait_result
+      expect(invoke_called).to be(false)
     end
 
     it "registers the task with Runtime so shutdown can drain it" do
-      allow_any_instance_of(Phronomy::Agent::Base).to receive(:_invoke_impl).and_return({output: "ok"})
+      allow(agent).to receive(:_start_invoke_attempt) do |result_task, *|
+        result_task.backend.unblock({output: "ok"}, nil)
+        result_task.transition!(:completed, value: {output: "ok"})
+      end
       task = agent.invoke_async("hi")
-      # Task must complete successfully via Runtime#spawn — verifies the full spawn/drain lifecycle.
-      expect(task.await[:output]).to eq("ok")
+      # Task must complete successfully — verifies the full spawn/drain lifecycle.
+      expect(task.wait_result[:output]).to eq("ok")
     end
   end
 
@@ -161,13 +172,16 @@ RSpec.describe Phronomy::Agent::Base do
         agent.invoke("hi")
       rescue Phronomy::SchedulerReentrancyError => e
         error = e
-      end.await
+      end.wait_result
       expect(error).to be_a(Phronomy::SchedulerReentrancyError)
       expect(error.message).to include("invoke_async")
     end
 
     it "does not raise when called outside a Task" do
-      allow_any_instance_of(Phronomy::Agent::Base).to receive(:_invoke_impl).and_return({output: "ok"})
+      allow(agent).to receive(:_start_invoke_attempt) do |result_task, *|
+        result_task.backend.unblock({output: "ok"}, nil)
+        result_task.transition!(:completed, value: {output: "ok"})
+      end
       expect { agent.invoke("hi") }.not_to raise_error
     end
 
@@ -184,8 +198,11 @@ RSpec.describe Phronomy::Agent::Base do
         fake_logger = double("logger")
         allow(fake_logger).to receive(:warn) { |msg| logged = msg }
         Phronomy.configure { |c| c.logger = fake_logger }
-        allow_any_instance_of(Phronomy::Agent::Base).to receive(:_invoke_impl).and_return({output: "ok"})
-        Phronomy::Task.spawn { agent.invoke("hi") }.await
+        allow(agent).to receive(:_start_invoke_attempt) do |result_task, *|
+          result_task.backend.unblock({output: "ok"}, nil)
+          result_task.transition!(:completed, value: {output: "ok"})
+        end
+        Phronomy::Task.spawn { agent.invoke("hi") }.wait_result
         expect(logged).to include("invoke_async")
       end
     end
@@ -260,12 +277,13 @@ RSpec.describe "Agent::Base invocation_context: keyword argument (Issue #301)" d
     end.new
   end
 
-  # Capture the config hash seen by _invoke_impl so we can assert on it.
+  # Capture the config hash seen by _start_invoke_attempt so we can assert on it.
   def capture_config(ag, &block)
     captured = {}
-    allow(ag).to receive(:_invoke_impl) do |_input, **kwargs|
-      captured = kwargs[:config]
-      {output: "ok"}
+    allow(ag).to receive(:_start_invoke_attempt) do |result_task, _input, messages:, thread_id:, config:, attempt:|
+      captured = config
+      result_task.backend.unblock({output: "ok"}, nil)
+      result_task.transition!(:completed, value: {output: "ok"})
     end
     block.call
     captured

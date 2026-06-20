@@ -100,7 +100,7 @@ module Phronomy
       # @return [Object]
       # @raise [Exception]
       # @api private
-      def await
+      def wait_result
         unless @fiber.alive?
           raise @error if @error
           return @value

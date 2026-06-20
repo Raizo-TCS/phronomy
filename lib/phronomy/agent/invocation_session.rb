@@ -207,7 +207,7 @@ module Phronomy
           agent.send(:check_cancellation!, ctx.config, "invocation cancelled before LLM call")
           adapter = Phronomy.configuration.llm_adapter
           begin
-            response = adapter.complete_async(ctx.chat, user_message, config: ctx.config).await
+            response = adapter.complete_async(ctx.chat, user_message, config: ctx.config).blocking_wait
             ctx.user_message_sent = true
             ctx.output = response.content
             ctx.usage = Phronomy::TokenUsage.from_tokens(response.tokens)
@@ -243,7 +243,7 @@ module Phronomy
               type: :token, payload: {content: chunk.content}
             ))
           end
-          response = pending.await
+          response = pending.blocking_wait
           ctx.user_message_sent = true
           ctx.output = response.content
           ctx.usage = Phronomy::TokenUsage.from_tokens(response.tokens)
@@ -284,7 +284,7 @@ module Phronomy
 
         # Execute the tool off the EventLoop thread via Runtime.instance.spawn.
         # Tool implementations (e.g. Orchestrator sub-agent dispatch) may call
-        # agent.invoke_async().await which would deadlock if run directly on the
+        # agent.invoke_async().wait_result which would deadlock if run directly on the
         # EventLoop dispatch thread. Returning a Task causes
         # PhaseMachineBuilder#dispatch_task to await the result off the EventLoop
         # and post :action_completed back when done.

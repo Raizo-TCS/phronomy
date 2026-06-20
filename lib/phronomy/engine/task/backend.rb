@@ -24,8 +24,8 @@ module Phronomy
       # @return [Object]
       # @raise [Exception]
       # @api private
-      def await
-        raise NotImplementedError, "#{self.class}#await not implemented"
+      def wait_result
+        raise NotImplementedError, "#{self.class}#wait_result not implemented"
       end
 
       # Returns +true+ while execution is still ongoing.

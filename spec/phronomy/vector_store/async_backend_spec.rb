@@ -38,27 +38,27 @@ RSpec.describe "VectorStore::AsyncBackend (Issue #304)" do
 
     it "search_async returns a PendingOperation that resolves to search result" do
       op = store.search_async(query_embedding: [0.1, 0.2])
-      expect(op).to respond_to(:await)
-      result = op.await
+      expect(op).to respond_to(:blocking_wait)
+      result = op.wait_result
       expect(result).to eq([{id: "doc1", score: 0.9, metadata: {}}])
     end
 
     it "add_async returns a PendingOperation" do
       op = store.add_async(id: "x", embedding: [0.1, 0.2])
-      expect(op).to respond_to(:await)
-      expect { op.await }.not_to raise_error
+      expect(op).to respond_to(:blocking_wait)
+      expect { op.wait_result }.not_to raise_error
     end
 
     it "remove_async returns a PendingOperation" do
       op = store.remove_async(id: "x")
-      expect(op).to respond_to(:await)
-      expect { op.await }.not_to raise_error
+      expect(op).to respond_to(:blocking_wait)
+      expect { op.wait_result }.not_to raise_error
     end
 
     it "clear_async returns a PendingOperation" do
       op = store.clear_async
-      expect(op).to respond_to(:await)
-      expect { op.await }.not_to raise_error
+      expect(op).to respond_to(:blocking_wait)
+      expect { op.wait_result }.not_to raise_error
     end
   end
 
@@ -98,7 +98,7 @@ RSpec.describe "VectorStore::AsyncBackend (Issue #304)" do
 
     it "calls the native override, not the inherited pool-backed implementation" do
       op = store.search_async(query_embedding: [0.1, 0.2])
-      result = op.await
+      result = op.wait_result
       expect(store.native_search_called).to be true
       expect(result).to eq([{id: "native", score: 1.0, metadata: {}}])
     end
@@ -107,9 +107,9 @@ RSpec.describe "VectorStore::AsyncBackend (Issue #304)" do
       op = store.add_async(id: "x", embedding: [0.1])
       # add is not implemented on this class — NotImplementedError from Base#add.
       # The important thing is it goes through the pool path (PendingOperation).
-      expect(op).to respond_to(:await)
+      expect(op).to respond_to(:blocking_wait)
       # Drain the background operation to avoid leaking threads into subsequent tests.
-      op.await
+      op.wait_result
     rescue NotImplementedError
       # Expected — Base#add is intentionally unimplemented in this test double.
     end
@@ -144,7 +144,7 @@ RSpec.describe "VectorStore::AsyncBackend (Issue #304)" do
 
     it "search_async resolves via pool and returns results" do
       op = store.search_async(query_embedding: [1.0, 0.0], k: 1)
-      result = op.await
+      result = op.wait_result
       expect(result.first[:id]).to eq("a")
     end
   end

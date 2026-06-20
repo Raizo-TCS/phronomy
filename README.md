@@ -603,14 +603,16 @@ Understanding when to use each prevents scheduler stalls and hidden deadlocks.
 | Context | Recommended API |
 |---------|----------------|
 | Top-level application code, Rails controller, background job | `agent.invoke(input)` — blocks the calling thread until done |
-| Inside a `Runtime#spawn` block, `TaskGroup`, Workflow action, Tool `execute` | `agent.invoke_async(input).await` — non-blocking within the scheduler |
+| Workflow action / EventLoop callback | `agent.invoke_async(input).map { |r| ctx.merge(output: r[:output]) }` — returns a Task and resumes by state transition |
+| Top-level code that wants explicit async | `agent.invoke_async(input).wait_result` — blocks the calling thread until the Task completes |
 
 ### Why this matters
 
 `invoke` is a synchronous wrapper that calls `invoke_async` and then _blocks_ the calling
-thread until the task completes. When called from **inside** an active scheduler task, the
-calling task blocks the scheduler thread, preventing other tasks from making progress — a
-hidden deadlock when all scheduler threads are occupied.
+thread until the task completes.  It is intended for top-level application threads such as
+Rails controller actions, CLI scripts, or background jobs.  Inside EventLoop-driven
+workflow actions, return a Task and let `Task#map` / `Task#on_complete` drive the next
+state transition instead of waiting inside the EventLoop thread.
 
 ### Runtime guard
 
@@ -630,14 +632,21 @@ You can also query the current context directly:
 Phronomy::Runtime.in_scheduler_context?  # => true if called from inside a task
 ```
 
-### Migration: invoke → invoke_async
+### Migration: blocking wait → Task mapping
 
 ```ruby
-# Before (blocks scheduler if called from inside a task)
+# Top-level synchronous use
 result = my_agent.invoke("Hello")
 
-# After (safe inside tasks and TaskGroups)
-result = my_agent.invoke_async("Hello").await
+# Explicit async from top-level code
+result = my_agent.invoke_async("Hello").wait_result
+
+# Workflow action / EventLoop-safe use
+NODE = ->(ctx) {
+  my_agent.invoke_async("Hello").map { |result|
+    ctx.merge(answer: result[:output])
+  }
+}
 ```
 
 ### :immediate backend (synchronous / test mode)

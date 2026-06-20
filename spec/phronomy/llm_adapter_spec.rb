@@ -28,8 +28,8 @@ RSpec.describe "LLMAdapter abstraction" do
         end.new
 
         op = concrete.complete_async(double, "ping", config: {}, pool: pool)
-        expect(op).to respond_to(:await)
-        expect(op.await).to eq("response:ping")
+        expect(op).to respond_to(:blocking_wait)
+        expect(op.wait_result).to eq("response:ping")
       ensure
         pool.shutdown
       end
@@ -50,7 +50,7 @@ RSpec.describe "LLMAdapter abstraction" do
         op = concrete.stream_async(double, "ping", config: {}, pool: pool) do |chunk|
           received_chunks << chunk
         end
-        result = op.await
+        result = op.wait_result
 
         expect(result).to eq("done")
         expect(received_chunks).to eq(%w[chunk1 chunk2])
@@ -83,7 +83,7 @@ RSpec.describe "LLMAdapter abstraction" do
           break if chunk.nil?
           received << chunk
         end
-        result = pending.await
+        result = pending.wait_result
 
         expect(result).to eq("done")
         expect(received).to eq(%w[c1 c2])
@@ -105,7 +105,7 @@ RSpec.describe "LLMAdapter abstraction" do
         end.new
 
         pending = concrete.stream_async(double, "ping", config: {}, pool: pool, enqueue_to: chunk_queue)
-        result = pending.await
+        result = pending.wait_result
 
         # Drain; after all items are consumed the closed queue must return nil
         items = []

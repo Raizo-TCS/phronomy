@@ -23,7 +23,7 @@ RSpec.describe "Cooperative scheduler yield points (Issue #306)" do
 
   describe "Runtime#yield_if_needed" do
     it "is callable without error" do
-      Phronomy::Runtime.instance.spawn { Phronomy::Runtime.instance.yield_if_needed }.await
+      Phronomy::Runtime.instance.spawn { Phronomy::Runtime.instance.yield_if_needed }.wait_result
     end
 
     it "only calls scheduler#yield at multiples of every: (thread-local counter)" do
@@ -48,7 +48,7 @@ RSpec.describe "Cooperative scheduler yield points (Issue #306)" do
 
         runtime.yield_if_needed(every: 1000) # 2000th call
         expect(yield_calls).to eq(2)
-      end.await
+      end.wait_result
     end
 
     it "counters from two concurrent tasks do not interfere (thread isolation)" do
@@ -64,7 +64,7 @@ RSpec.describe "Cooperative scheduler yield points (Issue #306)" do
           mutex.synchronize { counts[i] = 500 }
         end
       end
-      tasks.each(&:await)
+      tasks.each(&:wait_result)
 
       # Neither task should have triggered a yield (each only reached 500/1000)
       # The key test is that they ran to completion without interference
@@ -107,7 +107,7 @@ RSpec.describe "Cooperative scheduler yield points (Issue #306)" do
       runtime.spawn do
         sleep(0.01) # 10ms — exceeds 1ms threshold
         runtime.yield
-      end.await
+      end.wait_result
 
       Phronomy.configuration.logger = original_logger
       expect(log_lines).not_to be_empty
@@ -126,7 +126,7 @@ RSpec.describe "Cooperative scheduler yield points (Issue #306)" do
       Phronomy.configuration.logger = fake_logger
 
       runtime = Phronomy::Runtime.new
-      runtime.spawn { runtime.yield }.await
+      runtime.spawn { runtime.yield }.wait_result
 
       Phronomy.configuration.logger = original_logger
       expect(log_lines.select { |l| l.include?("CPU-bound") }).to be_empty
@@ -141,7 +141,7 @@ RSpec.describe "Cooperative scheduler yield points (Issue #306)" do
       runtime.spawn do
         sleep(0.01) # exceeds threshold
         runtime.yield
-      end.await
+      end.wait_result
 
       expect(runtime.non_yield_threshold_violation_count).to be >= 1
     end
@@ -153,7 +153,7 @@ RSpec.describe "Cooperative scheduler yield points (Issue #306)" do
       runtime.spawn do
         sleep(0.01)
         runtime.yield
-      end.await
+      end.wait_result
 
       expect(runtime.non_yield_threshold_violation_count).to eq(0)
     end
@@ -195,7 +195,7 @@ RSpec.describe "Cooperative scheduler yield points (Issue #306)" do
         end
       end
 
-      tasks.each(&:await)
+      tasks.each(&:wait_result)
 
       expect(inter_yield_latencies_ms).not_to be_empty
       max_observed = inter_yield_latencies_ms.max

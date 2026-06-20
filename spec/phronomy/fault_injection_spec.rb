@@ -121,13 +121,19 @@ RSpec.describe "Fault injection (Issue #213)" do
 
     let(:good_agent) do
       Class.new(Phronomy::Agent::Base) do
-        define_method(:_invoke_impl) { |input, **| {output: "ok:#{input}", messages: []} }
+        define_method(:invoke) { |input, **| {output: "ok:#{input}", messages: []} }
+        define_method(:invoke_async) do |input, **kw|
+          Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
+        end
       end
     end
 
     let(:bad_agent) do
       Class.new(Phronomy::Agent::Base) do
-        define_method(:_invoke_impl) { |*| raise "simulated failure" }
+        define_method(:invoke) { |*| raise "simulated failure" }
+        define_method(:invoke_async) do |input, **kw|
+          Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
+        end
       end
     end
 
@@ -159,9 +165,12 @@ RSpec.describe "Fault injection (Issue #213)" do
       mutex = Mutex.new
 
       tracking_good = Class.new(Phronomy::Agent::Base) do
-        define_method(:_invoke_impl) do |input, **|
+        define_method(:invoke) do |input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
           mutex.synchronize { ran << input }
           {output: "ok", messages: []}
+        end
+        define_method(:invoke_async) do |input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
+          Phronomy::Task.spawn(name: "stub-async") { invoke(input, messages: messages, thread_id: thread_id, config: config) }
         end
       end
 

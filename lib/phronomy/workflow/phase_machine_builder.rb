@@ -191,19 +191,34 @@ module Phronomy
       def dispatch_task_in_event_loop(machine, result, state_name, timeout_secs)
         machine.async_pending = true
         thread_id = machine.context.thread_id
-        Phronomy::Runtime.instance.spawn(name: "wf-await-#{thread_id}") do
-          enforce_timeout!(result, state_name, timeout_secs)
-          task_result = result.await
+        if timeout_secs
+          Phronomy::Runtime.instance.timer_queue.schedule(seconds: timeout_secs) do
+            next if result.done?
+
+            Phronomy::EventLoop.instance.post(
+              Phronomy::Event.new(
+                type: :error,
+                target_id: thread_id,
+                payload: Phronomy::ActionTimeoutError.new(
+                  "Action in state #{state_name.inspect} timed out after #{timeout_secs}s"
+                )
+              )
+            )
+          end
+        end
+        result.on_complete do |task_result, error|
+          if error
+            Phronomy::EventLoop.instance.post(
+              Phronomy::Event.new(type: :error, target_id: thread_id, payload: error)
+            )
+            next
+          end
           ev = if task_result.is_a?(Phronomy::WorkflowContext)
             Phronomy::Event.new(type: :action_completed, target_id: thread_id, payload: task_result)
           else
             Phronomy::Event.new(type: :state_completed, target_id: thread_id, payload: nil)
           end
           Phronomy::EventLoop.instance.post(ev)
-        rescue => e
-          Phronomy::EventLoop.instance.post(
-            Phronomy::Event.new(type: :error, target_id: thread_id, payload: e)
-          )
         end
       end
 
@@ -219,7 +234,7 @@ module Phronomy
       # @api private
       def await_task_blocking(machine, result, state_name, timeout_secs)
         enforce_timeout!(result, state_name, timeout_secs)
-        task_result = result.await
+        task_result = result.wait_result
         machine.context = task_result if task_result.is_a?(Phronomy::WorkflowContext)
       end
 

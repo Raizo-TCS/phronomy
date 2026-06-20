@@ -30,7 +30,7 @@ module Phronomy
     # @example
     #   runtime = Phronomy::Runtime.new(scheduler: Phronomy::Runtime::FakeScheduler.new)
     #   task = runtime.spawn(name: "agent-test") { 42 }
-    #   expect(task.await).to eq(42)
+    #   expect(task.wait_result).to eq(42)
     #   expect(task.status).to eq(:completed)
     # @api private
     class FakeScheduler < Scheduler

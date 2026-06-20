@@ -18,7 +18,7 @@ RSpec.describe "Stress and resource leak tests (Issue #275)" do
       threads = 50.times.map do |i|
         Thread.new do
           op = pool.submit { i * 2 }
-          results[i] = op.await
+          results[i] = op.wait_result
         end
       end
       threads.each(&:join)
@@ -33,7 +33,7 @@ RSpec.describe "Stress and resource leak tests (Issue #275)" do
           pool.submit {
             sleep(0.01)
             :done
-          }.await
+          }.wait_result
         }
       end
       threads.each(&:join)
@@ -56,7 +56,7 @@ RSpec.describe "Stress and resource leak tests (Issue #275)" do
       ops = 5.times.map { pool.submit(timeout: 0.05) { sleep(10) } }
 
       errors = ops.map do |op|
-        op.await
+        op.wait_result
         nil
       rescue Phronomy::TimeoutError => e
         e
@@ -116,7 +116,7 @@ RSpec.describe "Stress and resource leak tests (Issue #275)" do
 
   describe "queue depth returns to zero after completion" do
     it "empties the queue after all submitted operations complete" do
-      20.times { pool.submit { :noop }.await }
+      20.times { pool.submit { :noop }.wait_result }
       expect(pool.queue_depth).to eq(0)
     end
   end

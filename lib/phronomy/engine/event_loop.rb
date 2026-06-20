@@ -132,8 +132,8 @@ module Phronomy
     # @param fsm_session [Phronomy::FSMSession]
     # @return [Phronomy::Concurrency::AsyncQueue] resolves to final/halted context, or an Exception
     # @api private
-    def register(fsm_session)
-      if Phronomy::EventLoop.current?
+    def register(fsm_session, completion: nil)
+      if Phronomy::EventLoop.current? && !completion.is_a?(Phronomy::Task)
         raise Phronomy::Error,
           "Cannot call Workflow#invoke (EventLoop mode) from within an EventLoop " \
           "entry action. Schedule work via Runtime.instance.spawn or " \
@@ -141,13 +141,13 @@ module Phronomy
           "Phronomy::EventLoop.instance.post(...) instead."
       end
 
-      completion_queue = Phronomy::Concurrency::AsyncQueue.new
+      completion_queue = completion || Phronomy::Concurrency::AsyncQueue.new
       # When called from a DeterministicScheduler Fiber (e.g. :fiber backend),
       # mark the queue so that _pop_cooperative uses track_blocking_await.
       # This prevents run_until_idle from exiting before the EventLoop thread
       # (a different OS thread where Scheduler.current is nil) pushes the result.
       scheduler = Phronomy::Runtime::Scheduler.current
-      completion_queue.expect_cross_thread_push(scheduler) if scheduler
+      completion_queue.expect_cross_thread_push(scheduler) if scheduler && completion_queue.respond_to?(:expect_cross_thread_push)
       # Pass both session and completion_queue in the event payload so that the
       # EventLoop thread is the sole writer of @fsms and @waiting.
       @queue.push([Event.new(type: :start, target_id: fsm_session.id,
@@ -294,7 +294,7 @@ module Phronomy
           # Both @fsms and @waiting are exclusively owned by this thread.
           @fsms.delete(event.target_id)
           cq = @waiting.delete(event.target_id)
-          cq&.push(event.payload)
+          complete_waiter(cq, event.payload)
           # Decrement active FSM count and signal drain waiters.
           @fsm_count_mutex.synchronize do
             @fsm_count -= 1
@@ -312,7 +312,7 @@ module Phronomy
           # CancellationError rather than starting new LLM calls that would
           # be interrupted by force-kill.
           if @shutdown_token.cancelled? && cq
-            cq.push(Phronomy::CancellationError.new("EventLoop is shutting down"))
+            complete_waiter(cq, Phronomy::CancellationError.new("EventLoop is shutting down"))
             next
           end
 
@@ -338,8 +338,24 @@ module Phronomy
       end
     rescue => e
       # Unblock all waiting callers if the loop dies unexpectedly.
-      @waiting.values.each { |cq| cq.push(e) }
+      @waiting.values.each { |cq| complete_waiter(cq, e) }
       raise
+    end
+
+    def complete_waiter(waiter, payload)
+      return unless waiter
+
+      if waiter.is_a?(Phronomy::Task)
+        if payload.is_a?(Exception)
+          waiter.backend.unblock(nil, payload)
+          waiter.transition!(:failed, error: payload)
+        else
+          waiter.backend.unblock(payload, nil)
+          waiter.transition!(:completed, value: payload)
+        end
+      else
+        waiter.push(payload)
+      end
     end
 
     def update_lag_metrics(lag_ns)
