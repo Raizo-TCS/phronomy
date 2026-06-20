@@ -39,6 +39,7 @@ class BenchStubChat
   def with_temperature(_) = self
   def with_cache_instructions(_) = self
   def with_output_schema(_) = self
+  def on_tool_call(&) = self
   def last_message = @response
 
   def ask(_)
