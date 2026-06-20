@@ -1094,7 +1094,7 @@ Decrements the counter and broadcasts to wake <span class='object_link'><a href=
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
 <p>Enqueues a callable (Fiber step or arbitrary block) onto the ready queue.
-Called by <span class='object_link'><a href="../Task/FiberBackend.html#await-instance_method" title="Phronomy::Task::FiberBackend#await (method)">Task::FiberBackend#await</a></span> to resume a waiting Fiber.
+Called by Task::FiberBackend#await to resume a waiting Fiber.
 Also wakes any thread blocked in <span class='object_link'><a href="#run_until_idle-instance_method" title="Phronomy::Runtime::DeterministicScheduler#run_until_idle (method)">#run_until_idle</a></span> waiting for external
 completion signals (e.g. from BlockingAdapterPool worker threads).</p>
 
@@ -2395,7 +2395,7 @@ Each call must be balanced by a <span class='object_link'><a href="#complete_blo
 </div>
 
       <div id="footer">
-  Generated on Fri Jun 19 06:33:04 2026 by
+  Generated on Sat Jun 20 01:14:16 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

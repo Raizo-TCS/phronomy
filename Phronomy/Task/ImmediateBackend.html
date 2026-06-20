@@ -109,7 +109,7 @@
     <p>Synchronous task backend that executes the block on the calling thread.</p>
 <p>Used by <span class='object_link'><a href="../Runtime/FakeScheduler.html" title="Phronomy::Runtime::FakeScheduler (class)">Runtime::FakeScheduler</a></span> to allow tests to verify cooperative
 scheduling behaviour without spawning additional Threads.  The block
-runs to completion before <span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Task::ImmediateBackend#initialize (method)">#initialize</a></span> returns, so <span class='object_link'><a href="#await-instance_method" title="Phronomy::Task::ImmediateBackend#await (method)">#await</a></span> and <span class='object_link'><a href="#join-instance_method" title="Phronomy::Task::ImmediateBackend#join (method)">#join</a></span>
+runs to completion before <span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Task::ImmediateBackend#initialize (method)">#initialize</a></span> returns, so #await and <span class='object_link'><a href="#join-instance_method" title="Phronomy::Task::ImmediateBackend#join (method)">#join</a></span>
 always return immediately.</p>
 <p>Thread count invariant: <code>ImmediateBackend</code> never creates a new Thread.</p>
 
@@ -151,28 +151,6 @@ always return immediately.</p>
 
   
     <span class="summary_desc"><div class='inline'><p>Always <code>false</code> — block has already completed by the time the task is visible to callers.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#await-instance_method" title="#await (instance method)">#<strong>await</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the block's return value, or re-raises its exception.</p></div></span>
   
 </li>
 
@@ -285,6 +263,28 @@ always return immediately.</p>
 
   
     <span class="summary_desc"><div class='inline'><p>Returns immediately — nothing to wait for.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#wait_result-instance_method" title="#wait_result (instance method)">#<strong>wait_result</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the block's return value, or re-raises its exception.</p></div></span>
   
 </li>
 
@@ -470,79 +470,6 @@ is visible to callers.</p>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_alive?'>alive?</span>
   <span class='kw'>false</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="await-instance_method">
-  
-    #<strong>await</strong>  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Returns the block's return value, or re-raises its exception.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Object</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Exception</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-47
-48
-49
-50
-51</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task/immediate_backend.rb', line 47</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_await'>await</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='ivar'>@error</span> <span class='kw'>if</span> <span class='ivar'>@error</span>
-
-  <span class='ivar'>@value</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -791,12 +718,85 @@ is visible to callers.</p>
 </table>
 </div>
     
+      <div class="method_details ">
+  <h3 class="signature " id="wait_result-instance_method">
+  
+    #<strong>wait_result</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns the block's return value, or re-raises its exception.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Object</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Exception</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+47
+48
+49
+50
+51</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task/immediate_backend.rb', line 47</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_wait_result'>wait_result</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='ivar'>@error</span> <span class='kw'>if</span> <span class='ivar'>@error</span>
+
+  <span class='ivar'>@value</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
   </div>
 
 </div>
 
       <div id="footer">
-  Generated on Fri Jun 19 06:33:03 2026 by
+  Generated on Sat Jun 20 01:14:16 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

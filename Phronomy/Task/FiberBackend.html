@@ -157,28 +157,6 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#await-instance_method" title="#await (instance method)">#<strong>await</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'><p>Blocks until the task completes.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#cancel!-instance_method" title="#cancel! (instance method)">#<strong>cancel!</strong>  &#x21d2; self </a>
     
 
@@ -284,6 +262,28 @@
 
   
     <span class="summary_desc"><div class='inline'><p>Advances execution by one scheduler step.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#wait_result-instance_method" title="#wait_result (instance method)">#<strong>wait_result</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Blocks until the task completes.</p></div></span>
   
 </li>
 
@@ -464,120 +464,6 @@
 
 <span class='kw'>def</span> <span class='id identifier rubyid_alive?'>alive?</span>
   <span class='ivar'>@fiber</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="await-instance_method">
-  
-    #<strong>await</strong>  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Blocks until the task completes.</p>
-<p>When called from within a DeterministicScheduler-managed Fiber,
-suspends the current Fiber cooperatively and schedules it to resume
-when this task completes.  When called from outside a managed Fiber
-(e.g. the main fiber or a regular thread), drives execution by calling
-<span class='object_link'><a href="#step-instance_method" title="Phronomy::Task::FiberBackend#step (method)">#step</a></span> in a loop.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Object</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Exception</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-103
-104
-105
-106
-107
-108
-109
-110
-111
-112
-113
-114
-115
-116
-117
-118
-119
-120
-121
-122
-123
-124
-125</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task/fiber_backend.rb', line 103</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_await'>await</span>
-  <span class='kw'>unless</span> <span class='ivar'>@fiber</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
-    <span class='id identifier rubyid_raise'>raise</span> <span class='ivar'>@error</span> <span class='kw'>if</span> <span class='ivar'>@error</span>
-    <span class='kw'>return</span> <span class='ivar'>@value</span>
-  <span class='kw'>end</span>
-
-  <span class='id identifier rubyid_scheduler'>scheduler</span> <span class='op'>=</span> <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_thread_variable_get'>thread_variable_get</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../Task.html#SCHEDULER_KEY-constant" title="Phronomy::Task::SCHEDULER_KEY (constant)">SCHEDULER_KEY</a></span></span><span class='rparen'>)</span>
-  <span class='comment'># Fiber.main was added in Ruby 3.2.4+; fall back to true (assume we are
-</span>  <span class='comment'># inside a managed Fiber whenever a scheduler is active).
-</span>  <span class='id identifier rubyid_in_managed_fiber'>in_managed_fiber</span> <span class='op'>=</span> <span class='op'>!</span><span class='const'>Fiber</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:main</span><span class='rparen'>)</span> <span class='op'>||</span> <span class='const'>Fiber</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span> <span class='op'>!=</span> <span class='const'>Fiber</span><span class='period'>.</span><span class='id identifier rubyid_main'>main</span>
-  <span class='kw'>if</span> <span class='id identifier rubyid_scheduler'>scheduler</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_in_managed_fiber'>in_managed_fiber</span>
-    <span class='comment'># Cooperative context: suspend current Fiber until task is done.
-</span>    <span class='id identifier rubyid_waiting_fiber'>waiting_fiber</span> <span class='op'>=</span> <span class='const'>Fiber</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span>
-    <span class='ivar'>@task</span><span class='period'>.</span><span class='id identifier rubyid_on_complete'>on_complete</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_scheduler'>scheduler</span><span class='period'>.</span><span class='id identifier rubyid_enqueue_fiber'>enqueue_fiber</span><span class='lparen'>(</span><span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='id identifier rubyid_waiting_fiber'>waiting_fiber</span><span class='period'>.</span><span class='id identifier rubyid_resume'>resume</span> <span class='rbrace'>}</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
-    <span class='const'>Fiber</span><span class='period'>.</span><span class='id identifier rubyid_yield'>yield</span><span class='lparen'>(</span><span class='symbol'>:cooperative_suspend</span><span class='rparen'>)</span>
-  <span class='kw'>else</span>
-    <span class='comment'># Non-cooperative context: drive the fiber to completion.
-</span>    <span class='id identifier rubyid_step'>step</span> <span class='kw'>while</span> <span class='ivar'>@fiber</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
-  <span class='kw'>end</span>
-
-  <span class='id identifier rubyid_raise'>raise</span> <span class='ivar'>@error</span> <span class='kw'>if</span> <span class='ivar'>@error</span>
-  <span class='ivar'>@value</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -881,12 +767,126 @@ arbitrary suspension point via <code>Fiber#raise</code>.</p>
 </table>
 </div>
     
+      <div class="method_details ">
+  <h3 class="signature " id="wait_result-instance_method">
+  
+    #<strong>wait_result</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Blocks until the task completes.</p>
+<p>When called from within a DeterministicScheduler-managed Fiber,
+suspends the current Fiber cooperatively and schedules it to resume
+when this task completes.  When called from outside a managed Fiber
+(e.g. the main fiber or a regular thread), drives execution by calling
+<span class='object_link'><a href="#step-instance_method" title="Phronomy::Task::FiberBackend#step (method)">#step</a></span> in a loop.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Object</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Exception</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task/fiber_backend.rb', line 103</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_wait_result'>wait_result</span>
+  <span class='kw'>unless</span> <span class='ivar'>@fiber</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='ivar'>@error</span> <span class='kw'>if</span> <span class='ivar'>@error</span>
+    <span class='kw'>return</span> <span class='ivar'>@value</span>
+  <span class='kw'>end</span>
+
+  <span class='id identifier rubyid_scheduler'>scheduler</span> <span class='op'>=</span> <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_thread_variable_get'>thread_variable_get</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../Task.html#SCHEDULER_KEY-constant" title="Phronomy::Task::SCHEDULER_KEY (constant)">SCHEDULER_KEY</a></span></span><span class='rparen'>)</span>
+  <span class='comment'># Fiber.main was added in Ruby 3.2.4+; fall back to true (assume we are
+</span>  <span class='comment'># inside a managed Fiber whenever a scheduler is active).
+</span>  <span class='id identifier rubyid_in_managed_fiber'>in_managed_fiber</span> <span class='op'>=</span> <span class='op'>!</span><span class='const'>Fiber</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:main</span><span class='rparen'>)</span> <span class='op'>||</span> <span class='const'>Fiber</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span> <span class='op'>!=</span> <span class='const'>Fiber</span><span class='period'>.</span><span class='id identifier rubyid_main'>main</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_scheduler'>scheduler</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_in_managed_fiber'>in_managed_fiber</span>
+    <span class='comment'># Cooperative context: suspend current Fiber until task is done.
+</span>    <span class='id identifier rubyid_waiting_fiber'>waiting_fiber</span> <span class='op'>=</span> <span class='const'>Fiber</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span>
+    <span class='ivar'>@task</span><span class='period'>.</span><span class='id identifier rubyid_on_complete'>on_complete</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_scheduler'>scheduler</span><span class='period'>.</span><span class='id identifier rubyid_enqueue_fiber'>enqueue_fiber</span><span class='lparen'>(</span><span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='id identifier rubyid_waiting_fiber'>waiting_fiber</span><span class='period'>.</span><span class='id identifier rubyid_resume'>resume</span> <span class='rbrace'>}</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+    <span class='const'>Fiber</span><span class='period'>.</span><span class='id identifier rubyid_yield'>yield</span><span class='lparen'>(</span><span class='symbol'>:cooperative_suspend</span><span class='rparen'>)</span>
+  <span class='kw'>else</span>
+    <span class='comment'># Non-cooperative context: drive the fiber to completion.
+</span>    <span class='id identifier rubyid_step'>step</span> <span class='kw'>while</span> <span class='ivar'>@fiber</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
+  <span class='kw'>end</span>
+
+  <span class='id identifier rubyid_raise'>raise</span> <span class='ivar'>@error</span> <span class='kw'>if</span> <span class='ivar'>@error</span>
+  <span class='ivar'>@value</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
   </div>
 
 </div>
 
       <div id="footer">
-  Generated on Fri Jun 19 06:33:02 2026 by
+  Generated on Sat Jun 20 01:14:15 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

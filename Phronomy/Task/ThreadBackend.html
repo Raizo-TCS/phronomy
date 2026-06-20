@@ -160,28 +160,6 @@ run outside the scheduler (e.g. inside BlockingAdapterPool).</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#await-instance_method" title="#await (instance method)">#<strong>await</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#cancel!-instance_method" title="#cancel! (instance method)">#<strong>cancel!</strong>  &#x21d2; self </a>
     
 
@@ -273,6 +251,28 @@ run outside the scheduler (e.g. inside BlockingAdapterPool).</p>
   <span class="summary_signature">
     
       <a href="#join-instance_method" title="#join (instance method)">#<strong>join</strong>(limit = nil)  &#x21d2; Thread<sup>?</sup> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#wait_result-instance_method" title="#wait_result (instance method)">#<strong>wait_result</strong>  &#x21d2; Object </a>
     
 
     
@@ -443,81 +443,6 @@ run outside the scheduler (e.g. inside BlockingAdapterPool).</p>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_alive?'>alive?</span>
   <span class='ivar'>@thread</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="await-instance_method">
-  
-    #<strong>await</strong>  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Object</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Exception</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-44
-45
-46
-47
-48
-49</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task/thread_backend.rb', line 44</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_await'>await</span>
-  <span class='ivar'>@thread</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='ivar'>@error</span> <span class='kw'>if</span> <span class='ivar'>@error</span>
-
-  <span class='ivar'>@value</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -767,12 +692,87 @@ run outside the scheduler (e.g. inside BlockingAdapterPool).</p>
 </table>
 </div>
     
+      <div class="method_details ">
+  <h3 class="signature " id="wait_result-instance_method">
+  
+    #<strong>wait_result</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Object</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Exception</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+44
+45
+46
+47
+48
+49</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task/thread_backend.rb', line 44</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_wait_result'>wait_result</span>
+  <span class='ivar'>@thread</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='ivar'>@error</span> <span class='kw'>if</span> <span class='ivar'>@error</span>
+
+  <span class='ivar'>@value</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
   </div>
 
 </div>
 
       <div id="footer">
-  Generated on Fri Jun 19 06:33:03 2026 by
+  Generated on Sat Jun 20 01:14:15 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

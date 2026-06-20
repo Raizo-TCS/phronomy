@@ -761,16 +761,23 @@ Understanding when to use each prevents scheduler stalls and hidden deadlocks.</
 <td><code>agent.invoke(input)</code> — blocks the calling thread until done</td>
 </tr>
 <tr>
-<td>Inside a <code>Runtime#spawn</code> block, <code>TaskGroup</code>, Workflow action, Tool <code>execute</code></td>
-<td><code>agent.invoke_async(input).await</code> — non-blocking within the scheduler</td>
+<td>Workflow action / EventLoop callback</td>
+<td>`agent.invoke_async(input).map {</td>
+<td>r</td>
+<td>ctx.merge(output: <a href=":output">r</a>) }` — returns a Task and resumes by state transition</td>
+</tr>
+<tr>
+<td>Top-level code that wants explicit async</td>
+<td><code>agent.invoke_async(input).wait_result</code> — blocks the calling thread until the Task completes</td>
 </tr>
 </tbody>
 </table>
 <h3 id="Why_this_matters">Why this matters</h3>
 <p><code>invoke</code> is a synchronous wrapper that calls <code>invoke_async</code> and then <em>blocks</em> the calling
-thread until the task completes. When called from <strong>inside</strong> an active scheduler task, the
-calling task blocks the scheduler thread, preventing other tasks from making progress — a
-hidden deadlock when all scheduler threads are occupied.</p>
+thread until the task completes.  It is intended for top-level application threads such as
+Rails controller actions, CLI scripts, or background jobs.  Inside EventLoop-driven
+workflow actions, return a Task and let <code>Task#map</code> / <code>Task#on_complete</code> drive the next
+state transition instead of waiting inside the EventLoop thread.</p>
 <h3 id="Runtime_guard">Runtime guard</h3>
 <p>Phronomy detects this pattern automatically:</p>
 <pre class="code ruby"><code class="ruby"><span class='comment'># Default (soft mode): logs a warning and continues
@@ -782,12 +789,19 @@ hidden deadlock when all scheduler threads are occupied.</p>
 <p>You can also query the current context directly:</p>
 <pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_in_scheduler_context?'><span class='object_link'><a href="Phronomy/Runtime.html#in_scheduler_context%3F-class_method" title="Phronomy::Runtime.in_scheduler_context? (method)">in_scheduler_context?</a></span></span>  <span class='comment'># =&gt; true if called from inside a task
 </span></code></pre>
-<h3 id="Migration__invoke___invoke_async">Migration: invoke → invoke_async</h3>
-<pre class="code ruby"><code class="ruby"><span class='comment'># Before (blocks scheduler if called from inside a task)
+<h3 id="Migration__blocking_wait___Task_mapping">Migration: blocking wait → Task mapping</h3>
+<pre class="code ruby"><code class="ruby"><span class='comment'># Top-level synchronous use
 </span><span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_my_agent'>my_agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
 
-<span class='comment'># After (safe inside tasks and TaskGroups)
-</span><span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_my_agent'>my_agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_await'>await</span>
+<span class='comment'># Explicit async from top-level code
+</span><span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_my_agent'>my_agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
+
+<span class='comment'># Workflow action / EventLoop-safe use
+</span><span class='const'>NODE</span> <span class='op'>=</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+  <span class='id identifier rubyid_my_agent'>my_agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_result'>result</span><span class='op'>|</span>
+    <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>answer:</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+  <span class='rbrace'>}</span>
+<span class='rbrace'>}</span>
 </code></pre>
 <h3 id="_immediate_backend__synchronous___test_mode_">:immediate backend (synchronous / test mode)</h3>
 <p>The <code>:immediate</code> backend runs tasks synchronously using <code>FakeScheduler</code>
@@ -1067,7 +1081,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Fri Jun 19 06:32:59 2026 by
+  Generated on Sat Jun 20 01:14:12 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

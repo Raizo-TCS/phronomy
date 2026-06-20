@@ -105,7 +105,7 @@
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
     <p>Represents the pending result of a submitted blocking operation.
-Returned immediately by <span class='object_link'><a href="../BlockingAdapterPool.html#submit-instance_method" title="Phronomy::Concurrency::BlockingAdapterPool#submit (method)">#submit</a></span>; call <span class='object_link'><a href="#await-instance_method" title="Phronomy::Concurrency::BlockingAdapterPool::PendingOperation#await (method)">#await</a></span> to
+Returned immediately by <span class='object_link'><a href="../BlockingAdapterPool.html#submit-instance_method" title="Phronomy::Concurrency::BlockingAdapterPool#submit (method)">#submit</a></span>; call #await to
 wait for the result.</p>
 
   </div>
@@ -153,9 +153,11 @@ wait for the result.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#await-instance_method" title="#await (instance method)">#<strong>await</strong>(timeout: nil, cancellation_token: nil)  &#x21d2; Object </a>
+      <a href="#blocking_wait-instance_method" title="#blocking_wait (instance method)">#<strong>blocking_wait</strong>(timeout: nil, cancellation_token: nil)  &#x21d2; Object </a>
     
 
+    
+      (also: #wait_result)
     
   </span>
   
@@ -319,12 +321,6 @@ wait for the result.</p>
       <pre class="lines">
 
 
-202
-203
-204
-205
-206
-207
 208
 209
 210
@@ -332,10 +328,16 @@ wait for the result.</p>
 212
 213
 214
-215</pre>
+215
+216
+217
+218
+219
+220
+221</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 202</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 208</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_block'>block</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on_abandoned:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@block</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -423,11 +425,15 @@ wait for the result.</p>
 </div>
     
       <div class="method_details ">
-  <h3 class="signature " id="await-instance_method">
+  <h3 class="signature " id="blocking_wait-instance_method">
   
-    #<strong>await</strong>(timeout: nil, cancellation_token: nil)  &#x21d2; <tt>Object</tt> 
+    #<strong>blocking_wait</strong>(timeout: nil, cancellation_token: nil)  &#x21d2; <tt>Object</tt> 
   
 
+  
+    <span class="aliases">Also known as:
+    <span class="names"><span id='wait_result-instance_method'>wait_result</span></span>
+    </span>
   
 
   
@@ -649,7 +655,7 @@ the operation.</p>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 106</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_await'>await</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_blocking_wait'>blocking_wait</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_effective_timeout'>effective_timeout</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span> <span class='ivar'>@timeout</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span><span class='period'>.</span><span class='id identifier rubyid_min'>min</span>
   <span class='id identifier rubyid_effective_token'>effective_token</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span> <span class='op'>||</span> <span class='ivar'>@cancellation_token</span>
 
@@ -811,12 +817,6 @@ the operation.</p>
       <pre class="lines">
 
 
-218
-219
-220
-221
-222
-223
 224
 225
 226
@@ -835,10 +835,16 @@ the operation.</p>
 239
 240
 241
-242</pre>
+242
+243
+244
+245
+246
+247
+248</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 218</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 224</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execute!'>execute!</span>
   <span class='ivar'>@wait_time</span> <span class='op'>=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>-</span> <span class='ivar'>@submitted_at</span>
@@ -928,22 +934,22 @@ completes the operation.</p>
       <pre class="lines">
 
 
-187
-188
-189
-190
-191
-192
 193
 194
 195
 196
 197
 198
-199</pre>
+199
+200
+201
+202
+203
+204
+205</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 187</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 193</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_complete'>on_complete</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_fire_args'>fire_args</span> <span class='op'>=</span> <span class='kw'>nil</span>
@@ -1027,7 +1033,7 @@ completes the operation.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri Jun 19 06:33:04 2026 by
+  Generated on Sat Jun 20 01:14:17 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

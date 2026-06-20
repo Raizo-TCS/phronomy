@@ -2604,25 +2604,25 @@ When <code>approved: false</code>, rejects the tool call and ends the invocation
       <pre class="lines">
 
 
-869
-870
-871
-872
-873
-874
-875
-876
-877
-878
-879
-880
-881
-882
-883
-884</pre>
+938
+939
+940
+941
+942
+943
+944
+945
+946
+947
+948
+949
+950
+951
+952
+953</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 869</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 938</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approve'>approve</span><span class='lparen'>(</span><span class='id identifier rubyid_session_id'>session_id</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ctx'>ctx</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="SuspendedSessionRegistry.html" title="Phronomy::Agent::SuspendedSessionRegistry (module)">SuspendedSessionRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_fetch'><span class='object_link'><a href="SuspendedSessionRegistry.html#fetch-class_method" title="Phronomy::Agent::SuspendedSessionRegistry.fetch (method)">fetch</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_session_id'>session_id</span><span class='rparen'>)</span>
@@ -2675,12 +2675,12 @@ Retained for backward compatibility with callers using safe navigation (+&amp;.r
       <pre class="lines">
 
 
-586
-587
-588</pre>
+589
+590
+591</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 586</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 589</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_context_version_cache'>context_version_cache</span>
   <span class='kw'>nil</span>
@@ -2912,7 +2912,10 @@ messages: Array }+ when the invocation was suspended awaiting tool approval.</p>
 515
 516
 517
-518</pre>
+518
+519
+520
+521</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 485</span>
@@ -2925,7 +2928,10 @@ messages: Array }+ when the invocation was suspended awaiting tool approval.</p>
 
   <span class='id identifier rubyid_timeout_sec'>timeout_sec</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_invoke_timeout'>invoke_timeout</span>
   <span class='kw'>unless</span> <span class='id identifier rubyid_timeout_sec'>timeout_sec</span>
-    <span class='kw'>return</span> <span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_await'>await</span>
+    <span class='kw'>return</span> <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent.invoke</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid__build_caller_meta'>_build_caller_meta</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid__span'>_span</span><span class='op'>|</span>
+      <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
+      <span class='lbracket'>[</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:usage</span><span class='rbracket'>]</span><span class='rbracket'>]</span>
+    <span class='kw'>end</span>
   <span class='kw'>end</span>
 
   <span class='comment'># invoke_timeout: create a CancellationScope with deadline, pass its token
@@ -2939,7 +2945,7 @@ messages: Array }+ when the invocation was suspended awaiting tool approval.</p>
   <span class='comment'># Bridge the task result to an AsyncQueue so scope.pop_queue can observe the deadline.
 </span>  <span class='id identifier rubyid_completion_queue'>completion_queue</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency/AsyncQueue.html" title="Phronomy::Concurrency::AsyncQueue (class)">AsyncQueue</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="../Concurrency/AsyncQueue.html#initialize-instance_method" title="Phronomy::Concurrency::AsyncQueue#initialize (method)">new</a></span></span>
   <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_spawn'><span class='object_link'><a href="../Runtime.html#spawn-instance_method" title="Phronomy::Runtime#spawn (method)">spawn</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>invoke-timeout-bridge:</span><span class='embexpr_beg'>#{</span><span class='lparen'>(</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span> <span class='op'>||</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_downcase'>downcase</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_completion_queue'>completion_queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_await'>await</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_completion_queue'>completion_queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span><span class='rparen'>)</span>
   <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
     <span class='id identifier rubyid_completion_queue'>completion_queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_e'>e</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
@@ -2985,7 +2991,7 @@ drains in-flight invocations before process exit.</p>
     
       
       <pre class="example code"><code><span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello!</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
-<span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_await'>await</span>   <span class='comment'># =&gt; { output: &quot;...&quot;, messages: [...], usage: ... }</span></code></pre>
+<span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>   <span class='comment'># =&gt; { output: &quot;...&quot;, messages: [...], usage: ... }</span></code></pre>
     
   </div>
 <p class="tag_title">Parameters:</p>
@@ -3076,9 +3082,6 @@ drains in-flight invocations before process exit.</p>
       <pre class="lines">
 
 
-542
-543
-544
 545
 546
 547
@@ -3089,10 +3092,13 @@ drains in-flight invocations before process exit.</p>
 552
 553
 554
-555</pre>
+555
+556
+557
+558</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 542</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 545</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span>
@@ -3101,11 +3107,11 @@ drains in-flight invocations before process exit.</p>
   <span class='id identifier rubyid_bp'>bp</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_backpressure'>backpressure</span>
   <span class='id identifier rubyid_on_full'>on_full</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='id identifier rubyid_bp'>bp</span> <span class='op'>==</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='symbol'>:reject</span> <span class='op'>:</span> <span class='lparen'>(</span><span class='id identifier rubyid_bp'>bp</span> <span class='op'>||</span> <span class='symbol'>:wait</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_bp_timeout'>bp_timeout</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_backpressure_timeout'>backpressure_timeout</span>
+  <span class='id identifier rubyid_result_task'>result_task</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="../Task.html#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent-</span><span class='embexpr_beg'>#{</span><span class='lparen'>(</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span> <span class='op'>||</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>anonymous</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_downcase'>downcase</span><span class='embexpr_end'>}</span><span class='tstring_content'>-async</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
   <span class='id identifier rubyid_gate'>gate</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_gate'><span class='object_link'><a href="../Runtime.html#gate-instance_method" title="Phronomy::Runtime#gate (method)">gate</a></span></span><span class='lparen'>(</span><span class='symbol'>:agent</span><span class='rparen'>)</span>
-  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_spawn'><span class='object_link'><a href="../Runtime.html#spawn-instance_method" title="Phronomy::Runtime#spawn (method)">spawn</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent-</span><span class='embexpr_beg'>#{</span><span class='lparen'>(</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span> <span class='op'>||</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>anonymous</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_downcase'>downcase</span><span class='embexpr_end'>}</span><span class='tstring_content'>-async</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_gate'>gate</span><span class='period'>.</span><span class='id identifier rubyid_acquire'>acquire</span><span class='lparen'>(</span><span class='label'>on_full:</span> <span class='id identifier rubyid_on_full'>on_full</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='id identifier rubyid_bp_timeout'>bp_timeout</span><span class='rparen'>)</span> <span class='kw'>do</span>
-      <span class='id identifier rubyid__invoke_impl'>_invoke_impl</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
-    <span class='kw'>end</span>
+  <span class='id identifier rubyid_gate'>gate</span><span class='period'>.</span><span class='id identifier rubyid_acquire'>acquire</span><span class='lparen'>(</span><span class='label'>on_full:</span> <span class='id identifier rubyid_on_full'>on_full</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='id identifier rubyid_bp_timeout'>bp_timeout</span><span class='rparen'>)</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid__start_invoke_attempt'>_start_invoke_attempt</span><span class='lparen'>(</span><span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='label'>attempt:</span> <span class='int'>0</span><span class='rparen'>)</span>
+    <span class='kw'>return</span> <span class='id identifier rubyid_result_task'>result_task</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -3308,17 +3314,17 @@ as they are produced by the underlying LLM.</p>
       <pre class="lines">
 
 
-574
-575
-576
 577
 578
 579
 580
-581</pre>
+581
+582
+583
+584</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 574</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 577</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
@@ -3338,7 +3344,7 @@ as they are produced by the underlying LLM.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri Jun 19 06:33:00 2026 by
+  Generated on Sat Jun 20 01:14:13 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>

@@ -153,7 +153,7 @@
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Injectable sleep callable for testing (shared with Tool::Base pattern).</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Injectable sleep callable for testing.</p></div></span>
   
 </li>
 
@@ -276,7 +276,11 @@
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Injectable sleep callable for testing (shared with Tool::Base pattern).</p>
+<p>Injectable sleep callable for testing.
+In the EventLoop-driven invoke path, actual delay is handled by
+timer_queue (non-blocking); _sleep_proc is called only as an
+instrumentation hook.  The default is a no-op; tests override it
+with a spy lambda to record sleep durations.</p>
 
   </div>
 </div>
@@ -302,12 +306,12 @@
       <pre class="lines">
 
 
-41
-42
-43</pre>
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/retryable.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/concerns/retryable.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__sleep_proc'>_sleep_proc</span>
   <span class='ivar'>@_sleep_proc</span> <span class='op'>||</span> <span class='id identifier rubyid_method'>method</span><span class='lparen'>(</span><span class='symbol'>:sleep</span><span class='rparen'>)</span>
@@ -435,7 +439,7 @@ FilterBlockError is never retried regardless of this setting.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri Jun 19 06:32:59 2026 by
+  Generated on Sat Jun 20 01:14:12 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.44 (ruby-3.3.11).
 </div>
