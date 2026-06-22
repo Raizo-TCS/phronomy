@@ -199,33 +199,49 @@ module Phronomy
       private_class_method :building_context_action
 
       def self.calling_llm_action(agent, ctx)
-        # Returns a Task — FSMSession will await it asynchronously.
-        # First call: send user message. Subsequent calls (after tool execution):
-        # pass nil so the adapter calls chat.complete (continue after tool result).
+        # Returns a Task.deferred — no extra OS thread is created.
+        # The BlockingAdapterPool worker thread completes the LLM call and
+        # resolves result_task via on_complete, which then triggers the
+        # FSMSession's dispatch_task_in_event_loop on_complete callback to
+        # post :action_completed back to the EventLoop.
         user_message = ctx.user_message_sent ? nil : agent.send(:extract_message, ctx.input)
-        Phronomy::Runtime.instance.spawn(name: "agent-llm:#{ctx.thread_id}") do
-          agent.send(:check_cancellation!, ctx.config, "invocation cancelled before LLM call")
-          adapter = Phronomy.configuration.llm_adapter
-          begin
-            response = adapter.complete_async(ctx.chat, user_message, config: ctx.config).blocking_wait
+        agent.send(:check_cancellation!, ctx.config, "invocation cancelled before LLM call")
+        adapter = Phronomy.configuration.llm_adapter
+        op = adapter.complete_async(ctx.chat, user_message, config: ctx.config)
+        result_task = Phronomy::Task.deferred(name: "agent-llm:#{ctx.thread_id}")
+        op.on_complete do |response, error|
+          if error.is_a?(Phronomy::Agent::ToolCallIntercepted)
+            ctx.user_message_sent = true
+            ctx.pending_tool_call = error.tool_call
+            ctx.tool_call_pending = true
+            ctx.messages = ctx.chat.messages
+            result_task.backend.unblock(ctx, nil)
+            result_task.transition!(:completed, value: ctx)
+          elsif error
+            result_task.backend.unblock(nil, error)
+            result_task.transition!(:failed, error: error)
+          else
             ctx.user_message_sent = true
             ctx.output = response.content
             ctx.usage = Phronomy::TokenUsage.from_tokens(response.tokens)
             ctx.messages = ctx.chat.messages
             ctx.tool_call_pending = false
-          rescue Phronomy::Agent::ToolCallIntercepted => e
-            ctx.user_message_sent = true
-            ctx.pending_tool_call = e.tool_call
-            ctx.tool_call_pending = true
-            ctx.messages = ctx.chat.messages
+            result_task.backend.unblock(ctx, nil)
+            result_task.transition!(:completed, value: ctx)
           end
-          ctx
         end
+        result_task
       end
       private_class_method :calling_llm_action
 
       def self.calling_llm_stream_action(agent, on_event, ctx)
         user_message = ctx.user_message_sent ? nil : agent.send(:extract_message, ctx.input)
+        # Streaming requires a background thread because chunk_queue.pop is a
+        # blocking drain loop that must not run on the EventLoop thread.
+        # The on_complete pattern used in calling_llm_action cannot be applied
+        # here because tokens must be delivered incrementally via on_event
+        # before the final response arrives.  This spawn is therefore
+        # intentional and classified under ADR-010 Rule 2 (blocking loop).
         Phronomy::Runtime.instance.spawn(name: "agent-llm-stream:#{ctx.thread_id}") do
           adapter = Phronomy.configuration.llm_adapter
           chunk_queue = Phronomy::Concurrency::AsyncQueue.new(
