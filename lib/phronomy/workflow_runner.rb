@@ -79,23 +79,48 @@ module Phronomy
       caller_meta[:session_id] = config[:session_id] if config[:session_id]
 
       trace("workflow.invoke", input: input.inspect, **caller_meta) do |_span|
-        thread_id = config[:thread_id] || SecureRandom.uuid
-        recursion_limit = config.fetch(:recursion_limit, Phronomy.configuration.recursion_limit)
-
-        store = config.fetch(:state_store, @state_store) || Phronomy.configuration.state_store
-        snapshot = (store && config[:thread_id]) ? store.load(thread_id) : nil
-        initial_fields = if snapshot && snapshot[:fields]
-          snapshot[:fields].transform_keys(&:to_sym).merge(input.transform_keys(&:to_sym))
-        else
-          input
-        end
-
-        state = @state_class.new(**initial_fields)
-        state.set_graph_metadata(thread_id: thread_id)
+        state, thread_id, recursion_limit, store = _build_initial_context(input, config)
         result = run_via_event_loop(state, recursion_limit: recursion_limit)
         store&.save(thread_id, {fields: result.to_h, phase: result.phase.to_s}) if config[:thread_id]
         [result, nil]
       end
+    end
+
+    # Registers the workflow with the EventLoop and returns a {Phronomy::Task}
+    # immediately without blocking the caller.  The task resolves with the final
+    # context when the workflow finishes.
+    #
+    # This is the EventLoop-driven equivalent of spawning a thread around
+    # {#invoke}.  No extra OS thread is created; the EventLoop's existing thread
+    # drives the execution.
+    #
+    # @param input [Hash] initial context field values
+    # @param config [Hash]
+    # @return [Phronomy::Task]
+    # @api private
+    def invoke_deferred(input, config: {})
+      state, thread_id, recursion_limit, store = _build_initial_context(input, config)
+      result_task = Phronomy::Task.deferred(name: "workflow-async:#{thread_id}")
+      Phronomy::EventLoop.instance.start
+      session = build_session_for(context: state, recursion_limit: recursion_limit)
+      if store && config[:thread_id]
+        # Wrap so that state is persisted when the task resolves.
+        persist_task = Phronomy::Task.deferred(name: "workflow-async-persist:#{thread_id}")
+        Phronomy::EventLoop.instance.register(session, completion: persist_task)
+        persist_task.on_complete do |result, error|
+          store.save(thread_id, {fields: result.to_h, phase: result.phase.to_s}) unless error
+          if error
+            result_task.backend.unblock(nil, error)
+            result_task.transition!(:failed, error: error)
+          else
+            result_task.backend.unblock(result, nil)
+            result_task.transition!(:completed, value: result)
+          end
+        end
+      else
+        Phronomy::EventLoop.instance.register(session, completion: result_task)
+      end
+      result_task
     end
 
     # Generic resume. Equivalent to +send_event(state:, event: :resume, input:)+.
@@ -158,6 +183,23 @@ module Phronomy
     end
 
     private
+
+    # Builds the initial WorkflowContext from input and config.
+    # Returns [state, thread_id, recursion_limit, store].
+    def _build_initial_context(input, config)
+      thread_id = config[:thread_id] || SecureRandom.uuid
+      recursion_limit = config.fetch(:recursion_limit, Phronomy.configuration.recursion_limit)
+      store = config.fetch(:state_store, @state_store) || Phronomy.configuration.state_store
+      snapshot = (store && config[:thread_id]) ? store.load(thread_id) : nil
+      initial_fields = if snapshot && snapshot[:fields]
+        snapshot[:fields].transform_keys(&:to_sym).merge(input.transform_keys(&:to_sym))
+      else
+        input
+      end
+      state = @state_class.new(**initial_fields)
+      state.set_graph_metadata(thread_id: thread_id)
+      [state, thread_id, recursion_limit, store]
+    end
 
     # Builds an FSMSession for the given context. Used in EventLoop mode.
     def build_session_for(context:, recursion_limit:, resume_event: nil, resume_phase: nil)

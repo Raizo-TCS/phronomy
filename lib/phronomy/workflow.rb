@@ -96,6 +96,11 @@ module Phronomy
 
     # Invokes this workflow asynchronously and returns a {Phronomy::Task}.
     #
+    # Unlike {#invoke}, this method registers the workflow session with the
+    # EventLoop and returns immediately without spawning an extra OS thread.
+    # The returned Task resolves with the final context when the workflow
+    # finishes.
+    #
     # @param input  [Hash]
     # @param config [Hash]
     # @param invocation_context [Phronomy::InvocationContext, nil]
@@ -105,9 +110,7 @@ module Phronomy
       if invocation_context
         config = _apply_invocation_context(config, invocation_context)
       end
-      Phronomy::Runtime.instance.spawn(name: "workflow-invoke-async") do
-        invoke(input, config: config)
-      end
+      @runner.invoke_deferred(input, config: config)
     end
 
     # Resumes a halted workflow. Generic resume that works for all halt types.
