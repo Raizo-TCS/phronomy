@@ -35,39 +35,43 @@ module Phronomy
         #   - "stdio://<command>"  — spawn a child process
         #   - "http://<url>" / "https://<url>" — connect to an HTTP/SSE server
         # @param tool_name [String] the tool name as registered in the MCP server
+        # @param headers [Hash] additional HTTP request headers forwarded to every
+        #   request (tool discovery and tool execution). Ignored for stdio transports.
+        #   Typical use: <tt>headers: { "Authorization" => "Bearer #{ENV['API_KEY']}" }</tt>
         # @return [Mcp] a configured subclass instance ready for use with an Agent
         # @api public
-        def from_server(server_uri, tool_name:)
+        def from_server(server_uri, tool_name:, headers: {})
           # Use a short-lived transport only to query the tool definition,
           # then close it.  Each Mcp instance creates its own transport
           # so that concurrent callers never share IO streams.
-          transport = build_transport(server_uri)
+          transport = build_transport(server_uri, headers: headers)
           begin
             tool_def = transport.fetch_tool(tool_name)
           ensure
             transport.close
           end
-          build_tool_class(tool_name, server_uri, tool_def).new
+          build_tool_class(tool_name, server_uri, tool_def, headers: headers).new
         end
 
         private
 
-        def build_transport(uri)
+        def build_transport(uri, headers: {})
           scheme, path = uri.split("://", 2)
           case scheme
           when "stdio"
             StdioTransport.new(path)
           when "http", "https"
-            HttpTransport.new(uri)
+            HttpTransport.new(uri, headers: headers)
           else
             raise ArgumentError, "Unsupported MCP transport scheme: #{scheme.inspect}. Supported: 'stdio://', 'http://', 'https://'."
           end
         end
 
-        def build_tool_class(tool_name, server_uri, tool_def)
+        def build_tool_class(tool_name, server_uri, tool_def, headers: {})
           klass = Class.new(Mcp)
           klass.tool_name(tool_name)
           klass.instance_variable_set(:@mcp_server_uri, server_uri)
+          klass.instance_variable_set(:@mcp_headers, headers)
 
           # Register description and params from the MCP tool definition.
           klass.description(tool_def[:description] || tool_name)
@@ -82,7 +86,8 @@ module Phronomy
           # never share IO streams, eliminating the need for synchronisation.
           klass.define_method(:initialize) do
             uri = self.class.instance_variable_get(:@mcp_server_uri)
-            @mcp_transport = self.class.send(:build_transport, uri)
+            hdrs = self.class.instance_variable_get(:@mcp_headers) || {}
+            @mcp_transport = self.class.send(:build_transport, uri, headers: hdrs)
           end
 
           klass.define_method(:execute) do |**args|
@@ -249,8 +254,10 @@ module Phronomy
               raise Phronomy::ToolError,
                 "MCP stdio server did not start within #{@startup_timeout} seconds"
             end
-            line = @stdout.gets
-            @stdout.ungetbyte(line) if line
+            # Do NOT call @stdout.gets here: gets() blocks until a newline arrives,
+            # which hangs indefinitely when the server emits no startup line or a
+            # partial line without '\n'.  IO.select already confirmed the server is
+            # alive and responsive; the first rpc_call will consume actual output.
           end
         end
 

@@ -491,4 +491,30 @@ RSpec.describe Phronomy::Tools::Mcp do
       end
     end
   end
+
+  # Regression test for Issue #155:
+  # startup_timeout uses @stdout.gets after IO.select, which blocks waiting for
+  # a newline even when the server has already written data without a trailing
+  # newline.  IO.select correctly detects that data is available, but gets()
+  # then hangs indefinitely until '\n' arrives — which never comes for servers
+  # that only write a partial startup banner or no startup output at all.
+  describe "StdioTransport startup_timeout does not block on partial startup line (Issue #155)" do
+    it "completes within startup_timeout when server emits data without a trailing newline" do
+      require "timeout"
+
+      # Simulate a server that writes a partial line (no newline) then sleeps.
+      # IO.select will return immediately (data is available), but @stdout.gets
+      # blocks forever waiting for '\n'.
+      cmd = %(ruby -e "STDOUT.sync=true; STDOUT.print('startup'); sleep 60")
+      transport = Phronomy::Tools::Mcp::StdioTransport.new(cmd, startup_timeout: 0.5)
+
+      # With the current implementation ensure_started! hangs inside gets().
+      # Wrap in Timeout so the test itself does not hang.
+      expect {
+        Timeout.timeout(2) { transport.send(:ensure_started!) }
+      }.not_to raise_error
+    ensure
+      transport&.close rescue nil
+    end
+  end
 end
