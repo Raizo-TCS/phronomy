@@ -164,7 +164,7 @@ HTTP/SSE MCP server using <code>net/http</code>.</li>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#from_server-class_method" title="from_server (class method)">.<strong>from_server</strong>(server_uri, tool_name:)  &#x21d2; Mcp </a>
+      <a href="#from_server-class_method" title="from_server (class method)">.<strong>from_server</strong>(server_uri, tool_name:, headers: {})  &#x21d2; Mcp </a>
     
 
     
@@ -209,7 +209,7 @@ HTTP/SSE MCP server using <code>net/http</code>.</li>
       <div class="method_details first">
   <h3 class="signature first" id="from_server-class_method">
   
-    .<strong>from_server</strong>(server_uri, tool_name:)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Tools::Mcp (class)">Mcp</a></span></tt> 
+    .<strong>from_server</strong>(server_uri, tool_name:, headers: {})  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Tools::Mcp (class)">Mcp</a></span></tt> 
   
 
   
@@ -259,6 +259,24 @@ Supported schemes:</p>
       
     </li>
   
+    <li>
+      
+        <span class='name'>headers</span>
+      
+      
+        <span class='type'>(<tt>Hash</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>{}</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>additional HTTP request headers forwarded to every
+request (tool discovery and tool execution). Ignored for stdio transports.
+Typical use: <tt>headers: { &quot;Authorization&quot; =&gt; &quot;Bearer #{ENV['API_KEY']}&quot; }</tt></p></div>
+      
+    </li>
+  
 </ul>
 
 <p class="tag_title">Returns:</p>
@@ -284,9 +302,6 @@ Supported schemes:</p>
       <pre class="lines">
 
 
-40
-41
-42
 43
 44
 45
@@ -295,22 +310,25 @@ Supported schemes:</p>
 48
 49
 50
-51</pre>
+51
+52
+53
+54</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/mcp.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/mcp.rb', line 43</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_from_server'>from_server</span><span class='lparen'>(</span><span class='id identifier rubyid_server_uri'>server_uri</span><span class='comma'>,</span> <span class='label'>tool_name:</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_from_server'>from_server</span><span class='lparen'>(</span><span class='id identifier rubyid_server_uri'>server_uri</span><span class='comma'>,</span> <span class='label'>tool_name:</span><span class='comma'>,</span> <span class='label'>headers:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='comment'># Use a short-lived transport only to query the tool definition,
 </span>  <span class='comment'># then close it.  Each Mcp instance creates its own transport
 </span>  <span class='comment'># so that concurrent callers never share IO streams.
-</span>  <span class='id identifier rubyid_transport'>transport</span> <span class='op'>=</span> <span class='id identifier rubyid_build_transport'>build_transport</span><span class='lparen'>(</span><span class='id identifier rubyid_server_uri'>server_uri</span><span class='rparen'>)</span>
+</span>  <span class='id identifier rubyid_transport'>transport</span> <span class='op'>=</span> <span class='id identifier rubyid_build_transport'>build_transport</span><span class='lparen'>(</span><span class='id identifier rubyid_server_uri'>server_uri</span><span class='comma'>,</span> <span class='label'>headers:</span> <span class='id identifier rubyid_headers'>headers</span><span class='rparen'>)</span>
   <span class='kw'>begin</span>
     <span class='id identifier rubyid_tool_def'>tool_def</span> <span class='op'>=</span> <span class='id identifier rubyid_transport'>transport</span><span class='period'>.</span><span class='id identifier rubyid_fetch_tool'>fetch_tool</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_name'>tool_name</span><span class='rparen'>)</span>
   <span class='kw'>ensure</span>
     <span class='id identifier rubyid_transport'>transport</span><span class='period'>.</span><span class='id identifier rubyid_close'>close</span>
   <span class='kw'>end</span>
-  <span class='id identifier rubyid_build_tool_class'>build_tool_class</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_name'>tool_name</span><span class='comma'>,</span> <span class='id identifier rubyid_server_uri'>server_uri</span><span class='comma'>,</span> <span class='id identifier rubyid_tool_def'>tool_def</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
+  <span class='id identifier rubyid_build_tool_class'>build_tool_class</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_name'>tool_name</span><span class='comma'>,</span> <span class='id identifier rubyid_server_uri'>server_uri</span><span class='comma'>,</span> <span class='id identifier rubyid_tool_def'>tool_def</span><span class='comma'>,</span> <span class='label'>headers:</span> <span class='id identifier rubyid_headers'>headers</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -322,7 +340,7 @@ Supported schemes:</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Jul 19 09:05:14 2026 by
+  Generated on Sun Jul 19 11:47:43 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
