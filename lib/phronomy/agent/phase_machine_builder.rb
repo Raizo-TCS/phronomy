@@ -161,10 +161,10 @@ module Phronomy
             Phronomy::EventLoop.instance.post(
               Phronomy::Event.new(
                 type: :error,
-                target_id: session_id,
-                payload: Phronomy::ActionTimeoutError.new(
+                target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
+                payload: {session_id: session_id, result: Phronomy::ActionTimeoutError.new(
                   "Action in state #{state_name.inspect} timed out after #{timeout_secs}s"
-                )
+                )}
               )
             )
           end
@@ -172,7 +172,7 @@ module Phronomy
         result.on_complete do |task_result, error|
           if error
             Phronomy::EventLoop.instance.post(
-              Phronomy::Event.new(type: :error, target_id: session_id, payload: error)
+              Phronomy::Event.new(type: :error, target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {session_id: session_id, result: error})
             )
             next
           end

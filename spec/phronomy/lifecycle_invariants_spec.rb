@@ -52,7 +52,9 @@ RSpec.describe "Lifecycle invariants" do
       Thread.new do
         sleep dur
         Phronomy::EventLoop.instance.post(
-          Phronomy::Event.new(type: :finished, target_id: session_id, payload: "done")
+          Phronomy::Event.new(type: :finished,
+            target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
+            payload: {session_id: session_id, result: "done"})
         )
       end
     end
@@ -210,9 +212,9 @@ RSpec.describe "Lifecycle invariants" do
 
         err_ev = fake.events.find { |e| e.type == :error }
         expect(err_ev).not_to be_nil
-        expect(err_ev.target_id).to eq("lc-unknown-1")
-        # The payload must be an exception, not nil.
-        expect(err_ev.payload).to be_a(Exception)
+        expect(err_ev.target_id).to eq(Phronomy::EventLoop::SYSTEM_CHANNEL_ID)
+        # The result must be an exception, not nil.
+        expect(err_ev.payload[:result]).to be_a(Exception)
       end
     end
 
@@ -370,7 +372,9 @@ RSpec.describe "Lifecycle invariants" do
           sleep 0.15
           completed << :completed
           Phronomy::EventLoop.instance.post(
-            Phronomy::Event.new(type: :finished, target_id: session_id, payload: "done")
+            Phronomy::Event.new(type: :finished,
+              target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
+              payload: {session_id: session_id, result: "done"})
           )
         end
       end
@@ -427,7 +431,9 @@ RSpec.describe "Lifecycle invariants" do
         Thread.new do
           sleep 10
           Phronomy::EventLoop.instance.post(
-            Phronomy::Event.new(type: :finished, target_id: session_id, payload: "done")
+            Phronomy::Event.new(type: :finished,
+              target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
+              payload: {session_id: session_id, result: "done"})
           )
         end
       end
@@ -456,7 +462,9 @@ RSpec.describe "Lifecycle invariants" do
         Thread.new do
           sleep 10
           Phronomy::EventLoop.instance.post(
-            Phronomy::Event.new(type: :finished, target_id: session_id, payload: "done")
+            Phronomy::Event.new(type: :finished,
+              target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
+              payload: {session_id: session_id, result: "done"})
           )
         end
       end

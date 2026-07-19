@@ -85,17 +85,17 @@ module Phronomy
                 event_loop.post(
                   Event.new(
                     type: :error,
-                    target_id: session_id,
-                    payload: Phronomy::ActionTimeoutError.new(
+                    target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
+                    payload: {session_id: session_id, result: Phronomy::ActionTimeoutError.new(
                       "Action in state #{current_state_name.inspect} timed out after #{timeout_secs}s"
-                    )
+                    )}
                   )
                 )
               end
             end
             result.on_complete do |task_result, error|
               if error
-                event_loop.post(Event.new(type: :error, target_id: session_id, payload: error))
+                event_loop.post(Event.new(type: :error, target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {session_id: session_id, result: error}))
                 next
               end
               if _fsm_context?(task_result)
@@ -200,18 +200,18 @@ module Phronomy
     def finish!
       @done = true
       @ctx.set_graph_metadata(thread_id: @id, phase: :__end__)
-      event_loop.post(Event.new(type: :finished, target_id: @id, payload: @ctx))
+      event_loop.post(Event.new(type: :finished, target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {session_id: @id, result: @ctx}))
     end
 
     def halt!
       @done = true
       @ctx.set_graph_metadata(thread_id: @id, phase: @current_state)
-      event_loop.post(Event.new(type: :halted, target_id: @id, payload: @ctx))
+      event_loop.post(Event.new(type: :halted, target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {session_id: @id, result: @ctx}))
     end
 
     def finish_with_error(err)
       @done = true
-      event_loop.post(Event.new(type: :error, target_id: @id, payload: err))
+      event_loop.post(Event.new(type: :error, target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {session_id: @id, result: err}))
     end
 
     def fire_event!(tracker, event_name, from_state)

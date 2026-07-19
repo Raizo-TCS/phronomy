@@ -110,8 +110,8 @@ RSpec.describe Phronomy::FSMSession do
 
         finish_event = events.find { |e| e.type == :finished }
         expect(finish_event).not_to be_nil
-        expect(finish_event.target_id).to eq("t1")
-        expect(finish_event.payload.value).to eq(1)
+        expect(finish_event.target_id).to eq(Phronomy::EventLoop::SYSTEM_CHANNEL_ID)
+        expect(finish_event.payload[:result].value).to eq(1)
       end
     end
   end
@@ -148,8 +148,8 @@ RSpec.describe Phronomy::FSMSession do
 
         halted_event = fake.events.find { |e| e.type == :halted }
         expect(halted_event).not_to be_nil
-        expect(halted_event.payload.phase).to eq(:awaiting)
-        expect(halted_event.payload.value).to eq(1)
+        expect(halted_event.payload[:result].phase).to eq(:awaiting)
+        expect(halted_event.payload[:result].value).to eq(1)
       end
     end
   end
@@ -191,7 +191,7 @@ RSpec.describe Phronomy::FSMSession do
 
         finish_event = fake.events.find { |e| e.type == :finished }
         expect(finish_event).not_to be_nil
-        expect(finish_event.payload.value).to eq(110)
+        expect(finish_event.payload[:result].value).to eq(110)
       end
     end
   end
@@ -241,7 +241,7 @@ RSpec.describe Phronomy::FSMSession do
 
         error_event = fake.events.find { |e| e.type == :error }
         expect(error_event).not_to be_nil
-        expect(error_event.payload).to be_a(Phronomy::RecursionLimitError)
+        expect(error_event.payload[:result]).to be_a(Phronomy::RecursionLimitError)
       end
     end
   end
@@ -283,7 +283,7 @@ RSpec.describe Phronomy::FSMSession do
         finish_event = fake.events.find { |e| e.type == :finished }
         expect(finish_event).not_to be_nil
         # The action returned s.merge(value: 42); the finished payload must carry value: 42
-        expect(finish_event.payload.value).to eq(42)
+        expect(finish_event.payload[:result].value).to eq(42)
       end
     end
 
@@ -318,7 +318,7 @@ RSpec.describe Phronomy::FSMSession do
         finish_event = fake.events.find { |e| e.type == :finished }
         expect(finish_event).not_to be_nil
         # The second-state entry action returned s.merge(tag: "updated")
-        expect(finish_event.payload.tag).to eq("updated")
+        expect(finish_event.payload[:result].tag).to eq("updated")
       end
     end
   end

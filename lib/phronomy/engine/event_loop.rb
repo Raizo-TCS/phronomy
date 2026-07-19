@@ -49,6 +49,11 @@ module Phronomy
   # +Runtime.instance.spawn+ or +BlockingAdapterPool+, then post events back
   # via +Phronomy::EventLoop.instance.post(...)+.
   class EventLoop
+    # Sentinel target_id for EventLoop management events (:start, :finished, :halted, :error).
+    # Events with this target_id are processed directly by the EventLoop and never
+    # routed to any FSMSession via handle(event).
+    SYSTEM_CHANNEL_ID = "__event_loop__"
+
     # Returns the singleton instance, creating and starting it on first call.
     def self.instance
       @instance ||= new.tap(&:start)
@@ -150,7 +155,8 @@ module Phronomy
       completion_queue.expect_cross_thread_push(scheduler) if scheduler && completion_queue.respond_to?(:expect_cross_thread_push)
       # Pass both session and completion_queue in the event payload so that the
       # EventLoop thread is the sole writer of @fsms and @waiting.
-      @queue.push([Event.new(type: :start, target_id: fsm_session.id,
+      # Use SYSTEM_CHANNEL_ID so the management event is never routed to an FSM.
+      @queue.push([Event.new(type: :start, target_id: SYSTEM_CHANNEL_ID,
         payload: {session: fsm_session, completion: completion_queue}),
         Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)])
       completion_queue
@@ -288,40 +294,46 @@ module Phronomy
         check_starvation_lag(lag_ns, event)
 
         dispatch_start_ns = dequeued_at_ns
-        case event.type
-        when :finished, :halted, :error
-          # All three terminal events share the same cleanup path.
-          # Both @fsms and @waiting are exclusively owned by this thread.
-          @fsms.delete(event.target_id)
-          cq = @waiting.delete(event.target_id)
-          complete_waiter(cq, event.payload)
-          # Decrement active FSM count and signal drain waiters.
-          @fsm_count_mutex.synchronize do
-            @fsm_count -= 1
-            @fsm_count_cond.signal if @fsm_count <= 0
+        if event.target_id == SYSTEM_CHANNEL_ID
+          # Management channel: lifecycle events processed directly by EventLoop.
+          # Never routed to any FSMSession.
+          case event.type
+          when :finished, :halted, :error
+            # session_id is carried in the payload so the FSM can use its own ID
+            # as the FSM-facing target_id for other events.
+            session_id = event.payload[:session_id]
+            @fsms.delete(session_id)
+            cq = @waiting.delete(session_id)
+            complete_waiter(cq, event.payload[:result])
+            # Decrement active FSM count and signal drain waiters.
+            @fsm_count_mutex.synchronize do
+              @fsm_count -= 1
+              @fsm_count_cond.signal if @fsm_count <= 0
+            end
+
+          when :start
+            # session and completion_queue arrive together in the payload so that
+            # this thread is the sole writer of @fsms and @waiting.
+            # completion may be nil for fire-and-forget child sessions (AgentFSM).
+            session = event.payload[:session]
+            cq = event.payload[:completion]
+
+            # When shutdown has been requested, reject new sessions with a
+            # CancellationError rather than starting new LLM calls that would
+            # be interrupted by force-kill.
+            if @shutdown_token.cancelled? && cq
+              complete_waiter(cq, Phronomy::CancellationError.new("EventLoop is shutting down"))
+              next
+            end
+
+            @fsms[session.id] = session
+            @waiting[session.id] = cq if cq
+            @fsm_count_mutex.synchronize { @fsm_count += 1 }
+            session.start
           end
-
-        when :start
-          # session and completion_queue arrive together in the payload so that
-          # this thread is the sole writer of @fsms and @waiting.
-          # completion may be nil for fire-and-forget child sessions (AgentFSM).
-          session = event.payload[:session]
-          cq = event.payload[:completion]
-
-          # When shutdown has been requested, reject new sessions with a
-          # CancellationError rather than starting new LLM calls that would
-          # be interrupted by force-kill.
-          if @shutdown_token.cancelled? && cq
-            complete_waiter(cq, Phronomy::CancellationError.new("EventLoop is shutting down"))
-            next
-          end
-
-          @fsms[event.target_id] = session
-          @waiting[event.target_id] = cq if cq
-          @fsm_count_mutex.synchronize { @fsm_count += 1 }
-          session.start
 
         else
+          # FSM channel: route to the target FSMSession by target_id.
           fsm = @fsms[event.target_id]
           if fsm
             fsm.handle(event)
