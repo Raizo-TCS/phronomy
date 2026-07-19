@@ -96,7 +96,7 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
     end
 
     it "executes the tool call method when approved" do
-      expect(tool_instance).to receive(:call).with({"value" => "hello"}).and_return("executed: hello")
+      expect(tool_instance).to receive(:call).with({"value" => "hello"}, cancellation_token: nil).and_return("executed: hello")
       HITLAgent.approve(session_id)
     end
 

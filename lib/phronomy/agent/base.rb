@@ -1173,7 +1173,7 @@ module Phronomy
             effective_name = resolved.new.name
             rejected_class = Class.new(resolved) do
               tool_name effective_name
-              define_method(:call) do |_args|
+              define_method(:call) do |_args, **_kwargs|
                 "Tool execution denied: scope :#{scope} is not permitted."
               end
             end
@@ -1199,9 +1199,9 @@ module Phronomy
           effective_name = resolved.new.name
           resolved = Class.new(resolved) do
             tool_name effective_name
-            define_method(:call) do |args|
+            define_method(:call) do |args, **kwargs|
               if handler.call(name, args)
-                super(args)
+                super(args, **kwargs)
               else
                 "Tool execution denied."
               end
@@ -1216,8 +1216,8 @@ module Phronomy
         effective_name4 = resolved.new.name
         Class.new(resolved) do
           tool_name effective_name4
-          define_method(:call) do |args|
-            result = super(args)
+          define_method(:call) do |args, **kwargs|
+            result = super(args, **kwargs)
             result_filters.inject(result) { |val, f| f.call(val, tool_name: name, args: args) }
           end
         end

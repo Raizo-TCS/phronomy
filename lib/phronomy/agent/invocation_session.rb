@@ -298,27 +298,36 @@ module Phronomy
           end
         end
 
-        # Execute the tool off the EventLoop thread via Runtime.instance.spawn.
-        # Tool implementations (e.g. Orchestrator sub-agent dispatch) may call
-        # agent.invoke_async().wait_result which would deadlock if run directly on the
-        # EventLoop dispatch thread. Returning a Task causes
-        # PhaseMachineBuilder#dispatch_task to await the result off the EventLoop
-        # and post :action_completed back when done.
+        # Dispatch the tool off the EventLoop thread via ToolExecutor, which
+        # routes based on the tool's execution_mode class attribute:
+        #   :blocking_io (default) → BlockingAdapterPool (bounded thread pool)
+        #   :cooperative           → Runtime.instance.spawn (scheduler task)
+        # Wrap the awaitable in Task.deferred so FSMSession recognises it as
+        # an async action and sets async_pending = true.
         tc_id = tc.id
         tc_args = tc.arguments
         tc_name = tc.name
-        Phronomy::Runtime.instance.spawn(name: "tool-exec:#{tc_name}") do
-          result = tool_instance.call(tc_args)
-          ctx.chat.add_message(
-            role: :tool,
-            content: result.to_s,
-            tool_call_id: tc_id
-          )
-          ctx.pending_tool_call = nil
-          ctx.tool_call_pending = false
-          ctx.approval_required = false
-          ctx
+        ct = ctx.config[:cancellation_token]
+        awaitable = tool_instance.call_async(tc_args, cancellation_token: ct)
+        result_task = Phronomy::Task.deferred(name: "tool-exec:#{tc_name}")
+        awaitable.on_complete do |result, error|
+          if error
+            result_task.backend.unblock(nil, error)
+            result_task.transition!(:failed, error: error)
+          else
+            ctx.chat.add_message(
+              role: :tool,
+              content: result.to_s,
+              tool_call_id: tc_id
+            )
+            ctx.pending_tool_call = nil
+            ctx.tool_call_pending = false
+            ctx.approval_required = false
+            result_task.backend.unblock(ctx, nil)
+            result_task.transition!(:completed, value: ctx)
+          end
         end
+        result_task
       end
       private_class_method :executing_tool_action
 

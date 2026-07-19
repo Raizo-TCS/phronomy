@@ -252,9 +252,9 @@ module Phronomy
         effective_name = prepared.new.name
         Class.new(prepared) do
           tool_name effective_name
-          define_method(:call) do |args|
+          define_method(:call) do |args, **kwargs|
             self._orchestrator_context = orch.instance_variable_get(:@_orchestrator_context)
-            super(args)
+            super(args, **kwargs)
           end
         end
       end
