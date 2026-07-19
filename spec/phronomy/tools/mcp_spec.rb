@@ -514,11 +514,7 @@ RSpec.describe Phronomy::Tools::Mcp do
         Timeout.timeout(2) { transport.send(:ensure_started!) }
       }.not_to raise_error
     ensure
-      begin
-        transport&.close
-      rescue
-        nil
-      end
+      transport&.close
     end
   end
 end
