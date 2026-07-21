@@ -158,7 +158,7 @@ uniformly.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#call_async-class_method" title="call_async (class method)">.<strong>call_async</strong>(tool:, args:, cancellation_token: nil, runtime: Phronomy::Runtime.instance)  &#x21d2; #await </a>
+      <a href="#call_async-class_method" title="call_async (class method)">.<strong>call_async</strong>(tool:, args:, cancellation_token: nil, config: {}, runtime: Phronomy::Runtime.instance)  &#x21d2; #await </a>
     
 
     
@@ -190,7 +190,7 @@ uniformly.</p>
       <div class="method_details first">
   <h3 class="signature first" id="call_async-class_method">
   
-    .<strong>call_async</strong>(tool:, args:, cancellation_token: nil, runtime: Phronomy::Runtime.instance)  &#x21d2; <tt>#await</tt> 
+    .<strong>call_async</strong>(tool:, args:, cancellation_token: nil, config: {}, runtime: Phronomy::Runtime.instance)  &#x21d2; <tt>#await</tt> 
   
 
   
@@ -254,6 +254,25 @@ uniformly.</p>
   
     <li>
       
+        <span class='name'>config</span>
+      
+      
+        <span class='type'>(<tt>Hash</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>{}</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>invocation config forwarded from the agent pipeline.
+Recognised keys: <code>:tool_timeout</code> (seconds; passed as the
+<code>BlockingAdapterPool#submit</code> timeout so that timed-out
+operations are tracked as abandoned rather than silently dropped).</p></div>
+      
+    </li>
+  
+    <li>
+      
         <span class='name'>runtime</span>
       
       
@@ -294,10 +313,6 @@ uniformly.</p>
       <pre class="lines">
 
 
-61
-62
-63
-64
 65
 66
 67
@@ -338,12 +353,19 @@ uniformly.</p>
 102
 103
 104
-105</pre>
+105
+106
+107
+108
+109
+110
+111
+112</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_executor.rb', line 61</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_executor.rb', line 65</span>
 
-<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span><span class='label'>tool:</span><span class='comma'>,</span> <span class='label'>args:</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>runtime:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span><span class='label'>tool:</span><span class='comma'>,</span> <span class='label'>args:</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>runtime:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ct'>ct</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
   <span class='id identifier rubyid_mode'>mode</span> <span class='op'>=</span> <span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_execution_mode'>execution_mode</span>
 
@@ -385,7 +407,10 @@ uniformly.</p>
     <span class='kw'>end</span>
   <span class='kw'>else</span>
     <span class='comment'># Submit directly to pool — no wrapping Task thread required.
-</span>    <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_ct'>ct</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_args'>args</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_ct'>ct</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+</span>    <span class='comment'># Pass tool_timeout so the pool can track timed-out operations as
+</span>    <span class='comment'># abandoned, consistent with how LLM calls use config[:llm_timeout].
+</span>    <span class='id identifier rubyid_timeout'>timeout</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:tool_timeout</span><span class='rbracket'>]</span>
+    <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_ct'>ct</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_args'>args</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_ct'>ct</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -398,7 +423,7 @@ uniformly.</p>
 </div>
 
       <div id="footer">
-  Generated on Tue Jul 21 16:41:25 2026 by
+  Generated on Tue Jul 21 17:12:53 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
