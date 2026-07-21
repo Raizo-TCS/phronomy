@@ -110,12 +110,12 @@
   <div class="discussion">
     <p>A Phronomy::Agent::Context::Capability::Base subclass that wraps a tool exposed by an external
 MCP (Model Context Protocol) server.</p>
+<p>Uses the official MCP Ruby SDK (mcp gem) for transport handling, which provides
+built-in support for the MCP initialize handshake, size limits, and SSE.</p>
 <p>Supports two transport schemes:</p>
 <ul>
-<li><b>&quot;stdio://&lt;command&gt;&quot;</b> — spawns a child process that communicates via
-newline-delimited JSON-RPC on stdin/stdout.</li>
-<li><b>&quot;<a href="http://&lt;url&gt;&amp;quot;</b>">http://&lt;url&gt;&amp;quot;</b></a> / <b>&quot;<a href="https://&lt;url&gt;&amp;quot;</b>">https://&lt;url&gt;&amp;quot;</b></a> — connects to a running
-HTTP/SSE MCP server using <code>net/http</code>.</li>
+<li><b>&quot;stdio://&lt;command&gt;&quot;</b> — spawns a child process via MCP::Client::Stdio.</li>
+<li><b>&quot;<a href="http://&lt;url&gt;&amp;quot;</b>">http://&lt;url&gt;&amp;quot;</b></a> / <b>&quot;<a href="https://&lt;url&gt;&amp;quot;</b>">https://&lt;url&gt;&amp;quot;</b></a> — connects via MCP::Client::HTTP.</li>
 </ul>
 
   </div>
@@ -136,17 +136,7 @@ HTTP/SSE MCP server using <code>net/http</code>.</li>
   </div>
 
 
-</div><h2>Defined Under Namespace</h2>
-<p class="children">
-  
-    
-  
-    
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Mcp/HttpTransport.html" title="Phronomy::Tools::Mcp::HttpTransport (class)">HttpTransport</a></span>, <span class='object_link'><a href="Mcp/StdioTransport.html" title="Phronomy::Tools::Mcp::StdioTransport (class)">StdioTransport</a></span>
-    
-  
-</p>
-
+</div>
 
 
 
@@ -302,6 +292,8 @@ Typical use: <tt>headers: { &quot;Authorization&quot; =&gt; &quot;Bearer #{ENV['
       <pre class="lines">
 
 
+41
+42
 43
 44
 45
@@ -313,18 +305,28 @@ Typical use: <tt>headers: { &quot;Authorization&quot; =&gt; &quot;Bearer #{ENV['
 51
 52
 53
-54</pre>
+54
+55
+56
+57
+58</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/mcp.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/mcp.rb', line 41</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_from_server'>from_server</span><span class='lparen'>(</span><span class='id identifier rubyid_server_uri'>server_uri</span><span class='comma'>,</span> <span class='label'>tool_name:</span><span class='comma'>,</span> <span class='label'>headers:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='comment'># Use a short-lived transport only to query the tool definition,
-</span>  <span class='comment'># then close it.  Each Mcp instance creates its own transport
-</span>  <span class='comment'># so that concurrent callers never share IO streams.
+  <span class='comment'># Use a short-lived client only to discover the tool definition, then close.
+</span>  <span class='comment'># Each Mcp instance creates its own client so concurrent agent threads
+</span>  <span class='comment'># never share IO streams, eliminating the need for synchronisation.
 </span>  <span class='id identifier rubyid_transport'>transport</span> <span class='op'>=</span> <span class='id identifier rubyid_build_transport'>build_transport</span><span class='lparen'>(</span><span class='id identifier rubyid_server_uri'>server_uri</span><span class='comma'>,</span> <span class='label'>headers:</span> <span class='id identifier rubyid_headers'>headers</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_client'>client</span> <span class='op'>=</span> <span class='const'>MCP</span><span class='op'>::</span><span class='const'>Client</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>transport:</span> <span class='id identifier rubyid_transport'>transport</span><span class='rparen'>)</span>
   <span class='kw'>begin</span>
-    <span class='id identifier rubyid_tool_def'>tool_def</span> <span class='op'>=</span> <span class='id identifier rubyid_transport'>transport</span><span class='period'>.</span><span class='id identifier rubyid_fetch_tool'>fetch_tool</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_name'>tool_name</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_client'>client</span><span class='period'>.</span><span class='id identifier rubyid_connect'>connect</span>
+    <span class='id identifier rubyid_tool_def'>tool_def</span> <span class='op'>=</span> <span class='id identifier rubyid_extract_tool_def'>extract_tool_def</span><span class='lparen'>(</span><span class='id identifier rubyid_client'>client</span><span class='comma'>,</span> <span class='id identifier rubyid_tool_name'>tool_name</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span> <span class='id identifier rubyid_server_uri'>server_uri</span><span class='rparen'>)</span>
+  <span class='kw'>rescue</span> <span class='const'>ArgumentError</span>
+    <span class='id identifier rubyid_raise'>raise</span>
+  <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ToolError.html" title="Phronomy::ToolError (class)">ToolError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>MCP connection failed: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_e'>e</span><span class='period'>.</span><span class='id identifier rubyid_message'>message</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
   <span class='kw'>ensure</span>
     <span class='id identifier rubyid_transport'>transport</span><span class='period'>.</span><span class='id identifier rubyid_close'>close</span>
   <span class='kw'>end</span>
@@ -340,7 +342,7 @@ Typical use: <tt>headers: { &quot;Authorization&quot; =&gt; &quot;Bearer #{ENV['
 </div>
 
       <div id="footer">
-  Generated on Sun Jul 19 15:00:25 2026 by
+  Generated on Tue Jul 21 03:57:31 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
