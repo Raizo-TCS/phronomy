@@ -369,11 +369,12 @@ module Phronomy
           # @return [#await]
           # @api public
           # mutant:disable
-          def call_async(args, cancellation_token: nil)
+          def call_async(args, cancellation_token: nil, config: {})
             Phronomy::Agent::ToolExecutor.call_async(
               tool: self,
               args: args,
-              cancellation_token: cancellation_token
+              cancellation_token: cancellation_token,
+              config: config
             )
           end
 

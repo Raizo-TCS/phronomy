@@ -308,7 +308,7 @@ module Phronomy
         tc_args = tc.arguments
         tc_name = tc.name
         ct = ctx.config[:cancellation_token]
-        awaitable = tool_instance.call_async(tc_args, cancellation_token: ct)
+        awaitable = tool_instance.call_async(tc_args, cancellation_token: ct, config: ctx.config)
         result_task = Phronomy::Task.deferred(name: "tool-exec:#{tc_name}")
         awaitable.on_complete do |result, error|
           if error

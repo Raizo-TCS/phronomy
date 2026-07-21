@@ -109,9 +109,22 @@ module Phronomy
             @mcp_client.connect
           end
 
-          klass.define_method(:execute) do |**args|
+          klass.define_method(:execute) do |cancellation_token: nil, **args|
+            # Bridge Phronomy::CancellationToken to MCP::Cancellation so that
+            # explicit cancel! calls propagate into the in-flight MCP request.
+            # Deadline-based expiry is handled cooperatively by BlockingAdapterPool
+            # (the worker slot is marked abandoned); no extra handling is needed here.
+            mcp_cancel = nil
+            if cancellation_token
+              mcp_cancel = MCP::Cancellation.new
+              cancellation_token.on_cancel { mcp_cancel.cancel(reason: "phronomy_cancelled") }
+            end
             begin
-              response = @mcp_client.call_tool(name: tool_name, arguments: args.transform_keys(&:to_s))
+              response = @mcp_client.call_tool(
+                name: tool_name,
+                arguments: args.transform_keys(&:to_s),
+                cancellation: mcp_cancel
+              )
             rescue => e
               raise Phronomy::ToolError, "MCP call failed: #{e.message}"
             end

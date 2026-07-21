@@ -264,4 +264,50 @@ RSpec.describe Phronomy::Tools::Mcp do
       ).at_least(:once)
     end
   end
+
+  # CancellationToken → MCP::Cancellation bridge (Issue #390)
+  describe "CancellationToken → MCP::Cancellation bridge" do
+    let(:search_tool) { mcp_tool_double(name: "search", description: "Search") }
+    let(:discovery_client) { instance_double(MCP::Client, connect: nil, tools: [search_tool]) }
+    let(:instance_transport) { instance_double(MCP::Client::Stdio, close: nil) }
+    let(:instance_client) { instance_double(MCP::Client, connect: nil, transport: instance_transport) }
+
+    before { stub_stdio(discovery_client: discovery_client, instance_client: instance_client) }
+
+    it "passes an MCP::Cancellation to call_tool when a CancellationToken is given" do
+      allow(instance_client).to receive(:call_tool).and_return(
+        {"result" => {"content" => [{"type" => "text", "text" => "ok"}]}}
+      )
+      ct = Phronomy::Concurrency::CancellationToken.new
+      tool = described_class.from_server("stdio://./mcp-server", tool_name: "search")
+      tool.execute(cancellation_token: ct, query: "test")
+      expect(instance_client).to have_received(:call_tool).with(
+        hash_including(cancellation: instance_of(MCP::Cancellation))
+      )
+    end
+
+    it "cancels the MCP::Cancellation when cancel! is called on the CancellationToken" do
+      received_cancellation = nil
+      allow(instance_client).to receive(:call_tool) do |**kwargs|
+        received_cancellation = kwargs[:cancellation]
+        {"result" => {"content" => [{"type" => "text", "text" => "ok"}]}}
+      end
+      ct = Phronomy::Concurrency::CancellationToken.new
+      tool = described_class.from_server("stdio://./mcp-server", tool_name: "search")
+      tool.execute(cancellation_token: ct, query: "test")
+      ct.cancel!
+      expect(received_cancellation).to be_cancelled
+    end
+
+    it "passes cancellation: nil when no CancellationToken is given" do
+      allow(instance_client).to receive(:call_tool).and_return(
+        {"result" => {"content" => [{"type" => "text", "text" => "ok"}]}}
+      )
+      tool = described_class.from_server("stdio://./mcp-server", tool_name: "search")
+      tool.execute(query: "test")
+      expect(instance_client).to have_received(:call_tool).with(
+        hash_including(cancellation: nil)
+      )
+    end
+  end
 end

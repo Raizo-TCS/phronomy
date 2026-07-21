@@ -1244,7 +1244,8 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       expect(Phronomy::Agent::ToolExecutor).to receive(:call_async).with(
         tool: hello_tool,
         args: {},
-        cancellation_token: ct
+        cancellation_token: ct,
+        config: {}
       )
       hello_tool.call_async({}, cancellation_token: ct)
     end
@@ -1253,7 +1254,8 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       expect(Phronomy::Agent::ToolExecutor).to receive(:call_async).with(
         tool: hello_tool,
         args: {},
-        cancellation_token: nil
+        cancellation_token: nil,
+        config: {}
       )
       hello_tool.call_async({})
     end

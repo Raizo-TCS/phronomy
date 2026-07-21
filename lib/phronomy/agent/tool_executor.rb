@@ -54,11 +54,15 @@ module Phronomy
       # @param tool               [Phronomy::Agent::Context::Capability::Base] the tool instance to invoke
       # @param args               [Hash]                 argument hash to pass to {Tool::Base#call}
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
+      # @param config             [Hash] invocation config forwarded from the agent pipeline.
+      #                           Recognised keys: +:tool_timeout+ (seconds; passed as the
+      #                           +BlockingAdapterPool#submit+ timeout so that timed-out
+      #                           operations are tracked as abandoned rather than silently dropped).
       # @param runtime            [Phronomy::Runtime]    runtime to use for spawning
       #                           (defaults to {Runtime.instance}; injectable for tests)
       # @return [#await] a {Phronomy::Task} or {BlockingAdapterPool::PendingOperation}
       # @api private
-      def self.call_async(tool:, args:, cancellation_token: nil, runtime: Phronomy::Runtime.instance)
+      def self.call_async(tool:, args:, cancellation_token: nil, config: {}, runtime: Phronomy::Runtime.instance)
         ct = cancellation_token
         mode = tool.class.execution_mode
 
@@ -100,7 +104,10 @@ module Phronomy
           end
         else
           # Submit directly to pool — no wrapping Task thread required.
-          pool.submit(cancellation_token: ct) { tool.call(args, cancellation_token: ct) }
+          # Pass tool_timeout so the pool can track timed-out operations as
+          # abandoned, consistent with how LLM calls use config[:llm_timeout].
+          timeout = config[:tool_timeout]
+          pool.submit(cancellation_token: ct, timeout: timeout) { tool.call(args, cancellation_token: ct) }
         end
       end
     end

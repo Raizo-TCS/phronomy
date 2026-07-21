@@ -19,7 +19,7 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
 
   let(:pool_double) do
     pd = instance_double(Phronomy::Concurrency::BlockingAdapterPool)
-    allow(pd).to receive(:submit) do |cancellation_token: nil, &blk|
+    allow(pd).to receive(:submit) do |cancellation_token: nil, timeout: nil, &blk|
       op = double("PendingOp")
       allow(op).to receive(:wait_result).and_return(blk.call)
       op
@@ -137,7 +137,14 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
       ct = Phronomy::Concurrency::CancellationToken.new
       described_class.call_async(tool: tool, args: {"x" => "y"}, cancellation_token: ct,
         runtime: runtime_with_pool)
-      expect(pool_double).to have_received(:submit).with(cancellation_token: ct)
+      expect(pool_double).to have_received(:submit).with(cancellation_token: ct, timeout: nil)
+    end
+
+    it "passes tool_timeout from config to pool.submit" do
+      tool = make_tool(:blocking_io)
+      described_class.call_async(tool: tool, args: {"x" => "z"},
+        config: {tool_timeout: 30}, runtime: runtime_with_pool)
+      expect(pool_double).to have_received(:submit).with(cancellation_token: nil, timeout: 30)
     end
   end
 end
