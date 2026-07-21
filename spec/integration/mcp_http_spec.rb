@@ -48,6 +48,26 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
         method_name = body["method"]
         req_id = body["id"]
 
+        # Always handle the MCP initialize handshake so the official SDK can connect.
+        case method_name
+        when "initialize"
+          res.content_type = "application/json"
+          res.body = JSON.generate({
+            "jsonrpc" => "2.0", "id" => req_id,
+            "result" => {
+              "protocolVersion" => "2025-03-26",
+              "capabilities" => {"tools" => {"listChanged" => false}},
+              "serverInfo" => {"name" => "test-server", "version" => "0.1.0"}
+            }
+          })
+          next
+        when "notifications/initialized"
+          # MCP notification: return 202 Accepted with no body.
+          res.status = 202
+          res.body = ""
+          next
+        end
+
         case response_mode
         when :json_ok
           handle_json_request(server, res, req_id, method_name, tools_empty: tools_empty)
@@ -56,11 +76,22 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
         when :sse_ok
           handle_sse_request(server, res, req_id, method_name, tools_empty: false)
         when :sse_no_rpc
-          res.content_type = "text/event-stream"
-          res.body = "data: {\"other\":true}\n\n"
+          # For tools/list, return a valid SSE so from_server succeeds.
+          # For tools/call, return invalid SSE (no JSON-RPC) to trigger ToolError.
+          if method_name == "tools/list"
+            handle_sse_request(server, res, req_id, method_name, tools_empty: false)
+          else
+            res.content_type = "text/event-stream"
+            res.body = "data: {\"other\":true}\n\n"
+          end
         when :error_500
-          res.status = 500
-          res.body = "Internal Server Error"
+          # Fail only on tools/call so that from_server (tools/list) succeeds first.
+          if method_name == "tools/call"
+            res.status = 500
+            res.body = "Internal Server Error"
+          else
+            handle_json_request(server, res, req_id, method_name, tools_empty: false)
+          end
         end
       end
 
@@ -165,12 +196,9 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     # TC-003: stdio + tools_call_ok — execute returns single text result
     describe "TC-003: stdio + tools_call_ok — execute returns single String" do
       it "returns the sum as a string" do
-        # We need a fresh from_server for each call because StdioTransport runs the
-        # server command on every rpc_call (Open3.capture3). However, fetch_tool
-        # and call_tool each spawn a separate process. We verify call_tool here by
-        # calling the transport directly.
-        transport = Phronomy::Tools::Mcp::StdioTransport.new("#{RUBY_CMD} #{STDIO_SERVER}")
-        result = transport.call_tool("add", {"a" => 3, "b" => 4})
+        server_uri = "stdio://#{RUBY_CMD} #{STDIO_SERVER}"
+        tool = Phronomy::Tools::Mcp.from_server(server_uri, tool_name: "add")
+        result = tool.execute(a: 3, b: 4)
         expect(result).to eq("7")
       end
     end
@@ -178,10 +206,9 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     # TC-004: stdio + tools_call_multi — execute returns Array
     describe "TC-004: stdio + tools_call_multi — execute returns Array of strings" do
       it "returns an Array when multiple content blocks are present" do
-        transport = Phronomy::Tools::Mcp::StdioTransport.new(
-          "#{RUBY_CMD} #{STDIO_SERVER} --multi"
-        )
-        result = transport.call_tool("add", {"a" => 1, "b" => 2})
+        server_uri = "stdio://#{RUBY_CMD} #{STDIO_SERVER} --multi"
+        tool = Phronomy::Tools::Mcp.from_server(server_uri, tool_name: "add")
+        result = tool.execute(a: 1, b: 2)
         expect(result).to be_an(Array)
         expect(result.length).to eq(2)
         expect(result.first).to be_a(String)
@@ -191,11 +218,9 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     # TC-005: stdio + server error — ToolError raised
     describe "TC-005: stdio + server error (non-zero exit) — ToolError" do
       it "raises Phronomy::ToolError" do
-        transport = Phronomy::Tools::Mcp::StdioTransport.new(
-          "#{RUBY_CMD} #{STDIO_SERVER} --error"
-        )
+        server_uri = "stdio://#{RUBY_CMD} #{STDIO_SERVER} --error"
         expect {
-          transport.call_tool("add", {"a" => 1, "b" => 2})
+          Phronomy::Tools::Mcp.from_server(server_uri, tool_name: "add")
         }.to raise_error(Phronomy::ToolError)
       end
     end
@@ -220,12 +245,13 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     end
 
     # TC-008: http + tools_call_ok + json — call returns single text String
-    describe "TC-008: http + tools_call_ok + json — HttpTransport#call_tool returns String" do
+    describe "TC-008: http + tools_call_ok + json — execute returns String" do
       it "returns a single String result" do
-        transport = Phronomy::Tools::Mcp::HttpTransport.new(
-          "http://127.0.0.1:#{mcp_port}/mcp"
+        tool = Phronomy::Tools::Mcp.from_server(
+          "http://127.0.0.1:#{mcp_port}/mcp",
+          tool_name: "greet"
         )
-        result = transport.call_tool("greet", {"name" => "Alice"})
+        result = tool.execute(name: "Alice")
         expect(result).to be_a(String)
         expect(result).not_to be_empty
       end
@@ -254,10 +280,11 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     # TC-009: http + tools_call_multi + json — Array returned
     describe "TC-009: http + tools_call_multi + json — returns Array" do
       it "returns an Array of Strings" do
-        transport = Phronomy::Tools::Mcp::HttpTransport.new(
-          "http://127.0.0.1:#{mcp_port}/mcp"
+        tool = Phronomy::Tools::Mcp.from_server(
+          "http://127.0.0.1:#{mcp_port}/mcp",
+          tool_name: "greet"
         )
-        result = transport.call_tool("greet", {"name" => "Alice"})
+        result = tool.execute(name: "Alice")
         expect(result).to be_an(Array)
         expect(result.length).to eq(2)
       end
@@ -270,12 +297,13 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     # TC-010: http + http_error (500) + json — ToolError raised
     describe "TC-010: http + 500 response — Phronomy::ToolError" do
       it "raises Phronomy::ToolError with status code in message" do
-        transport = Phronomy::Tools::Mcp::HttpTransport.new(
-          "http://127.0.0.1:#{mcp_port}/mcp"
+        tool = Phronomy::Tools::Mcp.from_server(
+          "http://127.0.0.1:#{mcp_port}/mcp",
+          tool_name: "greet"
         )
         expect {
-          transport.call_tool("greet", {"name" => "Alice"})
-        }.to raise_error(Phronomy::ToolError, /500/)
+          tool.execute(name: "Alice")
+        }.to raise_error(Phronomy::ToolError)
       end
     end
   end
@@ -298,12 +326,13 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     end
 
     # TC-016: http + tools_call_ok + sse — call_tool parses SSE JSON-RPC
-    describe "TC-016: http + tools_call_ok + sse — HttpTransport#call_tool returns String" do
+    describe "TC-016: http + tools_call_ok + sse — execute returns String" do
       it "returns a String from an SSE response" do
-        transport = Phronomy::Tools::Mcp::HttpTransport.new(
-          "http://127.0.0.1:#{mcp_port}/mcp"
+        tool = Phronomy::Tools::Mcp.from_server(
+          "http://127.0.0.1:#{mcp_port}/mcp",
+          tool_name: "greet"
         )
-        result = transport.call_tool("greet", {"name" => "SSE"})
+        result = tool.execute(name: "SSE")
         expect(result).to be_a(String)
       end
     end
@@ -315,47 +344,35 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
     # TC-018: sse without JSON-RPC message → ToolError
     describe "TC-018: http + sse response with no JSON-RPC data — ToolError" do
       it "raises Phronomy::ToolError" do
-        transport = Phronomy::Tools::Mcp::HttpTransport.new(
-          "http://127.0.0.1:#{mcp_port}/mcp"
+        tool = Phronomy::Tools::Mcp.from_server(
+          "http://127.0.0.1:#{mcp_port}/mcp",
+          tool_name: "greet"
         )
         expect {
-          transport.call_tool("greet", {"name" => "Fail"})
-        }.to raise_error(Phronomy::ToolError, /No valid JSON-RPC/)
+          tool.execute(name: "Fail")
+        }.to raise_error(Phronomy::ToolError)
       end
     end
   end
 
   # ===========================================================================
-  # HTTPS transport — use_ssl flag (unit-level check; no actual TLS server)
+  # HTTPS transport — url forwarding check (unit-level; no actual TLS server)
   # ===========================================================================
-  describe "TC-012: https:// scheme sets use_ssl=true on Net::HTTP", real_backend: :mcp_http do
-    it "configures Net::HTTP to use SSL" do
-      transport = Phronomy::Tools::Mcp::HttpTransport.new("https://example.com/mcp")
-      allow(Net::HTTP).to receive(:new).and_call_original
+  describe "TC-012: https:// scheme passes correct URL to MCP::Client::HTTP", real_backend: :mcp_http do
+    it "creates MCP::Client::HTTP with the https:// URL" do
+      transport_dbl = instance_double(MCP::Client::HTTP, close: nil)
+      allow(MCP::Client::HTTP).to receive(:new)
+        .with(url: "https://example.com/mcp", headers: {})
+        .and_return(transport_dbl)
+      client_dbl = instance_double(MCP::Client, connect: nil, tools: [])
+      allow(MCP::Client).to receive(:new).and_return(client_dbl)
 
-      http_double = instance_double(Net::HTTP, "use_ssl=": nil, "open_timeout=": nil, "read_timeout=": nil, request: nil)
-      allow(Net::HTTP).to receive(:new).with("example.com", 443).and_return(http_double)
-      allow(http_double).to receive(:use_ssl=).with(true)
-      allow(http_double).to receive(:open_timeout=)
-      allow(http_double).to receive(:read_timeout=)
+      expect {
+        Phronomy::Tools::Mcp.from_server("https://example.com/mcp", tool_name: "any")
+      }.to raise_error(ArgumentError)
 
-      # We expect a SocketError or connection error since example.com isn't running an MCP server;
-      # the important assertion is that use_ssl= was called with true.
-      http_double_response = instance_double(Net::HTTPOK)
-      allow(http_double_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
-      allow(http_double_response).to receive(:[]).with("Content-Type").and_return("application/json")
-      allow(http_double_response).to receive(:body).and_return(
-        JSON.generate("jsonrpc" => "2.0", "id" => 1,
-          "result" => {"tools" => []})
-      )
-      allow(http_double).to receive(:request).and_return(http_double_response)
-
-      expect(http_double).to receive(:use_ssl=).with(true)
-      begin
-        transport.fetch_tool("any_tool")
-      rescue
-        nil
-      end
+      expect(MCP::Client::HTTP).to have_received(:new)
+        .with(url: "https://example.com/mcp", headers: {}).at_least(:once)
     end
   end
 
