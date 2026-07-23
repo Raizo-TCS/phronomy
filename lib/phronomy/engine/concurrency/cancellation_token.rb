@@ -76,7 +76,11 @@ module Phronomy
       #
       # Callbacks are NOT fired for deadline-based cancellation (i.e. when
       # {#cancelled?} returns +true+ due to +@monotonic_deadline+ expiry).  Use
-      # {Runtime#timer_queue} to schedule deadline callbacks.
+      # {Phronomy::Concurrency::CancellationScope#deadline_in}, which registers
+      # a timer via {Runtime#timer_queue} and calls {#cancel!} on expiry — this
+      # fires all +on_cancel+ callbacks automatically.  {.timeout_after} is a
+      # lightweight alternative that uses lazy clock comparison only and does
+      # NOT trigger callbacks on expiry.
       #
       # @yield called with no arguments when (or if) the token is cancelled
       # @return [self]

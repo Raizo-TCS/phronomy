@@ -750,6 +750,35 @@ blocks always execute.
 > safety concerns. Ruby's GVL prevents fully preemptive cancellation without such
 > risky interruption.
 
+> **`timeout_after` vs `CancellationScope.deadline_in`**
+>
+> `CancellationToken.timeout_after(seconds)` uses lazy clock comparison: `cancelled?`
+> returns `true` once the deadline elapses, but `on_cancel` callbacks are **not**
+> fired. Bridges that rely on `on_cancel` — such as the `MCP::Cancellation` bridge
+> in `Phronomy::Tools::Mcp#execute` — will therefore **not** be triggered on expiry.
+>
+> When you need the cancellation to propagate into in-flight I/O (e.g. an MCP
+> `call_tool` request), use `CancellationScope` instead:
+>
+> ```ruby
+> scope = Phronomy::Concurrency::CancellationScope.new.deadline_in(30)
+> result = MyAgent.new.invoke("...", config: { cancellation_token: scope.token })
+> ```
+>
+> `CancellationScope#deadline_in` registers a timer in the Runtime timer queue,
+> which calls `cancel!` on expiry and fires all `on_cancel` callbacks — including
+> the MCP bridge.
+
+> **`config[:tool_timeout]` / `config[:llm_timeout]` — caller protection, not
+> worker termination**
+>
+> These keys set a per-submit timeout in `BlockingAdapterPool`. When the timeout
+> fires, the *caller* receives `CancellationError` / `TimeoutError` immediately and
+> the operation is marked as abandoned — but the worker thread continues executing
+> until the underlying I/O completes naturally (e.g. `Net::HTTP` read, stdio
+> `gets`). Size `blocking_io_pool_size` to account for the worst-case number of
+> concurrently abandoned workers that may accumulate before the pool is saturated.
+
 ```ruby
 token = Phronomy::Concurrency::CancellationToken.new
 
