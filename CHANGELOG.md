@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [0.13.0] - 2026-07-23
 
 ### Added
 
@@ -48,6 +48,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `run_input_guardrails!` / `run_output_guardrails!` call sites in `invoke_once`,
   `_stream_impl`, and `Suspendable#resume` have been removed.  Behaviour is unchanged
   — guardrails still run before any filters and `GuardrailError` still propagates.
+
+### Changed
+
+- **MCP transport replaced by official `mcp` gem** (closes #280, #365):
+  The hand-rolled `StdioTransport` and `HttpTransport` (~260 lines) have been
+  replaced by `MCP::Client::Stdio` and `MCP::Client::HTTP` from the official
+  `mcp` gem (v0.25.0+). Adds the `mcp >= 0.3` runtime dependency.
+  - Built-in 4 MiB size limits for stdout, stderr, and HTTP responses
+  - Automatic MCP `initialize` handshake on every connection
+  - SSE response parsing handled by the SDK
+  - `from_server` and `execute` convert SDK errors into `Phronomy::ToolError`
+  - Removes all `Thread.new` usage from `mcp.rb`; entry removed from
+    `THREAD_NEW_ALLOWLIST` in `thread_invariants_spec.rb`
+
+- **`CancellationToken` bridged into MCP `call_tool`** (Issue #390):
+  `Mcp#execute` now accepts a `cancellation_token:` keyword argument.
+  When provided, the token is bridged to `MCP::Cancellation` via `on_cancel`,
+  so an explicit `cancel!` propagates into the in-flight `call_tool` request
+  as a MCP `notifications/cancelled` message.
+
+- **`config[:tool_timeout]` forwarded to `BlockingAdapterPool`** (Issue #390):
+  `ToolExecutor.call_async` and `Capability::Base#call_async` now accept a
+  `config:` keyword. `config[:tool_timeout]` is passed as the `timeout:` to
+  `pool.submit`, enabling the same abandoned-operation tracking that LLM calls
+  already use via `config[:llm_timeout]`.
 
 
 
