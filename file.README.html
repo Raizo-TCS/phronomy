@@ -883,6 +883,31 @@ mechanism as <code>Thread#kill</code>), which Phronomy avoids by default due to 
 safety concerns. Ruby's GVL prevents fully preemptive cancellation without such
 risky interruption.</p>
 </blockquote>
+<blockquote>
+<p><strong><code>timeout_after</code> vs <code>CancellationScope.deadline_in</code></strong></p>
+<p><code>CancellationToken.timeout_after(seconds)</code> uses lazy clock comparison: <code>cancelled?</code>
+returns <code>true</code> once the deadline elapses, but <code>on_cancel</code> callbacks are <strong>not</strong>
+fired. Bridges that rely on <code>on_cancel</code> — such as the <code>MCP::Cancellation</code> bridge
+in <code>Phronomy::Tools::Mcp#execute</code> — will therefore <strong>not</strong> be triggered on expiry.</p>
+<p>When you need the cancellation to propagate into in-flight I/O (e.g. an MCP
+<code>call_tool</code> request), use <code>CancellationScope</code> instead:</p>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_scope'>scope</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency/CancellationScope.html" title="Phronomy::Concurrency::CancellationScope (class)">CancellationScope</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Concurrency/CancellationScope.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationScope#initialize (method)">new</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deadline_in'><span class='object_link'><a href="Phronomy/Concurrency/CancellationScope.html#deadline_in-instance_method" title="Phronomy::Concurrency::CancellationScope#deadline_in (method)">deadline_in</a></span></span><span class='lparen'>(</span><span class='int'>30</span><span class='rparen'>)</span>
+<span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>...</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_scope'>scope</span><span class='period'>.</span><span class='id identifier rubyid_token'>token</span> <span class='rbrace'>}</span><span class='rparen'>)</span>
+</code></pre>
+<p><code>CancellationScope#deadline_in</code> registers a timer in the Runtime timer queue,
+which calls <code>cancel!</code> on expiry and fires all <code>on_cancel</code> callbacks — including
+the MCP bridge.</p>
+</blockquote>
+<blockquote>
+<p><strong><code>config[:tool_timeout]</code> / <code>config[:llm_timeout]</code> — caller protection, not
+worker termination</strong></p>
+<p>These keys set a per-submit timeout in <code>BlockingAdapterPool</code>. When the timeout
+fires, the <em>caller</em> receives <code>CancellationError</code> / <code>TimeoutError</code> immediately and
+the operation is marked as abandoned — but the worker thread continues executing
+until the underlying I/O completes naturally (e.g. <code>Net::HTTP</code> read, stdio
+<code>gets</code>). Size <code>blocking_io_pool_size</code> to account for the worst-case number of
+concurrently abandoned workers that may accumulate before the pool is saturated.</p>
+</blockquote>
 <pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span>
 
 <span class='comment'># Cancel from another thread after 5 s
@@ -1081,7 +1106,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Thu Jul 23 12:30:37 2026 by
+  Generated on Thu Jul 23 13:19:15 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
