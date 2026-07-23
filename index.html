@@ -164,7 +164,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong>MCP Tool</strong> — <code>Phronomy::Tools::Mcp</code>: Model Context Protocol server integration; <code>Phronomy::Tools::Agent</code>: wraps an agent class as a callable tool via <code>from_agent</code></td>
+<td><strong>MCP Tool</strong> — <code>Phronomy::Tools::Mcp</code>: Model Context Protocol server integration via the official <code>mcp</code> gem; <code>Phronomy::Tools::Agent</code>: wraps an agent class as a callable tool via <code>from_agent</code></td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -203,7 +203,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Experimental</td>
 </tr>
 <tr>
-<td><strong>CancellationToken</strong> — Cooperative cancellation via <code>cancel!</code>/<code>cancelled?</code>/<code>raise_if_cancelled!</code>; <code>timeout_after(seconds)</code> for monotonic-clock deadlines; optional <code>deadline:</code> (wall-clock) for backward compatibility; passed as <code>config: { cancellation_token: token }</code> to agents and <code>dispatch_parallel</code>; injected into <code>tool.execute</code> when the method declares a <code>cancellation_token:</code> keyword</td>
+<td><strong>CancellationToken</strong> — Cooperative cancellation via <code>cancel!</code>/<code>cancelled?</code>/<code>raise_if_cancelled!</code>; <code>timeout_after(seconds)</code> for monotonic-clock deadlines; optional <code>deadline:</code> (wall-clock) for backward compatibility; passed as <code>config: { cancellation_token: token }</code> to agents and <code>dispatch_parallel</code>; injected into <code>tool.execute</code> when the method declares a <code>cancellation_token:</code> keyword; bridged to <code>MCP::Cancellation</code> in <code>Phronomy::Tools::Mcp#execute</code></td>
 <td>Experimental</td>
 </tr>
 <tr>
@@ -211,7 +211,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong><code>execution_mode</code> DSL on <code>Agent::Context::Capability::Base</code></strong> — Declares how a tool's <code>execute</code> should be dispatched: <code>:cooperative</code> (same scheduler thread), <code>:blocking_io</code> (default; offloaded to <code>BlockingAdapterPool</code>), <code>:cpu_bound</code>, <code>:external_process</code></td>
+<td><strong><code>execution_mode</code> DSL on <code>Agent::Context::Capability::Base</code></strong> — Declares how a tool's <code>execute</code> should be dispatched: <code>:cooperative</code> (same scheduler thread), <code>:blocking_io</code> (default; offloaded to <code>BlockingAdapterPool</code>), <code>:cpu_bound</code>, <code>:external_process</code>; <code>config[:tool_timeout]</code> sets the per-submit timeout forwarded to <code>BlockingAdapterPool</code> for abandoned-operation tracking</td>
 <td>Experimental</td>
 </tr>
 <tr>
@@ -1081,7 +1081,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Tue Jul 21 17:12:52 2026 by
+  Generated on Thu Jul 23 12:30:37 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

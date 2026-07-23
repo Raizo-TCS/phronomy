@@ -64,7 +64,7 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
-<h2 id="_Unreleased_">[Unreleased]</h2>
+<h2 id="_0_13_0____2026_07_23">[0.13.0] - 2026-07-23</h2>
 <h3 id="Added">Added</h3>
 <ul>
 <li>
@@ -104,6 +104,37 @@ as the first entries in <code>run_input_filters!</code> / <code>run_output_filte
 <code>run_input_guardrails!</code> / <code>run_output_guardrails!</code> call sites in <code>invoke_once</code>,
 <code>_stream_impl</code>, and <code>Suspendable#resume</code> have been removed.  Behaviour is unchanged
 — guardrails still run before any filters and <code>GuardrailError</code> still propagates.</li>
+</ul>
+<h3 id="Changed">Changed</h3>
+<ul>
+<li>
+<p><strong>MCP transport replaced by official <code>mcp</code> gem</strong> (closes #280, #365):
+The hand-rolled <code>StdioTransport</code> and <code>HttpTransport</code> (~260 lines) have been
+replaced by <code>MCP::Client::Stdio</code> and <code>MCP::Client::HTTP</code> from the official
+<code>mcp</code> gem (v0.25.0+). Adds the <code>mcp &gt;= 0.3</code> runtime dependency.</p>
+<ul>
+<li>Built-in 4 MiB size limits for stdout, stderr, and HTTP responses</li>
+<li>Automatic MCP <code>initialize</code> handshake on every connection</li>
+<li>SSE response parsing handled by the SDK</li>
+<li><code>from_server</code> and <code>execute</code> convert SDK errors into <code>Phronomy::ToolError</code></li>
+<li>Removes all <code>Thread.new</code> usage from <code>mcp.rb</code>; entry removed from
+<code>THREAD_NEW_ALLOWLIST</code> in <code>thread_invariants_spec.rb</code></li>
+</ul>
+</li>
+<li>
+<p><strong><code>CancellationToken</code> bridged into MCP <code>call_tool</code></strong> (Issue #390):
+<code>Mcp#execute</code> now accepts a <code>cancellation_token:</code> keyword argument.
+When provided, the token is bridged to <code>MCP::Cancellation</code> via <code>on_cancel</code>,
+so an explicit <code>cancel!</code> propagates into the in-flight <code>call_tool</code> request
+as a MCP <code>notifications/cancelled</code> message.</p>
+</li>
+<li>
+<p><strong><code>config[:tool_timeout]</code> forwarded to <code>BlockingAdapterPool</code></strong> (Issue #390):
+<code>ToolExecutor.call_async</code> and <code>Capability::Base#call_async</code> now accept a
+<code>config:</code> keyword. <code>config[:tool_timeout]</code> is passed as the <code>timeout:</code> to
+<code>pool.submit</code>, enabling the same abandoned-operation tracking that LLM calls
+already use via <code>config[:llm_timeout]</code>.</p>
+</li>
 </ul>
 <h2 id="_0_10_0____2026_06_08">[0.10.0] - 2026-06-08</h2>
 <h3 id="Added">Added</h3>
@@ -1166,7 +1197,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Tue Jul 21 17:12:52 2026 by
+  Generated on Thu Jul 23 12:30:37 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
