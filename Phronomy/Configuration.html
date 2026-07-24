@@ -133,56 +133,6 @@ Configure via the Phronomy.configure block.</p>
       <li class="public ">
   <span class="summary_signature">
     
-      <a href="#backpressure-instance_method" title="#backpressure (instance method)">#<strong>backpressure</strong>  &#x21d2; :wait, ... </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Default backpressure strategy for BlockingAdapterPool#submit when the queue is full.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#backpressure_timeout-instance_method" title="#backpressure_timeout (instance method)">#<strong>backpressure_timeout</strong>  &#x21d2; Numeric<sup>?</sup> </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Seconds to wait before raising <span class='object_link'><a href="TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span> when <code>backpressure</code> is <code>:timeout</code>.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#before_completion-instance_method" title="#before_completion (instance method)">#<strong>before_completion</strong>  &#x21d2; Object </a>
     
 
@@ -325,7 +275,7 @@ Configure via the Phronomy.configure block.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Warn when an event spends longer than this many seconds waiting in the EventLoop queue before being dispatched (starvation detection).</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Set to <code>nil</code> to disable the warning.</p></div></span>
   
 </li>
 
@@ -401,131 +351,6 @@ Configure via the Phronomy.configure block.</p>
 
   
     <span class="summary_desc"><div class='inline'><p>Optional logger for framework diagnostic messages (e.g. unreachable-state warnings).</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#max_concurrent_agent_tasks-instance_method" title="#max_concurrent_agent_tasks (instance method)">#<strong>max_concurrent_agent_tasks</strong>  &#x21d2; Integer<sup>?</sup> </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Maximum number of concurrent agent tasks (invoke_async calls in-flight).</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#max_concurrent_llm_calls-instance_method" title="#max_concurrent_llm_calls (instance method)">#<strong>max_concurrent_llm_calls</strong>  &#x21d2; Integer<sup>?</sup> </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Maximum number of concurrent LLM calls in-flight.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#max_concurrent_tool_tasks-instance_method" title="#max_concurrent_tool_tasks (instance method)">#<strong>max_concurrent_tool_tasks</strong>  &#x21d2; Integer<sup>?</sup> </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Maximum number of concurrent tool tasks (parallel tool calls in-flight).</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#max_concurrent_vector_searches-instance_method" title="#max_concurrent_vector_searches (instance method)">#<strong>max_concurrent_vector_searches</strong>  &#x21d2; Integer<sup>?</sup> </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Maximum number of concurrent vector-store searches in-flight.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#max_concurrent_workflow_tasks-instance_method" title="#max_concurrent_workflow_tasks (instance method)">#<strong>max_concurrent_workflow_tasks</strong>  &#x21d2; Integer<sup>?</sup> </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Maximum number of concurrent workflow tasks.</p></div></span>
   
 </li>
 
@@ -873,32 +698,25 @@ Configure via the Phronomy.configure block.</p>
       <pre class="lines">
 
 
-191
-192
-193
-194
-195
-196
-197
-198
-199
-200
-201
-202
-203
-204
-205
-206
-207
-208
-209
-210
-211
-212
-213</pre>
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 191</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 151</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@recursion_limit</span> <span class='op'>=</span> <span class='int'>25</span>
@@ -907,18 +725,11 @@ Configure via the Phronomy.configure block.</p>
   <span class='ivar'>@parallel_tool_execution</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@event_loop_stop_grace_seconds</span> <span class='op'>=</span> <span class='int'>5</span>
   <span class='ivar'>@llm_adapter</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="LLMAdapter.html" title="Phronomy::LLMAdapter (module)">LLMAdapter</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="LLMAdapter/RubyLLM.html" title="Phronomy::LLMAdapter::RubyLLM (class)">RubyLLM</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
-  <span class='ivar'>@backpressure</span> <span class='op'>=</span> <span class='symbol'>:wait</span>
-  <span class='ivar'>@backpressure_timeout</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@event_loop_starvation_threshold_seconds</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@event_loop_dispatch_threshold_seconds</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@scheduler_debug</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@blocking_detect_threshold_ms</span> <span class='op'>=</span> <span class='kw'>nil</span>
-  <span class='ivar'>@max_concurrent_agent_tasks</span> <span class='op'>=</span> <span class='kw'>nil</span>
-  <span class='ivar'>@max_concurrent_tool_tasks</span> <span class='op'>=</span> <span class='kw'>nil</span>
-  <span class='ivar'>@max_concurrent_workflow_tasks</span> <span class='op'>=</span> <span class='kw'>nil</span>
-  <span class='ivar'>@max_concurrent_llm_calls</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@stream_queue_max_size</span> <span class='op'>=</span> <span class='kw'>nil</span>
-  <span class='ivar'>@max_concurrent_vector_searches</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@starvation_threshold_ms</span> <span class='op'>=</span> <span class='int'>50</span>
   <span class='ivar'>@runtime_backend</span> <span class='op'>=</span> <span class='symbol'>:thread</span>
   <span class='ivar'>@strict_runtime_guards</span> <span class='op'>=</span> <span class='kw'>false</span>
@@ -934,121 +745,9 @@ Configure via the Phronomy.configure block.</p>
     <h2>Instance Attribute Details</h2>
     
       
-      <span id="backpressure=-instance_method"></span>
-      <div class="method_details first">
-  <h3 class="signature first" id="backpressure-instance_method">
-  
-    #<strong>backpressure</strong>  &#x21d2; <tt>:wait</tt>, ... 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Default backpressure strategy for BlockingAdapterPool#submit when the
-queue is full.  One of <code>:wait</code> (block until a slot is available),
-<code>:raise</code> (raise <span class='object_link'><a href="BackpressureError.html" title="Phronomy::BackpressureError (class)">BackpressureError</a></span>), or <code>:timeout</code> (raise
-<span class='object_link'><a href="TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span> after <code>backpressure_timeout</code> seconds).</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>:wait</tt>, <tt>:raise</tt>, <tt>:timeout</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-94
-95
-96</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 94</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_backpressure'>backpressure</span>
-  <span class='ivar'>@backpressure</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id="backpressure_timeout=-instance_method"></span>
-      <div class="method_details ">
-  <h3 class="signature " id="backpressure_timeout-instance_method">
-  
-    #<strong>backpressure_timeout</strong>  &#x21d2; <tt>Numeric</tt><sup>?</sup> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Seconds to wait before raising <span class='object_link'><a href="TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span> when
-<code>backpressure</code> is <code>:timeout</code>.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Numeric</tt>, <tt>nil</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-99
-100
-101</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 99</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_backpressure_timeout'>backpressure_timeout</span>
-  <span class='ivar'>@backpressure_timeout</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
       <span id="before_completion=-instance_method"></span>
-      <div class="method_details ">
-  <h3 class="signature " id="before_completion-instance_method">
+      <div class="method_details first">
+  <h3 class="signature first" id="before_completion-instance_method">
   
     #<strong>before_completion</strong>  &#x21d2; <tt>Object</tt> 
   
@@ -1129,12 +828,12 @@ yielded the scheduler emits a warning log.  nil disables the check.</p>
       <pre class="lines">
 
 
-121
-122
-123</pre>
+107
+108
+109</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 121</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 107</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_blocking_detect_threshold_ms'>blocking_detect_threshold_ms</span>
   <span class='ivar'>@blocking_detect_threshold_ms</span>
@@ -1267,12 +966,12 @@ Set to <code>nil</code> to disable the warning.</p>
       <pre class="lines">
 
 
-111
-112
-113</pre>
+97
+98
+99</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 111</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 97</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_loop_dispatch_threshold_seconds'>event_loop_dispatch_threshold_seconds</span>
   <span class='ivar'>@event_loop_dispatch_threshold_seconds</span>
@@ -1295,9 +994,7 @@ Set to <code>nil</code> to disable the warning.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Warn when an event spends longer than this many seconds waiting in the
-EventLoop queue before being dispatched (starvation detection).
-Set to <code>nil</code> to disable the warning.</p>
+    <p>Set to <code>nil</code> to disable the warning.</p>
 
   </div>
 </div>
@@ -1323,12 +1020,12 @@ Set to <code>nil</code> to disable the warning.</p>
       <pre class="lines">
 
 
-105
-106
-107</pre>
+91
+92
+93</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 105</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 91</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_loop_starvation_threshold_seconds'>event_loop_starvation_threshold_seconds</span>
   <span class='ivar'>@event_loop_starvation_threshold_seconds</span>
@@ -1489,282 +1186,6 @@ via <code>Kernel#warn</code>.</p>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_logger'>logger</span>
   <span class='ivar'>@logger</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id="max_concurrent_agent_tasks=-instance_method"></span>
-      <div class="method_details ">
-  <h3 class="signature " id="max_concurrent_agent_tasks-instance_method">
-  
-    #<strong>max_concurrent_agent_tasks</strong>  &#x21d2; <tt>Integer</tt><sup>?</sup> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Maximum number of concurrent agent tasks (invoke_async calls in-flight).
-nil = unlimited (default).  When at capacity, behaviour is controlled by
-<code>backpressure</code> (:wait, :raise/:reject, :timeout).</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-127
-128
-129</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 127</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_agent_tasks'>max_concurrent_agent_tasks</span>
-  <span class='ivar'>@max_concurrent_agent_tasks</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id="max_concurrent_llm_calls=-instance_method"></span>
-      <div class="method_details ">
-  <h3 class="signature " id="max_concurrent_llm_calls-instance_method">
-  
-    #<strong>max_concurrent_llm_calls</strong>  &#x21d2; <tt>Integer</tt><sup>?</sup> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Maximum number of concurrent LLM calls in-flight.
-nil = unlimited (default).</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-142
-143
-144</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 142</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_llm_calls'>max_concurrent_llm_calls</span>
-  <span class='ivar'>@max_concurrent_llm_calls</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id="max_concurrent_tool_tasks=-instance_method"></span>
-      <div class="method_details ">
-  <h3 class="signature " id="max_concurrent_tool_tasks-instance_method">
-  
-    #<strong>max_concurrent_tool_tasks</strong>  &#x21d2; <tt>Integer</tt><sup>?</sup> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Maximum number of concurrent tool tasks (parallel tool calls in-flight).
-nil = unlimited (default).</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-132
-133
-134</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 132</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_tool_tasks'>max_concurrent_tool_tasks</span>
-  <span class='ivar'>@max_concurrent_tool_tasks</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id="max_concurrent_vector_searches=-instance_method"></span>
-      <div class="method_details ">
-  <h3 class="signature " id="max_concurrent_vector_searches-instance_method">
-  
-    #<strong>max_concurrent_vector_searches</strong>  &#x21d2; <tt>Integer</tt><sup>?</sup> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Maximum number of concurrent vector-store searches in-flight.
-nil = unlimited (default).</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-153
-154
-155</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 153</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_vector_searches'>max_concurrent_vector_searches</span>
-  <span class='ivar'>@max_concurrent_vector_searches</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id="max_concurrent_workflow_tasks=-instance_method"></span>
-      <div class="method_details ">
-  <h3 class="signature " id="max_concurrent_workflow_tasks-instance_method">
-  
-    #<strong>max_concurrent_workflow_tasks</strong>  &#x21d2; <tt>Integer</tt><sup>?</sup> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Maximum number of concurrent workflow tasks.
-nil = unlimited (default).</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Integer</tt>, <tt>nil</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-137
-138
-139</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 137</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_max_concurrent_workflow_tasks'>max_concurrent_workflow_tasks</span>
-  <span class='ivar'>@max_concurrent_workflow_tasks</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1956,12 +1377,12 @@ instance immediately call <code>Phronomy::Runtime.instance = nil</code> first.</
       <pre class="lines">
 
 
-183
-184
-185</pre>
+143
+144
+145</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 183</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 143</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_runtime_backend'>runtime_backend</span>
   <span class='ivar'>@runtime_backend</span>
@@ -2011,12 +1432,12 @@ Equivalent to setting all diagnostic thresholds to their defaults.</p>
       <pre class="lines">
 
 
-116
-117
-118</pre>
+102
+103
+104</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 116</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 102</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_scheduler_debug'>scheduler_debug</span>
   <span class='ivar'>@scheduler_debug</span>
@@ -2070,12 +1491,12 @@ Default: 50ms.</p>
       <pre class="lines">
 
 
-162
-163
-164</pre>
+122
+123
+124</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 162</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 122</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_starvation_threshold_ms'>starvation_threshold_ms</span>
   <span class='ivar'>@starvation_threshold_ms</span>
@@ -2178,12 +1599,12 @@ throttled.  When nil (default), the queue is unbounded.</p>
       <pre class="lines">
 
 
-148
-149
-150</pre>
+113
+114
+115</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 148</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 113</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream_queue_max_size'>stream_queue_max_size</span>
   <span class='ivar'>@stream_queue_max_size</span>
@@ -2234,12 +1655,12 @@ is logged instead so that existing callers have time to migrate.</p>
       <pre class="lines">
 
 
-189
-190
-191</pre>
+149
+150
+151</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 189</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 149</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span>
   <span class='ivar'>@strict_runtime_guards</span>
@@ -2391,7 +1812,7 @@ the tracing backend (OTel, Langfuse, etc.).</p>
 </div>
 
       <div id="footer">
-  Generated on Thu Jul 23 13:19:16 2026 by
+  Generated on Fri Jul 24 17:01:33 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
