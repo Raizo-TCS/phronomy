@@ -215,6 +215,12 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Experimental</td>
 </tr>
 <tr>
+<td><strong><code>blocking_io_pool_size</code> / <code>blocking_io_queue_size</code></strong> — Configure the default <code>BlockingAdapterPool</code> via `Phronomy.configure { \</td>
+<td>c\</td>
+<td>c.blocking_io_pool_size = 20; c.blocking_io_queue_size = 200 }<code>; all LLM calls, MCP tool calls, and other blocking I/O share this pool; defaults: </code>pool_size: 10<code>, </code>queue_size: 100`</td>
+<td>Beta</td>
+</tr>
+<tr>
 <td><strong><code>invocation_context:</code> keyword on <code>Agent#invoke</code> / <code>Workflow#invoke</code></strong> — Pass a <code>Phronomy::InvocationContext</code> directly; <code>thread_id</code>, <code>cancellation_token</code>, and <code>deadline</code>-based timeout are derived from it; <code>task_id</code> / <code>parent_task_id</code> appear in trace spans automatically; <code>config:</code> keys remain supported as backward-compat aliases</td>
 <td>Beta</td>
 </tr>
@@ -901,7 +907,7 @@ worker termination</strong></p>
 fires, the <em>caller</em> receives <code>CancellationError</code> / <code>TimeoutError</code> immediately and
 the operation is marked as abandoned — but the worker thread continues executing
 until the underlying I/O completes naturally (e.g. <code>Net::HTTP</code> read, stdio
-<code>gets</code>). Size <code>blocking_io_pool_size</code> to account for the worst-case number of
+<code>gets</code>). Size <code>blocking_io_pool_size</code> (<code>Phronomy.configure { |c| c.blocking_io_pool_size = N }</code>) to account for the worst-case number of
 concurrently abandoned workers that may accumulate before the pool is saturated.</p>
 </blockquote>
 <pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span>
@@ -1102,7 +1108,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Fri Jul 24 17:04:07 2026 by
+  Generated on Fri Jul 24 17:27:01 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
