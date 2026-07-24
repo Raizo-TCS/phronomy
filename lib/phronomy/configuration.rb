@@ -86,20 +86,6 @@ module Phronomy
     #   Phronomy.configure { |c| c.llm_adapter = MyAsyncLLMAdapter.new }
     attr_accessor :llm_adapter
 
-    # Default backpressure strategy for {BlockingAdapterPool#submit} when the
-    # queue is full.  One of +:wait+ (block until a slot is available),
-    # +:raise+ (raise {Phronomy::BackpressureError}), or +:timeout+ (raise
-    # {Phronomy::TimeoutError} after +backpressure_timeout+ seconds).
-    # @return [:wait, :raise, :timeout]
-    attr_accessor :backpressure
-
-    # Seconds to wait before raising {Phronomy::TimeoutError} when
-    # +backpressure+ is +:timeout+.
-    # @return [Numeric, nil]
-    attr_accessor :backpressure_timeout
-
-    # Warn when an event spends longer than this many seconds waiting in the
-    # EventLoop queue before being dispatched (starvation detection).
     # Set to +nil+ to disable the warning.
     # @return [Numeric, nil]
     attr_accessor :event_loop_starvation_threshold_seconds
@@ -120,37 +106,11 @@ module Phronomy
     # @return [Float, nil]
     attr_accessor :blocking_detect_threshold_ms
 
-    # Maximum number of concurrent agent tasks (invoke_async calls in-flight).
-    # nil = unlimited (default).  When at capacity, behaviour is controlled by
-    # +backpressure+ (:wait, :raise/:reject, :timeout).
-    # @return [Integer, nil]
-    attr_accessor :max_concurrent_agent_tasks
-
-    # Maximum number of concurrent tool tasks (parallel tool calls in-flight).
-    # nil = unlimited (default).
-    # @return [Integer, nil]
-    attr_accessor :max_concurrent_tool_tasks
-
-    # Maximum number of concurrent workflow tasks.
-    # nil = unlimited (default).
-    # @return [Integer, nil]
-    attr_accessor :max_concurrent_workflow_tasks
-
-    # Maximum number of concurrent LLM calls in-flight.
-    # nil = unlimited (default).
-    # @return [Integer, nil]
-    attr_accessor :max_concurrent_llm_calls
-
     # Upper bound on the number of streaming token chunks that may be buffered
     # in the {AsyncQueue} used by {Agent#stream} before the LLM producer is
     # throttled.  When nil (default), the queue is unbounded.
     # @return [Integer, nil]
     attr_accessor :stream_queue_max_size
-
-    # Maximum number of concurrent vector-store searches in-flight.
-    # nil = unlimited (default).
-    # @return [Integer, nil]
-    attr_accessor :max_concurrent_vector_searches
 
     # Scheduler starvation threshold (milliseconds).
     # When a task waits more than this many milliseconds after calling
@@ -195,18 +155,11 @@ module Phronomy
       @parallel_tool_execution = false
       @event_loop_stop_grace_seconds = 5
       @llm_adapter = Phronomy::LLMAdapter::RubyLLM.new
-      @backpressure = :wait
-      @backpressure_timeout = nil
       @event_loop_starvation_threshold_seconds = nil
       @event_loop_dispatch_threshold_seconds = nil
       @scheduler_debug = false
       @blocking_detect_threshold_ms = nil
-      @max_concurrent_agent_tasks = nil
-      @max_concurrent_tool_tasks = nil
-      @max_concurrent_workflow_tasks = nil
-      @max_concurrent_llm_calls = nil
       @stream_queue_max_size = nil
-      @max_concurrent_vector_searches = nil
       @starvation_threshold_ms = 50
       @runtime_backend = :thread
       @strict_runtime_guards = false

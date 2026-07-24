@@ -546,15 +546,9 @@ module Phronomy
         if invocation_context
           thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
         end
-        bp = Phronomy.configuration.backpressure
-        on_full = (bp == :raise) ? :reject : (bp || :wait)
-        bp_timeout = Phronomy.configuration.backpressure_timeout
         result_task = Phronomy::Task.deferred(name: "agent-#{(self.class.name || "anonymous").downcase}-async")
-        gate = Phronomy::Runtime.instance.gate(:agent)
-        gate.acquire(on_full: on_full, timeout: bp_timeout) do
-          _start_invoke_attempt(result_task, input, messages: messages, thread_id: thread_id, config: config, attempt: 0)
-          return result_task
-        end
+        _start_invoke_attempt(result_task, input, messages: messages, thread_id: thread_id, config: config, attempt: 0)
+        result_task
       end
 
       # Streaming version of #invoke. Yields {Phronomy::Agent::StreamEvent} objects

@@ -124,32 +124,8 @@ module Phronomy
       @scheduler = scheduler
       @task_registry = TaskRegistry.new
       @metrics = RuntimeMetrics.new
-      @gate_registry = Phronomy::Concurrency::GateRegistry.new
       @pool_registry = Phronomy::Concurrency::PoolRegistry.new
       @timer_service = TimerService.new(scheduler)
-    end
-
-    # Returns (or lazily creates) the {ConcurrencyGate} for the named resource.
-    #
-    # Gate caps are read from the global {Phronomy::Configuration} when the gate
-    # is first accessed; subsequent calls return the cached gate.  To change the
-    # cap at runtime, call {#reset_gate} first.
-    #
-    # @param name [:agent, :tool, :workflow, :llm, :vector] resource name
-    # @return [ConcurrencyGate]
-    # @api private
-    def gate(name)
-      @gate_registry.get(name.to_sym)
-    end
-
-    # Drops the cached gate for +name+ so that the next call to {#gate} rebuilds
-    # it from the current configuration.  Useful in tests.
-    #
-    # @param name [Symbol]
-    # @return [void]
-    # @api private
-    def reset_gate(name)
-      @gate_registry.reset(name.to_sym)
     end
 
     # Cooperative yield point.

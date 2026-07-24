@@ -38,7 +38,7 @@ module Phronomy
     class DeterministicScheduler < Scheduler
       # Scheduler-aware signal for cooperative suspension.
       #
-      # Used by {ConcurrencyGate} and {TaskGroup} to suspend a Fiber until a
+      # Used by {TaskGroup} to suspend a Fiber until a
       # slot or condition becomes available, without blocking the OS thread.
       # All methods must be called from within a {DeterministicScheduler} tick.
       # @api private

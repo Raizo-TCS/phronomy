@@ -85,26 +85,6 @@ RSpec.describe "Backpressure limits (Issue #268)" do
     end
   end
 
-  describe "Phronomy::Configuration" do
-    it "defaults backpressure to :wait" do
-      config = Phronomy::Configuration.new
-      expect(config.backpressure).to eq(:wait)
-    end
-
-    it "allows backpressure to be set to :raise" do
-      config = Phronomy::Configuration.new
-      config.backpressure = :raise
-      expect(config.backpressure).to eq(:raise)
-    end
-
-    it "allows backpressure_timeout to be configured" do
-      config = Phronomy::Configuration.new
-      config.backpressure = :timeout
-      config.backpressure_timeout = 5.0
-      expect(config.backpressure_timeout).to eq(5.0)
-    end
-  end
-
   describe "Phronomy::BackpressureError" do
     it "is a subclass of Phronomy::Error" do
       expect(Phronomy::BackpressureError.ancestors).to include(Phronomy::Error)
