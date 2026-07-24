@@ -13,6 +13,22 @@ RSpec.describe "Blocking operation diagnostics (Issue #279)" do
       expect(config.blocking_detect_threshold_ms).to be_nil
     end
 
+    it "defaults blocking_io_pool_size to 10" do
+      config = Phronomy::Configuration.new
+      expect(config.blocking_io_pool_size).to eq(10)
+    end
+
+    it "defaults blocking_io_queue_size to 100" do
+      config = Phronomy::Configuration.new
+      expect(config.blocking_io_queue_size).to eq(100)
+    end
+
+    it "accepts blocking_io_pool_size configuration" do
+      config = Phronomy::Configuration.new
+      config.blocking_io_pool_size = 20
+      expect(config.blocking_io_pool_size).to eq(20)
+    end
+
     it "accepts scheduler_debug = true" do
       config = Phronomy::Configuration.new
       config.scheduler_debug = true

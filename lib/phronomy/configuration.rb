@@ -112,6 +112,20 @@ module Phronomy
     # @return [Integer, nil]
     attr_accessor :stream_queue_max_size
 
+    # Number of OS worker threads in the default {BlockingAdapterPool}.
+    # All LLM calls, MCP tool calls, and other blocking I/O share this pool.
+    # Increase for higher LLM/tool throughput; decrease to limit
+    # concurrency (e.g. to stay within a provider's rate limit).
+    # Default: 10.
+    # @return [Integer]
+    attr_accessor :blocking_io_pool_size
+
+    # Maximum number of operations that may wait in the {BlockingAdapterPool}
+    # queue before {Phronomy::BackpressureError} is raised (on_full: :raise) or
+    # the caller blocks (on_full: :wait, the default). Default: 100.
+    # @return [Integer]
+    attr_accessor :blocking_io_queue_size
+
     # Scheduler starvation threshold (milliseconds).
     # When a task waits more than this many milliseconds after calling
     # +runtime.yield+ before being resumed, the wait is counted as a starvation
@@ -160,6 +174,8 @@ module Phronomy
       @scheduler_debug = false
       @blocking_detect_threshold_ms = nil
       @stream_queue_max_size = nil
+      @blocking_io_pool_size = 10
+      @blocking_io_queue_size = 100
       @starvation_threshold_ms = 50
       @runtime_backend = :thread
       @strict_runtime_guards = false

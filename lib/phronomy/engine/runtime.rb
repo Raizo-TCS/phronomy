@@ -278,11 +278,14 @@ module Phronomy
     # constructing a Runtime with custom pool options or by replacing the
     # shared Runtime via {.instance=} in tests.
     #
-    # @param pool_size  [Integer] worker thread count (default: 10)
-    # @param queue_size [Integer] max pending operations (default: 100)
+    # @param pool_size  [Integer] worker thread count
+    #   (default: {Phronomy::Configuration#blocking_io_pool_size}, currently 10)
+    # @param queue_size [Integer] max pending operations
+    #   (default: {Phronomy::Configuration#blocking_io_queue_size}, currently 100)
     # @return [BlockingAdapterPool]
     # @api private
-    def blocking_io(pool_size: 10, queue_size: 100)
+    def blocking_io(pool_size: Phronomy.configuration.blocking_io_pool_size,
+      queue_size: Phronomy.configuration.blocking_io_queue_size)
       @pool_registry.default_pool(pool_size: pool_size, queue_size: queue_size)
     end
 
