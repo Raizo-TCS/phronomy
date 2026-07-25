@@ -465,8 +465,15 @@ RSpec.describe Phronomy::Tools::Mcp do
         .and_raise(MCP::CancelledError.new(reason: "phronomy_cancelled"))
       allow(MCP::Client::Stdio).to receive(:new).and_return(live_transport, live_transport)
       allow(MCP::Client).to receive(:new).and_return(discovery_client, live_client)
-      # Prevent async cleanup spawn from failing in unit test context
-      allow(Phronomy::Runtime.instance).to receive(:pool).and_call_original
+      # Stub the cleanup pool so no real worker threads are started in unit tests
+      cleanup_pool = instance_double(Phronomy::Concurrency::BlockingAdapterPool)
+      allow(Phronomy::Runtime.instance)
+        .to receive(:pool).with(:mcp_cleanup, size: 2, queue_size: 100)
+        .and_return(cleanup_pool)
+      allow(cleanup_pool).to receive(:submit) do |on_full:, &cleanup|
+        expect(on_full).to eq(:raise)
+        cleanup.call
+      end
 
       tool = described_class.from_server("stdio://./mcp-server", tool_name: "search")
       expect { tool.execute(query: "test") }
@@ -492,12 +499,22 @@ RSpec.describe Phronomy::Tools::Mcp do
         .and_return(discovery_transport, cancelled_transport, replacement_transport)
       allow(MCP::Client).to receive(:new)
         .and_return(discovery_client, cancelled_client, replacement_client)
-      allow(Phronomy::Runtime.instance).to receive(:pool).and_call_original
+      # Stub the cleanup pool — synchronous execution so cancelled_transport.close is
+      # called inline, allowing the assertion below to work without race conditions.
+      cleanup_pool = instance_double(Phronomy::Concurrency::BlockingAdapterPool)
+      allow(Phronomy::Runtime.instance)
+        .to receive(:pool).with(:mcp_cleanup, size: 2, queue_size: 100)
+        .and_return(cleanup_pool)
+      allow(cleanup_pool).to receive(:submit) do |on_full:, &cleanup|
+        expect(on_full).to eq(:raise)
+        cleanup.call
+      end
 
       tool = described_class.from_server("stdio://./mcp-server", tool_name: "search")
       expect { tool.execute(query: "first") }.to raise_error(Phronomy::CancellationError, /test/)
       expect(tool.execute(query: "second")).to eq("new")
       expect(replacement_client).to have_received(:connect)
+      expect(cancelled_transport).to have_received(:close)
     end
 
     it "invalidates the client when session reconnection fails (does not reuse broken client)" do
