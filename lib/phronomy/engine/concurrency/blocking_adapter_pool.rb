@@ -34,19 +34,27 @@ module Phronomy
     #   result = op.blocking_wait
     class BlockingAdapterPool
       # Represents the pending result of a submitted blocking operation.
-      # Returned immediately by {BlockingAdapterPool#submit}; call {#await} to
-      # wait for the result.
+      # Returned immediately by {BlockingAdapterPool#submit}; call {#blocking_wait}
+      # to wait for the result.
       class PendingOperation
-        # @return [Boolean] true when the operation has finished (success or error)
+        # @return [Boolean] true when the caller-facing result has settled
+        #   (success, failure, cancellation, or submit-time timeout)
         # @api private
         def done?
           @mutex.synchronize { @done }
         end
 
-        # @return [Boolean] true when the operation was abandoned due to timeout
+        # @return [Boolean] true when the submit-time deadline settled the operation
+        # @api private
+        def timed_out?
+          @mutex.synchronize { @timed_out }
+        end
+
+        # @return [Boolean] true when a submit-time timeout occurred after worker
+        #   execution had started. The worker is not forcibly interrupted.
         # @api private
         def abandoned?
-          @abandoned
+          @mutex.synchronize { @abandoned }
         end
 
         # @return [Float] seconds spent in the queue before execution started
@@ -57,45 +65,28 @@ module Phronomy
 
         # Blocks until the operation completes and returns its value.
         #
-        # An optional +timeout+ (in seconds) may be passed here; it is measured
-        # from the moment +await+ is called. If both a submit-time timeout and an
-        # await-time timeout are present, the earlier deadline wins. The worker
-        # thread is NOT interrupted — it runs to completion on its own.
+        # A +timeout+ passed here is local to this waiter. When it expires,
+        # {Phronomy::TimeoutError} is raised to this caller, but the operation is not
+        # settled, marked abandoned, or otherwise changed. The worker continues, and
+        # another waiter or an +on_complete+ callback may receive the eventual result
+        # unless the submit-time deadline or cancellation settles the operation first.
+        #
+        # A submit-time timeout passed to {BlockingAdapterPool#submit} is enforced by
+        # the runtime timer queue independently of this method and is therefore not
+        # re-read here.
         #
         # An optional +cancellation_token+ may be passed here (or at submit time).
         # If the token is cancelled while waiting, {Phronomy::CancellationError} is
-        # raised immediately without interrupting the worker.
+        # raised without interrupting the worker.
         #
         # **Cooperative path (`:fiber` / `DeterministicScheduler`):**
-        # When called from a Fiber managed by {DeterministicScheduler} (i.e. under
-        # the +:fiber+ runtime backend), the calling Fiber suspends cooperatively
-        # via +Fiber.yield+ rather than blocking the OS thread.  The Fiber is
-        # resumed on the scheduler's ready queue once the worker thread completes
-        # the operation.
+        # When called from a Fiber managed by {DeterministicScheduler}, the calling
+        # Fiber suspends cooperatively via +Fiber.yield+ rather than blocking the OS
+        # thread. The Fiber is resumed through +on_complete+ when the operation
+        # settles. A waiter-local +timeout:+ is not enforced on this path; use the
+        # submit-time timeout for an operation-wide deadline.
         #
-        # @note **Cooperative cancellation semantics** (ADR-010):
-        #   Phronomy uses a non-preemptive, cooperative-first concurrency model.
-        #   Cancellation is *cooperative*, not preemptive:
-        #   - When a +cancellation_token+ is cancelled, +CancellationError+ is
-        #     raised to the +await+ caller immediately; when the timeout fires,
-        #     +TimeoutError+ is raised instead. In both cases, the underlying
-        #     worker thread is **not** forcibly stopped.
-        #   - The worker thread will complete its submitted block naturally.
-        #     Code inside the block must call +token.check!+ at suitable
-        #     checkpoints to observe the cancelled state and exit early.
-        #   - There is no +Thread#kill+ or +Thread#raise+ involved. The framework
-        #     never forcibly terminates worker threads.
-        #
-        # @note **Cooperative timeout limitation**: the +timeout:+ parameter passed
-        #   to +await+ is *not* enforced on the cooperative path.  The calling Fiber
-        #   remains suspended until the worker thread finishes regardless of how many
-        #   seconds elapse.  This is because the cooperative scheduler cannot
-        #   preempt a running OS thread.  If a time bound is required, set
-        #   +timeout:+ at {BlockingAdapterPool#submit submit} time instead; the pool
-        #   will then abandon the operation on the worker side and mark it as
-        #   {#abandoned?}.
-        #
-        # @param timeout [Numeric, nil] seconds from now before raising TimeoutError
+        # @param timeout [Numeric, nil] maximum seconds this waiter will block
         #   (thread path only; ignored on the cooperative/fiber path)
         # @param cancellation_token [CancellationToken, nil]
         # @return [Object]
@@ -104,86 +95,71 @@ module Phronomy
         # @raise [Exception] error raised inside the submitted block
         # @api private
         def blocking_wait(timeout: nil, cancellation_token: nil)
-          effective_timeout = [timeout, @timeout].compact.min
           effective_token = cancellation_token || @cancellation_token
 
           raise CancellationError, "blocking operation cancelled" if effective_token&.cancelled?
 
           # Cooperative context: suspend the calling Fiber rather than blocking
           # the OS thread so that DeterministicScheduler can continue dispatching
-          # other tasks while waiting for the blocking worker to finish.
-          # (Issue #338, ADR-010 Rule 3)
-          # Uses the same thread-local key as Task::FiberBackend::SCHEDULER_KEY
-          # (:phronomy_deterministic_scheduler) to avoid a cross-file constant
-          # dependency at load time.
+          # other tasks while waiting for the blocking worker or submit-time timer.
           scheduler = Thread.current.thread_variable_get(:phronomy_deterministic_scheduler)
           in_managed_fiber = !Fiber.respond_to?(:main) || Fiber.current != Fiber.main
           if scheduler && in_managed_fiber
-            unless @done
-              # Register this await with the scheduler so run_until_idle knows
-              # not to exit until the worker thread completes (Issue #338).
+            unless done?
               scheduler.track_blocking_await
               waiting_fiber = Fiber.current
               on_complete do |_result, _error|
-                # Decrement the counter and wake run_until_idle, then re-enqueue
-                # the suspended Fiber for cooperative resumption.
                 scheduler.complete_blocking_await
                 scheduler.enqueue_fiber(-> { waiting_fiber.resume })
               end
               Fiber.yield(:cooperative_suspend)
             end
-            raise CancellationError, "blocking operation cancelled" if effective_token&.cancelled?
-            raise @error if @error
 
-            return @value
+            raise CancellationError, "blocking operation cancelled" if effective_token&.cancelled?
+
+            value, error = @mutex.synchronize { [@value, @error] }
+            raise error if error
+
+            return value
           end
 
           # Wake up the waiting thread whenever the token is cancelled so we can
-          # propagate cancellation without sleeping until the timeout expires.
+          # propagate cancellation without sleeping until the operation completes.
           effective_token&.on_cancel { @mutex.synchronize { @cond.broadcast } }
 
-          if effective_timeout
-            deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + effective_timeout
-            @mutex.synchronize do
-              until @done
-                raise CancellationError, "blocking operation cancelled" if effective_token&.cancelled?
+          deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout if timeout
+          value, error = @mutex.synchronize do
+            until @done
+              raise CancellationError, "blocking operation cancelled" if effective_token&.cancelled?
 
+              if deadline
                 remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
                 if remaining <= 0
-                  # Guard against double-counting when await is called multiple times.
-                  unless @abandoned
-                    @abandoned = true
-                    @on_abandoned&.call
-                  end
-                  raise Phronomy::TimeoutError, "blocking operation timed out after #{effective_timeout}s"
+                  raise Phronomy::TimeoutError, "timed out waiting for blocking operation after #{timeout}s"
                 end
                 @cond.wait(@mutex, remaining)
-              end
-            end
-          else
-            @mutex.synchronize do
-              until @done
-                raise CancellationError, "blocking operation cancelled" if effective_token&.cancelled?
-
+              else
                 @cond.wait(@mutex)
               end
             end
-          end
-          raise @error if @error
 
-          @value
+            [@value, @error]
+          end
+
+          raise error if error
+
+          value
         end
 
         # Unified wait interface compatible with {Phronomy::Task#wait_result}.
-        # Delegates to {#blocking_wait} so that callers treating the return value
-        # of {ToolExecutor.call_async} uniformly as +#wait_result+ work correctly
-        # regardless of whether a Task or PendingOperation is returned.
         alias_method :wait_result, :blocking_wait
 
-        # Registers a callback to be called when the operation finishes.
-        # If the operation has already finished the callback is invoked immediately
-        # on the calling thread.  Otherwise it is invoked on the worker thread that
-        # completes the operation.
+        # Registers a callback to be called when the operation settles.
+        #
+        # If the operation has already settled, the callback is invoked immediately
+        # on the calling thread. Otherwise it may be invoked on a pool worker thread
+        # or on the runtime timer thread. The execution thread is not guaranteed;
+        # callbacks must be thread-safe and should complete quickly.
         #
         # The callback receives +result+ and +error+ (one of them will be +nil+).
         #
@@ -205,7 +181,7 @@ module Phronomy
         end
 
         # @api private
-        def initialize(block, timeout: nil, cancellation_token: nil, on_abandoned: nil)
+        def initialize(block, timeout: nil, cancellation_token: nil, on_abandoned: nil, submitted_at: nil)
           @block = block
           @timeout = timeout
           @cancellation_token = cancellation_token
@@ -213,35 +189,117 @@ module Phronomy
           @value = nil
           @error = nil
           @done = false
+          @timed_out = false
+          @started = false
           @abandoned = false
           @wait_time = nil
-          @submitted_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          @submitted_at = submitted_at || Process.clock_gettime(Process::CLOCK_MONOTONIC)
           @mutex = Mutex.new
           @cond = ConditionVariable.new
         end
 
+        # Settles the operation with a submit-time timeout.
+        #
+        # The worker is not interrupted. If execution has already started, the
+        # operation is marked abandoned and the worker's eventual result is discarded.
+        #
+        # @return [Boolean] true when this call settled the operation, false when the
+        #   operation had already settled
+        # @api private
+        def fire_timeout!
+          error = Phronomy::TimeoutError.new(
+            "blocking operation timed out after #{@timeout}s"
+          )
+          callbacks = nil
+          abandoned_now = false
+
+          @mutex.synchronize do
+            return false if @done
+
+            @done = true
+            @timed_out = true
+            @error = error
+            @abandoned = @started
+            abandoned_now = @abandoned
+            @cond.broadcast
+            callbacks = @callbacks
+            @callbacks = nil
+          end
+
+          # Internal bookkeeping is completed before user callbacks run. A metrics
+          # callback must never suppress delivery of TimeoutError to on_complete.
+          if abandoned_now
+            begin
+              @on_abandoned&.call
+            rescue StandardError => e
+              Phronomy.configuration.logger&.error {
+                "BlockingAdapterPool abandoned callback failed: #{e.class}: #{e.message}"
+              }
+            end
+          end
+
+          callbacks&.each { |callback| callback.call(nil, error) }
+          true
+        end
+
+        # Marks an operation that could not be admitted to the pool as settled, so a
+        # previously armed submit-time timer becomes a harmless no-op.
+        #
+        # @param error [Exception, nil]
+        # @return [Boolean] true when this call changed the state
+        # @api private
+        def fail_submission!(error = nil)
+          @mutex.synchronize do
+            return false if @done
+
+            @done = true
+            @error = error if error
+            @cond.broadcast
+          end
+          true
+        end
+
+        # Executes the operation on a pool worker.
         # @api private
         def execute!
           @wait_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - @submitted_at
 
-          if @cancellation_token&.cancelled?
-            complete_with_error!(CancellationError.new("operation cancelled before execution"))
+          cancellation_error = nil
+          callbacks = nil
+          should_run = @mutex.synchronize do
+            if @done
+              false
+            elsif @cancellation_token&.cancelled?
+              cancellation_error = CancellationError.new("operation cancelled before execution")
+              @done = true
+              @error = cancellation_error
+              @cond.broadcast
+              callbacks = @callbacks
+              @callbacks = nil
+              false
+            else
+              # Linearization point: after this assignment, a concurrent timeout is
+              # classified as an in-flight abandonment and the block will run.
+              @started = true
+              true
+            end
+          end
+
+          if cancellation_error
+            callbacks&.each { |callback| callback.call(nil, cancellation_error) }
             return
           end
 
+          return unless should_run
+
           # Do NOT use Timeout.timeout here — it delivers an async Thread#raise
           # that can corrupt external library state (mutexes, C extensions, etc.).
-          # Timeout enforcement is handled cooperatively in #await instead.
-          # Each blocking library (Net::HTTP, pg, redis, etc.) should set its
-          # own native connection/read timeouts.
+          # Each blocking library should set its own native connection/read timeout.
           begin
             complete_with_value!(@block.call)
           rescue Exception => e # rubocop:disable Lint/RescueException
-            # Rescue all Exception subclasses (not just StandardError) so that
-            # non-StandardError raises such as NotImplementedError (< ScriptError)
-            # still complete the operation and unblock any waiting #await callers.
-            # Without this, a ScriptError in a pool worker would leave the
-            # PendingOperation permanently incomplete, causing #await to deadlock.
+            # Rescue all Exception subclasses so non-StandardError raises still
+            # settle the operation and unblock waiters.
             complete_with_error!(e)
             raise if e.is_a?(SignalException) || e.is_a?(SystemExit)
           end
@@ -250,27 +308,33 @@ module Phronomy
         private
 
         def complete_with_value!(value)
-          cbs = nil
+          callbacks = nil
           @mutex.synchronize do
+            return false if @done
+
             @value = value
             @done = true
             @cond.broadcast
-            cbs = @callbacks
+            callbacks = @callbacks
             @callbacks = nil
           end
-          cbs&.each { |cb| cb.call(value, nil) }
+          callbacks&.each { |callback| callback.call(value, nil) }
+          true
         end
 
         def complete_with_error!(error)
-          cbs = nil
+          callbacks = nil
           @mutex.synchronize do
+            return false if @done
+
             @error = error
             @done = true
             @cond.broadcast
-            cbs = @callbacks
+            callbacks = @callbacks
             @callbacks = nil
           end
-          cbs&.each { |cb| cb.call(nil, error) }
+          callbacks&.each { |callback| callback.call(nil, error) }
+          true
         end
       end
 
@@ -278,12 +342,15 @@ module Phronomy
       # @param queue_size [Integer] maximum pending operations waiting for a worker
       # @param name       [String, Symbol, nil] optional pool name used in thread labels
       # @param logger     [Logger, nil] optional logger for warnings
+      # @param timer_queue_provider [#call, nil] returns a TimerQueue-compatible
+      #   object. Required when +submit(timeout:)+ is used.
       # @api private
-      def initialize(pool_size: 10, queue_size: 100, name: nil, logger: nil)
+      def initialize(pool_size: 10, queue_size: 100, name: nil, logger: nil, timer_queue_provider: nil)
         @pool_size = pool_size
         @queue_size = queue_size
         @name = name
         @logger = logger
+        @timer_queue_provider = timer_queue_provider
         @queue = SizedQueue.new(queue_size)
         @active_count = 0
         @abandoned_count = 0
@@ -295,35 +362,73 @@ module Phronomy
       end
 
       # Submits a blocking operation to the pool.
-      # Returns a {PendingOperation} immediately; the block runs on a worker thread.
+      # Returns a {PendingOperation} immediately after queue admission; the block runs
+      # on a worker thread.
       #
-      # @note **Cooperative callers**: if you are running under the `:fiber` backend
-      #   (i.e. inside a {DeterministicScheduler} Fiber), set +timeout:+ here
-      #   rather than on {PendingOperation#await}.  The await-time timeout is not
-      #   enforced on the cooperative path (the Fiber cannot preempt a running
-      #   worker thread).  A submit-time timeout triggers on the worker side and
-      #   marks the operation {PendingOperation#abandoned? abandoned}, which
-      #   unblocks the waiting Fiber via the normal on-complete callback.
-      # @param timeout [Numeric, nil] seconds before the operation is abandoned
+      # A submit-time +timeout+ is an operation-wide deadline measured from the start
+      # of this method, including queue wait. The timer settles the PendingOperation
+      # and notifies +on_complete+ without forcibly interrupting a running worker.
+      # If the deadline fires before worker execution starts, the block is skipped and
+      # the operation is not counted as abandoned. If it fires after execution starts,
+      # the operation is marked abandoned and the eventual worker result is discarded.
+      #
+      # Synchronous queue admission may still delay return from this method when
+      # +on_full: :wait+ is used; resolving that requires interruptible admission.
+      #
+      # @param timeout [Numeric, nil] operation-wide deadline in seconds
       # @param cancellation_token [CancellationToken, nil]
+      # @param on_full [Symbol] +:wait+, +:raise+, or +:timeout+
+      # @param full_timeout [Numeric, nil] queue-admission timeout for +on_full: :timeout+
       # @yield block containing the blocking call
       # @return [PendingOperation]
+      # @raise [Phronomy::ConfigurationError] when +timeout+ is specified without a
+      #   timer queue provider
       # @raise [Phronomy::PoolShutdownError] when the pool has been shut down
       # @raise [Phronomy::BackpressureError] when +on_full: :raise+ and queue is full
-      # @raise [Phronomy::TimeoutError] when +on_full: :timeout+ and wait exceeds +full_timeout+
+      # @raise [Phronomy::TimeoutError] when +on_full: :timeout+ exceeds +full_timeout+
       # @api private
       def submit(timeout: nil, cancellation_token: nil, on_full: :wait, full_timeout: nil, &block)
         raise Phronomy::PoolShutdownError, "pool has been shut down" if @shutdown
 
-        op = PendingOperation.new(block, timeout: timeout, cancellation_token: cancellation_token,
-          on_abandoned: timeout ? -> { @mutex.synchronize { @abandoned_count += 1 } } : nil)
+        submitted_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        timer_queue = nil
+        if timeout
+          timer_queue = @timer_queue_provider&.call
+          unless timer_queue
+            raise Phronomy::ConfigurationError,
+              "timer_queue is required when submit timeout is specified"
+          end
+        end
+
+        op = PendingOperation.new(
+          block,
+          timeout: timeout,
+          cancellation_token: cancellation_token,
+          submitted_at: submitted_at,
+          on_abandoned: timeout ? -> { @mutex.synchronize { @abandoned_count += 1 } } : nil
+        )
+
         begin
+          if timeout
+            elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - submitted_at
+            remaining = timeout.to_f - elapsed
+            if remaining <= 0
+              op.fire_timeout!
+              return op
+            end
+
+            # Arm before queue admission so the deadline includes time spent waiting
+            # for a queue slot.
+            timer_queue.schedule(seconds: remaining) { op.fire_timeout! }
+          end
+
           case on_full
           when :raise
             begin
               @queue.push(op, true)
             rescue ThreadError
-              raise Phronomy::BackpressureError, "BlockingAdapterPool queue is full (depth: #{@queue_size})"
+              raise Phronomy::BackpressureError,
+                "BlockingAdapterPool queue is full (depth: #{@queue_size})"
             end
           when :timeout
             deadline = full_timeout ? (Process.clock_gettime(Process::CLOCK_MONOTONIC) + full_timeout) : nil
@@ -332,17 +437,23 @@ module Phronomy
               break
             rescue ThreadError
               if deadline && Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
-                raise Phronomy::TimeoutError, "timed out waiting for a free slot in BlockingAdapterPool"
+                raise Phronomy::TimeoutError,
+                  "timed out waiting for a free slot in BlockingAdapterPool"
               end
               sleep(0.005)
             end
           else # :wait (default)
             @queue.push(op)
           end
-        rescue ClosedQueueError
-          # Shutdown raced with this submit — treat as if @shutdown was already set.
+        rescue ClosedQueueError => e
+          # Shutdown raced with this submit — preserve the existing public error.
+          op.fail_submission!(e)
           raise Phronomy::PoolShutdownError, "pool has been shut down"
+        rescue StandardError => e
+          op.fail_submission!(e)
+          raise
         end
+
         op
       end
 
@@ -358,7 +469,7 @@ module Phronomy
       def shutdown(drain_timeout: 30)
         @shutdown = true
         @queue.close
-        @workers.each { |t| t.join(drain_timeout) }
+        @workers.each { |thread| thread.join(drain_timeout) }
         self
       end
 
@@ -376,14 +487,15 @@ module Phronomy
         @queue.size
       end
 
-      # @return [Integer] number of operations that were abandoned due to timeout
+      # @return [Integer] number of operations whose caller-facing timeout fired
+      #   after worker execution had started
       # @api private
       def abandoned_count
         @mutex.synchronize { @abandoned_count }
       end
 
-      # Average time (in seconds) that completed operations spent in the queue
-      # waiting for a worker.  Returns 0.0 when no operations have completed yet.
+      # Average time (in seconds) that completed or skipped operations spent in the
+      # queue waiting for a worker. Returns 0.0 when none have been processed yet.
       # @return [Float]
       # @api private
       def average_wait_seconds

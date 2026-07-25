@@ -8,7 +8,8 @@
 # Scenarios requiring real backends (LLM, MCP, Redis) are tagged :integration
 # and run separately.
 RSpec.describe "Stress and resource leak tests (Issue #275)" do
-  let(:pool) { Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 10, queue_size: 200) }
+  let(:timer) { Phronomy::Testing::FakeClock.new }
+  let(:pool) { Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 10, queue_size: 200, timer_queue_provider: -> { timer }) }
 
   after { pool.shutdown(drain_timeout: 10) }
 
@@ -51,18 +52,20 @@ RSpec.describe "Stress and resource leak tests (Issue #275)" do
 
   describe "timeout storm" do
     it "abandons operations that time out during execution" do
-      # Submit operations that will time out during execution.
-      # Use a very short timeout so they complete quickly.
-      ops = 5.times.map { pool.submit(timeout: 0.05) { sleep(10) } }
+      started = Array.new(5) { Queue.new }
+      release = Queue.new
 
-      errors = ops.map do |op|
-        op.wait_result
-        nil
-      rescue Phronomy::TimeoutError => e
-        e
+      ops = 5.times.map do |i|
+        pool.submit(timeout: 5) do
+          started[i] << true
+          release.pop
+        end
       end
 
-      expect(errors.compact.size).to eq(5)
+      5.times { |i| started[i].pop }   # wait for all workers to start
+      timer.advance(5)                  # fire all timers at once
+      5.times { release << true }       # unblock workers
+
       expect(pool.abandoned_count).to be >= 5
     end
   end

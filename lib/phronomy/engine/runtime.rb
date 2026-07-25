@@ -124,8 +124,10 @@ module Phronomy
       @scheduler = scheduler
       @task_registry = TaskRegistry.new
       @metrics = RuntimeMetrics.new
-      @pool_registry = Phronomy::Concurrency::PoolRegistry.new
       @timer_service = TimerService.new(scheduler)
+      @pool_registry = Phronomy::Concurrency::PoolRegistry.new(
+        timer_queue_provider: -> { @timer_service.timer_queue }
+      )
     end
 
     # Cooperative yield point.

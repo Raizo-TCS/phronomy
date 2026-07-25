@@ -60,18 +60,26 @@ RSpec.describe "Thread.new absence from core paths (Issue #272)" do
 
     it "tracks abandoned (timed-out) operations" do
       # Use a dedicated pool so the timed-out op runs immediately (no queue wait)
-      pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 5)
-      op = pool.submit(timeout: 0.05) { sleep(5) }
+      timer = Phronomy::Testing::FakeClock.new
+      pool = Phronomy::Concurrency::BlockingAdapterPool.new(
+        pool_size: 1, queue_size: 5,
+        timer_queue_provider: -> { timer }
+      )
+      started = Queue.new
+      release = Queue.new
 
-      begin
-        op.wait_result
-      rescue Phronomy::TimeoutError
-        # expected
+      op = pool.submit(timeout: 5) do
+        started << true
+        release.pop
       end
 
-      # Give the worker a moment to record the abandonment
-      sleep(0.1)
+      started.pop        # worker started
+      timer.advance(5)   # fire timeout
+
+      expect(op).to be_abandoned
       expect(pool.abandoned_count).to be >= 1
+
+      release << true
     ensure
       pool.shutdown(drain_timeout: 1)
     end

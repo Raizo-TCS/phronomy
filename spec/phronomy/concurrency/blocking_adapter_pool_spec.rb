@@ -3,7 +3,15 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
-  subject(:pool) { described_class.new(pool_size: 2, queue_size: 10) }
+  let(:timer) { Phronomy::Testing::FakeClock.new }
+
+  subject(:pool) do
+    described_class.new(
+      pool_size: 2,
+      queue_size: 10,
+      timer_queue_provider: -> { timer }
+    )
+  end
 
   after {
     begin
@@ -48,68 +56,100 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
     end
   end
 
-  describe "timeout" do
-    it "raises TimeoutError when the block exceeds the timeout" do
-      op = pool.submit(timeout: 0.05) { sleep 10 }
-      expect { op.blocking_wait }.to raise_error(Phronomy::TimeoutError)
-    end
+  describe "submit-time timeout" do
+    it "notifies a registered callback before the worker completes" do
+      started = Queue.new
+      release = Queue.new
+      events = []
 
-    it "marks the operation as abandoned after a timeout" do
-      op = pool.submit(timeout: 0.05) { sleep 10 }
-      begin
-        op.blocking_wait
-      rescue
-        nil
+      op = pool.submit(timeout: 5) do
+        started << true
+        release.pop
+        :done
       end
-      expect(op.abandoned?).to be(true)
-    end
+      op.on_complete { |value, error| events << [value, error] }
 
-    it "increments abandoned_count" do
-      op = pool.submit(timeout: 0.05) { sleep 10 }
-      begin
-        op.blocking_wait
-      rescue
-        nil
-      end
-      expect(pool.abandoned_count).to be >= 1
-    end
+      started.pop
+      timer.advance(5)
 
-    it "does not double-count abandoned_count when await is called multiple times (Issue #317)" do
-      op = pool.submit(timeout: 0.05) { sleep 10 }
-
-      # First await — should time out and increment abandoned_count once.
-      expect { op.blocking_wait }.to raise_error(Phronomy::TimeoutError)
-
-      # Second await with a fresh timeout — must NOT increment abandoned_count again.
-      expect { op.blocking_wait(timeout: 0.05) }.to raise_error(Phronomy::TimeoutError)
-
+      expect(events.length).to eq(1)
+      expect(events.first.first).to be_nil
+      expect(events.first.last).to be_a(Phronomy::TimeoutError)
+      expect(op).to be_done
+      expect(op).to be_timed_out
+      expect(op).to be_abandoned
       expect(pool.abandoned_count).to eq(1)
+
+      expect(op.fire_timeout!).to be(false)
+      expect(pool.abandoned_count).to eq(1)
+      release << true
+    end
+
+    it "does not execute an operation that times out while queued" do
+      started = Queue.new
+      release = Queue.new
+      marker = Queue.new
+      executed = false
+
+      2.times do
+        pool.submit do
+          started << true
+          release.pop
+        end
+      end
+      2.times { started.pop }
+
+      op = pool.submit(timeout: 5) { executed = true }
+      timer.advance(5)
+      pool.submit { marker << true }
+      2.times { release << true }
+      marker.pop
+
+      expect(op).to be_timed_out
+      expect(op).not_to be_abandoned
+      expect(executed).to be(false)
+    end
+
+    it "delivers the saved TimeoutError to callbacks registered after timeout" do
+      started = Queue.new
+      release = Queue.new
+      op = pool.submit(timeout: 5) do
+        started << true
+        release.pop
+      end
+
+      started.pop
+      timer.advance(5)
+
+      events = []
+      op.on_complete { |value, error| events << [value, error] }
+      expect(events.first.first).to be_nil
+      expect(events.first.last).to be_a(Phronomy::TimeoutError)
+
+      release << true
     end
   end
 
-  # Issue #287 — Timeout.timeout uses async Thread#raise and can corrupt
-  # library state mid-call.  The pool must NOT use Timeout.timeout; instead,
-  # #await enforces the deadline and the worker thread is allowed to run to
-  # completion on its own.
+  # Issue #287 — submit-time timeout must not use async Thread#raise. The caller
+  # is released while the worker is allowed to finish naturally.
   describe "timeout safety (Issue #287 — no Timeout.timeout)", :issue_287 do
     it "does not interrupt the worker thread when the caller times out" do
-      mutex = Mutex.new
-      done_flag = false
+      started = Queue.new
+      release = Queue.new
+      completed = Queue.new
 
-      # Block takes 0.15 s but the caller timeout is only 0.05 s.
-      # With Timeout.timeout the sleep would be killed by async Thread#raise
-      # and done_flag would never be set to true.
-      op = pool.submit(timeout: 0.05) do
-        sleep 0.15
-        mutex.synchronize { done_flag = true }
+      op = pool.submit(timeout: 5) do
+        started << true
+        release.pop
+        completed << true
         :completed
       end
 
+      started.pop
+      timer.advance(5)
       expect { op.blocking_wait }.to raise_error(Phronomy::TimeoutError)
-
-      # Worker thread must be allowed to finish on its own; wait a bit longer.
-      sleep 0.3
-      expect(mutex.synchronize { done_flag }).to be(true)
+      release << true
+      expect(completed.pop).to be(true)
     end
   end
 
@@ -144,13 +184,17 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
     end
   end
 
-  describe "await(timeout:) (Issue #288)" do
-    it "raises TimeoutError when await-time timeout expires" do
-      op = pool.submit {
-        sleep 10
-        :done
-      }
+  describe "blocking_wait(timeout:) (Issue #288)" do
+    it "raises a waiter-local TimeoutError without settling the operation" do
+      release = Queue.new
+      op = pool.submit { release.pop; :done }
+
       expect { op.blocking_wait(timeout: 0.05) }.to raise_error(Phronomy::TimeoutError)
+      expect(op).not_to be_done
+      expect(op).not_to be_abandoned
+
+      release << true
+      expect(op.blocking_wait).to eq(:done)
     end
 
     it "returns the value when the operation finishes before the await-time timeout" do
@@ -158,13 +202,14 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
       expect(op.blocking_wait(timeout: 5)).to eq(:fast)
     end
 
-    it "uses the earlier of submit-time and await-time timeouts" do
-      # submit with 10s, await with 0.05s — await timeout fires first
-      op = pool.submit(timeout: 10) {
+    it "raises waiter-local TimeoutError even when submit-time timeout is longer" do
+      # submit with 10s, blocking_wait with 0.05s — waiter-local timeout fires first
+      op = pool.submit(timeout: 10) do
         sleep 5
         :done
-      }
+      end
       expect { op.blocking_wait(timeout: 0.05) }.to raise_error(Phronomy::TimeoutError)
+      op.blocking_wait(timeout: 0.05) rescue nil
     end
   end
 
@@ -404,7 +449,8 @@ end
 # elapsed time.  Set timeout: at submit time instead to trigger on the
 # worker side and unblock the Fiber via the normal on-complete callback.
 RSpec.describe "BlockingAdapterPool cooperative await timeout limitation (Issue #348)" do
-  let(:pool) { Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1) }
+  let(:timer) { Phronomy::Testing::FakeClock.new }
+  let(:pool) { Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, timer_queue_provider: -> { timer }) }
   let(:scheduler) { Phronomy::Runtime::DeterministicScheduler.new(autorun: true) }
   let(:runtime) { Phronomy::Runtime.new(scheduler: scheduler) }
 

@@ -9,7 +9,9 @@ module Phronomy
     # All pools are shut down together by {#shutdown}.
     # @api private
     class PoolRegistry
-      def initialize
+      # @param timer_queue_provider [#call, nil] provider passed to every pool
+      def initialize(timer_queue_provider: nil)
+        @timer_queue_provider = timer_queue_provider
         @mutex = Mutex.new
         @pools = {}
         @default = nil
@@ -24,7 +26,8 @@ module Phronomy
         @default ||= BlockingAdapterPool.new(
           name: :default,
           pool_size: pool_size,
-          queue_size: queue_size
+          queue_size: queue_size,
+          timer_queue_provider: @timer_queue_provider
         )
       end
 
@@ -39,7 +42,8 @@ module Phronomy
           @pools[name.to_sym] ||= BlockingAdapterPool.new(
             name: name,
             pool_size: size,
-            queue_size: queue_size
+            queue_size: queue_size,
+            timer_queue_provider: @timer_queue_provider
           )
         end
       end
