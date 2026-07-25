@@ -278,15 +278,15 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
       <pre class="lines">
 
 
-13
 14
 15
 16
 17
-18</pre>
+18
+19</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 13</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 14</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>timer_queue_provider:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@timer_queue_provider</span> <span class='op'>=</span> <span class='id identifier rubyid_timer_queue_provider'>timer_queue_provider</span>
@@ -377,17 +377,17 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
       <pre class="lines">
 
 
-25
 26
 27
 28
 29
 30
 31
-32</pre>
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 25</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 26</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_default_pool'>default_pool</span><span class='lparen'>(</span><span class='label'>pool_size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='rparen'>)</span>
   <span class='ivar'>@default</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="BlockingAdapterPool.html" title="Phronomy::Concurrency::BlockingAdapterPool (class)">BlockingAdapterPool</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="BlockingAdapterPool.html#initialize-instance_method" title="Phronomy::Concurrency::BlockingAdapterPool#initialize (method)">new</a></span></span><span class='lparen'>(</span>
@@ -484,7 +484,6 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
       <pre class="lines">
 
 
-40
 41
 42
 43
@@ -493,10 +492,11 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
 46
 47
 48
-49</pre>
+49
+50</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 41</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_named_pool'>named_pool</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -541,14 +541,14 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
       <pre class="lines">
 
 
-54
 55
 56
 57
-58</pre>
+58
+59</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 55</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span>
   <span class='ivar'>@default</span><span class='op'>&amp;.</span><span class='id identifier rubyid_shutdown'>shutdown</span>
@@ -565,7 +565,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
 </div>
 
       <div id="footer">
-  Generated on Sat Jul 25 04:31:37 2026 by
+  Generated on Sat Jul 25 04:56:04 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
