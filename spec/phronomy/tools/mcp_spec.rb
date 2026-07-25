@@ -456,6 +456,86 @@ RSpec.describe Phronomy::Tools::Mcp do
       expect(live_client).to have_received(:connect).twice
     end
 
+    it "converts MCP::CancelledError to Phronomy::CancellationError and preserves reason" do
+      tool_def = mcp_tool_double(name: "search", description: "Search")
+      discovery_client = instance_double(MCP::Client, connect: nil, tools: [tool_def])
+      live_transport = instance_double(MCP::Client::Stdio, close: nil)
+      live_client = instance_double(MCP::Client, connect: nil, transport: live_transport)
+      allow(live_client).to receive(:call_tool)
+        .and_raise(MCP::CancelledError.new(reason: "phronomy_cancelled"))
+      allow(MCP::Client::Stdio).to receive(:new).and_return(live_transport, live_transport)
+      allow(MCP::Client).to receive(:new).and_return(discovery_client, live_client)
+      # Prevent async cleanup spawn from failing in unit test context
+      allow(Phronomy::Runtime.instance).to receive(:pool).and_call_original
+
+      tool = described_class.from_server("stdio://./mcp-server", tool_name: "search")
+      expect { tool.execute(query: "test") }
+        .to raise_error(Phronomy::CancellationError, /phronomy_cancelled/)
+    end
+
+    it "creates a new client after cancellation (does not reuse invalidated transport)" do
+      tool_def = mcp_tool_double(name: "search", description: "Search")
+      discovery_transport = instance_double(MCP::Client::Stdio, close: nil)
+      cancelled_transport = instance_double(MCP::Client::Stdio, close: nil)
+      replacement_transport = instance_double(MCP::Client::Stdio, close: nil)
+      discovery_client = instance_double(MCP::Client, connect: nil, tools: [tool_def])
+      cancelled_client = instance_double(MCP::Client, connect: nil, transport: cancelled_transport)
+      replacement_client = instance_double(
+        MCP::Client,
+        connect: nil,
+        transport: replacement_transport,
+        call_tool: {"result" => {"content" => [{"type" => "text", "text" => "new"}]}}
+      )
+      allow(cancelled_client).to receive(:call_tool)
+        .and_raise(MCP::CancelledError.new(reason: "test"))
+      allow(MCP::Client::Stdio).to receive(:new)
+        .and_return(discovery_transport, cancelled_transport, replacement_transport)
+      allow(MCP::Client).to receive(:new)
+        .and_return(discovery_client, cancelled_client, replacement_client)
+      allow(Phronomy::Runtime.instance).to receive(:pool).and_call_original
+
+      tool = described_class.from_server("stdio://./mcp-server", tool_name: "search")
+      expect { tool.execute(query: "first") }.to raise_error(Phronomy::CancellationError, /test/)
+      expect(tool.execute(query: "second")).to eq("new")
+      expect(replacement_client).to have_received(:connect)
+    end
+
+    it "invalidates the client when session reconnection fails (does not reuse broken client)" do
+      tool_def = mcp_tool_double(name: "search", description: "Search")
+      discovery_transport = instance_double(MCP::Client::HTTP, close: nil)
+      broken_transport = instance_double(MCP::Client::HTTP, close: nil)
+      fresh_transport = instance_double(MCP::Client::HTTP, close: nil)
+      discovery_client = instance_double(MCP::Client, connect: nil, tools: [tool_def])
+      broken_client = instance_double(MCP::Client, transport: broken_transport)
+      fresh_client = instance_double(
+        MCP::Client,
+        connect: nil,
+        transport: fresh_transport,
+        call_tool: {"result" => {"content" => [{"type" => "text", "text" => "recovered"}]}}
+      )
+      # First connect succeeds (initialisation), second (reconnect after expiry) fails
+      connect_calls = 0
+      allow(broken_client).to receive(:connect) do
+        connect_calls += 1
+        raise "reconnect failed" if connect_calls > 1
+
+        nil
+      end
+      allow(broken_client).to receive(:call_tool)
+        .and_raise(MCP::Client::SessionExpiredError.new("expired", nil))
+      allow(MCP::Client::HTTP).to receive(:new)
+        .and_return(discovery_transport, broken_transport, fresh_transport)
+      allow(MCP::Client).to receive(:new)
+        .and_return(discovery_client, broken_client, fresh_client)
+
+      tool = described_class.from_server("http://localhost:8080/mcp", tool_name: "search")
+      expect { tool.execute(query: "first") }
+        .to raise_error(Phronomy::ToolError, /reconnection failed/)
+      # Second call must use fresh_client, not broken_client
+      expect(tool.execute(query: "second")).to eq("recovered")
+      expect(fresh_client).to have_received(:connect)
+    end
+
     it "does not freeze the caller-provided headers hash" do
       headers = {"Authorization" => "Bearer secret"}
       tool_def = mcp_tool_double(name: "search", description: "Search")
