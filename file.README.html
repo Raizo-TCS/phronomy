@@ -903,11 +903,56 @@ the MCP bridge.</p>
 <blockquote>
 <p><strong><code>config[:tool_timeout]</code> / <code>config[:llm_timeout]</code> — caller protection, not
 worker termination</strong></p>
-<p>These keys set a per-submit timeout in <code>BlockingAdapterPool</code>. When the timeout
-fires, the <em>caller</em> receives <code>CancellationError</code> / <code>TimeoutError</code> immediately and
-the operation is marked as abandoned — but the worker thread continues executing
-until the underlying I/O completes naturally (e.g. <code>Net::HTTP</code> read, stdio
-<code>gets</code>). Size <code>blocking_io_pool_size</code> (<code>Phronomy.configure { |c| c.blocking_io_pool_size = N }</code>) to account for the worst-case number of
+<p>These keys set a submit-time deadline in <code>BlockingAdapterPool</code>. The timer is
+armed at submit time (including queue wait) and calls <code>fire_timeout!</code> when the
+deadline expires. The worker thread is never forcibly interrupted.</p>
+<p><strong>Timeout behaviour depends on when the deadline fires:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th><code>TimeoutError</code>?</th>
+<th><code>abandoned?</code></th>
+<th><code>abandoned_count</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Deadline fires while worker is executing</td>
+<td>✅ via <code>on_complete</code></td>
+<td><code>true</code></td>
+<td>+1</td>
+</tr>
+<tr>
+<td>Deadline fires while op is still queued</td>
+<td>✅ via <code>on_complete</code></td>
+<td><code>false</code></td>
+<td>unchanged</td>
+</tr>
+<tr>
+<td><code>blocking_wait(timeout:)</code> expires</td>
+<td>✅ to that waiter only</td>
+<td>unchanged</td>
+<td>unchanged</td>
+</tr>
+<tr>
+<td><code>CancellationToken</code> cancelled</td>
+<td><code>CancellationError</code></td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Streaming path</td>
+<td>not guaranteed (separate fix needed)</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><code>blocking_wait(timeout:)</code> is a <strong>waiter-local</strong> deadline — the operation remains
+unsettled and other waiters or <code>on_complete</code> callbacks will still receive the
+eventual result (unless a submit-time deadline also fires).</p>
+<p>Size <code>blocking_io_pool_size</code> to account for the worst-case number of
 concurrently abandoned workers that may accumulate before the pool is saturated.</p>
 </blockquote>
 <pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span>
@@ -1108,7 +1153,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat Jul 25 05:33:31 2026 by
+  Generated on Sat Jul 25 05:40:18 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

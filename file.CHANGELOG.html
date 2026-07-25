@@ -64,6 +64,38 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
+<h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Fixed">Fixed</h3>
+<ul>
+<li><strong><code>llm_timeout</code> / <code>tool_timeout</code> now fire on the <code>on_complete</code> path</strong> (#7-fix):
+<code>BlockingAdapterPool#submit</code> previously stored the timeout value but never
+registered a wall-clock timer, so <code>config: { llm_timeout: N }</code> and
+<code>config: { tool_timeout: N }</code> had no effect for callers using <code>on_complete</code>
+(the normal non-streaming Agent path). The timer is now armed before queue
+admission and calls <code>fire_timeout!</code> when the deadline expires.</li>
+</ul>
+<h3 id="Changed">Changed</h3>
+<ul>
+<li>
+<p><strong><code>blocking_wait(timeout:)</code> is now a waiter-local deadline only</strong>:
+Previously, the timeout passed to <code>blocking_wait</code> (or <code>await</code>) would settle the
+operation, set <code>abandoned? = true</code>, and increment <code>abandoned_count</code> — affecting
+all future waiters and callbacks. It is now scoped to the single calling thread:
+the caller receives <code>TimeoutError</code>, but the operation remains unsettled. Other
+waiters or <code>on_complete</code> callbacks will still receive the eventual result unless
+a separate submit-time deadline or cancellation settles the operation first.
+<strong>Callers that relied on <code>blocking_wait(timeout:)</code> to abandon and count an
+operation must switch to a submit-time <code>timeout:</code> passed to <code>pool.submit</code>.</strong></p>
+</li>
+<li>
+<p><strong>Queue-timeout operations are not counted as abandoned</strong>:
+When a submit-time timeout fires before the worker picks up the operation,
+the operation is settled with <code>TimeoutError</code> but <code>abandoned? == false</code> and
+<code>abandoned_count</code> is not incremented. Only timeouts that fire while the block
+is executing set <code>abandoned? = true</code>.</p>
+</li>
+</ul>
+<hr />
 <h2 id="_0_13_0____2026_07_23">[0.13.0] - 2026-07-23</h2>
 <h3 id="Added">Added</h3>
 <ul>
@@ -1197,7 +1229,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sat Jul 25 05:33:31 2026 by
+  Generated on Sat Jul 25 05:40:19 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
