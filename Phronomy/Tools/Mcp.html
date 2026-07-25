@@ -110,13 +110,16 @@
   <div class="discussion">
     <p>A Phronomy::Agent::Context::Capability::Base subclass that wraps a tool exposed by an external
 MCP (Model Context Protocol) server.</p>
-<p>Uses the official MCP Ruby SDK (mcp gem) for transport handling, which provides
-built-in support for the MCP initialize handshake, size limits, and SSE.</p>
+<p>Uses the official MCP Ruby SDK v1.x for transport handling, which provides
+the MCP initialize handshake, HTTP/SSE parsing, and request cancellation.</p>
 <p>Supports two transport schemes:</p>
 <ul>
 <li><b>&quot;stdio://&lt;command&gt;&quot;</b> — spawns a child process via MCP::Client::Stdio.</li>
 <li><b>&quot;<a href="http://&lt;url&gt;&amp;quot;</b>">http://&lt;url&gt;&amp;quot;</b></a> / <b>&quot;<a href="https://&lt;url&gt;&amp;quot;</b>">https://&lt;url&gt;&amp;quot;</b></a> — connects via MCP::Client::HTTP.</li>
 </ul>
+<p>Each generated tool instance owns one MCP client. Calls, reconnects, and
+explicit close operations are serialized because the SDK's stdio transport
+does not support concurrent response readers.</p>
 
   </div>
 </div>
@@ -130,7 +133,6 @@ built-in support for the MCP initialize handshake, size limits, and SSE.</p>
   <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stdio://./mcp-server</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
   <span class='label'>tool_name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>search_web</span><span class='tstring_end'>&quot;</span></span>
 <span class='rparen'>)</span>
-<span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
 <span class='id identifier rubyid_agent_class'>agent_class</span><span class='period'>.</span><span class='id identifier rubyid_tools'>tools</span><span class='lparen'>(</span><span class='id identifier rubyid_web_search'>web_search</span><span class='rparen'>)</span></code></pre>
     
   </div>
@@ -176,6 +178,84 @@ built-in support for the MCP initialize handshake, size limits, and SSE.</p>
     </ul>
     
   
+    <h2>
+      Instance Method Summary
+      <small><a href="#" class="summary_toggle">collapse</a></small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#close-instance_method" title="#close (instance method)">#<strong>close</strong>  &#x21d2; void </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Closes the currently connected client synchronously.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#execute-instance_method" title="#execute (instance method)">#<strong>execute</strong>(cancellation_token: nil, **args)  &#x21d2; String, ... </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Executes the remote MCP tool.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>  &#x21d2; Mcp </a>
+    
+
+    
+  </span>
+  
+  
+    <span class="note title constructor">constructor</span>
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>A new instance of Mcp.</p></div></span>
+  
+</li>
+
+      
+    </ul>
+    
+  
 
 
   
@@ -188,9 +268,60 @@ built-in support for the MCP initialize handshake, size limits, and SSE.</p>
   
   
   <h3 class="inherited">Methods inherited from <span class='object_link'><a href="../Agent/Context/Capability/Base.html" title="Phronomy::Agent::Context::Capability::Base (class)">Agent::Context::Capability::Base</a></span></h3>
-  <p class="inherited"><span class='object_link'><a href="../Agent/Context/Capability/Base.html#call-instance_method" title="Phronomy::Agent::Context::Capability::Base#call (method)">#call</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#call_async-instance_method" title="Phronomy::Agent::Context::Capability::Base#call_async (method)">#call_async</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#execute-instance_method" title="Phronomy::Agent::Context::Capability::Base#execute (method)">#execute</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#execution_mode-class_method" title="Phronomy::Agent::Context::Capability::Base.execution_mode (method)">execution_mode</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#max_result_size-class_method" title="Phronomy::Agent::Context::Capability::Base.max_result_size (method)">max_result_size</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#name-instance_method" title="Phronomy::Agent::Context::Capability::Base#name (method)">#name</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#on_error-class_method" title="Phronomy::Agent::Context::Capability::Base.on_error (method)">on_error</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#on_schema_error-class_method" title="Phronomy::Agent::Context::Capability::Base.on_schema_error (method)">on_schema_error</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#param-class_method" title="Phronomy::Agent::Context::Capability::Base.param (method)">param</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#param_enums-class_method" title="Phronomy::Agent::Context::Capability::Base.param_enums (method)">param_enums</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#param_schemas-class_method" title="Phronomy::Agent::Context::Capability::Base.param_schemas (method)">param_schemas</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#params_schema-instance_method" title="Phronomy::Agent::Context::Capability::Base#params_schema (method)">#params_schema</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#redact_params-class_method" title="Phronomy::Agent::Context::Capability::Base.redact_params (method)">redact_params</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#requires_approval-class_method" title="Phronomy::Agent::Context::Capability::Base.requires_approval (method)">requires_approval</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#requires_approval-instance_method" title="Phronomy::Agent::Context::Capability::Base#requires_approval (method)">#requires_approval</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#requires_approval%3F-instance_method" title="Phronomy::Agent::Context::Capability::Base#requires_approval? (method)">#requires_approval?</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#retry_on-class_method" title="Phronomy::Agent::Context::Capability::Base.retry_on (method)">retry_on</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#retry_policies-class_method" title="Phronomy::Agent::Context::Capability::Base.retry_policies (method)">retry_policies</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#scope-class_method" title="Phronomy::Agent::Context::Capability::Base.scope (method)">scope</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#tool_name-class_method" title="Phronomy::Agent::Context::Capability::Base.tool_name (method)">tool_name</a></span></p>
+  <p class="inherited"><span class='object_link'><a href="../Agent/Context/Capability/Base.html#call-instance_method" title="Phronomy::Agent::Context::Capability::Base#call (method)">#call</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#call_async-instance_method" title="Phronomy::Agent::Context::Capability::Base#call_async (method)">#call_async</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#execution_mode-class_method" title="Phronomy::Agent::Context::Capability::Base.execution_mode (method)">execution_mode</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#max_result_size-class_method" title="Phronomy::Agent::Context::Capability::Base.max_result_size (method)">max_result_size</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#name-instance_method" title="Phronomy::Agent::Context::Capability::Base#name (method)">#name</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#on_error-class_method" title="Phronomy::Agent::Context::Capability::Base.on_error (method)">on_error</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#on_schema_error-class_method" title="Phronomy::Agent::Context::Capability::Base.on_schema_error (method)">on_schema_error</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#param-class_method" title="Phronomy::Agent::Context::Capability::Base.param (method)">param</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#param_enums-class_method" title="Phronomy::Agent::Context::Capability::Base.param_enums (method)">param_enums</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#param_schemas-class_method" title="Phronomy::Agent::Context::Capability::Base.param_schemas (method)">param_schemas</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#params_schema-instance_method" title="Phronomy::Agent::Context::Capability::Base#params_schema (method)">#params_schema</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#redact_params-class_method" title="Phronomy::Agent::Context::Capability::Base.redact_params (method)">redact_params</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#requires_approval-class_method" title="Phronomy::Agent::Context::Capability::Base.requires_approval (method)">requires_approval</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#requires_approval-instance_method" title="Phronomy::Agent::Context::Capability::Base#requires_approval (method)">#requires_approval</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#requires_approval%3F-instance_method" title="Phronomy::Agent::Context::Capability::Base#requires_approval? (method)">#requires_approval?</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#retry_on-class_method" title="Phronomy::Agent::Context::Capability::Base.retry_on (method)">retry_on</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#retry_policies-class_method" title="Phronomy::Agent::Context::Capability::Base.retry_policies (method)">retry_policies</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#scope-class_method" title="Phronomy::Agent::Context::Capability::Base.scope (method)">scope</a></span>, <span class='object_link'><a href="../Agent/Context/Capability/Base.html#tool_name-class_method" title="Phronomy::Agent::Context::Capability::Base.tool_name (method)">tool_name</a></span></p>
+
+  <div id="constructor_details" class="method_details_list">
+  <h2>Constructor Details</h2>
+  
+    <div class="method_details first">
+  <h3 class="signature first" id="initialize-instance_method">
+  
+    #<strong>initialize</strong>  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Tools::Mcp (class)">Mcp</a></span></tt> 
+  
 
   
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a new instance of Mcp.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+291
+292
+293
+294
+295</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/mcp.rb', line 291</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
+  <span class='ivar'>@mcp_call_mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
+  <span class='ivar'>@mcp_client</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='id identifier rubyid_build_and_connect_client!'>build_and_connect_client!</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+  
+</div>
+
 
   <div id="class_method_details" class="method_details_list">
     <h2>Class Method Details</h2>
@@ -209,6 +340,8 @@ built-in support for the MCP initialize handshake, size limits, and SSE.</p>
   <div class="discussion">
     <p>Build a Mcp instance by querying a running MCP server for the
 tool definition identified by <code>tool_name</code>.</p>
+<p><code>additionalProperties</code> omitted from the remote schema is accepted, but
+Phronomy still exposes and accepts only parameters declared in <code>properties</code>.</p>
 
   </div>
 </div>
@@ -226,12 +359,7 @@ tool definition identified by <code>tool_name</code>.</p>
       
       
         &mdash;
-        <div class='inline'><p>URI of the MCP server.
-Supported schemes:</p>
-<ul>
-<li>&quot;stdio://<command>&quot;  — spawn a child process</li>
-<li>&quot;<a href="http://<url>&amp;quot">http://<url>&amp;quot</a>; / &quot;<a href="https://<url>&amp;quot">https://<url>&amp;quot</a>; — connect to an HTTP/SSE server</li>
-</ul></div>
+        <div class='inline'><p>URI of the MCP server.</p></div>
       
     </li>
   
@@ -261,9 +389,7 @@ Supported schemes:</p>
       
       
         &mdash;
-        <div class='inline'><p>additional HTTP request headers forwarded to every
-request (tool discovery and tool execution). Ignored for stdio transports.
-Typical use: <tt>headers: { &quot;Authorization&quot; =&gt; &quot;Bearer #{ENV['API_KEY']}&quot; }</tt></p></div>
+        <div class='inline'><p>additional HTTP headers forwarded to discovery and execution</p></div>
       
     </li>
   
@@ -280,7 +406,7 @@ Typical use: <tt>headers: { &quot;Authorization&quot; =&gt; &quot;Bearer #{ENV['
       
       
         &mdash;
-        <div class='inline'><p>a configured subclass instance ready for use with an Agent</p></div>
+        <div class='inline'><p>configured tool instance</p></div>
       
     </li>
   
@@ -292,45 +418,169 @@ Typical use: <tt>headers: { &quot;Authorization&quot; =&gt; &quot;Bearer #{ENV['
       <pre class="lines">
 
 
-41
-42
-43
-44
-45
-46
-47
-48
-49
-50
-51
-52
-53
-54
-55
-56
-57
-58</pre>
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/mcp.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/mcp.rb', line 65</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_from_server'>from_server</span><span class='lparen'>(</span><span class='id identifier rubyid_server_uri'>server_uri</span><span class='comma'>,</span> <span class='label'>tool_name:</span><span class='comma'>,</span> <span class='label'>headers:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='comment'># Use a short-lived client only to discover the tool definition, then close.
-</span>  <span class='comment'># Each Mcp instance creates its own client so concurrent agent threads
-</span>  <span class='comment'># never share IO streams, eliminating the need for synchronisation.
-</span>  <span class='id identifier rubyid_transport'>transport</span> <span class='op'>=</span> <span class='id identifier rubyid_build_transport'>build_transport</span><span class='lparen'>(</span><span class='id identifier rubyid_server_uri'>server_uri</span><span class='comma'>,</span> <span class='label'>headers:</span> <span class='id identifier rubyid_headers'>headers</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_client'>client</span> <span class='op'>=</span> <span class='const'>MCP</span><span class='op'>::</span><span class='const'>Client</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>transport:</span> <span class='id identifier rubyid_transport'>transport</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_transport'>transport</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='id identifier rubyid_client'>client</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='kw'>begin</span>
+    <span class='id identifier rubyid_transport'>transport</span> <span class='op'>=</span> <span class='id identifier rubyid_build_transport'>build_transport</span><span class='lparen'>(</span><span class='id identifier rubyid_server_uri'>server_uri</span><span class='comma'>,</span> <span class='label'>headers:</span> <span class='id identifier rubyid_headers'>headers</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_client'>client</span> <span class='op'>=</span> <span class='const'>MCP</span><span class='op'>::</span><span class='const'>Client</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>transport:</span> <span class='id identifier rubyid_transport'>transport</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_client'>client</span><span class='period'>.</span><span class='id identifier rubyid_connect'>connect</span>
     <span class='id identifier rubyid_tool_def'>tool_def</span> <span class='op'>=</span> <span class='id identifier rubyid_extract_tool_def'>extract_tool_def</span><span class='lparen'>(</span><span class='id identifier rubyid_client'>client</span><span class='comma'>,</span> <span class='id identifier rubyid_tool_name'>tool_name</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span> <span class='id identifier rubyid_server_uri'>server_uri</span><span class='rparen'>)</span>
-  <span class='kw'>rescue</span> <span class='const'>ArgumentError</span>
+  <span class='kw'>rescue</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ToolError.html" title="Phronomy::ToolError (class)">ToolError</a></span></span>
     <span class='id identifier rubyid_raise'>raise</span>
   <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
     <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ToolError.html" title="Phronomy::ToolError (class)">ToolError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>MCP connection failed: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_e'>e</span><span class='period'>.</span><span class='id identifier rubyid_message'>message</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
   <span class='kw'>ensure</span>
-    <span class='id identifier rubyid_transport'>transport</span><span class='period'>.</span><span class='id identifier rubyid_close'>close</span>
+    <span class='id identifier rubyid_close_transport_safely'>close_transport_safely</span><span class='lparen'>(</span><span class='id identifier rubyid_transport'>transport</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
+
   <span class='id identifier rubyid_build_tool_class'>build_tool_class</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_name'>tool_name</span><span class='comma'>,</span> <span class='id identifier rubyid_server_uri'>server_uri</span><span class='comma'>,</span> <span class='id identifier rubyid_tool_def'>tool_def</span><span class='comma'>,</span> <span class='label'>headers:</span> <span class='id identifier rubyid_headers'>headers</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+
+    
+      <div class="method_details first">
+  <h3 class="signature first" id="close-instance_method">
+  
+    #<strong>close</strong>  &#x21d2; <tt>void</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note returns_void">This method returns an undefined value.</p><p>Closes the currently connected client synchronously. A transport already
+detached after cancellation is owned by the Runtime cleanup pool and is
+drained during Runtime shutdown; this method does not wait for that older
+cleanup operation.</p>
+<p>The instance can be used again after close; the next call reconnects.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+316
+317
+318</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/mcp.rb', line 316</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_close'>close</span>
+  <span class='ivar'>@mcp_call_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_invalidate_mcp_client!'>invalidate_mcp_client!</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="execute-instance_method">
+  
+    #<strong>execute</strong>(cancellation_token: nil, **args)  &#x21d2; <tt>String</tt>, ... 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Executes the remote MCP tool.</p>
+
+  </div>
+</div>
+<div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
+  
+    <li>
+      
+        <span class='name'>cancellation_token</span>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="../Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">Phronomy::Concurrency::CancellationToken</a></span></tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>String</tt>, <tt>Array</tt>, <tt>Hash</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+301
+302
+303
+304
+305
+306</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/tools/mcp.rb', line 301</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_execute'>execute</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_args'>args</span><span class='rparen'>)</span>
+  <span class='ivar'>@mcp_call_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_ensure_mcp_client!'>ensure_mcp_client!</span>
+    <span class='id identifier rubyid_perform_mcp_call'>perform_mcp_call</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span> <span class='label'>args:</span> <span class='id identifier rubyid_args'>args</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -342,7 +592,7 @@ Typical use: <tt>headers: { &quot;Authorization&quot; =&gt; &quot;Bearer #{ENV['
 </div>
 
       <div id="footer">
-  Generated on Sat Jul 25 06:09:01 2026 by
+  Generated on Sat Jul 25 09:19:25 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
