@@ -207,16 +207,16 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
 
     it "raises waiter-local TimeoutError even when submit-time timeout is longer" do
       # submit with 10s, blocking_wait with 0.05s — waiter-local timeout fires first
+      release = Queue.new
       op = pool.submit(timeout: 10) do
-        sleep 5
+        release.pop
         :done
       end
       expect { op.blocking_wait(timeout: 0.05) }.to raise_error(Phronomy::TimeoutError)
-      begin
-        op.blocking_wait(timeout: 0.05)
-      rescue
-        nil
-      end
+      expect(op).not_to be_done
+    ensure
+      release << true
+      op&.blocking_wait rescue nil
     end
   end
 

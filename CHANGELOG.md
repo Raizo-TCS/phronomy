@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- **`llm_timeout` / `tool_timeout` now fire on the `on_complete` path** (#7-fix):
+  `BlockingAdapterPool#submit` previously stored the timeout value but never
+  registered a wall-clock timer, so `config: { llm_timeout: N }` and
+  `config: { tool_timeout: N }` had no effect for callers using `on_complete`
+  (the normal non-streaming Agent path). The timer is now armed before queue
+  admission and calls `fire_timeout!` when the deadline expires.
+
+### Changed
+
+- **`blocking_wait(timeout:)` is now a waiter-local deadline only**:
+  Previously, the timeout passed to `blocking_wait` (or `await`) would settle the
+  operation, set `abandoned? = true`, and increment `abandoned_count` — affecting
+  all future waiters and callbacks. It is now scoped to the single calling thread:
+  the caller receives `TimeoutError`, but the operation remains unsettled. Other
+  waiters or `on_complete` callbacks will still receive the eventual result unless
+  a separate submit-time deadline or cancellation settles the operation first.
+  **Callers that relied on `blocking_wait(timeout:)` to abandon and count an
+  operation must switch to a submit-time `timeout:` passed to `pool.submit`.**
+
+- **Queue-timeout operations are not counted as abandoned**:
+  When a submit-time timeout fires before the worker picks up the operation,
+  the operation is settled with `TimeoutError` but `abandoned? == false` and
+  `abandoned_count` is not incremented. Only timeouts that fire while the block
+  is executing set `abandoned? = true`.
+
+---
+
 ## [0.13.0] - 2026-07-23
 
 ### Added

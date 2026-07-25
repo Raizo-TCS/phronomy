@@ -772,11 +772,25 @@ blocks always execute.
 > **`config[:tool_timeout]` / `config[:llm_timeout]` — caller protection, not
 > worker termination**
 >
-> These keys set a per-submit timeout in `BlockingAdapterPool`. When the timeout
-> fires, the *caller* receives `CancellationError` / `TimeoutError` immediately and
-> the operation is marked as abandoned — but the worker thread continues executing
-> until the underlying I/O completes naturally (e.g. `Net::HTTP` read, stdio
-> `gets`). Size `blocking_io_pool_size` (`Phronomy.configure { |c| c.blocking_io_pool_size = N }`) to account for the worst-case number of
+> These keys set a submit-time deadline in `BlockingAdapterPool`. The timer is
+> armed at submit time (including queue wait) and calls `fire_timeout!` when the
+> deadline expires. The worker thread is never forcibly interrupted.
+>
+> **Timeout behaviour depends on when the deadline fires:**
+>
+> | Situation | `TimeoutError`? | `abandoned?` | `abandoned_count` |
+> |---|---|---|---|
+> | Deadline fires while worker is executing | ✅ via `on_complete` | `true` | +1 |
+> | Deadline fires while op is still queued | ✅ via `on_complete` | `false` | unchanged |
+> | `blocking_wait(timeout:)` expires | ✅ to that waiter only | unchanged | unchanged |
+> | `CancellationToken` cancelled | `CancellationError` | — | — |
+> | Streaming path | not guaranteed (separate fix needed) | — | — |
+>
+> `blocking_wait(timeout:)` is a **waiter-local** deadline — the operation remains
+> unsettled and other waiters or `on_complete` callbacks will still receive the
+> eventual result (unless a submit-time deadline also fires).
+>
+> Size `blocking_io_pool_size` to account for the worst-case number of
 > concurrently abandoned workers that may accumulate before the pool is saturated.
 
 ```ruby
