@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **`llm_timeout` / `tool_timeout` now fire on the `on_complete` path** (#7-fix):
+- **`llm_timeout` / `tool_timeout` now fire on the `on_complete` path**:
   `BlockingAdapterPool#submit` previously stored the timeout value but never
   registered a wall-clock timer, so `config: { llm_timeout: N }` and
   `config: { tool_timeout: N }` had no effect for callers using `on_complete`
@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **`blocking_wait(timeout:)` is now a waiter-local deadline only**:
-  Previously, the timeout passed to `blocking_wait` (or `await`) would settle the
+  Previously, the timeout passed to `blocking_wait` (or `wait_result`) would settle the
   operation, set `abandoned? = true`, and increment `abandoned_count` — affecting
   all future waiters and callbacks. It is now scoped to the single calling thread:
   the caller receives `TimeoutError`, but the operation remains unsettled. Other

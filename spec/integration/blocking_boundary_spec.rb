@@ -273,10 +273,25 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
   # TC-008: operation_timeout — Timed-out operation is marked abandoned
   # -------------------------------------------------------------------------
   describe "TC-008: operation_timeout — timed-out operation is tracked as abandoned" do
-    it "marks the PendingOperation as abandoned after TimeoutError" do
-      op = pool.submit(timeout: 0.001) { sleep(1) }
-      expect { op.wait_result }.to raise_error(Phronomy::TimeoutError)
+    it "marks the PendingOperation as abandoned after an in-flight timeout" do
+      started = Queue.new
+      release = Queue.new
+
+      op = pool.submit(timeout: 0.1) do
+        started << true
+        release.pop
+      end
+
+      started.pop   # ensure worker has started before the timer fires
+
+      expect {
+        op.wait_result
+      }.to raise_error(Phronomy::TimeoutError)
+
+      expect(op).to be_timed_out
       expect(op).to be_abandoned
+    ensure
+      release << true
     end
   end
 
