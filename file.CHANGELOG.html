@@ -67,7 +67,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h2 id="_Unreleased_">[Unreleased]</h2>
 <h3 id="Fixed">Fixed</h3>
 <ul>
-<li><strong><code>llm_timeout</code> / <code>tool_timeout</code> now fire on the <code>on_complete</code> path</strong> (#7-fix):
+<li><strong><code>llm_timeout</code> / <code>tool_timeout</code> now fire on the <code>on_complete</code> path</strong>:
 <code>BlockingAdapterPool#submit</code> previously stored the timeout value but never
 registered a wall-clock timer, so <code>config: { llm_timeout: N }</code> and
 <code>config: { tool_timeout: N }</code> had no effect for callers using <code>on_complete</code>
@@ -78,7 +78,7 @@ admission and calls <code>fire_timeout!</code> when the deadline expires.</li>
 <ul>
 <li>
 <p><strong><code>blocking_wait(timeout:)</code> is now a waiter-local deadline only</strong>:
-Previously, the timeout passed to <code>blocking_wait</code> (or <code>await</code>) would settle the
+Previously, the timeout passed to <code>blocking_wait</code> (or <code>wait_result</code>) would settle the
 operation, set <code>abandoned? = true</code>, and increment <code>abandoned_count</code> — affecting
 all future waiters and callbacks. It is now scoped to the single calling thread:
 the caller receives <code>TimeoutError</code>, but the operation remains unsettled. Other
@@ -1229,7 +1229,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sat Jul 25 05:43:44 2026 by
+  Generated on Sat Jul 25 06:09:00 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
