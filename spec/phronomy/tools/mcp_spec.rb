@@ -455,5 +455,21 @@ RSpec.describe Phronomy::Tools::Mcp do
       expect(live_client).to have_received(:call_tool).once
       expect(live_client).to have_received(:connect).twice
     end
+
+    it "does not freeze the caller-provided headers hash" do
+      headers = {"Authorization" => "Bearer secret"}
+      tool_def = mcp_tool_double(name: "search", description: "Search")
+      discovery_client = instance_double(MCP::Client, connect: nil, tools: [tool_def])
+      instance_client = instance_double(MCP::Client, connect: nil, transport: instance_double(MCP::Client::HTTP, close: nil))
+      stub_http(discovery_client: discovery_client, instance_client: instance_client)
+
+      described_class.from_server(
+        "http://localhost:8080/mcp",
+        tool_name: "search",
+        headers: headers
+      )
+
+      expect { headers["X-New"] = "value" }.not_to raise_error
+    end
   end
 end

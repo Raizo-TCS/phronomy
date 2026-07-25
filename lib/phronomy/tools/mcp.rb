@@ -128,7 +128,7 @@ module Phronomy
           klass = Class.new(Mcp)
           klass.tool_name(tool_name)
           klass.instance_variable_set(:@mcp_server_uri, server_uri)
-          klass.instance_variable_set(:@mcp_headers, headers.freeze)
+          klass.instance_variable_set(:@mcp_headers, headers.dup.freeze)
 
           klass.description(tool_def[:description] || tool_name)
           (tool_def[:parameters] || []).each do |parameter|
