@@ -72,8 +72,18 @@ module Phronomy
     # Stops and destroys the singleton. Primarily used in tests.
     # @api private
     def self.reset!
-      @instance&.stop
-      @instance = nil
+      instance = @instance
+      return :clean unless instance
+
+      status = instance.stop
+
+      if instance.task_alive?
+        raise Phronomy::Error,
+          "EventLoop task is still alive after stop; singleton was not reset"
+      end
+
+      @instance = nil if @instance.equal?(instance)
+      status
     end
 
     def initialize
@@ -228,7 +238,7 @@ module Phronomy
     #   - +:timeout+ — the task did not stop in time and +force_kill:+ is +false+
     #   - +:force_killed+ — the task was cancelled because it did not stop in time
     # @api private
-    def stop(timeout: Phronomy.configuration.event_loop_stop_grace_seconds, drain: false, force_kill: false)
+    def stop(timeout: Phronomy.configuration.event_loop_stop_grace_seconds, drain: false, force_kill: false, cancel_grace: timeout)
       @shutdown_token.cancel!
       status = :clean
 
@@ -247,21 +257,32 @@ module Phronomy
 
       @running = false
       @queue.push(:__stop__)   # unblock queue.pop so the task can see @running = false
+      task = @task
       begin
-        @task&.join(timeout)
+        task&.join(timeout)
       rescue
         # Task may have terminated with an error (e.g. simulated crash in tests).
         # Suppress the re-raise so the cleanup below always runs.
         nil
       end
-      if @task&.alive?
+      if task&.alive?
         if force_kill
           Phronomy.configuration.logger&.warn(
             "[Phronomy] EventLoop task did not stop within #{timeout}s; cancelling. " \
             "This is a last resort — check for blocking operations in event handlers."
           )
-          @task.cancel!
-          status = :force_killed
+          task.cancel!
+          begin
+            task.join(cancel_grace)
+          rescue
+            nil
+          end
+          if task.alive?
+            status = :cancel_timeout
+          else
+            @task = nil if @task.equal?(task)
+            status = :force_killed
+          end
         else
           Phronomy.configuration.logger&.warn(
             "[Phronomy] EventLoop task did not stop within #{timeout}s; abandoning " \
@@ -269,9 +290,17 @@ module Phronomy
           )
           status = :timeout
         end
+      else
+        @task = nil if @task.equal?(task)
       end
-      @task = nil
       status
+    end
+
+    # Returns true if the dispatch task is currently alive.
+    # Safe to call from any thread.
+    # @api private
+    def task_alive?
+      @task&.alive? || false
     end
 
     private
