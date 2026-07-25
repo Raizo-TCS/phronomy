@@ -94,6 +94,37 @@ the operation is settled with <code>TimeoutError</code> but <code>abandoned? == 
 <code>abandoned_count</code> is not incremented. Only timeouts that fire while the block
 is executing set <code>abandoned? = true</code>.</p>
 </li>
+<li>
+<p><strong>MCP client support now requires <code>mcp</code> 1.x</strong>:
+The <code>mcp</code> SDK 0.x dependency is no longer supported. The constraint is now
+<code>mcp ~&gt; 1.0</code>. <code>faraday</code> and <code>event_stream_parser</code> are added as direct runtime
+dependencies so HTTP/SSE transport works without relying on transitive
+resolution through RubyLLM.</p>
+</li>
+<li>
+<p><strong>MCP Tool error handling follows MCP 1.x semantics</strong>:
+JSON-RPC errors (<code>MCP::Client::ServerError</code>) are converted to
+<code>Phronomy::ToolError</code>. Cancellations (<code>MCP::CancelledError</code>) are converted to
+<code>Phronomy::CancellationError</code>. Tool-level <code>isError: true</code> results are
+returned to the model as error text rather than raising, allowing the LLM to
+self-correct.</p>
+</li>
+<li>
+<p><strong>MCP input schemas now use a strict supported subset of JSON Schema 2020-12</strong>:
+Unsupported structural keywords (<code>oneOf</code>, <code>anyOf</code>, <code>allOf</code>, <code>$ref</code>, etc.),
+nested object/array types, and nullable type arrays fail fast with
+<code>Phronomy::ToolError</code> at <code>from_server</code> time. Constraint-only annotations
+(<code>minimum</code>, <code>maxLength</code>, <code>format</code>, etc.) produce a logger warning and are
+otherwise ignored. See <a href="docs/mcp-client.md"><code>docs/mcp-client.md</code></a> for the
+full supported schema subset.</p>
+</li>
+<li>
+<p><strong>MCP client cancellation now invalidates the transport</strong>:
+After a <code>MCP::CancelledError</code> the internal client reference is set to <code>nil</code>
+and the old transport is closed asynchronously. The next tool call creates a
+fresh connection, preventing stdio response mis-routing from a lingering SDK
+worker thread.</p>
+</li>
 </ul>
 <hr />
 <h2 id="_0_13_0____2026_07_23">[0.13.0] - 2026-07-23</h2>
@@ -1229,7 +1260,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sat Jul 25 12:27:50 2026 by
+  Generated on Sat Jul 25 12:40:01 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
