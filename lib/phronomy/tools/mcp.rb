@@ -64,7 +64,6 @@ module Phronomy
         # @api public
         def from_server(server_uri, tool_name:, headers: {})
           transport = nil
-          client = nil
           begin
             transport = build_transport(server_uri, headers: headers)
             client = MCP::Client.new(transport: transport)
@@ -174,7 +173,7 @@ module Phronomy
           if unknown_root.any?
             raise Phronomy::ToolError,
               "MCP tool #{tool_name.inspect} uses unsupported root schema keywords: " \
-              "#{unknown_root.join(', ')}"
+              "#{unknown_root.join(", ")}"
           end
 
           additional_properties = input_schema["additionalProperties"]
@@ -252,7 +251,7 @@ module Phronomy
           if unknown_property.any?
             raise Phronomy::ToolError,
               "MCP parameter #{name.inspect} uses unsupported schema keywords: " \
-              "#{unknown_property.join(', ')}"
+              "#{unknown_property.join(", ")}"
           end
         end
 
@@ -426,7 +425,6 @@ module Phronomy
 
       def build_and_connect_client!
         transport = nil
-        client = nil
         begin
           uri = self.class.instance_variable_get(:@mcp_server_uri)
           headers = self.class.instance_variable_get(:@mcp_headers) || {}
