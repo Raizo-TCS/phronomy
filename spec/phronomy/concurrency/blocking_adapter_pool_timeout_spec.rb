@@ -14,11 +14,9 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool, "submit-time timeout 
   end
 
   after do
-    begin
-      pool.shutdown(drain_timeout: 2)
-    rescue StandardError
-      nil
-    end
+    pool.shutdown(drain_timeout: 2)
+  rescue
+    nil
   end
 
   it "fires a registered on_complete callback before the worker completes" do

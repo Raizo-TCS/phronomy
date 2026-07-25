@@ -55,7 +55,7 @@ RSpec.describe "Stress and resource leak tests (Issue #275)" do
       started = Array.new(5) { Queue.new }
       release = Queue.new
 
-      ops = 5.times.map do |i|
+      5.times.map do |i|
         pool.submit(timeout: 5) do
           started[i] << true
           release.pop

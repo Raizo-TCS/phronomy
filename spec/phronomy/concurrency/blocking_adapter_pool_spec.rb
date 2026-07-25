@@ -187,7 +187,10 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
   describe "blocking_wait(timeout:) (Issue #288)" do
     it "raises a waiter-local TimeoutError without settling the operation" do
       release = Queue.new
-      op = pool.submit { release.pop; :done }
+      op = pool.submit {
+        release.pop
+        :done
+      }
 
       expect { op.blocking_wait(timeout: 0.05) }.to raise_error(Phronomy::TimeoutError)
       expect(op).not_to be_done
@@ -209,7 +212,11 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
         :done
       end
       expect { op.blocking_wait(timeout: 0.05) }.to raise_error(Phronomy::TimeoutError)
-      op.blocking_wait(timeout: 0.05) rescue nil
+      begin
+        op.blocking_wait(timeout: 0.05)
+      rescue
+        nil
+      end
     end
   end
 

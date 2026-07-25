@@ -231,7 +231,7 @@ module Phronomy
           if abandoned_now
             begin
               @on_abandoned&.call
-            rescue StandardError => e
+            rescue => e
               Phronomy.configuration.logger&.error {
                 "BlockingAdapterPool abandoned callback failed: #{e.class}: #{e.message}"
               }
@@ -449,7 +449,7 @@ module Phronomy
           # Shutdown raced with this submit — preserve the existing public error.
           op.fail_submission!(e)
           raise Phronomy::PoolShutdownError, "pool has been shut down"
-        rescue StandardError => e
+        rescue => e
           op.fail_submission!(e)
           raise
         end
