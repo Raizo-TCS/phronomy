@@ -216,7 +216,11 @@ RSpec.describe Phronomy::Concurrency::BlockingAdapterPool do
       expect(op).not_to be_done
     ensure
       release << true
-      op&.blocking_wait rescue nil
+      begin
+        op&.blocking_wait
+      rescue
+        nil
+      end
     end
   end
 
