@@ -8,11 +8,22 @@ RSpec.describe Phronomy::Tools::Mcp do
   end
 
   # Build a MCP::Client::Tool double.
-  def mcp_tool_double(name:, description:, properties: {}, required: [])
+  def mcp_tool_double(name:, description:, properties: {}, required: [],
+    input_schema: nil, output_schema: nil, additional_properties: :__unset__)
+    schema = input_schema || {
+      "type" => "object",
+      "properties" => properties,
+      "required" => required
+    }
+    unless additional_properties == :__unset__
+      schema["additionalProperties"] = additional_properties
+    end
+
     instance_double(MCP::Client::Tool,
       name: name,
       description: description,
-      input_schema: {"properties" => properties, "required" => required})
+      input_schema: schema,
+      output_schema: output_schema)
   end
 
   # Stub MCP::Client::Stdio and MCP::Client so that from_server uses discovery_client
@@ -143,12 +154,13 @@ RSpec.describe Phronomy::Tools::Mcp do
       expect(tool.execute(query: "hi")).to eq(["a", "b"])
     end
 
-    it "raises ToolError when the server returns a JSON-RPC error response" do
-      allow(instance_client).to receive(:call_tool).and_return(
-        {"error" => {"code" => -32600, "message" => "Internal error"}}
+    it "raises ToolError when the MCP SDK raises ServerError" do
+      allow(instance_client).to receive(:call_tool).and_raise(
+        MCP::Client::ServerError.new("Internal error", code: -32_600)
       )
       tool = described_class.from_server("stdio://./mcp-server", tool_name: "search")
-      expect { tool.execute(query: "hi") }.to raise_error(Phronomy::ToolError)
+      expect { tool.execute(query: "hi") }
+        .to raise_error(Phronomy::ToolError, /-32600.*Internal error/)
     end
 
     it "splits 'command args' string into command: and args: for MCP::Client::Stdio" do
@@ -215,27 +227,26 @@ RSpec.describe Phronomy::Tools::Mcp do
     end
 
     # Regression test for GitHub Issue #23 (ID-5):
-    # call_tool must check for JSON-RPC error field and raise ToolError instead of returning nil.
-    it "raises ToolError when the server returns a JSON-RPC error object in a 200 OK response" do
-      allow(instance_client).to receive(:call_tool).and_return(
-        {"error" => {"code" => -32600, "message" => "Invalid MCP request"}}
+    # ServerError is now raised by the SDK; legacy response["error"] pattern removed.
+    it "raises ToolError when the MCP SDK raises a JSON-RPC ServerError" do
+      allow(instance_client).to receive(:call_tool).and_raise(
+        MCP::Client::ServerError.new("Invalid MCP request", code: -32_600)
       )
       tool = described_class.from_server("http://localhost:8080/mcp", tool_name: "weather")
       expect { tool.execute(city: "Tokyo") }
-        .to raise_error(Phronomy::ToolError, /Invalid MCP request/)
+        .to raise_error(Phronomy::ToolError, /-32600.*Invalid MCP request/)
     end
 
-    it "does not return nil silently when JSON-RPC error is present" do
+    it "returns an MCP tool-level error to the model as text" do
       allow(instance_client).to receive(:call_tool).and_return(
-        {"error" => {"code" => -32601, "message" => "Method not found"}}
+        {"result" => {
+          "content" => [{"type" => "text", "text" => "invalid city"}],
+          "isError" => true
+        }}
       )
       tool = described_class.from_server("http://localhost:8080/mcp", tool_name: "weather")
-      result = begin
-        tool.execute
-      rescue Phronomy::ToolError
-        :raised
-      end
-      expect(result).to eq(:raised)
+      expect(tool.execute(city: "Tokyo"))
+        .to eq("MCP tool execution error: invalid city")
     end
   end
 
@@ -308,6 +319,141 @@ RSpec.describe Phronomy::Tools::Mcp do
       expect(instance_client).to have_received(:call_tool).with(
         hash_including(cancellation: nil)
       )
+    end
+  end
+
+  describe "MCP v1 response validation" do
+    let(:search_tool) { mcp_tool_double(name: "search", description: "Search") }
+    let(:discovery_client) { instance_double(MCP::Client, connect: nil, tools: [search_tool]) }
+    let(:instance_transport) { instance_double(MCP::Client::Stdio, close: nil) }
+    let(:instance_client) { instance_double(MCP::Client, connect: nil, transport: instance_transport) }
+
+    before { stub_stdio(discovery_client: discovery_client, instance_client: instance_client) }
+
+    it "rejects a response without result" do
+      allow(instance_client).to receive(:call_tool).and_return({})
+      tool = described_class.from_server("stdio://./mcp-server", tool_name: "search")
+      expect { tool.execute(query: "x") }
+        .to raise_error(Phronomy::ToolError, /missing a valid result/)
+    end
+
+    it "rejects non-array content" do
+      allow(instance_client).to receive(:call_tool).and_return(
+        {"result" => {"content" => "invalid"}}
+      )
+      tool = described_class.from_server("stdio://./mcp-server", tool_name: "search")
+      expect { tool.execute(query: "x") }
+        .to raise_error(Phronomy::ToolError, /missing valid content/)
+    end
+  end
+
+  describe "MCP v1 schema compatibility" do
+    it "preserves boolean enum values as booleans" do
+      tool_def = mcp_tool_double(
+        name: "toggle",
+        description: "Toggle",
+        properties: {
+          "enabled" => {"type" => "boolean", "enum" => [true, false]}
+        }
+      )
+      discovery_client = instance_double(MCP::Client, connect: nil, tools: [tool_def])
+      live_transport = instance_double(MCP::Client::Stdio, close: nil)
+      live_client = instance_double(MCP::Client, connect: nil, transport: live_transport)
+      stub_stdio(discovery_client: discovery_client, instance_client: live_client)
+
+      tool = described_class.from_server("stdio://./mcp-server", tool_name: "toggle")
+      expect(tool.params_schema.dig("properties", "enabled", "enum"))
+        .to eq([true, false])
+    end
+
+    it "rejects unknown root schema keywords" do
+      tool_def = mcp_tool_double(
+        name: "search",
+        description: "Search",
+        input_schema: {
+          "type" => "object",
+          "properties" => {},
+          "allOf" => []
+        }
+      )
+      discovery_client = instance_double(MCP::Client, connect: nil, tools: [tool_def])
+      allow(MCP::Client::Stdio).to receive(:new)
+        .and_return(instance_double(MCP::Client::Stdio, close: nil))
+      allow(MCP::Client).to receive(:new).and_return(discovery_client)
+
+      expect {
+        described_class.from_server("stdio://./mcp-server", tool_name: "search")
+      }.to raise_error(Phronomy::ToolError, /allOf/)
+    end
+
+    it "accepts omitted additionalProperties" do
+      accepted = mcp_tool_double(name: "accepted", description: "Accepted")
+      discovery_client = instance_double(MCP::Client, connect: nil, tools: [accepted])
+      live_transport = instance_double(MCP::Client::Stdio, close: nil)
+      live_client = instance_double(MCP::Client, connect: nil, transport: live_transport)
+      stub_stdio(discovery_client: discovery_client, instance_client: live_client)
+
+      expect {
+        described_class.from_server("stdio://./mcp-server", tool_name: "accepted")
+      }.not_to raise_error
+    end
+
+    it "rejects additionalProperties: true" do
+      rejected = mcp_tool_double(
+        name: "rejected", description: "Rejected", additional_properties: true
+      )
+      discovery_client = instance_double(MCP::Client, connect: nil, tools: [rejected])
+      allow(MCP::Client::Stdio).to receive(:new)
+        .and_return(instance_double(MCP::Client::Stdio, close: nil))
+      allow(MCP::Client).to receive(:new).and_return(discovery_client)
+
+      expect {
+        described_class.from_server("stdio://./mcp-server", tool_name: "rejected")
+      }.to raise_error(Phronomy::ToolError, /additionalProperties/)
+    end
+  end
+
+  describe "MCP client lifecycle" do
+    it "reconnects after explicit close" do
+      tool_def = mcp_tool_double(name: "search", description: "Search")
+      discovery_transport = instance_double(MCP::Client::Stdio, close: nil)
+      first_transport = instance_double(MCP::Client::Stdio, close: nil)
+      second_transport = instance_double(MCP::Client::Stdio, close: nil)
+      discovery_client = instance_double(MCP::Client, connect: nil, tools: [tool_def])
+      first_client = instance_double(MCP::Client, connect: nil, transport: first_transport)
+      second_client = instance_double(
+        MCP::Client,
+        connect: nil,
+        transport: second_transport,
+        call_tool: {"result" => {"content" => [{"type" => "text", "text" => "ok"}]}}
+      )
+      allow(MCP::Client::Stdio).to receive(:new)
+        .and_return(discovery_transport, first_transport, second_transport)
+      allow(MCP::Client).to receive(:new)
+        .and_return(discovery_client, first_client, second_client)
+
+      tool = described_class.from_server("stdio://./mcp-server", tool_name: "search")
+      tool.close
+      expect(tool.execute(query: "x")).to eq("ok")
+      expect(first_transport).to have_received(:close)
+      expect(second_client).to have_received(:connect)
+    end
+
+    it "restores an expired HTTP session without replaying the failed call" do
+      tool_def = mcp_tool_double(name: "search", description: "Search")
+      discovery_client = instance_double(MCP::Client, connect: nil, tools: [tool_def])
+      live_transport = instance_double(MCP::Client::HTTP, close: nil)
+      live_client = instance_double(MCP::Client, transport: live_transport)
+      allow(live_client).to receive(:connect).twice.and_return(nil)
+      allow(live_client).to receive(:call_tool)
+        .and_raise(MCP::Client::SessionExpiredError.new("expired", nil))
+      stub_http(discovery_client: discovery_client, instance_client: live_client)
+
+      tool = described_class.from_server("http://localhost:8080/mcp", tool_name: "search")
+      expect { tool.execute(query: "x") }
+        .to raise_error(Phronomy::ToolError, /was not replayed/)
+      expect(live_client).to have_received(:call_tool).once
+      expect(live_client).to have_received(:connect).twice
     end
   end
 end

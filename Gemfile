@@ -45,4 +45,4 @@ gem "yard", require: false
 # Mutation testing (optional; not in the default CI gate — run via nightly workflow or scripts/run_mutation.sh)
 gem "mutant-rspec", "~> 0.15.1", require: false
 
-gem "mcp", ">= 0.3"
+gem "mcp", "~> 1.0"

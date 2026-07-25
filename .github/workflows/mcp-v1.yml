@@ -1,0 +1,26 @@
+name: MCP v1 compatibility
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  mcp-1-0:
+    runs-on: ubuntu-latest
+    env:
+      BUNDLE_GEMFILE: gemfiles/mcp_1_0.gemfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+      - name: Verify MCP minimum version
+        run: >-
+          bundle exec ruby -e 'require "mcp";
+          abort "Expected MCP 1.0.0, got #{MCP::VERSION}" unless MCP::VERSION == "1.0.0"'
+      - name: Run MCP unit tests
+        run: bundle exec rspec spec/phronomy/tools/mcp_spec.rb --format documentation
+      - name: Run MCP integration tests
+        run: bundle exec rspec spec/integration/mcp_http_spec.rb --tag integration --format documentation

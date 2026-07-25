@@ -92,6 +92,29 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
           else
             handle_json_request(server, res, req_id, method_name, tools_empty: false)
           end
+        when :json_rpc_error
+          if method_name == "tools/call"
+            res.content_type = "application/json"
+            res.body = JSON.generate({
+              "jsonrpc" => "2.0", "id" => req_id,
+              "error" => {"code" => -32_600, "message" => "Invalid MCP request"}
+            })
+          else
+            handle_json_request(server, res, req_id, method_name, tools_empty: false)
+          end
+        when :json_tool_error
+          if method_name == "tools/call"
+            res.content_type = "application/json"
+            res.body = JSON.generate({
+              "jsonrpc" => "2.0", "id" => req_id,
+              "result" => {
+                "content" => [{"type" => "text", "text" => "invalid arguments"}],
+                "isError" => true
+              }
+            })
+          else
+            handle_json_request(server, res, req_id, method_name, tools_empty: false)
+          end
         end
       end
 
@@ -222,6 +245,17 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
         expect {
           Phronomy::Tools::Mcp.from_server(server_uri, tool_name: "add")
         }.to raise_error(Phronomy::ToolError)
+      end
+    end
+
+    describe "TC-004b: stdio + tool-level isError — returns error text" do
+      it "returns the MCP error content to the model" do
+        server_uri = "stdio://#{RUBY_CMD} #{STDIO_SERVER} --tool-error"
+        tool = Phronomy::Tools::Mcp.from_server(server_uri, tool_name: "add")
+        expect(tool.execute(a: 1, b: 2))
+          .to eq("MCP tool execution error: simulated tool failure")
+      ensure
+        tool&.close
       end
     end
   end
@@ -385,6 +419,39 @@ RSpec.describe "Group 11: MCP HTTP/SSE Transport", :integration do
       expect {
         Phronomy::Tools::Mcp.from_server("grpc://localhost:50051", tool_name: "greet")
       }.to raise_error(ArgumentError, /Unsupported MCP transport scheme/)
+    end
+  end
+
+  describe "http transport — JSON-RPC error response", real_backend: :mcp_http do
+    include_context "with http mcp server", response_mode: :json_rpc_error
+
+    it "converts MCP::Client::ServerError to Phronomy::ToolError" do
+      tool = Phronomy::Tools::Mcp.from_server(
+        "http://127.0.0.1:#{mcp_port}/mcp",
+        tool_name: "greet"
+      )
+
+      expect {
+        tool.execute(name: "Alice")
+      }.to raise_error(Phronomy::ToolError, /-32600.*Invalid MCP request/)
+    ensure
+      tool&.close
+    end
+  end
+
+  describe "http transport — MCP tool-level error", real_backend: :mcp_http do
+    include_context "with http mcp server", response_mode: :json_tool_error
+
+    it "returns isError content to the model rather than raising" do
+      tool = Phronomy::Tools::Mcp.from_server(
+        "http://127.0.0.1:#{mcp_port}/mcp",
+        tool_name: "greet"
+      )
+
+      expect(tool.execute(name: "Alice"))
+        .to eq("MCP tool execution error: invalid arguments")
+    ensure
+      tool&.close
     end
   end
 end

@@ -290,6 +290,12 @@ module Phronomy
                   case param_type
                   when "integer" then v.is_a?(Integer) ? v : Integer(v.to_s)
                   when "number" then v.is_a?(Numeric) ? v : Float(v.to_s)
+                  when "boolean"
+                    unless v == true || v == false
+                      raise ArgumentError,
+                        "boolean enum values must be true or false (got: #{v.inspect})"
+                    end
+                    v
                   else v.to_s
                   end
                 end

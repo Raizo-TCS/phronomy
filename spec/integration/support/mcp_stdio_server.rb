@@ -16,15 +16,16 @@
 
 require "json"
 
-mode = ARGV[0]
+modes = ARGV
 
-if mode == "--error"
+if modes.include?("--error")
   warn "Simulated MCP server error"
   exit(1)
 end
 
-empty_tools = mode == "--empty"
-multi_content = mode == "--multi"
+empty_tools = modes.include?("--empty")
+multi_content = modes.include?("--multi")
+tool_error = modes.include?("--tool-error")
 
 TOOLS_LIST = empty_tools ? [] : [
   {
@@ -90,7 +91,12 @@ $stdin.each_line do |line|
     else
       [{"type" => "text", "text" => result_text}]
     end
-    {"jsonrpc" => "2.0", "id" => req_id, "result" => {"content" => content}}
+    result = {"content" => content}
+    if tool_error
+      result["content"] = [{"type" => "text", "text" => "simulated tool failure"}]
+      result["isError"] = true
+    end
+    {"jsonrpc" => "2.0", "id" => req_id, "result" => result}
   else
     {"jsonrpc" => "2.0", "id" => req_id, "error" => {"code" => -32601, "message" => "Method not found"}}
   end
