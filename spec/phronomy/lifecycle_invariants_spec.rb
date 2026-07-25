@@ -482,5 +482,101 @@ RSpec.describe "Lifecycle invariants" do
       expect(second_task).not_to be(first_task)
       expect(el_second.instance_variable_get(:@fsm_count)).to eq(0)
     end
+
+    # -------------------------------------------------------------------------
+    # P0 regression: double-dispatch prevention
+    #
+    # These three examples directly exercise the behaviour introduced by the P0
+    # fix: @task is retained when a stop times out, :cancel_timeout is returned
+    # when cancel! does not terminate the task, and reset! raises instead of
+    # clearing the singleton while the task is alive.
+    # -------------------------------------------------------------------------
+
+    it "retains @task and returns the same instance from start when stop times out (double dispatch prevention)" do
+      # The core P0 regression: if stop times out and @task were set to nil,
+      # a subsequent start would spawn a second dispatch loop on the same queue.
+      # With the fix, @task is preserved so start detects the live task and
+      # returns self without spawning a new loop.
+      el = Phronomy::EventLoop.instance
+
+      started_q = Thread::Queue.new
+      release = Thread::Queue.new
+      session_id = "double-dispatch-#{SecureRandom.hex(4)}"
+      session = FakeSlowSession.new(id: session_id, duration: 60)
+      session.define_singleton_method(:start) do
+        started_q.push(:started)
+        release.pop  # block indefinitely until released
+      end
+
+      el.register(session)
+      started_q.pop
+
+      original_task = el.instance_variable_get(:@task)
+
+      status = el.stop(timeout: 0.05, force_kill: false)
+
+      expect(status).to eq(:timeout)
+      # @task must still point to the original alive task.
+      expect(el.instance_variable_get(:@task)).to be(original_task)
+      expect(original_task).to be_alive
+
+      # start must detect the live task and return self without spawning a new loop.
+      result = el.start
+      expect(result).to be(el)
+      expect(el.instance_variable_get(:@task)).to be(original_task)
+    ensure
+      release.push(:done)
+      original_task&.join(2) rescue nil
+      Phronomy::EventLoop.reset!(timeout: 2) rescue nil
+    end
+
+    it "returns :cancel_timeout and retains @task when cancel! does not terminate the task" do
+      # Verifies that force_kill: true with a cancel! that does not kill the
+      # task results in :cancel_timeout and @task remaining non-nil.
+      el = Phronomy::EventLoop.instance
+
+      started_q = Thread::Queue.new
+      release = Thread::Queue.new
+      session_id = "cancel-timeout-#{SecureRandom.hex(4)}"
+      session = FakeSlowSession.new(id: session_id, duration: 60)
+      session.define_singleton_method(:start) do
+        started_q.push(:started)
+        release.pop
+      end
+
+      el.register(session)
+      started_q.pop
+
+      original_task = el.instance_variable_get(:@task)
+      # Stub cancel! to be a no-op so the task never terminates.
+      allow(original_task).to receive(:cancel!).and_return(nil)
+
+      status = el.stop(timeout: 0.05, force_kill: true, cancel_grace: 0.05)
+
+      expect(status).to eq(:cancel_timeout)
+      expect(el.instance_variable_get(:@task)).to be(original_task)
+      expect(original_task).to be_alive
+    ensure
+      release.push(:done)
+      original_task&.join(2) rescue nil
+      Phronomy::EventLoop.reset!(timeout: 2) rescue nil
+    end
+
+    it "raises and retains the singleton when reset! cannot fully stop the task" do
+      # Verifies that reset! raises Phronomy::Error and leaves @instance intact
+      # when task_alive? returns true after stop, preventing a new singleton
+      # from being created while the old dispatch task is still running.
+      instance = Phronomy::EventLoop.instance
+
+      # Stub task_alive? to simulate a stop that did not kill the task.
+      allow(instance).to receive(:task_alive?).and_return(true)
+
+      expect { Phronomy::EventLoop.reset! }.to raise_error(Phronomy::Error, /still alive/)
+      expect(Phronomy::EventLoop.instance_variable_get(:@instance)).to be(instance)
+    ensure
+      # Remove the stub and perform real cleanup.
+      allow(instance).to receive(:task_alive?).and_call_original
+      Phronomy::EventLoop.reset!(timeout: 2) rescue nil
+    end
   end
 end
