@@ -275,7 +275,7 @@ observable at runtime.</li>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Number of operations that were abandoned due to timeout.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Number of operations whose caller-facing timeout fired after worker execution had started.</p></div></span>
   
 </li>
 
@@ -319,7 +319,7 @@ observable at runtime.</li>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Average time (in seconds) that completed operations spent in the queue waiting for a worker.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Average time (in seconds) that completed or skipped operations spent in the queue waiting for a worker.</p></div></span>
   
 </li>
 
@@ -327,7 +327,7 @@ observable at runtime.</li>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(pool_size: 10, queue_size: 100, name: nil, logger: nil)  &#x21d2; BlockingAdapterPool </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(pool_size: 10, queue_size: 100, name: nil, logger: nil, timer_queue_provider: nil)  &#x21d2; BlockingAdapterPool </a>
     
 
     
@@ -424,7 +424,7 @@ observable at runtime.</li>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(pool_size: 10, queue_size: 100, name: nil, logger: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Concurrency::BlockingAdapterPool (class)">BlockingAdapterPool</a></span></tt> 
+    #<strong>initialize</strong>(pool_size: 10, queue_size: 100, name: nil, logger: nil, timer_queue_provider: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Concurrency::BlockingAdapterPool (class)">BlockingAdapterPool</a></span></tt> 
   
 
   
@@ -508,6 +508,23 @@ observable at runtime.</li>
       
     </li>
   
+    <li>
+      
+        <span class='name'>timer_queue_provider</span>
+      
+      
+        <span class='type'>(<tt>#call</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>returns a TimerQueue-compatible
+object. Required when <code>submit(timeout:)</code> is used.</p></div>
+      
+    </li>
+  
 </ul>
 
 
@@ -517,29 +534,31 @@ observable at runtime.</li>
       <pre class="lines">
 
 
-282
-283
-284
-285
-286
-287
-288
-289
-290
-291
-292
-293
-294
-295</pre>
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 282</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 348</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>pool_size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='comma'>,</span> <span class='label'>name:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>logger:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>pool_size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='comma'>,</span> <span class='label'>name:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>logger:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>timer_queue_provider:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@pool_size</span> <span class='op'>=</span> <span class='id identifier rubyid_pool_size'>pool_size</span>
   <span class='ivar'>@queue_size</span> <span class='op'>=</span> <span class='id identifier rubyid_queue_size'>queue_size</span>
   <span class='ivar'>@name</span> <span class='op'>=</span> <span class='id identifier rubyid_name'>name</span>
   <span class='ivar'>@logger</span> <span class='op'>=</span> <span class='id identifier rubyid_logger'>logger</span>
+  <span class='ivar'>@timer_queue_provider</span> <span class='op'>=</span> <span class='id identifier rubyid_timer_queue_provider'>timer_queue_provider</span>
   <span class='ivar'>@queue</span> <span class='op'>=</span> <span class='const'>SizedQueue</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_queue_size'>queue_size</span><span class='rparen'>)</span>
   <span class='ivar'>@active_count</span> <span class='op'>=</span> <span class='int'>0</span>
   <span class='ivar'>@abandoned_count</span> <span class='op'>=</span> <span class='int'>0</span>
@@ -601,12 +620,12 @@ observable at runtime.</li>
       <pre class="lines">
 
 
-404
-405
-406</pre>
+516
+517
+518</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 404</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 516</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_name'>name</span>
   <span class='ivar'>@name</span>
@@ -658,12 +677,12 @@ observable at runtime.</li>
       <pre class="lines">
 
 
-398
-399
-400</pre>
+510
+511
+512</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 398</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 510</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pool_size'>pool_size</span>
   <span class='ivar'>@pool_size</span>
@@ -715,12 +734,12 @@ observable at runtime.</li>
       <pre class="lines">
 
 
-401
-402
-403</pre>
+513
+514
+515</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 401</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 513</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_queue_size'>queue_size</span>
   <span class='ivar'>@queue_size</span>
@@ -752,7 +771,8 @@ observable at runtime.</li>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Returns number of operations that were abandoned due to timeout.</p>
+<p>Returns number of operations whose caller-facing timeout fired
+after worker execution had started.</p>
 
   </div>
 </div>
@@ -769,7 +789,8 @@ observable at runtime.</li>
       
       
         &mdash;
-        <div class='inline'><p>number of operations that were abandoned due to timeout</p></div>
+        <div class='inline'><p>number of operations whose caller-facing timeout fired
+after worker execution had started</p></div>
       
     </li>
   
@@ -781,12 +802,12 @@ observable at runtime.</li>
       <pre class="lines">
 
 
-381
-382
-383</pre>
+493
+494
+495</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 381</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 493</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_abandoned_count'>abandoned_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@abandoned_count</span> <span class='rbrace'>}</span>
@@ -840,12 +861,12 @@ observable at runtime.</li>
       <pre class="lines">
 
 
-369
-370
-371</pre>
+480
+481
+482</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 369</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 480</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_active_count'>active_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@active_count</span> <span class='rbrace'>}</span>
@@ -870,8 +891,8 @@ observable at runtime.</li>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Average time (in seconds) that completed operations spent in the queue
-waiting for a worker.  Returns 0.0 when no operations have completed yet.</p>
+<p>Average time (in seconds) that completed or skipped operations spent in the
+queue waiting for a worker. Returns 0.0 when none have been processed yet.</p>
 
   </div>
 </div>
@@ -897,16 +918,16 @@ waiting for a worker.  Returns 0.0 when no operations have completed yet.</p>
       <pre class="lines">
 
 
-389
-390
-391
-392
-393
-394
-395</pre>
+501
+502
+503
+504
+505
+506
+507</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 389</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 501</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_average_wait_seconds'>average_wait_seconds</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -964,12 +985,12 @@ waiting for a worker.  Returns 0.0 when no operations have completed yet.</p>
       <pre class="lines">
 
 
-375
-376
-377</pre>
+486
+487
+488</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 375</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 486</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_queue_depth'>queue_depth</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
@@ -1043,20 +1064,20 @@ remaining items, without blocking on a full-queue push.</p>
       <pre class="lines">
 
 
-358
-359
-360
-361
-362
-363</pre>
+469
+470
+471
+472
+473
+474</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 358</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 469</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span><span class='label'>drain_timeout:</span> <span class='int'>30</span><span class='rparen'>)</span>
   <span class='ivar'>@shutdown</span> <span class='op'>=</span> <span class='kw'>true</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_close'>close</span>
-  <span class='ivar'>@workers</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_t'>t</span><span class='op'>|</span> <span class='id identifier rubyid_t'>t</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='id identifier rubyid_drain_timeout'>drain_timeout</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+  <span class='ivar'>@workers</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_thread'>thread</span><span class='op'>|</span> <span class='id identifier rubyid_thread'>thread</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='id identifier rubyid_drain_timeout'>drain_timeout</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1079,20 +1100,17 @@ remaining items, without blocking on a full-queue push.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-
-  <div class="note notetag">
-    <strong>Note:</strong>
-    <div class='inline'><p><strong>Cooperative callers</strong>: if you are running under the <code>:fiber</code> backend
-(i.e. inside a DeterministicScheduler Fiber), set <code>timeout:</code> here
-rather than on PendingOperation#await.  The await-time timeout is not
-enforced on the cooperative path (the Fiber cannot preempt a running
-worker thread).  A submit-time timeout triggers on the worker side and
-marks the operation <span class='object_link'><a href="BlockingAdapterPool/PendingOperation.html#abandoned%3F-instance_method" title="Phronomy::Concurrency::BlockingAdapterPool::PendingOperation#abandoned? (method)">abandoned</a></span>, which
-unblocks the waiting Fiber via the normal on-complete callback.</p></div>
-  </div>
-
 <p>Submits a blocking operation to the pool.
-Returns a <span class='object_link'><a href="BlockingAdapterPool/PendingOperation.html" title="Phronomy::Concurrency::BlockingAdapterPool::PendingOperation (class)">PendingOperation</a></span> immediately; the block runs on a worker thread.</p>
+Returns a <span class='object_link'><a href="BlockingAdapterPool/PendingOperation.html" title="Phronomy::Concurrency::BlockingAdapterPool::PendingOperation (class)">PendingOperation</a></span> immediately after queue admission; the block runs
+on a worker thread.</p>
+<p>A submit-time <code>timeout</code> is an operation-wide deadline measured from the start
+of this method, including queue wait. The timer settles the PendingOperation
+and notifies <code>on_complete</code> without forcibly interrupting a running worker.
+If the deadline fires before worker execution starts, the block is skipped and
+the operation is not counted as abandoned. If it fires after execution starts,
+the operation is marked abandoned and the eventual worker result is discarded.</p>
+<p>Synchronous queue admission may still delay return from this method when
+<code>on_full: :wait</code> is used; resolving that requires interruptible admission.</p>
 
   </div>
 </div>
@@ -1112,7 +1130,7 @@ Returns a <span class='object_link'><a href="BlockingAdapterPool/PendingOperatio
       
       
         &mdash;
-        <div class='inline'><p>seconds before the operation is abandoned</p></div>
+        <div class='inline'><p>operation-wide deadline in seconds</p></div>
       
     </li>
   
@@ -1126,6 +1144,38 @@ Returns a <span class='object_link'><a href="BlockingAdapterPool/PendingOperatio
       
         <em class="default">(defaults to: <tt>nil</tt>)</em>
       
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>on_full</span>
+      
+      
+        <span class='type'>(<tt>Symbol</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>:wait</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p><code>:wait</code>, <code>:raise</code>, or <code>:timeout</code></p></div>
+      
+    </li>
+  
+    <li>
+      
+        <span class='name'>full_timeout</span>
+      
+      
+        <span class='type'>(<tt>Numeric</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>queue-admission timeout for <code>on_full: :timeout</code></p></div>
       
     </li>
   
@@ -1166,6 +1216,19 @@ Returns a <span class='object_link'><a href="BlockingAdapterPool/PendingOperatio
     <li>
       
       
+        <span class='type'>(<tt><span class='object_link'><a href="../ConfigurationError.html" title="Phronomy::ConfigurationError (class)">Phronomy::ConfigurationError</a></span></tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>when <code>timeout</code> is specified without a
+timer queue provider</p></div>
+      
+    </li>
+  
+    <li>
+      
+      
         <span class='type'>(<tt><span class='object_link'><a href="../PoolShutdownError.html" title="Phronomy::PoolShutdownError (class)">Phronomy::PoolShutdownError</a></span></tt>)</span>
       
       
@@ -1195,7 +1258,7 @@ Returns a <span class='object_link'><a href="BlockingAdapterPool/PendingOperatio
       
       
         &mdash;
-        <div class='inline'><p>when <code>on_full: :timeout</code> and wait exceeds <code>full_timeout</code></p></div>
+        <div class='inline'><p>when <code>on_full: :timeout</code> exceeds <code>full_timeout</code></p></div>
       
     </li>
   
@@ -1207,55 +1270,121 @@ Returns a <span class='object_link'><a href="BlockingAdapterPool/PendingOperatio
       <pre class="lines">
 
 
-315
-316
-317
-318
-319
-320
-321
-322
-323
-324
-325
-326
-327
-328
-329
-330
-331
-332
-333
-334
-335
-336
-337
-338
-339
-340
-341
-342
-343
-344
-345
-346
-347</pre>
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 315</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 390</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on_full:</span> <span class='symbol'>:wait</span><span class='comma'>,</span> <span class='label'>full_timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../PoolShutdownError.html" title="Phronomy::PoolShutdownError (class)">PoolShutdownError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>pool has been shut down</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='ivar'>@shutdown</span>
 
-  <span class='id identifier rubyid_op'>op</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="BlockingAdapterPool/PendingOperation.html" title="Phronomy::Concurrency::BlockingAdapterPool::PendingOperation (class)">PendingOperation</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="BlockingAdapterPool/PendingOperation.html#initialize-instance_method" title="Phronomy::Concurrency::BlockingAdapterPool::PendingOperation#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_block'>block</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
-    <span class='label'>on_abandoned:</span> <span class='id identifier rubyid_timeout'>timeout</span> <span class='op'>?</span> <span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@abandoned_count</span> <span class='op'>+=</span> <span class='int'>1</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span> <span class='op'>:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_submitted_at'>submitted_at</span> <span class='op'>=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_timer_queue'>timer_queue</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_timeout'>timeout</span>
+    <span class='id identifier rubyid_timer_queue'>timer_queue</span> <span class='op'>=</span> <span class='ivar'>@timer_queue_provider</span><span class='op'>&amp;.</span><span class='id identifier rubyid_call'>call</span>
+    <span class='kw'>unless</span> <span class='id identifier rubyid_timer_queue'>timer_queue</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ConfigurationError.html" title="Phronomy::ConfigurationError (class)">ConfigurationError</a></span></span><span class='comma'>,</span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>timer_queue is required when submit timeout is specified</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='id identifier rubyid_op'>op</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="BlockingAdapterPool/PendingOperation.html" title="Phronomy::Concurrency::BlockingAdapterPool::PendingOperation (class)">PendingOperation</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="BlockingAdapterPool/PendingOperation.html#initialize-instance_method" title="Phronomy::Concurrency::BlockingAdapterPool::PendingOperation#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_block'>block</span><span class='comma'>,</span>
+    <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
+    <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
+    <span class='label'>submitted_at:</span> <span class='id identifier rubyid_submitted_at'>submitted_at</span><span class='comma'>,</span>
+    <span class='label'>on_abandoned:</span> <span class='id identifier rubyid_timeout'>timeout</span> <span class='op'>?</span> <span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@abandoned_count</span> <span class='op'>+=</span> <span class='int'>1</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span> <span class='op'>:</span> <span class='kw'>nil</span>
+  <span class='rparen'>)</span>
+
   <span class='kw'>begin</span>
+    <span class='kw'>if</span> <span class='id identifier rubyid_timeout'>timeout</span>
+      <span class='id identifier rubyid_elapsed'>elapsed</span> <span class='op'>=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>-</span> <span class='id identifier rubyid_submitted_at'>submitted_at</span>
+      <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>=</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span> <span class='op'>-</span> <span class='id identifier rubyid_elapsed'>elapsed</span>
+      <span class='kw'>if</span> <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>&lt;=</span> <span class='int'>0</span>
+        <span class='id identifier rubyid_op'>op</span><span class='period'>.</span><span class='id identifier rubyid_fire_timeout!'>fire_timeout!</span>
+        <span class='kw'>return</span> <span class='id identifier rubyid_op'>op</span>
+      <span class='kw'>end</span>
+
+      <span class='comment'># Arm before queue admission so the deadline includes time spent waiting
+</span>      <span class='comment'># for a queue slot.
+</span>      <span class='id identifier rubyid_timer_queue'>timer_queue</span><span class='period'>.</span><span class='id identifier rubyid_schedule'>schedule</span><span class='lparen'>(</span><span class='label'>seconds:</span> <span class='id identifier rubyid_remaining'>remaining</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_op'>op</span><span class='period'>.</span><span class='id identifier rubyid_fire_timeout!'>fire_timeout!</span> <span class='rbrace'>}</span>
+    <span class='kw'>end</span>
+
     <span class='kw'>case</span> <span class='id identifier rubyid_on_full'>on_full</span>
     <span class='kw'>when</span> <span class='symbol'>:raise</span>
       <span class='kw'>begin</span>
         <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_op'>op</span><span class='comma'>,</span> <span class='kw'>true</span><span class='rparen'>)</span>
       <span class='kw'>rescue</span> <span class='const'>ThreadError</span>
-        <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../BackpressureError.html" title="Phronomy::BackpressureError (class)">BackpressureError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>BlockingAdapterPool queue is full (depth: </span><span class='embexpr_beg'>#{</span><span class='ivar'>@queue_size</span><span class='embexpr_end'>}</span><span class='tstring_content'>)</span><span class='tstring_end'>&quot;</span></span>
+        <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../BackpressureError.html" title="Phronomy::BackpressureError (class)">BackpressureError</a></span></span><span class='comma'>,</span>
+          <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>BlockingAdapterPool queue is full (depth: </span><span class='embexpr_beg'>#{</span><span class='ivar'>@queue_size</span><span class='embexpr_end'>}</span><span class='tstring_content'>)</span><span class='tstring_end'>&quot;</span></span>
       <span class='kw'>end</span>
     <span class='kw'>when</span> <span class='symbol'>:timeout</span>
       <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>=</span> <span class='id identifier rubyid_full_timeout'>full_timeout</span> <span class='op'>?</span> <span class='lparen'>(</span><span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='id identifier rubyid_full_timeout'>full_timeout</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='kw'>nil</span>
@@ -1264,17 +1393,23 @@ Returns a <span class='object_link'><a href="BlockingAdapterPool/PendingOperatio
         <span class='kw'>break</span>
       <span class='kw'>rescue</span> <span class='const'>ThreadError</span>
         <span class='kw'>if</span> <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>&amp;&amp;</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>&gt;=</span> <span class='id identifier rubyid_deadline'>deadline</span>
-          <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>timed out waiting for a free slot in BlockingAdapterPool</span><span class='tstring_end'>&quot;</span></span>
+          <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span></span><span class='comma'>,</span>
+            <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>timed out waiting for a free slot in BlockingAdapterPool</span><span class='tstring_end'>&quot;</span></span>
         <span class='kw'>end</span>
         <span class='id identifier rubyid_sleep'>sleep</span><span class='lparen'>(</span><span class='float'>0.005</span><span class='rparen'>)</span>
       <span class='kw'>end</span>
     <span class='kw'>else</span> <span class='comment'># :wait (default)
 </span>      <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_op'>op</span><span class='rparen'>)</span>
     <span class='kw'>end</span>
-  <span class='kw'>rescue</span> <span class='const'>ClosedQueueError</span>
-    <span class='comment'># Shutdown raced with this submit — treat as if @shutdown was already set.
-</span>    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../PoolShutdownError.html" title="Phronomy::PoolShutdownError (class)">PoolShutdownError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>pool has been shut down</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>rescue</span> <span class='const'>ClosedQueueError</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
+    <span class='comment'># Shutdown raced with this submit — preserve the existing public error.
+</span>    <span class='id identifier rubyid_op'>op</span><span class='period'>.</span><span class='id identifier rubyid_fail_submission!'>fail_submission!</span><span class='lparen'>(</span><span class='id identifier rubyid_e'>e</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../PoolShutdownError.html" title="Phronomy::PoolShutdownError (class)">PoolShutdownError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>pool has been shut down</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>rescue</span> <span class='const'>StandardError</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
+    <span class='id identifier rubyid_op'>op</span><span class='period'>.</span><span class='id identifier rubyid_fail_submission!'>fail_submission!</span><span class='lparen'>(</span><span class='id identifier rubyid_e'>e</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_raise'>raise</span>
   <span class='kw'>end</span>
+
   <span class='id identifier rubyid_op'>op</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1287,7 +1422,7 @@ Returns a <span class='object_link'><a href="BlockingAdapterPool/PendingOperatio
 </div>
 
       <div id="footer">
-  Generated on Fri Jul 24 17:27:05 2026 by
+  Generated on Sat Jul 25 04:31:37 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
