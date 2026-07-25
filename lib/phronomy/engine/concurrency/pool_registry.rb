@@ -10,6 +10,7 @@ module Phronomy
     # @api private
     class PoolRegistry
       # @param timer_queue_provider [#call, nil] provider passed to every pool
+      # @api private
       def initialize(timer_queue_provider: nil)
         @timer_queue_provider = timer_queue_provider
         @mutex = Mutex.new
