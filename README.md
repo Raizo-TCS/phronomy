@@ -530,6 +530,10 @@ end
 
 ### MCP Tool — External tool servers
 
+> **MCP 1.x required.** Phronomy targets `mcp ~> 1.0`. For supported JSON Schema
+> constructs, error semantics, and client lifecycle contracts, see
+> [`docs/mcp-client.md`](docs/mcp-client.md).
+
 ```ruby
 search_tool = Phronomy::Tools::Mcp.from_server(
   "stdio://./mcp-server",

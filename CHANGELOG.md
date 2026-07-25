@@ -36,6 +36,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `abandoned_count` is not incremented. Only timeouts that fire while the block
   is executing set `abandoned? = true`.
 
+- **MCP client support now requires `mcp` 1.x**:
+  The `mcp` SDK 0.x dependency is no longer supported. The constraint is now
+  `mcp ~> 1.0`. `faraday` and `event_stream_parser` are added as direct runtime
+  dependencies so HTTP/SSE transport works without relying on transitive
+  resolution through RubyLLM.
+
+- **MCP Tool error handling follows MCP 1.x semantics**:
+  JSON-RPC errors (`MCP::Client::ServerError`) are converted to
+  `Phronomy::ToolError`. Cancellations (`MCP::CancelledError`) are converted to
+  `Phronomy::CancellationError`. Tool-level `isError: true` results are
+  returned to the model as error text rather than raising, allowing the LLM to
+  self-correct.
+
+- **MCP input schemas now use a strict supported subset of JSON Schema 2020-12**:
+  Unsupported structural keywords (`oneOf`, `anyOf`, `allOf`, `$ref`, etc.),
+  nested object/array types, and nullable type arrays fail fast with
+  `Phronomy::ToolError` at `from_server` time. Constraint-only annotations
+  (`minimum`, `maxLength`, `format`, etc.) produce a logger warning and are
+  otherwise ignored. See [`docs/mcp-client.md`](docs/mcp-client.md) for the
+  full supported schema subset.
+
+- **MCP client cancellation now invalidates the transport**:
+  After a `MCP::CancelledError` the internal client reference is set to `nil`
+  and the old transport is closed asynchronously. The next tool call creates a
+  fresh connection, preventing stdio response mis-routing from a lingering SDK
+  worker thread.
+
 ---
 
 ## [0.13.0] - 2026-07-23
