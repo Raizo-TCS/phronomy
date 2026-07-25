@@ -425,7 +425,7 @@ routed to any FSMSession via handle(event).</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#stop-instance_method" title="#stop (instance method)">#<strong>stop</strong>(timeout: Phronomy.configuration.event_loop_stop_grace_seconds, drain: false, force_kill: false)  &#x21d2; Symbol </a>
+      <a href="#stop-instance_method" title="#stop (instance method)">#<strong>stop</strong>(timeout: Phronomy.configuration.event_loop_stop_grace_seconds, drain: false, force_kill: false, cancel_grace: timeout)  &#x21d2; Symbol </a>
     
 
     
@@ -440,6 +440,28 @@ routed to any FSMSession via handle(event).</p>
 
   
     <span class="summary_desc"><div class='inline'><p>Stops the EventLoop dispatch task.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#task_alive%3F-instance_method" title="#task_alive? (instance method)">#<strong>task_alive?</strong>  &#x21d2; Boolean </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns true if the dispatch task is currently alive.</p></div></span>
   
 </li>
 
@@ -475,26 +497,26 @@ routed to any FSMSession via handle(event).</p>
       <pre class="lines">
 
 
-79
-80
-81
-82
-83
-84
-85
-86
-87
-88
 89
 90
 91
 92
 93
 94
-95</pre>
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 79</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 89</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@queue</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/AsyncQueue.html" title="Phronomy::Concurrency::AsyncQueue (class)">AsyncQueue</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/AsyncQueue.html#initialize-instance_method" title="Phronomy::Concurrency::AsyncQueue#initialize (method)">new</a></span></span>  <span class='comment'># global event queue (thread-safe; no Mutex needed)
@@ -654,14 +676,34 @@ scheduler backends.</p>
 74
 75
 76
-77</pre>
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 74</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_reset!'>reset!</span>
-  <span class='ivar'>@instance</span><span class='op'>&amp;.</span><span class='id identifier rubyid_stop'>stop</span>
-  <span class='ivar'>@instance</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='id identifier rubyid_instance'>instance</span> <span class='op'>=</span> <span class='ivar'>@instance</span>
+  <span class='kw'>return</span> <span class='symbol'>:clean</span> <span class='kw'>unless</span> <span class='id identifier rubyid_instance'>instance</span>
+
+  <span class='id identifier rubyid_status'>status</span> <span class='op'>=</span> <span class='id identifier rubyid_instance'>instance</span><span class='period'>.</span><span class='id identifier rubyid_stop'>stop</span>
+
+  <span class='kw'>if</span> <span class='id identifier rubyid_instance'>instance</span><span class='period'>.</span><span class='id identifier rubyid_task_alive?'>task_alive?</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>EventLoop task is still alive after stop; singleton was not reset</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+
+  <span class='ivar'>@instance</span> <span class='op'>=</span> <span class='kw'>nil</span> <span class='kw'>if</span> <span class='ivar'>@instance</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_instance'>instance</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_status'>status</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -717,16 +759,16 @@ Thread-safe.</p>
       <pre class="lines">
 
 
-119
-120
-121
-122
-123
-124
-125</pre>
+129
+130
+131
+132
+133
+134
+135</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 119</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 129</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_average_lag_seconds'>average_lag_seconds</span>
   <span class='ivar'>@lag_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -783,12 +825,12 @@ is dequeued for dispatch.  Thread-safe.</p>
       <pre class="lines">
 
 
-102
-103
-104</pre>
+112
+113
+114</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 102</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 112</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_last_lag_seconds'>last_lag_seconds</span>
   <span class='ivar'>@lag_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@last_lag_ns</span> <span class='rbrace'>}</span> <span class='op'>/</span> <span class='float'>1_000_000_000.0</span>
@@ -840,12 +882,12 @@ Thread-safe.</p>
       <pre class="lines">
 
 
-110
-111
-112</pre>
+120
+121
+122</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 110</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 120</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_lag_seconds'>max_lag_seconds</span>
   <span class='ivar'>@lag_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@max_lag_ns</span> <span class='rbrace'>}</span> <span class='op'>/</span> <span class='float'>1_000_000_000.0</span>
@@ -910,12 +952,12 @@ measure the dispatch lag when it dequeues the event.</p>
       <pre class="lines">
 
 
-176
-177
-178</pre>
+186
+187
+188</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 176</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 186</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_post'>post</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='lbracket'>[</span><span class='id identifier rubyid_event'>event</span><span class='comma'>,</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='comma'>,</span> <span class='symbol'>:nanosecond</span><span class='rparen'>)</span><span class='rbracket'>]</span><span class='rparen'>)</span>
@@ -990,16 +1032,6 @@ the popped value will be an Exception — callers are responsible for re-raising
       <pre class="lines">
 
 
-140
-141
-142
-143
-144
-145
-146
-147
-148
-149
 150
 151
 152
@@ -1013,10 +1045,20 @@ the popped value will be an Exception — callers are responsible for re-raising
 160
 161
 162
-163</pre>
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 140</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 150</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_register'>register</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='comma'>,</span> <span class='label'>completion:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="" title="Phronomy::EventLoop (class)">EventLoop</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current?'><span class='object_link'><a href="#current%3F-class_method" title="Phronomy::EventLoop.current? (method)">current?</a></span></span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_completion'>completion</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='rparen'>)</span>
@@ -1092,16 +1134,6 @@ can drain it together with all other in-flight tasks.  The task is named
       <pre class="lines">
 
 
-188
-189
-190
-191
-192
-193
-194
-195
-196
-197
 198
 199
 200
@@ -1110,10 +1142,20 @@ can drain it together with all other in-flight tasks.  The task is named
 203
 204
 205
-206</pre>
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 188</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 198</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start'>start</span>
   <span class='kw'>return</span> <span class='kw'>self</span> <span class='kw'>if</span> <span class='ivar'>@task</span><span class='op'>&amp;.</span><span class='id identifier rubyid_alive?'>alive?</span>
@@ -1142,7 +1184,7 @@ can drain it together with all other in-flight tasks.  The task is named
       <div class="method_details ">
   <h3 class="signature " id="stop-instance_method">
   
-    #<strong>stop</strong>(timeout: Phronomy.configuration.event_loop_stop_grace_seconds, drain: false, force_kill: false)  &#x21d2; <tt>Symbol</tt> 
+    #<strong>stop</strong>(timeout: Phronomy.configuration.event_loop_stop_grace_seconds, drain: false, force_kill: false, cancel_grace: timeout)  &#x21d2; <tt>Symbol</tt> 
   
 
   
@@ -1252,16 +1294,6 @@ they were discarded and the loop was stopped</li>
       <pre class="lines">
 
 
-231
-232
-233
-234
-235
-236
-237
-238
-239
-240
 241
 242
 243
@@ -1296,12 +1328,34 @@ they were discarded and the loop was stopped</li>
 272
 273
 274
-275</pre>
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 231</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 241</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_stop'>stop</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span><span class='comma'>,</span> <span class='label'>drain:</span> <span class='kw'>false</span><span class='comma'>,</span> <span class='label'>force_kill:</span> <span class='kw'>false</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_stop'>stop</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span><span class='comma'>,</span> <span class='label'>drain:</span> <span class='kw'>false</span><span class='comma'>,</span> <span class='label'>force_kill:</span> <span class='kw'>false</span><span class='comma'>,</span> <span class='label'>cancel_grace:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='rparen'>)</span>
   <span class='ivar'>@shutdown_token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span>
   <span class='id identifier rubyid_status'>status</span> <span class='op'>=</span> <span class='symbol'>:clean</span>
 
@@ -1320,21 +1374,32 @@ they were discarded and the loop was stopped</li>
 
   <span class='ivar'>@running</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='symbol'>:__stop__</span><span class='rparen'>)</span>   <span class='comment'># unblock queue.pop so the task can see @running = false
-</span>  <span class='kw'>begin</span>
-    <span class='ivar'>@task</span><span class='op'>&amp;.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='id identifier rubyid_timeout'>timeout</span><span class='rparen'>)</span>
+</span>  <span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='ivar'>@task</span>
+  <span class='kw'>begin</span>
+    <span class='id identifier rubyid_task'>task</span><span class='op'>&amp;.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='id identifier rubyid_timeout'>timeout</span><span class='rparen'>)</span>
   <span class='kw'>rescue</span>
     <span class='comment'># Task may have terminated with an error (e.g. simulated crash in tests).
 </span>    <span class='comment'># Suppress the re-raise so the cleanup below always runs.
 </span>    <span class='kw'>nil</span>
   <span class='kw'>end</span>
-  <span class='kw'>if</span> <span class='ivar'>@task</span><span class='op'>&amp;.</span><span class='id identifier rubyid_alive?'>alive?</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_task'>task</span><span class='op'>&amp;.</span><span class='id identifier rubyid_alive?'>alive?</span>
     <span class='kw'>if</span> <span class='id identifier rubyid_force_kill'>force_kill</span>
       <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span><span class='op'>&amp;.</span><span class='id identifier rubyid_warn'>warn</span><span class='lparen'>(</span>
         <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[Phronomy] EventLoop task did not stop within </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_timeout'>timeout</span><span class='embexpr_end'>}</span><span class='tstring_content'>s; cancelling. </span><span class='tstring_end'>&quot;</span></span> \
         <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>This is a last resort — check for blocking operations in event handlers.</span><span class='tstring_end'>&quot;</span></span>
       <span class='rparen'>)</span>
-      <span class='ivar'>@task</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span>
-      <span class='id identifier rubyid_status'>status</span> <span class='op'>=</span> <span class='symbol'>:force_killed</span>
+      <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span>
+      <span class='kw'>begin</span>
+        <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='id identifier rubyid_cancel_grace'>cancel_grace</span><span class='rparen'>)</span>
+      <span class='kw'>rescue</span>
+        <span class='kw'>nil</span>
+      <span class='kw'>end</span>
+      <span class='kw'>if</span> <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_alive?'>alive?</span>
+        <span class='id identifier rubyid_status'>status</span> <span class='op'>=</span> <span class='symbol'>:cancel_timeout</span>
+      <span class='kw'>else</span>
+        <span class='ivar'>@task</span> <span class='op'>=</span> <span class='kw'>nil</span> <span class='kw'>if</span> <span class='ivar'>@task</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_task'>task</span><span class='rparen'>)</span>
+        <span class='id identifier rubyid_status'>status</span> <span class='op'>=</span> <span class='symbol'>:force_killed</span>
+      <span class='kw'>end</span>
     <span class='kw'>else</span>
       <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span><span class='op'>&amp;.</span><span class='id identifier rubyid_warn'>warn</span><span class='lparen'>(</span>
         <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[Phronomy] EventLoop task did not stop within </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_timeout'>timeout</span><span class='embexpr_end'>}</span><span class='tstring_content'>s; abandoning </span><span class='tstring_end'>&quot;</span></span> \
@@ -1342,9 +1407,67 @@ they were discarded and the loop was stopped</li>
       <span class='rparen'>)</span>
       <span class='id identifier rubyid_status'>status</span> <span class='op'>=</span> <span class='symbol'>:timeout</span>
     <span class='kw'>end</span>
+  <span class='kw'>else</span>
+    <span class='ivar'>@task</span> <span class='op'>=</span> <span class='kw'>nil</span> <span class='kw'>if</span> <span class='ivar'>@task</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_task'>task</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
-  <span class='ivar'>@task</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='id identifier rubyid_status'>status</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="task_alive?-instance_method">
+  
+    #<strong>task_alive?</strong>  &#x21d2; <tt>Boolean</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns true if the dispatch task is currently alive.
+Safe to call from any thread.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+302
+303
+304</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 302</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_task_alive?'>task_alive?</span>
+  <span class='ivar'>@task</span><span class='op'>&amp;.</span><span class='id identifier rubyid_alive?'>alive?</span> <span class='op'>||</span> <span class='kw'>false</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1356,7 +1479,7 @@ they were discarded and the loop was stopped</li>
 </div>
 
       <div id="footer">
-  Generated on Sat Jul 25 13:04:52 2026 by
+  Generated on Sat Jul 25 17:19:57 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
