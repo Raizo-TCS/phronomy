@@ -525,9 +525,13 @@ RSpec.describe "Lifecycle invariants" do
       expect(result).to be(el)
       expect(el.instance_variable_get(:@task)).to be(original_task)
     ensure
-      release.push(:done)
-      original_task&.join(2) rescue nil
-      Phronomy::EventLoop.reset!(timeout: 2) rescue nil
+      release&.push(:done)
+      begin
+        original_task&.join(2)
+      rescue
+        nil
+      end
+      Phronomy::EventLoop.reset!
     end
 
     it "returns :cancel_timeout and retains @task when cancel! does not terminate the task" do
@@ -557,9 +561,13 @@ RSpec.describe "Lifecycle invariants" do
       expect(el.instance_variable_get(:@task)).to be(original_task)
       expect(original_task).to be_alive
     ensure
-      release.push(:done)
-      original_task&.join(2) rescue nil
-      Phronomy::EventLoop.reset!(timeout: 2) rescue nil
+      release&.push(:done)
+      begin
+        original_task&.join(2)
+      rescue
+        nil
+      end
+      Phronomy::EventLoop.reset!
     end
 
     it "raises and retains the singleton when reset! cannot fully stop the task" do
@@ -576,7 +584,7 @@ RSpec.describe "Lifecycle invariants" do
     ensure
       # Remove the stub and perform real cleanup.
       allow(instance).to receive(:task_alive?).and_call_original
-      Phronomy::EventLoop.reset!(timeout: 2) rescue nil
+      Phronomy::EventLoop.reset!
     end
   end
 end

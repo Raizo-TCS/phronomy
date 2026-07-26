@@ -290,8 +290,8 @@ module Phronomy
           )
           status = :timeout
         end
-      else
-        @task = nil if @task.equal?(task)
+      elsif @task.equal?(task)
+        @task = nil
       end
       status
     end
