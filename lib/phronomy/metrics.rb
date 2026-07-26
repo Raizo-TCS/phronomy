@@ -20,9 +20,10 @@ module Phronomy
     # @return [Hash{Symbol => Numeric}]
     # @api public
     def self.snapshot
-      pool = Runtime.instance.blocking_io
-      el = EventLoop.instance
-      task_snap = Runtime.instance.task_snapshot
+      runtime = Runtime.instance
+      pool = runtime.blocking_io
+      el = runtime.event_loop
+      task_snap = runtime.task_snapshot
 
       {
         blocking_pool_active: pool.active_count,

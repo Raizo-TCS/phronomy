@@ -167,10 +167,9 @@ module Phronomy
     # @api private
     # mutant:disable - multiple genuine equivalent mutations: defined?(Phronomy::EventLoop)&& removal is genuine because EventLoop is always loaded in the killfork environment; true&& is genuine (truthy guard); EventLoop.current? resolves to Phronomy::EventLoop.current? within the Phronomy module; WorkflowContextOwnershipError resolves to Phronomy::WorkflowContextOwnershipError within the module; raise without message or with nil message is genuine (spec checks exception class, not message text)
     def _assert_write_permitted!
-      return unless defined?(Phronomy::EventLoop)
       # Allow mutations when executing synchronously (e.g. Workflow#stream via run_workflow).
       return if Thread.current[:phronomy_sync_execution]
-      return if Phronomy::EventLoop.current?
+      return if Phronomy::Runtime.in_event_loop_context?
 
       raise Phronomy::WorkflowContextOwnershipError,
         "WorkflowContext fields may only be mutated from the EventLoop dispatch " \

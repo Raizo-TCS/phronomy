@@ -204,11 +204,15 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
     end
 
     around do |ex|
-      old = Phronomy::Runtime.instance
+      old = Phronomy::Runtime.default_if_initialized_for_test
       Phronomy::Runtime.instance = runtime
       ex.run
     ensure
-      runtime.blocking_io.shutdown(drain_timeout: 5)
+      begin
+        runtime.shutdown(timeout: 5)
+      rescue
+        nil
+      end
       Phronomy::Runtime.instance = old
     end
 
@@ -240,11 +244,15 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
     end
 
     around do |ex|
-      old = Phronomy::Runtime.instance
+      old = Phronomy::Runtime.default_if_initialized_for_test
       Phronomy::Runtime.instance = runtime
       ex.run
     ensure
-      runtime.blocking_io.shutdown(drain_timeout: 5)
+      begin
+        runtime.shutdown(timeout: 5)
+      rescue
+        nil
+      end
       Phronomy::Runtime.instance = old
     end
 
@@ -278,11 +286,15 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
   # -------------------------------------------------------------------------
   describe "TC-010: mixed_tools — FbBlockingTool (:blocking_io) and FbCooperativeTool (:cooperative) both execute correctly under :fiber" do
     around do |ex|
-      old = Phronomy::Runtime.instance
+      old = Phronomy::Runtime.default_if_initialized_for_test
       Phronomy::Runtime.instance = runtime
       ex.run
     ensure
-      runtime.blocking_io.shutdown(drain_timeout: 5)
+      begin
+        runtime.shutdown(timeout: 5)
+      rescue
+        nil
+      end
       Phronomy::Runtime.instance = old
     end
 
@@ -318,11 +330,15 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
   # -------------------------------------------------------------------------
   describe "TC-011: rag_fetch — VectorStore::InMemory#search_async routes through pool and returns correct results under :fiber" do
     around do |ex|
-      old = Phronomy::Runtime.instance
+      old = Phronomy::Runtime.default_if_initialized_for_test
       Phronomy::Runtime.instance = runtime
       ex.run
     ensure
-      runtime.blocking_io.shutdown(drain_timeout: 5)
+      begin
+        runtime.shutdown(timeout: 5)
+      rescue
+        nil
+      end
       Phronomy::Runtime.instance = old
     end
 

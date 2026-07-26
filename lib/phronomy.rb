@@ -77,6 +77,13 @@ module Phronomy
   # @see Phronomy::Runtime.in_scheduler_context?
   class SchedulerReentrancyError < Error; end
 
+  # Raised when work is submitted to a Runtime whose shutdown has begun, or
+  # when a Runtime cannot be reset because owned resources are still alive.
+  class RuntimeShutdownError < Error; end
+
+  # Raised when Runtime#shutdown is invoked from inside a Phronomy::Task.
+  class RuntimeShutdownReentrancyError < RuntimeShutdownError; end
+
   # Raised by {Phronomy::GeneratorVerifier#invoke} when +raise_if_untrusted: true+
   # and the pipeline's combined confidence score falls below the configured threshold.
   #
@@ -175,28 +182,26 @@ module Phronomy
       @configuration = original
     end
 
-    # Resets all Phronomy runtime state: configuration and the EventLoop
-    # singleton (if running).
+    # Shuts down and clears the process-wide default Runtime, then resets
+    # global configuration. Intended for test suites only.
     #
-    # **Intended for test suites only.**  Stops any running EventLoop thread,
-    # clears the EventLoop singleton, and resets configuration to defaults.
-    # Call once before/after each example to ensure test isolation.
+    # Runtime execution failure and resource cleanup are separate. The
+    # singleton is cleared when cleanup completed, even if execution failed.
     #
-    # @example
-    #   config.around { |ex| Phronomy.reset_runtime! ; ex.run ; Phronomy.reset_runtime! }
+    # @param timeout [Numeric] maximum graceful wait for Runtime tasks and
+    #   EventLoop shutdown
+    # @return [Phronomy::Runtime::ShutdownResult]
     # @api public
-    def reset_runtime!
-      # Do NOT stop the EventLoop here. Since Phase 2, all Agent#invoke calls
-      # go through FSMSession + EventLoop. Stopping and restarting the EventLoop
-      # on every after(:each) hook would add thread creation overhead per test.
-      # run_via_event_loop and _invoke_via_fsm restart it lazily if it was reset.
-      #
-      # Preserve event_loop_stop_grace_seconds from the current configuration
-      # so that test suites that set it to 0 (for fast teardown) keep that value
-      # across configuration resets.
-      prev_grace = @configuration&.event_loop_stop_grace_seconds
-      @configuration = Configuration.new
-      @configuration.event_loop_stop_grace_seconds = prev_grace if prev_grace
+    def reset_runtime!(timeout: configuration.event_loop_stop_grace_seconds)
+      previous_grace = @configuration&.event_loop_stop_grace_seconds
+      result = Runtime.reset_default!(timeout: timeout)
+
+      new_configuration = Configuration.new
+      if previous_grace
+        new_configuration.event_loop_stop_grace_seconds = previous_grace
+      end
+      @configuration = new_configuration
+      result
     end
   end
 end

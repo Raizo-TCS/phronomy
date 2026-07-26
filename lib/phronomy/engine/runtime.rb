@@ -8,6 +8,7 @@ require_relative "runtime/timer_queue"
 require_relative "runtime/scheduler_timer_adapter"
 require_relative "runtime/task_registry"
 require_relative "runtime/runtime_metrics"
+require_relative "runtime/shutdown_result"
 require_relative "runtime/timer_service"
 
 module Phronomy
@@ -47,8 +48,68 @@ module Phronomy
     #
     # @return [Runtime]
     # @api private
-    def self.instance
-      @instance ||= begin
+    @instance_mutex = Mutex.new
+
+    class << self
+      def instance
+        instance_mutex.synchronize do
+          @instance ||= build_default_runtime
+        end
+      end
+
+      # Compatibility setter retained for existing tests.
+      def instance=(runtime)
+        replace_default_for_test(runtime)
+      end
+
+      # Test-only, non-creating access to the default Runtime.
+      def default_if_initialized_for_test
+        instance_mutex.synchronize { @instance }
+      end
+
+      # Test-only replacement. The caller owns both Runtime lifecycles.
+      def replace_default_for_test(runtime)
+        instance_mutex.synchronize do
+          previous = @instance
+          @instance = runtime
+          previous
+        end
+      end
+
+      # Test-only restoration of a previously captured Runtime.
+      def restore_default_for_test(runtime)
+        instance_mutex.synchronize { @instance = runtime }
+      end
+
+      def reset_default!(timeout: Phronomy.configuration.event_loop_stop_grace_seconds)
+        runtime = instance_mutex.synchronize { @instance }
+        return ShutdownResult.not_started unless runtime
+
+        result = runtime.shutdown(timeout: timeout)
+        unless result.cleanup_complete?
+          raise Phronomy::RuntimeShutdownError,
+            "Runtime cleanup is incomplete; default Runtime was retained"
+        end
+
+        instance_mutex.synchronize do
+          @instance = nil if @instance.equal?(runtime)
+        end
+        result
+      end
+
+      # Does not create a Runtime or EventLoop.
+      def in_event_loop_context?
+        runtime = instance_mutex.synchronize { @instance }
+        runtime&.event_loop_current? || false
+      end
+
+      private
+
+      def instance_mutex
+        @instance_mutex ||= Mutex.new
+      end
+
+      def build_default_runtime
         scheduler = case Phronomy.configuration.runtime_backend
         when :cooperative
           Phronomy.configuration.logger&.warn(
@@ -72,14 +133,6 @@ module Phronomy
         end
         new(scheduler: scheduler)
       end
-    end
-
-    # Replaces the process-wide default Runtime.  Useful in tests.
-    # @param runtime [Runtime]
-    # @return [Runtime]
-    # @api private
-    def self.instance=(runtime)
-      @instance = runtime
     end
 
     # Returns +true+ when the calling thread is executing inside an active
@@ -118,16 +171,29 @@ module Phronomy
     # @return [Scheduler]
     attr_reader :scheduler
 
+    # @return [Symbol] current Runtime lifecycle state
+    # @api private
+    def state
+      @lifecycle_mutex.synchronize { @state }
+    end
+
     # @param scheduler [Scheduler] execution backend (default: {ThreadScheduler})
     # @api private
     def initialize(scheduler: ThreadScheduler.new)
       @scheduler = scheduler
+      @event_loop_scheduler = ThreadScheduler.new
       @task_registry = TaskRegistry.new
       @metrics = RuntimeMetrics.new
       @timer_service = TimerService.new(scheduler)
       @pool_registry = Phronomy::Concurrency::PoolRegistry.new(
         timer_queue_provider: -> { @timer_service.timer_queue }
       )
+      @lifecycle_mutex = Mutex.new
+      @shutdown_mutex = Mutex.new
+      @state = :running
+      @event_loop = nil
+      @failure = nil
+      @shutdown_result = nil
     end
 
     # Cooperative yield point.
@@ -204,6 +270,7 @@ module Phronomy
     # @return [TaskGroup]
     # @api private
     def task_group(limit: Float::INFINITY, failure_policy: :fail_fast)
+      ensure_accepting_work!
       TaskGroup.new(limit: limit, failure_policy: failure_policy, runtime: self)
     end
 
@@ -224,6 +291,7 @@ module Phronomy
     # @return [Task]
     # @api private
     def spawn(name: nil, &block)
+      ensure_accepting_work!
       type = _task_type(name)
       spawn_at = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
       @metrics.record_start(type)
@@ -288,6 +356,7 @@ module Phronomy
     # @api private
     def blocking_io(pool_size: Phronomy.configuration.blocking_io_pool_size,
       queue_size: Phronomy.configuration.blocking_io_queue_size)
+      ensure_accepting_work!
       @pool_registry.default_pool(pool_size: pool_size, queue_size: queue_size)
     end
 
@@ -307,6 +376,7 @@ module Phronomy
     # @return [BlockingAdapterPool]
     # @api private
     def pool(name, size: 10, queue_size: 100)
+      ensure_accepting_work!
       @pool_registry.named_pool(name, size: size, queue_size: queue_size)
     end
 
@@ -327,32 +397,171 @@ module Phronomy
     # @return [TimerQueue, SchedulerTimerAdapter]
     # @api private
     def timer_queue
+      ensure_accepting_work!
       @timer_service.timer_queue
     end
 
-    # Waits for all registered tasks to finish, then shuts down the
-    # EventLoop (if active), blocking adapter pool, named pools, and timer queue
-    # (if they were started).
-    #
-    # When EventLoop mode is enabled, all pending Workflow and Agent FSM events
-    # are drained before pools are shut down, ensuring in-flight sessions
-    # complete cleanly.
-    #
-    # Call this before process exit to avoid leaving orphaned threads or
-    # pending work items.
-    #
-    # @return [void]
+    # Returns the Runtime-owned EventLoop, creating it once on first use.
+    # During draining an existing loop remains available, but an unused loop
+    # is never created after shutdown begins.
     # @api private
-    def shutdown
-      @task_registry.drain
-      # Drain EventLoop events before stopping pools so that in-flight
-      # Workflow / Agent FSM sessions can complete their final LLM calls.
-      Phronomy::EventLoop.instance.stop(drain: true)
-      @pool_registry.shutdown
-      @timer_service.shutdown
+    def event_loop
+      @lifecycle_mutex.synchronize do
+        case @state
+        when :running
+          @event_loop ||= EventLoop.new(runtime: self)
+        when :draining
+          return @event_loop if @event_loop
+
+          raise Phronomy::RuntimeShutdownError,
+            "EventLoop was not initialized before Runtime shutdown began"
+        else
+          raise Phronomy::RuntimeShutdownError,
+            "Runtime is #{@state}; EventLoop is unavailable"
+        end
+      end
+    end
+
+    # Does not create an EventLoop.
+    # @api private
+    def event_loop_current?
+      event_loop = @lifecycle_mutex.synchronize { @event_loop }
+      event_loop&.current? || false
+    end
+
+    # Internal EventLoop service spawn. Always uses a real OS thread and is
+    # deliberately excluded from the normal TaskRegistry drain.
+    # @api private
+    def __spawn_event_loop_service(&block)
+      @event_loop_scheduler.spawn(name: "event-loop", parent: nil, &block)
+    end
+
+    # Called only for an unexpected dispatcher failure.
+    # @api private
+    def __event_loop_failed(error)
+      @lifecycle_mutex.synchronize do
+        return if @shutdown_result || @state == :terminated
+
+        @failure ||= error
+        @state = :failed
+      end
+    end
+
+    # Synchronous, bounded Runtime shutdown. Must be invoked from an external
+    # management thread, lifecycle hook, or test teardown—not a Phronomy Task.
+    #
+    # +timeout+ bounds TaskRegistry and EventLoop graceful shutdown. Existing
+    # pool and timer shutdown contracts are unchanged by this proposal.
+    # @return [Runtime::ShutdownResult]
+    # @api public
+    def shutdown(
+      timeout: Phronomy.configuration.event_loop_stop_grace_seconds,
+      cancel_grace: timeout
+    )
+      if Phronomy::Task.current
+        raise Phronomy::RuntimeShutdownReentrancyError,
+          "Runtime#shutdown must be called from an external management thread"
+      end
+      validate_timeout!(timeout, :timeout)
+      validate_timeout!(cancel_grace, :cancel_grace)
+
+      @shutdown_mutex.synchronize do
+        return @shutdown_result if @shutdown_result
+
+        deadline = monotonic_now + timeout
+        event_loop = @lifecycle_mutex.synchronize do
+          @state = :draining unless @state == :failed
+          @event_loop
+        end
+        event_loop&.begin_draining
+
+        task_status = drain_runtime_work(event_loop, deadline)
+
+        @lifecycle_mutex.synchronize do
+          @state = :stopping unless @state == :failed
+        end
+
+        event_loop_status = if event_loop
+          event_loop.shutdown(deadline: deadline, cancel_grace: cancel_grace)
+        else
+          :not_started
+        end
+
+        subsystem_error = shutdown_pools_and_timer
+        final_task_status = @task_registry.empty? ? :empty : task_status
+        cleanup_complete = final_task_status == :empty &&
+          (!event_loop || !event_loop.task_alive?) &&
+          event_loop_status != :cancel_timeout &&
+          subsystem_error.nil?
+
+        failure = @lifecycle_mutex.synchronize { @failure } || subsystem_error
+        runtime_outcome = if failure || event_loop_status == :failed
+          :failed
+        else
+          :terminated
+        end
+        result = ShutdownResult.new(
+          runtime_outcome: runtime_outcome,
+          cleanup_status: cleanup_complete ? :complete : :incomplete,
+          event_loop_status: event_loop_status,
+          task_registry_status: final_task_status,
+          error: failure
+        )
+
+        @lifecycle_mutex.synchronize do
+          @state = cleanup_complete ? runtime_outcome : :failed
+          @shutdown_result = result
+        end
+        result
+      end
     end
 
     private
+
+    def ensure_accepting_work!
+      current_state = @lifecycle_mutex.synchronize { @state }
+      return if %i[running draining].include?(current_state)
+
+      raise Phronomy::RuntimeShutdownError,
+        "Runtime is #{current_state}; new work is not accepted"
+    end
+
+    def drain_runtime_work(event_loop, deadline)
+      loop do
+        task_status = @task_registry.drain_until(deadline)
+        return :timeout if task_status == :timeout
+
+        event_loop_idle = !event_loop || event_loop.wait_until_idle(deadline)
+        return :timeout unless event_loop_idle
+        return :empty if @task_registry.empty?
+      end
+    end
+
+    def shutdown_pools_and_timer
+      error = nil
+      begin
+        @pool_registry.shutdown
+      rescue => e
+        error ||= e
+      ensure
+        begin
+          @timer_service.shutdown
+        rescue => e
+          error ||= e
+        end
+      end
+      error
+    end
+
+    def validate_timeout!(value, name)
+      return if value.is_a?(Numeric) && value >= 0
+
+      raise ArgumentError, "#{name} must be a non-negative Numeric"
+    end
+
+    def monotonic_now
+      Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    end
 
     TASK_TYPE_PREFIXES = %w[agent tool workflow rag llm vector].freeze
     private_constant :TASK_TYPE_PREFIXES

@@ -184,26 +184,26 @@ RSpec.describe "Fault injection (Issue #230 — extended)" do
   # 6. EventLoop shutdown rejects new sessions with CancellationError
   # -------------------------------------------------------------------------
   describe "EventLoop shutdown rejects new sessions" do
-    it "pushes a CancellationError into the completion queue when shutting down" do
-      loop = Phronomy::EventLoop.new
-      loop.start
+    it "raises RuntimeShutdownError when the EventLoop state is :stopping" do
+      runtime = Phronomy::Runtime.new
+      loop = runtime.event_loop
 
-      # Cancel the shutdown token directly to simulate a shutdown in progress
-      loop.instance_variable_get(:@shutdown_token).cancel!
+      # Transition to :stopping to simulate shutdown in progress.
+      loop.instance_variable_get(:@lifecycle_mutex).synchronize do
+        loop.instance_variable_set(:@state, :stopping)
+      end
 
-      # Build a minimal FSMSession double that can be inspected
       fsm_double = instance_double(Phronomy::FSMSession,
         id: "test-session-#{rand(100_000)}",
         start: nil)
 
-      cq = loop.register(fsm_double)
-
-      # The loop should push a CancellationError without calling fsm.start
-      result = cq.pop
-      expect(result).to be_a(Phronomy::CancellationError)
-      expect(result.message).to match(/shutting down/i)
+      expect { loop.register(fsm_double) }.to raise_error(Phronomy::RuntimeShutdownError)
     ensure
-      loop&.stop
+      begin
+        runtime&.shutdown(timeout: 1)
+      rescue
+        nil
+      end
     end
   end
 end

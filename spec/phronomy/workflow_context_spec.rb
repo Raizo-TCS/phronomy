@@ -375,11 +375,8 @@ RSpec.describe Phronomy::WorkflowContext, "single-owner enforcement (Issue #298)
 
   context "WorkflowContext ownership enforcement (EventLoop always active)" do
     around do |example|
-      # EventLoop is always active; just ensure it is started before this
-      # context's examples run. No need to stop/reset between tests —
-      # reset_runtime! in after(:each) resets configuration without stopping
-      # the EventLoop (stopping it would cost ~5s grace period per test).
-      Phronomy::EventLoop.instance.start
+      # Ensure the default Runtime EventLoop is started before this context.
+      Phronomy::Runtime.instance.event_loop
       example.run
     end
 
@@ -411,13 +408,14 @@ RSpec.describe Phronomy::WorkflowContext, "single-owner enforcement (Issue #298)
         # This runs on the EventLoop thread — writing must succeed.
         class_local_ctx.answer = "from eventloop"
         written_flag.push(:done)
-        Phronomy::EventLoop.instance.post(
+        el = Phronomy::Runtime.instance.event_loop
+        el.post(
           Phronomy::Event.new(type: :finished, target_id: id, payload: nil)
         )
       end
       dummy_session.define_singleton_method(:handle) { |_e| }
 
-      Phronomy::EventLoop.instance.register(dummy_session)
+      Phronomy::Runtime.instance.event_loop.register(dummy_session)
       written_flag.pop(timeout: 2)
 
       expect(ctx.answer).to eq("from eventloop")

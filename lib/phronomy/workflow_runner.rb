@@ -99,14 +99,19 @@ module Phronomy
     # @return [Phronomy::Task]
     # @api private
     def invoke_deferred(input, config: {})
+      runtime = Phronomy::Runtime.instance
+      event_loop = runtime.event_loop
       state, thread_id, recursion_limit, store = _build_initial_context(input, config)
       result_task = Phronomy::Task.deferred(name: "workflow-async:#{thread_id}")
-      Phronomy::EventLoop.instance.start
-      session = build_session_for(context: state, recursion_limit: recursion_limit)
+      session = build_session_for(
+        context: state,
+        recursion_limit: recursion_limit,
+        runtime: runtime
+      )
       if store && config[:thread_id]
         # Wrap so that state is persisted when the task resolves.
         persist_task = Phronomy::Task.deferred(name: "workflow-async-persist:#{thread_id}")
-        Phronomy::EventLoop.instance.register(session, completion: persist_task)
+        event_loop.register(session, completion: persist_task)
         persist_task.on_complete do |result, error|
           store.save(thread_id, {fields: result.to_h, phase: result.phase.to_s}) unless error
           if error
@@ -118,7 +123,7 @@ module Phronomy
           end
         end
       else
-        Phronomy::EventLoop.instance.register(session, completion: result_task)
+        event_loop.register(session, completion: result_task)
       end
       result_task
     end
@@ -202,7 +207,8 @@ module Phronomy
     end
 
     # Builds an FSMSession for the given context. Used in EventLoop mode.
-    def build_session_for(context:, recursion_limit:, resume_event: nil, resume_phase: nil)
+    def build_session_for(context:, recursion_limit:, runtime: Phronomy::Runtime.instance,
+      resume_event: nil, resume_phase: nil)
       Phronomy::FSMSession.new(
         id: context.thread_id,
         context: context,
@@ -214,24 +220,28 @@ module Phronomy
         external_events: @external_events,
         phase_machine_class: @phase_machine_class,
         recursion_limit: recursion_limit,
+        event_loop: runtime.event_loop,
+        timer_queue_provider: -> { runtime.timer_queue },
         action_timeouts: @action_timeouts,
         resume_event: resume_event,
         resume_phase: resume_phase
       )
     end
 
-    # Executes the workflow via the singleton EventLoop.
+    # Executes the workflow via the default Runtime-owned EventLoop.
     # Blocks the calling thread on a completion queue until the workflow
     # finishes, halts at a wait state, or raises an error.
     def run_via_event_loop(context, recursion_limit:, resume_event: nil, resume_phase: nil)
-      # Ensure EventLoop is running. In tests, reset_runtime! resets the
-      # singleton without restarting it; start is idempotent when already alive.
-      Phronomy::EventLoop.instance.start
+      runtime = Phronomy::Runtime.instance
+      event_loop = runtime.event_loop
       session = build_session_for(
-        context: context, recursion_limit: recursion_limit,
-        resume_event: resume_event, resume_phase: resume_phase
+        context: context,
+        recursion_limit: recursion_limit,
+        runtime: runtime,
+        resume_event: resume_event,
+        resume_phase: resume_phase
       )
-      completion_queue = Phronomy::EventLoop.instance.register(session)
+      completion_queue = event_loop.register(session)
       result = completion_queue.pop
       raise result if result.is_a?(Exception)
       result

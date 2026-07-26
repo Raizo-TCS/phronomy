@@ -107,8 +107,8 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
   describe "Scheduler lag under slow-backend load" do
     it "keeps EventLoop max_lag_seconds below 0.2s while pool workers are busy" do
       pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 4, queue_size: 20)
-      el = Phronomy::EventLoop.new
-      el.start
+      runtime = Phronomy::Runtime.new
+      el = runtime.event_loop
 
       begin
         # Submit slow operations to occupy pool workers
@@ -120,7 +120,11 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
 
         expect(el.max_lag_seconds).to be < 0.2
       ensure
-        el.stop(timeout: 2)
+        begin
+          runtime.shutdown(timeout: 2)
+        rescue
+          nil
+        end
         pool.shutdown(drain_timeout: 5)
       end
     end

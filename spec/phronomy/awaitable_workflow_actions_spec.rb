@@ -12,7 +12,13 @@ RSpec.describe "Awaitable Workflow actions (#264)" do
     end
   end
 
-  after { Phronomy::EventLoop.reset! }
+  after {
+    begin
+      Phronomy.reset_runtime!
+    rescue
+      nil
+    end
+  }
 
   # -------------------------------------------------------------------------
   # A. Entry action returning a Task is awaited via EventLoop (always active)

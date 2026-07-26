@@ -1,129 +1,57 @@
 # frozen_string_literal: true
 
 module Phronomy
-  # Singleton event loop that manages all FSMSession instances.
+  # Runtime-owned event loop that manages all FSMSession instances.
   #
-  # A single background thread reads from a global {Phronomy::Concurrency::AsyncQueue} and
-  # dispatches events to their target FSMSession.  IO work (LLM calls, tool
-  # calls) must be dispatched via +Runtime.instance.spawn+ or
-  # +BlockingAdapterPool+, then post results back to the loop via
-  # {EventLoop#post}.
+  # A dedicated real thread reads from a Runtime-local AsyncQueue and dispatches
+  # events to their target FSMSession. The EventLoop is created at most once by
+  # its owning Runtime and is never restarted after shutdown.
   #
-  # Always active — all Workflow and Agent invocations use the EventLoop.
-  #
-  # == Threading exception (see ADR-010 Rule 2)
-  #
-  # +EventLoop+ is a **deliberate exception** to Phronomy's cooperative-first
-  # concurrency model.  Its dispatch loop is an infinite +while @running+ loop
-  # that must never block the framework's own event processing.
-  # Running it on a shared scheduler task would consume the scheduler, preventing
-  # other tasks from running.  Therefore {#start} creates a dedicated
-  # {Runtime::ThreadScheduler} — this is correct and intentional per ADR-010.
-  # No other framework component should do the same; see the ADR-010 checklist.
-  #
-  # == Handler constraints
-  #
-  # Handlers dispatched by the EventLoop run **on the EventLoop thread**.
-  # They must not:
-  #
-  # * Perform blocking operations directly (database queries, LLM calls, HTTP
-  #   requests).  Schedule blocking work via +Runtime.instance.spawn+ or
-  #   +BlockingAdapterPool+, then post results back with {#post}.
-  # * Call +Workflow#invoke+ (or any synchronous +invoke+) from within a
-  #   handler.  That method would block waiting for the EventLoop to process
-  #   events, causing a deadlock.  Use the async pattern: post a follow-up
-  #   event instead.
-  #
-  # == Fork safety
-  #
-  # +EventLoop.instance+ is lazily initialized. The background thread is not
-  # created until the first call, so Puma worker forking does not duplicate the
-  # thread. No +after_fork+ hook is required.
-  #
-  # == Deadlock warning
-  #
-  # Do NOT call +Workflow#invoke+ (in EventLoop mode) from within a workflow
-  # entry action. The entry action runs on the EventLoop thread; a nested
-  # +invoke+ would block waiting for the same thread to process events →
-  # deadlock. Use the async pattern instead: schedule work via
-  # +Runtime.instance.spawn+ or +BlockingAdapterPool+, then post events back
-  # via +Phronomy::EventLoop.instance.post(...)+.
+  # FSMSession handlers run on the EventLoop thread. They must not perform
+  # blocking work or call synchronous invoke APIs from that thread.
   class EventLoop
-    # Sentinel target_id for EventLoop management events (:start, :finished, :halted, :error).
-    # Events with this target_id are processed directly by the EventLoop and never
-    # routed to any FSMSession via handle(event).
     SYSTEM_CHANNEL_ID = "__event_loop__"
 
-    # Returns the singleton instance, creating and starting it on first call.
-    def self.instance
-      @instance ||= new.tap(&:start)
-    end
+    STOP = Object.new.freeze
+    private_constant :STOP
 
-    # Returns true when called from within the EventLoop dispatch task.
-    # Uses a task-local key set by the Runtime-spawned dispatch task so that
-    # the check works correctly for both thread-based and future fiber-based
-    # scheduler backends.
-    # @return [Boolean]
+    # @param runtime [Phronomy::Runtime] owning Runtime
     # @api private
-    def self.current?
-      Phronomy::Task.current&.name == "event-loop"
-    end
+    def initialize(runtime:)
+      @runtime = runtime
+      @queue = Phronomy::Concurrency::AsyncQueue.new
+      @fsms = {}
+      @waiting = {}
 
-    # Stops and destroys the singleton. Primarily used in tests.
-    # @api private
-    def self.reset!
-      instance = @instance
-      return :clean unless instance
+      @lifecycle_mutex = Mutex.new
+      @idle_cond = ConditionVariable.new
+      @shutdown_mutex = Mutex.new
+      @state = :running
+      @outstanding_sessions = 0
+      @cancel_requested = false
+      @shutdown_status = nil
 
-      status = instance.stop
-
-      if instance.task_alive?
-        raise Phronomy::Error,
-          "EventLoop task is still alive after stop; singleton was not reset"
-      end
-
-      @instance = nil if @instance.equal?(instance)
-      status
-    end
-
-    def initialize
-      @queue = Phronomy::Concurrency::AsyncQueue.new  # global event queue (thread-safe; no Mutex needed)
-      @fsms = {}                  # { id => FSMSession }     — EventLoop thread only
-      @waiting = {}               # { id => completion_queue } — EventLoop thread only
-      # Mutex-backed FSM count for drain-mode shutdown.
-      @fsm_count_mutex = Mutex.new
-      @fsm_count_cond = ConditionVariable.new
-      @fsm_count = 0
-      # Token cancelled when shutdown is requested; new child sessions receive it.
-      @shutdown_token = Phronomy::Concurrency::CancellationToken.new
-      # Fairness metrics (EventLoop thread only, except where noted)
       @lag_mutex = Mutex.new
       @last_lag_ns = 0
       @max_lag_ns = 0
       @dispatch_count = 0
       @total_lag_ns = 0
+
+      @task = @runtime.__spawn_event_loop_service { run_loop }
     end
 
-    # Returns the most recently measured event-loop lag in seconds.
-    # Lag is the wall-clock time between {#post} and the moment the event
-    # is dequeued for dispatch.  Thread-safe.
     # @return [Float]
     # @api private
     def last_lag_seconds
       @lag_mutex.synchronize { @last_lag_ns } / 1_000_000_000.0
     end
 
-    # Returns the maximum event-loop lag seen since the loop was started.
-    # Thread-safe.
     # @return [Float]
     # @api private
     def max_lag_seconds
       @lag_mutex.synchronize { @max_lag_ns } / 1_000_000_000.0
     end
 
-    # Returns the mean event-loop lag across all dispatched events since the
-    # loop was started.  Returns 0.0 when no events have been dispatched.
-    # Thread-safe.
     # @return [Float]
     # @api private
     def average_lag_seconds
@@ -134,170 +62,148 @@ module Phronomy
       end
     end
 
-    # Registers an FSMSession for execution and returns a completion queue.
+    # Registers an FSMSession and returns its completion queue.
     #
-    # The session and its completion queue are handed off to the EventLoop thread
-    # via the queue payload, so +@fsms+ and +@waiting+ are exclusively written
-    # and read by the EventLoop thread. No Mutex is required.
-    #
-    # The caller blocks on +completion_queue.pop+ to receive the final context
-    # (WorkflowContext) once the workflow finishes or halts. If an error occurred,
-    # the popped value will be an Exception — callers are responsible for re-raising it.
+    # +outstanding_sessions+ is incremented before the :start event is enqueued,
+    # so shutdown also accounts for accepted sessions that have not yet been
+    # dispatched.
     #
     # @param fsm_session [Phronomy::FSMSession]
-    # @return [Phronomy::Concurrency::AsyncQueue] resolves to final/halted context, or an Exception
+    # @param completion [Phronomy::Task, nil]
+    # @return [Phronomy::Concurrency::AsyncQueue, Phronomy::Task]
     # @api private
     def register(fsm_session, completion: nil)
-      if Phronomy::EventLoop.current? && !completion.is_a?(Phronomy::Task)
+      if current? && !completion.is_a?(Phronomy::Task)
         raise Phronomy::Error,
-          "Cannot call Workflow#invoke (EventLoop mode) from within an EventLoop " \
-          "entry action. Schedule work via Runtime.instance.spawn or " \
-          "BlockingAdapterPool, then post events back via " \
-          "Phronomy::EventLoop.instance.post(...) instead."
+          "Cannot call synchronous Workflow#invoke from an EventLoop action. " \
+          "Schedule work asynchronously instead."
       end
 
       completion_queue = completion || Phronomy::Concurrency::AsyncQueue.new
-      # When called from a DeterministicScheduler Fiber (e.g. :fiber backend),
-      # mark the queue so that _pop_cooperative uses track_blocking_await.
-      # This prevents run_until_idle from exiting before the EventLoop thread
-      # (a different OS thread where Scheduler.current is nil) pushes the result.
       scheduler = Phronomy::Runtime::Scheduler.current
-      completion_queue.expect_cross_thread_push(scheduler) if scheduler && completion_queue.respond_to?(:expect_cross_thread_push)
-      # Pass both session and completion_queue in the event payload so that the
-      # EventLoop thread is the sole writer of @fsms and @waiting.
-      # Use SYSTEM_CHANNEL_ID so the management event is never routed to an FSM.
-      @queue.push([Event.new(type: :start, target_id: SYSTEM_CHANNEL_ID,
-        payload: {session: fsm_session, completion: completion_queue}),
-        Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)])
+      if scheduler && completion_queue.respond_to?(:expect_cross_thread_push)
+        completion_queue.expect_cross_thread_push(scheduler)
+      end
+
+      event = Phronomy::Event.new(
+        type: :start,
+        target_id: SYSTEM_CHANNEL_ID,
+        payload: {session: fsm_session, completion: completion_queue}
+      )
+
+      @lifecycle_mutex.synchronize do
+        ensure_accepting_registrations!
+        @outstanding_sessions += 1
+        begin
+          @queue.push([event, monotonic_nanoseconds])
+        rescue
+          @outstanding_sessions -= 1
+          @idle_cond.broadcast if @outstanding_sessions.zero?
+          raise
+        end
+      end
+
       completion_queue
     end
 
-    # Posts an event to the loop. Safe to call from any thread (including IO threads).
-    # The current monotonic clock time is recorded so that the EventLoop can
-    # measure the dispatch lag when it dequeues the event.
+    # Posts an event. Returns false after stopping begins.
     #
-    # @note **Handler constraint**: do not perform blocking operations or call
-    #   +Workflow#invoke+ directly from within the handler that processes a
-    #   posted event.  Handlers run on the EventLoop thread; blocking there
-    #   stalls all session processing.  For blocking work, post a new event
-    #   after the result is ready.
+    # Async completion callbacks may race with shutdown, so rejection is a
+    # boolean result rather than an exception.
+    #
     # @param event [Phronomy::Event]
+    # @return [Boolean]
     # @api private
     def post(event)
-      @queue.push([event, Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)])
+      @lifecycle_mutex.synchronize do
+        return false unless accepting_events?
+
+        @queue.push([event, monotonic_nanoseconds])
+      end
+      true
     end
 
-    # Starts the EventLoop dispatch task under {Runtime} ownership.
-    #
-    # The dispatch loop runs as a {Phronomy::Task} so that {Runtime#shutdown}
-    # can drain it together with all other in-flight tasks.  The task is named
-    # +"event-loop"+ so that {.current?} can identify it via
-    # +Task.current&.name+.
-    # @return [self]
+    # Returns true only for this EventLoop's dispatcher Task.
     # @api private
-    def start
-      return self if @task&.alive?
+    def current?
+      Phronomy::Task.current.equal?(@task)
+    end
 
-      # Reset shutdown state so the loop can be restarted after a stop.
-      @shutdown_token = Phronomy::Concurrency::CancellationToken.new
-      @fsm_count_mutex.synchronize { @fsm_count = 0 }
-      @running = true
-      # The dispatch loop must always run in a real background thread.
-      # A cooperative scheduler (FakeScheduler/ImmediateBackend) executes tasks
-      # synchronously on the caller's thread, which would block forever inside
-      # the run_loop infinite loop.  Create a dedicated Runtime with
-      # ThreadScheduler to guarantee async execution regardless of the global
-      # runtime_backend setting.
-      thread_runtime = Phronomy::Runtime.new(scheduler: Phronomy::Runtime::ThreadScheduler.new)
-      @task = thread_runtime.spawn(name: "event-loop") do
-        run_loop
+    # @return [Symbol]
+    # @api private
+    def state
+      @lifecycle_mutex.synchronize { @state }
+    end
+
+    # Stops external admission at the Runtime boundary while allowing already
+    # accepted work to complete on this EventLoop.
+    # @api private
+    def begin_draining
+      @lifecycle_mutex.synchronize do
+        @state = :draining if @state == :running
       end
       self
     end
 
-    # Stops the EventLoop dispatch task.
-    #
-    # Sends a cooperative shutdown sentinel to the event queue so that the
-    # dispatch task can finish any in-flight handler before exiting.  Waits up
-    # to +timeout+ seconds for a clean shutdown; if the task is still alive
-    # afterwards it is cancelled (cooperative cancellation via {Task#cancel!}).
-    #
-    # @param timeout [Numeric] seconds to wait for cooperative shutdown. Defaults
-    #   to +Phronomy.configuration.event_loop_stop_grace_seconds+ (5 s).
-    # @param drain [Boolean] when +true+, wait for all active FSMSessions to
-    #   complete before signalling the loop to stop.  Bounded by +timeout+.
-    #   Defaults to +false+.
-    # @param force_kill [Boolean] deprecated — retained for backward compatibility.
-    #   When +true+, the dispatch task is cancelled via {Task#cancel!} if it does
-    #   not stop within +timeout+.  +Thread#kill+ is no longer used; cooperative
-    #   cancellation (raising {CancellationError}) replaces it.
-    # @return [Symbol] shutdown status:
-    #   - +:clean+ — loop exited cooperatively with no active sessions discarded
-    #   - +:drained_with_discards+ — drain mode requested but sessions remained;
-    #     they were discarded and the loop was stopped
-    #   - +:timeout+ — the task did not stop in time and +force_kill:+ is +false+
-    #   - +:force_killed+ — the task was cancelled because it did not stop in time
+    # @return [Boolean]
     # @api private
-    def stop(timeout: Phronomy.configuration.event_loop_stop_grace_seconds, drain: false, force_kill: false, cancel_grace: timeout)
-      @shutdown_token.cancel!
-      status = :clean
-
-      if drain
-        # Wait for active sessions to finish, bounded by timeout.
-        deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
-        @fsm_count_mutex.synchronize do
-          while @fsm_count > 0
-            remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
-            break if remaining <= 0
-            @fsm_count_cond.wait(@fsm_count_mutex, remaining)
-          end
-          status = :drained_with_discards if @fsm_count > 0
-        end
-      end
-
-      @running = false
-      @queue.push(:__stop__)   # unblock queue.pop so the task can see @running = false
-      task = @task
-      begin
-        task&.join(timeout)
-      rescue
-        # Task may have terminated with an error (e.g. simulated crash in tests).
-        # Suppress the re-raise so the cleanup below always runs.
-        nil
-      end
-      if task&.alive?
-        if force_kill
-          Phronomy.configuration.logger&.warn(
-            "[Phronomy] EventLoop task did not stop within #{timeout}s; cancelling. " \
-            "This is a last resort — check for blocking operations in event handlers."
-          )
-          task.cancel!
-          begin
-            task.join(cancel_grace)
-          rescue
-            nil
-          end
-          if task.alive?
-            status = :cancel_timeout
-          else
-            @task = nil if @task.equal?(task)
-            status = :force_killed
-          end
-        else
-          Phronomy.configuration.logger&.warn(
-            "[Phronomy] EventLoop task did not stop within #{timeout}s; abandoning " \
-            "(force_kill: false). Check for blocking operations in event handlers."
-          )
-          status = :timeout
-        end
-      elsif @task.equal?(task)
-        @task = nil
-      end
-      status
+    def idle?
+      @lifecycle_mutex.synchronize { @outstanding_sessions.zero? }
     end
 
-    # Returns true if the dispatch task is currently alive.
-    # Safe to call from any thread.
+    # Waits until no queued :start or active session remains.
+    # @param deadline [Numeric] absolute monotonic deadline
+    # @return [Boolean] false on timeout
+    # @api private
+    def wait_until_idle(deadline)
+      @lifecycle_mutex.synchronize do
+        until @outstanding_sessions.zero?
+          remaining = deadline - monotonic_now
+          return false if remaining <= 0
+
+          @idle_cond.wait(@lifecycle_mutex, remaining)
+        end
+        true
+      end
+    end
+
+    # Runtime-only terminal shutdown.
+    #
+    # On graceful timeout the dispatcher is cancelled. Queue cleanup is only
+    # performed after the dispatcher is confirmed dead, so there is never more
+    # than one queue consumer.
+    #
+    # @param deadline [Numeric] absolute monotonic deadline
+    # @param cancel_grace [Numeric] seconds to wait after Task#cancel!
+    # @return [Symbol] :terminated, :cancelled, :cancel_timeout, or :failed
+    # @api private
+    def shutdown(deadline:, cancel_grace:)
+      @shutdown_mutex.synchronize do
+        return @shutdown_status if @shutdown_status
+
+        if state == :failed
+          join_until(deadline)
+          @shutdown_status = :failed
+          return @shutdown_status
+        end
+
+        begin_draining
+        if wait_until_idle(deadline)
+          begin_stopping_if_idle
+          join_until(deadline)
+        end
+
+        @shutdown_status = if task_alive?
+          cancel_and_cleanup(cancel_grace)
+        elsif state == :failed
+          :failed
+        else
+          finalize_terminated(:terminated)
+        end
+      end
+    end
+
+    # @return [Boolean]
     # @api private
     def task_alive?
       @task&.alive? || false
@@ -306,81 +212,185 @@ module Phronomy
     private
 
     def run_loop
-      while @running
+      loop do
         item = @queue.pop
-        # :__stop__ is used purely as an unblock signal for @queue.pop; the
-        # actual stop condition is @running == false (set before the push).
-        # Treating it as `next` instead of `break` prevents a stale sentinel
-        # (left by a previous stop call that raced with thread start) from
-        # immediately terminating a freshly restarted EventLoop.
-        next if item == :__stop__
+        break if item.equal?(STOP)
 
-        # item is [event, posted_at_ns] — unwrap and measure lag
         event, posted_at_ns = item
-        dequeued_at_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+        dequeued_at_ns = monotonic_nanoseconds
         lag_ns = dequeued_at_ns - posted_at_ns
         update_lag_metrics(lag_ns)
         check_starvation_lag(lag_ns, event)
 
         dispatch_start_ns = dequeued_at_ns
-        if event.target_id == SYSTEM_CHANNEL_ID
-          # Management channel: lifecycle events processed directly by EventLoop.
-          # Never routed to any FSMSession.
-          case event.type
-          when :finished, :halted, :error
-            # session_id is carried in the payload so the FSM can use its own ID
-            # as the FSM-facing target_id for other events.
-            session_id = event.payload[:session_id]
-            @fsms.delete(session_id)
-            cq = @waiting.delete(session_id)
-            complete_waiter(cq, event.payload[:result])
-            # Decrement active FSM count and signal drain waiters.
-            @fsm_count_mutex.synchronize do
-              @fsm_count -= 1
-              @fsm_count_cond.signal if @fsm_count <= 0
-            end
-
-          when :start
-            # session and completion_queue arrive together in the payload so that
-            # this thread is the sole writer of @fsms and @waiting.
-            # completion may be nil for fire-and-forget child sessions (AgentFSM).
-            session = event.payload[:session]
-            cq = event.payload[:completion]
-
-            # When shutdown has been requested, reject new sessions with a
-            # CancellationError rather than starting new LLM calls that would
-            # be interrupted by force-kill.
-            if @shutdown_token.cancelled? && cq
-              complete_waiter(cq, Phronomy::CancellationError.new("EventLoop is shutting down"))
-              next
-            end
-
-            @fsms[session.id] = session
-            @waiting[session.id] = cq if cq
-            @fsm_count_mutex.synchronize { @fsm_count += 1 }
-            session.start
-          end
-
-        else
-          # FSM channel: route to the target FSMSession by target_id.
-          fsm = @fsms[event.target_id]
-          if fsm
-            fsm.handle(event)
-          else
-            # Warn when an event is dropped due to an unknown target_id so that
-            # mis-typed IDs and handler-deregistration races are visible.
-            warn "[Phronomy::EventLoop] Dropped event #{event.type.inspect} — " \
-                 "no handler for target_id #{event.target_id.inspect}"
-          end
-        end
-
-        # Check how long this dispatch took; warn if it exceeds the threshold.
+        dispatch(event)
         check_dispatch_time(dispatch_start_ns, event)
       end
-    rescue => e
-      # Unblock all waiting callers if the loop dies unexpectedly.
-      @waiting.values.each { |cq| complete_waiter(cq, e) }
+    rescue Phronomy::CancellationError => error
+      unless shutdown_cancel_requested?
+        notify_unexpected_dispatcher_failure(error)
+        raise
+      end
+    rescue => error
+      notify_unexpected_dispatcher_failure(error)
       raise
+    ensure
+      @lifecycle_mutex.synchronize { @idle_cond.broadcast }
+    end
+
+    def dispatch(event)
+      if event.target_id == SYSTEM_CHANNEL_ID
+        dispatch_management(event)
+      else
+        fsm = @fsms[event.target_id]
+        if fsm
+          fsm.handle(event)
+        else
+          warn "[Phronomy::EventLoop] Dropped event #{event.type.inspect} — " \
+               "no handler for target_id #{event.target_id.inspect}"
+        end
+      end
+    end
+
+    def dispatch_management(event)
+      case event.type
+      when :finished, :halted, :error
+        session_id = event.payload[:session_id]
+        session = @fsms.delete(session_id)
+        waiter = @waiting.delete(session_id)
+        complete_waiter(waiter, event.payload[:result])
+        decrement_outstanding if session
+      when :start
+        session = event.payload[:session]
+        waiter = event.payload[:completion]
+        @fsms[session.id] = session
+        @waiting[session.id] = waiter if waiter
+        session.start
+      end
+    end
+
+    def begin_stopping_if_idle
+      @lifecycle_mutex.synchronize do
+        return false unless @state == :draining
+        return false unless @outstanding_sessions.zero?
+
+        @state = :stopping
+        @queue.push(STOP)
+        true
+      end
+    end
+
+    def cancel_and_cleanup(cancel_grace)
+      task = @task
+      @lifecycle_mutex.synchronize do
+        @state = :stopping unless @state == :failed
+        @cancel_requested = true
+      end
+
+      task&.cancel!
+      begin
+        task&.join(cancel_grace)
+      rescue
+        nil
+      end
+
+      if task&.alive?
+        @lifecycle_mutex.synchronize { @state = :failed }
+        return :cancel_timeout
+      end
+
+      return :failed if state == :failed
+
+      cleanup_abandoned_work(
+        Phronomy::CancellationError.new("Runtime shutdown timed out")
+      )
+      finalize_terminated(:cancelled)
+    end
+
+    # Called only after the dispatcher is confirmed dead.
+    def cleanup_abandoned_work(error)
+      drain_queued_items.each do |item|
+        next if item.equal?(STOP)
+
+        event, = item
+        next unless event.target_id == SYSTEM_CHANNEL_ID && event.type == :start
+
+        complete_waiter(event.payload[:completion], error)
+      end
+
+      @waiting.values.each { |waiter| complete_waiter(waiter, error) }
+      @waiting.clear
+      @fsms.clear
+      @lifecycle_mutex.synchronize do
+        @outstanding_sessions = 0
+        @idle_cond.broadcast
+      end
+    end
+
+    def drain_queued_items
+      items = []
+      loop do
+        item = @queue.pop(timeout: 0)
+        break unless item
+
+        items << item
+      end
+      items
+    end
+
+    # Framework failures are reported and made terminal. No automatic restart,
+    # replay, or pending-queue recovery is attempted.
+    def notify_unexpected_dispatcher_failure(error)
+      @lifecycle_mutex.synchronize do
+        @state = :failed
+        @idle_cond.broadcast
+      end
+      @waiting.values.each { |waiter| complete_waiter(waiter, error) }
+      @runtime.__event_loop_failed(error)
+    end
+
+    def shutdown_cancel_requested?
+      @lifecycle_mutex.synchronize do
+        @cancel_requested && @state == :stopping
+      end
+    end
+
+    def accepting_events?
+      %i[running draining].include?(@state)
+    end
+
+    def ensure_accepting_registrations!
+      return if accepting_events?
+
+      raise Phronomy::RuntimeShutdownError,
+        "EventLoop is #{@state}; new sessions are not accepted"
+    end
+
+    def decrement_outstanding
+      @lifecycle_mutex.synchronize do
+        @outstanding_sessions -= 1 if @outstanding_sessions.positive?
+        @idle_cond.broadcast if @outstanding_sessions.zero?
+      end
+    end
+
+    def join_until(deadline)
+      remaining = deadline - monotonic_now
+      return if remaining <= 0
+
+      begin
+        @task&.join(remaining)
+      rescue
+        nil
+      end
+    end
+
+    def finalize_terminated(status)
+      @lifecycle_mutex.synchronize do
+        @state = :terminated
+        @task = nil unless @task&.alive?
+        @idle_cond.broadcast
+      end
+      status
     end
 
     def complete_waiter(waiter, payload)
@@ -414,9 +424,9 @@ module Phronomy
 
       Phronomy.configuration.logger&.warn do
         "[Phronomy::EventLoop] Starvation detected: event #{event.type.inspect} " \
-        "for target #{event.target_id.inspect} waited " \
-        "#{format("%.3f", lag_ns / 1_000_000_000.0)}s in queue " \
-        "(threshold: #{threshold}s)"
+          "for target #{event.target_id.inspect} waited " \
+          "#{format("%.3f", lag_ns / 1_000_000_000.0)}s in queue " \
+          "(threshold: #{threshold}s)"
       end
     end
 
@@ -424,15 +434,23 @@ module Phronomy
       threshold = Phronomy.configuration.event_loop_dispatch_threshold_seconds
       return unless threshold
 
-      elapsed_ns = Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond) - dispatch_start_ns
+      elapsed_ns = monotonic_nanoseconds - dispatch_start_ns
       return unless elapsed_ns > (threshold * 1_000_000_000)
 
       Phronomy.configuration.logger&.warn do
         "[Phronomy::EventLoop] Long dispatch: event #{event.type.inspect} " \
-        "for target #{event.target_id.inspect} took " \
-        "#{format("%.3f", elapsed_ns / 1_000_000_000.0)}s on the EventLoop thread " \
-        "(threshold: #{threshold}s). Consider moving blocking work to BlockingAdapterPool."
+          "for target #{event.target_id.inspect} took " \
+          "#{format("%.3f", elapsed_ns / 1_000_000_000.0)}s on the EventLoop thread " \
+          "(threshold: #{threshold}s). Consider moving blocking work to BlockingAdapterPool."
       end
+    end
+
+    def monotonic_now
+      Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    end
+
+    def monotonic_nanoseconds
+      Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
     end
   end
 end

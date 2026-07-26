@@ -76,6 +76,10 @@ module Phronomy
           # waits for the async worker thread to post a state_completed event back.
           attr_accessor :async_pending
 
+          # Invocation-local routing. FSMSession sets these on each machine
+          # instance; the compiled Class captures no Runtime-specific object.
+          attr_accessor :event_loop, :timer_queue_provider, :session_id
+
           state_machine :phase, initial: entry do
             all_states.each { |s| state s }
 
@@ -190,16 +194,16 @@ module Phronomy
       # @api private
       def dispatch_task_in_event_loop(machine, result, state_name, timeout_secs)
         machine.async_pending = true
-        thread_id = machine.context.thread_id
+        session_id = machine.session_id || machine.context.thread_id
         if timeout_secs
-          Phronomy::Runtime.instance.timer_queue.schedule(seconds: timeout_secs) do
+          machine.timer_queue_provider.call.schedule(seconds: timeout_secs) do
             next if result.done?
 
-            Phronomy::EventLoop.instance.post(
+            machine.event_loop.post(
               Phronomy::Event.new(
                 type: :error,
                 target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-                payload: {session_id: thread_id, result: Phronomy::ActionTimeoutError.new(
+                payload: {session_id: session_id, result: Phronomy::ActionTimeoutError.new(
                   "Action in state #{state_name.inspect} timed out after #{timeout_secs}s"
                 )}
               )
@@ -208,17 +212,17 @@ module Phronomy
         end
         result.on_complete do |task_result, error|
           if error
-            Phronomy::EventLoop.instance.post(
-              Phronomy::Event.new(type: :error, target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {session_id: thread_id, result: error})
+            machine.event_loop.post(
+              Phronomy::Event.new(type: :error, target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {session_id: session_id, result: error})
             )
             next
           end
           ev = if task_result.is_a?(Phronomy::WorkflowContext)
-            Phronomy::Event.new(type: :action_completed, target_id: thread_id, payload: task_result)
+            Phronomy::Event.new(type: :action_completed, target_id: session_id, payload: task_result)
           else
-            Phronomy::Event.new(type: :state_completed, target_id: thread_id, payload: nil)
+            Phronomy::Event.new(type: :state_completed, target_id: session_id, payload: nil)
           end
-          Phronomy::EventLoop.instance.post(ev)
+          machine.event_loop.post(ev)
         end
       end
 

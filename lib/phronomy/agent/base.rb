@@ -837,16 +837,17 @@ module Phronomy
         effective_config = thread_id ? config.merge(thread_id: thread_id) : config
         # Fail fast when the token is already cancelled before any LLM call.
         check_cancellation!(effective_config, "invocation cancelled")
-        # Ensure EventLoop is running. start is idempotent when already alive.
-        Phronomy::EventLoop.instance.start
+        runtime = Phronomy::Runtime.instance
+        event_loop = runtime.event_loop
         trace("agent.invoke", input: input, **_build_caller_meta(effective_config)) do |_span|
           session = Agent::InvocationSession.build(
             agent: self,
             input: input,
             messages: messages,
-            config: effective_config
+            config: effective_config,
+            runtime: runtime
           )
-          completion_queue = Phronomy::EventLoop.instance.register(session)
+          completion_queue = event_loop.register(session)
           ctx = completion_queue.pop
           raise ctx if ctx.is_a?(Exception)
           result = _extract_invoke_result(ctx, session.id)
@@ -862,15 +863,17 @@ module Phronomy
       def _start_invoke_attempt(result_task, input, messages:, thread_id:, config:, attempt:)
         effective_config = thread_id ? config.merge(thread_id: thread_id) : config
         check_cancellation!(effective_config, "invocation cancelled")
-        Phronomy::EventLoop.instance.start
+        runtime = Phronomy::Runtime.instance
+        event_loop = runtime.event_loop
         session = Agent::InvocationSession.build(
           agent: self,
           input: input,
           messages: messages,
-          config: effective_config
+          config: effective_config,
+          runtime: runtime
         )
         source_task = Phronomy::Task.deferred(name: "#{result_task.name}-attempt-#{attempt}")
-        Phronomy::EventLoop.instance.register(session, completion: source_task)
+        event_loop.register(session, completion: source_task)
         session_id = session.id
         policy = self.class._retry_policy
 
@@ -950,13 +953,16 @@ module Phronomy
       # Builds and runs a resume FSMSession for the given context and event.
       # @api private
       def _resume_fsm(ctx, event)
+        runtime = Phronomy::Runtime.instance
+        event_loop = runtime.event_loop
         session = Agent::InvocationSession.build_for_resume(
           agent: self,
           context: ctx,
           resume_event: event,
-          resume_phase: :awaiting_approval
+          resume_phase: :awaiting_approval,
+          runtime: runtime
         )
-        completion_queue = Phronomy::EventLoop.instance.register(session)
+        completion_queue = event_loop.register(session)
         resumed_ctx = completion_queue.pop
         raise resumed_ctx if resumed_ctx.is_a?(Exception)
         _extract_invoke_result(resumed_ctx, session.id)

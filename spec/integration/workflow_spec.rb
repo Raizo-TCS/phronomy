@@ -356,7 +356,7 @@ RSpec.describe "Group 29: Phronomy::Workflow DSL", :integration do
 
   describe "TC-merge-EL: entry action s.merge(...) in EventLoop mode (Issue #111)" do
     after do
-      Phronomy::EventLoop.reset!
+      Phronomy.reset_runtime!
       Phronomy.reset_configuration!
     end
 

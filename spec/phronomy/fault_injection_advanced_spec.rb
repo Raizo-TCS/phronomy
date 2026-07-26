@@ -188,28 +188,27 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   # -------------------------------------------------------------------------
   # 13. EventLoop shutdown rejects new sessions (Issue #243)
   # -------------------------------------------------------------------------
-  describe "EventLoop shutdown rejects new sessions with CancellationError" do
-    # When the EventLoop's shutdown_token has been cancelled (set by stop()),
-    # any new :start event is rejected immediately: the completion_queue receives
-    # a CancellationError so callers never block indefinitely.
+  describe "EventLoop shutdown rejects new sessions with RuntimeShutdownError" do
+    # When the EventLoop state is :stopping or later, new register calls raise
+    # RuntimeShutdownError so callers never block indefinitely.
 
-    after do
-      Phronomy::EventLoop.reset!
-      Phronomy.reset_configuration!
-    end
+    it "raises RuntimeShutdownError when the EventLoop state is :stopping" do
+      runtime = Phronomy::Runtime.new
+      el = runtime.event_loop
 
-    it "pushes CancellationError to the completion_queue when the shutdown token is active" do
-      el = Phronomy::EventLoop.instance
-      # Simulate shutdown state without stopping the thread (token only).
-      el.instance_variable_get(:@shutdown_token).cancel!
+      # Transition to :stopping state directly to simulate post-shutdown-initiation.
+      el.instance_variable_get(:@lifecycle_mutex).synchronize do
+        el.instance_variable_set(:@state, :stopping)
+      end
 
-      # Use a minimal duck-type session — Agent::FSM no longer exists.
       fake_session = double("Session", id: "shutdown-reject-test")
-      cq = el.register(fake_session)
-      result = cq.pop
-
-      expect(result).to be_a(Phronomy::CancellationError)
-      expect(result.message).to match(/shutting down/)
+      expect { el.register(fake_session) }.to raise_error(Phronomy::RuntimeShutdownError)
+    ensure
+      begin
+        runtime.shutdown(timeout: 1)
+      rescue
+        nil
+      end
     end
   end
 

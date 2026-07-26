@@ -193,7 +193,7 @@ RSpec.describe "Fault injection (Issue #213)" do
     end
 
     it "does not raise when posting an event with an unknown target_id" do
-      loop = Phronomy::EventLoop.instance
+      loop = Phronomy::Runtime.instance.event_loop
       event = Phronomy::Event.new(
         type: :tool_result,
         target_id: "nonexistent-#{rand(1_000_000)}",
@@ -207,7 +207,7 @@ RSpec.describe "Fault injection (Issue #213)" do
     end
 
     it "emits a warning to stderr for events with an unknown target_id" do
-      loop = Phronomy::EventLoop.instance
+      loop = Phronomy::Runtime.instance.event_loop
       target = "unknown-target-#{rand(1_000_000)}"
       event = Phronomy::Event.new(type: :tool_result, target_id: target, payload: {})
 
@@ -218,7 +218,7 @@ RSpec.describe "Fault injection (Issue #213)" do
     end
 
     it "continues processing subsequent events after an unknown target_id event" do
-      loop = Phronomy::EventLoop.instance
+      loop = Phronomy::Runtime.instance.event_loop
 
       # Post an unknown-target event (should be silently dropped)
       loop.post(Phronomy::Event.new(

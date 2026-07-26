@@ -46,12 +46,21 @@ module Phronomy
         scheduler = Phronomy::Runtime::FakeScheduler.new
         scheduler.clock = clock if clock
         runtime = Phronomy::Runtime.new(scheduler: scheduler)
-        original = Phronomy::Runtime.instance
-        Phronomy::Runtime.instance = runtime
+        original = Phronomy::Runtime.default_if_initialized_for_test
+        Phronomy::Runtime.replace_default_for_test(runtime)
         begin
           yield scheduler, clock
         ensure
-          Phronomy::Runtime.instance = original
+          result = nil
+          begin
+            result = runtime.shutdown
+          ensure
+            Phronomy::Runtime.restore_default_for_test(original)
+          end
+          unless result&.cleanup_complete?
+            raise Phronomy::RuntimeShutdownError,
+              "Temporary test Runtime did not shut down completely"
+          end
         end
       end
     end

@@ -19,7 +19,7 @@ module Phronomy
     #     messages: [],
     #     config:   { thread_id: "t-1" }
     #   )
-    #   completion_queue = Phronomy::EventLoop.instance.register(session)
+    #   completion_queue = Phronomy::Runtime.instance.event_loop.register(session)
     #   ctx = completion_queue.pop
     #
     # == Streaming mode
@@ -56,7 +56,8 @@ module Phronomy
       # @param on_event [Proc, nil] stream event callback (stream mode only)
       # @return [Phronomy::FSMSession]
       # @api private
-      def self.build(agent:, input:, messages:, config:, mode: :invoke, on_event: nil)
+      def self.build(agent:, input:, messages:, config:, mode: :invoke, on_event: nil,
+        runtime: Phronomy::Runtime.instance)
         ctx = Agent::InvocationContext.new(
           agent: agent,
           input: input,
@@ -95,7 +96,9 @@ module Phronomy
             approve: [{from: :awaiting_approval, to: :executing_tool, guard: nil}],
             reject: [{from: :awaiting_approval, to: :blocked, guard: nil}]
           },
-          recursion_limit: fsm_recursion_limit
+          recursion_limit: fsm_recursion_limit,
+          event_loop: runtime.event_loop,
+          timer_queue_provider: -> { runtime.timer_queue }
         )
       end
 
@@ -108,7 +111,8 @@ module Phronomy
       # @param resume_phase [Symbol] the wait state to resume from
       # @return [Phronomy::FSMSession]
       # @api private
-      def self.build_for_resume(agent:, context:, resume_event:, resume_phase:)
+      def self.build_for_resume(agent:, context:, resume_event:, resume_phase:,
+        runtime: Phronomy::Runtime.instance)
         actions = build_entry_actions(agent)
         phase_machine = Agent::PhaseMachineBuilder.new(entry_actions: actions).build
 
@@ -129,6 +133,8 @@ module Phronomy
             reject: [{from: :awaiting_approval, to: :blocked, guard: nil}]
           },
           recursion_limit: fsm_recursion_limit,
+          event_loop: runtime.event_loop,
+          timer_queue_provider: -> { runtime.timer_queue },
           resume_event: resume_event,
           resume_phase: resume_phase
         )

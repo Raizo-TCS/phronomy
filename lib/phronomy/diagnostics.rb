@@ -52,7 +52,7 @@ module Phronomy
     # @return [void]
     # @api private
     def self.assert_not_in_event_loop!
-      return unless Phronomy::EventLoop.current?
+      return unless Phronomy::Runtime.in_event_loop_context?
 
       raise Phronomy::SchedulerReentrancyError,
         "Blocking invoke called from inside an EventLoop action. " \

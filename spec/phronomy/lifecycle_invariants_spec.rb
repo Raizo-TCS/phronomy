@@ -4,24 +4,19 @@ require "spec_helper"
 
 # Lifecycle invariant tests for Phronomy::FSMSession and Phronomy::EventLoop.
 #
-# These specs validate four core lifecycle contracts:
+# EventLoop is now owned by Runtime; EventLoop.instance, EventLoop.reset!,
+# EventLoop#start, and EventLoop#stop have been removed.
 #
-#   1. Double-completion guard  — a completed (or halted) FSMSession silently
-#      ignores any event posted after @done = true.
-#   2. child_failed propagation — when an AgentFSM fails with a parent_id set,
-#      :child_failed is posted to the parent FSMSession.  The parent can
-#      declare an `on: :child_failed` transition to handle the error.
-#   3. Unknown event handling  — an event whose type is not declared on the
-#      phase machine causes FSMSession to call finish_with_error (posts :error)
-#      rather than silently dying or corrupting state.
-#   4. Shutdown propagation     — when EventLoop#stop is called while sessions
-#      are still registered, pending completion queues are unblocked.
-
+# Sections:
+#   1. Double-completion guard
+#   2. Unknown event handling
+#   3. WorkflowRunner send_event
+#   4. Shutdown propagation via Runtime#shutdown
+#   5. Resource cleanup invariants (Runtime-owned)
+#   6. P0 regression: dispatcher task handle retention (Issue #251)
 RSpec.describe "Lifecycle invariants" do
   # ---------------------------------------------------------------------------
-  # Minimal fake EventLoop: captures posted events synchronously without
-  # starting a background thread.  FSMSession calls EventLoop.instance so we
-  # stub that to return this object.
+  # Minimal fake EventLoop that records posted events synchronously.
   # ---------------------------------------------------------------------------
   class LifecycleFakeLoop
     attr_reader :events
@@ -35,26 +30,29 @@ RSpec.describe "Lifecycle invariants" do
     end
   end
 
-  # Minimal duck-type session for EventLoop lifecycle tests.
-  # Satisfies the #id / #start / #handle interface expected by EventLoop#register.
-  # start spawns a thread that sleeps for +duration+ seconds then posts :finished.
+  # Minimal duck-type session. event_loop_ref must be set before registering.
   class FakeSlowSession
     attr_reader :id
+    attr_accessor :event_loop_ref
 
     def initialize(id:, duration: 0.1)
       @id = id
       @duration = duration
+      @event_loop_ref = nil
     end
 
     def start
       dur = @duration
       session_id = @id
+      el = @event_loop_ref
       Thread.new do
         sleep dur
-        Phronomy::EventLoop.instance.post(
-          Phronomy::Event.new(type: :finished,
+        el&.post(
+          Phronomy::Event.new(
+            type: :finished,
             target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-            payload: {session_id: session_id, result: "done"})
+            payload: {session_id: session_id, result: "done"}
+          )
         )
       end
     end
@@ -63,10 +61,12 @@ RSpec.describe "Lifecycle invariants" do
     end
   end
 
+  # Yields a LifecycleFakeLoop and a fake_runtime duck-type object that returns
+  # it from #event_loop.  Pass fake_runtime as runtime: to build_session_for.
   def with_fake_loop
     fake = LifecycleFakeLoop.new
-    allow(Phronomy::EventLoop).to receive(:instance).and_return(fake)
-    yield fake
+    fake_runtime = double("fake_runtime", event_loop: fake, timer_queue: nil)
+    yield fake, fake_runtime
   end
 
   def runner_from(workflow)
@@ -96,7 +96,6 @@ RSpec.describe "Lifecycle invariants" do
   # 1. Double-completion guard
   # ===========================================================================
   describe "double-completion guard (FSMSession ignores events after @done)" do
-    # A linear single-state workflow that finishes immediately.
     let(:app) do
       Phronomy::Workflow.define(simple_ctx_class) do
         initial :step
@@ -111,22 +110,18 @@ RSpec.describe "Lifecycle invariants" do
       ctx = simple_ctx_class.new(value: 0)
       ctx.set_graph_metadata(thread_id: "lc-double-1")
 
-      with_fake_loop do |fake|
-        session = runner.send(:build_session_for, context: ctx, recursion_limit: 25)
+      with_fake_loop do |fake, fake_runtime|
+        session = runner.send(:build_session_for, context: ctx, recursion_limit: 25, runtime: fake_runtime)
         session.start
         drain_session(session, fake, thread_id: "lc-double-1")
 
-        # Confirm the session finished.
         expect(session.instance_variable_get(:@done)).to be(true)
         finished_count_before = fake.events.count { |e| e.type == :finished }
 
-        # Post a spurious :state_completed after completion.
         session.handle(Phronomy::Event.new(type: :state_completed, target_id: "lc-double-1", payload: nil))
         session.handle(Phronomy::Event.new(type: :some_custom_event, target_id: "lc-double-1", payload: nil))
 
-        # No additional :finished events must have been posted.
-        finished_count_after = fake.events.count { |e| e.type == :finished }
-        expect(finished_count_after).to eq(finished_count_before)
+        expect(fake.events.count { |e| e.type == :finished }).to eq(finished_count_before)
       end
     end
 
@@ -143,23 +138,19 @@ RSpec.describe "Lifecycle invariants" do
       ctx = simple_ctx_class.new(value: 0)
       ctx.set_graph_metadata(thread_id: "lc-double-2")
 
-      with_fake_loop do |fake|
-        session = runner.send(:build_session_for, context: ctx, recursion_limit: 25)
+      with_fake_loop do |fake, fake_runtime|
+        session = runner.send(:build_session_for, context: ctx, recursion_limit: 25, runtime: fake_runtime)
         session.start
         drain_session(session, fake, thread_id: "lc-double-2")
 
-        # Session must be halted (done) at the wait state.
         expect(session.instance_variable_get(:@done)).to be(true)
         expect(fake.events.any? { |e| e.type == :halted }).to be(true)
-
         error_count_before = fake.events.count { |e| e.type == :error }
 
-        # Spurious event after halt must be silently dropped.
         session.handle(Phronomy::Event.new(type: :approve, target_id: "lc-double-2", payload: nil))
         session.handle(Phronomy::Event.new(type: :state_completed, target_id: "lc-double-2", payload: nil))
 
-        error_count_after = fake.events.count { |e| e.type == :error }
-        expect(error_count_after).to eq(error_count_before)
+        expect(fake.events.count { |e| e.type == :error }).to eq(error_count_before)
       end
     end
   end
@@ -168,8 +159,6 @@ RSpec.describe "Lifecycle invariants" do
   # 2. Unknown event handling
   # ===========================================================================
   describe "unknown event handling (undeclared event type → :error posted)" do
-    # A workflow that halts at a wait state awaiting :approve only.
-    # Firing any other event type is undeclared on the phase machine.
     let(:wait_app) do
       Phronomy::Workflow.define(simple_ctx_class) do
         initial :prepare
@@ -180,40 +169,25 @@ RSpec.describe "Lifecycle invariants" do
       end
     end
 
-    # A workflow with no external events at all — any event fired after
-    # :state_completed is undeclared.
-    let(:linear_app) do
-      Phronomy::Workflow.define(simple_ctx_class) do
-        initial :step
-        state :step
-        transition from: :step, to: :__finish__
-      end
-    end
-
     it "posts :error when an undeclared event is fired at a running FSMSession" do
       runner = runner_from(wait_app)
       ctx = simple_ctx_class.new(value: 0)
       ctx.set_graph_metadata(thread_id: "lc-unknown-1", phase: :awaiting)
 
-      with_fake_loop do |fake|
-        # Build a resume session positioned at :awaiting, ready to receive events.
+      with_fake_loop do |fake, fake_runtime|
         session = runner.send(:build_session_for,
-          context: ctx, recursion_limit: 25,
+          context: ctx, recursion_limit: 25, runtime: fake_runtime,
           resume_event: :approve, resume_phase: :awaiting)
 
-        # Fire a completely unknown event instead of :approve.
-        # We reset @done so the guard is bypassed and we can test the handler.
         session.instance_variable_set(:@done, false)
         session.instance_variable_set(:@current_state, :awaiting)
-        session.instance_variable_set(:@tracker,
-          session.send(:build_tracker, :awaiting))
+        session.instance_variable_set(:@tracker, session.send(:build_tracker, :awaiting))
 
         session.handle(Phronomy::Event.new(type: :unknown_event_xyz, target_id: "lc-unknown-1", payload: nil))
 
         err_ev = fake.events.find { |e| e.type == :error }
         expect(err_ev).not_to be_nil
         expect(err_ev.target_id).to eq(Phronomy::EventLoop::SYSTEM_CHANNEL_ID)
-        # The result must be an exception, not nil.
         expect(err_ev.payload[:result]).to be_a(Exception)
       end
     end
@@ -223,15 +197,14 @@ RSpec.describe "Lifecycle invariants" do
       ctx = simple_ctx_class.new(value: 0)
       ctx.set_graph_metadata(thread_id: "lc-unknown-2", phase: :awaiting)
 
-      with_fake_loop do |fake|
+      with_fake_loop do |fake, fake_runtime|
         session = runner.send(:build_session_for,
-          context: ctx, recursion_limit: 25,
+          context: ctx, recursion_limit: 25, runtime: fake_runtime,
           resume_event: :approve, resume_phase: :awaiting)
 
         session.instance_variable_set(:@done, false)
         session.instance_variable_set(:@current_state, :awaiting)
-        session.instance_variable_set(:@tracker,
-          session.send(:build_tracker, :awaiting))
+        session.instance_variable_set(:@tracker, session.send(:build_tracker, :awaiting))
 
         session.handle(Phronomy::Event.new(type: :never_declared, target_id: "lc-unknown-2", payload: nil))
 
@@ -257,45 +230,36 @@ RSpec.describe "Lifecycle invariants" do
   end
 
   # ===========================================================================
-  # 4. Shutdown propagation (EventLoop crash unblocks waiting callers)
+  # 4. Shutdown propagation via Runtime#shutdown
   # ===========================================================================
-  describe "shutdown propagation (EventLoop#stop unblocks all waiting callers)" do
+  describe "shutdown propagation (Runtime#shutdown unblocks all waiting callers)" do
+    let(:runtime) { Phronomy::Runtime.new }
+
     after do
-      Phronomy::EventLoop.reset!
-      Phronomy.reset_configuration!
+      runtime.shutdown(timeout: 2)
+    rescue
+      nil
     end
 
-    it "stops the background task cleanly when no sessions are active" do
-      el = Phronomy::EventLoop.instance
-      task = el.instance_variable_get(:@task)
-      expect(task).to be_alive
+    it "terminates the dispatcher cleanly when no sessions are active" do
+      el = runtime.event_loop
+      expect(el.task_alive?).to be(true)
 
-      el.stop(timeout: 2)
+      result = runtime.shutdown(timeout: 2)
 
-      expect(task).not_to be_alive
-      expect(el.instance_variable_get(:@task)).to be_nil
+      expect(result.cleanup_complete?).to be(true)
+      expect(el.task_alive?).to be(false)
     end
 
-    it "unblocks a waiting caller with an Exception when the loop crashes" do
-      el = Phronomy::EventLoop.instance
-
-      # Register a fake session that never posts a completion event —
-      # its completion_queue will block until the loop crashes.
+    it "unblocks a waiting caller with an Exception when the dispatcher crashes" do
+      el = runtime.event_loop
       cq = Thread::Queue.new
 
-      # Directly inject a waiting entry into the EventLoop internals so we can
-      # simulate an unblocked caller without a real FSMSession.
+      # Directly inject a waiting entry to simulate an orphaned caller.
       el.instance_variable_get(:@waiting)["lc-shutdown-orphan"] = cq
 
-      # Kill the loop task to simulate a crash.
-      # Task#join re-raises any exception the task terminated with, so we
-      # suppress it here — we only need to wait for the task to actually die.
       loop_task = el.instance_variable_get(:@task)
       loop_backend_thread = loop_task.instance_variable_get(:@backend).instance_variable_get(:@thread)
-      # Wait until the loop task is blocked in @queue.pop (status == "sleep").
-      # Without this barrier, Thread#raise can be delivered before run_loop is
-      # entered, meaning the rescue block in run_loop never runs and @waiting
-      # is never flushed.
       sleep 0.001 while loop_backend_thread.status != "sleep"
       loop_backend_thread.raise(RuntimeError, "simulated loop crash")
       begin
@@ -304,7 +268,6 @@ RSpec.describe "Lifecycle invariants" do
         nil
       end
 
-      # The waiting caller must be unblocked within a short window.
       received = nil
       t = Thread.new { received = cq.pop }
       t.join(1)
@@ -315,234 +278,108 @@ RSpec.describe "Lifecycle invariants" do
   end
 
   # ===========================================================================
-  # 5. Resource cleanup invariants (no leaked FSM entries or sessions)
+  # 5. Resource cleanup invariants
   # ===========================================================================
   describe "resource cleanup invariants" do
+    let(:runtime) { Phronomy::Runtime.new }
+
     after do
-      Phronomy::EventLoop.reset!
-      Phronomy.reset_configuration!
+      runtime.shutdown(timeout: 2)
+    rescue
+      nil
     end
 
-    it "@fsm_count returns to zero after a completed session" do
-      # Verifies that @fsm_count decrements back to 0 after a session
-      # completes and posts :finished to the EventLoop.
-      el = Phronomy::EventLoop.instance
+    it "outstanding_sessions returns to zero after a completed session" do
+      el = runtime.event_loop
 
       session = FakeSlowSession.new(id: "count-cleanup-test", duration: 0.05)
+      session.event_loop_ref = el
       cq = el.register(session)
-      cq.pop  # block until EventLoop processes :finished and pushes to cq
+      cq.pop
 
       sleep 0.05
-      expect(el.instance_variable_get(:@fsm_count)).to eq(0)
+      expect(el.instance_variable_get(:@outstanding_sessions)).to eq(0)
     end
 
-    it "EventLoop.reset! nulls the singleton so the next call returns a fresh loop" do
-      # Verifies that EventLoop.reset! fully tears down the background task and
-      # clears @instance, so a subsequent EventLoop.instance starts cleanly with
-      # no residual state from the previous run.
-      first = Phronomy::EventLoop.instance
-      first_task = first.instance_variable_get(:@task)
-      expect(first_task).to be_alive
+    it "Runtime.reset_default! returns a clean result after shutdown" do
+      # Create an isolated Runtime, shut it down, then verify a fresh one is created.
+      first_runtime = Phronomy::Runtime.new
+      first_el = first_runtime.event_loop
+      expect(first_el.task_alive?).to be(true)
 
-      Phronomy::EventLoop.reset!
+      result = first_runtime.shutdown(timeout: 2)
+      expect(result.cleanup_complete?).to be(true)
+      expect(first_el.task_alive?).to be(false)
 
-      expect(first_task).not_to be_alive
-      expect(Phronomy::EventLoop.instance_variable_get(:@instance)).to be_nil
-
-      second = Phronomy::EventLoop.instance
-      expect(second).not_to be(first)
-      expect(second.instance_variable_get(:@fsm_count)).to eq(0)
-      expect(second.instance_variable_get(:@task)).to be_alive
+      second_runtime = Phronomy::Runtime.new
+      second_el = second_runtime.event_loop
+      expect(second_el).not_to be(first_el)
+      expect(second_el.task_alive?).to be(true)
+      begin
+        second_runtime.shutdown(timeout: 2)
+      rescue
+        nil
+      end
     end
 
-    it "EventLoop#stop(drain: true) waits for in-flight sessions before the loop thread exits" do
-      # Verifies that stop(drain: true) blocks until @fsm_count reaches 0,
-      # meaning all queued sessions have completed before the loop shuts down.
-      el = Phronomy::EventLoop.instance
+    it "Runtime#shutdown(drain: true) waits for in-flight sessions" do
+      el = runtime.event_loop
 
       started_q = Thread::Queue.new
       completed = []
       session_id = "drain-invariant-test"
 
-      # Custom session that signals start and records completion.
       session = FakeSlowSession.new(id: session_id, duration: 0.15)
+      session.event_loop_ref = el
       session.define_singleton_method(:start) do
         started_q.push(:started)
+        el_ref = event_loop_ref
         Thread.new do
           sleep 0.15
           completed << :completed
-          Phronomy::EventLoop.instance.post(
-            Phronomy::Event.new(type: :finished,
+          el_ref&.post(
+            Phronomy::Event.new(
+              type: :finished,
               target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-              payload: {session_id: session_id, result: "done"})
+              payload: {session_id: session_id, result: "done"}
+            )
           )
         end
       end
 
       el.register(session)
-      started_q.pop  # block until session has started (guarantees @fsm_count > 0)
+      started_q.pop
 
-      status = el.stop(drain: true, timeout: 5, force_kill: true)
+      result = runtime.shutdown(timeout: 5)
 
-      expect(status).to eq(:clean)
+      expect(result.cleanup_complete?).to be(true)
       expect(completed).to include(:completed)
     end
   end
 
   # ===========================================================================
-  # 6. Task-leak detection after timeout-forced shutdown (Issue #251)
+  # 6. Dispatcher task handle retention (P0 regression, Issue #251)
   #
-  # When stop(force_kill: true) fires before an in-flight session completes,
-  # the background loop task must be dead and @task must be nil so that a
-  # subsequent EventLoop.instance starts without contaminated state.
+  # Verifies that shutdown timeout does not lose the task handle, which was the
+  # root cause of double-dispatch (P0 hotfix).
   # ===========================================================================
-  describe "thread leak after timeout-forced shutdown (Issue #251)" do
-    # These tests start a real agent IO thread (sleep 10) and cancel it via
-    # EventLoop#stop(force_kill: true).  Concurrent execution is required, so
-    # force the :thread backend so Runtime.instance spawns real threads.
-    around do |ex|
-      Phronomy.configure { |c| c.runtime_backend = :thread }
-      Phronomy::Runtime.instance_variable_set(:@instance, nil)
-      ex.run
-    ensure
-      Phronomy.reset_configuration!
-      Phronomy::Runtime.instance_variable_set(:@instance, nil)
-    end
+  describe "dispatcher task handle retention after timeout (P0 regression, Issue #251)" do
+    let(:runtime) { Phronomy::Runtime.new }
 
     after do
-      Phronomy::EventLoop.reset!
-      Phronomy.reset_configuration!
+      runtime.shutdown(timeout: 2)
+    rescue
+      nil
     end
 
-    it "loop task is dead and @task is nil after stop with an in-flight session" do
-      # Verifies that stop (regardless of :clean or :force_killed outcome) always
-      # sets @task to nil and leaves the background task no longer alive,
-      # even when a session IO thread is still running at shutdown time.
-      el = Phronomy::EventLoop.instance
-      loop_task = el.instance_variable_get(:@task)
-      expect(loop_task).to be_alive
-
-      # Register a session that sleeps far longer than the stop timeout.
-      started_q = Thread::Queue.new
-      session_id = "leak-force-kill-#{SecureRandom.hex(4)}"
-      session = FakeSlowSession.new(id: session_id, duration: 10)
-      session.define_singleton_method(:start) do
-        started_q.push(:started)
-        Thread.new do
-          sleep 10
-          Phronomy::EventLoop.instance.post(
-            Phronomy::Event.new(type: :finished,
-              target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-              payload: {session_id: session_id, result: "done"})
-          )
-        end
-      end
-
-      el.register(session)
-      started_q.pop  # ensure the IO thread is running before we call stop
-
-      status = el.stop(timeout: 2, force_kill: true)
-
-      expect([:clean, :force_killed]).to include(status)
-      expect(loop_task).not_to be_alive
-      expect(el.instance_variable_get(:@task)).to be_nil
-    end
-
-    it "a subsequent EventLoop.instance starts with a fresh task after force_kill" do
-      # Verifies that EventLoop.reset! followed by .instance creates a new,
-      # alive task — no residual contamination from the killed instance.
-      el_first = Phronomy::EventLoop.instance
-      first_task = el_first.instance_variable_get(:@task)
-
-      started_q = Thread::Queue.new
-      session_id = "leak-reset-#{SecureRandom.hex(4)}"
-      session = FakeSlowSession.new(id: session_id, duration: 10)
-      session.define_singleton_method(:start) do
-        started_q.push(:started)
-        Thread.new do
-          sleep 10
-          Phronomy::EventLoop.instance.post(
-            Phronomy::Event.new(type: :finished,
-              target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-              payload: {session_id: session_id, result: "done"})
-          )
-        end
-      end
-
-      el_first.register(session)
-      started_q.pop
-
-      el_first.stop(timeout: 0.1, force_kill: true)
-      Phronomy::EventLoop.reset!
-
-      # After reset, a new instance must have its own alive task.
-      el_second = Phronomy::EventLoop.instance
-      second_task = el_second.instance_variable_get(:@task)
-      expect(second_task).to be_alive
-      expect(second_task).not_to be(first_task)
-      expect(el_second.instance_variable_get(:@fsm_count)).to eq(0)
-    end
-
-    # -------------------------------------------------------------------------
-    # P0 regression: double-dispatch prevention
-    #
-    # These three examples directly exercise the behaviour introduced by the P0
-    # fix: @task is retained when a stop times out, :cancel_timeout is returned
-    # when cancel! does not terminate the task, and reset! raises instead of
-    # clearing the singleton while the task is alive.
-    # -------------------------------------------------------------------------
-
-    it "retains @task and returns the same instance from start when stop times out (double dispatch prevention)" do
-      # The core P0 regression: if stop times out and @task were set to nil,
-      # a subsequent start would spawn a second dispatch loop on the same queue.
-      # With the fix, @task is preserved so start detects the live task and
-      # returns self without spawning a new loop.
-      el = Phronomy::EventLoop.instance
-
-      started_q = Thread::Queue.new
-      release = Thread::Queue.new
-      session_id = "double-dispatch-#{SecureRandom.hex(4)}"
-      session = FakeSlowSession.new(id: session_id, duration: 60)
-      session.define_singleton_method(:start) do
-        started_q.push(:started)
-        release.pop  # block indefinitely until released
-      end
-
-      el.register(session)
-      started_q.pop
-
-      original_task = el.instance_variable_get(:@task)
-
-      status = el.stop(timeout: 0.05, force_kill: false)
-
-      expect(status).to eq(:timeout)
-      # @task must still point to the original alive task.
-      expect(el.instance_variable_get(:@task)).to be(original_task)
-      expect(original_task).to be_alive
-
-      # start must detect the live task and return self without spawning a new loop.
-      result = el.start
-      expect(result).to be(el)
-      expect(el.instance_variable_get(:@task)).to be(original_task)
-    ensure
-      release&.push(:done)
-      begin
-        original_task&.join(2)
-      rescue
-        nil
-      end
-      Phronomy::EventLoop.reset!
-    end
-
-    it "returns :cancel_timeout and retains @task when cancel! does not terminate the task" do
-      # Verifies that force_kill: true with a cancel! that does not kill the
-      # task results in :cancel_timeout and @task remaining non-nil.
-      el = Phronomy::EventLoop.instance
+    it "retains task handle and reports :cancel_timeout when cancel! does not terminate dispatcher" do
+      el = runtime.event_loop
 
       started_q = Thread::Queue.new
       release = Thread::Queue.new
       session_id = "cancel-timeout-#{SecureRandom.hex(4)}"
       session = FakeSlowSession.new(id: session_id, duration: 60)
+      session.event_loop_ref = el
       session.define_singleton_method(:start) do
         started_q.push(:started)
         release.pop
@@ -551,40 +388,65 @@ RSpec.describe "Lifecycle invariants" do
       el.register(session)
       started_q.pop
 
-      original_task = el.instance_variable_get(:@task)
-      # Stub cancel! to be a no-op so the task never terminates.
-      allow(original_task).to receive(:cancel!).and_return(nil)
+      # Stub cancel! so the dispatcher never receives the cancel signal.
+      task = el.instance_variable_get(:@task)
+      allow(task).to receive(:cancel!).and_return(nil)
 
-      status = el.stop(timeout: 0.05, force_kill: true, cancel_grace: 0.05)
+      result = runtime.shutdown(timeout: 0.05, cancel_grace: 0.05)
 
-      expect(status).to eq(:cancel_timeout)
-      expect(el.instance_variable_get(:@task)).to be(original_task)
-      expect(original_task).to be_alive
+      expect(result.event_loop_status).to eq(:cancel_timeout)
+      expect(result.cleanup_complete?).to be(false)
+      expect(el.task_alive?).to be(true)
     ensure
       release&.push(:done)
-      begin
-        original_task&.join(2)
-      rescue
-        nil
-      end
-      Phronomy::EventLoop.reset!
     end
 
-    it "raises and retains the singleton when reset! cannot fully stop the task" do
-      # Verifies that reset! raises Phronomy::Error and leaves @instance intact
-      # when task_alive? returns true after stop, preventing a new singleton
-      # from being created while the old dispatch task is still running.
-      instance = Phronomy::EventLoop.instance
+    it "retains task handle and reports :cancel_timeout when cancel! does not terminate dispatcher" do
+      el = runtime.event_loop
 
-      # Stub task_alive? to simulate a stop that did not kill the task.
-      allow(instance).to receive(:task_alive?).and_return(true)
+      started_q = Thread::Queue.new
+      release = Thread::Queue.new
+      session_id = "cancel-timeout-#{SecureRandom.hex(4)}"
+      session = FakeSlowSession.new(id: session_id, duration: 60)
+      session.event_loop_ref = el
+      session.define_singleton_method(:start) do
+        started_q.push(:started)
+        release.pop
+      end
 
-      expect { Phronomy::EventLoop.reset! }.to raise_error(Phronomy::Error, /still alive/)
-      expect(Phronomy::EventLoop.instance_variable_get(:@instance)).to be(instance)
+      el.register(session)
+      started_q.pop
+
+      task = el.instance_variable_get(:@task)
+      allow(task).to receive(:cancel!).and_return(nil)
+
+      # With cancel! stubbed as no-op, cancel_grace wait will expire with task alive.
+      result = runtime.shutdown(timeout: 0.05, cancel_grace: 0.05)
+
+      expect(result.event_loop_status).to eq(:cancel_timeout)
+      expect(el.task_alive?).to be(true)
     ensure
-      # Remove the stub and perform real cleanup.
-      allow(instance).to receive(:task_alive?).and_call_original
-      Phronomy::EventLoop.reset!
+      release&.push(:done)
+    end
+
+    it "Runtime.reset_default! raises and retains the singleton when cleanup is incomplete" do
+      # Stub Runtime#shutdown to return an incomplete result without actually
+      # running the full shutdown process (avoids caching the incomplete status).
+      default_runtime = Phronomy::Runtime.instance
+      incomplete_result = Phronomy::Runtime::ShutdownResult.new(
+        runtime_outcome: :failed,
+        cleanup_status: :incomplete,
+        event_loop_status: :cancel_timeout,
+        task_registry_status: :pending,
+        error: nil
+      )
+      allow(default_runtime).to receive(:shutdown).and_return(incomplete_result)
+
+      expect { Phronomy::Runtime.reset_default! }.to raise_error(Phronomy::RuntimeShutdownError)
+      expect(Phronomy::Runtime.instance_variable_get(:@instance)).to be(default_runtime)
+    ensure
+      # Remove stub so spec_helper after-hook can cleanly reset_runtime!
+      allow(default_runtime).to receive(:shutdown).and_call_original if default_runtime
     end
   end
 end

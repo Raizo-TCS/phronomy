@@ -32,7 +32,8 @@ module Phronomy
     # @api private
     def initialize(id:, context:, entry_point:, entry_actions:, auto_state_set:,
       declared_states:, wait_state_names:, external_events:, phase_machine_class:,
-      recursion_limit:, action_timeouts: {}, resume_event: nil, resume_phase: nil)
+      recursion_limit:, event_loop:, timer_queue_provider:, action_timeouts: {},
+      resume_event: nil, resume_phase: nil)
       @id = id
       @ctx = context
       @entry_point = entry_point
@@ -44,6 +45,8 @@ module Phronomy
       @phase_machine_class = phase_machine_class
       @recursion_limit = recursion_limit
       @action_timeouts = action_timeouts
+      @event_loop = event_loop
+      @timer_queue_provider = timer_queue_provider
       @resume_event = resume_event
       @resume_phase = resume_phase
       @step = 0
@@ -79,10 +82,10 @@ module Phronomy
             current_state_name = @current_state
             timeout_secs = @action_timeouts[current_state_name]
             if timeout_secs
-              Phronomy::Runtime.instance.timer_queue.schedule(seconds: timeout_secs) do
+              @timer_queue_provider.call.schedule(seconds: timeout_secs) do
                 next if result.done?
 
-                event_loop.post(
+                @event_loop.post(
                   Event.new(
                     type: :error,
                     target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
@@ -95,13 +98,13 @@ module Phronomy
             end
             result.on_complete do |task_result, error|
               if error
-                event_loop.post(Event.new(type: :error, target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {session_id: session_id, result: error}))
+                @event_loop.post(Event.new(type: :error, target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {session_id: session_id, result: error}))
                 next
               end
               if _fsm_context?(task_result)
-                event_loop.post(Event.new(type: :action_completed, target_id: session_id, payload: task_result))
+                @event_loop.post(Event.new(type: :action_completed, target_id: session_id, payload: task_result))
               else
-                event_loop.post(Event.new(type: :state_completed, target_id: session_id, payload: nil))
+                @event_loop.post(Event.new(type: :state_completed, target_id: session_id, payload: nil))
               end
             end
             break # Only one async action at a time per state
@@ -179,7 +182,7 @@ module Phronomy
       end
 
       if @auto_state_set.key?(@current_state)
-        event_loop.post(Event.new(type: :state_completed, target_id: @id, payload: nil))
+        @event_loop.post(Event.new(type: :state_completed, target_id: @id, payload: nil))
         return
       end
 
@@ -200,18 +203,18 @@ module Phronomy
     def finish!
       @done = true
       @ctx.set_graph_metadata(thread_id: @id, phase: :__end__)
-      event_loop.post(Event.new(type: :finished, target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {session_id: @id, result: @ctx}))
+      @event_loop.post(Event.new(type: :finished, target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {session_id: @id, result: @ctx}))
     end
 
     def halt!
       @done = true
       @ctx.set_graph_metadata(thread_id: @id, phase: @current_state)
-      event_loop.post(Event.new(type: :halted, target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {session_id: @id, result: @ctx}))
+      @event_loop.post(Event.new(type: :halted, target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {session_id: @id, result: @ctx}))
     end
 
     def finish_with_error(err)
       @done = true
-      event_loop.post(Event.new(type: :error, target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {session_id: @id, result: err}))
+      @event_loop.post(Event.new(type: :error, target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {session_id: @id, result: err}))
     end
 
     def fire_event!(tracker, event_name, from_state)
@@ -229,11 +232,11 @@ module Phronomy
     def build_tracker(from_state)
       machine = @phase_machine_class.new
       machine.instance_variable_set(:@phase, from_state.to_s)
+      machine.event_loop = @event_loop if machine.respond_to?(:event_loop=)
+      if machine.respond_to?(:timer_queue_provider=)
+        machine.timer_queue_provider = @timer_queue_provider
+      end
       machine
-    end
-
-    def event_loop
-      Phronomy::EventLoop.instance
     end
 
     # Returns true when +obj+ is an FSM execution context (responds to

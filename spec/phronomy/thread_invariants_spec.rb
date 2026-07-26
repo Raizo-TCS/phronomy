@@ -87,7 +87,7 @@ RSpec.describe "Thread.new absence from core paths (Issue #272)" do
 
   describe "EventLoop lag under normal load" do
     it "keeps average lag below 100ms under light dispatch load" do
-      el = Phronomy::EventLoop.instance
+      el = Phronomy::Runtime.instance.event_loop
       # Dispatch a few workflow runs and check the recorded average lag
       wf_ctx = Class.new do
         include Phronomy::WorkflowContext
@@ -207,21 +207,20 @@ end
 # dedicated ThreadScheduler instead of Runtime.instance.spawn.  Any additional
 # deliberate-thread exception requires a new ADR.
 RSpec.describe "EventLoop always uses a dedicated ThreadScheduler (Issue #370)", :issue_370 do
-  let(:event_loop) { Phronomy::EventLoop.instance }
+  let(:runtime) { Phronomy::Runtime.new }
+  let(:event_loop) { runtime.event_loop }
 
   after do
-    begin
-      event_loop.stop
-    rescue
-      nil
-    end
-    Phronomy.configure { |c| c.runtime_backend = :thread }
+    runtime.shutdown(timeout: 2)
+  rescue
+    nil
   end
 
   [:thread, :immediate, :fiber].each do |backend|
     it "EventLoop#start spawns its loop task on a ThreadBackend::Task regardless of :#{backend} backend" do
       Phronomy.configure { |c| c.runtime_backend = backend }
-      event_loop.start
+      # event_loop is started automatically on first access
+      event_loop
       sleep 0.02
 
       task = event_loop.instance_variable_get(:@task)

@@ -115,6 +115,7 @@ module Phronomy
           # FSM session id — set by FSMSession so async task spawns know the
           # target_id for EventLoop events.
           attr_accessor :session_id
+          attr_accessor :event_loop, :timer_queue_provider
 
           def initialize
             super
@@ -155,10 +156,10 @@ module Phronomy
         machine.async_pending = true
         session_id = machine.session_id
         if timeout_secs
-          Phronomy::Runtime.instance.timer_queue.schedule(seconds: timeout_secs) do
+          machine.timer_queue_provider.call.schedule(seconds: timeout_secs) do
             next if result.done?
 
-            Phronomy::EventLoop.instance.post(
+            machine.event_loop.post(
               Phronomy::Event.new(
                 type: :error,
                 target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
@@ -171,7 +172,7 @@ module Phronomy
         end
         result.on_complete do |task_result, error|
           if error
-            Phronomy::EventLoop.instance.post(
+            machine.event_loop.post(
               Phronomy::Event.new(type: :error, target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID, payload: {session_id: session_id, result: error})
             )
             next
@@ -181,7 +182,7 @@ module Phronomy
           else
             Phronomy::Event.new(type: :state_completed, target_id: session_id, payload: nil)
           end
-          Phronomy::EventLoop.instance.post(ev)
+          machine.event_loop.post(ev)
         end
       end
     end

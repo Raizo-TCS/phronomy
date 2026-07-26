@@ -31,11 +31,12 @@ RSpec.describe Phronomy::FSMSession do
     end
   end
 
-  # Replace EventLoop.instance with a FakeLoop for the duration of the test.
+  # Yields a FakeLoop and a fake_runtime duck-type object.
+  # Pass fake_runtime as runtime: to build_session_for.
   def with_fake_loop
     fake = FakeLoop.new
-    allow(Phronomy::EventLoop).to receive(:instance).and_return(fake)
-    yield fake
+    fake_runtime = double("fake_runtime", event_loop: fake, timer_queue: nil)
+    yield fake, fake_runtime
   end
 
   # Build a WorkflowRunner from a Workflow definition and return it.
@@ -55,18 +56,19 @@ RSpec.describe Phronomy::FSMSession do
   # Helpers: build common session configurations via WorkflowRunner
   # ---------------------------------------------------------------------------
 
-  def build_linear_session(ctx, runner:, recursion_limit: 25)
-    runner.send(:build_session_for, context: ctx, recursion_limit: recursion_limit)
+  def build_linear_session(ctx, runner:, recursion_limit: 25, fake_runtime: nil)
+    runner.send(:build_session_for, context: ctx, recursion_limit: recursion_limit, runtime: fake_runtime || Phronomy::Runtime.instance)
   end
 
-  def build_wait_session(ctx, runner:, recursion_limit: 25)
-    runner.send(:build_session_for, context: ctx, recursion_limit: recursion_limit)
+  def build_wait_session(ctx, runner:, recursion_limit: 25, fake_runtime: nil)
+    runner.send(:build_session_for, context: ctx, recursion_limit: recursion_limit, runtime: fake_runtime || Phronomy::Runtime.instance)
   end
 
-  def build_resume_session(ctx, runner:, resume_event:, resume_phase:, recursion_limit: 25)
+  def build_resume_session(ctx, runner:, resume_event:, resume_phase:, recursion_limit: 25, fake_runtime: nil)
     runner.send(:build_session_for,
       context: ctx, recursion_limit: recursion_limit,
-      resume_event: resume_event, resume_phase: resume_phase)
+      resume_event: resume_event, resume_phase: resume_phase,
+      runtime: fake_runtime || Phronomy::Runtime.instance)
   end
 
   # ---------------------------------------------------------------------------
@@ -88,8 +90,8 @@ RSpec.describe Phronomy::FSMSession do
       ctx = ctx_class.new(value: 0)
       ctx.set_graph_metadata(thread_id: "t1")
 
-      with_fake_loop do |fake|
-        session = build_linear_session(ctx, runner: runner)
+      with_fake_loop do |fake, fake_runtime|
+        session = build_linear_session(ctx, runner: runner, fake_runtime: fake_runtime)
 
         # FSMSession#start drives the whole linear graph synchronously since the
         # :state_completed event is posted and re-handled in the same call chain
@@ -137,8 +139,8 @@ RSpec.describe Phronomy::FSMSession do
       ctx = ctx_class.new(value: 0)
       ctx.set_graph_metadata(thread_id: "t2")
 
-      with_fake_loop do |fake|
-        session = build_wait_session(ctx, runner: runner)
+      with_fake_loop do |fake, fake_runtime|
+        session = build_wait_session(ctx, runner: runner, fake_runtime: fake_runtime)
         session.start
 
         # :state_completed was posted for :prepare; dispatch it
@@ -179,8 +181,8 @@ RSpec.describe Phronomy::FSMSession do
       ctx = ctx_class.new(value: 10)
       ctx.set_graph_metadata(thread_id: "t3", phase: :awaiting)
 
-      with_fake_loop do |fake|
-        session = build_resume_session(ctx, runner: runner,
+      with_fake_loop do |fake, fake_runtime|
+        session = build_resume_session(ctx, runner: runner, fake_runtime: fake_runtime,
           resume_event: :approve, resume_phase: :awaiting)
         session.start
 
@@ -219,8 +221,8 @@ RSpec.describe Phronomy::FSMSession do
       ctx = ctx_class.new(value: 0)
       ctx.set_graph_metadata(thread_id: "t4")
 
-      with_fake_loop do |fake|
-        session = build_linear_session(ctx, runner: runner, recursion_limit: 3)
+      with_fake_loop do |fake, fake_runtime|
+        session = build_linear_session(ctx, runner: runner, recursion_limit: 3, fake_runtime: fake_runtime)
         session.start
 
         # Drive the cycling loop manually.
@@ -272,8 +274,8 @@ RSpec.describe Phronomy::FSMSession do
       ctx = ctx_class_merge.new(value: 0, tag: "before")
       ctx.set_graph_metadata(thread_id: "t-merge-fresh")
 
-      with_fake_loop do |fake|
-        session = runner.send(:build_session_for, context: ctx, recursion_limit: 25)
+      with_fake_loop do |fake, fake_runtime|
+        session = runner.send(:build_session_for, context: ctx, recursion_limit: 25, runtime: fake_runtime)
         session.start
 
         if fake.events.last.type == :state_completed
@@ -303,8 +305,8 @@ RSpec.describe Phronomy::FSMSession do
       ctx = ctx_class_merge.new(value: 0, tag: "original")
       ctx.set_graph_metadata(thread_id: "t-merge-trans")
 
-      with_fake_loop do |fake|
-        session = runner.send(:build_session_for, context: ctx, recursion_limit: 25)
+      with_fake_loop do |fake, fake_runtime|
+        session = runner.send(:build_session_for, context: ctx, recursion_limit: 25, runtime: fake_runtime)
         session.start
 
         # Drive the event loop manually. Use @done as the termination guard instead

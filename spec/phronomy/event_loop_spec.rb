@@ -2,16 +2,27 @@
 
 require "spec_helper"
 
-# Tests for Phronomy::EventLoop:
-#   - Singleton lifecycle
-#   - Deadlock protection
-#   - Full workflow execution in EventLoop mode (through Workflow public API)
-#   - Wait-state halt / resume in EventLoop mode
+# Tests for Phronomy::EventLoop, accessed through Runtime ownership.
+#
+# EventLoop is no longer a standalone singleton. It is owned by Runtime and
+# accessed via Runtime#event_loop. The former EventLoop.instance,
+# EventLoop.reset!, EventLoop#start, and EventLoop#stop APIs have been removed.
+#
+# Coverage:
+#   - Runtime-owned EventLoop lifetime
+#   - Deadlock / reentrancy protection
+#   - Full workflow execution in EventLoop mode
+#   - Wait-state halt / resume
 #   - Error propagation
+#   - Cooperative shutdown via Runtime#shutdown
 RSpec.describe Phronomy::EventLoop do
+  # Each example owns its own Runtime so teardown is local and isolated.
+  let(:runtime) { Phronomy::Runtime.new }
+
   after do
-    described_class.reset!
-    Phronomy.reset_configuration!
+    runtime.shutdown(timeout: 2)
+  rescue
+    nil
   end
 
   # ---------------------------------------------------------------------------
@@ -58,34 +69,31 @@ RSpec.describe Phronomy::EventLoop do
   end
 
   # ---------------------------------------------------------------------------
-  # Singleton lifecycle
+  # Runtime ownership
   # ---------------------------------------------------------------------------
 
-  describe ".instance" do
-    it "returns the same object on repeated calls" do
-      expect(described_class.instance).to be(described_class.instance)
+  describe "Runtime-owned EventLoop" do
+    it "returns the same EventLoop on repeated calls to the same Runtime" do
+      expect(runtime.event_loop).to be(runtime.event_loop)
     end
 
-    it "starts the background task" do
-      task = described_class.instance.instance_variable_get(:@task)
+    it "starts the background dispatcher task on first access" do
+      el = runtime.event_loop
+      task = el.instance_variable_get(:@task)
       expect(task).to be_alive
     end
-  end
 
-  describe ".reset!" do
-    it "creates a fresh instance after reset" do
-      first = described_class.instance
-      described_class.reset!
-      expect(described_class.instance).not_to be(first)
+    it "dispatcher is terminated after Runtime#shutdown" do
+      el = runtime.event_loop
+      task = el.instance_variable_get(:@task)
+      runtime.shutdown(timeout: 2)
+      expect(task).not_to be_alive
     end
 
-    it "stops the old background task" do
-      el = described_class.instance
-      task = el.instance_variable_get(:@task)
-      described_class.reset!
-      # Give the cancel a moment to propagate
-      sleep 0.05
-      expect(task).not_to be_alive
+    it "does not create an EventLoop when shutting down an unused Runtime" do
+      r = Phronomy::Runtime.new
+      r.shutdown(timeout: 1)
+      expect(r.instance_variable_get(:@event_loop)).to be_nil
     end
   end
 
@@ -94,13 +102,14 @@ RSpec.describe Phronomy::EventLoop do
   # ---------------------------------------------------------------------------
 
   describe "deadlock protection" do
-    it "raises Phronomy::Error when register is called from the EventLoop thread" do
-      el = described_class.instance
+    it "raises when register is called from within the EventLoop dispatch thread" do
+      el = runtime.event_loop
+      task = el.instance_variable_get(:@task)
       error = nil
 
-      # Simulate calling register from within the EventLoop dispatch task
+      # current? checks Task.current.equal?(@task), so we must set the actual task.
       t = Thread.new do
-        Thread.current[:phronomy_current_task] = double("task", name: "event-loop")
+        Thread.current[:phronomy_current_task] = task
         begin
           el.register(double("session", id: "fake"))
         rescue Phronomy::Error => e
@@ -116,7 +125,7 @@ RSpec.describe Phronomy::EventLoop do
   end
 
   # ---------------------------------------------------------------------------
-  # Workflow execution in EventLoop mode
+  # Workflow execution in EventLoop mode (via default Runtime)
   # ---------------------------------------------------------------------------
 
   describe "linear workflow (no wait states)" do
@@ -180,10 +189,9 @@ RSpec.describe Phronomy::EventLoop do
       begin
         boom_app.invoke({value: 0})
       rescue RuntimeError
-        nil # expected
+        nil
       end
 
-      # Subsequent invocations on a different (linear) app must still succeed
       app = build_linear_app(ctx_class)
       result = app.invoke({value: 5})
       expect(result.value).to eq(6)
@@ -196,12 +204,11 @@ RSpec.describe Phronomy::EventLoop do
 
   describe "unknown target_id warning" do
     it "emits a warn message when an event has no registered handler" do
-      loop_instance = Phronomy::EventLoop.instance
+      el = runtime.event_loop
       unknown_event = Phronomy::Event.new(type: :custom, target_id: "nonexistent-id", payload: {})
       warning_output = nil
-      allow(loop_instance).to receive(:warn) { |msg| warning_output = msg }
-      loop_instance.post(unknown_event)
-      # Give the event-loop thread a moment to process the event.
+      allow(el).to receive(:warn) { |msg| warning_output = msg }
+      el.post(unknown_event)
       sleep 0.05
       expect(warning_output).not_to be_nil
       expect(warning_output).to include("nonexistent-id")
@@ -210,35 +217,29 @@ RSpec.describe Phronomy::EventLoop do
   end
 
   # ---------------------------------------------------------------------------
-  # Cooperative shutdown (issue #135)
+  # Cooperative shutdown via Runtime (replaces EventLoop#stop tests)
   # ---------------------------------------------------------------------------
 
-  describe "cooperative stop (issue #135)" do
-    it "stops without force-killing the thread when no events are in-flight" do
-      loop_instance = Phronomy::EventLoop.instance
-      # Ensure the loop is running.
-      expect(loop_instance.instance_variable_get(:@task)).not_to be_nil
+  describe "cooperative shutdown via Runtime#shutdown" do
+    it "terminates the dispatcher cleanly when no events are in-flight" do
+      el = runtime.event_loop
+      expect(el.instance_variable_get(:@task)).not_to be_nil
 
-      loop_instance.stop(timeout: 2)
+      result = runtime.shutdown(timeout: 2)
 
-      expect(loop_instance.instance_variable_get(:@task)).to be_nil
+      expect(result.cleanup_complete?).to be(true)
+      expect(el.task_alive?).to be(false)
     end
 
     it "accepts the timeout keyword argument" do
-      loop_instance = Phronomy::EventLoop.instance
-      expect { loop_instance.stop(timeout: 1) }.not_to raise_error
-    end
-  end
-
-  describe "force_kill: option (Issue #235)" do
-    it "returns :clean when the loop stops cooperatively regardless of force_kill:" do
-      loop_instance = Phronomy::EventLoop.instance
-      expect(loop_instance.stop(timeout: 2, force_kill: false)).to eq(:clean)
+      runtime.event_loop
+      expect { runtime.shutdown(timeout: 1) }.not_to raise_error
     end
 
-    it "returns :clean with force_kill: true when the loop stops cooperatively" do
-      loop_instance = Phronomy::EventLoop.instance
-      expect(loop_instance.stop(timeout: 2, force_kill: true)).to eq(:clean)
+    it "returns a clean ShutdownResult when the loop stops cooperatively" do
+      runtime.event_loop
+      result = runtime.shutdown(timeout: 2)
+      expect(result.clean?).to be(true)
     end
   end
 end
