@@ -525,7 +525,11 @@ callbacks.</p>
 133
 134
 135
-136</pre>
+136
+137
+138
+139
+140</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/phase_machine_builder.rb', line 60</span>
@@ -548,6 +552,10 @@ callbacks.</p>
 </span>    <span class='comment'># When true, FSMSession skips the automatic advance_or_halt step and
 </span>    <span class='comment'># waits for the async worker thread to post a state_completed event back.
 </span>    <span class='id identifier rubyid_attr_accessor'>attr_accessor</span> <span class='symbol'>:async_pending</span>
+
+    <span class='comment'># Invocation-local routing. FSMSession sets these on each machine
+</span>    <span class='comment'># instance; the compiled Class captures no Runtime-specific object.
+</span>    <span class='id identifier rubyid_attr_accessor'>attr_accessor</span> <span class='symbol'>:event_loop</span><span class='comma'>,</span> <span class='symbol'>:timer_queue_provider</span><span class='comma'>,</span> <span class='symbol'>:session_id</span>
 
     <span class='id identifier rubyid_state_machine'>state_machine</span> <span class='symbol'>:phase</span><span class='comma'>,</span> <span class='label'>initial:</span> <span class='id identifier rubyid_entry'>entry</span> <span class='kw'>do</span>
       <span class='id identifier rubyid_all_states'>all_states</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_s'>s</span><span class='op'>|</span> <span class='id identifier rubyid_state'>state</span> <span class='id identifier rubyid_s'>s</span> <span class='rbrace'>}</span>
@@ -617,7 +625,7 @@ callbacks.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Jul 26 01:33:07 2026 by
+  Generated on Sun Jul 26 17:26:04 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

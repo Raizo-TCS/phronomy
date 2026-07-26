@@ -124,7 +124,7 @@ backing primitive without changing call sites.</p>
         <h5 class="example_title"><div class='inline'><p>Producer / consumer</p></div></h5>
       
       <pre class="example code"><code><span class='id identifier rubyid_queue'>queue</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'>AsyncQueue</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Concurrency::AsyncQueue#initialize (method)">new</a></span></span>
-<span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_spawn'><span class='object_link'><a href="../Runtime.html#spawn-instance_method" title="Phronomy::Runtime#spawn (method)">spawn</a></span></span> <span class='lbrace'>{</span> <span class='id identifier rubyid_queue'>queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_expensive_io'>expensive_io</span><span class='lparen'>(</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+<span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_spawn'>spawn</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_queue'>queue</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_expensive_io'>expensive_io</span><span class='lparen'>(</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
 <span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='id identifier rubyid_queue'>queue</span><span class='period'>.</span><span class='id identifier rubyid_pop'>pop</span>   <span class='comment'># blocks until the producer pushes</span></code></pre>
     
   </div>
@@ -893,7 +893,7 @@ SizedQueue blocking behaviour.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Jul 26 01:33:07 2026 by
+  Generated on Sun Jul 26 17:26:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

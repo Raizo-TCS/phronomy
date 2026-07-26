@@ -210,15 +210,17 @@ persistent state is held here.</p>
 33
 34
 35
-36</pre>
+36
+37</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/metrics.rb', line 22</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_snapshot'>snapshot</span>
-  <span class='id identifier rubyid_pool'>pool</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_blocking_io'><span class='object_link'><a href="Runtime.html#blocking_io-instance_method" title="Phronomy::Runtime#blocking_io (method)">blocking_io</a></span></span>
-  <span class='id identifier rubyid_el'>el</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="EventLoop.html" title="Phronomy::EventLoop (class)">EventLoop</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="EventLoop.html#instance-class_method" title="Phronomy::EventLoop.instance (method)">instance</a></span></span>
-  <span class='id identifier rubyid_task_snap'>task_snap</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_task_snapshot'><span class='object_link'><a href="Runtime.html#task_snapshot-instance_method" title="Phronomy::Runtime#task_snapshot (method)">task_snapshot</a></span></span>
+  <span class='id identifier rubyid_runtime'>runtime</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span>
+  <span class='id identifier rubyid_pool'>pool</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_blocking_io'>blocking_io</span>
+  <span class='id identifier rubyid_el'>el</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span>
+  <span class='id identifier rubyid_task_snap'>task_snap</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_task_snapshot'>task_snapshot</span>
 
   <span class='lbrace'>{</span>
     <span class='label'>blocking_pool_active:</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_active_count'>active_count</span><span class='comma'>,</span>
@@ -240,7 +242,7 @@ persistent state is held here.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Jul 26 01:33:03 2026 by
+  Generated on Sun Jul 26 17:25:59 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
