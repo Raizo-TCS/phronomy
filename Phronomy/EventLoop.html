@@ -1407,8 +1407,8 @@ they were discarded and the loop was stopped</li>
       <span class='rparen'>)</span>
       <span class='id identifier rubyid_status'>status</span> <span class='op'>=</span> <span class='symbol'>:timeout</span>
     <span class='kw'>end</span>
-  <span class='kw'>else</span>
-    <span class='ivar'>@task</span> <span class='op'>=</span> <span class='kw'>nil</span> <span class='kw'>if</span> <span class='ivar'>@task</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_task'>task</span><span class='rparen'>)</span>
+  <span class='kw'>elsif</span> <span class='ivar'>@task</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_task'>task</span><span class='rparen'>)</span>
+    <span class='ivar'>@task</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_status'>status</span>
 <span class='kw'>end</span></pre>
@@ -1479,7 +1479,7 @@ Safe to call from any thread.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Jul 25 17:58:32 2026 by
+  Generated on Sun Jul 26 01:33:05 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
