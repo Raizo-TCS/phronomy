@@ -9,9 +9,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.14.0] - 2026-07-27
+
+### Changed
+
+- **Runtime-owned EventLoop lifecycle** (`refactor: Runtime-owned EventLoop lifecycle`):
+  - `Runtime#event_loop` lazy accessor replaces the standalone `EventLoop.instance` singleton.
+  - `EventLoop.instance` is retained as a deprecated compatibility bridge to `Runtime.instance.event_loop`.
+  - EventLoop dispatcher now runs in a dedicated real-thread service scheduler owned by `Runtime`,
+    removing the hidden `Runtime.new(scheduler: ThreadScheduler.new)` inside `EventLoop`.
+  - EventLoop lifecycle is terminal: `:running` → `:draining` → `:stopping` → `:terminated` / `:failed`.
+  - `STOP` Object sentinel replaces the `:__stop__` symbol; stale sentinel handling is removed.
+  - `@running` instance variable removed; dispatch loop driven solely by the STOP sentinel.
+  - EventLoop-specific `@shutdown_token` removed.
+  - `outstanding_sessions` counter covers queue-pending `:start` events from `register` time,
+    ensuring drain correctness when shutdown races with queued sessions.
+  - Shutdown timeout: `AbortAndStop` control command path plus `cancel!` → `join(cancel_grace)` fallback.
+  - `Runtime.reset_default!` replaces `EventLoop.reset!`; `Phronomy.reset_runtime!` performs real Runtime shutdown then config reset.
+  - `ShutdownResult` value object separates `runtime_outcome` from `cleanup_status`.
+  - `FSMSession` now receives `event_loop:` and `timer_queue_provider:` explicitly at build time.
+  - Agent / Workflow phase-machine builders capture the owning EventLoop at invocation time;
+    `EventLoop.instance` is no longer re-fetched inside async callbacks or timers.
+
 ### Fixed
 
-- **`llm_timeout` / `tool_timeout` now fire on the `on_complete` path**:
+- **Double-dispatch regression (P0 hotfix — commit `2cc8c6c1`)**: `EventLoop#stop` no longer clears `@task`
+  while the dispatcher task is still alive. A subsequent `start` call detects the live task and does
+  not spawn a second dispatch loop on the same queue. Includes `:cancel_timeout` status for the case
+  where `cancel!` does not terminate the task within `cancel_grace` seconds.
+- **`EventLoop.reset!` safety**: raises `Phronomy::Error` when the dispatcher task is still alive
+  after stop instead of unconditionally clearing the singleton.
+- **`EventLoop#task_alive?`**: new public helper; thread-safe boolean for use in reset logic.
+
+
   `BlockingAdapterPool#submit` previously stored the timeout value but never
   registered a wall-clock timer, so `config: { llm_timeout: N }` and
   `config: { tool_timeout: N }` had no effect for callers using `on_complete`
