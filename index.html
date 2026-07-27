@@ -233,7 +233,15 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong><code>Phronomy.with_configuration</code> / <code>Phronomy.reset_runtime!</code></strong> — Scoped configuration override and full runtime reset for test isolation</td>
+<td><strong><code>Phronomy.with_configuration</code> / <code>Phronomy.reset_runtime!</code></strong> — Scoped configuration override; <code>reset_runtime!</code> performs a full <code>Runtime#shutdown</code> (including EventLoop termination) then resets configuration; intended for test isolation</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong><code>Runtime#event_loop</code></strong> — Returns the Runtime-owned <code>EventLoop</code> instance; lazy-initialised on first access; EventLoop lifetime is tied to the owning Runtime</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong><code>Runtime#shutdown(timeout:, cancel_grace:)</code></strong> — Irreversible Runtime shutdown: drains active sessions, terminates the EventLoop dispatcher, then stops pools and timers; returns a <code>ShutdownResult</code> with <code>runtime_outcome</code> and <code>cleanup_status</code> fields</td>
 <td>Beta</td>
 </tr>
 </tbody>
@@ -1158,7 +1166,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sun Jul 26 17:25:59 2026 by
+  Generated on Mon Jul 27 04:04:24 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

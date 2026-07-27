@@ -65,14 +65,52 @@
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<hr />
+<h2 id="_0_14_0____2026_07_27">[0.14.0] - 2026-07-27</h2>
+<h3 id="Changed">Changed</h3>
+<ul>
+<li>
+<strong>Runtime-owned EventLoop lifecycle</strong> (<code>refactor: Runtime-owned EventLoop lifecycle</code>):
+<ul>
+<li><code>Runtime#event_loop</code> lazy accessor replaces the standalone <code>EventLoop.instance</code> singleton.</li>
+<li><code>EventLoop.instance</code> is retained as a deprecated compatibility bridge to <code>Runtime.instance.event_loop</code>.</li>
+<li>EventLoop dispatcher now runs in a dedicated real-thread service scheduler owned by <code>Runtime</code>,
+removing the hidden <code>Runtime.new(scheduler: ThreadScheduler.new)</code> inside <code>EventLoop</code>.</li>
+<li>EventLoop lifecycle is terminal: <code>:running</code> → <code>:draining</code> → <code>:stopping</code> → <code>:terminated</code> / <code>:failed</code>.</li>
+<li><code>STOP</code> Object sentinel replaces the <code>:__stop__</code> symbol; stale sentinel handling is removed.</li>
+<li><code>@running</code> instance variable removed; dispatch loop driven solely by the STOP sentinel.</li>
+<li>EventLoop-specific <code>@shutdown_token</code> removed.</li>
+<li><code>outstanding_sessions</code> counter covers queue-pending <code>:start</code> events from <code>register</code> time,
+ensuring drain correctness when shutdown races with queued sessions.</li>
+<li>Shutdown timeout: <code>AbortAndStop</code> control command path plus <code>cancel!</code> → <code>join(cancel_grace)</code> fallback.</li>
+<li><code>Runtime.reset_default!</code> replaces <code>EventLoop.reset!</code>; <code>Phronomy.reset_runtime!</code> performs real Runtime shutdown then config reset.</li>
+<li><code>ShutdownResult</code> value object separates <code>runtime_outcome</code> from <code>cleanup_status</code>.</li>
+<li><code>FSMSession</code> now receives <code>event_loop:</code> and <code>timer_queue_provider:</code> explicitly at build time.</li>
+<li>Agent / Workflow phase-machine builders capture the owning EventLoop at invocation time;
+<code>EventLoop.instance</code> is no longer re-fetched inside async callbacks or timers.</li>
+</ul>
+</li>
+</ul>
 <h3 id="Fixed">Fixed</h3>
 <ul>
-<li><strong><code>llm_timeout</code> / <code>tool_timeout</code> now fire on the <code>on_complete</code> path</strong>:
-<code>BlockingAdapterPool#submit</code> previously stored the timeout value but never
+<li>
+<p><strong>Double-dispatch regression (P0 hotfix — commit <code>2cc8c6c1</code>)</strong>: <code>EventLoop#stop</code> no longer clears <code>@task</code>
+while the dispatcher task is still alive. A subsequent <code>start</code> call detects the live task and does
+not spawn a second dispatch loop on the same queue. Includes <code>:cancel_timeout</code> status for the case
+where <code>cancel!</code> does not terminate the task within <code>cancel_grace</code> seconds.</p>
+</li>
+<li>
+<p><strong><code>EventLoop.reset!</code> safety</strong>: raises <code>Phronomy::Error</code> when the dispatcher task is still alive
+after stop instead of unconditionally clearing the singleton.</p>
+</li>
+<li>
+<p><strong><code>EventLoop#task_alive?</code></strong>: new public helper; thread-safe boolean for use in reset logic.</p>
+<p><code>BlockingAdapterPool#submit</code> previously stored the timeout value but never
 registered a wall-clock timer, so <code>config: { llm_timeout: N }</code> and
 <code>config: { tool_timeout: N }</code> had no effect for callers using <code>on_complete</code>
 (the normal non-streaming Agent path). The timer is now armed before queue
-admission and calls <code>fire_timeout!</code> when the deadline expires.</li>
+admission and calls <code>fire_timeout!</code> when the deadline expires.</p>
+</li>
 </ul>
 <h3 id="Changed">Changed</h3>
 <ul>
@@ -1260,7 +1298,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sun Jul 26 17:25:59 2026 by
+  Generated on Mon Jul 27 04:04:25 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
