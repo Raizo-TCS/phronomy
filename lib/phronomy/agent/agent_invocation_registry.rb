@@ -9,7 +9,7 @@ module Phronomy
     #
     # @api private
     module AgentInvocationRegistry
-      Entry = Struct.new(:invocation, :approval_request, keyword_init: true)
+      Entry = Struct.new(:invocation, :approval_request)
 
       @entries = {}
       @approval_index = {}

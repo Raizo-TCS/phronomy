@@ -16,15 +16,13 @@ module Phronomy
         :facts,
         :reason,
         :error,
-        :cancelled,
-        keyword_init: true
+        :cancelled
       )
 
       ExecutionOutcome = Struct.new(
         :result,
         :error,
-        :cancelled,
-        keyword_init: true
+        :cancelled
       )
 
       PREFLIGHT_SETTLED_STATES = %i[

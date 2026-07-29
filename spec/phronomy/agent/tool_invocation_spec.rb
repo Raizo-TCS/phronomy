@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::Agent::ToolInvocation do
-  ToolCall = Struct.new(:id, :name, :arguments, keyword_init: true)
+  ToolCall = Struct.new(:id, :name, :arguments)
 
   let(:tool_class) do
     Class.new(Phronomy::Agent::Context::Capability::Base) do

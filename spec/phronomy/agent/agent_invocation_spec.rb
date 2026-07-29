@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::Agent::AgentInvocation do
-  FakeChild = Struct.new(:id, :status, :error, keyword_init: true) do
+  FakeChild = Struct.new(:id, :status, :error) do
     def awaiting_approval?
       status == :awaiting_approval
     end
