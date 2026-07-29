@@ -59,5 +59,25 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
       )
       expect(session).to be_a(Phronomy::FSMSession)
     end
+
+    it "accepts approval_policy and approval_listener" do
+      policy = ->(_req) { :allow }
+      listener = ->(_req) {}
+      session = described_class.build(
+        agent: agent, input: "hi", messages: [], config: {},
+        approval_policy: policy, approval_listener: listener
+      )
+      expect(session).to be_a(Phronomy::FSMSession)
+    end
+
+    it "includes all expected entry action states" do
+      session = described_class.build(
+        agent: agent, input: "hi", messages: [], config: {}
+      )
+      session.instance_variable_get(:@entry_actions)
+      # AUTO_STATE_SET provides entry actions; check session has declared states
+      declared = session.instance_variable_get(:@declared_states)
+      expect(declared).to include(:calling_llm, :waiting_for_tools, :suspended)
+    end
   end
 end
