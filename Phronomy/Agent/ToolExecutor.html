@@ -92,48 +92,7 @@
   <strong>This module is part of a private API.</strong>
   You should avoid using this module if possible, as it may be removed or be changed in the future.
 </p>
-
-  <div class="note notetag">
-    <strong>Note:</strong>
-    <div class='inline'><p>Non-goals
-ToolExecutor deliberately does NOT provide:</p>
-<ul>
-<li>A CPU-bound process pool. CPU-intensive tool work must be handled at the
-application layer (e.g., fork, Sidekiq, separate OS processes). The
-framework will not add a <code>ProcessPoolExecutor</code> equivalent.</li>
-<li>An external process manager. Spawning or supervising subprocesses is
-out of scope for this module.</li>
-<li>Additional core execution routes beyond scheduler-backed cooperative
-execution and BlockingAdapterPool-backed blocking I/O isolation.
-The <code>:cpu_bound</code> and <code>:external_process</code> modes are accepted for
-compatibility but both fall back to <code>:blocking_io</code> routing with a
-one-time warning. If a genuinely new core execution route is needed,
-a new ADR is required.
-These non-goals follow from the cooperative-first, non-preemptive
-concurrency model (ADR-010): framework components must not assume the
-caller's concurrency model, and CPU/process management belongs to the
-application layer.</li>
-</ul></div>
-  </div>
-
-<p>Centralises tool execution routing based on Tool::Base.execution_mode.</p>
-<p>This is the single place in the framework that decides <em>how</em> a tool call is
-dispatched:</p>
-<ul>
-<li><code>:cooperative</code>       — dispatched via <code>Runtime#spawn</code> through the configured
-scheduler. Under the <code>:fiber</code> backend this avoids an
-extra OS thread; under the <code>:thread</code> backend it is
-backed by <code>ThreadScheduler</code> (one thread per task).</li>
-<li><code>:blocking_io</code>       — submitted to <code>BlockingAdapterPool</code> when the runtime
-provides a pool; falls back to <code>Runtime#spawn</code> otherwise.</li>
-<li><code>:cpu_bound</code>         — emits a deprecation-style warning then falls back to
-<code>:blocking_io</code> routing (no process pool available yet).</li>
-<li><code>:external_process</code>  — falls back to <code>:blocking_io</code> routing (no process
-manager available yet).</li>
-</ul>
-<p>All paths return an object that responds to <code>#await</code> (+Phronomy::Task+ or
-<code>BlockingAdapterPool::PendingOperation</code>), so callers can collect results
-uniformly.</p>
+<p>Centralises Tool execution routing based on execution_mode.</p>
 
   </div>
 </div>
@@ -158,7 +117,7 @@ uniformly.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#call_async-class_method" title="call_async (class method)">.<strong>call_async</strong>(tool:, args:, cancellation_token: nil, config: {}, runtime: Phronomy::Runtime.instance)  &#x21d2; #await </a>
+      <a href="#call_async-class_method" title="call_async (class method)">.<strong>call_async</strong>(tool:, args:, cancellation_token: nil, config: {}, runtime: Phronomy::Runtime.instance)  &#x21d2; Object </a>
     
 
     
@@ -172,7 +131,29 @@ uniformly.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Dispatches a single tool call asynchronously according to its <code>execution_mode</code> and returns an awaitable.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Low-level Tool API used by direct Tool#call_async callers.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#call_invocation_async-class_method" title="call_invocation_async (class method)">.<strong>call_invocation_async</strong>(tool_invocation:, cancellation_token: nil, config: {}, runtime: Phronomy::Runtime.instance)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Agent-owned execution boundary.</p></div></span>
   
 </li>
 
@@ -190,7 +171,7 @@ uniformly.</p>
       <div class="method_details first">
   <h3 class="signature first" id="call_async-class_method">
   
-    .<strong>call_async</strong>(tool:, args:, cancellation_token: nil, config: {}, runtime: Phronomy::Runtime.instance)  &#x21d2; <tt>#await</tt> 
+    .<strong>call_async</strong>(tool:, args:, cancellation_token: nil, config: {}, runtime: Phronomy::Runtime.instance)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -202,110 +183,13 @@ uniformly.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Dispatches a single tool call asynchronously according to its
-<code>execution_mode</code> and returns an awaitable.</p>
+<p>Low-level Tool API used by direct Tool#call_async callers. Agent execution
+must use .call_invocation_async so authorization cannot be bypassed.</p>
 
   </div>
 </div>
 <div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>tool</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="Context/Capability/Base.html" title="Phronomy::Agent::Context::Capability::Base (class)">Phronomy::Agent::Context::Capability::Base</a></span></tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>the tool instance to invoke</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>args</span>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>argument hash to pass to Tool::Base#call</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>cancellation_token</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">Phronomy::Concurrency::CancellationToken</a></span></tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>config</span>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>{}</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>invocation config forwarded from the agent pipeline.
-Recognised keys: <code>:tool_timeout</code> (seconds; passed as the
-<code>BlockingAdapterPool#submit</code> timeout so that timed-out
-operations are tracked as abandoned rather than silently dropped).</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>runtime</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Phronomy::Runtime</a></span></tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>Phronomy::Runtime.instance</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>runtime to use for spawning
-(defaults to <span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">Runtime.instance</a></span>; injectable for tests)</p></div>
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>#await</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>a <span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span> or BlockingAdapterPool::PendingOperation</p></div>
-      
-    </li>
-  
-</ul>
 
 </div><table class="source_code">
   <tr>
@@ -313,6 +197,35 @@ operations are tracked as abandoned rather than silently dropped).</p></div>
       <pre class="lines">
 
 
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
 65
 66
 67
@@ -332,64 +245,38 @@ operations are tracked as abandoned rather than silently dropped).</p></div>
 81
 82
 83
-84
-85
-86
-87
-88
-89
-90
-91
-92
-93
-94
-95
-96
-97
-98
-99
-100
-101
-102
-103
-104
-105
-106
-107
-108
-109
-110
-111
-112</pre>
+84</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_executor.rb', line 65</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_executor.rb', line 36</span>
 
-<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span><span class='label'>tool:</span><span class='comma'>,</span> <span class='label'>args:</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>runtime:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span>
+  <span class='label'>tool:</span><span class='comma'>,</span>
+  <span class='label'>args:</span><span class='comma'>,</span>
+  <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span>
+  <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
+  <span class='label'>runtime:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span>
+<span class='rparen'>)</span>
   <span class='id identifier rubyid_ct'>ct</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
   <span class='id identifier rubyid_mode'>mode</span> <span class='op'>=</span> <span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_execution_mode'>execution_mode</span>
 
-  <span class='comment'># Warn and normalise unsupported modes to :blocking_io.
-</span>  <span class='comment'># Each (tool class, mode) pair emits the warning at most once per process
-</span>  <span class='comment'># lifetime to avoid log flooding in high-throughput scenarios.
-</span>  <span class='kw'>if</span> <span class='id identifier rubyid_mode'>mode</span> <span class='op'>==</span> <span class='symbol'>:cpu_bound</span> <span class='op'>||</span> <span class='id identifier rubyid_mode'>mode</span> <span class='op'>==</span> <span class='symbol'>:external_process</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_mode'>mode</span> <span class='op'>==</span> <span class='symbol'>:cpu_bound</span> <span class='op'>||</span> <span class='id identifier rubyid_mode'>mode</span> <span class='op'>==</span> <span class='symbol'>:external_process</span>
     <span class='id identifier rubyid_warn_key'>warn_key</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_mode'>mode</span><span class='rbracket'>]</span>
     <span class='id identifier rubyid_newly_warned'>newly_warned</span> <span class='op'>=</span> <span class='const'>WARNED_MODES_MUTEX</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='const'>WARNED_MODES</span><span class='period'>.</span><span class='id identifier rubyid_add?'>add?</span><span class='lparen'>(</span><span class='id identifier rubyid_warn_key'>warn_key</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
     <span class='kw'>if</span> <span class='id identifier rubyid_newly_warned'>newly_warned</span>
-      <span class='id identifier rubyid_msg'>msg</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_mode'>mode</span> <span class='op'>==</span> <span class='symbol'>:cpu_bound</span>
+      <span class='id identifier rubyid_message'>message</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_mode'>mode</span> <span class='op'>==</span> <span class='symbol'>:cpu_bound</span>
         <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[Phronomy] Tool </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'> declares execution_mode :cpu_bound, </span><span class='tstring_end'>&quot;</span></span> \
-        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>which has no dedicated executor. </span><span class='tstring_end'>&quot;</span></span> \
-        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Falling back to blocking_io (BlockingAdapterPool). </span><span class='tstring_end'>&quot;</span></span> \
-        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Use :blocking_io explicitly to suppress this warning.</span><span class='tstring_end'>&quot;</span></span>
+          <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>which has no dedicated executor. Falling back to blocking_io </span><span class='tstring_end'>&quot;</span></span> \
+          <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>(BlockingAdapterPool). Use :blocking_io explicitly to suppress this warning.</span><span class='tstring_end'>&quot;</span></span>
       <span class='kw'>else</span>
         <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[Phronomy] Tool </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'> declares execution_mode :external_process, </span><span class='tstring_end'>&quot;</span></span> \
-        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>which has no dedicated process manager. </span><span class='tstring_end'>&quot;</span></span> \
-        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Falling back to blocking_io (BlockingAdapterPool).</span><span class='tstring_end'>&quot;</span></span>
+          <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>which has no dedicated process manager. Falling back to blocking_io </span><span class='tstring_end'>&quot;</span></span> \
+          <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>(BlockingAdapterPool).</span><span class='tstring_end'>&quot;</span></span>
       <span class='kw'>end</span>
       <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span>
-        <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span><span class='period'>.</span><span class='id identifier rubyid_warn'>warn</span><span class='lparen'>(</span><span class='id identifier rubyid_msg'>msg</span><span class='rparen'>)</span>
+        <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span><span class='period'>.</span><span class='id identifier rubyid_warn'>warn</span><span class='lparen'>(</span><span class='id identifier rubyid_message'>message</span><span class='rparen'>)</span>
       <span class='kw'>else</span>
-        <span class='id identifier rubyid_warn'>warn</span> <span class='id identifier rubyid_msg'>msg</span>
+        <span class='id identifier rubyid_warn'>warn</span> <span class='id identifier rubyid_message'>message</span>
       <span class='kw'>end</span>
     <span class='kw'>end</span>
     <span class='id identifier rubyid_mode'>mode</span> <span class='op'>=</span> <span class='symbol'>:blocking_io</span>
@@ -406,12 +293,87 @@ operations are tracked as abandoned rather than silently dropped).</p></div>
       <span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_args'>args</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_ct'>ct</span><span class='rparen'>)</span>
     <span class='kw'>end</span>
   <span class='kw'>else</span>
-    <span class='comment'># Submit directly to pool — no wrapping Task thread required.
-</span>    <span class='comment'># Pass tool_timeout so the pool can track timed-out operations as
-</span>    <span class='comment'># abandoned, consistent with how LLM calls use config[:llm_timeout].
-</span>    <span class='id identifier rubyid_timeout'>timeout</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:tool_timeout</span><span class='rbracket'>]</span>
-    <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_ct'>ct</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_args'>args</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_ct'>ct</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+    <span class='id identifier rubyid_timeout'>timeout</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:tool_timeout</span><span class='rbracket'>]</span>
+    <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_ct'>ct</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='rparen'>)</span> <span class='kw'>do</span>
+      <span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_args'>args</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_ct'>ct</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
   <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="call_invocation_async-class_method">
+  
+    .<strong>call_invocation_async</strong>(tool_invocation:, cancellation_token: nil, config: {}, runtime: Phronomy::Runtime.instance)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Agent-owned execution boundary. Only a ToolInvocation that has consumed
+authorization may enter this method.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_executor.rb', line 14</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_call_invocation_async'>call_invocation_async</span><span class='lparen'>(</span>
+  <span class='label'>tool_invocation:</span><span class='comma'>,</span>
+  <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span>
+  <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
+  <span class='label'>runtime:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span>
+<span class='rparen'>)</span>
+  <span class='kw'>unless</span> <span class='id identifier rubyid_tool_invocation'>tool_invocation</span><span class='period'>.</span><span class='id identifier rubyid_dispatchable?'>dispatchable?</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ToolError.html" title="Phronomy::ToolError (class)">ToolError</a></span></span><span class='comma'>,</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>ToolInvocation </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_tool_invocation'>tool_invocation</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='embexpr_end'>}</span><span class='tstring_content'> is not authorized for dispatch</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+
+  <span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span>
+    <span class='label'>tool:</span> <span class='id identifier rubyid_tool_invocation'>tool_invocation</span><span class='period'>.</span><span class='id identifier rubyid_tool'>tool</span><span class='comma'>,</span>
+    <span class='label'>args:</span> <span class='id identifier rubyid_tool_invocation'>tool_invocation</span><span class='period'>.</span><span class='id identifier rubyid_arguments'>arguments</span><span class='comma'>,</span>
+    <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
+    <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
+    <span class='label'>runtime:</span> <span class='id identifier rubyid_runtime'>runtime</span>
+  <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -423,7 +385,7 @@ operations are tracked as abandoned rather than silently dropped).</p></div>
 </div>
 
       <div id="footer">
-  Generated on Mon Jul 27 04:04:25 2026 by
+  Generated on Wed Jul 29 13:02:25 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -133,6 +133,81 @@ Configure via the Phronomy.configure block.</p>
       <li class="public ">
   <span class="summary_signature">
     
+      <a href="#authorization_pool_size-instance_method" title="#authorization_pool_size (instance method)">#<strong>authorization_pool_size</strong>  &#x21d2; Integer </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Worker count for Tool authorization evaluation.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#authorization_queue_size-instance_method" title="#authorization_queue_size (instance method)">#<strong>authorization_queue_size</strong>  &#x21d2; Integer </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Maximum queued Tool authorization evaluations.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#authorization_timeout-instance_method" title="#authorization_timeout (instance method)">#<strong>authorization_timeout</strong>  &#x21d2; Numeric </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Operation-wide deadline for approval_facts, requires_approval callables, and Agent#tool_approval_policy.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#before_completion-instance_method" title="#before_completion (instance method)">#<strong>before_completion</strong>  &#x21d2; Object </a>
     
 
@@ -748,27 +823,30 @@ Configure via the Phronomy.configure block.</p>
       <pre class="lines">
 
 
-165
-166
-167
-168
-169
-170
-171
-172
-173
-174
-175
-176
-177
-178
 179
 180
 181
-182</pre>
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 165</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 179</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@recursion_limit</span> <span class='op'>=</span> <span class='int'>25</span>
@@ -784,6 +862,9 @@ Configure via the Phronomy.configure block.</p>
   <span class='ivar'>@stream_queue_max_size</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@blocking_io_pool_size</span> <span class='op'>=</span> <span class='int'>10</span>
   <span class='ivar'>@blocking_io_queue_size</span> <span class='op'>=</span> <span class='int'>100</span>
+  <span class='ivar'>@authorization_pool_size</span> <span class='op'>=</span> <span class='int'>4</span>
+  <span class='ivar'>@authorization_queue_size</span> <span class='op'>=</span> <span class='int'>100</span>
+  <span class='ivar'>@authorization_timeout</span> <span class='op'>=</span> <span class='int'>5</span>
   <span class='ivar'>@starvation_threshold_ms</span> <span class='op'>=</span> <span class='int'>50</span>
   <span class='ivar'>@runtime_backend</span> <span class='op'>=</span> <span class='symbol'>:thread</span>
   <span class='ivar'>@strict_runtime_guards</span> <span class='op'>=</span> <span class='kw'>false</span>
@@ -799,9 +880,173 @@ Configure via the Phronomy.configure block.</p>
     <h2>Instance Attribute Details</h2>
     
       
-      <span id="before_completion=-instance_method"></span>
+      <span id="authorization_pool_size=-instance_method"></span>
       <div class="method_details first">
-  <h3 class="signature first" id="before_completion-instance_method">
+  <h3 class="signature first" id="authorization_pool_size-instance_method">
+  
+    #<strong>authorization_pool_size</strong>  &#x21d2; <tt>Integer</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Worker count for Tool authorization evaluation. The named pool is owned
+by Runtime#pool(:authorization) and shares PoolRegistry lifecycle.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+132
+133
+134</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 132</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_authorization_pool_size'>authorization_pool_size</span>
+  <span class='ivar'>@authorization_pool_size</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="authorization_queue_size=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="authorization_queue_size-instance_method">
+  
+    #<strong>authorization_queue_size</strong>  &#x21d2; <tt>Integer</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Maximum queued Tool authorization evaluations.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+136
+137
+138</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 136</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_authorization_queue_size'>authorization_queue_size</span>
+  <span class='ivar'>@authorization_queue_size</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="authorization_timeout=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="authorization_timeout-instance_method">
+  
+    #<strong>authorization_timeout</strong>  &#x21d2; <tt>Numeric</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Operation-wide deadline for approval_facts, requires_approval callables,
+and Agent#tool_approval_policy. Timeout fails closed to Human approval.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Numeric</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+141
+142
+143</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 141</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_authorization_timeout'>authorization_timeout</span>
+  <span class='ivar'>@authorization_timeout</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="before_completion=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="before_completion-instance_method">
   
     #<strong>before_completion</strong>  &#x21d2; <tt>Object</tt> 
   
@@ -1545,12 +1790,12 @@ instance immediately call <code>Phronomy::Runtime.instance = nil</code> first.</
       <pre class="lines">
 
 
-157
-158
-159</pre>
+171
+172
+173</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 157</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 171</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_runtime_backend'>runtime_backend</span>
   <span class='ivar'>@runtime_backend</span>
@@ -1659,12 +1904,12 @@ Default: 50ms.</p>
       <pre class="lines">
 
 
-136
-137
-138</pre>
+150
+151
+152</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 136</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 150</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_starvation_threshold_ms'>starvation_threshold_ms</span>
   <span class='ivar'>@starvation_threshold_ms</span>
@@ -1823,12 +2068,12 @@ is logged instead so that existing callers have time to migrate.</p>
       <pre class="lines">
 
 
-163
-164
-165</pre>
+177
+178
+179</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 163</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 177</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span>
   <span class='ivar'>@strict_runtime_guards</span>
@@ -1980,7 +2225,7 @@ the tracing backend (OTel, Langfuse, etc.).</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Jul 27 04:04:26 2026 by
+  Generated on Wed Jul 29 13:02:26 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -140,7 +140,7 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
       <li class="public ">
   <span class="summary_signature">
     
-      <a href="#approval_policy-instance_method" title="#approval_policy (instance method)">#<strong>approval_policy</strong>  &#x21d2; Object<sup>?</sup> </a>
+      <a href="#approval_policy-instance_method" title="#approval_policy (instance method)">#<strong>approval_policy</strong>  &#x21d2; #call<sup>?</sup> </a>
     
 
     
@@ -159,7 +159,7 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Approval policy applied before write-scope tools.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Invocation-specific Tool approval policy.</p></div></span>
   
 </li>
 
@@ -730,11 +730,14 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
         <span class='name'>approval_policy</span>
       
       
-        <span class='type'>(<tt>Object</tt>, <tt>nil</tt>)</span>
+        <span class='type'>(<tt>#call</tt>, <tt>nil</tt>)</span>
       
       
         <em class="default">(defaults to: <tt>nil</tt>)</em>
       
+      
+        &mdash;
+        <div class='inline'><p>invocation-specific Tool approval policy</p></div>
       
     </li>
   
@@ -799,7 +802,6 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
       <pre class="lines">
 
 
-72
 73
 74
 75
@@ -827,10 +829,11 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
 97
 98
 99
-100</pre>
+100
+101</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 72</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 73</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span>
@@ -876,7 +879,7 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
       <div class="method_details first">
   <h3 class="signature first" id="approval_policy-instance_method">
   
-    #<strong>approval_policy</strong>  &#x21d2; <tt>Object</tt><sup>?</sup>  <span class="extras">(readonly)</span>
+    #<strong>approval_policy</strong>  &#x21d2; <tt>#call</tt><sup>?</sup>  <span class="extras">(readonly)</span>
   
 
   
@@ -884,7 +887,8 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns approval policy applied before write-scope tools.</p>
+    <p>Returns invocation-specific Tool approval policy. The callable
+receives Phronomy::Agent::ApprovalEvaluationRequest.</p>
 
   </div>
 </div>
@@ -896,12 +900,13 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
     <li>
       
       
-        <span class='type'>(<tt>Object</tt>, <tt>nil</tt>)</span>
+        <span class='type'>(<tt>#call</tt>, <tt>nil</tt>)</span>
       
       
       
         &mdash;
-        <div class='inline'><p>approval policy applied before write-scope tools</p></div>
+        <div class='inline'><p>invocation-specific Tool approval policy. The callable
+receives Phronomy::Agent::ApprovalEvaluationRequest.</p></div>
       
     </li>
   
@@ -913,12 +918,12 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
       <pre class="lines">
 
 
-44
 45
-46</pre>
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 44</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approval_policy'>approval_policy</span>
   <span class='ivar'>@approval_policy</span>
@@ -1135,12 +1140,12 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
       <pre class="lines">
 
 
-56
 57
-58</pre>
+58
+59</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 57</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_parent_task_id'>parent_task_id</span>
   <span class='ivar'>@parent_task_id</span>
@@ -1192,12 +1197,12 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
       <pre class="lines">
 
 
-50
 51
-52</pre>
+52
+53</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 50</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 51</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_provider_limits'>provider_limits</span>
   <span class='ivar'>@provider_limits</span>
@@ -1249,12 +1254,12 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
       <pre class="lines">
 
 
-47
 48
-49</pre>
+49
+50</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 47</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 48</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_redaction_policy'>redaction_policy</span>
   <span class='ivar'>@redaction_policy</span>
@@ -1363,12 +1368,12 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
       <pre class="lines">
 
 
-53
 54
-55</pre>
+55
+56</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 53</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 54</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_task_id'>task_id</span>
   <span class='ivar'>@task_id</span>
@@ -1654,12 +1659,12 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
       <pre class="lines">
 
 
-129
 130
-131</pre>
+131
+132</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 129</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 130</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_effective_cancellation_token'>effective_cancellation_token</span>
   <span class='ivar'>@cancellation_token</span> <span class='op'>||</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span>
@@ -1717,17 +1722,17 @@ the deadline is attached to it via Deadline#attach_to.</li>
       <pre class="lines">
 
 
-143
 144
 145
 146
 147
 148
 149
-150</pre>
+150
+151</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 143</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 144</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_effective_timeout_token'>effective_timeout_token</span>
   <span class='kw'>return</span> <span class='ivar'>@cancellation_token</span> <span class='kw'>if</span> <span class='ivar'>@cancellation_token</span>
@@ -1802,7 +1807,6 @@ All other attributes are carried over unchanged.</p>
       <pre class="lines">
 
 
-108
 109
 110
 111
@@ -1818,10 +1822,11 @@ All other attributes are carried over unchanged.</p>
 121
 122
 123
-124</pre>
+124
+125</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 108</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 109</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_overrides'>overrides</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="" title="Phronomy::InvocationContext (class)">InvocationContext</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::InvocationContext#initialize (method)">new</a></span></span><span class='lparen'>(</span>
@@ -1850,7 +1855,7 @@ All other attributes are carried over unchanged.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Jul 27 04:04:27 2026 by
+  Generated on Wed Jul 29 13:02:27 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
