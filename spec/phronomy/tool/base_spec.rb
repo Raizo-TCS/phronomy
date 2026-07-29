@@ -34,15 +34,15 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       end
     end
 
-    describe ".scope" do
-      it "sets and retrieves the scope" do
-        klass = Class.new(described_class) { scope :read_only }
-        expect(klass.scope).to eq(:read_only)
+    describe ".approval_facts" do
+      it "sets and retrieves a approval_facts block" do
+        klass = Class.new(described_class) { approval_facts { |_args, _ctx| {count: 1} } }
+        expect(klass.approval_facts).to respond_to(:call)
       end
 
       it "returns nil when not set" do
         klass = Class.new(described_class)
-        expect(klass.scope).to be_nil
+        expect(klass.approval_facts).to be_nil
       end
     end
 

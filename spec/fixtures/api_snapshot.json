@@ -15,9 +15,9 @@
       "context_version_cache",
       "invoke",
       "invoke_async",
-      "on_approval_required",
-      "scope_policy=",
+      "on_tool_approval_required",
       "stream",
+      "tool_approval_policy",
       "trace"
     ],
     "public_class_methods": [
@@ -57,6 +57,7 @@
     "name": "Phronomy::Agent::Context::Capability::Base",
     "type": "class",
     "public_instance_methods": [
+      "approval_metadata",
       "call",
       "call_async",
       "description",
@@ -66,11 +67,13 @@
       "params_schema",
       "provider_params",
       "requires_approval",
-      "requires_approval?"
+      "requires_approval?",
+      "tool_origin"
     ],
     "public_class_methods": [
       "_sleep_proc",
       "_sleep_proc=",
+      "approval_facts",
       "desc",
       "description",
       "execution_mode",
@@ -88,7 +91,6 @@
       "requires_approval",
       "retry_on",
       "retry_policies",
-      "scope",
       "tool_name",
       "with_params"
     ]
@@ -165,10 +167,10 @@
       "fan_out",
       "invoke",
       "invoke_async",
-      "on_approval_required",
-      "scope_policy=",
+      "on_tool_approval_required",
       "stream",
       "subagent",
+      "tool_approval_policy",
       "trace"
     ],
     "public_class_methods": [
@@ -340,8 +342,10 @@
     "name": "Phronomy::Tools::Mcp",
     "type": "class",
     "public_instance_methods": [
+      "approval_metadata",
       "call",
       "call_async",
+      "close",
       "description",
       "execute",
       "name",
@@ -349,11 +353,13 @@
       "params_schema",
       "provider_params",
       "requires_approval",
-      "requires_approval?"
+      "requires_approval?",
+      "tool_origin"
     ],
     "public_class_methods": [
       "_sleep_proc",
       "_sleep_proc=",
+      "approval_facts",
       "desc",
       "description",
       "execution_mode",
@@ -372,7 +378,6 @@
       "requires_approval",
       "retry_on",
       "retry_policies",
-      "scope",
       "tool_name",
       "with_params"
     ]
@@ -381,6 +386,7 @@
     "name": "Phronomy::Tools::Agent",
     "type": "class",
     "public_instance_methods": [
+      "approval_metadata",
       "call",
       "call_async",
       "description",
@@ -390,11 +396,13 @@
       "params_schema",
       "provider_params",
       "requires_approval",
-      "requires_approval?"
+      "requires_approval?",
+      "tool_origin"
     ],
     "public_class_methods": [
       "_sleep_proc",
       "_sleep_proc=",
+      "approval_facts",
       "desc",
       "description",
       "execution_mode",
@@ -413,7 +421,6 @@
       "requires_approval",
       "retry_on",
       "retry_policies",
-      "scope",
       "tool_name",
       "with_params"
     ]
@@ -422,6 +429,7 @@
     "name": "Phronomy::Tools::VectorSearch",
     "type": "class",
     "public_instance_methods": [
+      "approval_metadata",
       "call",
       "call_async",
       "description",
@@ -431,11 +439,13 @@
       "params_schema",
       "provider_params",
       "requires_approval",
-      "requires_approval?"
+      "requires_approval?",
+      "tool_origin"
     ],
     "public_class_methods": [
       "_sleep_proc",
       "_sleep_proc=",
+      "approval_facts",
       "desc",
       "description",
       "execution_mode",
@@ -454,7 +464,6 @@
       "requires_approval",
       "retry_on",
       "retry_policies",
-      "scope",
       "tool_name",
       "with_params"
     ]

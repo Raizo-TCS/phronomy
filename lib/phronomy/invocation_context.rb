@@ -40,7 +40,8 @@ module Phronomy
     # @return [Integer] maximum simultaneous tool calls (default: 10)
     attr_reader :max_parallel_tools
 
-    # @return [Object, nil] approval policy applied before write-scope tools
+    # @return [#call, nil] invocation-specific Tool approval policy. The callable
+    #   receives Phronomy::Agent::ApprovalEvaluationRequest.
     attr_reader :approval_policy
 
     # @return [Object, nil] redaction policy applied to tool args / results
@@ -63,7 +64,7 @@ module Phronomy
     # @param tracer_span [Object, nil]
     # @param token_budget [Integer, nil]
     # @param max_parallel_tools [Integer]
-    # @param approval_policy [Object, nil]
+    # @param approval_policy [#call, nil] invocation-specific Tool approval policy
     # @param redaction_policy [Object, nil]
     # @param provider_limits [Hash, nil]
     # @param task_id [String, nil]

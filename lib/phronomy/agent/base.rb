@@ -36,6 +36,9 @@ module Phronomy
       include Concerns::BeforeCompletion
       include Concerns::ErrorTranslation
 
+      APPROVAL_CONFIGURATION_INIT_MUTEX = Mutex.new
+      private_constant :APPROVAL_CONFIGURATION_INIT_MUTEX
+
       class << self
         # Sets or reads the LLM model identifier for this agent.
         # When called without an argument, returns the stored model or the
@@ -373,21 +376,19 @@ module Phronomy
           end
         end
 
-        # Continues a suspended invocation identified by +session_id+.
-        #
-        # Instantiates a fresh agent and delegates to the instance-level #approve.
-        # When +approved: false+, the agent rejects the pending tool call and ends
-        # the invocation.
-        #
-        # @param session_id [String] the session_id from the suspended result hash
-        # @param approved   [Boolean] +true+ to execute the pending tool; +false+ to deny
-        # @param config     [Hash] same runtime options as {#invoke}
-        # @return [Hash] same shape as {#invoke} — may contain +suspended: true+ if
-        #   another approval-required tool is encountered during continuation
-        # @raise [ArgumentError] when no suspended session matches +session_id+
+        # Continues a suspended AgentInvocation.
+        # @param agent_invocation_id [String]
+        # @param approval_request_id [String]
+        # @param approved [Boolean]
+        # @param config [Hash]
         # @api public
-        def approve(session_id, approved: true, config: {})
-          new.approve(session_id, approved: approved, config: config)
+        def approve(agent_invocation_id, approval_request_id:, approved: true, config: {})
+          new.approve(
+            agent_invocation_id,
+            approval_request_id: approval_request_id,
+            approved: approved,
+            config: config
+          )
         end
       end
 
@@ -409,34 +410,27 @@ module Phronomy
         @_handoff_tools || []
       end
 
-      # Registers a synchronous approval callback that is invoked before
-      # executing any tool that has +requires_approval true+ set.
-      # The block receives the tool name (String) and the arguments Hash, and
-      # must return a truthy value to allow execution.
-      # Returning a falsy value causes the tool to return a denial message.
-      #
-      # When no handler is registered and a tool with +requires_approval+ is
-      # called, #invoke returns a suspended result hash containing a
-      # +session_id+. Call #approve to continue execution.
-      #
-      # @example
-      #   agent.on_approval_required { |tool_name, args| prompt_user(tool_name, args) }
+      # Registers the final Agent/Application authorization policy.
+      # The block runs on the Runtime authorization pool and must return
+      # :allow, :require_approval, or :reject.
       # @return [self]
       # @api public
-      def on_approval_required(&block)
-        @approval_handler = block
+      def tool_approval_policy(&block)
+        raise ArgumentError, "tool_approval_policy requires a block" unless block
+
+        _approval_configuration_mutex.synchronize { @tool_approval_policy = block }
         self
       end
 
-      # Registers a scope policy callable for this agent instance.
-      #
-      # The callable receives +(tool_class, scope, agent)+ and must return
-      # +:allow+, +:reject+, or +:approve+.
-      #
-      # @param policy [#call]
-      # @return [void]
+      # Registers a non-blocking Application notification listener.
+      # @return [self]
       # @api public
-      attr_writer :scope_policy
+      def on_tool_approval_required(&block)
+        raise ArgumentError, "on_tool_approval_required requires a block" unless block
+
+        _approval_configuration_mutex.synchronize { @tool_approval_listener = block }
+        self
+      end
 
       # Invokes the agent with the given input and returns a result Hash.
       # Applies the retry policy configured via {.retry_policy} when transient
@@ -542,12 +536,18 @@ module Phronomy
       # @param invocation_context [Phronomy::InvocationContext, nil]
       # @return [Phronomy::Task]
       # @api public
-      def invoke_async(input, messages: [], thread_id: nil, config: {}, invocation_context: nil)
+      def invoke_async(input, messages: [], thread_id: nil, config: {},
+        invocation_context: nil, on_tool_approval_required: nil)
         if invocation_context
           thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
         end
         result_task = Phronomy::Task.deferred(name: "agent-#{(self.class.name || "anonymous").downcase}-async")
-        _start_invoke_attempt(result_task, input, messages: messages, thread_id: thread_id, config: config, attempt: 0)
+        approval_snapshot = _approval_configuration_snapshot(on_tool_approval_required)
+        _start_invoke_attempt(
+          result_task, input,
+          messages: messages, thread_id: thread_id, config: config, attempt: 0,
+          approval_snapshot: approval_snapshot
+        )
         result_task
       end
 
@@ -619,45 +619,57 @@ module Phronomy
         end
       end
 
-      # Streaming implementation for #stream.
+      # Streaming implementation for #stream using the same Agent/Tool
+      # Invocation FSM path as invoke_async. The caller thread drains an internal
+      # queue, so Application callbacks never run on the EventLoop thread and no
+      # additional stream-consumer worker is required.
       def _stream_impl(input, messages: [], thread_id: nil, config: {}, &block)
         trace("agent.invoke", input: input, **_build_caller_meta(config)) do |_span|
-          input = run_input_filters!(input)
+          effective_config = thread_id ? config.merge(thread_id: thread_id) : config
+          runtime = Phronomy::Runtime.instance
+          snapshot = _approval_configuration_snapshot
+          event_queue = Phronomy::Concurrency::AsyncQueue.new
+          completion_marker = Object.new
+          sink = ->(event) { event_queue.push(event) }
+          completion = Phronomy::Task.deferred(name: "agent-stream:completion")
+          completion.on_complete do |invocation, error|
+            event_queue.push([completion_marker, invocation, error])
+          end
 
-          chat = build_chat
-          user_message = extract_message(input)
-          context = build_context(
-            input,
+          session = Agent::AgentInvocationSessionBuilder.build(
+            agent: self,
+            input: input,
             messages: messages,
-            thread_id: thread_id,
-            config: config,
-            budget: build_token_budget,
-            instruction: build_instructions(input),
-            tools: self.class.tools + _handoff_tools
+            config: effective_config,
+            approval_policy: snapshot[:policy],
+            approval_listener: snapshot[:listener],
+            mode: :stream,
+            on_event: sink,
+            runtime: runtime
           )
-          _apply_context_to_chat(chat, context)
+          runtime.event_loop.register(session, completion: completion)
 
-          current_tool_call = nil
-          chat.on_tool_call do |tool_call|
-            current_tool_call = tool_call
-            block.call(StreamEvent.new(type: :tool_call, payload: {tool_call: tool_call}))
+          loop do
+            event = event_queue.pop
+            if event.is_a?(Array) && event.first.equal?(completion_marker)
+              invocation, error = event[1], event[2]
+              raise error if error
+
+              result = _extract_invoke_result(invocation)
+              if result[:suspended]
+                block.call(
+                  StreamEvent.new(
+                    type: :approval_required,
+                    payload: {request: result[:approval_request]}
+                  )
+                )
+              else
+                block.call(StreamEvent.new(type: :done, payload: result))
+              end
+              break [result, result[:usage]]
+            end
+            block.call(event)
           end
-          chat.on_tool_result do |tool_result|
-            block.call(StreamEvent.new(type: :tool_result, payload: {
-              tool_call_id: current_tool_call&.id,
-              tool_name: current_tool_call&.name,
-              tool_result: tool_result
-            }))
-          end
-
-          run_before_completion_hooks!(chat, config)
-
-          output, usage = _drain_stream(chat, user_message, config, &block)
-          output = run_output_filters!(output)
-
-          result = {output: output, messages: chat.messages, usage: usage}
-          block.call(StreamEvent.new(type: :done, payload: result))
-          [result, usage]
         end
       end
 
@@ -840,17 +852,20 @@ module Phronomy
         runtime = Phronomy::Runtime.instance
         event_loop = runtime.event_loop
         trace("agent.invoke", input: input, **_build_caller_meta(effective_config)) do |_span|
-          session = Agent::InvocationSession.build(
+          snapshot = _approval_configuration_snapshot
+          session = Agent::AgentInvocationSessionBuilder.build(
             agent: self,
             input: input,
             messages: messages,
             config: effective_config,
+            approval_policy: snapshot[:policy],
+            approval_listener: snapshot[:listener],
             runtime: runtime
           )
           completion_queue = event_loop.register(session)
           ctx = completion_queue.pop
           raise ctx if ctx.is_a?(Exception)
-          result = _extract_invoke_result(ctx, session.id)
+          result = _extract_invoke_result(ctx)
           [result, result[:usage]]
         end
       end
@@ -860,24 +875,26 @@ module Phronomy
       # On error, retries via timer_queue when policy allows; otherwise translates
       # and resolves result_task as failed.
       # @api private
-      def _start_invoke_attempt(result_task, input, messages:, thread_id:, config:, attempt:)
+      def _start_invoke_attempt(result_task, input, messages:, thread_id:, config:, attempt:,
+        approval_snapshot:)
         effective_config = thread_id ? config.merge(thread_id: thread_id) : config
         check_cancellation!(effective_config, "invocation cancelled")
         runtime = Phronomy::Runtime.instance
         event_loop = runtime.event_loop
-        session = Agent::InvocationSession.build(
+        session = Agent::AgentInvocationSessionBuilder.build(
           agent: self,
           input: input,
           messages: messages,
           config: effective_config,
+          approval_policy: approval_snapshot[:policy],
+          approval_listener: approval_snapshot[:listener],
           runtime: runtime
         )
         source_task = Phronomy::Task.deferred(name: "#{result_task.name}-attempt-#{attempt}")
         event_loop.register(session, completion: source_task)
-        session_id = session.id
         policy = self.class._retry_policy
 
-        source_task.on_complete do |ctx, error|
+        source_task.on_complete do |invocation, error|
           retriable = error &&
             !error.is_a?(Phronomy::FilterBlockError) &&
             !error.is_a?(Phronomy::CancellationError) &&
@@ -885,14 +902,12 @@ module Phronomy
 
           if retriable
             wait = compute_agent_retry_wait(policy[:wait], policy[:base], attempt)
-            # Call _sleep_proc for instrumentation (test spy records the duration;
-            # in production this is a no-op since timer_queue handles the actual delay).
             self.class._sleep_proc.call(wait) if wait > 0
             do_retry = -> {
               _start_invoke_attempt(
                 result_task, input,
                 messages: messages, thread_id: thread_id, config: config,
-                attempt: attempt + 1
+                attempt: attempt + 1, approval_snapshot: approval_snapshot
               )
             }
             if wait > 0
@@ -909,7 +924,7 @@ module Phronomy
             end
           else
             begin
-              result = _extract_invoke_result(ctx, session_id)
+              result = _extract_invoke_result(invocation)
               result_task.backend.unblock(result, nil)
               result_task.transition!(:completed, value: result)
             rescue => e
@@ -923,65 +938,126 @@ module Phronomy
         result_task.transition!(:failed, error: e)
       end
 
-      # Continues a suspended invocation identified by +session_id+.
-      # When +approved: true+, executes the pending tool and continues.
-      # When +approved: false+, rejects the tool call and ends the invocation.
-      #
-      # @param session_id [String]
-      # @param approved   [Boolean]
-      # @param config     [Hash]
-      # @return [Hash]
+      # Continues a suspended AgentInvocation. The parent session is registered
+      # before child sessions so immediate child events cannot be lost.
       # @api public
-      def approve(session_id, approved: true, config: {})
-        ctx = Agent::SuspendedSessionRegistry.fetch(session_id)
-        raise ArgumentError, "No suspended session found: #{session_id}" unless ctx
-
-        # Reset approval_required so executing_tool_action proceeds instead of
-        # re-suspending when called after the :approve FSM transition.
-        ctx.approval_required = false
-        ctx.approved = true if approved  # signals executing_tool to run the tool
-        ctx.rejected = !approved  # signals _extract_invoke_result for rejection
-
-        if approved
-          _resume_fsm(ctx, :approve)
-        else
-          _resume_fsm(ctx, :reject)
+      def approve(agent_invocation_id, approval_request_id:, approved: true, config: {})
+        entry = Agent::AgentInvocationRegistry.consume_approval(
+          agent_invocation_id, approval_request_id
+        )
+        unless entry
+          raise ArgumentError,
+            "No pending approval found for AgentInvocation #{agent_invocation_id}"
         end
+
+        invocation = entry.invocation
+        invocation.merge_config!(config)
+        invocation.begin_approval_resume!(approved: approved)
+        runtime = Phronomy::Runtime.instance
+        event_loop = runtime.event_loop
+        parent_task = Phronomy::Task.deferred(
+          name: "agent-approval-resume:#{invocation.id}"
+        )
+        parent_session = Agent::AgentInvocationSessionBuilder.build_for_resume(
+          agent_invocation: invocation,
+          resume_event: :resume,
+          resume_phase: :suspended,
+          runtime: runtime
+        )
+        event_loop.register(parent_session, completion: parent_task)
+
+        invocation.tool_invocations.each do |child|
+          child_session = if child.awaiting_approval?
+            Agent::ToolInvocationSessionBuilder.build_for_resume(
+              tool_invocation: child,
+              resume_event: approved ? :approve : :reject,
+              resume_phase: :awaiting_approval,
+              runtime: runtime
+            )
+          elsif !approved && child.authorized?
+            Agent::ToolInvocationSessionBuilder.build_for_resume(
+              tool_invocation: child,
+              resume_event: :cancel,
+              resume_phase: :authorized,
+              runtime: runtime
+            )
+          end
+          _register_tool_invocation_session(event_loop, runtime, child, child_session) if child_session
+        end
+
+        _extract_invoke_result(parent_task.wait_result)
       end
       public :approve
 
-      # Builds and runs a resume FSMSession for the given context and event.
-      # @api private
-      def _resume_fsm(ctx, event)
-        runtime = Phronomy::Runtime.instance
-        event_loop = runtime.event_loop
-        session = Agent::InvocationSession.build_for_resume(
-          agent: self,
-          context: ctx,
-          resume_event: event,
-          resume_phase: :awaiting_approval,
-          runtime: runtime
-        )
-        completion_queue = event_loop.register(session)
-        resumed_ctx = completion_queue.pop
-        raise resumed_ctx if resumed_ctx.is_a?(Exception)
-        _extract_invoke_result(resumed_ctx, session.id)
+      def _extract_invoke_result(invocation)
+        if invocation.phase == :suspended
+          request = invocation.approval_request
+          Agent::AgentInvocationRegistry.store_suspended(invocation, request)
+          _dispatch_tool_approval_notification(invocation, request)
+          {
+            suspended: true,
+            agent_invocation_id: invocation.id,
+            approval_request: request,
+            messages: invocation.messages
+          }
+        elsif invocation.input_blocked? || invocation.output_blocked?
+          raise invocation.block_error
+        elsif invocation.error
+          raise invocation.error
+        elsif invocation.rejected
+          {rejected: true, messages: invocation.messages}
+        else
+          {output: invocation.output, messages: invocation.messages, usage: invocation.usage}
+        end
       end
 
-      # Interprets the InvocationContext after FSM completion/halt and returns
-      # the appropriate result hash or raises the block error.
-      # @api private
-      def _extract_invoke_result(ctx, session_id)
-        if ctx.phase == :awaiting_approval
-          Agent::SuspendedSessionRegistry.store(session_id, ctx)
-          {suspended: true, session_id: session_id, messages: ctx.messages}
-        elsif ctx.input_blocked? || ctx.output_blocked?
-          raise ctx.block_error
-        elsif ctx.rejected
-          # Rejected path: :reject event → :blocked terminal
-          {rejected: true, messages: ctx.messages}
+      def _register_tool_invocation_session(event_loop, runtime, child, session)
+        completion = Phronomy::Task.deferred(name: "tool-session:#{child.id}")
+        completion.on_complete do |_result, error|
+          next unless error
+
+          child.mark_framework_failed!(error)
+          runtime.event_loop.post(
+            Phronomy::Event.new(
+              type: :tool_failed,
+              target_id: child.parent_agent_invocation_id,
+              payload: {tool_invocation_id: child.id}
+            )
+          )
+        end
+        event_loop.register(session, completion: completion)
+      end
+
+      def _dispatch_tool_approval_notification(invocation, request)
+        listener = invocation.approval_listener
+        return unless listener
+
+        Phronomy::Runtime.instance.blocking_io.submit(on_full: :raise) do
+          listener.call(request)
+        end
+      rescue => e
+        message = "[Phronomy] Tool approval notification failed: #{e.class}: #{e.message}"
+        if Phronomy.configuration.logger
+          Phronomy.configuration.logger.warn(message)
         else
-          {output: ctx.output, messages: ctx.messages, usage: ctx.usage}
+          Kernel.warn(message)
+        end
+      end
+
+      def _approval_configuration_mutex
+        return @approval_configuration_mutex if @approval_configuration_mutex
+
+        APPROVAL_CONFIGURATION_INIT_MUTEX.synchronize do
+          @approval_configuration_mutex ||= Mutex.new
+        end
+      end
+
+      def _approval_configuration_snapshot(invocation_listener = nil)
+        _approval_configuration_mutex.synchronize do
+          {
+            policy: @tool_approval_policy,
+            listener: invocation_listener || @tool_approval_listener
+          }.freeze
         end
       end
 
@@ -1126,33 +1202,12 @@ module Phronomy
         raise Phronomy::CancellationError, message if ct&.cancelled?
       end
 
-      # Builds the final tool class to register with the chat.
-      #
-      # When an already-instantiated tool object is passed (e.g. a
-      # {Phronomy::Tools::Mcp} returned by +Phronomy::Tools::Mcp.from_server+), it is
-      # returned as-is.  RubyLLM's +with_tool+ accepts both classes and
-      # instances, so no wrapping is needed.
-      #
-      # For tool classes, three transformations are applied in order:
-      #   1. Alias override — when the Hash form of .tools maps this class to an
-      #      explicit name, an anonymous subclass with that tool_name is returned.
-      #   2. Scope policy   — when a scope is declared on the tool, the configured
-      #      {Phronomy::Agent::Context::Capability::ScopePolicy} (or the default) is evaluated.
-      #      +:reject+ wraps the tool to return a denial message without executing.
-      #      +:approve+ behaves like requiring approval (same as step 3 when the
-      #      tool does not already have +requires_approval+).
-      #   3. Approval gate  — when the tool class has +requires_approval+ set AND
-      #      an approval handler has been registered via #on_approval_required,
-      #      the tool's #call method is wrapped: the handler is invoked with
-      #      (tool_name, args) and, if it returns falsy, the tool returns a denial
-      #      message instead of executing.
+      # Builds the final Tool class to register with RubyLLM. Alias and Tool
+      # result filters remain wrappers; authorization is handled only by
+      # ToolInvocation before Tool#call begins.
       def prepare_tool_class(tool_class)
-        # When an instantiated tool object is passed (e.g. Phronomy::Tools::Mcp.from_server
-        # returns an instance, not a class), skip class-level processing and
-        # return it directly. RubyLLM#with_tool handles both forms.
         return tool_class unless tool_class.is_a?(Class)
 
-        # Step 1: apply alias if needed.
         resolved = if (alias_name = self.class.tool_aliases[tool_class])
           parent_description = tool_class.description
           Class.new(tool_class) do
@@ -1163,62 +1218,17 @@ module Phronomy
           tool_class
         end
 
-        # Step 2: evaluate scope policy.
-        scope = resolved.scope
-        if scope
-          policy = @scope_policy || Phronomy::Agent::Context::Capability::ScopePolicy::DEFAULT
-          decision = policy.call(resolved, scope, self)
-          case decision
-          when :reject
-            effective_name = resolved.new.name
-            rejected_class = Class.new(resolved) do
-              tool_name effective_name
-              define_method(:call) do |_args, **_kwargs|
-                "Tool execution denied: scope :#{scope} is not permitted."
-              end
-            end
-            return rejected_class
-          when :approve
-            # Treat as requires_approval unless the tool already has that flag.
-            unless resolved.requires_approval
-              effective_name = resolved.new.name
-              resolved = Class.new(resolved) do
-                tool_name effective_name
-                requires_approval true
-              end
-            end
-          end
-        end
-
-        # Step 3: wrap with approval gate when handler is registered.
-        if resolved.requires_approval && @approval_handler
-          handler = @approval_handler
-          # Capture the effective tool name before building the anonymous subclass.
-          # Class-level instance variables (@tool_name) are not inherited through
-          # subclassing, so the wrapper must set it explicitly.
-          effective_name = resolved.new.name
-          resolved = Class.new(resolved) do
-            tool_name effective_name
-            define_method(:call) do |args, **kwargs|
-              if handler.call(name, args)
-                super(args, **kwargs)
-              else
-                "Tool execution denied."
-              end
-            end
-          end
-        end
-
-        # Step 4: wrap with tool result filters when registered.
         result_filters = _tool_result_filters_for(tool_class)
         return resolved if result_filters.empty?
 
-        effective_name4 = resolved.new.name
+        effective_name = resolved.new.name
         Class.new(resolved) do
-          tool_name effective_name4
+          tool_name effective_name
           define_method(:call) do |args, **kwargs|
             result = super(args, **kwargs)
-            result_filters.inject(result) { |val, f| f.call(val, tool_name: name, args: args) }
+            result_filters.inject(result) { |val, filter|
+              filter.call(val, tool_name: name, args: args)
+            }
           end
         end
       end

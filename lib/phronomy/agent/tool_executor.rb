@@ -2,91 +2,64 @@
 
 module Phronomy
   module Agent
-    # Centralises tool execution routing based on {Tool::Base.execution_mode}.
-    #
-    # This is the single place in the framework that decides *how* a tool call is
-    # dispatched:
-    #
-    # - +:cooperative+       — dispatched via +Runtime#spawn+ through the configured
-    #                          scheduler. Under the +:fiber+ backend this avoids an
-    #                          extra OS thread; under the +:thread+ backend it is
-    #                          backed by +ThreadScheduler+ (one thread per task).
-    # - +:blocking_io+       — submitted to +BlockingAdapterPool+ when the runtime
-    #                          provides a pool; falls back to +Runtime#spawn+ otherwise.
-    # - +:cpu_bound+         — emits a deprecation-style warning then falls back to
-    #                          +:blocking_io+ routing (no process pool available yet).
-    # - +:external_process+  — falls back to +:blocking_io+ routing (no process
-    #                          manager available yet).
-    #
-    # All paths return an object that responds to +#await+ (+Phronomy::Task+ or
-    # +BlockingAdapterPool::PendingOperation+), so callers can collect results
-    # uniformly.
-    #
-    # @note Non-goals
-    #   ToolExecutor deliberately does NOT provide:
-    #   - A CPU-bound process pool. CPU-intensive tool work must be handled at the
-    #     application layer (e.g., fork, Sidekiq, separate OS processes). The
-    #     framework will not add a +ProcessPoolExecutor+ equivalent.
-    #   - An external process manager. Spawning or supervising subprocesses is
-    #     out of scope for this module.
-    #   - Additional core execution routes beyond scheduler-backed cooperative
-    #     execution and BlockingAdapterPool-backed blocking I/O isolation.
-    #     The +:cpu_bound+ and +:external_process+ modes are accepted for
-    #     compatibility but both fall back to +:blocking_io+ routing with a
-    #     one-time warning. If a genuinely new core execution route is needed,
-    #     a new ADR is required.
-    #   These non-goals follow from the cooperative-first, non-preemptive
-    #   concurrency model (ADR-010): framework components must not assume the
-    #   caller's concurrency model, and CPU/process management belongs to the
-    #   application layer.
-    #
+    # Centralises Tool execution routing based on execution_mode.
     # @api private
     module ToolExecutor
-      # Tracks tool classes that have already emitted an execution_mode warning so
-      # that the same warning is only logged once per process lifetime.
       WARNED_MODES = Set.new
       WARNED_MODES_MUTEX = Mutex.new
       private_constant :WARNED_MODES, :WARNED_MODES_MUTEX
 
-      # Dispatches a single tool call asynchronously according to its
-      # +execution_mode+ and returns an awaitable.
-      #
-      # @param tool               [Phronomy::Agent::Context::Capability::Base] the tool instance to invoke
-      # @param args               [Hash]                 argument hash to pass to {Tool::Base#call}
-      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
-      # @param config             [Hash] invocation config forwarded from the agent pipeline.
-      #                           Recognised keys: +:tool_timeout+ (seconds; passed as the
-      #                           +BlockingAdapterPool#submit+ timeout so that timed-out
-      #                           operations are tracked as abandoned rather than silently dropped).
-      # @param runtime            [Phronomy::Runtime]    runtime to use for spawning
-      #                           (defaults to {Runtime.instance}; injectable for tests)
-      # @return [#await] a {Phronomy::Task} or {BlockingAdapterPool::PendingOperation}
-      # @api private
-      def self.call_async(tool:, args:, cancellation_token: nil, config: {}, runtime: Phronomy::Runtime.instance)
+      # Agent-owned execution boundary. Only a ToolInvocation that has consumed
+      # authorization may enter this method.
+      def self.call_invocation_async(
+        tool_invocation:,
+        cancellation_token: nil,
+        config: {},
+        runtime: Phronomy::Runtime.instance
+      )
+        unless tool_invocation.dispatchable?
+          raise Phronomy::ToolError,
+            "ToolInvocation #{tool_invocation.id} is not authorized for dispatch"
+        end
+
+        call_async(
+          tool: tool_invocation.tool,
+          args: tool_invocation.arguments,
+          cancellation_token: cancellation_token,
+          config: config,
+          runtime: runtime
+        )
+      end
+
+      # Low-level Tool API used by direct Tool#call_async callers. Agent execution
+      # must use .call_invocation_async so authorization cannot be bypassed.
+      def self.call_async(
+        tool:,
+        args:,
+        cancellation_token: nil,
+        config: {},
+        runtime: Phronomy::Runtime.instance
+      )
         ct = cancellation_token
         mode = tool.class.execution_mode
 
-        # Warn and normalise unsupported modes to :blocking_io.
-        # Each (tool class, mode) pair emits the warning at most once per process
-        # lifetime to avoid log flooding in high-throughput scenarios.
         if mode == :cpu_bound || mode == :external_process
           warn_key = [tool.class.name, mode]
           newly_warned = WARNED_MODES_MUTEX.synchronize { WARNED_MODES.add?(warn_key) }
           if newly_warned
-            msg = if mode == :cpu_bound
+            message = if mode == :cpu_bound
               "[Phronomy] Tool #{tool.class.name} declares execution_mode :cpu_bound, " \
-              "which has no dedicated executor. " \
-              "Falling back to blocking_io (BlockingAdapterPool). " \
-              "Use :blocking_io explicitly to suppress this warning."
+                "which has no dedicated executor. Falling back to blocking_io " \
+                "(BlockingAdapterPool). Use :blocking_io explicitly to suppress this warning."
             else
               "[Phronomy] Tool #{tool.class.name} declares execution_mode :external_process, " \
-              "which has no dedicated process manager. " \
-              "Falling back to blocking_io (BlockingAdapterPool)."
+                "which has no dedicated process manager. Falling back to blocking_io " \
+                "(BlockingAdapterPool)."
             end
             if Phronomy.configuration.logger
-              Phronomy.configuration.logger.warn(msg)
+              Phronomy.configuration.logger.warn(message)
             else
-              warn msg
+              warn message
             end
           end
           mode = :blocking_io
@@ -103,11 +76,10 @@ module Phronomy
             tool.call(args, cancellation_token: ct)
           end
         else
-          # Submit directly to pool — no wrapping Task thread required.
-          # Pass tool_timeout so the pool can track timed-out operations as
-          # abandoned, consistent with how LLM calls use config[:llm_timeout].
           timeout = config[:tool_timeout]
-          pool.submit(cancellation_token: ct, timeout: timeout) { tool.call(args, cancellation_token: ct) }
+          pool.submit(cancellation_token: ct, timeout: timeout) do
+            tool.call(args, cancellation_token: ct)
+          end
         end
       end
     end

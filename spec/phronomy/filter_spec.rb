@@ -62,7 +62,7 @@ RSpec.describe "Agent::Base filter integration (Issue #389)" do
     # Stub _start_invoke_attempt to skip the real FSM/LLM pipeline while still
     # exercising the filter layer. Filters transform the input/output around the
     # stubbed LLM call.
-    allow_any_instance_of(klass).to receive(:_start_invoke_attempt) do |agent_self, result_task, input, messages:, thread_id:, config:, attempt:|
+    allow_any_instance_of(klass).to receive(:_start_invoke_attempt) do |agent_self, result_task, input, messages:, thread_id:, config:, attempt:, approval_snapshot: {}|
       filtered = agent_self.send(:run_input_filters!, input)
       user_message = agent_self.send(:extract_message, filtered)
       raw_output = "result:#{user_message}"

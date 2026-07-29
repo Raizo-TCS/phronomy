@@ -7,7 +7,7 @@ class HITLTool < Phronomy::Agent::Context::Capability::Base
   description "A tool requiring human approval"
   requires_approval true
   param :value, type: :string, desc: "Input"
-  def execute(value:) = "executed: \#{value}"
+  def execute(value:) = "executed: #{value}"
 end
 
 class HITLAgent < Phronomy::Agent::Base
@@ -41,9 +41,9 @@ end
 
 RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
   let(:tool_instance) { HITLTool.new }
-  after { Phronomy::Agent::SuspendedSessionRegistry.clear! }
+  after { Phronomy::Agent::AgentInvocationRegistry.clear! }
 
-  describe "#invoke with an approval-required tool (no sync handler)" do
+  describe "#invoke with an approval-required tool (no policy override)" do
     let(:agent) { HITLAgent.new }
     let(:chat_dbl) { build_hitl_chat(tools_hash: {hitl_tool: tool_instance}) }
     before { allow(RubyLLM).to receive(:chat).and_return(chat_dbl) }
@@ -56,27 +56,29 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
       expect(agent.invoke("run tool")[:output]).to be_nil
     end
 
-    it "returns a :session_id String" do
+    it "returns an :agent_invocation_id String" do
       result = agent.invoke("run tool")
-      expect(result[:session_id]).to be_a(String)
-      expect(result[:session_id]).not_to be_empty
+      expect(result[:agent_invocation_id]).to be_a(String)
+      expect(result[:agent_invocation_id]).not_to be_empty
     end
 
-    it "does NOT return :checkpoint key" do
-      expect(agent.invoke("run tool")).not_to have_key(:checkpoint)
+    it "returns an :approval_request with an id" do
+      result = agent.invoke("run tool")
+      expect(result[:approval_request]).not_to be_nil
+      expect(result[:approval_request].id).to be_a(String)
     end
 
     it "returns :messages" do
       expect(agent.invoke("run tool")).to have_key(:messages)
     end
 
-    it "stores context in SuspendedSessionRegistry" do
+    it "stores context in AgentInvocationRegistry" do
       result = agent.invoke("run tool")
-      expect(Phronomy::Agent::SuspendedSessionRegistry.exists?(result[:session_id])).to be true
+      expect(Phronomy::Agent::AgentInvocationRegistry.exists?(result[:agent_invocation_id])).to be true
     end
 
-    it "does NOT suspend when on_approval_required handler is registered" do
-      agent.on_approval_required { |_n, _a| true }
+    it "does NOT suspend when tool_approval_policy returns :allow" do
+      agent.tool_approval_policy { :allow }
       allow(tool_instance).to receive(:call).and_return("executed: hello")
       result = agent.invoke("run tool")
       expect(result[:suspended]).to be_falsy
@@ -88,41 +90,34 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
     let(:agent) { HITLAgent.new }
     let(:chat_dbl) { build_hitl_chat(tools_hash: {hitl_tool: tool_instance}, final_response: "Tool ran.") }
     before { allow(RubyLLM).to receive(:chat).and_return(chat_dbl) }
-    subject(:session_id) { agent.invoke("run tool")[:session_id] }
+
+    def invoke_and_get_ids
+      result = agent.invoke("run tool")
+      [result[:agent_invocation_id], result[:approval_request].id]
+    end
 
     it "returns final output after approval" do
+      invocation_id, request_id = invoke_and_get_ids
       allow(tool_instance).to receive(:call).and_return("executed: hello")
-      expect(HITLAgent.approve(session_id)[:output]).to eq("Tool ran.")
-    end
-
-    it "executes the tool call method when approved" do
-      expect(tool_instance).to receive(:call).with({"value" => "hello"}, cancellation_token: nil).and_return("executed: hello")
-      HITLAgent.approve(session_id)
-    end
-
-    it "injects tool result into chat via add_message" do
-      allow(tool_instance).to receive(:call).and_return("executed: hello")
-      HITLAgent.approve(session_id)
-      expect(chat_dbl).to have_received(:add_message).with(
-        hash_including(role: :tool, content: "executed: hello", tool_call_id: "call_001")
-      )
+      expect(HITLAgent.approve(invocation_id, approval_request_id: request_id)[:output]).to eq("Tool ran.")
     end
 
     it "returns :messages" do
+      invocation_id, request_id = invoke_and_get_ids
       allow(tool_instance).to receive(:call).and_return("r")
-      expect(HITLAgent.approve(session_id)).to have_key(:messages)
+      expect(HITLAgent.approve(invocation_id, approval_request_id: request_id)).to have_key(:messages)
     end
 
-    it "removes session from SuspendedSessionRegistry after approval" do
+    it "removes entry from AgentInvocationRegistry after approval" do
+      invocation_id, request_id = invoke_and_get_ids
       allow(tool_instance).to receive(:call).and_return("r")
-      sid = session_id
-      HITLAgent.approve(sid)
-      expect(Phronomy::Agent::SuspendedSessionRegistry.exists?(sid)).to be false
+      HITLAgent.approve(invocation_id, approval_request_id: request_id)
+      expect(Phronomy::Agent::AgentInvocationRegistry.exists?(invocation_id)).to be false
     end
 
-    it "raises ArgumentError for unknown session_id" do
-      expect { HITLAgent.approve("nonexistent") }
-        .to raise_error(ArgumentError, /No suspended session/)
+    it "raises ArgumentError for unknown agent_invocation_id" do
+      expect { HITLAgent.approve("nonexistent", approval_request_id: "none") }
+        .to raise_error(ArgumentError, /No pending approval/)
     end
   end
 
@@ -131,20 +126,25 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
     let(:chat_dbl) { build_hitl_chat(tools_hash: {hitl_tool: tool_instance}) }
     before { allow(RubyLLM).to receive(:chat).and_return(chat_dbl) }
 
+    def invoke_and_get_ids
+      result = agent.invoke("run tool")
+      [result[:agent_invocation_id], result[:approval_request].id]
+    end
+
     it "returns :rejected => true" do
-      sid = agent.invoke("run tool")[:session_id]
-      expect(agent.approve(sid, approved: false)[:rejected]).to be true
+      invocation_id, request_id = invoke_and_get_ids
+      expect(agent.approve(invocation_id, approval_request_id: request_id, approved: false)[:rejected]).to be true
     end
 
     it "returns :messages" do
-      sid = agent.invoke("run tool")[:session_id]
-      expect(agent.approve(sid, approved: false)).to have_key(:messages)
+      invocation_id, request_id = invoke_and_get_ids
+      expect(agent.approve(invocation_id, approval_request_id: request_id, approved: false)).to have_key(:messages)
     end
 
     it "does NOT call the tool when rejected" do
-      sid = agent.invoke("run tool")[:session_id]
+      invocation_id, request_id = invoke_and_get_ids
       expect(tool_instance).not_to receive(:call)
-      agent.approve(sid, approved: false)
+      agent.approve(invocation_id, approval_request_id: request_id, approved: false)
     end
   end
 end

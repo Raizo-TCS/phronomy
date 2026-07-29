@@ -29,7 +29,11 @@ RSpec.describe Phronomy::Agent::PhaseMachineBuilder do
   end
 
   describe "state_completed transitions" do
-    let(:ctx) { Phronomy::Agent::InvocationContext.new(agent: double("agent"), input: "x", messages: [], config: {}) }
+    let(:ctx) do
+      Phronomy::Agent::AgentInvocation.new(
+        agent: double("agent"), input: "x", messages: [], config: {}
+      )
+    end
 
     before { tracker.context = ctx }
 
@@ -58,32 +62,17 @@ RSpec.describe Phronomy::Agent::PhaseMachineBuilder do
       expect(tracker.phase).to eq("calling_llm")
     end
 
-    it "transitions calling_llm → executing_tool when tool call pending" do
+    it "transitions calling_llm → starting_tools when tool calls are pending" do
       tracker.phase = "calling_llm"
-      ctx.tool_call_pending = true
+      ctx.pending_tool_calls = [double("tool_call")]
       tracker.state_completed
-      expect(tracker.phase).to eq("executing_tool")
+      expect(tracker.phase).to eq("starting_tools")
     end
 
-    it "transitions calling_llm → output_filtering when no tool call" do
+    it "transitions calling_llm → output_filtering when no tool calls" do
       tracker.phase = "calling_llm"
-      ctx.tool_call_pending = false
       tracker.state_completed
       expect(tracker.phase).to eq("output_filtering")
-    end
-
-    it "transitions executing_tool → awaiting_approval when approval required" do
-      tracker.phase = "executing_tool"
-      ctx.approval_required = true
-      tracker.state_completed
-      expect(tracker.phase).to eq("awaiting_approval")
-    end
-
-    it "transitions executing_tool → calling_llm when no approval required" do
-      tracker.phase = "executing_tool"
-      ctx.approval_required = false
-      tracker.state_completed
-      expect(tracker.phase).to eq("calling_llm")
     end
 
     it "transitions output_filtering → completed when output passes" do
@@ -101,21 +90,39 @@ RSpec.describe Phronomy::Agent::PhaseMachineBuilder do
     end
   end
 
+  describe "tool event transitions" do
+    let(:ctx) do
+      Phronomy::Agent::AgentInvocation.new(
+        agent: double("agent"), input: "x", messages: [], config: {}
+      )
+    end
+
+    before do
+      tracker.context = ctx
+      tracker.phase = "waiting_for_tools"
+    end
+
+    Phronomy::Agent::PhaseMachineBuilder::TOOL_EVENTS.each do |event_name|
+      it "#{event_name} transitions waiting_for_tools → evaluating_tools" do
+        tracker.send(event_name)
+        expect(tracker.phase).to eq("evaluating_tools")
+      end
+    end
+  end
+
   describe "external event transitions" do
-    let(:ctx) { Phronomy::Agent::InvocationContext.new(agent: double("agent"), input: "x", messages: [], config: {}) }
+    let(:ctx) do
+      Phronomy::Agent::AgentInvocation.new(
+        agent: double("agent"), input: "x", messages: [], config: {}
+      )
+    end
 
     before { tracker.context = ctx }
 
-    it "approve transitions awaiting_approval → executing_tool" do
-      tracker.phase = "awaiting_approval"
-      tracker.approve
-      expect(tracker.phase).to eq("executing_tool")
-    end
-
-    it "reject transitions awaiting_approval → blocked" do
-      tracker.phase = "awaiting_approval"
-      tracker.reject
-      expect(tracker.phase).to eq("blocked")
+    it "resume transitions suspended → waiting_for_tools" do
+      tracker.phase = "suspended"
+      tracker.resume
+      expect(tracker.phase).to eq("waiting_for_tools")
     end
   end
 end

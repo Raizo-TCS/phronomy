@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Agent::InvocationSession do
+RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) { model "test-model" }
   end
@@ -19,11 +19,12 @@ RSpec.describe Phronomy::Agent::InvocationSession do
       expect(session).to be_a(Phronomy::FSMSession)
     end
 
-    it "uses thread_id from config as session id" do
+    it "uses agent_invocation_id (UUID) as session id, independent of thread_id" do
       session = described_class.build(
         agent: agent, input: "hi", messages: [], config: {thread_id: "my-id"}
       )
-      expect(session.id).to eq("my-id")
+      # session.id is the AgentInvocation UUID, not the conversation thread_id
+      expect(session.id).to match(/\A[0-9a-f-]{36}\z/)
     end
 
     it "generates a UUID when thread_id is not provided" do
@@ -33,20 +34,21 @@ RSpec.describe Phronomy::Agent::InvocationSession do
       expect(session.id).to match(/\A[0-9a-f-]{36}\z/)
     end
 
-    it "sets awaiting_approval as a wait_state" do
+    it "sets :suspended as the wait_state (Human approval suspends AgentInvocation)" do
       session = described_class.build(
         agent: agent, input: "hi", messages: [], config: {}
       )
       wait_states = session.instance_variable_get(:@wait_state_names)
-      expect(wait_states).to include(:awaiting_approval)
+      expect(wait_states).to include(:suspended)
     end
 
-    it "registers approve and reject as external events" do
+    it "registers ToolInvocation events and :resume as external events" do
       session = described_class.build(
         agent: agent, input: "hi", messages: [], config: {}
       )
       ext = session.instance_variable_get(:@external_events)
-      expect(ext.keys).to include(:approve, :reject)
+      expect(ext.keys).to include(:tool_authorized, :tool_completed, :tool_failed,
+        :tool_approval_required, :tool_rejected, :tool_cancelled, :resume)
     end
 
     it "accepts mode: :stream and on_event" do

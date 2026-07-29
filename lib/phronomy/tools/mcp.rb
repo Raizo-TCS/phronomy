@@ -127,6 +127,7 @@ module Phronomy
         def build_tool_class(tool_name, server_uri, tool_def, headers: {})
           klass = Class.new(Mcp)
           klass.tool_name(tool_name)
+          klass.requires_approval true
           klass.instance_variable_set(:@mcp_server_uri, server_uri)
           klass.instance_variable_set(:@mcp_headers, headers.dup.freeze)
 
@@ -284,6 +285,30 @@ module Phronomy
         rescue
           nil
         end
+      end
+
+      # MCP Tools fail closed by default and identify their remote origin.
+      def tool_origin
+        :mcp
+      end
+
+      def approval_metadata
+        scheme, rest = self.class.instance_variable_get(:@mcp_server_uri).to_s.split("://", 2)
+        server_origin = case scheme
+        when "http", "https"
+          uri = URI.parse("#{scheme}://#{rest}")
+          default_port = (scheme == "https") ? 443 : 80
+          suffix = (uri.port == default_port) ? "" : ":#{uri.port}"
+          "#{scheme}://#{uri.host}#{suffix}"
+        when "stdio"
+          command = Shellwords.split(rest.to_s).first
+          "stdio://#{command}"
+        else
+          scheme.to_s
+        end
+        {transport: scheme&.to_sym, server_origin: server_origin}
+      rescue URI::InvalidURIError
+        {transport: :unknown, server_origin: "unknown"}
       end
 
       # @api private

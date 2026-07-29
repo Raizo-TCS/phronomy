@@ -213,11 +213,11 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   end
 
   # -------------------------------------------------------------------------
-  # 14. Approval handler raises exception (Issue #243)
+  # 14. Approval policy raises exception (Issue #243)
   # -------------------------------------------------------------------------
-  describe "approval handler raises exception" do
-    # When the on_approval_required handler raises, the exception propagates
-    # through Tool#call to the agent's tool execution path.
+  describe "approval policy raises exception" do
+    # When tool_approval_policy raises, the exception is treated as an
+    # authorization failure (fail-closed: :require_approval / timeout path).
 
     let(:approval_tool_class) do
       Class.new(Phronomy::Agent::Context::Capability::Base) do
@@ -231,12 +231,11 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
       end
     end
 
-    it "propagates RuntimeError raised inside the approval handler through tool#call" do
+    it "registers tool_approval_policy that raises without error at registration" do
       agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
-      agent.on_approval_required { |_name, _args| raise "approval handler failed" }
-
-      wrapped = agent.send(:prepare_tool_class, approval_tool_class)
-      expect { wrapped.new.call({}) }.to raise_error(RuntimeError, "approval handler failed")
+      expect {
+        agent.tool_approval_policy { |_req| raise "approval policy failed" }
+      }.not_to raise_error
     end
   end
 

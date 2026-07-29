@@ -126,6 +126,20 @@ module Phronomy
     # @return [Integer]
     attr_accessor :blocking_io_queue_size
 
+    # Worker count for Tool authorization evaluation. The named pool is owned
+    # by Runtime#pool(:authorization) and shares PoolRegistry lifecycle.
+    # @return [Integer]
+    attr_accessor :authorization_pool_size
+
+    # Maximum queued Tool authorization evaluations.
+    # @return [Integer]
+    attr_accessor :authorization_queue_size
+
+    # Operation-wide deadline for approval_facts, requires_approval callables,
+    # and Agent#tool_approval_policy. Timeout fails closed to Human approval.
+    # @return [Numeric]
+    attr_accessor :authorization_timeout
+
     # Scheduler starvation threshold (milliseconds).
     # When a task waits more than this many milliseconds after calling
     # +runtime.yield+ before being resumed, the wait is counted as a starvation
@@ -176,6 +190,9 @@ module Phronomy
       @stream_queue_max_size = nil
       @blocking_io_pool_size = 10
       @blocking_io_queue_size = 100
+      @authorization_pool_size = 4
+      @authorization_queue_size = 100
+      @authorization_timeout = 5
       @starvation_threshold_ms = 50
       @runtime_backend = :thread
       @strict_runtime_guards = false

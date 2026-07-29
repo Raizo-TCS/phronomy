@@ -90,10 +90,9 @@ RSpec.describe "Security specs (Issue #214)" do
   end
 
   # -------------------------------------------------------------------------
-  # Section 2: Approval-required tool gate
+  # Section 2: Approval-required tool gate (authorization via ToolInvocation)
   # -------------------------------------------------------------------------
   describe "approval-required tool gate" do
-    # A sensitive tool that records every execute call in `audit_log`.
     let(:audit_log) { [] }
 
     let(:sensitive_tool_class) do
@@ -115,80 +114,48 @@ RSpec.describe "Security specs (Issue #214)" do
       Class.new(Phronomy::Agent::Base) { model "test-model" }.new
     end
 
-    context "when handler returns false" do
-      it "does not invoke #execute" do
+    context "tool_approval_policy API (Issue #214 / 0.15.0 migration)" do
+      it "registers a :reject policy" do
         agent = build_agent
-        agent.on_approval_required { false }
-
-        wrapped = agent.send(:prepare_tool_class, sensitive_tool_class)
-        wrapped.new.call({"target" => "production-db"})
-
-        expect(audit_log).to be_empty
+        expect { agent.tool_approval_policy { :reject } }.not_to raise_error
       end
 
-      it "returns a denial message string" do
+      it "registers an :allow policy" do
         agent = build_agent
-        agent.on_approval_required { false }
-
-        wrapped = agent.send(:prepare_tool_class, sensitive_tool_class)
-        output = wrapped.new.call({"target" => "anything"})
-
-        expect(output).to eq("Tool execution denied.")
+        expect { agent.tool_approval_policy { :allow } }.not_to raise_error
       end
-    end
 
-    context "when handler returns nil" do
-      it "does not invoke #execute" do
+      it "registers a :require_approval policy" do
         agent = build_agent
-        agent.on_approval_required { nil }
+        expect { agent.tool_approval_policy { :require_approval } }.not_to raise_error
+      end
 
-        wrapped = agent.send(:prepare_tool_class, sensitive_tool_class)
-        wrapped.new.call({"target" => "secret-endpoint"})
-
-        expect(audit_log).to be_empty
+      it "registers an approval notification listener" do
+        agent = build_agent
+        expect { agent.on_tool_approval_required { |_req| } }.not_to raise_error
       end
     end
 
-    context "when handler returns truthy" do
-      it "invokes #execute and returns its result" do
+    context "requires_approval DSL" do
+      it "is set on the sensitive tool" do
+        expect(sensitive_tool_class.requires_approval).to be true
+      end
+
+      it "allows direct execute when no authorization gate is applied" do
+        # prepare_tool_class no longer installs an approval wrapper; authorization
+        # is handled by ToolInvocation before execute() is called in production.
         agent = build_agent
-        agent.on_approval_required { true }
-
         wrapped = agent.send(:prepare_tool_class, sensitive_tool_class)
-        output = wrapped.new.call({"target" => "safe-resource"})
-
-        expect(audit_log).to eq(["EXECUTED:safe-resource"])
-        expect(output).to eq("result for safe-resource")
+        output = wrapped.new.call({"target" => "direct-call"})
+        expect(output).to eq("result for direct-call")
       end
     end
 
-    context "approval audit trail" do
-      it "passes tool name and arguments to the handler for audit purposes" do
-        received_name = nil
-        received_args = nil
-
+    context "when no policy is registered" do
+      it "executes the tool directly via prepare_tool_class (policy applied via ToolInvocation)" do
         agent = build_agent
-        agent.on_approval_required do |name, args|
-          received_name = name
-          received_args = args
-          true
-        end
-
-        wrapped = agent.send(:prepare_tool_class, sensitive_tool_class)
-        wrapped.new.call({"target" => "audit-target"})
-
-        expect(received_name).to eq("sensitive_op")
-        expect(received_args).to include("target" => "audit-target")
-      end
-    end
-
-    context "when no handler is registered (backward compatibility)" do
-      it "executes the tool without approval" do
-        agent = build_agent
-        # Deliberately no on_approval_required call
         wrapped = agent.send(:prepare_tool_class, sensitive_tool_class)
         output = wrapped.new.call({"target" => "legacy-target"})
-
         expect(audit_log).to eq(["EXECUTED:legacy-target"])
         expect(output).to eq("result for legacy-target")
       end

@@ -280,7 +280,7 @@ RSpec.describe "Agent::Base invocation_context: keyword argument (Issue #301)" d
   # Capture the config hash seen by _start_invoke_attempt so we can assert on it.
   def capture_config(ag, &block)
     captured = {}
-    allow(ag).to receive(:_start_invoke_attempt) do |result_task, _input, messages:, thread_id:, config:, attempt:|
+    allow(ag).to receive(:_start_invoke_attempt) do |result_task, _input, messages:, thread_id:, config:, attempt:, approval_snapshot:|
       captured = config
       result_task.backend.unblock({output: "ok"}, nil)
       result_task.transition!(:completed, value: {output: "ok"})

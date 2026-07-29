@@ -339,7 +339,7 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
       agent_class._sleep_proc = sleep_stub
 
       agent = agent_class.new
-      allow(agent).to receive(:_start_invoke_attempt) do |result_task, input, messages:, thread_id:, config:, attempt:|
+      allow(agent).to receive(:_start_invoke_attempt) do |result_task, input, messages:, thread_id:, config:, attempt:, approval_snapshot: {}|
         invocations += 1
         if invocations <= fail_times
           err = exception_class.new("transient")
@@ -351,7 +351,7 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
             wait_sec = agent.send(:compute_agent_retry_wait, policy[:wait], policy[:base], attempt)
             agent.class._sleep_proc.call(wait_sec) if wait_sec > 0
             agent.send(:_start_invoke_attempt, result_task, input, messages: messages, thread_id: thread_id, config: config,
-              attempt: attempt + 1)
+              attempt: attempt + 1, approval_snapshot: approval_snapshot)
           else
             begin
               agent.send(:translate_and_reraise!, err)
@@ -427,7 +427,7 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
       end
       agent_class._sleep_proc = sleep_stub
       agent = agent_class.new
-      allow(agent).to receive(:_start_invoke_attempt) do |result_task, input, messages:, thread_id:, config:, attempt:|
+      allow(agent).to receive(:_start_invoke_attempt) do |result_task, input, messages:, thread_id:, config:, attempt:, approval_snapshot: {}|
         err = RuntimeError.new("always")
         policy = agent.class._retry_policy
         retriable = policy && attempt < policy[:times] &&
@@ -437,7 +437,7 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
           wait_sec = agent.send(:compute_agent_retry_wait, policy[:wait], policy[:base], attempt)
           agent.class._sleep_proc.call(wait_sec) if wait_sec > 0
           agent.send(:_start_invoke_attempt, result_task, input, messages: messages, thread_id: thread_id, config: config,
-            attempt: attempt + 1)
+            attempt: attempt + 1, approval_snapshot: approval_snapshot)
         else
           begin
             agent.send(:translate_and_reraise!, err)
@@ -488,7 +488,7 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
       agent_class._sleep_proc = sleep_stub
 
       agent = agent_class.new
-      allow(agent).to receive(:_start_invoke_attempt) do |result_task, input, messages:, thread_id:, config:, attempt:|
+      allow(agent).to receive(:_start_invoke_attempt) do |result_task, input, messages:, thread_id:, config:, attempt:, approval_snapshot: {}|
         invocations += 1
         if invocations <= fail_times
           err = RuntimeError.new("transient")
@@ -500,7 +500,7 @@ RSpec.describe Phronomy::Agent::Base, "retry_policy DSL" do
             wait_sec = agent.send(:compute_agent_retry_wait, policy[:wait], policy[:base], attempt)
             agent.class._sleep_proc.call(wait_sec) if wait_sec > 0
             agent.send(:_start_invoke_attempt, result_task, input, messages: messages, thread_id: thread_id, config: config,
-              attempt: attempt + 1)
+              attempt: attempt + 1, approval_snapshot: approval_snapshot)
           else
             begin
               agent.send(:translate_and_reraise!, err)

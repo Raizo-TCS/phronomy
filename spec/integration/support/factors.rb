@@ -515,7 +515,8 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   # Factor: approval_handler_type
   #
-  # Returns a lambda (or nil) to be passed to agent#on_approval_required.
+  # Returns a tool_approval_policy callable (or nil) for agent configuration.
+  # :allow and :reject are the two decisions; nil means no policy registered.
   #
   # @param label [String] "none" | "approves" | "denies"
   # @return [Proc, nil]
@@ -523,18 +524,18 @@ module IntegrationFactors
   def self.approval_handler(label)
     case label
     when "none" then nil
-    when "approves" then ->(_tool_name, _args) { true }
-    when "denies" then ->(_tool_name, _args) { false }
+    when "approves" then ->(_request) { :allow }
+    when "denies" then ->(_request) { :reject }
     else raise ArgumentError, "Unknown approval_handler_type label: #{label}"
     end
   end
 
   # Builds an agent instance (Base) configured with the given
-  # tool class and approval handler.
+  # tool class and approval policy.
   #
   # @param agent_label  [String]  "base"
   # @param tool_class   [Class]   a Phronomy::Agent::Context::Capability::Base subclass
-  # @param handler      [Proc, nil] returned by .approval_handler
+  # @param handler      [Proc, nil] returned by .approval_handler (tool_approval_policy callable)
   # @return [Phronomy::Agent::Base]
   def self.approval_agent(agent_label, tool_class:, handler:)
     base_class = Phronomy::Agent::Base
@@ -545,7 +546,7 @@ module IntegrationFactors
     end
 
     agent = agent_class.new
-    agent.on_approval_required(&handler) if handler
+    agent.tool_approval_policy(&handler) if handler
     agent
   end
 

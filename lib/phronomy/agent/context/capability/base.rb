@@ -8,11 +8,11 @@ module Phronomy
         #
         # Additional DSL over RubyLLM::Tool:
         #   - tool_name         : explicit function name exposed to the LLM (overrides auto-conversion)
-        #   - scope             : access-scope metadata (:read_only, :write, etc.)
         #   - on_error          : error-handling policy (:raise or :return_empty)
         #   - on_schema_error   : behavior when LLM passes schema-violating arguments
         #                         :return_error (default), :raise, or :coerce
-        #   - requires_approval : require human approval before execution
+        #   - requires_approval : Boolean/callable Tool-side approval default
+        #   - approval_facts    : callable exposing semantic facts to Agent policy
         #   - param :name, enum: [...] : restrict allowed values in the JSON Schema
         #
         # @example
@@ -21,7 +21,6 @@ module Phronomy
         #     description "Search the internal knowledge base"
         #     param :query,  type: :string, desc: "Search query"
         #     param :lang,   type: :string, desc: "Language", required: false, enum: %w[en ja fr]
-        #     scope :read_only
         #     on_error :return_empty
         #
         #     def execute(query:, lang: "en")
@@ -90,17 +89,6 @@ module Phronomy
             end
 
             public
-
-            # Sets the access scope for this tool (metadata; enforcement is the responsibility of
-            # the Workflow/Filter layer).
-            # @param value [Symbol] e.g. :read_only, :write, :admin
-            # @api public
-            # mutant:disable - neutral failure: unparser round-trip produces different source
-            def scope(value = nil)
-              return @scope if value.nil?
-
-              @scope = value
-            end
 
             # Sets or reads the execution mode for this tool.
             #
@@ -174,14 +162,41 @@ module Phronomy
               @on_schema_error = behavior
             end
 
-            # Configures whether human approval is required before executing this tool.
-            # @param value [Boolean]
+            # Configures the Tool-side default for approval. A callable receives
+            # ApprovalEvaluationRequest and must return true or false. It is
+            # evaluated on the Runtime authorization pool, not in Tool#call.
+            # @param value [Boolean, #call]
             # @api public
-            # mutant:disable - neutral failure: unparser round-trip produces different source
-            def requires_approval(value = nil)
-              return @requires_approval || false if value.nil?
+            def requires_approval(value = :__unset__, &block)
+              if block
+                unless value == :__unset__
+                  raise ArgumentError, "pass either a value or a block to requires_approval"
+                end
+                @requires_approval = block
+              elsif value == :__unset__
+                return @requires_approval if instance_variable_defined?(:@requires_approval)
+                return superclass.requires_approval if superclass.respond_to?(:requires_approval)
 
-              @requires_approval = value
+                false
+              else
+                unless value == true || value == false || value.respond_to?(:call)
+                  raise ArgumentError, "requires_approval must be true, false, or callable"
+                end
+                @requires_approval = value
+              end
+            end
+
+            # Registers a Tool-specific semantic fact extractor for authorization.
+            # The block receives validated immutable arguments and read-only context.
+            # @api public
+            def approval_facts(&block)
+              if block
+                @approval_facts = block
+              elsif instance_variable_defined?(:@approval_facts)
+                @approval_facts
+              elsif superclass.respond_to?(:approval_facts)
+                superclass.approval_facts
+              end
             end
 
             # Marks one or more parameter names as sensitive so their values are
@@ -395,6 +410,18 @@ module Phronomy
           # both expressions produce the same value.
           def requires_approval?
             self.class.requires_approval
+          end
+
+          # Origin metadata consumed by ToolInvocation authorization policy.
+          # @api public
+          def tool_origin
+            :local
+          end
+
+          # Display-safe transport/origin metadata for approval requests.
+          # @api public
+          def approval_metadata
+            {}
           end
 
           # Override this method to implement the tool's logic.

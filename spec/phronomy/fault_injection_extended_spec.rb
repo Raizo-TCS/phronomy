@@ -117,24 +117,27 @@ RSpec.describe "Fault injection (Issue #230 — extended)" do
       end
     end
 
-    it "returns a denial String when the approval handler returns false" do
+    it "prepare_tool_class no longer wraps with an approval callback (authorization is now ToolInvocation's responsibility)" do
       agent_class = Class.new(Phronomy::Agent::Base) do
         model "test-model"
       end
       agent = agent_class.new
-      agent.on_approval_required { |_name, _args| false }
+      # New API: tool_approval_policy returns :reject to deny execution
+      agent.tool_approval_policy { :reject }
 
+      # prepare_tool_class only handles alias and result filters; no inline denial
       wrapped = agent.send(:prepare_tool_class, approval_required_tool_class)
+      # The Tool#call itself runs; authorization gate is in ToolInvocation FSM
       result = wrapped.new.call({})
-      expect(result).to eq("Tool execution denied.")
+      expect(result).to eq("executed")
     end
 
-    it "executes normally when the approval handler returns true" do
+    it "prepare_tool_class with tool_approval_policy :allow still executes the tool" do
       agent_class = Class.new(Phronomy::Agent::Base) do
         model "test-model"
       end
       agent = agent_class.new
-      agent.on_approval_required { |_name, _args| true }
+      agent.tool_approval_policy { :allow }
 
       wrapped = agent.send(:prepare_tool_class, approval_required_tool_class)
       result = wrapped.new.call({})

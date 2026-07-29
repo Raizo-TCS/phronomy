@@ -663,7 +663,7 @@ RSpec.describe "Agent#invoke invoke_timeout cancellation propagation (Issue #290
     end
 
     captured_token = nil
-    allow_any_instance_of(klass).to receive(:_start_invoke_attempt) do |_instance, result_task, _input, messages:, thread_id:, config:, attempt:|
+    allow_any_instance_of(klass).to receive(:_start_invoke_attempt) do |_instance, result_task, _input, messages:, thread_id:, config:, attempt:, approval_snapshot: {}|
       captured_token = config[:cancellation_token]
       # Never complete the task — simulate a slow LLM/tool call
     end
@@ -684,7 +684,7 @@ RSpec.describe "Agent#invoke invoke_timeout cancellation propagation (Issue #290
 
     parent_token = Phronomy::Concurrency::CancellationToken.new
     captured_token = nil
-    allow_any_instance_of(klass).to receive(:_start_invoke_attempt) do |_instance, result_task, _input, messages:, thread_id:, config:, attempt:|
+    allow_any_instance_of(klass).to receive(:_start_invoke_attempt) do |_instance, result_task, _input, messages:, thread_id:, config:, attempt:, approval_snapshot: {}|
       captured_token = config[:cancellation_token]
       result_task.backend.unblock({output: "ok", messages: [], usage: nil}, nil)
       result_task.transition!(:completed, value: {output: "ok", messages: [], usage: nil})
