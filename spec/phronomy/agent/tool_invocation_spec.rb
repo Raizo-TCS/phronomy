@@ -219,8 +219,9 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
 
   describe "evaluate_authorization error paths" do
     it "returns :require_approval on TimeoutError" do
-      allow_any_instance_of(Phronomy::Agent::Context::Capability::Base).to receive(:validate_and_coerce).and_return([{}, nil])
-      invocation.validate!
+      # Set invocation to valid state directly without allow_any_instance_of
+      invocation.instance_variable_set(:@status, :valid)
+      invocation.instance_variable_set(:@arguments, {}.freeze)
       error = Phronomy::TimeoutError.new("timeout")
       outcome = invocation.send(:authorization_failure_outcome, error)
       expect(outcome.decision).to eq(:require_approval)

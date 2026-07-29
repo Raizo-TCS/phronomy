@@ -4,14 +4,37 @@ require "spec_helper"
 
 RSpec.describe Phronomy::Agent::AgentInvocation do
   FakeChild = Struct.new(:id, :status, :error, keyword_init: true) do
-    def awaiting_approval? = status == :awaiting_approval
-    def authorized? = status == :authorized
-    def rejected? = status == :rejected
-    def failed? = status == :failed
-    def cancelled? = status == :cancelled
-    def execution_completed? = status == :completed
-    def terminal? = %i[completed rejected failed cancelled].include?(status)
-    def preflight_settled? = %i[authorized awaiting_approval completed rejected failed cancelled].include?(status)
+    def awaiting_approval?
+      status == :awaiting_approval
+    end
+
+    def authorized?
+      status == :authorized
+    end
+
+    def rejected?
+      status == :rejected
+    end
+
+    def failed?
+      status == :failed
+    end
+
+    def cancelled?
+      status == :cancelled
+    end
+
+    def execution_completed?
+      status == :completed
+    end
+
+    def terminal?
+      %i[completed rejected failed cancelled].include?(status)
+    end
+
+    def preflight_settled?
+      %i[authorized awaiting_approval completed rejected failed cancelled].include?(status)
+    end
   end
 
   let(:agent) { instance_double(Phronomy::Agent::Base) }
