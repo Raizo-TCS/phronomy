@@ -20,6 +20,8 @@ module Phronomy
         tool_cancelled
       ].freeze
 
+      STREAM_EVENT_TYPES = %i[llm_stream_chunk].freeze
+
       attr_accessor :input,
         :messages,
         :chat,
@@ -110,6 +112,16 @@ module Phronomy
       # Consumes child ToolInvocation events. FSMSession calls this on the
       # EventLoop thread before attempting an optional parent FSM transition.
       def handle_fsm_event(event)
+        if STREAM_EVENT_TYPES.include?(event.type)
+          @stream_listener&.call(
+            StreamEvent.new(
+              type: :token,
+              payload: {content: event.payload.fetch(:content)}
+            )
+          )
+          return true
+        end
+
         return false unless TOOL_EVENT_TYPES.include?(event.type)
 
         invocation = tool_invocation(event.payload&.fetch(:tool_invocation_id, nil))
@@ -122,6 +134,46 @@ module Phronomy
           @approval_resume_in_progress = false if @pending_approval_resolution_ids.empty?
         end
         true
+      end
+
+      # Applies an asynchronous LLM operation result on the EventLoop thread.
+      # FSMSession invokes this through its existing apply_fsm_action_result hook.
+      def apply_fsm_action_result(result)
+        return self unless result.is_a?(LLMOperationResult)
+
+        if result.error
+          if result.error.is_a?(ToolCallIntercepted)
+            accept_tool_calls!(result.error.tool_calls)
+          else
+            raise result.error
+          end
+        else
+          apply_llm_response!(result.response)
+        end
+        self
+      end
+
+      def accept_tool_calls!(tool_calls)
+        @user_message_sent = true
+        @pending_tool_calls = Array(tool_calls)
+        @messages = @chat.messages
+        @pending_tool_calls.each do |tool_call|
+          @stream_listener&.call(
+            StreamEvent.new(type: :tool_call, payload: {tool_call: tool_call})
+          )
+        end
+        self
+      end
+
+      def apply_llm_response!(response)
+        raise Phronomy::Error, "LLM operation completed without a response" unless response
+
+        @user_message_sent = true
+        @output = response.content
+        @usage = Phronomy::TokenUsage.from_tokens(response.tokens)
+        @messages = @chat.messages
+        @pending_tool_calls = []
+        self
       end
 
       def tool_invocation(id)

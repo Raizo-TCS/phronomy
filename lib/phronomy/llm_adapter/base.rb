@@ -63,41 +63,24 @@ module Phronomy
       # Submits a streaming LLM call to {BlockingAdapterPool} and returns
       # a {BlockingAdapterPool::PendingOperation}.
       #
-      # When +enqueue_to:+ is given, streaming chunks are pushed into that
-      # {AsyncQueue} from the worker thread instead of being passed directly
-      # to the caller's block. The queue is closed (via +ensure+) after the LLM
-      # call finishes so the consumer's drain loop terminates naturally.
-      # This keeps user-supplied blocks off the blocking-pool worker thread.
-      #
-      # When +enqueue_to:+ is nil and a block is given, the block is invoked
-      # directly from the worker thread (legacy behaviour, preserved for
-      # backward compatibility).
+      # The block is invoked on the blocking-pool worker thread. Agent code must
+      # pass only a lightweight internal sink that posts a value to EventLoop;
+      # Application callbacks must never be passed directly to this method.
       #
       # Transport timeout and retry remain the responsibility of the adapter or
       # provider client; Phronomy does not attach an additional operation timeout.
       #
-      # @param chat       [Object] configured chat session
-      # @param message    [String] user message
-      # @param config     [Hash] invocation config
-      # @param pool       [BlockingAdapterPool] pool to submit to
-      # @param enqueue_to [AsyncQueue, nil] when set, push chunks here instead of
-      #   calling the block on the worker thread
-      # @yield [chunk] streaming chunk — only used when +enqueue_to:+ is nil
+      # @yield [chunk] streaming chunk on the worker thread
       # @return [BlockingAdapterPool::PendingOperation]
       # @api private
-      def stream_async(chat, message, config: {}, pool: default_pool, enqueue_to: nil, &block)
+      def stream_async(chat, message, config: {}, pool: default_pool, &block)
+        raise ArgumentError, "stream_async requires a block" unless block
+
         token = config[:cancellation_token]
-        if enqueue_to
-          pool.submit(cancellation_token: token) do
-            stream(chat, message, config: config) do |chunk|
-              enqueue_to.push(chunk)
-            end
-          ensure
-            enqueue_to.close
-          end
-        else
-          pool.submit(cancellation_token: token) do
-            stream(chat, message, config: config, &block)
+        pool.submit(cancellation_token: token) do
+          stream(chat, message, config: config) do |chunk|
+            token&.raise_if_cancelled!("invocation cancelled during streaming")
+            block.call(chunk)
           end
         end
       end

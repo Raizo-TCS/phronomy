@@ -59,64 +59,31 @@ RSpec.describe "LLMAdapter abstraction" do
       end
     end
 
-    describe "#stream_async with enqueue_to: (Issue #292)" do
-      it "pushes chunks into the given AsyncQueue and does not call the block on the worker thread" do
+    describe "#stream_async cancellation" do
+      it "checks the cancellation token before delivering each chunk" do
         pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
-        chunk_queue = Phronomy::Concurrency::AsyncQueue.new
-        worker_threads = []
+        token = Phronomy::Concurrency::CancellationToken.new
+        received = []
         concrete = Class.new(described_class) do
-          define_method(:stream) do |chat, message, config: {}, &blk|
-            worker_threads << Thread.current
+          def stream(chat, message, config: {}, &blk)
             blk.call("c1")
             blk.call("c2")
             "done"
           end
         end.new
 
-        pending = concrete.stream_async(double, "ping", config: {}, pool: pool, enqueue_to: chunk_queue)
-
-        # Drain the queue on the caller's side
-        received = []
-        caller_thread = Thread.current
-        loop do
-          chunk = chunk_queue.pop
-          break if chunk.nil?
+        pending = concrete.stream_async(
+          double,
+          "ping",
+          config: {cancellation_token: token},
+          pool: pool
+        ) do |chunk|
           received << chunk
+          token.cancel! if chunk == "c1"
         end
-        result = pending.wait_result
 
-        expect(result).to eq("done")
-        expect(received).to eq(%w[c1 c2])
-        # Chunks were enqueued by the worker — caller consumed them on its own thread
-        expect(worker_threads).not_to be_empty
-        expect(worker_threads).not_to include(caller_thread)
-      ensure
-        pool.shutdown
-      end
-
-      it "closes the queue after the stream completes so the drain loop terminates" do
-        pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
-        chunk_queue = Phronomy::Concurrency::AsyncQueue.new
-        concrete = Class.new(described_class) do
-          def stream(chat, message, config: {}, &blk)
-            blk.call("only_chunk")
-            "response"
-          end
-        end.new
-
-        pending = concrete.stream_async(double, "ping", config: {}, pool: pool, enqueue_to: chunk_queue)
-        result = pending.wait_result
-
-        # Drain; after all items are consumed the closed queue must return nil
-        items = []
-        loop do
-          item = chunk_queue.pop
-          break if item.nil?
-          items << item
-        end
-        expect(items).to eq(["only_chunk"])
-        expect(chunk_queue.pop).to be_nil
-        expect(result).to eq("response")
+        expect { pending.wait_result }.to raise_error(Phronomy::CancellationError)
+        expect(received).to eq(["c1"])
       ensure
         pool.shutdown
       end

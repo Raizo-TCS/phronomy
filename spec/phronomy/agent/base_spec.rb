@@ -139,7 +139,7 @@ RSpec.describe Phronomy::Agent::Base do
     end
   end
 
-  describe "#stream token callback via AsyncQueue (Issue #292)" do
+  describe "#stream_async EventLoop delivery" do
     let(:agent) do
       Class.new(Phronomy::Agent::Base) do
         instructions "test"
@@ -147,7 +147,7 @@ RSpec.describe Phronomy::Agent::Base do
       end.new
     end
 
-    it "delivers :token StreamEvents to the caller block without running the block on a pool worker thread" do
+    it "delivers token and terminal callbacks on the EventLoop thread" do
       pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
       worker_thread = nil
       chunk_stub = Struct.new(:content)
@@ -166,7 +166,7 @@ RSpec.describe Phronomy::Agent::Base do
       allow(fake_adapter).to receive(:stream_async).and_call_original
       allow(Phronomy::Runtime.instance).to receive(:blocking_io).and_return(pool)
 
-      # Stub out the parts of _stream_impl that require a real LLM chat object
+      # Stub out the parts of the AgentInvocation FSM that require a real LLM chat.
       allow(agent).to receive(:build_chat).and_return(
         double("chat",
           messages: [],
@@ -179,23 +179,29 @@ RSpec.describe Phronomy::Agent::Base do
       allow(agent).to receive(:run_before_completion_hooks!)
       allow(agent).to receive(:trace).and_yield(nil)
 
-      caller_thread = Thread.current
-      received_on_threads = []
+      event_loop_flags = []
       events = []
 
-      agent.stream("hi") do |event|
+      task = agent.stream_async("hi") do |event|
         events << event
-        received_on_threads << Thread.current if event.type == :token
+        event_loop_flags << Phronomy::Runtime.instance.event_loop.current?
       end
+      result = task.wait_result
 
       token_events = events.select { |e| e.type == :token }
       expect(token_events.map { |e| e.payload[:content] }).to eq(["hello", " world"])
-      # The token callbacks must have run on the caller's thread, not the pool worker
-      expect(received_on_threads).not_to be_empty
-      expect(received_on_threads).not_to include(worker_thread)
-      expect(received_on_threads.uniq).to eq([caller_thread])
+      expect(events.last.type).to eq(:done)
+      expect(result[:output]).to eq("hello world")
+      expect(event_loop_flags).not_to be_empty
+      expect(event_loop_flags).to all(be(true))
+      expect(Thread.current).not_to equal(worker_thread)
     ensure
       pool.shutdown
+    end
+
+    it "requires a callback block" do
+      expect { agent.stream_async("hi") }.to raise_error(ArgumentError)
+      expect { agent.stream("hi") }.to raise_error(ArgumentError)
     end
   end
 end

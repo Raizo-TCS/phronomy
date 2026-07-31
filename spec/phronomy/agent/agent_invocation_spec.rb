@@ -144,6 +144,74 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
       invocation.handle_fsm_event(tool_event(:tool_rejected, child))
       expect(invocation.instance_variable_get(:@rejected)).to be true
     end
+
+    it "consumes llm_stream_chunk without requesting an FSM transition" do
+      received = []
+      inv = described_class.new(
+        agent: agent,
+        input: "hi",
+        messages: [],
+        config: {},
+        stream_listener: ->(event) { received << event }
+      )
+      event = Phronomy::Event.new(
+        type: :llm_stream_chunk,
+        target_id: inv.id,
+        payload: {content: "hello"}
+      )
+
+      expect(inv.handle_fsm_event(event)).to be true
+      expect(received.map(&:type)).to eq([:token])
+      expect(received.first.payload[:content]).to eq("hello")
+    end
+  end
+
+  describe "#apply_fsm_action_result" do
+    let(:chat) { double("chat", messages: [:message]) }
+
+    before do
+      invocation.chat = chat
+    end
+
+    it "applies a normal response on the current thread" do
+      tokens = double("tokens", input: 1, output: 2, cached: 0, cache_creation: 0)
+      response = double("response", content: "answer", tokens: tokens)
+      result = Phronomy::Agent::LLMOperationResult.new(response: response)
+
+      expect(invocation.apply_fsm_action_result(result)).to be(invocation)
+      expect(invocation.output).to eq("answer")
+      expect(invocation.messages).to eq([:message])
+      expect(invocation.pending_tool_calls).to be_empty
+    end
+
+    it "classifies ToolCallIntercepted inside AgentInvocation" do
+      tool_call = double("tool_call", name: "lookup")
+      events = []
+      inv = described_class.new(
+        agent: agent,
+        input: "hi",
+        messages: [],
+        config: {},
+        stream_listener: ->(event) { events << event }
+      )
+      inv.chat = chat
+      error = Phronomy::Agent::ToolCallIntercepted.new(tool_call)
+      result = Phronomy::Agent::LLMOperationResult.new(error: error, streaming: true)
+
+      inv.apply_fsm_action_result(result)
+
+      expect(inv.pending_tool_calls).to eq([tool_call])
+      expect(events.map(&:type)).to eq([:tool_call])
+    end
+
+    it "re-raises provider errors for FSMSession to fail the session" do
+      error = RuntimeError.new("provider failed")
+      result = Phronomy::Agent::LLMOperationResult.new(error: error)
+
+      expect {
+        invocation.apply_fsm_action_result(result)
+      }.to raise_error(error)
+    end
   end
 
   describe "#set_graph_metadata" do

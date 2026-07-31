@@ -56,12 +56,7 @@ module Phronomy
           approval_listener: approval_listener,
           stream_listener: (mode == :stream) ? on_event : nil
         )
-        build_session(
-          agent_invocation: invocation,
-          runtime: runtime,
-          mode: mode,
-          on_event: on_event
-        )
+        build_session(agent_invocation: invocation, runtime: runtime, mode: mode)
       end
 
       def self.build_for_resume(
@@ -74,7 +69,6 @@ module Phronomy
           agent_invocation: agent_invocation,
           runtime: runtime,
           mode: agent_invocation.stream_listener ? :stream : :invoke,
-          on_event: agent_invocation.stream_listener,
           resume_event: resume_event,
           resume_phase: resume_phase
         )
@@ -84,12 +78,11 @@ module Phronomy
         agent_invocation:,
         runtime:,
         mode:,
-        on_event:,
         resume_event: nil,
         resume_phase: nil
       )
         agent = agent_invocation.agent
-        actions = build_entry_actions(agent, runtime, mode: mode, on_event: on_event)
+        actions = build_entry_actions(agent, runtime, mode: mode)
         phase_machine = Agent::PhaseMachineBuilder.new(entry_actions: actions).build
         iterations = agent.class.max_iterations || 10
 
@@ -122,9 +115,9 @@ module Phronomy
       end
       private_class_method :external_events
 
-      def self.build_entry_actions(agent, runtime, mode:, on_event:)
+      def self.build_entry_actions(agent, runtime, mode:)
         calling_action = if mode == :stream
-          method(:calling_llm_stream_action).curry.call(agent, on_event, runtime)
+          method(:calling_llm_stream_action).curry.call(agent, runtime)
         else
           method(:calling_llm_action).curry.call(agent)
         end
@@ -192,71 +185,56 @@ module Phronomy
           user_message,
           config: invocation.config
         )
-        task = Phronomy::Task.deferred(name: "agent-llm:#{invocation.id}")
-        operation.on_complete do |response, error|
-          if error.is_a?(Phronomy::Agent::ToolCallIntercepted)
-            accept_tool_calls(invocation, error.tool_calls)
-            complete_task(task, invocation)
-          elsif error
-            fail_task(task, error)
-          else
-            invocation.user_message_sent = true
-            invocation.output = response.content
-            invocation.usage = Phronomy::TokenUsage.from_tokens(response.tokens)
-            invocation.messages = invocation.chat.messages
-            invocation.pending_tool_calls = []
-            complete_task(task, invocation)
-          end
-        end
-        task
+        bridge_llm_operation(operation, invocation, streaming: false)
       end
       private_class_method :calling_llm_action
 
-      def self.calling_llm_stream_action(agent, on_event, runtime, invocation)
+      def self.calling_llm_stream_action(agent, runtime, invocation)
         user_message = invocation.user_message_sent ? nil : agent.send(:extract_message, invocation.input)
-        runtime.spawn(name: "agent-llm-stream:#{invocation.id}") do
-          begin
-            adapter = Phronomy.configuration.llm_adapter
-            chunks = Phronomy::Concurrency::AsyncQueue.new(
-              max_size: Phronomy.configuration.stream_queue_max_size
+        agent.send(:check_cancellation!, invocation.config, "invocation cancelled before LLM call")
+        operation = Phronomy.configuration.llm_adapter.stream_async(
+          invocation.chat,
+          user_message,
+          config: invocation.config
+        ) do |chunk|
+          agent.send(
+            :check_cancellation!,
+            invocation.config,
+            "invocation cancelled during streaming"
+          )
+          accepted = runtime.event_loop.post(
+            Phronomy::Event.new(
+              type: :llm_stream_chunk,
+              target_id: invocation.id,
+              payload: {content: chunk.content}
             )
-            pending = adapter.stream_async(
-              invocation.chat,
-              user_message,
-              config: invocation.config,
-              enqueue_to: chunks
-            )
-            loop do
-              chunk = chunks.pop
-              break if chunk.nil?
-
-              on_event.call(StreamEvent.new(type: :token, payload: {content: chunk.content}))
-            end
-            response = pending.blocking_wait
-            invocation.user_message_sent = true
-            invocation.output = response.content
-            invocation.usage = Phronomy::TokenUsage.from_tokens(response.tokens)
-            invocation.messages = invocation.chat.messages
-            invocation.pending_tool_calls = []
-          rescue Phronomy::Agent::ToolCallIntercepted => e
-            accept_tool_calls(invocation, e.tool_calls)
+          )
+          unless accepted
+            raise Phronomy::RuntimeShutdownError,
+              "Runtime stopped while streaming AgentInvocation #{invocation.id}"
           end
-          invocation
         end
+        bridge_llm_operation(operation, invocation, streaming: true)
       end
       private_class_method :calling_llm_stream_action
 
-      def self.accept_tool_calls(invocation, tool_calls)
-        invocation.user_message_sent = true
-        invocation.pending_tool_calls = tool_calls
-        invocation.messages = invocation.chat.messages
-        tool_calls.each do |tool_call|
-          invocation.stream_listener&.call(
-            StreamEvent.new(type: :tool_call, payload: {tool_call: tool_call})
+      def self.bridge_llm_operation(operation, invocation, streaming:)
+        task = Phronomy::Task.deferred(
+          name: "agent-llm#{"-stream" if streaming}:#{invocation.id}"
+        )
+        operation.on_complete do |response, error|
+          complete_task(
+            task,
+            LLMOperationResult.new(
+              response: response,
+              error: error,
+              streaming: streaming
+            )
           )
         end
+        task
       end
-      private_class_method :accept_tool_calls
+      private_class_method :bridge_llm_operation
 
       def self.starting_tools_action(runtime, invocation)
         children = invocation.pending_tool_calls.map do |tool_call|
@@ -357,12 +335,6 @@ module Phronomy
         task.transition!(:completed, value: value)
       end
       private_class_method :complete_task
-
-      def self.fail_task(task, error)
-        task.backend.unblock(nil, error)
-        task.transition!(:failed, error: error)
-      end
-      private_class_method :fail_task
     end
   end
 end

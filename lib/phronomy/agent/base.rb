@@ -418,7 +418,7 @@ module Phronomy
         if invocation_context
           thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
         end
-        _check_scheduler_reentrancy
+        _check_scheduler_reentrancy(:invoke, :invoke_async)
 
         trace("agent.invoke", input: input, **_build_caller_meta(config)) do |_span|
           result = invoke_async(
@@ -468,30 +468,66 @@ module Phronomy
         result_task
       end
 
-      # Streaming version of #invoke. Yields {Phronomy::Agent::StreamEvent} objects
-      # as they are produced by the underlying LLM.
+      # Invokes this agent asynchronously and delivers stream events from the
+      # Runtime-owned EventLoop thread.
       #
-      # Events emitted (in order):
-      #   :token       — each content delta from the LLM
-      #   :tool_call   — when the LLM requests a tool
-      #   :tool_result — after a tool completes
-      #   :done        — final event carrying output, messages, and usage
-      #   :error       — if an unrecoverable error occurs
+      # The callback must return quickly. Blocking I/O, synchronous Agent calls,
+      # sleep, and heavy CPU work must be delegated by the Application.
       #
-      # @param input     [String, Hash] same as #invoke
-      # @param messages  [Array<RubyLLM::Message>] same as #invoke
-      # @param thread_id [String, nil] same as #invoke
-      # @param config    [Hash]        same as #invoke
-      # @yield [Phronomy::Agent::StreamEvent]
-      # @return [Hash] { output:, messages:, usage: } — same as #invoke
+      # @return [Phronomy::Task] final invocation result
       # @api public
-      def stream(input, messages: [], thread_id: nil, config: {}, &block)
-        return invoke(input, messages: messages, thread_id: thread_id, config: config) unless block
+      def stream_async(input, messages: [], thread_id: nil, config: {},
+        invocation_context: nil, on_tool_approval_required: nil, &block)
+        raise ArgumentError, "stream_async requires a block" unless block
 
-        _stream_impl(input, messages: messages, thread_id: thread_id, config: config, &block)
-      rescue => e
-        block&.call(StreamEvent.new(type: :error, payload: {error: e}))
-        raise
+        if invocation_context
+          thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
+        end
+
+        result_task = Phronomy::Task.deferred(
+          name: "agent-#{(self.class.name || "anonymous").downcase}-stream-async"
+        )
+        approval_snapshot = _approval_configuration_snapshot(on_tool_approval_required)
+        _start_invocation(
+          result_task,
+          input,
+          messages: messages,
+          thread_id: thread_id,
+          config: config,
+          approval_snapshot: approval_snapshot,
+          mode: :stream,
+          on_event: block
+        )
+        result_task
+      end
+
+      # Synchronous wrapper around {#stream_async}.
+      #
+      # Stream callbacks execute on the EventLoop thread, not on the thread that
+      # calls this method. This method only blocks while waiting for the final Task.
+      # @yield [Phronomy::Agent::StreamEvent]
+      # @return [Hash] same result shape as #invoke
+      # @api public
+      def stream(input, messages: [], thread_id: nil, config: {},
+        invocation_context: nil, on_tool_approval_required: nil, &block)
+        raise ArgumentError, "stream requires a block" unless block
+
+        if invocation_context
+          thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
+        end
+        _check_scheduler_reentrancy(:stream, :stream_async)
+
+        trace("agent.stream", input: input, **_build_caller_meta(config)) do |_span|
+          result = stream_async(
+            input,
+            messages: messages,
+            thread_id: thread_id,
+            config: config,
+            on_tool_approval_required: on_tool_approval_required,
+            &block
+          ).wait_result
+          [result, result[:usage]]
+        end
       end
 
       # @deprecated The context version cache has been removed. Returns nil.
@@ -521,72 +557,24 @@ module Phronomy
         [effective_thread_id, effective_config]
       end
 
-      def _check_scheduler_reentrancy
+      def _check_scheduler_reentrancy(sync_method, async_method)
+        if Phronomy::Runtime.instance.event_loop.current?
+          raise Phronomy::SchedulerReentrancyError,
+            "#{self.class.name}##{sync_method} cannot run on the EventLoop thread. " \
+            "Use #{async_method} and return immediately."
+        end
+
         return unless Phronomy::Task.current
 
-        msg = "#{self.class.name}#invoke called from inside a scheduler task. " \
+        msg = "#{self.class.name}##{sync_method} called from inside a scheduler task. " \
           "This blocks the scheduler until the inner invocation completes, preventing " \
-          "other tasks from making progress. Use invoke_async + await instead."
+          "other tasks from making progress. Use #{async_method} + await instead."
         if Phronomy.configuration.strict_runtime_guards
           raise Phronomy::SchedulerReentrancyError, msg
         elsif Phronomy.configuration.logger
           Phronomy.configuration.logger.warn(msg)
         else
           Kernel.warn("[phronomy] WARNING: #{msg}")
-        end
-      end
-
-      # Streaming implementation for #stream using the same Agent/Tool
-      # Invocation FSM path as invoke_async. The caller thread drains an internal
-      # queue, so Application callbacks never run on the EventLoop thread and no
-      # additional stream-consumer worker is required.
-      def _stream_impl(input, messages: [], thread_id: nil, config: {}, &block)
-        trace("agent.invoke", input: input, **_build_caller_meta(config)) do |_span|
-          effective_config = thread_id ? config.merge(thread_id: thread_id) : config
-          runtime = Phronomy::Runtime.instance
-          snapshot = _approval_configuration_snapshot
-          event_queue = Phronomy::Concurrency::AsyncQueue.new
-          completion_marker = Object.new
-          sink = ->(event) { event_queue.push(event) }
-          completion = Phronomy::Task.deferred(name: "agent-stream:completion")
-          completion.on_complete do |invocation, error|
-            event_queue.push([completion_marker, invocation, error])
-          end
-
-          session = Agent::AgentInvocationSessionBuilder.build(
-            agent: self,
-            input: input,
-            messages: messages,
-            config: effective_config,
-            approval_policy: snapshot[:policy],
-            approval_listener: snapshot[:listener],
-            mode: :stream,
-            on_event: sink,
-            runtime: runtime
-          )
-          runtime.event_loop.register(session, completion: completion)
-
-          loop do
-            event = event_queue.pop
-            if event.is_a?(Array) && event.first.equal?(completion_marker)
-              invocation, error = event[1], event[2]
-              raise error if error
-
-              result = _extract_invoke_result(invocation)
-              if result[:suspended]
-                block.call(
-                  StreamEvent.new(
-                    type: :approval_required,
-                    payload: {request: result[:approval_request]}
-                  )
-                )
-              else
-                block.call(StreamEvent.new(type: :done, payload: result))
-              end
-              break [result, result[:usage]]
-            end
-            block.call(event)
-          end
         end
       end
 
@@ -762,7 +750,7 @@ module Phronomy
       # AgentInvocation automatically.
       # @api private
       def _start_invocation(result_task, input, messages:, thread_id:, config:,
-        approval_snapshot:)
+        approval_snapshot:, mode: :invoke, on_event: nil)
         effective_config = thread_id ? config.merge(thread_id: thread_id) : config
         check_cancellation!(effective_config, "invocation cancelled")
         runtime = Phronomy::Runtime.instance
@@ -774,6 +762,8 @@ module Phronomy
           config: effective_config,
           approval_policy: approval_snapshot[:policy],
           approval_listener: approval_snapshot[:listener],
+          mode: mode,
+          on_event: on_event,
           runtime: runtime
         )
         source_task = Phronomy::Task.deferred(name: "#{result_task.name}-source")
@@ -783,19 +773,62 @@ module Phronomy
           raise error if error
 
           result = _extract_invoke_result(invocation)
-          result_task.backend.unblock(result, nil)
-          result_task.transition!(:completed, value: result)
+          _emit_stream_terminal(on_event, result) if mode == :stream
+          _complete_result_task(result_task, result)
         rescue => e
-          begin
-            translate_and_reraise!(e)
-          rescue => translated
-            result_task.backend.unblock(nil, translated)
-            result_task.transition!(:failed, error: translated)
-          end
+          translated = _translated_error(e)
+          _emit_stream_error(on_event, translated) if mode == :stream
+          _fail_result_task(result_task, translated)
         end
       rescue => e
-        result_task.backend.unblock(nil, e)
-        result_task.transition!(:failed, error: e)
+        _fail_result_task(result_task, e)
+      end
+
+      def _complete_result_task(task, result)
+        task.backend.unblock(result, nil)
+        task.transition!(:completed, value: result)
+      end
+
+      def _fail_result_task(task, error)
+        task.backend.unblock(nil, error)
+        task.transition!(:failed, error: error)
+      end
+
+      def _translated_error(error)
+        translate_and_reraise!(error)
+      rescue => translated
+        translated
+      end
+
+      # Invoked from source_task completion, which is completed by EventLoop.
+      def _emit_stream_terminal(listener, result)
+        return unless listener
+
+        event = if result[:suspended]
+          StreamEvent.new(
+            type: :approval_required,
+            payload: {request: result[:approval_request]}
+          )
+        else
+          StreamEvent.new(type: :done, payload: result)
+        end
+        listener.call(event)
+      end
+
+      # Error notification is best-effort. A second callback failure must not
+      # escape the EventLoop's task-completion callback.
+      def _emit_stream_error(listener, error)
+        return unless listener
+
+        listener.call(StreamEvent.new(type: :error, payload: {error: error}))
+      rescue => callback_error
+        message = "[Phronomy] Stream error callback failed: " \
+          "#{callback_error.class}: #{callback_error.message}"
+        if Phronomy.configuration.logger
+          Phronomy.configuration.logger.warn(message)
+        else
+          Kernel.warn(message)
+        end
       end
 
       # Continues a suspended AgentInvocation. The parent session is registered
@@ -936,22 +969,6 @@ module Phronomy
         apply_instructions(chat, context[:system]) if context[:system]
         (context[:tool_classes] || []).each { |tc| chat.with_tool(prepare_tool_class(tc)) }
         context[:messages].each { |msg| chat.messages << msg }
-      end
-
-      def _drain_stream(chat, user_message, config, &block)
-        adapter = Phronomy.configuration.llm_adapter
-        chunk_queue = Phronomy::Concurrency::AsyncQueue.new(max_size: Phronomy.configuration.stream_queue_max_size)
-        pending = adapter.stream_async(chat, user_message, config: config, enqueue_to: chunk_queue)
-
-        loop do
-          chunk = chunk_queue.pop
-          break if chunk.nil?
-          block.call(StreamEvent.new(type: :token, payload: {content: chunk.content}))
-          check_cancellation!(config, "invocation cancelled during streaming")
-        end
-
-        response = pending.blocking_wait
-        [response.content, Phronomy::TokenUsage.from_tokens(response.tokens)]
       end
 
       # Builds a TokenBudget for this agent's model if possible.

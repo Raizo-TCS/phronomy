@@ -16,6 +16,8 @@ loader.inflector.inflect("rag" => "RAG")
 loader.inflector.inflect("fsm_session" => "FSMSession")
 # LLMAdapter: Zeitwerk would infer "LlmAdapter" — override to "LLMAdapter".
 loader.inflector.inflect("llm_adapter" => "LLMAdapter")
+# LLMOperationResult: preserve the LLM acronym for the Agent result carrier.
+loader.inflector.inflect("llm_operation_result" => "LLMOperationResult")
 # LLMAdapter::RubyLLM: "ruby_llm" maps to "RubyLLM" (not "RubyLlm").
 loader.inflector.inflect("ruby_llm" => "RubyLLM")
 # Collapse engine/ so that its contents autoload directly under Phronomy::

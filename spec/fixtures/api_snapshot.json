@@ -17,6 +17,7 @@
       "invoke_async",
       "on_tool_approval_required",
       "stream",
+      "stream_async",
       "tool_approval_policy",
       "trace"
     ],

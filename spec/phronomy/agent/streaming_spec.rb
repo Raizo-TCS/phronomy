@@ -89,9 +89,8 @@ RSpec.describe "Agent streaming" do
       expect(result[:output]).to eq("Hello, world!")
     end
 
-    it "falls back to #invoke when no block is given" do
-      result = agent.stream("Hello")
-      expect(result[:output]).to eq("Hello, world!")
+    it "raises ArgumentError when no block is given" do
+      expect { agent.stream("Hello") }.to raise_error(ArgumentError, /block/)
     end
 
     context "when an error occurs" do
@@ -139,9 +138,8 @@ RSpec.describe "Agent streaming" do
       expect(result[:output]).to be_a(String)
     end
 
-    it "falls back to #invoke when no block given" do
-      result = agent.stream("What is 2+2?")
-      expect(result[:output]).to eq("Hello, world!")
+    it "raises ArgumentError when no block given" do
+      expect { agent.stream("What is 2+2?") }.to raise_error(ArgumentError, /block/)
     end
   end
 
@@ -183,20 +181,20 @@ RSpec.describe "Agent streaming" do
     context "Agent::Base#stream" do
       subject(:agent) { StreamingBasicAgent.new }
 
-      it "creates a span named 'agent.invoke'" do
+      it "creates a span named 'agent.stream'" do
         agent.stream("hello") { |_e| }
         span_names = recording_tracer.spans.map { |s| s[:name] }
-        expect(span_names).to include("agent.invoke")
+        expect(span_names).to include("agent.stream")
       end
     end
 
     context "Agent::Base#stream (via StreamingReactAgent)" do
       subject(:agent) { StreamingReactAgent.new }
 
-      it "creates a span named 'agent.invoke'" do
+      it "creates a span named 'agent.stream'" do
         agent.stream("hello") { |_e| }
         span_names = recording_tracer.spans.map { |s| s[:name] }
-        expect(span_names).to include("agent.invoke")
+        expect(span_names).to include("agent.stream")
       end
     end
   end
