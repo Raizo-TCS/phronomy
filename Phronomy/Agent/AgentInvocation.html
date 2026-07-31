@@ -945,28 +945,6 @@ It does not drive transitions itself; Phronomy::FSMSession does that.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#max_parallel_tools-instance_method" title="#max_parallel_tools (instance method)">#<strong>max_parallel_tools</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#merge_config!-instance_method" title="#merge_config! (instance method)">#<strong>merge_config!</strong>(values)  &#x21d2; Object </a>
     
 
@@ -2475,22 +2453,22 @@ It does not drive transitions itself; Phronomy::FSMSession does that.</p>
       <pre class="lines">
 
 
+136
+137
+138
+139
+140
+141
+142
+143
+144
 145
 146
 147
-148
-149
-150
-151
-152
-153
-154
-155
-156
-157</pre>
+148</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 145</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 136</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approval_context'>approval_context</span>
   <span class='kw'>return</span> <span class='ivar'>@config</span><span class='lbracket'>[</span><span class='symbol'>:approval_context</span><span class='rbracket'>]</span> <span class='kw'>if</span> <span class='ivar'>@config</span><span class='lbracket'>[</span><span class='symbol'>:approval_context</span><span class='rbracket'>]</span>
@@ -2499,7 +2477,7 @@ It does not drive transitions itself; Phronomy::FSMSession does that.</p>
   <span class='kw'>return</span> <span class='lbrace'>{</span><span class='rbrace'>}</span> <span class='kw'>unless</span> <span class='id identifier rubyid_context'>context</span>
 
   <span class='qsymbols_beg'>%i[</span><span class='words_sep'>
-</span><span class='words_sep'>    </span><span class='tstring_content'>thread_id</span><span class='words_sep'> </span><span class='tstring_content'>session_id</span><span class='words_sep'> </span><span class='tstring_content'>user_id</span><span class='words_sep'> </span><span class='tstring_content'>token_budget</span><span class='words_sep'> </span><span class='tstring_content'>max_parallel_tools</span><span class='words_sep'>
+</span><span class='words_sep'>    </span><span class='tstring_content'>thread_id</span><span class='words_sep'> </span><span class='tstring_content'>session_id</span><span class='words_sep'> </span><span class='tstring_content'>user_id</span><span class='words_sep'> </span><span class='tstring_content'>token_budget</span><span class='words_sep'>
 </span><span class='words_sep'>    </span><span class='tstring_content'>task_id</span><span class='words_sep'> </span><span class='tstring_content'>parent_task_id</span><span class='words_sep'>
 </span><span class='words_sep'>  </span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_each_with_object'>each_with_object</span><span class='lparen'>(</span><span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_result'>result</span><span class='op'>|</span>
     <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_context'>context</span><span class='period'>.</span><span class='id identifier rubyid_public_send'>public_send</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_context'>context</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
@@ -2551,15 +2529,15 @@ It does not drive transitions itself; Phronomy::FSMSession does that.</p>
       <pre class="lines">
 
 
-222
-223
-224
-225
-226
-227</pre>
+213
+214
+215
+216
+217
+218</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 222</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 213</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approval_required?'>approval_required?</span>
   <span class='op'>!</span><span class='ivar'>@human_rejection</span> <span class='op'>&amp;&amp;</span>
@@ -2600,17 +2578,17 @@ It does not drive transitions itself; Phronomy::FSMSession does that.</p>
       <pre class="lines">
 
 
-159
-160
-161
-162
-163
-164
-165
-166</pre>
+150
+151
+152
+153
+154
+155
+156
+157</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 159</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 150</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_begin_approval_resume!'>begin_approval_resume!</span><span class='lparen'>(</span><span class='label'>approved:</span><span class='rparen'>)</span>
   <span class='ivar'>@human_rejection</span> <span class='op'>=</span> <span class='op'>!</span><span class='id identifier rubyid_approved'>approved</span>
@@ -2779,12 +2757,12 @@ EventLoop thread before attempting an optional parent FSM transition.</p>
       <pre class="lines">
 
 
-202
-203
-204</pre>
+193
+194
+195</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 202</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 193</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_input_blocked?'>input_blocked?</span>
   <span class='ivar'>@input_blocked</span>
@@ -2835,68 +2813,15 @@ EventLoop thread before attempting an optional parent FSM transition.</p>
       <pre class="lines">
 
 
-198
-199
-200</pre>
+189
+190
+191</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 198</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 189</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_input_passed?'>input_passed?</span>
   <span class='op'>!</span><span class='ivar'>@input_blocked</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="max_parallel_tools-instance_method">
-  
-    #<strong>max_parallel_tools</strong>  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-136
-137
-138
-139
-140
-141
-142
-143</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 136</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_max_parallel_tools'>max_parallel_tools</span>
-  <span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='ivar'>@config</span><span class='lbracket'>[</span><span class='symbol'>:max_parallel_tools</span><span class='rbracket'>]</span>
-  <span class='id identifier rubyid_context'>context</span> <span class='op'>=</span> <span class='ivar'>@config</span><span class='lbracket'>[</span><span class='symbol'>:invocation_context</span><span class='rbracket'>]</span>
-  <span class='id identifier rubyid_value'>value</span> <span class='op'>||=</span> <span class='id identifier rubyid_context'>context</span><span class='period'>.</span><span class='id identifier rubyid_max_parallel_tools'>max_parallel_tools</span> <span class='kw'>if</span> <span class='id identifier rubyid_context'>context</span><span class='op'>&amp;.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:max_parallel_tools</span><span class='rparen'>)</span>
-  <span class='lbracket'>[</span><span class='const'>Integer</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>||</span> <span class='int'>10</span><span class='rparen'>)</span><span class='comma'>,</span> <span class='int'>1</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_max'>max</span>
-<span class='kw'>rescue</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='const'>TypeError</span>
-  <span class='int'>10</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -2989,12 +2914,12 @@ EventLoop thread before attempting an optional parent FSM transition.</p>
       <pre class="lines">
 
 
-210
-211
-212</pre>
+201
+202
+203</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 210</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 201</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_output_blocked?'>output_blocked?</span>
   <span class='ivar'>@output_blocked</span>
@@ -3045,12 +2970,12 @@ EventLoop thread before attempting an optional parent FSM transition.</p>
       <pre class="lines">
 
 
-206
-207
-208</pre>
+197
+198
+199</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 206</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 197</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_output_passed?'>output_passed?</span>
   <span class='op'>!</span><span class='ivar'>@output_blocked</span>
@@ -3101,12 +3026,12 @@ EventLoop thread before attempting an optional parent FSM transition.</p>
       <pre class="lines">
 
 
-218
-219
-220</pre>
+209
+210
+211</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 218</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 209</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_preflight_complete?'>preflight_complete?</span>
   <span class='op'>!</span><span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_all?'>all?</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:preflight_settled?</span><span class='rparen'>)</span>
@@ -3144,13 +3069,13 @@ EventLoop thread before attempting an optional parent FSM transition.</p>
       <pre class="lines">
 
 
-168
-169
-170
-171</pre>
+159
+160
+161
+162</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 168</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 159</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_prepare_approval_request!'>prepare_approval_request!</span>
   <span class='ivar'>@approval_request</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ToolApprovalRequest.html" title="Phronomy::Agent::ToolApprovalRequest (class)">ToolApprovalRequest</a></span></span><span class='period'>.</span><span class='id identifier rubyid_build'><span class='object_link'><a href="ToolApprovalRequest.html#build-class_method" title="Phronomy::Agent::ToolApprovalRequest.build (method)">build</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
@@ -3202,18 +3127,18 @@ EventLoop thread before attempting an optional parent FSM transition.</p>
       <pre class="lines">
 
 
-229
-230
-231
-232
-233
-234
-235
-236
-237</pre>
+220
+221
+222
+223
+224
+225
+226
+227
+228</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 229</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 220</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_ready_to_dispatch?'>ready_to_dispatch?</span>
   <span class='op'>!</span><span class='ivar'>@approval_resume_in_progress</span> <span class='op'>&amp;&amp;</span>
@@ -3257,6 +3182,15 @@ EventLoop thread before attempting an optional parent FSM transition.</p>
       <pre class="lines">
 
 
+164
+165
+166
+167
+168
+169
+170
+171
+172
 173
 174
 175
@@ -3269,19 +3203,10 @@ EventLoop thread before attempting an optional parent FSM transition.</p>
 182
 183
 184
-185
-186
-187
-188
-189
-190
-191
-192
-193
-194</pre>
+185</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 173</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 164</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_record_tool_results!'>record_tool_results!</span>
   <span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_invocation'>invocation</span><span class='op'>|</span>
@@ -3396,12 +3321,12 @@ EventLoop thread before attempting an optional parent FSM transition.</p>
       <pre class="lines">
 
 
-262
-263
-264</pre>
+253
+254
+255</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 262</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 253</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_batch_completed?'>tool_batch_completed?</span>
   <span class='id identifier rubyid_tool_batch_terminal?'>tool_batch_terminal?</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_all?'>all?</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:execution_completed?</span><span class='rparen'>)</span>
@@ -3452,21 +3377,21 @@ EventLoop thread before attempting an optional parent FSM transition.</p>
       <pre class="lines">
 
 
+234
+235
+236
+237
+238
+239
+240
+241
+242
 243
 244
-245
-246
-247
-248
-249
-250
-251
-252
-253
-254</pre>
+245</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 243</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 234</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_batch_failed?'>tool_batch_failed?</span>
   <span class='kw'>return</span> <span class='kw'>false</span> <span class='kw'>if</span> <span class='ivar'>@human_rejection</span> <span class='op'>||</span> <span class='ivar'>@approval_resume_in_progress</span>
@@ -3526,14 +3451,14 @@ EventLoop thread before attempting an optional parent FSM transition.</p>
       <pre class="lines">
 
 
-256
-257
-258
-259
-260</pre>
+247
+248
+249
+250
+251</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 256</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 247</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_batch_rejected?'>tool_batch_rejected?</span>
   <span class='kw'>return</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_any?'>any?</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:rejected?</span><span class='rparen'>)</span>
@@ -3586,12 +3511,12 @@ EventLoop thread before attempting an optional parent FSM transition.</p>
       <pre class="lines">
 
 
-239
-240
-241</pre>
+230
+231
+232</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 239</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 230</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_batch_terminal?'>tool_batch_terminal?</span>
   <span class='op'>!</span><span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_all?'>all?</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:terminal?</span><span class='rparen'>)</span>
@@ -3642,12 +3567,12 @@ EventLoop thread before attempting an optional parent FSM transition.</p>
       <pre class="lines">
 
 
-214
-215
-216</pre>
+205
+206
+207</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 214</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 205</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_call_pending?'>tool_call_pending?</span>
   <span class='op'>!</span><span class='ivar'>@pending_tool_calls</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
@@ -3705,7 +3630,7 @@ EventLoop thread before attempting an optional parent FSM transition.</p>
 </div>
 
       <div id="footer">
-  Generated on Wed Jul 29 16:15:16 2026 by
+  Generated on Fri Jul 31 03:57:05 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

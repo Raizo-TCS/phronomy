@@ -121,9 +121,8 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
         <h5 class="example_title"><div class='inline'><p>Build a context for a new agent invocation</p></div></h5>
       
       <pre class="example code"><code><span class='id identifier rubyid_ctx'>ctx</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>InvocationContext</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::InvocationContext#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-  <span class='label'>thread_id:</span>         <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>conv-123</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
-  <span class='label'>cancellation_token:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_timeout_after'><span class='object_link'><a href="Concurrency/CancellationToken.html#timeout_after-class_method" title="Phronomy::Concurrency::CancellationToken.timeout_after (method)">timeout_after</a></span></span><span class='lparen'>(</span><span class='int'>30</span><span class='rparen'>)</span><span class='comma'>,</span>
-  <span class='label'>max_parallel_tools:</span> <span class='int'>5</span>
+  <span class='label'>thread_id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>conv-123</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+  <span class='label'>cancellation_token:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_timeout_after'><span class='object_link'><a href="Concurrency/CancellationToken.html#timeout_after-class_method" title="Phronomy::Concurrency::CancellationToken.timeout_after (method)">timeout_after</a></span></span><span class='lparen'>(</span><span class='int'>30</span><span class='rparen'>)</span>
 <span class='rparen'>)</span>
 <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>invocation_context:</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span></code></pre>
     
@@ -221,33 +220,6 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
       <li class="public ">
   <span class="summary_signature">
     
-      <a href="#max_parallel_tools-instance_method" title="#max_parallel_tools (instance method)">#<strong>max_parallel_tools</strong>  &#x21d2; Integer </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-      <span class="note title readonly">readonly</span>
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Maximum simultaneous tool calls (default: 10).</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#parent_task_id-instance_method" title="#parent_task_id (instance method)">#<strong>parent_task_id</strong>  &#x21d2; String<sup>?</sup> </a>
     
 
@@ -268,33 +240,6 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
 
   
     <span class="summary_desc"><div class='inline'><p>Task_id of the parent span / task.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#provider_limits-instance_method" title="#provider_limits (instance method)">#<strong>provider_limits</strong>  &#x21d2; Hash<sup>?</sup> </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-      <span class="note title readonly">readonly</span>
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Per-provider concurrency / rate-limit overrides.</p></div></span>
   
 </li>
 
@@ -548,7 +493,7 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(thread_id: nil, session_id: nil, user_id: nil, cancellation_token: nil, deadline: nil, tracer_span: nil, token_budget: nil, max_parallel_tools: 10, approval_policy: nil, redaction_policy: nil, provider_limits: nil, task_id: nil, parent_task_id: nil)  &#x21d2; InvocationContext </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(thread_id: nil, session_id: nil, user_id: nil, cancellation_token: nil, deadline: nil, tracer_span: nil, token_budget: nil, approval_policy: nil, redaction_policy: nil, task_id: nil, parent_task_id: nil)  &#x21d2; InvocationContext </a>
     
 
     
@@ -601,7 +546,7 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(thread_id: nil, session_id: nil, user_id: nil, cancellation_token: nil, deadline: nil, tracer_span: nil, token_budget: nil, max_parallel_tools: 10, approval_policy: nil, redaction_policy: nil, provider_limits: nil, task_id: nil, parent_task_id: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::InvocationContext (class)">InvocationContext</a></span></tt> 
+    #<strong>initialize</strong>(thread_id: nil, session_id: nil, user_id: nil, cancellation_token: nil, deadline: nil, tracer_span: nil, token_budget: nil, approval_policy: nil, redaction_policy: nil, task_id: nil, parent_task_id: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::InvocationContext (class)">InvocationContext</a></span></tt> 
   
 
   
@@ -714,19 +659,6 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
   
     <li>
       
-        <span class='name'>max_parallel_tools</span>
-      
-      
-        <span class='type'>(<tt>Integer</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>10</tt>)</em>
-      
-      
-    </li>
-  
-    <li>
-      
         <span class='name'>approval_policy</span>
       
       
@@ -747,19 +679,6 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
       
       
         <span class='type'>(<tt>Object</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>provider_limits</span>
-      
-      
-        <span class='type'>(<tt>Hash</tt>, <tt>nil</tt>)</span>
       
       
         <em class="default">(defaults to: <tt>nil</tt>)</em>
@@ -802,6 +721,15 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
       <pre class="lines">
 
 
+64
+65
+66
+67
+68
+69
+70
+71
+72
 73
 74
 75
@@ -817,23 +745,10 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
 85
 86
 87
-88
-89
-90
-91
-92
-93
-94
-95
-96
-97
-98
-99
-100
-101</pre>
+88</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 73</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 64</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span>
@@ -843,10 +758,8 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
   <span class='label'>deadline:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>tracer_span:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>token_budget:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>max_parallel_tools:</span> <span class='int'>10</span><span class='comma'>,</span>
   <span class='label'>approval_policy:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>redaction_policy:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>provider_limits:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>task_id:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>parent_task_id:</span> <span class='kw'>nil</span>
 <span class='rparen'>)</span>
@@ -857,10 +770,8 @@ or be handed to a child <span class='object_link'><a href="Task.html" title="Phr
   <span class='ivar'>@deadline</span> <span class='op'>=</span> <span class='id identifier rubyid_deadline'>deadline</span>
   <span class='ivar'>@tracer_span</span> <span class='op'>=</span> <span class='id identifier rubyid_tracer_span'>tracer_span</span>
   <span class='ivar'>@token_budget</span> <span class='op'>=</span> <span class='id identifier rubyid_token_budget'>token_budget</span>
-  <span class='ivar'>@max_parallel_tools</span> <span class='op'>=</span> <span class='id identifier rubyid_max_parallel_tools'>max_parallel_tools</span>
   <span class='ivar'>@approval_policy</span> <span class='op'>=</span> <span class='id identifier rubyid_approval_policy'>approval_policy</span>
   <span class='ivar'>@redaction_policy</span> <span class='op'>=</span> <span class='id identifier rubyid_redaction_policy'>redaction_policy</span>
-  <span class='ivar'>@provider_limits</span> <span class='op'>=</span> <span class='id identifier rubyid_provider_limits'>provider_limits</span>
   <span class='ivar'>@task_id</span> <span class='op'>=</span> <span class='id identifier rubyid_task_id'>task_id</span>
   <span class='ivar'>@parent_task_id</span> <span class='op'>=</span> <span class='id identifier rubyid_parent_task_id'>parent_task_id</span>
 <span class='kw'>end</span></pre>
@@ -918,12 +829,12 @@ receives Phronomy::Agent::ApprovalEvaluationRequest.</p></div>
       <pre class="lines">
 
 
-45
-46
-47</pre>
+41
+42
+43</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 45</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 41</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approval_policy'>approval_policy</span>
   <span class='ivar'>@approval_policy</span>
@@ -972,12 +883,12 @@ receives Phronomy::Agent::ApprovalEvaluationRequest.</p></div>
       <pre class="lines">
 
 
+28
 29
-30
-31</pre>
+30</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 28</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
   <span class='ivar'>@cancellation_token</span>
@@ -1026,72 +937,15 @@ receives Phronomy::Agent::ApprovalEvaluationRequest.</p></div>
       <pre class="lines">
 
 
+31
 32
-33
-34</pre>
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 32</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_deadline'>deadline</span>
   <span class='ivar'>@deadline</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id=""></span>
-      <div class="method_details ">
-  <h3 class="signature " id="max_parallel_tools-instance_method">
-  
-    #<strong>max_parallel_tools</strong>  &#x21d2; <tt>Integer</tt>  <span class="extras">(readonly)</span>
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns maximum simultaneous tool calls (default: 10).</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Integer</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>maximum simultaneous tool calls (default: 10)</p></div>
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-41
-42
-43</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 41</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_max_parallel_tools'>max_parallel_tools</span>
-  <span class='ivar'>@max_parallel_tools</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1140,72 +994,15 @@ receives Phronomy::Agent::ApprovalEvaluationRequest.</p></div>
       <pre class="lines">
 
 
-57
-58
-59</pre>
+50
+51
+52</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 57</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 50</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_parent_task_id'>parent_task_id</span>
   <span class='ivar'>@parent_task_id</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id=""></span>
-      <div class="method_details ">
-  <h3 class="signature " id="provider_limits-instance_method">
-  
-    #<strong>provider_limits</strong>  &#x21d2; <tt>Hash</tt><sup>?</sup>  <span class="extras">(readonly)</span>
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns per-provider concurrency / rate-limit overrides.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Hash</tt>, <tt>nil</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>per-provider concurrency / rate-limit overrides</p></div>
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-51
-52
-53</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 51</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_provider_limits'>provider_limits</span>
-  <span class='ivar'>@provider_limits</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1254,12 +1051,12 @@ receives Phronomy::Agent::ApprovalEvaluationRequest.</p></div>
       <pre class="lines">
 
 
-48
-49
-50</pre>
+44
+45
+46</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 48</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 44</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_redaction_policy'>redaction_policy</span>
   <span class='ivar'>@redaction_policy</span>
@@ -1311,12 +1108,12 @@ receives Phronomy::Agent::ApprovalEvaluationRequest.</p></div>
       <pre class="lines">
 
 
+22
 23
-24
-25</pre>
+24</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 23</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 22</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_session_id'>session_id</span>
   <span class='ivar'>@session_id</span>
@@ -1368,12 +1165,12 @@ receives Phronomy::Agent::ApprovalEvaluationRequest.</p></div>
       <pre class="lines">
 
 
-54
-55
-56</pre>
+47
+48
+49</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 47</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_task_id'>task_id</span>
   <span class='ivar'>@task_id</span>
@@ -1425,12 +1222,12 @@ receives Phronomy::Agent::ApprovalEvaluationRequest.</p></div>
       <pre class="lines">
 
 
+19
 20
-21
-22</pre>
+21</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 20</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 19</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
   <span class='ivar'>@thread_id</span>
@@ -1482,12 +1279,12 @@ receives Phronomy::Agent::ApprovalEvaluationRequest.</p></div>
       <pre class="lines">
 
 
+37
 38
-39
-40</pre>
+39</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 38</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 37</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_token_budget'>token_budget</span>
   <span class='ivar'>@token_budget</span>
@@ -1539,12 +1336,12 @@ receives Phronomy::Agent::ApprovalEvaluationRequest.</p></div>
       <pre class="lines">
 
 
+34
 35
-36
-37</pre>
+36</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 35</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 34</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tracer_span'>tracer_span</span>
   <span class='ivar'>@tracer_span</span>
@@ -1596,12 +1393,12 @@ receives Phronomy::Agent::ApprovalEvaluationRequest.</p></div>
       <pre class="lines">
 
 
+25
 26
-27
-28</pre>
+27</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 26</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 25</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_user_id'>user_id</span>
   <span class='ivar'>@user_id</span>
@@ -1659,12 +1456,12 @@ receives Phronomy::Agent::ApprovalEvaluationRequest.</p></div>
       <pre class="lines">
 
 
-130
-131
-132</pre>
+115
+116
+117</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 130</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 115</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_effective_cancellation_token'>effective_cancellation_token</span>
   <span class='ivar'>@cancellation_token</span> <span class='op'>||</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span>
@@ -1722,17 +1519,17 @@ the deadline is attached to it via Deadline#attach_to.</li>
       <pre class="lines">
 
 
-144
-145
-146
-147
-148
-149
-150
-151</pre>
+129
+130
+131
+132
+133
+134
+135
+136</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 144</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 129</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_effective_timeout_token'>effective_timeout_token</span>
   <span class='kw'>return</span> <span class='ivar'>@cancellation_token</span> <span class='kw'>if</span> <span class='ivar'>@cancellation_token</span>
@@ -1807,26 +1604,24 @@ All other attributes are carried over unchanged.</p>
       <pre class="lines">
 
 
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
 109
-110
-111
-112
-113
-114
-115
-116
-117
-118
-119
-120
-121
-122
-123
-124
-125</pre>
+110</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 109</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/invocation_context.rb', line 96</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_overrides'>overrides</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="" title="Phronomy::InvocationContext (class)">InvocationContext</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::InvocationContext#initialize (method)">new</a></span></span><span class='lparen'>(</span>
@@ -1837,10 +1632,8 @@ All other attributes are carried over unchanged.</p>
     <span class='label'>deadline:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:deadline</span><span class='comma'>,</span> <span class='ivar'>@deadline</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>tracer_span:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:tracer_span</span><span class='comma'>,</span> <span class='ivar'>@tracer_span</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>token_budget:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:token_budget</span><span class='comma'>,</span> <span class='ivar'>@token_budget</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>max_parallel_tools:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:max_parallel_tools</span><span class='comma'>,</span> <span class='ivar'>@max_parallel_tools</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>approval_policy:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:approval_policy</span><span class='comma'>,</span> <span class='ivar'>@approval_policy</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>redaction_policy:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:redaction_policy</span><span class='comma'>,</span> <span class='ivar'>@redaction_policy</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>provider_limits:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:provider_limits</span><span class='comma'>,</span> <span class='ivar'>@provider_limits</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>task_id:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:task_id</span><span class='comma'>,</span> <span class='ivar'>@task_id</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>parent_task_id:</span> <span class='id identifier rubyid_overrides'>overrides</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:parent_task_id</span><span class='comma'>,</span> <span class='ivar'>@parent_task_id</span><span class='rparen'>)</span>
   <span class='rparen'>)</span>
@@ -1855,7 +1648,7 @@ All other attributes are carried over unchanged.</p>
 </div>
 
       <div id="footer">
-  Generated on Wed Jul 29 16:15:15 2026 by
+  Generated on Fri Jul 31 03:57:04 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

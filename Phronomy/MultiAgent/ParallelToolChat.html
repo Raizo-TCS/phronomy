@@ -112,8 +112,9 @@
 </p>
 <p>RubyLLM::Chat subclass supporting concurrent direct Tool execution.</p>
 <p>AgentInvocation installs <code>on_tool_call_batch</code> and intercepts the whole batch
-before this class dispatches anything. The existing direct-chat fallback is
-retained for callers that use ParallelToolChat outside Agent::Base.</p>
+before this class dispatches anything. The direct-chat fallback dispatches
+the complete batch concurrently; process protection remains the responsibility
+of Runtime's bounded executors and queues.</p>
 
   </div>
 </div>
@@ -170,7 +171,7 @@ retained for callers that use ParallelToolChat outside Agent::Base.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(max_parallel_tools: 10, cancellation_token: nil, **opts)  &#x21d2; ParallelToolChat </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(cancellation_token: nil, **opts)  &#x21d2; ParallelToolChat </a>
     
 
     
@@ -224,7 +225,7 @@ retained for callers that use ParallelToolChat outside Agent::Base.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(max_parallel_tools: 10, cancellation_token: nil, **opts)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::MultiAgent::ParallelToolChat (class)">ParallelToolChat</a></span></tt> 
+    #<strong>initialize</strong>(cancellation_token: nil, **opts)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::MultiAgent::ParallelToolChat (class)">ParallelToolChat</a></span></tt> 
   
 
   
@@ -249,18 +250,16 @@ retained for callers that use ParallelToolChat outside Agent::Base.</p>
       <pre class="lines">
 
 
-12
 13
 14
 15
 16</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/parallel_tool_chat.rb', line 12</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/parallel_tool_chat.rb', line 13</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>max_parallel_tools:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_opts'>opts</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_opts'>opts</span><span class='rparen'>)</span>
   <span class='kw'>super</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_opts'>opts</span><span class='rparen'>)</span>
-  <span class='ivar'>@max_parallel_tools</span> <span class='op'>=</span> <span class='id identifier rubyid_max_parallel_tools'>max_parallel_tools</span>
   <span class='ivar'>@cancellation_token</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -376,7 +375,7 @@ quickly or raise ToolCallIntercepted; it must not execute Tool bodies.</p>
 </div>
 
       <div id="footer">
-  Generated on Wed Jul 29 16:15:17 2026 by
+  Generated on Fri Jul 31 03:57:06 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

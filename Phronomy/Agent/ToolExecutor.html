@@ -93,6 +93,9 @@
   You should avoid using this module if possible, as it may be removed or be changed in the future.
 </p>
 <p>Centralises Tool execution routing based on execution_mode.</p>
+<p>Tool-specific timeout and retry belong to the Tool implementation or its
+underlying client. This executor only chooses the Phronomy execution
+resource and propagates cooperative cancellation.</p>
 
   </div>
 </div>
@@ -185,6 +188,8 @@
 </p>
 <p>Low-level Tool API used by direct Tool#call_async callers. Agent execution
 must use .call_invocation_async so authorization cannot be bypassed.</p>
+<p><code>config</code> remains available for invocation metadata, but Phronomy does not
+interpret it as a Tool timeout or retry policy.</p>
 
   </div>
 </div>
@@ -197,13 +202,6 @@ must use .call_invocation_async so authorization cannot be bypassed.</p>
       <pre class="lines">
 
 
-36
-37
-38
-39
-40
-41
-42
 43
 44
 45
@@ -245,10 +243,16 @@ must use .call_invocation_async so authorization cannot be bypassed.</p>
 81
 82
 83
-84</pre>
+84
+85
+86
+87
+88
+89
+90</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_executor.rb', line 36</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_executor.rb', line 43</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span>
   <span class='label'>tool:</span><span class='comma'>,</span>
@@ -293,8 +297,7 @@ must use .call_invocation_async so authorization cannot be bypassed.</p>
       <span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_args'>args</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_ct'>ct</span><span class='rparen'>)</span>
     <span class='kw'>end</span>
   <span class='kw'>else</span>
-    <span class='id identifier rubyid_timeout'>timeout</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:tool_timeout</span><span class='rbracket'>]</span>
-    <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_ct'>ct</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='rparen'>)</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_ct'>ct</span><span class='rparen'>)</span> <span class='kw'>do</span>
       <span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_args'>args</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_ct'>ct</span><span class='rparen'>)</span>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
@@ -333,10 +336,6 @@ authorization may enter this method.</p>
       <pre class="lines">
 
 
-14
-15
-16
-17
 18
 19
 20
@@ -351,10 +350,14 @@ authorization may enter this method.</p>
 29
 30
 31
-32</pre>
+32
+33
+34
+35
+36</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_executor.rb', line 14</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_executor.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_call_invocation_async'>call_invocation_async</span><span class='lparen'>(</span>
   <span class='label'>tool_invocation:</span><span class='comma'>,</span>
@@ -385,7 +388,7 @@ authorization may enter this method.</p>
 </div>
 
       <div id="footer">
-  Generated on Wed Jul 29 16:15:13 2026 by
+  Generated on Fri Jul 31 03:57:02 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

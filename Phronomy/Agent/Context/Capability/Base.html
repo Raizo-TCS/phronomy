@@ -147,36 +147,6 @@
 
 
 
-  <h2>Class Attribute Summary <small><a href="#" class="summary_toggle">collapse</a></small></h2>
-  <ul class="summary">
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#_sleep_proc-class_method" title="_sleep_proc (class method)">.<strong>_sleep_proc</strong>  &#x21d2; #call </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'><p>Injectable sleep callable for testing.</p></div></span>
-  
-</li>
-
-    
-  </ul>
-
 
 
 
@@ -411,50 +381,6 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#retry_on-class_method" title="retry_on (class method)">.<strong>retry_on</strong>(*exception_classes, times: 1, wait: 0, base: 1.0)  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Registers a retry policy for one or more exception classes.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#retry_policies-class_method" title="retry_policies (class method)">.<strong>retry_policies</strong>  &#x21d2; Array&lt;Hash&gt; </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns all retry policies registered on this tool class.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#tool_name-class_method" title="tool_name (class method)">.<strong>tool_name</strong>(value = nil)  &#x21d2; Object </a>
     
 
@@ -523,7 +449,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Overrides RubyLLM::Tool#call to apply schema validation, the retry policy, the on_error policy, and wrap errors as ToolError.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Overrides RubyLLM::Tool#call to apply schema validation, the on_error policy, and wrap errors as ToolError.</p></div></span>
   
 </li>
 
@@ -688,71 +614,6 @@
 
 
   
-  <div id="class_attr_details" class="attr_details">
-    <h2>Class Attribute Details</h2>
-    
-      
-      <span id="_sleep_proc=-class_method"></span>
-      <div class="method_details first">
-  <h3 class="signature first" id="_sleep_proc-class_method">
-  
-    .<strong>_sleep_proc</strong>  &#x21d2; <tt>#<span class='object_link'><a href="#call-instance_method" title="Phronomy::Agent::Context::Capability::Base#call (method)">call</a></span></tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Injectable sleep callable for testing.
-Defaults to Kernel#sleep.
-mutant:disable - neutral failure: unparser round-trip produces different source</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>#<span class='object_link'><a href="#call-instance_method" title="Phronomy::Agent::Context::Capability::Base#call (method)">call</a></span></tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-265
-266
-267</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 265</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid__sleep_proc'>_sleep_proc</span>
-  <span class='ivar'>@_sleep_proc</span> <span class='op'>||</span> <span class='id identifier rubyid_method'>method</span><span class='lparen'>(</span><span class='symbol'>:sleep</span><span class='rparen'>)</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-  </div>
-
 
   <div id="class_method_details" class="method_details_list">
     <h2>Class Method Details</h2>
@@ -1544,179 +1405,6 @@ evaluated on the Runtime authorization pool, not in Tool#call.</p>
 </div>
     
       <div class="method_details ">
-  <h3 class="signature " id="retry_on-class_method">
-  
-    .<strong>retry_on</strong>(*exception_classes, times: 1, wait: 0, base: 1.0)  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Registers a retry policy for one or more exception classes.</p>
-<p>When the tool raises one of the listed exception classes, it will be
-retried up to <code>times</code> times with the specified wait strategy.
-Multiple policies can be registered and are evaluated in order.</p>
-<p>FilterBlockError is never retried regardless of this configuration.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-  <div class="examples">
-    <h4 class="tag_title">Examples:</h4>
-    
-      
-      <pre class="example code"><code><span class='id identifier rubyid_retry_on'>retry_on</span> <span class='const'><span class='object_link'><a href="../../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../../ToolError.html" title="Phronomy::ToolError (class)">ToolError</a></span></span><span class='comma'>,</span> <span class='label'>times:</span> <span class='int'>3</span><span class='comma'>,</span> <span class='label'>wait:</span> <span class='symbol'>:exponential</span><span class='comma'>,</span> <span class='label'>base:</span> <span class='float'>1.0</span>
-<span class='id identifier rubyid_retry_on'>retry_on</span> <span class='const'>Net</span><span class='op'>::</span><span class='const'>ReadTimeout</span><span class='comma'>,</span> <span class='label'>times:</span> <span class='int'>2</span><span class='comma'>,</span> <span class='label'>wait:</span> <span class='float'>0.5</span></code></pre>
-    
-  </div>
-<p class="tag_title">Parameters:</p>
-<ul class="param">
-  
-    <li>
-      
-        <span class='name'>exception_classes</span>
-      
-      
-        <span class='type'>(<tt>Array&lt;Class&gt;</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>exception classes to retry on</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>times</span>
-      
-      
-        <span class='type'>(<tt>Integer</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>1</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>maximum retry attempts (default: 1)</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>wait</span>
-      
-      
-        <span class='type'>(<tt>Symbol</tt>, <tt>Numeric</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>0</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>:exponential, :linear, or a fixed Float</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>base</span>
-      
-      
-        <span class='type'>(<tt>Float</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>1.0</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>base wait time in seconds (default: 1.0)</p></div>
-      
-    </li>
-  
-</ul>
-
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-247
-248
-249
-250</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 247</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_retry_on'>retry_on</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_exception_classes'>exception_classes</span><span class='comma'>,</span> <span class='label'>times:</span> <span class='int'>1</span><span class='comma'>,</span> <span class='label'>wait:</span> <span class='int'>0</span><span class='comma'>,</span> <span class='label'>base:</span> <span class='float'>1.0</span><span class='rparen'>)</span>
-  <span class='ivar'>@retry_policies</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
-  <span class='ivar'>@retry_policies</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span><span class='label'>exceptions:</span> <span class='id identifier rubyid_exception_classes'>exception_classes</span><span class='comma'>,</span> <span class='label'>times:</span> <span class='id identifier rubyid_times'>times</span><span class='comma'>,</span> <span class='label'>wait:</span> <span class='id identifier rubyid_wait'>wait</span><span class='comma'>,</span> <span class='label'>base:</span> <span class='id identifier rubyid_base'>base</span><span class='rbrace'>}</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="retry_policies-class_method">
-  
-    .<strong>retry_policies</strong>  &#x21d2; <tt>Array&lt;Hash&gt;</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns all retry policies registered on this tool class.
-mutant:disable - neutral failure: unparser round-trip produces different source</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Array&lt;Hash&gt;</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-256
-257
-258</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 256</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_retry_policies'>retry_policies</span>
-  <span class='ivar'>@retry_policies</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
   <h3 class="signature " id="tool_name-class_method">
   
     .<strong>tool_name</strong>(value = nil)  &#x21d2; <tt>Object</tt> 
@@ -1811,12 +1499,12 @@ When omitted, RubyLLM's default conversion applies (e.g. WeatherTool → &quot;w
       <pre class="lines">
 
 
-423
-424
-425</pre>
+380
+381
+382</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 423</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 380</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approval_metadata'>approval_metadata</span>
   <span class='lbrace'>{</span><span class='rbrace'>}</span>
@@ -1837,14 +1525,14 @@ When omitted, RubyLLM's default conversion applies (e.g. WeatherTool → &quot;w
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Overrides RubyLLM::Tool#call to apply schema validation, the retry policy,
+    <p>Overrides RubyLLM::Tool#call to apply schema validation,
 the on_error policy, and wrap errors as ToolError.</p>
 <p>Execution order:</p>
 <pre class="code ruby"><code class="ruby">1. Early cancellation check (kwarg token takes precedence over thread-local).
 2. Schema validation (type + enum checks).
 3. Inject +cancellation_token:+ into args when +execute+ opts in.
-4. Call super(validated_args) inside a retry loop.
-5. On persistent failure, apply on_error policy.
+4. Call super(validated_args) exactly once.
+5. On failure, apply on_error policy.
 </code></pre>
 <p>mutant:disable</p>
 
@@ -1890,43 +1578,43 @@ the on_error policy, and wrap errors as ToolError.</p>
       <pre class="lines">
 
 
-347
-348
-349
-350
-351
-352
-353
-354
-355
-356
-357
-358
-359
-360
-361
-362
-363
-364
-365
-366
-367
-368
-369
-370
-371
-372
-373
-374
-375
-376
-377
-378
-379
-380</pre>
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 347</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 304</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_args'>args</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ct'>ct</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
@@ -1942,7 +1630,7 @@ the on_error policy, and wrap errors as ToolError.</p>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_validated_args'>validated_args</span> <span class='op'>=</span> <span class='id identifier rubyid_validated_args'>validated_args</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_ct'>ct</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_ct'>ct</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_execute_accepts_cancellation_token?'>execute_accepts_cancellation_token?</span>
-  <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_with_tool_retry'>with_tool_retry</span> <span class='lbrace'>{</span> <span class='kw'>super</span><span class='lparen'>(</span><span class='id identifier rubyid_validated_args'>validated_args</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+  <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='kw'>super</span><span class='lparen'>(</span><span class='id identifier rubyid_validated_args'>validated_args</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_truncate_result_if_needed'>truncate_result_if_needed</span><span class='lparen'>(</span><span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span>
 <span class='kw'>rescue</span> <span class='const'><span class='object_link'><a href="../../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../../ToolError.html" title="Phronomy::ToolError (class)">ToolError</a></span></span>
   <span class='id identifier rubyid_raise'>raise</span>
@@ -2036,17 +1724,17 @@ place in the framework that applies the execution-mode routing rules.</p>
       <pre class="lines">
 
 
-393
-394
-395
-396
-397
-398
-399
-400</pre>
+350
+351
+352
+353
+354
+355
+356
+357</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 393</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 350</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_call_async'>call_async</span><span class='lparen'>(</span><span class='id identifier rubyid_args'>args</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="../../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../ToolExecutor.html" title="Phronomy::Agent::ToolExecutor (module)">ToolExecutor</a></span></span><span class='period'>.</span><span class='id identifier rubyid_call_async'><span class='object_link'><a href="../../ToolExecutor.html#call_async-class_method" title="Phronomy::Agent::ToolExecutor.call_async (method)">call_async</a></span></span><span class='lparen'>(</span>
@@ -2135,12 +1823,12 @@ The return value is passed back to the LLM as the tool result.</p>
       <pre class="lines">
 
 
-444
-445
-446</pre>
+401
+402
+403</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 444</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 401</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execute'>execute</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid__args'>_args</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>NotImplementedError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>#execute is not implemented</span><span class='tstring_end'>&quot;</span></span>
@@ -2177,12 +1865,12 @@ mutant:disable - neutral failure: unparser round-trip produces different source<
       <pre class="lines">
 
 
-278
-279
-280</pre>
+235
+236
+237</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 278</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 235</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_name'>name</span>
   <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_tool_name'>tool_name</span> <span class='op'>||</span> <span class='kw'>super</span>
@@ -2222,52 +1910,52 @@ mutant:disable - genuine equivalent mutations:</p>
       <pre class="lines">
 
 
-289
-290
-291
-292
-293
-294
-295
-296
-297
-298
-299
-300
-301
-302
-303
-304
-305
-306
-307
-308
-309
-310
-311
-312
-313
-314
-315
-316
-317
-318
-319
-320
-321
-322
-323
-324
-325
-326
-327
-328
-329
-330
-331</pre>
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 289</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 246</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_params_schema'>params_schema</span>
   <span class='id identifier rubyid_schema'>schema</span> <span class='op'>=</span> <span class='kw'>super</span>
@@ -2341,12 +2029,12 @@ mutant:disable - genuine equivalent mutations:</p>
       <pre class="lines">
 
 
-403
-404
-405</pre>
+360
+361
+362</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 403</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 360</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_requires_approval'>requires_approval</span>
   <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_requires_approval'>requires_approval</span>
@@ -2396,12 +2084,12 @@ both expressions produce the same value.</p>
       <pre class="lines">
 
 
-411
-412
-413</pre>
+368
+369
+370</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 411</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 368</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_requires_approval?'>requires_approval?</span>
   <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_requires_approval'>requires_approval</span>
@@ -2435,12 +2123,12 @@ both expressions produce the same value.</p>
       <pre class="lines">
 
 
-417
-418
-419</pre>
+374
+375
+376</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 417</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/capability/base.rb', line 374</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_origin'>tool_origin</span>
   <span class='symbol'>:local</span>
@@ -2455,7 +2143,7 @@ both expressions produce the same value.</p>
 </div>
 
       <div id="footer">
-  Generated on Wed Jul 29 16:15:17 2026 by
+  Generated on Fri Jul 31 03:57:06 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

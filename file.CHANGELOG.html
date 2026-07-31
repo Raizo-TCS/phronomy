@@ -65,6 +65,30 @@
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Removed">Removed</h3>
+<ul>
+<li>Agent-wide automatic replay: <code>Agent::Base.retry_policy</code> and the <code>Retryable</code>
+concern. A failed AgentInvocation is no longer started again by Phronomy.</li>
+<li>Agent-class <code>invoke_timeout</code>. Callers that need a root deadline should pass an
+<code>InvocationContext</code> with <code>deadline:</code> or <code>cancellation_token:</code>.</li>
+<li>Phronomy LLM operation timeout <code>config[:llm_timeout]</code>; configure RubyLLM's
+<code>request_timeout</code> instead.</li>
+<li>Generic Tool retry DSL (<code>retry_on</code>, <code>retry_policies</code>) and
+<code>config[:tool_timeout]</code>; Tool/client implementations own their transport policy.</li>
+<li><code>max_parallel_tools</code> from Agent, AgentInvocation, ParallelToolChat, and
+InvocationContext.</li>
+<li>Unused <code>InvocationContext#provider_limits</code>.</li>
+</ul>
+<h3 id="Changed">Changed</h3>
+<ul>
+<li>LLM transport timeout, transient-error retry, backoff, and jitter are delegated
+to RubyLLM or another configured LLM adapter. Phronomy only translates the
+adapter's final provider error.</li>
+<li>Agent execution now creates exactly one AgentInvocation session per call.</li>
+<li>Parallel Tool mode dispatches the complete authorized ToolCall batch; Runtime's
+bounded workers and queues remain the coarse process-protection boundary.</li>
+<li>Caller-provided deadline and cancellation-token propagation is unchanged.</li>
+</ul>
 <hr />
 <h2 id="_0_14_0____2026_07_27">[0.14.0] - 2026-07-27</h2>
 <h3 id="Changed">Changed</h3>
@@ -1298,7 +1322,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Wed Jul 29 16:15:13 2026 by
+  Generated on Fri Jul 31 03:57:02 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
