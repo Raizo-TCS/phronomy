@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- Agent-wide automatic replay: `Agent::Base.retry_policy` and the `Retryable`
+  concern. A failed AgentInvocation is no longer started again by Phronomy.
+- Agent-class `invoke_timeout`. Callers that need a root deadline should pass an
+  `InvocationContext` with `deadline:` or `cancellation_token:`.
+- Phronomy LLM operation timeout `config[:llm_timeout]`; configure RubyLLM's
+  `request_timeout` instead.
+- Generic Tool retry DSL (`retry_on`, `retry_policies`) and
+  `config[:tool_timeout]`; Tool/client implementations own their transport policy.
+- `max_parallel_tools` from Agent, AgentInvocation, ParallelToolChat, and
+  InvocationContext.
+- Unused `InvocationContext#provider_limits`.
+
+### Changed
+
+- LLM transport timeout, transient-error retry, backoff, and jitter are delegated
+  to RubyLLM or another configured LLM adapter. Phronomy only translates the
+  adapter's final provider error.
+- Agent execution now creates exactly one AgentInvocation session per call.
+- Parallel Tool mode dispatches the complete authorized ToolCall batch; Runtime's
+  bounded workers and queues remain the coarse process-protection boundary.
+- Caller-provided deadline and cancellation-token propagation is unchanged.
+
 ---
 
 ## [0.14.0] - 2026-07-27

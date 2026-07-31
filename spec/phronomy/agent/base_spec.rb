@@ -3,75 +3,6 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::Agent::Base do
-  describe ".max_parallel_tools DSL validation (issue #152)" do
-    it "accepts a positive integer" do
-      klass = Class.new(Phronomy::Agent::Base) { max_parallel_tools 4 }
-      expect(klass.max_parallel_tools).to eq(4)
-    end
-
-    it "accepts 1 (minimum valid value)" do
-      klass = Class.new(Phronomy::Agent::Base) { max_parallel_tools 1 }
-      expect(klass.max_parallel_tools).to eq(1)
-    end
-
-    it "raises ArgumentError for 0" do
-      expect { Class.new(Phronomy::Agent::Base) { max_parallel_tools 0 } }
-        .to raise_error(ArgumentError, /max_parallel_tools/)
-    end
-
-    it "raises ArgumentError for a negative integer" do
-      expect { Class.new(Phronomy::Agent::Base) { max_parallel_tools(-1) } }
-        .to raise_error(ArgumentError, /max_parallel_tools/)
-    end
-
-    it "raises ArgumentError for a float" do
-      expect { Class.new(Phronomy::Agent::Base) { max_parallel_tools 2.5 } }
-        .to raise_error(ArgumentError, /max_parallel_tools/)
-    end
-
-    it "raises ArgumentError for a string" do
-      expect { Class.new(Phronomy::Agent::Base) { max_parallel_tools "4" } }
-        .to raise_error(ArgumentError, /max_parallel_tools/)
-    end
-
-    it "returns the default (10) when not set" do
-      klass = Class.new(Phronomy::Agent::Base)
-      expect(klass.max_parallel_tools).to eq(10)
-    end
-  end
-
-  describe ".invoke_timeout DSL validation (issue #152)" do
-    it "accepts a positive integer" do
-      klass = Class.new(Phronomy::Agent::Base) { invoke_timeout 30 }
-      expect(klass.invoke_timeout).to eq(30)
-    end
-
-    it "accepts a positive float" do
-      klass = Class.new(Phronomy::Agent::Base) { invoke_timeout 0.5 }
-      expect(klass.invoke_timeout).to eq(0.5)
-    end
-
-    it "raises ArgumentError for 0" do
-      expect { Class.new(Phronomy::Agent::Base) { invoke_timeout 0 } }
-        .to raise_error(ArgumentError, /invoke_timeout/)
-    end
-
-    it "raises ArgumentError for a negative number" do
-      expect { Class.new(Phronomy::Agent::Base) { invoke_timeout(-5) } }
-        .to raise_error(ArgumentError, /invoke_timeout/)
-    end
-
-    it "raises ArgumentError for a string" do
-      expect { Class.new(Phronomy::Agent::Base) { invoke_timeout "30" } }
-        .to raise_error(ArgumentError, /invoke_timeout/)
-    end
-
-    it "returns nil (no timeout) when not set" do
-      klass = Class.new(Phronomy::Agent::Base)
-      expect(klass.invoke_timeout).to be_nil
-    end
-  end
-
   describe "#check_cancellation! (Issue #223)" do
     let(:agent) do
       Class.new(Phronomy::Agent::Base) { model "test-model" }.new
@@ -116,7 +47,7 @@ RSpec.describe Phronomy::Agent::Base do
     end
 
     it "returns a Task" do
-      allow(agent).to receive(:_start_invoke_attempt) do |result_task, *|
+      allow(agent).to receive(:_start_invocation) do |result_task, *|
         result_task.backend.unblock({output: "ok"}, nil)
         result_task.transition!(:completed, value: {output: "ok"})
       end
@@ -126,13 +57,13 @@ RSpec.describe Phronomy::Agent::Base do
     end
 
     it "executes via FSM (not via invoke)" do
-      # invoke_async must not delegate to invoke — it uses _start_invoke_attempt directly.
+      # invoke_async must not delegate to invoke — it uses _start_invocation directly.
       invoke_called = false
       allow(agent).to receive(:invoke).and_wrap_original do |m, *a, **kw|
         invoke_called = true
         m.call(*a, **kw)
       end
-      allow(agent).to receive(:_start_invoke_attempt) do |result_task, *|
+      allow(agent).to receive(:_start_invocation) do |result_task, *|
         result_task.backend.unblock({output: "ok"}, nil)
         result_task.transition!(:completed, value: {output: "ok"})
       end
@@ -141,7 +72,7 @@ RSpec.describe Phronomy::Agent::Base do
     end
 
     it "registers the task with Runtime so shutdown can drain it" do
-      allow(agent).to receive(:_start_invoke_attempt) do |result_task, *|
+      allow(agent).to receive(:_start_invocation) do |result_task, *|
         result_task.backend.unblock({output: "ok"}, nil)
         result_task.transition!(:completed, value: {output: "ok"})
       end
@@ -178,7 +109,7 @@ RSpec.describe Phronomy::Agent::Base do
     end
 
     it "does not raise when called outside a Task" do
-      allow(agent).to receive(:_start_invoke_attempt) do |result_task, *|
+      allow(agent).to receive(:_start_invocation) do |result_task, *|
         result_task.backend.unblock({output: "ok"}, nil)
         result_task.transition!(:completed, value: {output: "ok"})
       end
@@ -198,7 +129,7 @@ RSpec.describe Phronomy::Agent::Base do
         fake_logger = double("logger")
         allow(fake_logger).to receive(:warn) { |msg| logged = msg }
         Phronomy.configure { |c| c.logger = fake_logger }
-        allow(agent).to receive(:_start_invoke_attempt) do |result_task, *|
+        allow(agent).to receive(:_start_invocation) do |result_task, *|
           result_task.backend.unblock({output: "ok"}, nil)
           result_task.transition!(:completed, value: {output: "ok"})
         end
@@ -277,10 +208,10 @@ RSpec.describe "Agent::Base invocation_context: keyword argument (Issue #301)" d
     end.new
   end
 
-  # Capture the config hash seen by _start_invoke_attempt so we can assert on it.
+  # Capture the config hash seen by _start_invocation so we can assert on it.
   def capture_config(ag, &block)
     captured = {}
-    allow(ag).to receive(:_start_invoke_attempt) do |result_task, _input, messages:, thread_id:, config:, attempt:, approval_snapshot:|
+    allow(ag).to receive(:_start_invocation) do |result_task, _input, messages:, thread_id:, config:, approval_snapshot:|
       captured = config
       result_task.backend.unblock({output: "ok"}, nil)
       result_task.transition!(:completed, value: {output: "ok"})
@@ -305,7 +236,7 @@ RSpec.describe "Agent::Base invocation_context: keyword argument (Issue #301)" d
   it "explicit thread_id takes precedence over ic.thread_id" do
     ic = Phronomy::InvocationContext.new(thread_id: "ic-thread")
     config = capture_config(agent) { agent.invoke("hi", thread_id: "explicit", invocation_context: ic) }
-    # _invoke_impl will be called with thread_id: "explicit"
+    # invocation pipeline will be called with thread_id: "explicit"
     # The captured config should still contain the ic
     expect(config[:invocation_context]).to be(ic)
   end

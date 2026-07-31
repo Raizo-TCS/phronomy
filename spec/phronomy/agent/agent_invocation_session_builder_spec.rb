@@ -23,7 +23,6 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
       session = described_class.build(
         agent: agent, input: "hi", messages: [], config: {thread_id: "my-id"}
       )
-      # session.id is the AgentInvocation UUID, not the conversation thread_id
       expect(session.id).to match(/\A[0-9a-f-]{36}\z/)
     end
 
@@ -74,10 +73,35 @@ RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
       session = described_class.build(
         agent: agent, input: "hi", messages: [], config: {}
       )
-      session.instance_variable_get(:@entry_actions)
-      # AUTO_STATE_SET provides entry actions; check session has declared states
       declared = session.instance_variable_get(:@declared_states)
       expect(declared).to include(:calling_llm, :waiting_for_tools, :suspended)
+    end
+  end
+
+  describe ".dispatching_tools_action" do
+    it "dispatches every authorized ToolInvocation in the batch" do
+      first = double("first", id: "tool-1", authorized?: true)
+      second = double("second", id: "tool-2", authorized?: true)
+      rejected = double("rejected", id: "tool-3", authorized?: false)
+      invocation = double("invocation", tool_invocations: [first, second, rejected])
+      runtime = instance_double(Phronomy::Runtime)
+      first_session = double("first-session")
+      second_session = double("second-session")
+
+      allow(Phronomy::Agent::ToolInvocationSessionBuilder)
+        .to receive(:build_for_resume)
+        .and_return(first_session, second_session)
+      allow(described_class).to receive(:register_child_session)
+
+      result = described_class.send(:dispatching_tools_action, runtime, invocation)
+
+      expect(result).to be(invocation)
+      expect(Phronomy::Agent::ToolInvocationSessionBuilder)
+        .to have_received(:build_for_resume).twice
+      expect(described_class).to have_received(:register_child_session)
+        .with(runtime, first, first_session)
+      expect(described_class).to have_received(:register_child_session)
+        .with(runtime, second, second_session)
     end
   end
 end

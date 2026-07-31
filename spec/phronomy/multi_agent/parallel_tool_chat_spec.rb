@@ -254,7 +254,7 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
     let(:task_spawned) { [] }
     let(:pool_double) do
       pd = instance_double(Phronomy::Concurrency::BlockingAdapterPool)
-      allow(pd).to receive(:submit) do |cancellation_token: nil, timeout: nil, &blk|
+      allow(pd).to receive(:submit) do |cancellation_token: nil, &blk|
         result = blk.call
         op = double("PendingOperation")
         allow(op).to receive(:wait_result).and_return(result)

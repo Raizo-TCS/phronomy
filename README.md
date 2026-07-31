@@ -37,7 +37,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Filters, an
 | **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses | Stable |
 | **Eval Framework** — Dataset-driven evaluation with multiple scorer types | Beta |
 | **Tracing** — Pluggable span-based observability | Stable |
-| **Error Taxonomy** — `RateLimitError`, `AuthenticationError`, `ContextLengthError`, `TransportError` (subclasses of `Phronomy::Error`) raised at the agent retry boundary | Beta |
+| **Error Taxonomy** — final RubyLLM/provider errors are translated to `RateLimitError`, `AuthenticationError`, `ContextLengthError`, and `TransportError` without replaying the Agent invocation | Beta |
 
 **Knowledge and integration**
 
@@ -59,7 +59,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Filters, an
 | **`Task#map`** — transforms a `Task`'s completed value via a block; returns a new `Task` whose value is the block's return value; if the source task fails or is cancelled the mapped task propagates the error without calling the block; primary use-case: `invoke_async.map { \|r\| ctx.merge(answer: r[:output]) }` to wire agent results into a `WorkflowContext` | Experimental |
 | **CancellationToken** — Cooperative cancellation via `cancel!`/`cancelled?`/`raise_if_cancelled!`; `timeout_after(seconds)` for monotonic-clock deadlines; optional `deadline:` (wall-clock) for backward compatibility; passed as `config: { cancellation_token: token }` to agents and `dispatch_parallel`; injected into `tool.execute` when the method declares a `cancellation_token:` keyword; bridged to `MCP::Cancellation` in `Phronomy::Tools::Mcp#execute` | Experimental |
 | **`dispatch_parallel` / `fan_out` `force_kill:` option** — `force_kill: false` (default) leaves timed-out workers running and raises `TimeoutError` immediately; `force_kill: true` restores the old `Thread#kill` behaviour with a `logger.warn` | Beta |
-| **`execution_mode` DSL on `Agent::Context::Capability::Base`** — Declares how a tool's `execute` should be dispatched: `:cooperative` (same scheduler thread), `:blocking_io` (default; offloaded to `BlockingAdapterPool`), `:cpu_bound`, `:external_process`; `config[:tool_timeout]` sets the per-submit timeout forwarded to `BlockingAdapterPool` for abandoned-operation tracking | Experimental |
+| **`execution_mode` DSL on `Agent::Context::Capability::Base`** — Declares how a tool's `execute` should be dispatched: `:cooperative` (same scheduler thread), `:blocking_io` (default; offloaded to `BlockingAdapterPool`), `:cpu_bound`, `:external_process`; Tool-specific timeout/retry belongs to the Tool implementation or its client | Experimental |
 | **`blocking_io_pool_size` / `blocking_io_queue_size`** — Configure the default `BlockingAdapterPool` via `Phronomy.configure { \|c\| c.blocking_io_pool_size = 20; c.blocking_io_queue_size = 200 }`; all LLM calls, MCP tool calls, and other blocking I/O share this pool; defaults: `pool_size: 10`, `queue_size: 100` | Beta |
 | **`invocation_context:` keyword on `Agent#invoke` / `Workflow#invoke`** — Pass a `Phronomy::InvocationContext` directly; `thread_id`, `cancellation_token`, and `deadline`-based timeout are derived from it; `task_id` / `parent_task_id` appear in trace spans automatically; `config:` keys remain supported as backward-compat aliases | Beta |
 | **Cooperative scheduler yield points** — `Runtime#yield` (cooperative yield; yields the current task's time slice); `Runtime#yield_if_needed(every: N)` (thread-local counter, yields every N calls); CPU-bound detection when `blocking_detect_threshold_ms` is set (warns and increments `non_yield_threshold_violation_count` when a task runs longer than the threshold without yielding); `starvation_threshold_ms` configuration field (default: 50ms) | Beta |
@@ -125,10 +125,29 @@ Configure your provider credentials before using agents or chains:
 RubyLLM.configure do |c|
   c.openai_api_key = ENV["OPENAI_API_KEY"]
   # c.anthropic_api_key = ENV["ANTHROPIC_API_KEY"]
+
+  # RubyLLM owns LLM transport timeout and retry policy.
+  c.request_timeout = 120
+  c.max_retries = 3
+  c.retry_interval = 0.1
+  c.retry_backoff_factor = 2
+  c.retry_interval_randomness = 0.5
 end
 ```
 
-See the [RubyLLM documentation](https://rubyllm.com) for all supported providers.
+See the [RubyLLM documentation](https://rubyllm.com) for all supported providers. Phronomy does not add another LLM timeout or retry layer.
+
+### Execution-policy migration for 0.15
+
+| Removed Phronomy setting | Replacement |
+|---|---|
+| `retry_policy` | RubyLLM transport retry, or explicit application orchestration |
+| `invoke_timeout` | `InvocationContext#deadline` or `cancellation_token` when the caller needs a root deadline |
+| `config[:llm_timeout]` | `RubyLLM.configure { |c| c.request_timeout = ... }` |
+| Tool `retry_on` | Tool/client-specific retry with explicit idempotency guarantees |
+| `config[:tool_timeout]` | Tool/client-native timeout |
+| `max_parallel_tools` | No replacement; `parallel_tool_execution` remains an on/off mode |
+| `InvocationContext#provider_limits` | Configure the provider client directly |
 
 ### Optional dependencies
 
@@ -706,8 +725,7 @@ class MyAgent < Phronomy::Agent::Base
   model "gpt-4o"
   max_output_tokens 4096   # override max_output_tokens from registry
   context_overhead  600    # extra reservation for system prompt + tools
-  invoke_timeout    30     # raise Phronomy::TimeoutError after 30 s (wait timeout, not cancellation)
-  max_parallel_tools 4     # cap concurrent tool executions (default: 10)
+  # LLM timeout/retry is configured on RubyLLM, not on the Agent class.
 end
 ```
 
@@ -733,7 +751,7 @@ Pass a `CancellationToken` to any agent via `config: { cancellation_token: token
 Cancellation is checked at multiple granular checkpoints: before the LLM call,
 after each streaming chunk, before each parallel
 tool-call batch, and after each `before_completion` hook. `CancellationError` is
-raised immediately and is never retried. No threads are force-killed — `ensure`
+raised immediately. Phronomy does not replay the complete Agent invocation. No threads are force-killed — `ensure`
 blocks always execute.
 
 > **Cooperative cancellation — not preemptive**
@@ -775,30 +793,19 @@ blocks always execute.
 > which calls `cancel!` on expiry and fires all `on_cancel` callbacks — including
 > the MCP bridge.
 
-> **`config[:tool_timeout]` / `config[:llm_timeout]` — caller protection, not
-> worker termination**
+> **Transport timeout and retry ownership**
 >
-> These keys set a submit-time deadline in `BlockingAdapterPool`. The timer is
-> armed at submit time (including queue wait) and calls `fire_timeout!` when the
-> deadline expires. The worker thread is never forcibly interrupted.
+> Phronomy does not interpret `config[:llm_timeout]`, `config[:tool_timeout]`,
+> Agent `retry_policy`, or Tool `retry_on`. Configure LLM transport behavior on
+> RubyLLM (or another adapter) and configure Tool transport behavior on the Tool's
+> HTTP/DB/MCP client. This ensures the layer capable of safely aborting the I/O owns
+> the timeout and retry semantics.
 >
-> **Timeout behaviour depends on when the deadline fires:**
+> `InvocationContext#deadline` and `cancellation_token` remain available for a
+> caller-defined root-operation boundary. They provide cooperative cancellation
+> across the Phronomy execution tree; they do not replace provider-native socket,
+> request, statement, or session timeouts.
 >
-> | Situation | `TimeoutError`? | `abandoned?` | `abandoned_count` |
-> |---|---|---|---|
-> | Deadline fires while worker is executing | ✅ via `on_complete` | `true` | +1 |
-> | Deadline fires while op is still queued | ✅ via `on_complete` | `false` | unchanged |
-> | `blocking_wait(timeout:)` expires | ✅ to that waiter only | unchanged | unchanged |
-> | `CancellationToken` cancelled | `CancellationError` | — | — |
-> | Streaming path | not guaranteed (separate fix needed) | — | — |
->
-> `blocking_wait(timeout:)` is a **waiter-local** deadline — the operation remains
-> unsettled and other waiters or `on_complete` callbacks will still receive the
-> eventual result (unless a submit-time deadline also fires).
->
-> Size `blocking_io_pool_size` to account for the worst-case number of
-> concurrently abandoned workers that may accumulate before the pool is saturated.
-
 ```ruby
 token = Phronomy::Concurrency::CancellationToken.new
 

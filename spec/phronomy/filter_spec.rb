@@ -59,10 +59,10 @@ end
 RSpec.describe "Agent::Base filter integration (Issue #389)" do
   def build_agent_class
     klass = Class.new(Phronomy::Agent::Base) { model "test" }
-    # Stub _start_invoke_attempt to skip the real FSM/LLM pipeline while still
+    # Stub _start_invocation to skip the real FSM/LLM pipeline while still
     # exercising the filter layer. Filters transform the input/output around the
     # stubbed LLM call.
-    allow_any_instance_of(klass).to receive(:_start_invoke_attempt) do |agent_self, result_task, input, messages:, thread_id:, config:, attempt:, approval_snapshot: {}|
+    allow_any_instance_of(klass).to receive(:_start_invocation) do |agent_self, result_task, input, messages:, thread_id:, config:, approval_snapshot: {}|
       filtered = agent_self.send(:run_input_filters!, input)
       user_message = agent_self.send(:extract_message, filtered)
       raw_output = "result:#{user_message}"
@@ -99,7 +99,7 @@ RSpec.describe "Agent::Base filter integration (Issue #389)" do
   # ──────────────────────────────────────────────────────────────────────────
 
   describe "#add_input_filter" do
-    it "transforms the user input before it reaches _invoke_impl" do
+    it "transforms the user input before it reaches stubbed invocation" do
       agent = build_agent_class.new
       agent.add_input_filter(upcasing_filter)
       result = agent.invoke("hello")
@@ -277,7 +277,7 @@ RSpec.describe "Agent::Base filter integration (Issue #389)" do
       agent.add_input_filter(f)
       agent.add_output_filter(f)
       result = agent.invoke("hi")
-      # input "hi" → "HI", _invoke_impl returns "result:HI", output "result:HI" → "RESULT:HI"
+      # input "hi" → "HI", stubbed invocation returns "result:HI", output "result:HI" → "RESULT:HI"
       expect(result[:output]).to eq("RESULT:HI")
     end
   end

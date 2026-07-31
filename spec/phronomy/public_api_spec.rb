@@ -13,8 +13,14 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
   describe "Phronomy::Agent::Base" do
     subject { Phronomy::Agent::Base }
 
-    it "exposes DSL class methods" do
-      expect(subject).to respond_to(:model, :instructions, :tools, :invoke_timeout, :max_parallel_tools, :before_completion)
+    it "exposes the supported DSL class methods" do
+      expect(subject).to respond_to(
+        :model, :instructions, :tools, :max_iterations, :before_completion
+      )
+    end
+
+    it "does not expose removed execution-policy DSL methods" do
+      expect(subject).not_to respond_to(:retry_policy, :invoke_timeout, :max_parallel_tools)
     end
 
     it "exposes #invoke instance method" do
@@ -51,6 +57,10 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
 
     it "exposes DSL class methods: description, param, on_error" do
       expect(subject).to respond_to(:description, :param, :on_error)
+    end
+
+    it "does not expose the removed generic Tool retry DSL" do
+      expect(subject).not_to respond_to(:retry_on, :retry_policies)
     end
 
     it "exposes instance methods: call, params_schema, requires_approval?" do

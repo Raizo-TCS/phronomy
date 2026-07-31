@@ -3,9 +3,6 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::Agent::ToolExecutor do
-  # ---------------------------------------------------------------------------
-  # Test doubles
-  # ---------------------------------------------------------------------------
   def make_tool(mode)
     klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
       description "test tool"
@@ -19,7 +16,7 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
 
   let(:pool_double) do
     pd = instance_double(Phronomy::Concurrency::BlockingAdapterPool)
-    allow(pd).to receive(:submit) do |cancellation_token: nil, timeout: nil, &blk|
+    allow(pd).to receive(:submit) do |cancellation_token: nil, &blk|
       op = double("PendingOp")
       allow(op).to receive(:wait_result).and_return(blk.call)
       op
@@ -47,9 +44,6 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
     r
   end
 
-  # ---------------------------------------------------------------------------
-  # :cooperative routing
-  # ---------------------------------------------------------------------------
   describe "cooperative routing" do
     it "dispatches via Runtime#spawn and returns an awaitable" do
       tool = make_tool(:cooperative)
@@ -60,16 +54,13 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # :blocking_io routing
-  # ---------------------------------------------------------------------------
   describe "blocking_io routing" do
     it "dispatches via pool.submit when a pool is present" do
       tool = make_tool(:blocking_io)
       awaitable = described_class.call_async(tool: tool, args: {"x" => "io"},
         runtime: runtime_with_pool)
       expect(awaitable.wait_result).to eq("blocking_io:io")
-      expect(pool_double).to have_received(:submit).once
+      expect(pool_double).to have_received(:submit).with(cancellation_token: nil).once
     end
 
     it "falls back to Runtime#spawn when no pool is present" do
@@ -80,9 +71,6 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # :cpu_bound routing — warning + fallback to :blocking_io
-  # ---------------------------------------------------------------------------
   describe "cpu_bound routing" do
     it "emits a deprecation-style warning and falls back to blocking_io" do
       tool = make_tool(:cpu_bound)
@@ -105,9 +93,6 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # :external_process routing — warning + fallback to :blocking_io
-  # ---------------------------------------------------------------------------
   describe "external_process routing" do
     it "emits a warning and falls back to blocking_io" do
       tool = make_tool(:external_process)
@@ -119,9 +104,6 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # cancellation_token propagation
-  # ---------------------------------------------------------------------------
   describe "cancellation_token propagation" do
     it "passes the token to Tool#call for :cooperative tools" do
       tool = make_tool(:cooperative)
@@ -132,19 +114,12 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
       expect(tool).to have_received(:call).with({"x" => "x"}, cancellation_token: ct)
     end
 
-    it "passes the token to pool.submit for :blocking_io tools" do
+    it "passes only the cancellation token to pool.submit for :blocking_io tools" do
       tool = make_tool(:blocking_io)
       ct = Phronomy::Concurrency::CancellationToken.new
       described_class.call_async(tool: tool, args: {"x" => "y"}, cancellation_token: ct,
         runtime: runtime_with_pool)
-      expect(pool_double).to have_received(:submit).with(cancellation_token: ct, timeout: nil)
-    end
-
-    it "passes tool_timeout from config to pool.submit" do
-      tool = make_tool(:blocking_io)
-      described_class.call_async(tool: tool, args: {"x" => "z"},
-        config: {tool_timeout: 30}, runtime: runtime_with_pool)
-      expect(pool_double).to have_received(:submit).with(cancellation_token: nil, timeout: 30)
+      expect(pool_double).to have_received(:submit).with(cancellation_token: ct)
     end
   end
 end

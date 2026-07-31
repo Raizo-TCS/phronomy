@@ -575,95 +575,14 @@ module IntegrationFactors
     end
   end
 
-  # ── tool retry helpers ────────────────────────────────────────────────────
-
-  # Returns the exception class for a given label.
-  #
-  # @param label [String] "tool_error" | "runtime_error" | "guardrail_error"
-  # @return [Class]
-  def self.retry_exception_class(label)
-    case label
-    when "tool_error" then Phronomy::ToolError
-    when "runtime_error" then RuntimeError
-    when "guardrail_error" then Phronomy::FilterBlockError
-    else raise ArgumentError, "Unknown retry_exception_class label: #{label}"
-    end
-  end
-
-  # Builds a tool class that raises +exception_class+ until +succeed_after+
-  # total calls have been made. Sleep is replaced by a recording lambda.
-  #
-  # @param exception_class [Class]           exception to raise on each call
-  # @param times           [Integer]         retry_on times:
-  # @param wait            [Symbol, Numeric]  retry_on wait:
-  # @param base            [Float]            retry_on base:
-  # @param sleep_log       [Array]            array that sleep durations are appended to
-  # @param succeed_after   [Integer, nil]     succeed when total calls reach this value
-  # @return [Phronomy::Agent::Context::Capability::Base subclass]
-  def self.retry_tool(exception_class:, times:, wait:, base: 1.0,
-    sleep_log: [], succeed_after: nil)
-    calls = 0
-    klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
-      description "retry integration test tool"
-      retry_on exception_class, times: times, wait: wait, base: base
-
-      define_method(:execute) do |**_|
-        calls += 1
-        if succeed_after && calls >= succeed_after
-          "recovered after #{calls}"
-        else
-          raise exception_class, "failure ##{calls}"
-        end
-      end
-    end
-    log = sleep_log
-    klass._sleep_proc = ->(t) { log << t }
-    klass
-  end
-
-  # Returns the RubyLLM error class corresponding to +label+.
-  # Used by the LLM retry integration tests (Group 22).
-  #
-  # @param label [String] one of "rate_limit", "service_unavailable", "server_error"
-  # @return [Class<RubyLLM::Error>]
-  def self.llm_error_class(label)
-    require "ruby_llm"
-    case label
-    when "rate_limit" then RubyLLM::RateLimitError
-    when "service_unavailable" then RubyLLM::ServiceUnavailableError
-    when "server_error" then RubyLLM::ServerError
-    else raise ArgumentError, "Unknown llm_error_class label: #{label}"
-    end
-  end
-
   # Builds a fake LLM response object that satisfies the interface expected by
-  # Agent::Base#invoke_once (response.content and response.tokens).
+  # Agent invocation pipeline (response.content and response.tokens).
   #
   # @param content [String]
   # @return [Object]
   def self.fake_llm_response(content: "ok")
     tokens_stub = Struct.new(:input, :output, :cached, :cache_creation).new(1, 1, 0, 0)
     Struct.new(:content, :tokens, :messages).new(content, tokens_stub, [])
-  end
-
-  # Builds an Agent::Base subclass with retry_policy configured and the sleep
-  # callable replaced by a recording lambda.
-  #
-  # @param times     [Integer]          retry_policy times:
-  # @param wait      [Symbol, Numeric]  retry_policy wait:
-  # @param base      [Float]            retry_policy base:
-  # @param sleep_log [Array]            array that sleep durations are appended to
-  # @return [Class<Phronomy::Agent::Base>]
-  def self.retry_agent(times:, wait:, base: 1.0, sleep_log: [])
-    klass = Class.new(Phronomy::Agent::Base) do
-      model LM_STUDIO_MODEL
-      provider :openai
-      instructions "You are a test assistant."
-      retry_policy times: times, wait: wait, base: base
-    end
-    log = sleep_log
-    klass._sleep_proc = ->(t) { log << t }
-    klass
   end
 
   # ---------------------------------------------------------------------------

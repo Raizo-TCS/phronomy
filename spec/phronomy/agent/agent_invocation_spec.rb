@@ -83,8 +83,8 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
   end
 
   # ---------------------------------------------------------------------------
-  # Branch coverage: constructor, handle_fsm_event, max_parallel_tools,
-  # approval_context, set_graph_metadata, merge_config!
+  # Branch coverage: constructor, handle_fsm_event, approval_context,
+  # set_graph_metadata, merge_config!
   # ---------------------------------------------------------------------------
 
   describe "constructor" do
@@ -153,31 +153,6 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
     end
   end
 
-  describe "#max_parallel_tools" do
-    it "reads from config" do
-      inv = described_class.new(
-        agent: agent, input: "hi", messages: [], config: {max_parallel_tools: 5}
-      )
-      expect(inv.max_parallel_tools).to eq(5)
-    end
-
-    it "defaults to 10 on invalid value" do
-      inv = described_class.new(
-        agent: agent, input: "hi", messages: [], config: {max_parallel_tools: "bad"}
-      )
-      expect(inv.max_parallel_tools).to eq(10)
-    end
-
-    it "reads from invocation_context when not in config" do
-      ctx = instance_double(Phronomy::InvocationContext,
-        max_parallel_tools: 3, approval_policy: nil)
-      inv = described_class.new(
-        agent: agent, input: "hi", messages: [], config: {invocation_context: ctx}
-      )
-      expect(inv.max_parallel_tools).to eq(3)
-    end
-  end
-
   describe "#approval_context" do
     it "returns config[:approval_context] when set" do
       inv = described_class.new(
@@ -208,8 +183,8 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
 
   describe "#merge_config!" do
     it "merges new values into config" do
-      invocation.merge_config!(timeout: 30)
-      expect(invocation.instance_variable_get(:@config)[:timeout]).to eq(30)
+      invocation.merge_config!(metadata: {source: "approval"})
+      expect(invocation.instance_variable_get(:@config)[:metadata]).to eq({source: "approval"})
     end
 
     it "is a no-op with empty hash" do

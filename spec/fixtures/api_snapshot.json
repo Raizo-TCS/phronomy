@@ -25,9 +25,6 @@
       "_class_input_filters",
       "_class_output_filters",
       "_class_tool_result_filters",
-      "_retry_policy",
-      "_sleep_proc",
-      "_sleep_proc=",
       "approve",
       "before_completion",
       "cache_instructions",
@@ -35,14 +32,11 @@
       "context_window",
       "input_filter",
       "instructions",
-      "invoke_timeout",
       "max_iterations",
       "max_output_tokens",
-      "max_parallel_tools",
       "model",
       "output_filter",
       "provider",
-      "retry_policy",
       "static_knowledge",
       "static_knowledge_chunks",
       "static_knowledge_refresh!",
@@ -71,8 +65,6 @@
       "tool_origin"
     ],
     "public_class_methods": [
-      "_sleep_proc",
-      "_sleep_proc=",
       "approval_facts",
       "desc",
       "description",
@@ -89,8 +81,6 @@
       "provider_params",
       "redact_params",
       "requires_approval",
-      "retry_on",
-      "retry_policies",
       "tool_name",
       "with_params"
     ]
@@ -178,9 +168,6 @@
       "_class_input_filters",
       "_class_output_filters",
       "_class_tool_result_filters",
-      "_retry_policy",
-      "_sleep_proc",
-      "_sleep_proc=",
       "_subagent_tool_classes",
       "approve",
       "before_completion",
@@ -189,15 +176,12 @@
       "context_window",
       "input_filter",
       "instructions",
-      "invoke_timeout",
       "max_iterations",
       "max_output_tokens",
-      "max_parallel_tools",
       "model",
       "output_filter",
       "provider",
       "registered_subagents",
-      "retry_policy",
       "static_knowledge",
       "static_knowledge_chunks",
       "static_knowledge_refresh!",
@@ -357,8 +341,6 @@
       "tool_origin"
     ],
     "public_class_methods": [
-      "_sleep_proc",
-      "_sleep_proc=",
       "approval_facts",
       "desc",
       "description",
@@ -376,8 +358,6 @@
       "provider_params",
       "redact_params",
       "requires_approval",
-      "retry_on",
-      "retry_policies",
       "tool_name",
       "with_params"
     ]
@@ -400,8 +380,6 @@
       "tool_origin"
     ],
     "public_class_methods": [
-      "_sleep_proc",
-      "_sleep_proc=",
       "approval_facts",
       "desc",
       "description",
@@ -419,8 +397,6 @@
       "provider_params",
       "redact_params",
       "requires_approval",
-      "retry_on",
-      "retry_policies",
       "tool_name",
       "with_params"
     ]
@@ -443,8 +419,6 @@
       "tool_origin"
     ],
     "public_class_methods": [
-      "_sleep_proc",
-      "_sleep_proc=",
       "approval_facts",
       "desc",
       "description",
@@ -462,8 +436,6 @@
       "provider_params",
       "redact_params",
       "requires_approval",
-      "retry_on",
-      "retry_policies",
       "tool_name",
       "with_params"
     ]

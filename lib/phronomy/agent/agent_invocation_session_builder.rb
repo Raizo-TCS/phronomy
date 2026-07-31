@@ -296,7 +296,6 @@ module Phronomy
       def self.dispatching_tools_action(runtime, invocation)
         invocation.tool_invocations
           .select(&:authorized?)
-          .first(invocation.max_parallel_tools)
           .each do |child|
             session = ToolInvocationSessionBuilder.build_for_resume(
               tool_invocation: child,

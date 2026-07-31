@@ -226,49 +226,6 @@ module Phronomy
 
               @max_result_size = value
             end
-
-            # Registers a retry policy for one or more exception classes.
-            #
-            # When the tool raises one of the listed exception classes, it will be
-            # retried up to +times+ times with the specified wait strategy.
-            # Multiple policies can be registered and are evaluated in order.
-            #
-            # FilterBlockError is never retried regardless of this configuration.
-            #
-            # @param exception_classes [Array<Class>] exception classes to retry on
-            # @param times  [Integer] maximum retry attempts (default: 1)
-            # @param wait   [Symbol, Numeric] :exponential, :linear, or a fixed Float
-            # @param base   [Float]   base wait time in seconds (default: 1.0)
-            #
-            # @example
-            #   retry_on Phronomy::ToolError, times: 3, wait: :exponential, base: 1.0
-            #   retry_on Net::ReadTimeout, times: 2, wait: 0.5
-            # @api public
-            def retry_on(*exception_classes, times: 1, wait: 0, base: 1.0)
-              @retry_policies ||= []
-              @retry_policies << {exceptions: exception_classes, times: times, wait: wait, base: base}
-            end
-
-            # Returns all retry policies registered on this tool class.
-            # @return [Array<Hash>]
-            # @api public
-            # mutant:disable - neutral failure: unparser round-trip produces different source
-            def retry_policies
-              @retry_policies || []
-            end
-
-            # Injectable sleep callable for testing.
-            # Defaults to Kernel#sleep.
-            # @return [#call]
-            # @api private
-            # mutant:disable - neutral failure: unparser round-trip produces different source
-            def _sleep_proc
-              @_sleep_proc || method(:sleep)
-            end
-
-            # Overrides the sleep callable used between retries.
-            # @param proc [#call]
-            attr_writer :_sleep_proc
           end
 
           # Returns the function name exposed to the LLM.
@@ -330,15 +287,15 @@ module Phronomy
             schema
           end
 
-          # Overrides RubyLLM::Tool#call to apply schema validation, the retry policy,
+          # Overrides RubyLLM::Tool#call to apply schema validation,
           # the on_error policy, and wrap errors as ToolError.
           #
           # Execution order:
           #   1. Early cancellation check (kwarg token takes precedence over thread-local).
           #   2. Schema validation (type + enum checks).
           #   3. Inject +cancellation_token:+ into args when +execute+ opts in.
-          #   4. Call super(validated_args) inside a retry loop.
-          #   5. On persistent failure, apply on_error policy.
+          #   4. Call super(validated_args) exactly once.
+          #   5. On failure, apply on_error policy.
           #
           # @param args               [Hash]
           # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil] optional; takes precedence over the thread-local token
@@ -358,7 +315,7 @@ module Phronomy
               end
             end
             validated_args = validated_args.merge(cancellation_token: ct) if ct && execute_accepts_cancellation_token?
-            result = with_tool_retry { super(validated_args) }
+            result = super(validated_args)
             truncate_result_if_needed(result)
           rescue Phronomy::ToolError
             raise
@@ -484,58 +441,6 @@ module Phronomy
 
             args.each_with_object({}) do |(k, v), h|
               h[k] = redacted.include?(k.to_sym) ? "[REDACTED]" : v
-            end
-          end
-
-          # Executes the given block inside a retry loop driven by the class-level
-          # retry_policies. Each policy matches by exception class; the first matching
-          # policy governs the wait and retry count. Raises immediately when no policy
-          # covers the exception or when all retries are exhausted.
-          # mutant:disable - genuine equivalent mutations:
-          #   1. `if policies.empty?; return yield; end` early-return variants (nil, false, block
-          #      removal): behavior is identical because when policies is empty, yield is still
-          #      called inside begin/rescue, any exception is re-raised (policy=nil, condition
-          #      false), and successful returns propagate the same value either way.
-          #   2. `p[:exceptions].any?` vs `p.fetch(:exceptions).any?`: :exceptions key is always
-          #      present (set unconditionally by .retry_on), so fetch/[] are equivalent.
-          #   3. `policy[:times]`, `policy[:wait]`, `policy[:base]` vs `.fetch(...)`: same reason
-          #      as #2 — all keys are always set by .retry_on.
-          def with_tool_retry
-            policies = self.class.retry_policies
-            return yield if policies.empty?
-
-            attempt = 0
-            begin
-              yield
-            rescue => e
-              policy = policies.find { |p| p[:exceptions].any? { |ex| e.is_a?(ex) } }
-              if policy && attempt < policy[:times]
-                wait = compute_retry_wait(policy[:wait], policy[:base], attempt)
-                self.class._sleep_proc.call(wait) if wait > 0
-                attempt += 1
-                retry
-              end
-              raise
-            end
-          end
-
-          # Computes the wait duration for a given strategy, base, and attempt index.
-          #
-          # @param strategy [Symbol, Numeric] :exponential, :linear, or a fixed Numeric
-          # @param base     [Float]           base wait time in seconds
-          # @param attempt  [Integer]         zero-based attempt index
-          # @return [Float]
-          # @api public
-          def compute_retry_wait(strategy, base, attempt)
-            case strategy
-            when :exponential
-              (2**attempt) * base
-            when :linear
-              (attempt + 1) * base
-            when Numeric
-              strategy.to_f
-            else
-              base.to_f
             end
           end
 

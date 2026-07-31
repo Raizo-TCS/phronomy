@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "securerandom"
-require_relative "concerns/retryable"
 require_relative "concerns/filterable"
 require_relative "concerns/before_completion"
 require_relative "concerns/error_translation"
@@ -12,7 +11,7 @@ module Phronomy
     #
     # Subclass this to create a conversational agent powered by an LLM.
     # DSL class methods configure the model, instructions, tools, memory,
-    # and retry behaviour. Instance methods handle invocation.
+    # and execution hooks. Instance methods handle invocation.
     #
     # @example Minimal agent
     #   class GreetingAgent < Phronomy::Agent::Base
@@ -31,7 +30,6 @@ module Phronomy
     #   end
     class Base
       include Phronomy::Runnable
-      include Concerns::Retryable
       include Concerns::Filterable
       include Concerns::BeforeCompletion
       include Concerns::ErrorTranslation
@@ -187,66 +185,6 @@ module Phronomy
             @max_iterations = val
           else
             @max_iterations || 10
-          end
-        end
-
-        # Sets or reads the maximum number of tool calls executed concurrently
-        # when the LLM returns multiple tool calls in a single response
-        # (ParallelToolChat mode, active inside an AgentFSM IO thread).
-        #
-        # Defaults to 10. Set to 1 to force sequential execution.
-        # Inherited by subclasses; the most-specific definition wins.
-        #
-        # @param val [Integer, nil]
-        # @return [Integer]
-        # @example
-        #   class MyAgent < Phronomy::Agent::Base
-        #     max_parallel_tools 4
-        #   end
-        # @api public
-        def max_parallel_tools(val = nil)
-          if val.nil?
-            @max_parallel_tools ||
-              (superclass.respond_to?(:max_parallel_tools) ? superclass.max_parallel_tools : 10)
-          else
-            unless val.is_a?(Integer) && val >= 1
-              raise ArgumentError,
-                "max_parallel_tools must be a positive Integer (>= 1), got #{val.inspect}"
-            end
-            @max_parallel_tools = val
-          end
-        end
-
-        # Sets or reads the per-invocation timeout (in seconds) for EventLoop-mode
-        # agent calls.  When set, +invoke+ raises {Phronomy::TimeoutError} if the
-        # agent does not finish within the given number of seconds.
-        #
-        # Has no effect when EventLoop mode is disabled (direct invoke path).
-        # Defaults to +nil+ (no timeout).
-        # Inherited by subclasses; the most-specific definition wins.
-        #
-        # When the timeout fires, a {Phronomy::Concurrency::CancellationScope} is cancelled
-        # and its token is propagated to the FSM config so that in-flight LLM,
-        # tool, and RAG calls observe cancellation via their +cancellation_token:+
-        # keyword argument.  +Phronomy::TimeoutError+ is raised to the caller.
-        #
-        # @param val [Numeric, nil]
-        # @return [Numeric, nil]
-        # @example
-        #   class MyAgent < Phronomy::Agent::Base
-        #     invoke_timeout 30
-        #   end
-        # @api public
-        def invoke_timeout(val = nil)
-          if val.nil?
-            return @invoke_timeout if defined?(@invoke_timeout)
-            superclass.respond_to?(:invoke_timeout) ? superclass.invoke_timeout : nil
-          else
-            unless val.is_a?(Numeric) && val > 0
-              raise ArgumentError,
-                "invoke_timeout must be a positive number, got #{val.inspect}"
-            end
-            @invoke_timeout = val
           end
         end
 
@@ -433,8 +371,8 @@ module Phronomy
       end
 
       # Invokes the agent with the given input and returns a result Hash.
-      # Applies the retry policy configured via {.retry_policy} when transient
-      # errors occur. {Phronomy::FilterBlockError} is never retried.
+      # Provider errors are translated after the configured LLM adapter returns
+      # its final result. Phronomy does not replay the Agent invocation.
       #
       # @param input     [String, Hash] the user message; a Hash may supply
       #   +:message+, +:query+, or +:user+ as the text key, plus any template
@@ -482,36 +420,15 @@ module Phronomy
         end
         _check_scheduler_reentrancy
 
-        timeout_sec = self.class.invoke_timeout
-        unless timeout_sec
-          return trace("agent.invoke", input: input, **_build_caller_meta(config)) do |_span|
-            result = invoke_async(input, messages: messages, thread_id: thread_id, config: config).wait_result
-            [result, result[:usage]]
-          end
+        trace("agent.invoke", input: input, **_build_caller_meta(config)) do |_span|
+          result = invoke_async(
+            input,
+            messages: messages,
+            thread_id: thread_id,
+            config: config
+          ).wait_result
+          [result, result[:usage]]
         end
-
-        # invoke_timeout: create a CancellationScope with deadline, pass its token
-        # to the async invocation, and use scope.pop_queue so the calling thread
-        # unblocks as soon as either the result arrives or the deadline fires.
-        scope = Phronomy::Concurrency::CancellationScope.new(parent_token: config[:cancellation_token])
-        scope.deadline_in(timeout_sec)
-        effective_config = config.merge(cancellation_token: scope.token)
-        task = invoke_async(input, messages: messages, thread_id: thread_id, config: effective_config)
-
-        # Bridge the task result to an AsyncQueue so scope.pop_queue can observe the deadline.
-        completion_queue = Phronomy::Concurrency::AsyncQueue.new
-        Phronomy::Runtime.instance.spawn(name: "invoke-timeout-bridge:#{(self.class.name || "agent").downcase}") do
-          completion_queue.push(task.wait_result)
-        rescue => e
-          completion_queue.push(e)
-        end
-
-        result = scope.pop_queue(completion_queue) do
-          raise Phronomy::TimeoutError,
-            "Agent #{self.class.name} invoke timed out after #{timeout_sec}s"
-        end
-        raise result if result.is_a?(Exception)
-        result
       end
 
       # Invokes this agent asynchronously and returns a {Phronomy::Task}.
@@ -543,9 +460,9 @@ module Phronomy
         end
         result_task = Phronomy::Task.deferred(name: "agent-#{(self.class.name || "anonymous").downcase}-async")
         approval_snapshot = _approval_configuration_snapshot(on_tool_approval_required)
-        _start_invoke_attempt(
+        _start_invocation(
           result_task, input,
-          messages: messages, thread_id: thread_id, config: config, attempt: 0,
+          messages: messages, thread_id: thread_id, config: config,
           approval_snapshot: approval_snapshot
         )
         result_task
@@ -840,42 +757,11 @@ module Phronomy
       end
       protected :instance_knowledge_chunks
 
-      # Runs the agent invocation through the FSM-based execution engine.
-      # Called by Retryable#_invoke_impl (which wraps it in a retry loop).
-      # Returns the result hash: { output:, messages:, usage: } on success,
-      # or { suspended: true, session_id:, messages: } when awaiting approval.
+      # Starts one AgentInvocation and resolves +result_task+ from that session.
+      # Phronomy translates the adapter's final error but never starts another
+      # AgentInvocation automatically.
       # @api private
-      def _invoke_via_fsm(input, messages: [], thread_id: nil, config: {})
-        effective_config = thread_id ? config.merge(thread_id: thread_id) : config
-        # Fail fast when the token is already cancelled before any LLM call.
-        check_cancellation!(effective_config, "invocation cancelled")
-        runtime = Phronomy::Runtime.instance
-        event_loop = runtime.event_loop
-        trace("agent.invoke", input: input, **_build_caller_meta(effective_config)) do |_span|
-          snapshot = _approval_configuration_snapshot
-          session = Agent::AgentInvocationSessionBuilder.build(
-            agent: self,
-            input: input,
-            messages: messages,
-            config: effective_config,
-            approval_policy: snapshot[:policy],
-            approval_listener: snapshot[:listener],
-            runtime: runtime
-          )
-          completion_queue = event_loop.register(session)
-          ctx = completion_queue.pop
-          raise ctx if ctx.is_a?(Exception)
-          result = _extract_invoke_result(ctx)
-          [result, result[:usage]]
-        end
-      end
-
-      # Starts a single invocation attempt and wires retry/translation onto result_task.
-      # Non-blocking: registers with EventLoop and returns immediately.
-      # On error, retries via timer_queue when policy allows; otherwise translates
-      # and resolves result_task as failed.
-      # @api private
-      def _start_invoke_attempt(result_task, input, messages:, thread_id:, config:, attempt:,
+      def _start_invocation(result_task, input, messages:, thread_id:, config:,
         approval_snapshot:)
         effective_config = thread_id ? config.merge(thread_id: thread_id) : config
         check_cancellation!(effective_config, "invocation cancelled")
@@ -890,47 +776,21 @@ module Phronomy
           approval_listener: approval_snapshot[:listener],
           runtime: runtime
         )
-        source_task = Phronomy::Task.deferred(name: "#{result_task.name}-attempt-#{attempt}")
+        source_task = Phronomy::Task.deferred(name: "#{result_task.name}-source")
         event_loop.register(session, completion: source_task)
-        policy = self.class._retry_policy
 
         source_task.on_complete do |invocation, error|
-          retriable = error &&
-            !error.is_a?(Phronomy::FilterBlockError) &&
-            !error.is_a?(Phronomy::CancellationError) &&
-            policy && attempt < policy[:times]
+          raise error if error
 
-          if retriable
-            wait = compute_agent_retry_wait(policy[:wait], policy[:base], attempt)
-            self.class._sleep_proc.call(wait) if wait > 0
-            do_retry = -> {
-              _start_invoke_attempt(
-                result_task, input,
-                messages: messages, thread_id: thread_id, config: config,
-                attempt: attempt + 1, approval_snapshot: approval_snapshot
-              )
-            }
-            if wait > 0
-              Phronomy::Runtime.instance.timer_queue.schedule(seconds: wait, &do_retry)
-            else
-              do_retry.call
-            end
-          elsif error
-            begin
-              translate_and_reraise!(error)
-            rescue => translated
-              result_task.backend.unblock(nil, translated)
-              result_task.transition!(:failed, error: translated)
-            end
-          else
-            begin
-              result = _extract_invoke_result(invocation)
-              result_task.backend.unblock(result, nil)
-              result_task.transition!(:completed, value: result)
-            rescue => e
-              result_task.backend.unblock(nil, e)
-              result_task.transition!(:failed, error: e)
-            end
+          result = _extract_invoke_result(invocation)
+          result_task.backend.unblock(result, nil)
+          result_task.transition!(:completed, value: result)
+        rescue => e
+          begin
+            translate_and_reraise!(e)
+          rescue => translated
+            result_task.backend.unblock(nil, translated)
+            result_task.transition!(:failed, error: translated)
           end
         end
       rescue => e
@@ -1141,7 +1001,7 @@ module Phronomy
         t = self.class.temperature
         parallel_class = build_chat_class
         chat = if parallel_class
-          parallel_class.new(max_parallel_tools: self.class.max_parallel_tools, **opts)
+          parallel_class.new(**opts)
         else
           RubyLLM.chat(**opts)
         end

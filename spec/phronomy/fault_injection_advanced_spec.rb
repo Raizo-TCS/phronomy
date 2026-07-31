@@ -15,7 +15,7 @@ require "spec_helper"
 #   6. before_completion hook raises during streaming (non-EventLoop path)
 #   7. Output guardrail raises during streaming output validation
 #   8. Huge tool output exceeds context budget — trimming or propagation
-#   9. Output guardrail rejection + tool retry_on interaction
+#   9. Tool failure is not replayed by Phronomy
 # ---------------------------------------------------------------------------
 RSpec.describe "Fault injection advanced (Issue #241)" do
   # -------------------------------------------------------------------------
@@ -100,7 +100,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   # -------------------------------------------------------------------------
   describe "Huge tool output" do
     # A tool returning a very large string is allowed by Phronomy::Agent::Context::Capability::Base.
-    # Context budget trimming occurs inside Agent#_invoke_impl; the tool itself
+    # Context budget trimming occurs inside Agent#build_context; the tool itself
     # does not enforce output size limits. This test documents that behaviour.
     let(:huge_output_tool) do
       Class.new(Phronomy::Agent::Context::Capability::Base) do
@@ -119,39 +119,33 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   end
 
   # -------------------------------------------------------------------------
-  # 9. Output guardrail rejection + tool retry_on interaction
+  # 9. Tool failure is not replayed by Phronomy
   # -------------------------------------------------------------------------
-  describe "Output guardrail rejection + tool retry_on interaction" do
-    # FilterBlockError is not a ToolError subclass, so retry_on ToolError does
-    # NOT catch guardrail rejections — the exception propagates after the
-    # inner ToolError retry is exhausted or bypassed.
-    let(:always_fail_tool) do
-      Class.new(Phronomy::Agent::Context::Capability::Base) do
+  describe "Tool failure is not replayed by Phronomy" do
+    it "executes the Tool body once and propagates ToolError" do
+      attempts = 0
+      tool_class = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "Fails and never succeeds"
-        on_error :propagate
 
-        def execute
+        define_method(:execute) do
+          attempts += 1
           raise Phronomy::ToolError, "tool always fails"
         end
-      end.new
+      end
+
+      expect { tool_class.new.call({}) }
+        .to raise_error(Phronomy::ToolError, "tool always fails")
+      expect(attempts).to eq(1)
     end
 
-    let(:always_reject_guardrail) do
-      Class.new(Phronomy::Filter::Base) do
+    it "keeps output-filter rejection independent from Tool execution" do
+      guardrail = Class.new(Phronomy::Filter::Base) do
         def call(output, **_ctx)
           block!("rejected: #{output}")
-          output
         end
       end.new
-    end
 
-    it "tool raises ToolError regardless of any guardrail being configured" do
-      expect { always_fail_tool.call({}) }.to raise_error(Phronomy::ToolError, "tool always fails")
-    end
-
-    it "guardrail raises FilterBlockError regardless of any tool retry policy" do
-      # FilterBlockError is orthogonal to ToolError retry — they do not interact.
-      expect { always_reject_guardrail.call("some output") }
+      expect { guardrail.call("some output") }
         .to raise_error(Phronomy::FilterBlockError, /rejected/)
     end
   end

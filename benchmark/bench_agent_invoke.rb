@@ -8,7 +8,7 @@
 #
 # Scenarios:
 #   1. Minimal agent (no tools, no knowledge) — baseline framework overhead.
-#   2. Tool-aware agent with max_parallel_tools=4 (4 stub tools per turn).
+#   2. Tool-aware agent with a registered stub Tool.
 #   3. Agent#stream setup latency (first-chunk time with stubbed stream).
 
 require "benchmark"
@@ -79,7 +79,6 @@ end
 bench_tool_class = Class.new(Phronomy::Agent::Base) do
   model "stub-model"
   tools BenchNullTool
-  max_parallel_tools 4
 
   define_method(:build_chat) { |*| BenchStubChat.new(BENCH_RESP) }
 end
@@ -97,7 +96,7 @@ Benchmark.bm(50) do |x|
     end
   end
 
-  x.report("Agent#invoke — 4 parallel stub tools, #{AGENT_INVOKE_ITERATIONS} iters") do
+  x.report("Agent#invoke — tool-aware, #{AGENT_INVOKE_ITERATIONS} iters") do
     AGENT_INVOKE_ITERATIONS.times do
       BENCH_AGENT_TOOLS.invoke("ping", thread_id: "bench-#{rand(1_000_000)}")
     end

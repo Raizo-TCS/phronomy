@@ -157,7 +157,7 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
 
   describe "Agent::Base integration" do
     # A bare agent class with no invoke override. Cancellation is checked
-    # in _invoke_impl before invoke_once (and thus the LLM) is called.
+    # before the AgentInvocation session is registered.
     let(:bare_agent_class) { Class.new(Phronomy::Agent::Base) }
 
     # An agent that short-circuits invoke to avoid real LLM calls.
@@ -194,25 +194,6 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
       expect {
         bare_agent_class.new.invoke("hello", config: {cancellation_token: token})
       }.to raise_error(Phronomy::CancellationError)
-    end
-
-    it "does not retry after CancellationError even when retry_policy is set" do
-      call_count = 0
-      retry_agent = Class.new(Phronomy::Agent::Base) do
-        retry_policy times: 3, wait: 0
-        define_method(:invoke) do |_input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
-          call_count += 1
-          raise Phronomy::CancellationError, "cancelled"
-        end
-        define_method(:invoke_async) do |input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
-          Phronomy::Task.spawn(name: "stub-async") { invoke(input, messages: messages, thread_id: thread_id, config: config) }
-        end
-      end
-
-      expect {
-        retry_agent.new.invoke("x")
-      }.to raise_error(Phronomy::CancellationError)
-      expect(call_count).to eq(1)
     end
   end
 

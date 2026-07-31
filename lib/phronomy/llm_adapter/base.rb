@@ -4,7 +4,11 @@ module Phronomy
   module LLMAdapter
     # Abstract base class for LLM adapters.
     #
-    # Subclasses must implement {#complete} and {#stream}.
+    # Subclasses must implement {#complete} and {#stream}. The adapter or the
+    # underlying provider client owns transport timeout, retry, backoff, and
+    # rate-limit behavior. Phronomy only supplies cooperative cancellation and
+    # isolates blocking calls in {BlockingAdapterPool}.
+    #
     # The agent pipeline calls {#complete_async} / {#stream_async} which wrap
     # those methods in a {BlockingAdapterPool} submission.
     class Base
@@ -14,7 +18,7 @@ module Phronomy
       #
       # @param chat    [Object] the configured chat session object
       # @param message [String] the user message
-      # @param config  [Hash]  the invocation config (e.g. +:cancellation_token+)
+      # @param config  [Hash] invocation config (e.g. +:cancellation_token+)
       # @return [Object] LLM response object
       # @raise [NotImplementedError]
       # @api private
@@ -28,7 +32,7 @@ module Phronomy
       #
       # @param chat    [Object] the configured chat session object
       # @param message [String] the user message
-      # @param config  [Hash]  the invocation config
+      # @param config  [Hash] invocation config
       # @yield [chunk] streaming chunk from the LLM
       # @return [Object] LLM response object
       # @raise [NotImplementedError]
@@ -40,16 +44,18 @@ module Phronomy
       # Submits a non-streaming LLM call to {BlockingAdapterPool} and returns
       # a {BlockingAdapterPool::PendingOperation}.
       #
+      # Transport timeout and retry remain the responsibility of the adapter or
+      # provider client; Phronomy does not attach an additional operation timeout.
+      #
       # @param chat    [Object] configured chat session
       # @param message [String] user message
-      # @param config  [Hash]  invocation config
+      # @param config  [Hash] invocation config
       # @param pool    [BlockingAdapterPool] pool to submit to
       # @return [BlockingAdapterPool::PendingOperation]
       # @api private
       def complete_async(chat, message, config: {}, pool: default_pool)
         token = config[:cancellation_token]
-        timeout = config[:llm_timeout]
-        pool.submit(timeout: timeout, cancellation_token: token) do
+        pool.submit(cancellation_token: token) do
           complete(chat, message, config: config)
         end
       end
@@ -59,17 +65,20 @@ module Phronomy
       #
       # When +enqueue_to:+ is given, streaming chunks are pushed into that
       # {AsyncQueue} from the worker thread instead of being passed directly
-      # to the caller's block.  The queue is closed (via +ensure+) after the
-      # LLM call finishes so the consumer's drain loop terminates naturally.
+      # to the caller's block. The queue is closed (via +ensure+) after the LLM
+      # call finishes so the consumer's drain loop terminates naturally.
       # This keeps user-supplied blocks off the blocking-pool worker thread.
       #
       # When +enqueue_to:+ is nil and a block is given, the block is invoked
       # directly from the worker thread (legacy behaviour, preserved for
       # backward compatibility).
       #
+      # Transport timeout and retry remain the responsibility of the adapter or
+      # provider client; Phronomy does not attach an additional operation timeout.
+      #
       # @param chat       [Object] configured chat session
       # @param message    [String] user message
-      # @param config     [Hash]   invocation config
+      # @param config     [Hash] invocation config
       # @param pool       [BlockingAdapterPool] pool to submit to
       # @param enqueue_to [AsyncQueue, nil] when set, push chunks here instead of
       #   calling the block on the worker thread
@@ -78,9 +87,8 @@ module Phronomy
       # @api private
       def stream_async(chat, message, config: {}, pool: default_pool, enqueue_to: nil, &block)
         token = config[:cancellation_token]
-        timeout = config[:llm_timeout]
         if enqueue_to
-          pool.submit(timeout: timeout, cancellation_token: token) do
+          pool.submit(cancellation_token: token) do
             stream(chat, message, config: config) do |chunk|
               enqueue_to.push(chunk)
             end
@@ -88,7 +96,7 @@ module Phronomy
             enqueue_to.close
           end
         else
-          pool.submit(timeout: timeout, cancellation_token: token) do
+          pool.submit(cancellation_token: token) do
             stream(chat, message, config: config, &block)
           end
         end

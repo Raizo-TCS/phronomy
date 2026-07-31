@@ -10,9 +10,8 @@ module Phronomy
   #
   # @example Build a context for a new agent invocation
   #   ctx = Phronomy::InvocationContext.new(
-  #     thread_id:         "conv-123",
-  #     cancellation_token: Phronomy::Concurrency::CancellationToken.timeout_after(30),
-  #     max_parallel_tools: 5
+  #     thread_id: "conv-123",
+  #     cancellation_token: Phronomy::Concurrency::CancellationToken.timeout_after(30)
   #   )
   #   agent.invoke("Hello", invocation_context: ctx)
   class InvocationContext
@@ -37,18 +36,12 @@ module Phronomy
     # @return [Integer, nil] max tokens the agent may consume this invocation
     attr_reader :token_budget
 
-    # @return [Integer] maximum simultaneous tool calls (default: 10)
-    attr_reader :max_parallel_tools
-
     # @return [#call, nil] invocation-specific Tool approval policy. The callable
     #   receives Phronomy::Agent::ApprovalEvaluationRequest.
     attr_reader :approval_policy
 
     # @return [Object, nil] redaction policy applied to tool args / results
     attr_reader :redaction_policy
-
-    # @return [Hash, nil] per-provider concurrency / rate-limit overrides
-    attr_reader :provider_limits
 
     # @return [String, nil] unique identifier for this task in the trace tree
     attr_reader :task_id
@@ -63,10 +56,8 @@ module Phronomy
     # @param deadline [Deadline, nil]
     # @param tracer_span [Object, nil]
     # @param token_budget [Integer, nil]
-    # @param max_parallel_tools [Integer]
     # @param approval_policy [#call, nil] invocation-specific Tool approval policy
     # @param redaction_policy [Object, nil]
-    # @param provider_limits [Hash, nil]
     # @param task_id [String, nil]
     # @param parent_task_id [String, nil]
     # @api private
@@ -78,10 +69,8 @@ module Phronomy
       deadline: nil,
       tracer_span: nil,
       token_budget: nil,
-      max_parallel_tools: 10,
       approval_policy: nil,
       redaction_policy: nil,
-      provider_limits: nil,
       task_id: nil,
       parent_task_id: nil
     )
@@ -92,10 +81,8 @@ module Phronomy
       @deadline = deadline
       @tracer_span = tracer_span
       @token_budget = token_budget
-      @max_parallel_tools = max_parallel_tools
       @approval_policy = approval_policy
       @redaction_policy = redaction_policy
-      @provider_limits = provider_limits
       @task_id = task_id
       @parent_task_id = parent_task_id
     end
@@ -115,10 +102,8 @@ module Phronomy
         deadline: overrides.fetch(:deadline, @deadline),
         tracer_span: overrides.fetch(:tracer_span, @tracer_span),
         token_budget: overrides.fetch(:token_budget, @token_budget),
-        max_parallel_tools: overrides.fetch(:max_parallel_tools, @max_parallel_tools),
         approval_policy: overrides.fetch(:approval_policy, @approval_policy),
         redaction_policy: overrides.fetch(:redaction_policy, @redaction_policy),
-        provider_limits: overrides.fetch(:provider_limits, @provider_limits),
         task_id: overrides.fetch(:task_id, @task_id),
         parent_task_id: overrides.fetch(:parent_task_id, @parent_task_id)
       )

@@ -133,15 +133,6 @@ module Phronomy
         self
       end
 
-      def max_parallel_tools
-        value = @config[:max_parallel_tools]
-        context = @config[:invocation_context]
-        value ||= context.max_parallel_tools if context&.respond_to?(:max_parallel_tools)
-        [Integer(value || 10), 1].max
-      rescue ArgumentError, TypeError
-        10
-      end
-
       def approval_context
         return @config[:approval_context] if @config[:approval_context]
 
@@ -149,7 +140,7 @@ module Phronomy
         return {} unless context
 
         %i[
-          thread_id session_id user_id token_budget max_parallel_tools
+          thread_id session_id user_id token_budget
           task_id parent_task_id
         ].each_with_object({}) do |name, result|
           result[name] = context.public_send(name) if context.respond_to?(name)

@@ -3,6 +3,10 @@
 module Phronomy
   module Agent
     # Centralises Tool execution routing based on execution_mode.
+    #
+    # Tool-specific timeout and retry belong to the Tool implementation or its
+    # underlying client. This executor only chooses the Phronomy execution
+    # resource and propagates cooperative cancellation.
     # @api private
     module ToolExecutor
       WARNED_MODES = Set.new
@@ -33,6 +37,9 @@ module Phronomy
 
       # Low-level Tool API used by direct Tool#call_async callers. Agent execution
       # must use .call_invocation_async so authorization cannot be bypassed.
+      #
+      # +config+ remains available for invocation metadata, but Phronomy does not
+      # interpret it as a Tool timeout or retry policy.
       def self.call_async(
         tool:,
         args:,
@@ -76,8 +83,7 @@ module Phronomy
             tool.call(args, cancellation_token: ct)
           end
         else
-          timeout = config[:tool_timeout]
-          pool.submit(cancellation_token: ct, timeout: timeout) do
+          pool.submit(cancellation_token: ct) do
             tool.call(args, cancellation_token: ct)
           end
         end
