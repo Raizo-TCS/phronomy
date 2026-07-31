@@ -205,7 +205,7 @@ those methods in a BlockingAdapterPool submission.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#stream_async-instance_method" title="#stream_async (instance method)">#<strong>stream_async</strong>(chat, message, config: {}, pool: default_pool, enqueue_to: nil) {|chunk| ... } &#x21d2; BlockingAdapterPool::PendingOperation </a>
+      <a href="#stream_async-instance_method" title="#stream_async (instance method)">#<strong>stream_async</strong>(chat, message, config: {}, pool: default_pool) {|chunk| ... } &#x21d2; BlockingAdapterPool::PendingOperation </a>
     
 
     
@@ -626,7 +626,7 @@ Implementors must call <code>chat.ask(message) { |chunk| block.call(chunk) }</co
       <div class="method_details ">
   <h3 class="signature " id="stream_async-instance_method">
   
-    #<strong>stream_async</strong>(chat, message, config: {}, pool: default_pool, enqueue_to: nil) {|chunk| ... } &#x21d2; <tt>BlockingAdapterPool::PendingOperation</tt> 
+    #<strong>stream_async</strong>(chat, message, config: {}, pool: default_pool) {|chunk| ... } &#x21d2; <tt>BlockingAdapterPool::PendingOperation</tt> 
   
 
   
@@ -640,102 +640,16 @@ Implementors must call <code>chat.ask(message) { |chunk| block.call(chunk) }</co
 </p>
 <p>Submits a streaming LLM call to BlockingAdapterPool and returns
 a BlockingAdapterPool::PendingOperation.</p>
-<p>When <code>enqueue_to:</code> is given, streaming chunks are pushed into that
-AsyncQueue from the worker thread instead of being passed directly
-to the caller's block. The queue is closed (via <code>ensure</code>) after the LLM
-call finishes so the consumer's drain loop terminates naturally.
-This keeps user-supplied blocks off the blocking-pool worker thread.</p>
-<p>When <code>enqueue_to:</code> is nil and a block is given, the block is invoked
-directly from the worker thread (legacy behaviour, preserved for
-backward compatibility).</p>
+<p>The block is invoked on the blocking-pool worker thread. Agent code must
+pass only a lightweight internal sink that posts a value to EventLoop;
+Application callbacks must never be passed directly to this method.</p>
 <p>Transport timeout and retry remain the responsibility of the adapter or
 provider client; Phronomy does not attach an additional operation timeout.</p>
 
   </div>
 </div>
 <div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>chat</span>
-      
-      
-        <span class='type'>(<tt>Object</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>configured chat session</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>message</span>
-      
-      
-        <span class='type'>(<tt>String</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>user message</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>config</span>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>{}</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>invocation config</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>pool</span>
-      
-      
-        <span class='type'>(<tt>BlockingAdapterPool</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>default_pool</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>pool to submit to</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>enqueue_to</span>
-      
-      
-        <span class='type'>(<tt>AsyncQueue</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>when set, push chunks here instead of
-calling the block on the worker thread</p></div>
-      
-    </li>
-  
-</ul>
-
 <p class="tag_title">Yields:</p>
 <ul class="yield">
   
@@ -747,7 +661,7 @@ calling the block on the worker thread</p></div>
       
       
         &mdash;
-        <div class='inline'><p>streaming chunk — only used when <code>enqueue_to:</code> is nil</p></div>
+        <div class='inline'><p>streaming chunk on the worker thread</p></div>
       
     </li>
   
@@ -765,6 +679,19 @@ calling the block on the worker thread</p></div>
     </li>
   
 </ul>
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
 
 </div><table class="source_code">
   <tr>
@@ -772,39 +699,29 @@ calling the block on the worker thread</p></div>
       <pre class="lines">
 
 
-88
-89
-90
-91
-92
-93
-94
-95
-96
-97
-98
-99
-100
-101
-102
-103</pre>
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/base.rb', line 88</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_adapter/base.rb', line 76</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_stream_async'>stream_async</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>pool:</span> <span class='id identifier rubyid_default_pool'>default_pool</span><span class='comma'>,</span> <span class='label'>enqueue_to:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_stream_async'>stream_async</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>pool:</span> <span class='id identifier rubyid_default_pool'>default_pool</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stream_async requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
+
   <span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span>
-  <span class='kw'>if</span> <span class='id identifier rubyid_enqueue_to'>enqueue_to</span>
-    <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_token'>token</span><span class='rparen'>)</span> <span class='kw'>do</span>
-      <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_chunk'>chunk</span><span class='op'>|</span>
-        <span class='id identifier rubyid_enqueue_to'>enqueue_to</span><span class='period'>.</span><span class='id identifier rubyid_push'>push</span><span class='lparen'>(</span><span class='id identifier rubyid_chunk'>chunk</span><span class='rparen'>)</span>
-      <span class='kw'>end</span>
-    <span class='kw'>ensure</span>
-      <span class='id identifier rubyid_enqueue_to'>enqueue_to</span><span class='period'>.</span><span class='id identifier rubyid_close'>close</span>
-    <span class='kw'>end</span>
-  <span class='kw'>else</span>
-    <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_token'>token</span><span class='rparen'>)</span> <span class='kw'>do</span>
-      <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_token'>token</span><span class='rparen'>)</span> <span class='kw'>do</span>
+    <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_chunk'>chunk</span><span class='op'>|</span>
+      <span class='id identifier rubyid_token'>token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>invocation cancelled during streaming</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_block'>block</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_chunk'>chunk</span><span class='rparen'>)</span>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
@@ -818,7 +735,7 @@ calling the block on the worker thread</p></div>
 </div>
 
       <div id="footer">
-  Generated on Fri Jul 31 03:57:04 2026 by
+  Generated on Fri Jul 31 14:33:51 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
