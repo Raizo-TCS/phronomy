@@ -1132,9 +1132,10 @@ dispatched.</p>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
 <p>Runtime-only terminal shutdown.</p>
-<p>On graceful timeout the dispatcher is cancelled. Queue cleanup is only
-performed after the dispatcher is confirmed dead, so there is never more
-than one queue consumer.</p>
+<p>On graceful timeout the dispatcher is cancelled. It cleans abandoned
+waiters from its own thread before exiting so Task completion callbacks
+retain EventLoop thread affinity. An idempotent post-join cleanup remains
+as a defensive fallback.</p>
 
   </div>
 </div>
@@ -1195,7 +1196,6 @@ than one queue consumer.</p>
       <pre class="lines">
 
 
-180
 181
 182
 183
@@ -1219,10 +1219,11 @@ than one queue consumer.</p>
 201
 202
 203
-204</pre>
+204
+205</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 180</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 181</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span><span class='label'>deadline:</span><span class='comma'>,</span> <span class='label'>cancel_grace:</span><span class='rparen'>)</span>
   <span class='ivar'>@shutdown_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1351,12 +1352,12 @@ than one queue consumer.</p>
       <pre class="lines">
 
 
-208
 209
-210</pre>
+210
+211</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 208</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 209</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_task_alive?'>task_alive?</span>
   <span class='ivar'>@task</span><span class='op'>&amp;.</span><span class='id identifier rubyid_alive?'>alive?</span> <span class='op'>||</span> <span class='kw'>false</span>
@@ -1464,7 +1465,7 @@ than one queue consumer.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri Jul 31 14:33:51 2026 by
+  Generated on Sat Aug  1 01:14:23 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
