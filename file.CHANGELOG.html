@@ -65,6 +65,13 @@
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Added">Added</h3>
+<ul>
+<li><code>Agent#approve_async</code> and <code>Agent::Base.approve_async</code> resume a suspended
+AgentInvocation without blocking the caller and return a <code>Phronomy::Task</code>.</li>
+<li>Streaming invocations resumed through <code>approve_async</code> continue to deliver
+terminal stream events on the Runtime-owned EventLoop thread.</li>
+</ul>
 <h3 id="Removed">Removed</h3>
 <ul>
 <li>Agent-wide automatic replay: <code>Agent::Base.retry_policy</code> and the <code>Retryable</code>
@@ -88,6 +95,11 @@ adapter's final provider error.</li>
 <li>Parallel Tool mode dispatches the complete authorized ToolCall batch; Runtime's
 bounded workers and queues remain the coarse process-protection boundary.</li>
 <li>Caller-provided deadline and cancellation-token propagation is unchanged.</li>
+</ul>
+<h3 id="Fixed">Fixed</h3>
+<ul>
+<li><code>Agent#approve</code> now rejects EventLoop re-entry instead of synchronously waiting
+for work that can only be dispatched by that same EventLoop.</li>
 </ul>
 <hr />
 <h2 id="_0_14_0____2026_07_27">[0.14.0] - 2026-07-27</h2>
@@ -1322,7 +1334,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sat Aug  1 01:14:21 2026 by
+  Generated on Sat Aug  1 01:39:28 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
