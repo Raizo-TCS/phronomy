@@ -76,6 +76,20 @@ RSpec.describe "Group 30: Approval Resume", :integration do
       expect(resume_result[:output]).not_to be_empty
     end
 
+    it "approve_async returns a Task that resolves to the resumed output" do
+      suspend_result = agent.invoke("Please use the approval tool")
+      task = agent.approve_async(
+        suspend_result[:agent_invocation_id],
+        approval_request_id: suspend_result[:approval_request].id,
+        approved: true
+      )
+
+      expect(task).to be_a(Phronomy::Task)
+      resume_result = task.wait_result
+      expect(resume_result[:output]).to be_a(String)
+      expect(resume_result[:output]).not_to be_empty
+    end
+
     it "approve with approved: true returns :suspended falsy" do
       suspend_result = agent.invoke("Please use the approval tool")
       resume_result = agent.approve(

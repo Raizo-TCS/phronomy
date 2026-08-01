@@ -328,6 +328,22 @@ module Phronomy
             config: config
           )
         end
+
+        # Continues a suspended AgentInvocation without blocking the caller.
+        # @param agent_invocation_id [String]
+        # @param approval_request_id [String]
+        # @param approved [Boolean]
+        # @param config [Hash]
+        # @return [Phronomy::Task]
+        # @api public
+        def approve_async(agent_invocation_id, approval_request_id:, approved: true, config: {})
+          new.approve_async(
+            agent_invocation_id,
+            approval_request_id: approval_request_id,
+            approved: approved,
+            config: config
+          )
+        end
       end
 
       # Registers an anonymous handoff tool class on this agent instance.
@@ -846,24 +862,66 @@ module Phronomy
       end
 
       # Continues a suspended AgentInvocation. The parent session is registered
-      # before child sessions so immediate child events cannot be lost.
+      # asynchronously; this method is only the synchronous wrapper.
+      # @return [Hash]
       # @api public
       def approve(agent_invocation_id, approval_request_id:, approved: true, config: {})
-        entry = Agent::AgentInvocationRegistry.consume_approval(
-          agent_invocation_id, approval_request_id
+        _check_scheduler_reentrancy(:approve, :approve_async)
+        approve_async(
+          agent_invocation_id,
+          approval_request_id: approval_request_id,
+          approved: approved,
+          config: config
+        ).wait_result
+      end
+      public :approve
+
+      # Continues a suspended AgentInvocation without blocking the caller.
+      #
+      # This method is safe to call from an EventLoop stream callback. The
+      # returned Task completes when the resumed AgentInvocation finishes,
+      # suspends again, or fails.
+      # @return [Phronomy::Task]
+      # @api public
+      def approve_async(agent_invocation_id, approval_request_id:, approved: true, config: {})
+        result_task = Phronomy::Task.deferred(
+          name: "agent-approval-resume:#{agent_invocation_id}"
         )
-        unless entry
-          raise ArgumentError,
-            "No pending approval found for AgentInvocation #{agent_invocation_id}"
+
+        begin
+          entry = Agent::AgentInvocationRegistry.consume_approval(
+            agent_invocation_id, approval_request_id
+          )
+          unless entry
+            raise ArgumentError,
+              "No pending approval found for AgentInvocation #{agent_invocation_id}"
+          end
+
+          _start_approval_resume(
+            result_task,
+            entry.invocation,
+            approved: approved,
+            config: config
+          )
+        rescue => e
+          _fail_result_task(result_task, e)
         end
 
-        invocation = entry.invocation
+        result_task
+      end
+      public :approve_async
+
+      # Parent completion handling is installed before EventLoop registration,
+      # and the parent session is registered before child sessions so immediate
+      # child events cannot be lost.
+      # @api private
+      def _start_approval_resume(result_task, invocation, approved:, config:)
         invocation.merge_config!(config)
         invocation.begin_approval_resume!(approved: approved)
         runtime = Phronomy::Runtime.instance
         event_loop = runtime.event_loop
-        parent_task = Phronomy::Task.deferred(
-          name: "agent-approval-resume:#{invocation.id}"
+        source_task = Phronomy::Task.deferred(
+          name: "#{result_task.name}-source"
         )
         parent_session = Agent::AgentInvocationSessionBuilder.build_for_resume(
           agent_invocation: invocation,
@@ -871,7 +929,34 @@ module Phronomy
           resume_phase: :suspended,
           runtime: runtime
         )
-        event_loop.register(parent_session, completion: parent_task)
+        stream_listener = invocation.stream_listener
+        mode = stream_listener ? :stream : :invoke
+
+        source_task.on_complete do |completed_invocation, error|
+          # Keep the same stream callback affinity contract as stream_async.
+          if mode == :stream && !event_loop.current?
+            completion_error = error || Phronomy::Error.new(
+              "Stream completion occurred outside the EventLoop"
+            )
+            _fail_result_task(result_task, _translated_error(completion_error))
+            next
+          end
+
+          raise error if error
+
+          result = _extract_invoke_result(completed_invocation)
+          _emit_stream_terminal(stream_listener, result) if mode == :stream
+          _complete_result_task(result_task, result)
+        rescue => e
+          translated = _translated_error(e)
+          if mode == :stream && event_loop.current?
+            _emit_stream_error(stream_listener, translated)
+          end
+          _fail_result_task(result_task, translated)
+        end
+
+        # The parent must exist before any child can post an immediate result.
+        event_loop.register(parent_session, completion: source_task)
 
         invocation.tool_invocations.each do |child|
           child_session = if child.awaiting_approval?
@@ -891,10 +976,7 @@ module Phronomy
           end
           _register_tool_invocation_session(event_loop, runtime, child, child_session) if child_session
         end
-
-        _extract_invoke_result(parent_task.wait_result)
       end
-      public :approve
 
       def _extract_invoke_result(invocation)
         if invocation.phase == :suspended

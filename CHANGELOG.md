@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Agent#approve_async` and `Agent::Base.approve_async` resume a suspended
+  AgentInvocation without blocking the caller and return a `Phronomy::Task`.
+- Streaming invocations resumed through `approve_async` continue to deliver
+  terminal stream events on the Runtime-owned EventLoop thread.
+
 ### Removed
 
 - Agent-wide automatic replay: `Agent::Base.retry_policy` and the `Retryable`
@@ -32,6 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Parallel Tool mode dispatches the complete authorized ToolCall batch; Runtime's
   bounded workers and queues remain the coarse process-protection boundary.
 - Caller-provided deadline and cancellation-token propagation is unchanged.
+
+### Fixed
+
+- `Agent#approve` now rejects EventLoop re-entry instead of synchronously waiting
+  for work that can only be dispatched by that same EventLoop.
 
 ---
 
