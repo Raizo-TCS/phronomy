@@ -173,34 +173,43 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 </tr>
 </tbody>
 </table>
-<p><strong>Execution and reliability</strong></p>
 <table>
 <thead>
 <tr>
-<th>Feature</th>
-<th>Stability</th>
+<th><strong>Execution and reliability</strong></th>
+<th></th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>Workflow EventLoop Mode</strong> — Opt-in event-driven execution: `Phronomy.configure { \</td>
-<td>c\</td>
-<td>c.event_loop = true }`</td>
-<td>Experimental</td>
+<td><strong>EventLoop</strong> — Runtime-owned event-driven execution core shared by all Agent invocations, Tool invocations, and Workflow sessions. Not configurable; EventLoop is always active when the Runtime is running. <code>Phronomy::EventLoop</code> itself is an internal API</td>
+<td>Beta</td>
 </tr>
 <tr>
-<td><strong>Agent EventLoop Mode</strong> — <code>Agent#invoke</code> (non-blocking via EventLoop), <code>Agent#invoke_async</code> + <code>Task#map</code> (child-agent pattern for Workflow integration), parallel tool dispatch via <code>ParallelToolChat</code></td>
-<td>Experimental</td>
+<td><strong><code>invoke</code> / <code>invoke_async</code></strong> — <code>Agent::Base#invoke</code> blocks the calling thread and returns the final result Hash; <code>Agent::Base#invoke_async</code> returns a <code>Phronomy::Task</code> immediately without blocking; <code>Workflow#invoke</code> and <code>Workflow#invoke_async</code> follow the same contract</td>
+<td>Stable</td>
+</tr>
+<tr>
+<td><strong><code>stream</code> / <code>stream_async</code></strong> — <code>Agent::Base#stream</code> blocks the calling thread while delivering stream events; <code>Agent::Base#stream_async</code> returns a <code>Phronomy::Task</code> immediately; both require a block; stream callbacks execute on the EventLoop thread and must return quickly — blocking I/O or synchronous Agent calls inside a callback cause stalls</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong>Stream events</strong> — <code>:token</code> (LLM delta), <code>:tool_call</code>, <code>:tool_result</code> (intermediate); <code>:done</code>, <code>:approval_required</code>, <code>:error</code> (terminal, delivered at most once per Task interval)</td>
+<td>Beta</td>
+</tr>
+<tr>
+<td><strong><code>stream_callback_error_policy</code></strong> — Configures what Phronomy does when a terminal stream callback raises: <code>:report</code> (default) logs the exception and preserves the Agent result in the Task; <code>:fail_task</code> logs and fails the Task with <code>Phronomy::StreamCallbackError</code>; neither policy stops the EventLoop; Agent internal errors are never replaced by callback errors</td>
+<td>Beta</td>
 </tr>
 <tr>
 <td><strong><code>invoke_async</code> / <code>call_async</code></strong> — <code>Agent::Base#invoke_async</code> and <code>Workflow#invoke_async</code> return a <code>Task</code>; <code>Agent::Context::Capability::Base#call_async</code> similarly; compatible with EventLoop and standalone contexts</td>
-<td>Experimental</td>
+<td>Stable</td>
 </tr>
 <tr>
 <td><strong><code>Task#map</code></strong> — transforms a <code>Task</code>'s completed value via a block; returns a new <code>Task</code> whose value is the block's return value; if the source task fails or is cancelled the mapped task propagates the error without calling the block; primary use-case: `invoke_async.map { \</td>
 <td>r\</td>
 <td>ctx.merge(answer: <a href=":output">r</a>) }<code>to wire agent results into a</code>WorkflowContext`</td>
-<td>Experimental</td>
+<td>Stable</td>
 </tr>
 <tr>
 <td><strong>CancellationToken</strong> — Cooperative cancellation via <code>cancel!</code>/<code>cancelled?</code>/<code>raise_if_cancelled!</code>; <code>timeout_after(seconds)</code> for monotonic-clock deadlines; optional <code>deadline:</code> (wall-clock) for backward compatibility; passed as <code>config: { cancellation_token: token }</code> to agents and <code>dispatch_parallel</code>; injected into <code>tool.execute</code> when the method declares a <code>cancellation_token:</code> keyword; bridged to <code>MCP::Cancellation</code> in <code>Phronomy::Tools::Mcp#execute</code></td>
@@ -229,7 +238,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong><code>Phronomy::Metrics</code></strong> — <code>Phronomy::Metrics.snapshot</code> returns task-tree and pool counters; task-centric keys: <code>active_agent_tasks</code>, <code>active_tool_tasks</code>, <code>active_workflow_tasks</code>, <code>active_llm_tasks</code>, <code>task_wait_time_p50_ms</code>, <code>task_wait_time_p95_ms</code>, <code>task_run_time_p50_ms</code>, <code>task_run_time_p95_ms</code>, <code>cancelled_tasks</code>, <code>failed_tasks</code>, <code>non_yield_threshold_violation_count</code>; pool/event-loop keys remain for backward compatibility; <code>Runtime#task_snapshot</code> exposes task-centric metrics directly</td>
+<td><strong><code>Phronomy::Metrics</code></strong> — <code>Phronomy::Metrics.snapshot</code> returns task-tree, pool, EventLoop, and queue counters; task-centric keys: <code>active_agent_tasks</code>, <code>active_tool_tasks</code>, <code>active_workflow_tasks</code>, <code>active_llm_tasks</code>, <code>task_wait_time_p50_ms</code>, <code>task_wait_time_p95_ms</code>, <code>task_run_time_p50_ms</code>, <code>task_run_time_p95_ms</code>, <code>cancelled_tasks</code>, <code>failed_tasks</code>, <code>non_yield_threshold_violation_count</code>; EventLoop queue keys: <code>event_loop_queue_depth</code> (current pending entries), <code>event_loop_queue_max_depth</code> (peak since start); a rate-limited warning is emitted when depth reaches 1,000 — events are not dropped</td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -268,11 +277,11 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong>Agent::Orchestrator</strong> — Parallel subagent dispatch, fan-out, and <code>subagent</code> DSL</td>
+<td><strong><code>Phronomy::MultiAgent::Orchestrator</code></strong> — Parallel subagent dispatch, fan-out, and <code>subagent</code> DSL</td>
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong>Agent::TeamCoordinator</strong> — Agent teams pattern: LLM coordinator + stateful workers with sequential task assignment (worker-local message history persisted across tasks)</td>
+<td><strong><code>Phronomy::MultiAgent::TeamCoordinator</code></strong> — Agent teams pattern: LLM coordinator + stateful workers with sequential task assignment (worker-local message history persisted across tasks)</td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -280,12 +289,12 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Experimental</td>
 </tr>
 <tr>
-<td><strong><code>ScopePolicy</code></strong> — Configurable policy callable that maps (tool, scope, agent) to <code>:allow</code>/<code>:approve</code>/<code>:reject</code>; default policy auto-routes high-risk scopes through the approval gate</td>
-<td>Experimental</td>
+<td><strong>Human-in-the-loop approval</strong> — <code>Agent::Base#invoke</code> returns <code>{ suspended: true, agent_invocation_id: String, approval_request: Phronomy::Agent::ToolApprovalRequest }</code> when a tool requiring approval is encountered; <code>Agent::Base#approve(id, approval_request_id:, approved:)</code> (synchronous) or <code>Agent::Base#approve_async(id, approval_request_id:, approved:)</code> (returns <code>Task</code>) resumes execution; approval state is in-process only — not persisted across process restarts or shared across pods</td>
+<td>Beta</td>
 </tr>
 <tr>
-<td><strong>HITL Checkpoint/Resume</strong> — <code>Agent::Base#invoke</code> returns <code>{ suspended: true, checkpoint: Checkpoint }</code> when an approval-required tool is encountered without a synchronous handler; <code>Agent::Base#resume(checkpoint, approved:)</code> resumes execution; <code>Agent::Base.resume(checkpoint, approved:)</code> (class-level) resolves the agent class automatically; <code>Checkpoint#to_h</code> / <code>Checkpoint.from_h</code> for serialization; <code>Agent::Base#checkpoint_store=</code> for custom idempotency backends; <code>CheckpointAlreadyResumedError</code> raised on duplicate resume</td>
-<td>Experimental</td>
+<td><strong><code>tool_approval_policy</code></strong> — Instance-level callable that maps each <code>ToolApprovalRequest</code> to <code>:allow</code>, <code>:require_approval</code>, or <code>:reject</code>; set on the agent instance before invoking</td>
+<td>Beta</td>
 </tr>
 <tr>
 <td><strong><code>Filter::Base</code> — unified value filter interface</strong> — <code>Phronomy::Filter::Base</code> with a single abstract method <code>call(value, **context)</code>; apply to user input (<code>add_input_filter</code> / <code>input_filter</code> DSL), final LLM output (<code>add_output_filter</code> / <code>output_filter</code> DSL), or individual tool return values (<code>add_tool_result_filter(tool_class?, filter)</code> / <code>tool_result_filter</code> DSL); filters transform values and return the result, or raise <code>Phronomy::FilterBlockError</code> to reject; filter chains are composable; the same filter instance can be reused across all three sites</td>
@@ -294,7 +303,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 </tbody>
 </table>
 <blockquote>
-<p><strong>Public API boundary</strong>: The tables above are the complete list of classes, modules, and features
+<p><strong>Public API boundary</strong>: The table above lists the primary public features
 intended for gem consumers. Every entry has an associated stability label.
 All other classes, modules, and methods — including everything in the
 <a href="#advanced--internal-apis">Advanced / Internal APIs</a> section below — are
@@ -394,6 +403,10 @@ Configure your provider credentials before using agents or chains:</p>
 <td><code>InvocationContext#provider_limits</code></td>
 <td>Configure the provider client directly</td>
 </tr>
+<tr>
+<td><code>stream_queue_max_size</code></td>
+<td>No replacement; the shared EventLoop queue is unbounded by design. Monitor <code>Metrics.snapshot[:event_loop_queue_depth]</code> instead</td>
+</tr>
 </tbody>
 </table>
 <h3 id="Optional_dependencies">Optional dependencies</h3>
@@ -442,6 +455,68 @@ Configure your provider credentials before using agents or chains:</p>
 <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'>ResearchAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>What happened in AI research this week?</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
 <span class='id identifier rubyid_puts'>puts</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span>
 </code></pre>
+<h4 id="Streaming">Streaming</h4>
+<p><code>stream</code> blocks the calling thread while delivering events; <code>stream_async</code> returns a <code>Task</code>
+immediately. Callbacks always execute on the <strong>EventLoop thread</strong> — keep them lightweight and
+do not call blocking I/O or synchronous Agent APIs inside a callback.</p>
+<pre class="code ruby"><code class="ruby"><span class='comment'># Synchronous streaming — blocks until done
+</span><span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'>ResearchAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>What happened in AI research this week?</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_event'>event</span><span class='op'>|</span>
+  <span class='kw'>case</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span>
+  <span class='kw'>when</span> <span class='symbol'>:token</span>           <span class='kw'>then</span> <span class='id identifier rubyid_print'>print</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='lbracket'>[</span><span class='symbol'>:content</span><span class='rbracket'>]</span>
+  <span class='kw'>when</span> <span class='symbol'>:tool_call</span>       <span class='kw'>then</span> <span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>\n[Calling: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='lbracket'>[</span><span class='symbol'>:tool_call</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'>]</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>when</span> <span class='symbol'>:tool_result</span>     <span class='kw'>then</span> <span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[Tool done]</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>when</span> <span class='symbol'>:done</span>            <span class='kw'>then</span> <span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>\n---</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>when</span> <span class='symbol'>:approval_required</span>
+    <span class='comment'># Approval needed — handle via approve_async (see Human-in-the-loop section)
+</span>  <span class='kw'>when</span> <span class='symbol'>:error</span>           <span class='kw'>then</span> <span class='id identifier rubyid_warn'>warn</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Error: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='lbracket'>[</span><span class='symbol'>:error</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_message'>message</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span>
+<span class='id identifier rubyid_puts'>puts</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span>
+
+<span class='comment'># Non-blocking streaming — returns Task immediately
+</span><span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='const'>ResearchAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_stream_async'>stream_async</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Summarise AI news</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_event'>event</span><span class='op'>|</span>
+  <span class='id identifier rubyid_broadcast_to_websocket'>broadcast_to_websocket</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span> <span class='op'>==</span> <span class='symbol'>:token</span>   <span class='comment'># must return quickly
+</span><span class='kw'>end</span>
+<span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
+</code></pre>
+<h4 id="Human_in_the_loop_approval">Human-in-the-loop approval</h4>
+<p>When a tool is configured with <code>requires_approval true</code> and no <code>:allow</code> policy is set,
+<code>invoke</code> suspends and returns <code>{ suspended: true, agent_invocation_id:, approval_request: }</code>.
+Resume via <code>approve</code> (synchronous) or <code>approve_async</code> (non-blocking, safe inside callbacks):</p>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='const'>ResearchAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
+<span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_tool_approval_policy'>tool_approval_policy</span> <span class='lbrace'>{</span> <span class='symbol'>:require_approval</span> <span class='rbrace'>}</span>
+
+<span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Run the search</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+<span class='kw'>if</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:suspended</span><span class='rbracket'>]</span>
+  <span class='id identifier rubyid_request'>request</span> <span class='op'>=</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:approval_request</span><span class='rbracket'>]</span>
+  <span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Tool: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_request'>request</span><span class='period'>.</span><span class='id identifier rubyid_items'>items</span><span class='period'>.</span><span class='id identifier rubyid_first'>first</span><span class='period'>.</span><span class='id identifier rubyid_tool_name'>tool_name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+
+  <span class='comment'># From top-level code — synchronous
+</span>  <span class='id identifier rubyid_final'>final</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_approve'>approve</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:agent_invocation_id</span><span class='rbracket'>]</span><span class='comma'>,</span>
+    <span class='label'>approval_request_id:</span> <span class='id identifier rubyid_request'>request</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='comma'>,</span>
+    <span class='label'>approved:</span> <span class='kw'>true</span>
+  <span class='rparen'>)</span>
+  <span class='id identifier rubyid_puts'>puts</span> <span class='id identifier rubyid_final'>final</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span>
+<span class='kw'>end</span>
+
+<span class='comment'># Inside a stream callback — use approve_async to avoid EventLoop re-entry
+</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_stream_async'>stream_async</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Run it</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_event'>event</span><span class='op'>|</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span> <span class='op'>==</span> <span class='symbol'>:approval_required</span>
+    <span class='id identifier rubyid_req'>req</span> <span class='op'>=</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='lbracket'>[</span><span class='symbol'>:request</span><span class='rbracket'>]</span>
+    <span class='id identifier rubyid_approve_task'>approve_task</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_approve_async'>approve_async</span><span class='lparen'>(</span>
+      <span class='id identifier rubyid_req'>req</span><span class='period'>.</span><span class='id identifier rubyid_agent_invocation_id'>agent_invocation_id</span><span class='comma'>,</span>
+      <span class='label'>approval_request_id:</span> <span class='id identifier rubyid_req'>req</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='comma'>,</span>
+      <span class='label'>approved:</span> <span class='kw'>true</span>
+    <span class='rparen'>)</span>
+    <span class='comment'># approve_task resolves when the resumed invocation completes
+</span>  <span class='kw'>end</span>
+<span class='kw'>end</span>
+</code></pre>
+<blockquote>
+<p><strong>Important</strong>: Approval state is stored in-process (<code>AgentInvocationRegistry</code>). It is <strong>not</strong>
+persisted across process restarts and is <strong>not</strong> shared between pods or processes.</p>
+</blockquote>
 <h3 id="Workflow___Stateful_workflow_with_wait_state_send_event">Workflow — Stateful workflow with wait_state/send_event</h3>
 <pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>ReviewContext</span>
   <span class='id identifier rubyid_include'>include</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/WorkflowContext.html" title="Phronomy::WorkflowContext (module)">WorkflowContext</a></span></span>
@@ -476,10 +551,10 @@ Configure your provider credentials before using agents or chains:</p>
 </span><span class='id identifier rubyid_final'>final</span> <span class='op'>=</span> <span class='id identifier rubyid_app'>app</span><span class='period'>.</span><span class='id identifier rubyid_send_event'>send_event</span><span class='lparen'>(</span><span class='label'>state:</span> <span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>event:</span> <span class='symbol'>:approve</span><span class='rparen'>)</span>
 <span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Approved: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_final'>final</span><span class='period'>.</span><span class='id identifier rubyid_approved'>approved</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>  <span class='comment'># =&gt; true
 </span></code></pre>
-<p>In EventLoop mode (<code>c.event_loop = true</code>), use <code>invoke_async + Task#map</code> to run an agent
+<p>Use <code>invoke_async + Task#map</code> to run an agent
 asynchronously inside a Workflow entry action.  The mapped Task returns a <code>WorkflowContext</code>,
 which <code>FSMSession</code> picks up via the standard <code>:action_completed</code> path:</p>
-<pre class="code ruby"><code class="ruby"><span class='comment'># EventLoop mode: workflow that runs an agent and captures the result.
+<pre class="code ruby"><code class="ruby"><span class='comment'># Async workflow: workflow that runs an agent and captures the result.
 </span><span class='id identifier rubyid_entry'>entry</span> <span class='symbol'>:translate</span><span class='comma'>,</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
   <span class='const'>TranslationAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_query'>query</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_result'>result</span><span class='op'>|</span>
     <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>answer:</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span><span class='rparen'>)</span>   <span class='comment'># returns WorkflowContext
@@ -641,7 +716,7 @@ Call it when the underlying file or content has changed:</p>
   <span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Untrusted (confidence </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_e'>e</span><span class='period'>.</span><span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_confidence'>confidence</span><span class='embexpr_end'>}</span><span class='tstring_content'>): </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_e'>e</span><span class='period'>.</span><span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_output'>output</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
 <span class='kw'>end</span>
 </code></pre>
-<h3 id="Agent__Orchestrator___Parallel_subagent_dispatch">Agent::Orchestrator — Parallel subagent dispatch</h3>
+<h3 id="MultiAgent__Orchestrator___Parallel_subagent_dispatch">MultiAgent::Orchestrator — Parallel subagent dispatch</h3>
 <blockquote>
 <p><strong>Note:</strong> <code>dispatch_parallel</code> and <code>fan_out</code> use plain Ruby threads. Use
 <code>max_concurrency:</code> to cap the number of concurrent workers and <code>on_error:</code>
@@ -649,7 +724,7 @@ to control failure handling (<code>:raise</code> re-raises the first error after
 tasks complete; <code>:skip</code> fills failed slots with <code>nil</code>). For very large
 fan-outs consider additional rate-limiting at the application level.</p>
 </blockquote>
-<pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>ResearchOrchestrator</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'>Orchestrator</span>
+<pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>ResearchOrchestrator</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/MultiAgent.html" title="Phronomy::MultiAgent (module)">MultiAgent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/MultiAgent/Orchestrator.html" title="Phronomy::MultiAgent::Orchestrator (class)">Orchestrator</a></span></span>
   <span class='id identifier rubyid_model'>model</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>gpt-4o</span><span class='tstring_end'>&quot;</span></span>
   <span class='id identifier rubyid_instructions'>instructions</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Coordinate research tasks by dispatching to specialised agents.</span><span class='tstring_end'>&quot;</span></span>
 
@@ -661,7 +736,7 @@ fan-outs consider additional rate-limiting at the application level.</p>
 <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'>ResearchOrchestrator</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Research the latest AI news.</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
 </code></pre>
 <p>Programmatic parallel dispatch (no LLM loop):</p>
-<pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>MyOrchestrator</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'>Orchestrator</span>
+<pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>MyOrchestrator</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/MultiAgent.html" title="Phronomy::MultiAgent (module)">MultiAgent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/MultiAgent/Orchestrator.html" title="Phronomy::MultiAgent::Orchestrator (class)">Orchestrator</a></span></span>
   <span class='id identifier rubyid_model'>model</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>gpt-4o</span><span class='tstring_end'>&quot;</span></span>
   <span class='id identifier rubyid_instructions'>instructions</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Orchestrate.</span><span class='tstring_end'>&quot;</span></span>
 
@@ -784,7 +859,7 @@ message array and passes it in via the <code>messages:</code> keyword argument:<
 Persist it however suits your application (in-memory hash, Redis, ActiveRecord, etc.).</p>
 <blockquote>
 <p><strong>Note on <code>thread_id</code></strong>: <code>thread_id</code> is a correlation identifier used internally for
-checkpoint/compaction context and EventLoop routing. It does <strong>not</strong> automatically persist or
+EventLoop session routing and compaction context. It does <strong>not</strong> automatically persist or
 restore conversation history — you must pass <code>messages:</code> explicitly on each turn as shown above.</p>
 </blockquote>
 <h2 id="Configuration">Configuration</h2>
@@ -795,13 +870,15 @@ restore conversation history — you must pass <code>messages:</code> explicitly
   <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_before_completion'>before_completion</span>               <span class='op'>=</span> <span class='kw'>nil</span>   <span class='comment'># optional; global hook lambda
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_trace_pii'>trace_pii</span>                       <span class='op'>=</span> <span class='kw'>false</span> <span class='comment'># default; set to true only when trace data contains no PII
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span>                          <span class='op'>=</span> <span class='kw'>nil</span>   <span class='comment'># optional; any object responding to #warn (e.g. Rails.logger)
-</span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span>   <span class='op'>=</span> <span class='int'>5</span>     <span class='comment'># seconds to wait for sessions to drain on EventLoop#stop(drain: true)
+</span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span>   <span class='op'>=</span> <span class='int'>5</span>     <span class='comment'># seconds to wait for sessions to drain on shutdown
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_runtime_backend'>runtime_backend</span>                 <span class='op'>=</span> <span class='symbol'>:thread</span>   <span class='comment'># :thread (default); :immediate (tests, synchronous); :fiber (experimental validation only); :cooperative (deprecated alias for :immediate)
-</span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span>           <span class='op'>=</span> <span class='kw'>false</span>          <span class='comment'># when true, raises on invoke-inside-task
+</span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span>           <span class='op'>=</span> <span class='kw'>false</span>     <span class='comment'># when true, raises SchedulerReentrancyError on invoke-inside-task
+</span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_stream_callback_error_policy'>stream_callback_error_policy</span>    <span class='op'>=</span> <span class='symbol'>:report</span>   <span class='comment'># :report (default) preserves Agent result; :fail_task fails Task with StreamCallbackError
 </span><span class='kw'>end</span>
 </code></pre>
 <p><code>c.logger</code> receives framework diagnostic messages (e.g. unreachable-state warnings from
-<code>Workflow.define</code>). When <code>nil</code> (default), messages are written to <code>$stderr</code> via <code>Kernel#warn</code>.</p>
+<code>Workflow.define</code>, stream callback errors, EventLoop queue backlog warnings). When <code>nil</code>
+(default), messages are written to <code>$stderr</code> via <code>Kernel#warn</code>.</p>
 <blockquote>
 <p><strong>Note</strong>: When <code>trace_pii = false</code>, both the <em>input</em> and the <em>output</em> (LLM
 responses and tool results) are replaced with <code>[REDACTED]</code> in trace spans.
@@ -832,6 +909,26 @@ Understanding when to use each prevents scheduler stalls and hidden deadlocks.</
 <tr>
 <td>Top-level code that wants explicit async</td>
 <td><code>agent.invoke_async(input).wait_result</code> — blocks the calling thread until the Task completes</td>
+</tr>
+<tr>
+<td>Streaming from top-level code</td>
+<td>`agent.stream(input) {</td>
+<td>event</td>
+<td>... }` — blocks until done; callbacks run on the EventLoop thread</td>
+</tr>
+<tr>
+<td>Streaming non-blocking</td>
+<td>`task = agent.stream_async(input) {</td>
+<td>event</td>
+<td>... }` — returns Task immediately; callbacks run on the EventLoop thread</td>
+</tr>
+<tr>
+<td>Resume approval from top-level code</td>
+<td><code>agent.approve(id, approval_request_id: r_id, approved: true)</code> — synchronous; blocks until resumed</td>
+</tr>
+<tr>
+<td>Resume approval from an EventLoop callback</td>
+<td><code>agent.approve_async(id, approval_request_id: r_id, approved: true)</code> — returns Task; safe to call from a stream callback</td>
 </tr>
 </tbody>
 </table>
@@ -1170,7 +1267,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat Aug  1 06:07:07 2026 by
+  Generated on Sat Aug  1 07:11:50 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
