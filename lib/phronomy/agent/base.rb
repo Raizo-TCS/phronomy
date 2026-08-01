@@ -767,9 +767,18 @@ module Phronomy
           runtime: runtime
         )
         source_task = Phronomy::Task.deferred(name: "#{result_task.name}-source")
-        event_loop.register(session, completion: source_task)
-
         source_task.on_complete do |invocation, error|
+          # Stream listeners have EventLoop thread affinity. A defensive guard
+          # prevents Task#on_complete's synchronous fallback from invoking the
+          # listener on a caller or shutdown-management thread.
+          if mode == :stream && !event_loop.current?
+            completion_error = error || Phronomy::Error.new(
+              "Stream completion occurred outside the EventLoop"
+            )
+            _fail_result_task(result_task, _translated_error(completion_error))
+            next
+          end
+
           raise error if error
 
           result = _extract_invoke_result(invocation)
@@ -777,9 +786,14 @@ module Phronomy
           _complete_result_task(result_task, result)
         rescue => e
           translated = _translated_error(e)
-          _emit_stream_error(on_event, translated) if mode == :stream
+          _emit_stream_error(on_event, translated) if mode == :stream && event_loop.current?
           _fail_result_task(result_task, translated)
         end
+
+        # Register completion handling before EventLoop admission. Otherwise an
+        # immediately finishing session can complete source_task before the
+        # callback is installed, causing Task#on_complete to run on this thread.
+        event_loop.register(session, completion: source_task)
       rescue => e
         _fail_result_task(result_task, e)
       end

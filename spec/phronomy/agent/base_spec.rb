@@ -199,6 +199,83 @@ RSpec.describe Phronomy::Agent::Base do
       pool.shutdown
     end
 
+    it "keeps an immediately completed terminal callback on the EventLoop thread" do
+      invocation = Object.new
+      session = double("session")
+      event_loop_thread = nil
+      event_loop = double("event_loop")
+      runtime = double("runtime", event_loop: event_loop)
+      result = {output: "ok", messages: [], usage: nil}
+      events = []
+
+      allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
+      allow(Phronomy::Agent::AgentInvocationSessionBuilder).to receive(:build)
+        .and_return(session)
+      allow(agent).to receive(:_extract_invoke_result).with(invocation).and_return(result)
+      allow(event_loop).to receive(:current?) do
+        Thread.current.equal?(event_loop_thread)
+      end
+      allow(event_loop).to receive(:register) do |_registered_session, completion:|
+        Thread.new do
+          event_loop_thread = Thread.current
+          completion.backend.unblock(invocation, nil)
+          completion.transition!(:completed, value: invocation)
+        end.join
+        completion
+      end
+
+      result_task = Phronomy::Task.deferred(name: "stream-race-regression")
+      agent.send(
+        :_start_invocation,
+        result_task,
+        "hi",
+        messages: [],
+        thread_id: nil,
+        config: {},
+        approval_snapshot: {policy: nil, listener: nil},
+        mode: :stream,
+        on_event: ->(event) { events << [event.type, event_loop.current?] }
+      )
+
+      expect(result_task.wait_result).to eq(result)
+      expect(events).to eq([[:done, true]])
+    end
+
+    it "does not invoke a terminal callback when completion escapes the EventLoop" do
+      invocation = Object.new
+      session = double("session")
+      event_loop = double("event_loop", current?: false)
+      runtime = double("runtime", event_loop: event_loop)
+      events = []
+
+      allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
+      allow(Phronomy::Agent::AgentInvocationSessionBuilder).to receive(:build)
+        .and_return(session)
+      allow(event_loop).to receive(:register) do |_registered_session, completion:|
+        completion.backend.unblock(invocation, nil)
+        completion.transition!(:completed, value: invocation)
+        completion
+      end
+
+      result_task = Phronomy::Task.deferred(name: "stream-affinity-guard")
+      agent.send(
+        :_start_invocation,
+        result_task,
+        "hi",
+        messages: [],
+        thread_id: nil,
+        config: {},
+        approval_snapshot: {policy: nil, listener: nil},
+        mode: :stream,
+        on_event: ->(event) { events << event }
+      )
+
+      expect do
+        result_task.wait_result
+      end.to raise_error(Phronomy::Error, /outside the EventLoop/)
+      expect(events).to be_empty
+    end
+
     it "requires a callback block" do
       expect { agent.stream_async("hi") }.to raise_error(ArgumentError)
       expect { agent.stream("hi") }.to raise_error(ArgumentError)

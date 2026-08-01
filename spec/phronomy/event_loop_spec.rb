@@ -241,5 +241,37 @@ RSpec.describe Phronomy::EventLoop do
       result = runtime.shutdown(timeout: 2)
       expect(result.clean?).to be(true)
     end
+
+    it "completes abandoned Task waiters on the EventLoop thread" do
+      el = runtime.event_loop
+      started = Thread::Queue.new
+      release = Thread::Queue.new
+      session = double("session", id: "forced-shutdown-affinity")
+      completion = Phronomy::Task.deferred(name: "forced-shutdown-waiter")
+      callback_on_event_loop = nil
+      callback_error = nil
+
+      allow(session).to receive(:start) do
+        started.push(:started)
+        release.pop
+      end
+      allow(session).to receive(:handle)
+
+      completion.on_complete do |_value, error|
+        callback_on_event_loop = el.current?
+        callback_error = error
+      end
+
+      el.register(session, completion: completion)
+      started.pop
+
+      result = runtime.shutdown(timeout: 0.05, cancel_grace: 1)
+
+      expect(result.event_loop_status).to eq(:cancelled)
+      expect(callback_on_event_loop).to be(true)
+      expect(callback_error).to be_a(Phronomy::CancellationError)
+    ensure
+      release&.push(:release)
+    end
   end
 end

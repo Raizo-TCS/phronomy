@@ -169,9 +169,10 @@ module Phronomy
 
     # Runtime-only terminal shutdown.
     #
-    # On graceful timeout the dispatcher is cancelled. Queue cleanup is only
-    # performed after the dispatcher is confirmed dead, so there is never more
-    # than one queue consumer.
+    # On graceful timeout the dispatcher is cancelled. It cleans abandoned
+    # waiters from its own thread before exiting so Task completion callbacks
+    # retain EventLoop thread affinity. An idempotent post-join cleanup remains
+    # as a defensive fallback.
     #
     # @param deadline [Numeric] absolute monotonic deadline
     # @param cancel_grace [Numeric] seconds to wait after Task#cancel!
@@ -227,7 +228,11 @@ module Phronomy
         check_dispatch_time(dispatch_start_ns, event)
       end
     rescue Phronomy::CancellationError => error
-      unless shutdown_cancel_requested?
+      if shutdown_cancel_requested?
+        cleanup_abandoned_work(
+          Phronomy::CancellationError.new("Runtime shutdown timed out")
+        )
+      else
         notify_unexpected_dispatcher_failure(error)
         raise
       end
@@ -301,13 +306,17 @@ module Phronomy
 
       return :failed if state == :failed
 
+      # Normally already performed by run_loop on the dispatcher thread. This
+      # second call is idempotent and covers cancellation before run_loop enters
+      # its rescue path. Stream completion has its own affinity guard, so the
+      # fallback never invokes an Application listener from this thread.
       cleanup_abandoned_work(
         Phronomy::CancellationError.new("Runtime shutdown timed out")
       )
       finalize_terminated(:cancelled)
     end
 
-    # Called only after the dispatcher is confirmed dead.
+    # Safe to call repeatedly; the first call drains and clears all waiters.
     def cleanup_abandoned_work(error)
       drain_queued_items.each do |item|
         next if item.equal?(STOP)
