@@ -15,6 +15,8 @@ RSpec.describe Phronomy::Metrics do
         blocking_pool_queue_length
         blocking_pool_abandoned_total
         blocking_pool_size
+        event_loop_queue_depth
+        event_loop_queue_max_depth
         event_loop_lag_last_ms
         event_loop_lag_max_ms
         event_loop_lag_average_ms
@@ -49,6 +51,10 @@ RSpec.describe Phronomy::Metrics do
     it "reports blocking_pool_size equal to the Runtime pool's pool_size" do
       pool = Phronomy::Runtime.instance.blocking_io
       expect(snap[:blocking_pool_size]).to eq(pool.pool_size)
+    end
+
+    it "reports event_loop_queue_max_depth >= event_loop_queue_depth" do
+      expect(snap[:event_loop_queue_max_depth]).to be >= snap[:event_loop_queue_depth]
     end
 
     it "reports event_loop_lag_max_ms >= event_loop_lag_last_ms" do

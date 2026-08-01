@@ -109,12 +109,6 @@ module Phronomy
     # @return [Float, nil]
     attr_accessor :blocking_detect_threshold_ms
 
-    # Upper bound on the number of streaming token chunks that may be buffered
-    # in the {AsyncQueue} used by {Agent#stream} before the LLM producer is
-    # throttled.  When nil (default), the queue is unbounded.
-    # @return [Integer, nil]
-    attr_accessor :stream_queue_max_size
-
     # Determines how an unhandled Application exception from a terminal stream
     # callback affects the Task returned by Agent#stream_async or
     # Agent#approve_async.
@@ -212,7 +206,6 @@ module Phronomy
       @event_loop_dispatch_threshold_seconds = nil
       @scheduler_debug = false
       @blocking_detect_threshold_ms = nil
-      @stream_queue_max_size = nil
       @stream_callback_error_policy = :report
       @blocking_io_pool_size = 10
       @blocking_io_queue_size = 100

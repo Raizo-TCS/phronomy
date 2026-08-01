@@ -30,6 +30,8 @@ module Phronomy
         blocking_pool_queue_length: pool.queue_depth,
         blocking_pool_abandoned_total: pool.abandoned_count,
         blocking_pool_size: pool.pool_size,
+        event_loop_queue_depth: el.queue_depth,
+        event_loop_queue_max_depth: el.max_queue_depth,
         event_loop_lag_last_ms: (el.last_lag_seconds * 1000).round(3),
         event_loop_lag_max_ms: (el.max_lag_seconds * 1000).round(3),
         event_loop_lag_average_ms: (el.average_lag_seconds * 1000).round(3)

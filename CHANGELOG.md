@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   AgentInvocation without blocking the caller and return a `Phronomy::Task`.
 - Streaming invocations resumed through `approve_async` continue to deliver
   terminal stream events on the Runtime-owned EventLoop thread.
+- `Phronomy::Metrics.snapshot` now reports `event_loop_queue_depth` and
+  `event_loop_queue_max_depth`.
+- EventLoop emits a rate-limited warning when its shared event queue reaches
+  1,000 pending entries. Events are observed only; they are not dropped.
 
 ### Removed
 
@@ -29,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `max_parallel_tools` from Agent, AgentInvocation, ParallelToolChat, and
   InvocationContext.
 - Unused `InvocationContext#provider_limits`.
+- `Configuration#stream_queue_max_size`, which no longer affected the
+  Runtime-owned EventLoop streaming path.
 
 ### Changed
 

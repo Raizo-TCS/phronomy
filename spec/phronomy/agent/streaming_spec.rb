@@ -199,30 +199,10 @@ RSpec.describe "Agent streaming" do
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # Regression test for Issue #322:
-  # Agent#stream creates the chunk queue with the configured max_size so that
-  # fast LLM producers are subject to backpressure.
-  # ---------------------------------------------------------------------------
-  describe "stream_queue_max_size configuration (Issue #322)" do
-    subject(:agent) { StreamingBasicAgent.new }
-
-    around do |example|
-      original = Phronomy.configuration.stream_queue_max_size
-      Phronomy.configure { |c| c.stream_queue_max_size = 16 }
-      example.run
-      Phronomy.configure { |c| c.stream_queue_max_size = original }
-    end
-
-    it "accepts stream_queue_max_size configuration without error" do
-      expect(Phronomy.configuration.stream_queue_max_size).to eq(16)
-    end
-
-    it "streams successfully with a bounded queue" do
-      events = []
-      agent.stream("Hello") { |e| events << e }
-      expect(events.any? { |e| e.type == :token }).to be(true)
-      expect(events.last.type).to eq(:done)
+  describe "stream queue configuration" do
+    it "does not expose the obsolete stream_queue_max_size setting" do
+      expect(Phronomy.configuration).not_to respond_to(:stream_queue_max_size)
+      expect(Phronomy.configuration).not_to respond_to(:stream_queue_max_size=)
     end
   end
 end

@@ -12,6 +12,9 @@ module Phronomy
   class EventLoop
     SYSTEM_CHANNEL_ID = "__event_loop__"
 
+    QUEUE_BACKLOG_WARNING_THRESHOLD = 1_000
+    QUEUE_BACKLOG_WARNING_INTERVAL_SECONDS = 60.0
+
     STOP = Object.new.freeze
     private_constant :STOP
 
@@ -20,6 +23,10 @@ module Phronomy
     def initialize(runtime:)
       @runtime = runtime
       @queue = Phronomy::Concurrency::AsyncQueue.new
+      @queue_metrics_mutex = Mutex.new
+      @queue_depth = 0
+      @max_queue_depth = 0
+      @last_queue_backlog_warning_at = nil
       @fsms = {}
       @waiting = {}
 
@@ -62,6 +69,21 @@ module Phronomy
       end
     end
 
+    # Number of events currently waiting in the EventLoop queue.
+    # The event being dispatched is not included.
+    # @return [Integer]
+    # @api private
+    def queue_depth
+      @queue_metrics_mutex.synchronize { @queue_depth }
+    end
+
+    # Highest EventLoop queue depth observed during this Runtime lifetime.
+    # @return [Integer]
+    # @api private
+    def max_queue_depth
+      @queue_metrics_mutex.synchronize { @max_queue_depth }
+    end
+
     # Registers an FSMSession and returns its completion queue.
     #
     # +outstanding_sessions+ is incremented before the :start event is enqueued,
@@ -90,12 +112,13 @@ module Phronomy
         target_id: SYSTEM_CHANNEL_ID,
         payload: {session: fsm_session, completion: completion_queue}
       )
+      queued_depth = nil
 
       @lifecycle_mutex.synchronize do
         ensure_accepting_registrations!
         @outstanding_sessions += 1
         begin
-          @queue.push([event, monotonic_nanoseconds])
+          queued_depth = enqueue([event, monotonic_nanoseconds])
         rescue
           @outstanding_sessions -= 1
           @idle_cond.broadcast if @outstanding_sessions.zero?
@@ -103,6 +126,7 @@ module Phronomy
         end
       end
 
+      check_queue_backlog(queued_depth, event)
       completion_queue
     end
 
@@ -115,11 +139,16 @@ module Phronomy
     # @return [Boolean]
     # @api private
     def post(event)
-      @lifecycle_mutex.synchronize do
-        return false unless accepting_events?
+      queued_depth = nil
+      accepted = @lifecycle_mutex.synchronize do
+        next false unless accepting_events?
 
-        @queue.push([event, monotonic_nanoseconds])
+        queued_depth = enqueue([event, monotonic_nanoseconds])
+        true
       end
+      return false unless accepted
+
+      check_queue_backlog(queued_depth, event)
       true
     end
 
@@ -214,7 +243,7 @@ module Phronomy
 
     def run_loop
       loop do
-        item = @queue.pop
+        item = dequeue
         break if item.equal?(STOP)
 
         event, posted_at_ns = item
@@ -280,7 +309,7 @@ module Phronomy
         return false unless @outstanding_sessions.zero?
 
         @state = :stopping
-        @queue.push(STOP)
+        enqueue(STOP)
         true
       end
     end
@@ -339,7 +368,7 @@ module Phronomy
     def drain_queued_items
       items = []
       loop do
-        item = @queue.pop(timeout: 0)
+        item = dequeue(timeout: 0)
         break unless item
 
         items << item
@@ -416,6 +445,70 @@ module Phronomy
       else
         waiter.push(payload)
       end
+    end
+
+    def enqueue(item)
+      depth = @queue_metrics_mutex.synchronize do
+        @queue_depth += 1
+        @max_queue_depth = @queue_depth if @queue_depth > @max_queue_depth
+        @queue_depth
+      end
+      @queue.push(item)
+      depth
+    rescue
+      @queue_metrics_mutex.synchronize do
+        @queue_depth -= 1 if @queue_depth.positive?
+      end
+      raise
+    end
+
+    def dequeue(timeout: nil)
+      item = nil
+      begin
+        item = @queue.pop(timeout: timeout)
+      ensure
+        if item
+          @queue_metrics_mutex.synchronize do
+            @queue_depth -= 1 if @queue_depth.positive?
+          end
+        end
+      end
+      item
+    end
+
+    def check_queue_backlog(depth, event)
+      return unless depth >= QUEUE_BACKLOG_WARNING_THRESHOLD
+
+      now = monotonic_now
+      max_depth = nil
+      should_warn = @queue_metrics_mutex.synchronize do
+        last = @last_queue_backlog_warning_at
+        next false if last && (now - last) < QUEUE_BACKLOG_WARNING_INTERVAL_SECONDS
+
+        @last_queue_backlog_warning_at = now
+        max_depth = @max_queue_depth
+        true
+      end
+      return unless should_warn
+
+      warn_queue_backlog(
+        "[Phronomy::EventLoop] Queue backlog is high: " \
+        "depth=#{depth} max_depth=#{max_depth} " \
+        "threshold=#{QUEUE_BACKLOG_WARNING_THRESHOLD} " \
+        "event=#{event.type.inspect} target_id=#{event.target_id.inspect}. " \
+        "Events are not dropped; inspect slow callbacks or high streaming concurrency."
+      )
+    end
+
+    def warn_queue_backlog(message)
+      logger = Phronomy.configuration.logger
+      if logger
+        logger.warn(message)
+      else
+        Kernel.warn(message)
+      end
+    rescue
+      nil
     end
 
     def update_lag_metrics(lag_ns)
