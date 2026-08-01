@@ -10,6 +10,9 @@ module Phronomy
   #     config.recursion_limit  = 50
   #   end
   class Configuration
+    STREAM_CALLBACK_ERROR_POLICIES = %i[report fail_task].freeze
+    private_constant :STREAM_CALLBACK_ERROR_POLICIES
+
     # Default LLM model name (nil delegates to RubyLLM default)
     attr_accessor :default_model
 
@@ -112,6 +115,18 @@ module Phronomy
     # @return [Integer, nil]
     attr_accessor :stream_queue_max_size
 
+    # Determines how an unhandled Application exception from a terminal stream
+    # callback affects the Task returned by Agent#stream_async or
+    # Agent#approve_async.
+    #
+    # +:report+ logs the callback failure and preserves the Agent result.
+    # +:fail_task+ logs the callback failure and fails the current Task with
+    # {Phronomy::StreamCallbackError}. Neither policy terminates EventLoop.
+    #
+    # Default: +:report+.
+    # @return [:report, :fail_task]
+    attr_reader :stream_callback_error_policy
+
     # Number of OS worker threads in the default {BlockingAdapterPool}.
     # All LLM calls, MCP tool calls, and other blocking I/O share this pool.
     # Increase for higher LLM/tool throughput; decrease to limit
@@ -176,6 +191,16 @@ module Phronomy
     # @return [Boolean]
     attr_accessor :strict_runtime_guards
 
+    def stream_callback_error_policy=(value)
+      unless STREAM_CALLBACK_ERROR_POLICIES.include?(value)
+        allowed = STREAM_CALLBACK_ERROR_POLICIES.map(&:inspect).join(", ")
+        raise Phronomy::ConfigurationError,
+          "stream_callback_error_policy must be one of: #{allowed}"
+      end
+
+      @stream_callback_error_policy = value
+    end
+
     def initialize
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new
@@ -188,6 +213,7 @@ module Phronomy
       @scheduler_debug = false
       @blocking_detect_threshold_ms = nil
       @stream_queue_max_size = nil
+      @stream_callback_error_policy = :report
       @blocking_io_pool_size = 10
       @blocking_io_queue_size = 100
       @authorization_pool_size = 4

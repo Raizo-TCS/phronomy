@@ -782,28 +782,19 @@ module Phronomy
           on_event: on_event,
           runtime: runtime
         )
+        callback_error_policy =
+          Phronomy.configuration.stream_callback_error_policy
         source_task = Phronomy::Task.deferred(name: "#{result_task.name}-source")
         source_task.on_complete do |invocation, error|
-          # Stream listeners have EventLoop thread affinity. A defensive guard
-          # prevents Task#on_complete's synchronous fallback from invoking the
-          # listener on a caller or shutdown-management thread.
-          if mode == :stream && !event_loop.current?
-            completion_error = error || Phronomy::Error.new(
-              "Stream completion occurred outside the EventLoop"
-            )
-            _fail_result_task(result_task, _translated_error(completion_error))
-            next
-          end
-
-          raise error if error
-
-          result = _extract_invoke_result(invocation)
-          _emit_stream_terminal(on_event, result) if mode == :stream
-          _complete_result_task(result_task, result)
-        rescue => e
-          translated = _translated_error(e)
-          _emit_stream_error(on_event, translated) if mode == :stream && event_loop.current?
-          _fail_result_task(result_task, translated)
+          _handle_agent_completion(
+            result_task: result_task,
+            invocation: invocation,
+            error: error,
+            mode: mode,
+            listener: on_event,
+            event_loop: event_loop,
+            callback_error_policy: callback_error_policy
+          )
         end
 
         # Register completion handling before EventLoop admission. Otherwise an
@@ -830,11 +821,85 @@ module Phronomy
         translated
       end
 
-      # Invoked from source_task completion, which is completed by EventLoop.
-      def _emit_stream_terminal(listener, result)
-        return unless listener
+      # Completes one Agent execution interval. Execution failures and
+      # Application callback failures are deliberately handled in separate
+      # exception domains.
+      def _handle_agent_completion(result_task:, invocation:, error:, mode:, listener:,
+        event_loop:, callback_error_policy:)
+        if mode == :stream && !event_loop.current?
+          completion_error = error || Phronomy::Error.new(
+            "Stream completion occurred outside the EventLoop"
+          )
+          _fail_result_task(result_task, _translated_error(completion_error))
+          return
+        end
 
-        event = if result[:suspended]
+        result = nil
+        execution_error = nil
+        begin
+          raise error if error
+
+          result = _extract_invoke_result(invocation)
+        rescue => e
+          execution_error = _translated_error(e)
+        end
+
+        if execution_error
+          if mode == :stream
+            event = StreamEvent.new(
+              type: :error,
+              payload: {error: execution_error}
+            )
+            callback_error = _deliver_stream_event(listener, event)
+            if callback_error
+              _report_stream_callback_error(
+                callback_error,
+                event: event,
+                invocation_id: invocation&.id,
+                callback_error_policy: callback_error_policy
+              )
+            end
+          end
+
+          # An Application failure while consuming :error never replaces the
+          # original Agent/LLM/Tool/Runtime failure.
+          _fail_result_task(result_task, execution_error)
+          return
+        end
+
+        unless mode == :stream
+          _complete_result_task(result_task, result)
+          return
+        end
+
+        event = _build_stream_terminal_event(result)
+        callback_error = _deliver_stream_event(listener, event)
+        unless callback_error
+          _complete_result_task(result_task, result)
+          return
+        end
+
+        _report_stream_callback_error(
+          callback_error,
+          event: event,
+          invocation_id: invocation&.id,
+          callback_error_policy: callback_error_policy
+        )
+
+        if callback_error_policy == :fail_task
+          wrapped = _build_stream_callback_error(
+            event_type: event.type,
+            callback_error: callback_error,
+            result: result
+          )
+          _fail_result_task(result_task, wrapped)
+        else
+          _complete_result_task(result_task, result)
+        end
+      end
+
+      def _build_stream_terminal_event(result)
+        if result[:suspended]
           StreamEvent.new(
             type: :approval_required,
             payload: {request: result[:approval_request]}
@@ -842,23 +907,73 @@ module Phronomy
         else
           StreamEvent.new(type: :done, payload: result)
         end
-        listener.call(event)
       end
 
-      # Error notification is best-effort. A second callback failure must not
-      # escape the EventLoop's task-completion callback.
-      def _emit_stream_error(listener, error)
+      # Returns the Application exception instead of allowing it to escape the
+      # shared EventLoop. A nil return means delivery succeeded or no listener
+      # was registered.
+      def _deliver_stream_event(listener, event)
         return unless listener
 
-        listener.call(StreamEvent.new(type: :error, payload: {error: error}))
+        listener.call(event)
+        nil
       rescue => callback_error
-        message = "[Phronomy] Stream error callback failed: " \
-          "#{callback_error.class}: #{callback_error.message}"
-        if Phronomy.configuration.logger
-          Phronomy.configuration.logger.warn(message)
-        else
-          Kernel.warn(message)
+        callback_error
+      end
+
+      def _build_stream_callback_error(event_type:, callback_error:, result:)
+        wrapped = Phronomy::StreamCallbackError.new(
+          event_type: event_type,
+          original_error: callback_error,
+          result: result
+        )
+
+        begin
+          raise wrapped, cause: callback_error
+        rescue Phronomy::StreamCallbackError => error
+          error.set_backtrace(callback_error.backtrace)
+          error
         end
+      end
+
+      def _report_stream_callback_error(callback_error, event:, invocation_id:,
+        callback_error_policy:)
+        lines = [
+          "[Phronomy] Stream callback failed",
+          "event=#{event.type.inspect}",
+          "agent_invocation_id=#{invocation_id || "unknown"}",
+          "policy=#{callback_error_policy.inspect}",
+          "error=#{callback_error.class}: #{callback_error.message}"
+        ]
+        Array(callback_error.backtrace).each { |line| lines << "  #{line}" }
+        _warn_stream_callback_error(lines.join("\n"))
+      rescue => reporting_error
+        _kernel_warn_safely(
+          "[Phronomy] Failed to report stream callback error: " \
+            "#{reporting_error.class}: #{reporting_error.message}"
+        )
+      end
+
+      def _warn_stream_callback_error(message)
+        logger = Phronomy.configuration.logger
+        unless logger
+          _kernel_warn_safely(message)
+          return
+        end
+
+        logger.warn(message)
+      rescue => logger_error
+        _kernel_warn_safely(
+          "#{message}\n" \
+            "[Phronomy] Logger failed while reporting a stream callback error: " \
+            "#{logger_error.class}: #{logger_error.message}"
+        )
+      end
+
+      def _kernel_warn_safely(message)
+        Kernel.warn(message)
+      rescue
+        nil
       end
 
       # Continues a suspended AgentInvocation. The parent session is registered
@@ -931,28 +1046,19 @@ module Phronomy
         )
         stream_listener = invocation.stream_listener
         mode = stream_listener ? :stream : :invoke
+        callback_error_policy =
+          Phronomy.configuration.stream_callback_error_policy
 
         source_task.on_complete do |completed_invocation, error|
-          # Keep the same stream callback affinity contract as stream_async.
-          if mode == :stream && !event_loop.current?
-            completion_error = error || Phronomy::Error.new(
-              "Stream completion occurred outside the EventLoop"
-            )
-            _fail_result_task(result_task, _translated_error(completion_error))
-            next
-          end
-
-          raise error if error
-
-          result = _extract_invoke_result(completed_invocation)
-          _emit_stream_terminal(stream_listener, result) if mode == :stream
-          _complete_result_task(result_task, result)
-        rescue => e
-          translated = _translated_error(e)
-          if mode == :stream && event_loop.current?
-            _emit_stream_error(stream_listener, translated)
-          end
-          _fail_result_task(result_task, translated)
+          _handle_agent_completion(
+            result_task: result_task,
+            invocation: completed_invocation,
+            error: error,
+            mode: mode,
+            listener: stream_listener,
+            event_loop: event_loop,
+            callback_error_policy: callback_error_policy
+          )
         end
 
         # The parent must exist before any child can post an immediate result.
