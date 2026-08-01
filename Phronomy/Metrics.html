@@ -211,7 +211,9 @@ persistent state is held here.</p>
 34
 35
 36
-37</pre>
+37
+38
+39</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/metrics.rb', line 22</span>
@@ -227,6 +229,8 @@ persistent state is held here.</p>
     <span class='label'>blocking_pool_queue_length:</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_queue_depth'>queue_depth</span><span class='comma'>,</span>
     <span class='label'>blocking_pool_abandoned_total:</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_abandoned_count'>abandoned_count</span><span class='comma'>,</span>
     <span class='label'>blocking_pool_size:</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_pool_size'>pool_size</span><span class='comma'>,</span>
+    <span class='label'>event_loop_queue_depth:</span> <span class='id identifier rubyid_el'>el</span><span class='period'>.</span><span class='id identifier rubyid_queue_depth'>queue_depth</span><span class='comma'>,</span>
+    <span class='label'>event_loop_queue_max_depth:</span> <span class='id identifier rubyid_el'>el</span><span class='period'>.</span><span class='id identifier rubyid_max_queue_depth'>max_queue_depth</span><span class='comma'>,</span>
     <span class='label'>event_loop_lag_last_ms:</span> <span class='lparen'>(</span><span class='id identifier rubyid_el'>el</span><span class='period'>.</span><span class='id identifier rubyid_last_lag_seconds'>last_lag_seconds</span> <span class='op'>*</span> <span class='int'>1000</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_round'>round</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>event_loop_lag_max_ms:</span> <span class='lparen'>(</span><span class='id identifier rubyid_el'>el</span><span class='period'>.</span><span class='id identifier rubyid_max_lag_seconds'>max_lag_seconds</span> <span class='op'>*</span> <span class='int'>1000</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_round'>round</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span><span class='comma'>,</span>
     <span class='label'>event_loop_lag_average_ms:</span> <span class='lparen'>(</span><span class='id identifier rubyid_el'>el</span><span class='period'>.</span><span class='id identifier rubyid_average_lag_seconds'>average_lag_seconds</span> <span class='op'>*</span> <span class='int'>1000</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_round'>round</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span>
@@ -242,7 +246,7 @@ persistent state is held here.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Aug  1 03:37:02 2026 by
+  Generated on Sat Aug  1 06:07:07 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

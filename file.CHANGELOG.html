@@ -71,6 +71,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 AgentInvocation without blocking the caller and return a <code>Phronomy::Task</code>.</li>
 <li>Streaming invocations resumed through <code>approve_async</code> continue to deliver
 terminal stream events on the Runtime-owned EventLoop thread.</li>
+<li><code>Phronomy::Metrics.snapshot</code> now reports <code>event_loop_queue_depth</code> and
+<code>event_loop_queue_max_depth</code>.</li>
+<li>EventLoop emits a rate-limited warning when its shared event queue reaches
+1,000 pending entries. Events are observed only; they are not dropped.</li>
 </ul>
 <h3 id="Removed">Removed</h3>
 <ul>
@@ -85,6 +89,8 @@ concern. A failed AgentInvocation is no longer started again by Phronomy.</li>
 <li><code>max_parallel_tools</code> from Agent, AgentInvocation, ParallelToolChat, and
 InvocationContext.</li>
 <li>Unused <code>InvocationContext#provider_limits</code>.</li>
+<li><code>Configuration#stream_queue_max_size</code>, which no longer affected the
+Runtime-owned EventLoop streaming path.</li>
 </ul>
 <h3 id="Changed">Changed</h3>
 <ul>
@@ -1334,7 +1340,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sat Aug  1 03:37:02 2026 by
+  Generated on Sat Aug  1 06:07:07 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
