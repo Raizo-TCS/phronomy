@@ -10,6 +10,22 @@ module Phronomy
     #
     # @api private
     module AsyncEventApi
+      # Invokes the agent synchronously and returns the terminal result.
+      #
+      # Provider errors are translated after the configured LLM adapter returns
+      # its final result. Phronomy does not replay the Agent invocation.
+      #
+      # @param input [String, Hash] user input for this invocation
+      # @param messages [Array<RubyLLM::Message>] conversation history
+      # @param thread_id [String, nil] conversation thread identifier
+      # @param config [Hash] additional runtime options
+      # @param invocation_context [Phronomy::InvocationContext, nil]
+      #   first-class invocation context
+      # @param on_event [Proc, nil] listener for lifecycle and Tool events
+      # @return [Hash] terminal invocation result
+      # @raise [Phronomy::SchedulerReentrancyError] when called from the
+      #   EventLoop thread or a guarded scheduler context
+      # @api public
       def invoke(
         input,
         messages: [],
@@ -43,6 +59,23 @@ module Phronomy
         end
       end
 
+      # Invokes the agent asynchronously.
+      #
+      # The returned Task settles after the terminal event listener returns.
+      # Lifecycle and Tool events are delivered from the Runtime-owned
+      # EventLoop thread.
+      #
+      # @param input [String, Hash] user input for this invocation
+      # @param messages [Array<RubyLLM::Message>] conversation history
+      # @param thread_id [String, nil] conversation thread identifier
+      # @param config [Hash] additional runtime options
+      # @param invocation_context [Phronomy::InvocationContext, nil]
+      #   first-class invocation context
+      # @param on_tool_approval_required [Proc, nil] per-invocation approval
+      #   notification listener
+      # @param on_event [Proc, nil] listener for lifecycle and Tool events
+      # @return [Phronomy::Task] Task resolving to the terminal result
+      # @api public
       def invoke_async(
         input,
         messages: [],
@@ -80,6 +113,26 @@ module Phronomy
         result_task
       end
 
+      # Invokes the agent asynchronously and emits streaming events.
+      #
+      # Accepts either +on_event:+ or a block. Supplying both is rejected.
+      # Token events are emitted only by streaming invocations; lifecycle and
+      # Tool events use the same contract as {#invoke_async}.
+      #
+      # @param input [String, Hash] user input for this invocation
+      # @param messages [Array<RubyLLM::Message>] conversation history
+      # @param thread_id [String, nil] conversation thread identifier
+      # @param config [Hash] additional runtime options
+      # @param invocation_context [Phronomy::InvocationContext, nil]
+      #   first-class invocation context
+      # @param on_tool_approval_required [Proc, nil] per-invocation approval
+      #   notification listener
+      # @param on_event [Proc, nil] event listener
+      # @yieldparam event [Phronomy::Agent::StreamEvent]
+      # @return [Phronomy::Task] Task resolving to the terminal result
+      # @raise [ArgumentError] when no listener is supplied or both listener
+      #   forms are supplied
+      # @api public
       def stream_async(
         input,
         messages: [],
@@ -125,6 +178,28 @@ module Phronomy
         result_task
       end
 
+      # Invokes the agent synchronously and emits streaming events.
+      #
+      # Accepts either +on_event:+ or a block. Event callbacks run on the
+      # Runtime-owned EventLoop thread; the calling thread waits for the final
+      # Task result.
+      #
+      # @param input [String, Hash] user input for this invocation
+      # @param messages [Array<RubyLLM::Message>] conversation history
+      # @param thread_id [String, nil] conversation thread identifier
+      # @param config [Hash] additional runtime options
+      # @param invocation_context [Phronomy::InvocationContext, nil]
+      #   first-class invocation context
+      # @param on_tool_approval_required [Proc, nil] per-invocation approval
+      #   notification listener
+      # @param on_event [Proc, nil] event listener
+      # @yieldparam event [Phronomy::Agent::StreamEvent]
+      # @return [Hash] terminal invocation result
+      # @raise [ArgumentError] when no listener is supplied or both listener
+      #   forms are supplied
+      # @raise [Phronomy::SchedulerReentrancyError] when called from the
+      #   EventLoop thread or a guarded scheduler context
+      # @api public
       def stream(
         input,
         messages: [],
@@ -182,6 +257,7 @@ module Phronomy
       # Cancellation is checked by the first Agent entry action on the EventLoop
       # thread so even pre-cancelled invocations produce a terminal event before
       # the returned Task settles.
+      # @api private
       def _start_invocation(
         result_task,
         input,
@@ -396,6 +472,12 @@ module Phronomy
         event_loop.register(session, completion: completion)
       end
 
+      # Resumes a suspended AgentInvocation and its pending Tool sessions.
+      #
+      # Parent completion handling is installed before EventLoop registration,
+      # and the parent session is registered before child sessions so immediate
+      # child events cannot be lost.
+      # @api private
       def _start_approval_resume(
         result_task,
         invocation,

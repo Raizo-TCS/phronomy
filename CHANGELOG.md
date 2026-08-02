@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Refactor: `Agent::AsyncEventApi` is now the single implementation of
+  `invoke`, `invoke_async`, `stream`, `stream_async`, and their session
+  lifecycle helpers (`_start_invocation`, `_handle_agent_completion`,
+  `_register_tool_invocation_session`, `_start_approval_resume`). The
+  duplicate definitions in `Agent::Base` have been removed. No public
+  behavior change is intended.
+
 ### Added
 
 - `Workflow#signal(thread_id:, event:, payload:)` for FIFO delivery to a live
