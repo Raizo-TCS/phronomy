@@ -109,4 +109,17 @@ RSpec.describe Phronomy::Agent::PhaseMachineBuilder do
       expect(tracker.phase).to eq("waiting_for_tools")
     end
   end
+
+  describe "entry action validation" do
+    it "raises InvalidAsyncEntryActionError when an entry action returns a Task" do
+      task_action = ->(_ctx) { Phronomy::Task.deferred(name: "bad-action") }
+      klass = described_class.new(
+        entry_actions: {filtering_input: [task_action]}
+      ).build
+      t = klass.new
+      t.context = context
+      expect { t.state_completed }
+        .to raise_error(Phronomy::InvalidAsyncEntryActionError)
+    end
+  end
 end

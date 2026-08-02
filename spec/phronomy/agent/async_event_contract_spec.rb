@@ -235,4 +235,48 @@ RSpec.describe "Agent async event contract" do
     expect(value[:output]).to eq("answer")
     expect(task.wait_result[:output]).to eq("answer")
   end
+
+  it "invoke_async passes invocation_context: through to config" do
+    ic = Phronomy::InvocationContext.new(thread_id: "ctx-thread")
+    events = []
+    result = SymmetricAsyncEventAgent.new.invoke_async(
+      "hello",
+      invocation_context: ic,
+      on_event: ->(event) { events << event.type }
+    ).wait_result
+    expect(result[:output]).to eq("answer")
+    expect(events).to eq([:done])
+  end
+
+  it "stream_async passes invocation_context: through to config" do
+    ic = Phronomy::InvocationContext.new(thread_id: "ctx-stream")
+    events = []
+    SymmetricAsyncEventAgent.new.stream_async(
+      "hello",
+      invocation_context: ic,
+      on_event: ->(event) { events << event.type }
+    ).wait_result
+    expect(events).to include(:done)
+  end
+
+  it "stream passes invocation_context: through to config" do
+    ic = Phronomy::InvocationContext.new(thread_id: "ctx-stream-sync")
+    events = []
+    SymmetricAsyncEventAgent.new.stream(
+      "hello",
+      invocation_context: ic,
+      on_event: ->(event) { events << event.type }
+    )
+    expect(events).to include(:done)
+  end
+
+  it "stream_async raises ArgumentError when on_event: and block are both given" do
+    expect {
+      SymmetricAsyncEventAgent.new.stream_async(
+        "hello",
+        on_event: ->(_event) {},
+        &->(_event) {}
+      )
+    }.to raise_error(ArgumentError, /on_event.*block|block.*on_event/i)
+  end
 end
