@@ -56,7 +56,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Filters, an
 | **`stream` / `stream_async`** — callbacks execute on the EventLoop thread and must return quickly; the block form remains a compatibility alias for `on_event:` | Beta |
 | **`stream_callback_error_policy`** — Backward-compatible setting shared by `invoke_async` and `stream_async` terminal `on_event:` callbacks: `:report` (default) preserves the Agent result, while `:fail_task` fails the returned Task with `Phronomy::StreamCallbackError`; Agent execution errors are never replaced by callback errors | Beta |
 | **`invoke_async` / `call_async`** — `Agent::Base#invoke_async` and `Workflow#invoke_async` return a `Task`; `Agent::Context::Capability::Base#call_async` similarly; compatible with EventLoop and standalone contexts | Stable |
-| **`Task#map`** — transforms a Task's completed value and propagates failure/cancellation; Workflow entry actions do not await mapped Tasks | Stable |
+| **`Task#map`** — transforms a Task's completed value and propagates failure/cancellation; Workflow entry and transition actions do not await mapped Tasks | Stable |
 | **CancellationToken** — Cooperative cancellation via `cancel!`/`cancelled?`/`raise_if_cancelled!`; `timeout_after(seconds)` for monotonic-clock deadlines; optional `deadline:` (wall-clock) for backward compatibility; passed as `config: { cancellation_token: token }` to agents and `dispatch_parallel`; injected into `tool.execute` when the method declares a `cancellation_token:` keyword; bridged to `MCP::Cancellation` in `Phronomy::Tools::Mcp#execute` | Experimental |
 | **`dispatch_parallel` / `fan_out` `force_kill:` option** — `force_kill: false` (default) leaves timed-out workers running and raises `TimeoutError` immediately; `force_kill: true` restores the old `Thread#kill` behaviour with a `logger.warn` | Beta |
 | **`execution_mode` DSL on `Agent::Context::Capability::Base`** — Declares how a tool's `execute` should be dispatched: `:cooperative` (same scheduler thread), `:blocking_io` (default; offloaded to `BlockingAdapterPool`), `:cpu_bound`, `:external_process`; Tool-specific timeout/retry belongs to the Tool implementation or its client | Experimental |
@@ -352,6 +352,55 @@ end
 
 The application owns payload interpretation, correlation, and field updates.
 Phronomy does not automatically copy Agent results into WorkflowContext.
+
+Transitions may define an `action:` callback in addition to a `guard:`:
+
+```ruby
+transition(
+  from: :review,
+  on: :approved,
+  to: :publish,
+  guard: ->(context, event) {
+    event.payload[:request_id] == context.request_id
+  },
+  action: ->(context, event) {
+    context.merge(approved_by: event.payload[:reviewer])
+  }
+)
+```
+
+The callback order for a successful transition is:
+
+```text
+source exit callbacks
+-> selected transition action
+-> target entry callbacks
+```
+
+Transition actions may accept either `(context)` or `(context, event)`. A
+returned Workflow context replaces the current context before target entry
+callbacks run. Returning `nil` or another non-context value preserves the
+current context.
+
+Like entry actions, transition actions are synchronous Run-to-Completion
+callbacks. They may start asynchronous work and register a listener that later
+calls `Workflow#signal`, but they must return the context or `nil` immediately.
+Returning `Phronomy::Task` raises
+`Phronomy::InvalidAsyncTransitionActionError`; Phronomy does not implicitly
+await it.
+
+For a transition with `on:`, the two-argument action receives the external
+`Phronomy::Event`. For an automatic transition without `on:`, it receives the
+internal event:
+
+```text
+event.type    == :state_completed
+event.payload == nil
+```
+
+When several transitions have the same source and event, guards are evaluated
+in declaration order. The first matching transition is selected, and only that
+transition's action runs.
 
 ### Multi-Agent — Agent-as-Tool pattern
 

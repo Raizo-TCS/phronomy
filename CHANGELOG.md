@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Workflow#signal(thread_id:, event:, payload:)` for FIFO delivery to a live
   Workflow FSMSession.
+- Workflow transition `action:` callbacks, executed after source exit callbacks
+  and before target entry callbacks. Actions may accept `(context)` or
+  `(context, event)` and may return a replacement Workflow context.
+- `InvalidAsyncWorkflowActionError` and
+  `InvalidAsyncTransitionActionError`. Transition actions may start async work,
+  but returning a `Phronomy::Task` is rejected rather than implicitly awaited.
 - Symmetric Agent `on_event:` support for `invoke_async` and `stream_async`;
   streaming differs only by adding `:token` events.
 - `Agent#approve_async` and `Agent::Base.approve_async` resume a suspended
@@ -48,6 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Workflow#invoke`, `#invoke_async`, and `#stream` now share context
   preparation, StateStore load/save, EventLoop registration, and FSMSession
   execution.
+- Workflow entry and transition action return values use the same
+  `set_graph_metadata` context protocol as FSMSession, including duck-typed
+  context replacements.
 - Agent terminal outcomes are delivered to `on_event` before the returned Task
   is settled. `Task#on_complete`, `wait_result`, and cancellation remain active.
 - Mapping Agent events to Workflow events, correlation, stale-event handling,

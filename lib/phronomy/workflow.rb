@@ -113,14 +113,21 @@ module Phronomy
         @wait_state_names << name
       end
 
-      # Guards may accept either (context) or (context, event).
-      def transition(from:, to:, guard: nil, on: nil)
+      # Declares a transition.
+      #
+      # Guards and actions may accept either (context) or (context, event).
+      # Transition actions are synchronous Run-to-Completion callbacks executed
+      # after the source exit callbacks and before the target entry callbacks.
+      # They may start asynchronous work and register listeners, but returning
+      # Phronomy::Task is an error; completion must arrive as a later event.
+      def transition(from:, to:, guard: nil, on: nil, action: nil)
         destination = (to == :__finish__) ? FINISH : to
         @transitions << {
           from: from,
           to: destination,
           guard: guard,
-          on: on
+          on: on,
+          action: action
         }
       end
 
@@ -136,13 +143,17 @@ module Phronomy
             external_events[event_name] << {
               from: transition[:from],
               to: transition[:to],
-              guard: transition[:guard]
+              guard: transition[:guard],
+              action: transition[:action],
+              event: event_name
             }
           else
             auto_transitions << {
               from: transition[:from],
               to: transition[:to],
-              guard: transition[:guard]
+              guard: transition[:guard],
+              action: transition[:action],
+              event: :state_completed
             }
           end
         end

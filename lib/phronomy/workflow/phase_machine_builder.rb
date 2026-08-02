@@ -37,58 +37,38 @@ module Phronomy
         external_events = @external_events
         entry_actions = @entry_actions
         exit_actions = @exit_actions
-        guard_caller = method(:call_guard)
+        condition_builder = method(:build_transition_condition)
         entry_callback_builder = method(:build_entry_callback)
         exit_callback_builder = method(:build_exit_callback)
+        transition_callback = build_transition_action_callback
 
         Class.new do
-          attr_accessor :context, :current_event
+          attr_accessor(
+            :context,
+            :current_event,
+            :selected_transition_action,
+            :selected_transition_metadata
+          )
 
           state_machine :phase, initial: entry do
             all_states.each { |state_name| state state_name }
 
             event :state_completed do
               auto_transitions.each do |transition_definition|
-                if transition_definition[:guard]
-                  guard = transition_definition[:guard]
-                  transition(
-                    transition_definition[:from] => transition_definition[:to],
-                    :if => ->(machine) {
-                      guard_caller.call(
-                        guard,
-                        machine.context,
-                        machine.current_event
-                      )
-                    }
-                  )
-                else
-                  transition(
-                    transition_definition[:from] => transition_definition[:to]
-                  )
-                end
+                transition(
+                  transition_definition[:from] => transition_definition[:to],
+                  :if => condition_builder.call(transition_definition)
+                )
               end
             end
 
             external_events.each do |event_name, transitions|
               event event_name do
                 transitions.each do |transition_definition|
-                  if transition_definition[:guard]
-                    guard = transition_definition[:guard]
-                    transition(
-                      transition_definition[:from] => transition_definition[:to],
-                      :if => ->(machine) {
-                        guard_caller.call(
-                          guard,
-                          machine.context,
-                          machine.current_event
-                        )
-                      }
-                    )
-                  else
-                    transition(
-                      transition_definition[:from] => transition_definition[:to]
-                    )
-                  end
+                  transition(
+                    transition_definition[:from] => transition_definition[:to],
+                    :if => condition_builder.call(transition_definition)
+                  )
                 end
               end
             end
@@ -102,6 +82,9 @@ module Phronomy
               end
             end
 
+            # Both source exit callbacks and the transition action are
+            # before_transition callbacks. Register exits first to preserve the
+            # required exit -> transition action -> entry ordering.
             exit_actions.each do |state_name, callables|
               callables.each do |callable|
                 before_transition(
@@ -110,6 +93,8 @@ module Phronomy
                 )
               end
             end
+
+            before_transition(&transition_callback)
           end
         end
       rescue => error
@@ -117,6 +102,51 @@ module Phronomy
       end
 
       private
+
+      def build_transition_condition(transition_definition)
+        guard = transition_definition[:guard]
+        action = transition_definition[:action]
+        metadata = {
+          from: transition_definition[:from],
+          event: transition_definition[:event],
+          to: public_destination(transition_definition[:to])
+        }.freeze
+
+        ->(machine) {
+          matched =
+            guard.nil? ||
+            call_with_optional_event(
+              guard,
+              machine.context,
+              machine.current_event
+            )
+
+          if matched
+            machine.selected_transition_action = action
+            machine.selected_transition_metadata = metadata
+          end
+          matched
+        }
+      end
+
+      def build_transition_action_callback
+        ->(machine) {
+          callable = machine.selected_transition_action
+          unless callable.nil?
+            metadata = machine.selected_transition_metadata || {}
+            result = call_with_optional_event(
+              callable,
+              machine.context,
+              machine.current_event
+            )
+            if result.is_a?(Phronomy::Task)
+              raise Phronomy::InvalidAsyncTransitionActionError,
+                transition_task_error_message(metadata)
+            end
+            machine.context = result if workflow_context_result?(result)
+          end
+        }
+      end
 
       def build_entry_callback(callable, state_name)
         ->(machine) {
@@ -127,7 +157,7 @@ module Phronomy
               "Start the asynchronous operation, register its callback/listener, " \
               "and return the WorkflowContext or nil."
           end
-          machine.context = result if result.is_a?(Phronomy::WorkflowContext)
+          machine.context = result if workflow_context_result?(result)
         }
       end
 
@@ -142,15 +172,33 @@ module Phronomy
         }
       end
 
-      def call_guard(guard, context, event)
+      def call_with_optional_event(callable, context, event)
         parameters =
-          if guard.respond_to?(:parameters)
-            guard.parameters
+          if callable.respond_to?(:parameters)
+            callable.parameters
           else
-            guard.method(:call).parameters
+            callable.method(:call).parameters
           end
         accepts_event = parameters.length >= 2
-        accepts_event ? guard.call(context, event) : guard.call(context)
+        accepts_event ? callable.call(context, event) : callable.call(context)
+      end
+
+      def workflow_context_result?(result)
+        result.respond_to?(:set_graph_metadata)
+      end
+
+      def public_destination(destination)
+        return :__finish__ if destination == Phronomy::WorkflowRunner::FINISH
+
+        destination
+      end
+
+      def transition_task_error_message(metadata)
+        "Transition action " \
+          "#{metadata[:from].inspect} --#{metadata[:event].inspect}--> " \
+          "#{metadata[:to].inspect} returned Phronomy::Task. " \
+          "Start the asynchronous operation, register its callback/listener, " \
+          "and return the WorkflowContext or nil."
       end
     end
   end

@@ -134,6 +134,7 @@ module Phronomy
       end
 
       @tracker.context = @ctx
+      clear_selected_transition!
       @tracker.current_event = event if @tracker.respond_to?(:current_event=)
       transitioned = fire_event!(@tracker, event.type, @current_state)
       return unless transitioned
@@ -145,6 +146,18 @@ module Phronomy
       advance_or_halt
     ensure
       @tracker.current_event = nil if @tracker&.respond_to?(:current_event=)
+      clear_selected_transition!
+    end
+
+    def clear_selected_transition!
+      return unless @tracker
+
+      if @tracker.respond_to?(:selected_transition_action=)
+        @tracker.selected_transition_action = nil
+      end
+      if @tracker.respond_to?(:selected_transition_metadata=)
+        @tracker.selected_transition_metadata = nil
+      end
     end
 
     def advance_or_halt

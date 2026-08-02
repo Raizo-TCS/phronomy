@@ -22,6 +22,15 @@ RSpec.describe "public event-driven API" do
     expect(stream_parameters).to include([:key, :on_event])
   end
 
+  it "exposes action: on Workflow transition definitions" do
+    transition_parameters =
+      Phronomy::Workflow::Builder
+        .instance_method(:transition)
+        .parameters
+
+    expect(transition_parameters).to include([:key, :action])
+  end
+
   it "does not expose an implicit activity DSL" do
     builder_methods =
       Phronomy::Workflow::Builder.public_instance_methods

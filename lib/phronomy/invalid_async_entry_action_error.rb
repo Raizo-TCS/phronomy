@@ -5,5 +5,5 @@ module Phronomy
   #
   # Entry actions are Run-to-Completion callbacks. They may start asynchronous
   # work, but completion must return through a later explicit event.
-  class InvalidAsyncEntryActionError < Error; end
+  class InvalidAsyncEntryActionError < InvalidAsyncWorkflowActionError; end
 end
