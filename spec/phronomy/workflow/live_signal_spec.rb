@@ -55,14 +55,24 @@ RSpec.describe Phronomy::Workflow, "#signal" do
   end
 
   it "passes payloads to two-argument guards and ignores rejected events" do
+    probe_ack = Queue.new
     correlated_context = Class.new do
       include Phronomy::WorkflowContext
 
       field :request_id
+
+      # :probe is a FIFO barrier: consumed here so guard-mismatch dispatch
+      # is guaranteed complete before the test checks task state.
+      define_method(:handle_fsm_event) do |event|
+        if event.type == :probe
+          probe_ack << true
+          return :consume
+        end
+        false
+      end
     end
 
     entered = Queue.new
-    guard_rejected = Queue.new
     workflow = Phronomy::Workflow.define(correlated_context) do
       initial :waiting
       state :waiting, action: ->(context) {
@@ -76,9 +86,7 @@ RSpec.describe Phronomy::Workflow, "#signal" do
         on: :complete,
         to: :done,
         guard: ->(context, event) {
-          result = event.payload[:request_id] == context.request_id
-          guard_rejected << true unless result
-          result
+          event.payload[:request_id] == context.request_id
         }
       )
       transition from: :done, to: :__finish__
@@ -95,7 +103,17 @@ RSpec.describe Phronomy::Workflow, "#signal" do
       event: :complete,
       payload: {request_id: "stale"}
     )
-    Timeout.timeout(1) { guard_rejected.pop }
+    # :probe is FIFO after the stale event; when probe is consumed by the
+    # context the guard-mismatch dispatch is guaranteed complete.
+    # post_to_session bypasses signal's event-name guard intentionally.
+    Phronomy::Runtime.instance.event_loop.post_to_session(
+      Phronomy::Event.new(
+        type: :probe,
+        target_id: "guarded-workflow",
+        payload: nil
+      )
+    )
+    Timeout.timeout(1) { probe_ack.pop }
     expect(task).not_to be_done
 
     workflow.signal(

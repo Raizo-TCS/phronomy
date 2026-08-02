@@ -104,10 +104,10 @@ RSpec.describe "event-driven Workflow actions" do
 
   it "lets application context consume a stale correlated event" do
     entered = Queue.new
-    stale_ack = Queue.new
+    probe_ack = Queue.new
 
-    # Context class that signals when a stale event is consumed, enabling
-    # deterministic verification without relying on timing.
+    # Context that handles :probe events as a FIFO barrier: when probe is
+    # processed, all earlier events in the same EventLoop queue are done.
     stale_context = Class.new do
       include Phronomy::WorkflowContext
 
@@ -118,13 +118,13 @@ RSpec.describe "event-driven Workflow actions" do
       define_method(:handle_fsm_event) do |event|
         case event.type
         when :generation_completed
-          unless event.payload[:request_id] == request_id
-            stale_ack << true
-            return :consume
-          end
+          return :consume unless event.payload[:request_id] == request_id
 
           self.answer = event.payload[:answer]
           self.events = events + [:generation_completed]
+        when :probe
+          probe_ack << true
+          return :consume
         end
         false
       end
@@ -160,7 +160,17 @@ RSpec.describe "event-driven Workflow actions" do
       )
     ).to be(true)
 
-    Timeout.timeout(1) { stale_ack.pop }
+    # :probe is FIFO after the stale event; when probe is consumed by the
+    # context the stale event dispatch is guaranteed complete.
+    # post_to_session bypasses signal's event-name guard intentionally.
+    Phronomy::Runtime.instance.event_loop.post_to_session(
+      Phronomy::Event.new(
+        type: :probe,
+        target_id: "workflow-stale",
+        payload: nil
+      )
+    )
+    Timeout.timeout(1) { probe_ack.pop }
     expect(task).not_to be_done
 
     workflow.signal(

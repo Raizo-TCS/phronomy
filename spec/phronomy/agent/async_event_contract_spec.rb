@@ -244,18 +244,25 @@ RSpec.describe "Agent async event contract" do
 
   it "invoke_async passes invocation_context: through to config" do
     ic = Phronomy::InvocationContext.new(thread_id: "ctx-thread")
-    agent = SymmetricAsyncEventAgent.new
-    expect(agent).to receive(:_apply_invocation_context).with(
-      anything, anything, ic
-    ).and_call_original
+    captured_config = nil
+    allow(Phronomy::Agent::AgentInvocationSessionBuilder)
+      .to receive(:build)
+      .and_wrap_original do |original, **kwargs|
+        captured_config = kwargs[:config]
+        original.call(**kwargs)
+      end
     events = []
-    result = agent.invoke_async(
+    result = SymmetricAsyncEventAgent.new.invoke_async(
       "hello",
       invocation_context: ic,
       on_event: ->(event) { events << event.type }
     ).wait_result
     expect(result[:output]).to eq("answer")
     expect(events).to eq([:done])
+    expect(captured_config).to include(
+      invocation_context: ic,
+      thread_id: "ctx-thread"
+    )
   end
 
   it "stream_async passes invocation_context: through to config" do
