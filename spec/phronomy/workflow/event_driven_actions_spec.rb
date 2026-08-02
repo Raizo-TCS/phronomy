@@ -104,8 +104,33 @@ RSpec.describe "event-driven Workflow actions" do
 
   it "lets application context consume a stale correlated event" do
     entered = Queue.new
+    stale_ack = Queue.new
 
-    workflow = Phronomy::Workflow.define(context_class) do
+    # Context class that signals when a stale event is consumed, enabling
+    # deterministic verification without relying on timing.
+    stale_context = Class.new do
+      include Phronomy::WorkflowContext
+
+      field :request_id
+      field :answer
+      field :events, type: :append, default: -> { [] }
+
+      define_method(:handle_fsm_event) do |event|
+        case event.type
+        when :generation_completed
+          unless event.payload[:request_id] == request_id
+            stale_ack << true
+            return :consume
+          end
+
+          self.answer = event.payload[:answer]
+          self.events = events + [:generation_completed]
+        end
+        false
+      end
+    end
+
+    workflow = Phronomy::Workflow.define(stale_context) do
       initial :generating
       state :generating, action: ->(context) {
         entered << true
@@ -135,7 +160,7 @@ RSpec.describe "event-driven Workflow actions" do
       )
     ).to be(true)
 
-    sleep 0.01
+    Timeout.timeout(1) { stale_ack.pop }
     expect(task).not_to be_done
 
     workflow.signal(

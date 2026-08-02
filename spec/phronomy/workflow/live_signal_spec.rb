@@ -62,6 +62,7 @@ RSpec.describe Phronomy::Workflow, "#signal" do
     end
 
     entered = Queue.new
+    guard_rejected = Queue.new
     workflow = Phronomy::Workflow.define(correlated_context) do
       initial :waiting
       state :waiting, action: ->(context) {
@@ -75,7 +76,9 @@ RSpec.describe Phronomy::Workflow, "#signal" do
         on: :complete,
         to: :done,
         guard: ->(context, event) {
-          event.payload[:request_id] == context.request_id
+          result = event.payload[:request_id] == context.request_id
+          guard_rejected << true unless result
+          result
         }
       )
       transition from: :done, to: :__finish__
@@ -92,7 +95,7 @@ RSpec.describe Phronomy::Workflow, "#signal" do
       event: :complete,
       payload: {request_id: "stale"}
     )
-    sleep 0.01
+    Timeout.timeout(1) { guard_rejected.pop }
     expect(task).not_to be_done
 
     workflow.signal(

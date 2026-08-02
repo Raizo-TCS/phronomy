@@ -1,8 +1,15 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "timeout"
 
 RSpec.describe Phronomy::GeneratorVerifier do
+  # Bounds a pipeline.invoke call so a regression that causes the Workflow
+  # to hang surfaces as a test failure instead of a CI stall.
+  def invoke_bounded(pipeline, input, seconds: 3)
+    Timeout.timeout(seconds) { pipeline.invoke(input) }
+  end
+
   def stub_agent(output_json, delay: 0, observed: nil)
     output = output_json
     Class.new(Phronomy::Agent::Base) do
@@ -111,7 +118,7 @@ RSpec.describe Phronomy::GeneratorVerifier do
       )
     )
 
-    result = pipeline.invoke("What is the refund policy?")
+    result = invoke_bounded(pipeline, "What is the refund policy?")
 
     expect(observed_listeners).to all(be_a(Proc))
     expect(result).to be_trusted
@@ -125,14 +132,14 @@ RSpec.describe Phronomy::GeneratorVerifier do
       review_agent: stub_agent(approval_json, delay: 0.01)
     )
 
-    expect { pipeline.invoke("test") }.not_to raise_error
+    expect { invoke_bounded(pipeline, "test") }.not_to raise_error
   end
 
   it "populates citations and combined confidence" do
-    result = build_pipeline(
-      draft_agent: good_draft,
-      review_agent: approve
-    ).invoke("test")
+    result = invoke_bounded(
+      build_pipeline(draft_agent: good_draft, review_agent: approve),
+      "test"
+    )
 
     expect(result.citations.first[:source]).to eq("refund_policy.md")
     expect(result.citations.first[:excerpt]).to include("30-day")
@@ -140,12 +147,15 @@ RSpec.describe Phronomy::GeneratorVerifier do
   end
 
   it "retries until max_iterations and accumulates feedback" do
-    result = build_pipeline(
-      draft_agent: low_draft,
-      review_agent: reject,
-      confidence_threshold: 0.7,
-      max_iterations: 2
-    ).invoke("test")
+    result = invoke_bounded(
+      build_pipeline(
+        draft_agent: low_draft,
+        review_agent: reject,
+        confidence_threshold: 0.7,
+        max_iterations: 2
+      ),
+      "test"
+    )
 
     expect(result).not_to be_trusted
     expect(result.iterations).to eq(2)
@@ -167,7 +177,7 @@ RSpec.describe Phronomy::GeneratorVerifier do
       max_iterations: 2
     )
 
-    pipeline.invoke("test")
+    invoke_bounded(pipeline, "test")
 
     expect(feedbacks[0]).to be_nil
     expect(feedbacks[1]).to include("Missing citation")
@@ -189,7 +199,7 @@ RSpec.describe Phronomy::GeneratorVerifier do
       }
     )
 
-    result = pipeline.invoke("test")
+    result = invoke_bounded(pipeline, "test")
 
     expect(draft_parser_called).to be(true)
     expect(review_parser_called).to be(true)
@@ -197,11 +207,14 @@ RSpec.describe Phronomy::GeneratorVerifier do
   end
 
   it "uses safe parser fallbacks for unparseable Agent output" do
-    result = build_pipeline(
-      draft_agent: unparseable,
-      review_agent: unparseable,
-      max_iterations: 1
-    ).invoke("test")
+    result = invoke_bounded(
+      build_pipeline(
+        draft_agent: unparseable,
+        review_agent: unparseable,
+        max_iterations: 1
+      ),
+      "test"
+    )
 
     expect(result.output).to eq("I think it looks fine!")
     expect(result.confidence).to eq(0.0)
@@ -214,7 +227,7 @@ RSpec.describe Phronomy::GeneratorVerifier do
       review_agent: approve
     )
 
-    expect { pipeline.invoke("test") }
+    expect { invoke_bounded(pipeline, "test") }
       .to raise_error(RuntimeError, "draft failed")
   end
 
@@ -225,7 +238,7 @@ RSpec.describe Phronomy::GeneratorVerifier do
         review_agent: reject,
         max_iterations: 1
       )
-      expect { pipeline.invoke("test") }.not_to raise_error
+      expect { invoke_bounded(pipeline, "test") }.not_to raise_error
     end
 
     it "does not raise for a trusted result" do
@@ -234,7 +247,7 @@ RSpec.describe Phronomy::GeneratorVerifier do
         review_agent: approve,
         raise_if_untrusted: true
       )
-      expect { pipeline.invoke("test") }.not_to raise_error
+      expect { invoke_bounded(pipeline, "test") }.not_to raise_error
     end
 
     it "raises LowConfidenceError with the result when untrusted" do
@@ -245,7 +258,7 @@ RSpec.describe Phronomy::GeneratorVerifier do
         raise_if_untrusted: true
       )
 
-      expect { pipeline.invoke("test") }
+      expect { invoke_bounded(pipeline, "test") }
         .to raise_error(Phronomy::LowConfidenceError) do |error|
           expect(error.result).to be_a(Phronomy::GeneratorVerifier::Result)
           expect(error.result).not_to be_trusted
@@ -259,9 +272,9 @@ RSpec.describe Phronomy::GeneratorVerifier do
       review_agent: approve
     )
 
-    pipeline.invoke("one")
+    invoke_bounded(pipeline, "one")
     first = pipeline.send(:compiled_workflow)
-    pipeline.invoke("two")
+    invoke_bounded(pipeline, "two")
     second = pipeline.send(:compiled_workflow)
 
     expect(second).to equal(first)

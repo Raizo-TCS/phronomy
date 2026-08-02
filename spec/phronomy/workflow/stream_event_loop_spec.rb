@@ -35,8 +35,11 @@ RSpec.describe "Workflow stream EventLoop integration" do
     end
 
     caller_thread = Thread.current
+    event_loop = Phronomy::Runtime.instance.event_loop
+    on_event_loop = []
     result = workflow.stream({}) do |event|
       callback_threads << Thread.current
+      on_event_loop << event_loop.current?
       states << [event[:state], event[:context].value]
     end
 
@@ -44,6 +47,7 @@ RSpec.describe "Workflow stream EventLoop integration" do
     expect(callback_threads).to all(satisfy { |thread|
       thread != caller_thread
     })
+    expect(on_event_loop).to all(be(true))
     expect(result.value).to eq(2)
   end
 
