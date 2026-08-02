@@ -73,6 +73,9 @@ lifecycle helpers (<code>_start_invocation</code>, <code>_handle_agent_completio
 <code>_register_tool_invocation_session</code>, <code>_start_approval_resume</code>). The
 duplicate definitions in <code>Agent::Base</code> have been removed. No public
 behavior change is intended.</li>
+<li>Remove <code>faraday</code> and <code>event_stream_parser</code> from gemspec declared
+dependencies; both are transitive dependencies of <code>ruby_llm</code> and are
+not used directly by phronomy.</li>
 </ul>
 <h3 id="Added">Added</h3>
 <ul>
@@ -1372,7 +1375,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sun Aug  2 14:04:03 2026 by
+  Generated on Sun Aug  2 15:31:19 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
