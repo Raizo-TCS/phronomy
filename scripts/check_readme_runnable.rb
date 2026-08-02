@@ -29,11 +29,14 @@ PREAMBLE = <<~RUBY
   # Patch invoke methods to return canned responses instead of calling the LLM.
   module Phronomy
     module Agent
-      class Base
+      # Prepend overrides AsyncEventApi (which is also prepended) so invoke
+      # returns a canned response without triggering the EventLoop.
+      module CiInvokeStub
         def invoke(input = nil, **)
           {output: "ci-stub-output", messages: []}
         end
       end
+      Base.prepend(CiInvokeStub)
 
       class Runner
         def invoke(input = nil, **)

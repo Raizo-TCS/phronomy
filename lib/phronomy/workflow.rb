@@ -48,6 +48,7 @@ module Phronomy
     #
     # @return [Boolean] true when admitted; false when the session is not live
     #   or Runtime shutdown has begun
+    # @api public
     def signal(thread_id:, event:, payload: nil)
       @runner.signal(
         thread_id: thread_id,
