@@ -65,6 +65,15 @@
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Changed">Changed</h3>
+<ul>
+<li>Refactor: <code>Agent::AsyncEventApi</code> is now the single implementation of
+<code>invoke</code>, <code>invoke_async</code>, <code>stream</code>, <code>stream_async</code>, and their session
+lifecycle helpers (<code>_start_invocation</code>, <code>_handle_agent_completion</code>,
+<code>_register_tool_invocation_session</code>, <code>_start_approval_resume</code>). The
+duplicate definitions in <code>Agent::Base</code> have been removed. No public
+behavior change is intended.</li>
+</ul>
 <h3 id="Added">Added</h3>
 <ul>
 <li><code>Workflow#signal(thread_id:, event:, payload:)</code> for FIFO delivery to a live
@@ -1363,7 +1372,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sun Aug  2 12:18:44 2026 by
+  Generated on Sun Aug  2 14:04:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
