@@ -4,10 +4,11 @@ require "securerandom"
 
 module Phronomy
   module Agent
-    # Mutable state for one Agent::Base invocation.
+    # Mutable domain state for one Agent invocation.
     #
-    # AgentInvocation is the aggregate root for child ToolInvocation objects.
-    # It does not drive transitions itself; Phronomy::FSMSession does that.
+    # AgentInvocation interprets Agent-internal events. FSMSession owns the
+    # transition mechanics, while Agent::Base projects the terminal outcome to
+    # both the Application listener and the returned Task.
     #
     # @api private
     class AgentInvocation
@@ -20,7 +21,10 @@ module Phronomy
         tool_cancelled
       ].freeze
 
-      STREAM_EVENT_TYPES = %i[llm_stream_chunk].freeze
+      LLM_EVENT_TYPES = %i[
+        llm_completed
+        llm_failed
+      ].freeze
 
       attr_accessor :input,
         :messages,
@@ -31,7 +35,7 @@ module Phronomy
         :output_blocked,
         :block_error,
         :user_message_sent,
-        :stream_listener,
+        :event_listener,
         :approval_request,
         :rejected,
         :error
@@ -45,7 +49,8 @@ module Phronomy
         :pending_tool_calls,
         :tool_invocations,
         :session_id,
-        :phase
+        :phase,
+        :mode
 
       def initialize(
         agent:,
@@ -54,7 +59,9 @@ module Phronomy
         config:,
         approval_policy: nil,
         approval_listener: nil,
+        event_listener: nil,
         stream_listener: nil,
+        mode: nil,
         id: nil
       )
         @agent = agent
@@ -69,7 +76,8 @@ module Phronomy
         end
         @approval_policy = invocation_policy || approval_policy
         @approval_listener = approval_listener
-        @stream_listener = stream_listener
+        @event_listener = event_listener || stream_listener
+        @mode = (mode || (stream_listener ? :stream : :invoke)).to_sym
 
         @chat = nil
         @output = nil
@@ -88,6 +96,19 @@ module Phronomy
         @error = nil
         @session_id = nil
         @phase = nil
+      end
+
+      # Compatibility aliases for existing internal callers.
+      def stream_listener
+        @event_listener
+      end
+
+      def stream_listener=(listener)
+        @event_listener = listener
+      end
+
+      def streaming?
+        @mode == :stream
       end
 
       def set_graph_metadata(thread_id: nil, phase: nil)
@@ -109,11 +130,9 @@ module Phronomy
         @approval_request = nil
       end
 
-      # Consumes child ToolInvocation events. FSMSession calls this on the
-      # EventLoop thread before attempting an optional parent FSM transition.
       def handle_fsm_event(event)
-        if STREAM_EVENT_TYPES.include?(event.type)
-          @stream_listener&.call(
+        if event.type == :llm_stream_chunk
+          deliver_event(
             StreamEvent.new(
               type: :token,
               payload: {content: event.payload.fetch(:content)}
@@ -122,34 +141,47 @@ module Phronomy
           return true
         end
 
+        if LLM_EVENT_TYPES.include?(event.type)
+          apply_llm_event(event)
+          return true
+        end
+
         return false unless TOOL_EVENT_TYPES.include?(event.type)
 
-        invocation = tool_invocation(event.payload&.fetch(:tool_invocation_id, nil))
+        invocation = tool_invocation(
+          event.payload&.fetch(:tool_invocation_id, nil)
+        )
         return true unless invocation
 
         @error ||= invocation.error if invocation.failed? || invocation.cancelled?
         @rejected = true if invocation.rejected?
         if @approval_resume_in_progress &&
             @pending_approval_resolution_ids.delete(invocation.id)
-          @approval_resume_in_progress = false if @pending_approval_resolution_ids.empty?
+          if @pending_approval_resolution_ids.empty?
+            @approval_resume_in_progress = false
+          end
         end
         true
       end
 
-      # Applies an asynchronous LLM operation result on the EventLoop thread.
-      # FSMSession invokes this through its existing apply_fsm_action_result hook.
+      # Deprecated internal compatibility hook. FSMSession no longer calls
+      # this method; asynchronous results enter through explicit events.
       def apply_fsm_action_result(result)
-        return self unless result.is_a?(LLMOperationResult)
-
-        if result.error
-          if result.error.is_a?(ToolCallIntercepted)
-            accept_tool_calls!(result.error.tool_calls)
+        event_type =
+          if result.respond_to?(:error) &&
+              result.error &&
+              !result.error.is_a?(ToolCallIntercepted)
+            :llm_failed
           else
-            raise result.error
+            :llm_completed
           end
-        else
-          apply_llm_response!(result.response)
-        end
+        handle_fsm_event(
+          Phronomy::Event.new(
+            type: event_type,
+            target_id: @id,
+            payload: result
+          )
+        )
         self
       end
 
@@ -158,15 +190,20 @@ module Phronomy
         @pending_tool_calls = Array(tool_calls)
         @messages = @chat.messages
         @pending_tool_calls.each do |tool_call|
-          @stream_listener&.call(
-            StreamEvent.new(type: :tool_call, payload: {tool_call: tool_call})
+          deliver_event(
+            StreamEvent.new(
+              type: :tool_call,
+              payload: {tool_call: tool_call}
+            )
           )
         end
         self
       end
 
       def apply_llm_response!(response)
-        raise Phronomy::Error, "LLM operation completed without a response" unless response
+        unless response
+          raise Phronomy::Error, "LLM operation completed without a response"
+        end
 
         @user_message_sent = true
         @output = response.content
@@ -195,7 +232,9 @@ module Phronomy
           thread_id session_id user_id token_budget
           task_id parent_task_id
         ].each_with_object({}) do |name, result|
-          result[name] = context.public_send(name) if context.respond_to?(name)
+          if context.respond_to?(name)
+            result[name] = context.public_send(name)
+          end
         end
       end
 
@@ -204,7 +243,8 @@ module Phronomy
         @pending_approval_resolution_ids = @tool_invocations
           .select(&:awaiting_approval?)
           .map(&:id)
-        @approval_resume_in_progress = !@pending_approval_resolution_ids.empty?
+        @approval_resume_in_progress =
+          !@pending_approval_resolution_ids.empty?
         self
       end
 
@@ -220,7 +260,7 @@ module Phronomy
             content: invocation.result.to_s,
             tool_call_id: invocation.tool_call_id
           )
-          @stream_listener&.call(
+          deliver_event(
             StreamEvent.new(
               type: :tool_result,
               payload: {
@@ -235,8 +275,6 @@ module Phronomy
         clear_tool_batch!
         self
       end
-
-      # Guard helpers used by Agent::PhaseMachineBuilder.
 
       def input_passed?
         !@input_blocked
@@ -259,7 +297,8 @@ module Phronomy
       end
 
       def preflight_complete?
-        !@tool_invocations.empty? && @tool_invocations.all?(&:preflight_settled?)
+        !@tool_invocations.empty? &&
+          @tool_invocations.all?(&:preflight_settled?)
       end
 
       def approval_required?
@@ -280,19 +319,24 @@ module Phronomy
       end
 
       def tool_batch_terminal?
-        !@tool_invocations.empty? && @tool_invocations.all?(&:terminal?)
+        !@tool_invocations.empty? &&
+          @tool_invocations.all?(&:terminal?)
       end
 
       def tool_batch_failed?
         return false if @human_rejection || @approval_resume_in_progress
 
         no_rejection = @tool_invocations.none?(&:rejected?)
-        preflight_failure = preflight_complete? && @tool_invocations.any? { |invocation|
-          invocation.failed? || invocation.cancelled?
-        }
-        terminal_failure = tool_batch_terminal? && @tool_invocations.any? { |invocation|
-          invocation.failed? || invocation.cancelled?
-        }
+        preflight_failure =
+          preflight_complete? &&
+          @tool_invocations.any? do |invocation|
+            invocation.failed? || invocation.cancelled?
+          end
+        terminal_failure =
+          tool_batch_terminal? &&
+          @tool_invocations.any? do |invocation|
+            invocation.failed? || invocation.cancelled?
+          end
         no_rejection && (preflight_failure || terminal_failure)
       end
 
@@ -303,7 +347,38 @@ module Phronomy
       end
 
       def tool_batch_completed?
-        tool_batch_terminal? && @tool_invocations.all?(&:execution_completed?)
+        tool_batch_terminal? &&
+          @tool_invocations.all?(&:execution_completed?)
+      end
+
+      private
+
+      def apply_llm_event(event)
+        result = event.payload
+        unless result.is_a?(LLMOperationResult)
+          raise Phronomy::Error,
+            "Expected LLMOperationResult, got #{result.class}"
+        end
+
+        if event.type == :llm_failed
+          @error = result.error ||
+            Phronomy::Error.new("LLM operation failed without an error")
+          return
+        end
+
+        if result.error
+          if result.error.is_a?(ToolCallIntercepted)
+            accept_tool_calls!(result.error.tool_calls)
+          else
+            @error = result.error
+          end
+        else
+          apply_llm_response!(result.response)
+        end
+      end
+
+      def deliver_event(event)
+        @event_listener&.call(event)
       end
     end
   end

@@ -212,17 +212,12 @@ module Phronomy
     # If this task fails or is cancelled, the mapped task also fails/is
     # cancelled with the same error.  The block is never called in error cases.
     #
-    # The primary use-case is transforming an agent result into a
-    # {WorkflowContext} so that a Workflow entry action can return a Task
-    # whose value is picked up by {FSMSession} via the existing
-    # +:action_completed+ path:
+    # The transformation runs from the source Task's completion callback.
+    # It is a generic value-composition API; Workflow entry actions do not await
+    # either the source Task or the mapped Task.
     #
-    # @example Returning agent output into a Workflow state field
-    #   entry :translate, ->(ctx) {
-    #     TranslationAgent.new.invoke_async(ctx.query).map do |result|
-    #       ctx.merge(answer: result[:output])   # returns WorkflowContext
-    #     end
-    #   }
+    # @example Transforming an Agent result outside a Workflow entry action
+    #   output_task = agent.invoke_async("hello").map { |result| result[:output] }
     #
     # @yield  [value] the completed value of this task
     # @yieldreturn [Object] the value for the mapped task

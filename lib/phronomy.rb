@@ -127,8 +127,8 @@ module Phronomy
   # result is available. Extends {TimeoutError} for backwards compatibility.
   class ScopeTimeoutError < TimeoutError; end
 
-  # Raised when a Workflow entry/exit action task exceeds the +action_timeout:+
-  # configured for its state.  Extends {TimeoutError}.
+  # Deprecated compatibility constant. Workflow entry/exit actions are
+  # synchronous and the Workflow DSL no longer accepts +action_timeout:+.
   class ActionTimeoutError < TimeoutError; end
 
   # Raised when a {Phronomy::WorkflowContext} field is mutated from a thread

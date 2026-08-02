@@ -1,25 +1,19 @@
 # frozen_string_literal: true
 
 module Phronomy
-  # Runtime-owned event loop that manages all FSMSession instances.
-  #
-  # A dedicated real thread reads from a Runtime-local AsyncQueue and dispatches
-  # events to their target FSMSession. The EventLoop is created at most once by
-  # its owning Runtime and is never restarted after shutdown.
-  #
-  # FSMSession handlers run on the EventLoop thread. They must not perform
-  # blocking work or call synchronous invoke APIs from that thread.
+  # Runtime-owned FIFO event loop for FSMSession instances.
   class EventLoop
     SYSTEM_CHANNEL_ID = "__event_loop__"
 
     QUEUE_BACKLOG_WARNING_THRESHOLD = 1_000
     QUEUE_BACKLOG_WARNING_INTERVAL_SECONDS = 60.0
 
+    TERMINAL_MANAGEMENT_EVENTS = %i[finished halted error].freeze
+    private_constant :TERMINAL_MANAGEMENT_EVENTS
+
     STOP = Object.new.freeze
     private_constant :STOP
 
-    # @param runtime [Phronomy::Runtime] owning Runtime
-    # @api private
     def initialize(runtime:)
       @runtime = runtime
       @queue = Phronomy::Concurrency::AsyncQueue.new
@@ -27,8 +21,15 @@ module Phronomy
       @queue_depth = 0
       @max_queue_depth = 0
       @last_queue_backlog_warning_at = nil
+
+      # @fsms and @waiting are dispatcher-thread-owned.
       @fsms = {}
       @waiting = {}
+
+      # Admission is shared by caller threads and the dispatcher. A session ID
+      # enters this set before its :start event is queued and leaves when its
+      # terminal management event is queued.
+      @admitted_session_ids = Set.new
 
       @lifecycle_mutex = Mutex.new
       @idle_cond = ConditionVariable.new
@@ -47,20 +48,14 @@ module Phronomy
       @task = @runtime.__spawn_event_loop_service { run_loop }
     end
 
-    # @return [Float]
-    # @api private
     def last_lag_seconds
       @lag_mutex.synchronize { @last_lag_ns } / 1_000_000_000.0
     end
 
-    # @return [Float]
-    # @api private
     def max_lag_seconds
       @lag_mutex.synchronize { @max_lag_ns } / 1_000_000_000.0
     end
 
-    # @return [Float]
-    # @api private
     def average_lag_seconds
       @lag_mutex.synchronize do
         return 0.0 if @dispatch_count.zero?
@@ -69,57 +64,54 @@ module Phronomy
       end
     end
 
-    # Number of events currently waiting in the EventLoop queue.
-    # The event being dispatched is not included.
-    # @return [Integer]
-    # @api private
     def queue_depth
       @queue_metrics_mutex.synchronize { @queue_depth }
     end
 
-    # Highest EventLoop queue depth observed during this Runtime lifetime.
-    # @return [Integer]
-    # @api private
     def max_queue_depth
       @queue_metrics_mutex.synchronize { @max_queue_depth }
     end
 
-    # Registers an FSMSession and returns its completion queue.
-    #
-    # +outstanding_sessions+ is incremented before the :start event is enqueued,
-    # so shutdown also accounts for accepted sessions that have not yet been
-    # dispatched.
-    #
-    # @param fsm_session [Phronomy::FSMSession]
-    # @param completion [Phronomy::Task, nil]
-    # @return [Phronomy::Concurrency::AsyncQueue, Phronomy::Task]
-    # @api private
     def register(fsm_session, completion: nil)
       if current? && !completion.is_a?(Phronomy::Task)
         raise Phronomy::Error,
-          "Cannot call synchronous Workflow#invoke from an EventLoop action. " \
+          "Cannot call a synchronous invocation API from an EventLoop action. " \
           "Schedule work asynchronously instead."
       end
 
-      completion_queue = completion || Phronomy::Concurrency::AsyncQueue.new
+      completion_queue =
+        completion || Phronomy::Concurrency::AsyncQueue.new
       scheduler = Phronomy::Runtime::Scheduler.current
-      if scheduler && completion_queue.respond_to?(:expect_cross_thread_push)
+      if scheduler &&
+          completion_queue.respond_to?(:expect_cross_thread_push)
         completion_queue.expect_cross_thread_push(scheduler)
       end
 
       event = Phronomy::Event.new(
         type: :start,
         target_id: SYSTEM_CHANNEL_ID,
-        payload: {session: fsm_session, completion: completion_queue}
+        payload: {
+          session: fsm_session,
+          completion: completion_queue
+        }
       )
       queued_depth = nil
 
       @lifecycle_mutex.synchronize do
         ensure_accepting_registrations!
+        if @admitted_session_ids.include?(fsm_session.id)
+          raise Phronomy::Error,
+            "FSMSession #{fsm_session.id.inspect} is already registered"
+        end
+
+        @admitted_session_ids.add(fsm_session.id)
         @outstanding_sessions += 1
         begin
-          queued_depth = enqueue([event, monotonic_nanoseconds])
+          queued_depth = enqueue(
+            [event, monotonic_nanoseconds]
+          )
         rescue
+          @admitted_session_ids.delete(fsm_session.id)
           @outstanding_sessions -= 1
           @idle_cond.broadcast if @outstanding_sessions.zero?
           raise
@@ -130,20 +122,27 @@ module Phronomy
       completion_queue
     end
 
-    # Posts an event. Returns false after stopping begins.
-    #
-    # Async completion callbacks may race with shutdown, so rejection is a
-    # boolean result rather than an exception.
-    #
-    # @param event [Phronomy::Event]
-    # @return [Boolean]
-    # @api private
+    # Internal post operation. Management terminal events close admission for
+    # their session before the terminal event is enqueued.
     def post(event)
       queued_depth = nil
       accepted = @lifecycle_mutex.synchronize do
         next false unless accepting_events?
 
-        queued_depth = enqueue([event, monotonic_nanoseconds])
+        terminal_session_id = nil
+        if terminal_management_event?(event)
+          terminal_session_id = event.payload.fetch(:session_id)
+          @admitted_session_ids.delete(terminal_session_id)
+        end
+
+        begin
+          queued_depth = enqueue(
+            [event, monotonic_nanoseconds]
+          )
+        rescue
+          @admitted_session_ids.add(terminal_session_id) if terminal_session_id
+          raise
+        end
         true
       end
       return false unless accepted
@@ -152,21 +151,47 @@ module Phronomy
       true
     end
 
-    # Returns true only for this EventLoop's dispatcher Task.
-    # @api private
+    # Posts an event only when the target session has been admitted and has not
+    # queued a terminal management event. The event remains FIFO with all other
+    # EventLoop work.
+    #
+    # A true result reports admission, not transition success.
+    def post_to_session(event)
+      if event.target_id == SYSTEM_CHANNEL_ID
+        raise ArgumentError,
+          "post_to_session cannot target the system channel"
+      end
+
+      queued_depth = nil
+      accepted = @lifecycle_mutex.synchronize do
+        next false unless accepting_events?
+        next false unless @admitted_session_ids.include?(event.target_id)
+
+        queued_depth = enqueue(
+          [event, monotonic_nanoseconds]
+        )
+        true
+      end
+      return false unless accepted
+
+      check_queue_backlog(queued_depth, event)
+      true
+    end
+
+    def admitted_session?(session_id)
+      @lifecycle_mutex.synchronize do
+        @admitted_session_ids.include?(session_id)
+      end
+    end
+
     def current?
       Phronomy::Task.current.equal?(@task)
     end
 
-    # @return [Symbol]
-    # @api private
     def state
       @lifecycle_mutex.synchronize { @state }
     end
 
-    # Stops external admission at the Runtime boundary while allowing already
-    # accepted work to complete on this EventLoop.
-    # @api private
     def begin_draining
       @lifecycle_mutex.synchronize do
         @state = :draining if @state == :running
@@ -174,16 +199,12 @@ module Phronomy
       self
     end
 
-    # @return [Boolean]
-    # @api private
     def idle?
-      @lifecycle_mutex.synchronize { @outstanding_sessions.zero? }
+      @lifecycle_mutex.synchronize do
+        @outstanding_sessions.zero?
+      end
     end
 
-    # Waits until no queued :start or active session remains.
-    # @param deadline [Numeric] absolute monotonic deadline
-    # @return [Boolean] false on timeout
-    # @api private
     def wait_until_idle(deadline)
       @lifecycle_mutex.synchronize do
         until @outstanding_sessions.zero?
@@ -196,17 +217,6 @@ module Phronomy
       end
     end
 
-    # Runtime-only terminal shutdown.
-    #
-    # On graceful timeout the dispatcher is cancelled. It cleans abandoned
-    # waiters from its own thread before exiting so Task completion callbacks
-    # retain EventLoop thread affinity. An idempotent post-join cleanup remains
-    # as a defensive fallback.
-    #
-    # @param deadline [Numeric] absolute monotonic deadline
-    # @param cancel_grace [Numeric] seconds to wait after Task#cancel!
-    # @return [Symbol] :terminated, :cancelled, :cancel_timeout, or :failed
-    # @api private
     def shutdown(deadline:, cancel_grace:)
       @shutdown_mutex.synchronize do
         return @shutdown_status if @shutdown_status
@@ -223,18 +233,17 @@ module Phronomy
           join_until(deadline)
         end
 
-        @shutdown_status = if task_alive?
-          cancel_and_cleanup(cancel_grace)
-        elsif state == :failed
-          :failed
-        else
-          finalize_terminated(:terminated)
-        end
+        @shutdown_status =
+          if task_alive?
+            cancel_and_cleanup(cancel_grace)
+          elsif state == :failed
+            :failed
+          else
+            finalize_terminated(:terminated)
+          end
       end
     end
 
-    # @return [Boolean]
-    # @api private
     def task_alive?
       @task&.alive? || false
     end
@@ -259,7 +268,9 @@ module Phronomy
     rescue Phronomy::CancellationError => error
       if shutdown_cancel_requested?
         cleanup_abandoned_work(
-          Phronomy::CancellationError.new("Runtime shutdown timed out")
+          Phronomy::CancellationError.new(
+            "Runtime shutdown timed out"
+          )
         )
       else
         notify_unexpected_dispatcher_failure(error)
@@ -269,38 +280,53 @@ module Phronomy
       notify_unexpected_dispatcher_failure(error)
       raise
     ensure
-      @lifecycle_mutex.synchronize { @idle_cond.broadcast }
+      @lifecycle_mutex.synchronize do
+        @idle_cond.broadcast
+      end
     end
 
     def dispatch(event)
       if event.target_id == SYSTEM_CHANNEL_ID
         dispatch_management(event)
+        return
+      end
+
+      fsm = @fsms[event.target_id]
+      if fsm
+        fsm.handle(event)
       else
-        fsm = @fsms[event.target_id]
-        if fsm
-          fsm.handle(event)
-        else
-          warn "[Phronomy::EventLoop] Dropped event #{event.type.inspect} — " \
-               "no handler for target_id #{event.target_id.inspect}"
-        end
+        warn(
+          "[Phronomy::EventLoop] Dropped event #{event.type.inspect} — " \
+          "no handler for target_id #{event.target_id.inspect}"
+        )
       end
     end
 
     def dispatch_management(event)
       case event.type
       when :finished, :halted, :error
-        session_id = event.payload[:session_id]
+        session_id = event.payload.fetch(:session_id)
         session = @fsms.delete(session_id)
         waiter = @waiting.delete(session_id)
-        complete_waiter(waiter, event.payload[:result])
+        complete_waiter(
+          waiter,
+          event.payload.fetch(:result)
+        )
         decrement_outstanding if session
       when :start
-        session = event.payload[:session]
+        session = event.payload.fetch(:session)
         waiter = event.payload[:completion]
         @fsms[session.id] = session
         @waiting[session.id] = waiter if waiter
         session.start
       end
+    end
+
+    def terminal_management_event?(event)
+      event.target_id == SYSTEM_CHANNEL_ID &&
+        TERMINAL_MANAGEMENT_EVENTS.include?(event.type) &&
+        event.payload.is_a?(Hash) &&
+        event.payload.key?(:session_id)
     end
 
     def begin_stopping_if_idle
@@ -329,37 +355,43 @@ module Phronomy
       end
 
       if task&.alive?
-        @lifecycle_mutex.synchronize { @state = :failed }
+        @lifecycle_mutex.synchronize do
+          @state = :failed
+        end
         return :cancel_timeout
       end
 
       return :failed if state == :failed
 
-      # Normally already performed by run_loop on the dispatcher thread. This
-      # second call is idempotent and covers cancellation before run_loop enters
-      # its rescue path. Stream completion has its own affinity guard, so the
-      # fallback never invokes an Application listener from this thread.
       cleanup_abandoned_work(
-        Phronomy::CancellationError.new("Runtime shutdown timed out")
+        Phronomy::CancellationError.new(
+          "Runtime shutdown timed out"
+        )
       )
       finalize_terminated(:cancelled)
     end
 
-    # Safe to call repeatedly; the first call drains and clears all waiters.
     def cleanup_abandoned_work(error)
       drain_queued_items.each do |item|
         next if item.equal?(STOP)
 
         event, = item
-        next unless event.target_id == SYSTEM_CHANNEL_ID && event.type == :start
+        next unless event.target_id == SYSTEM_CHANNEL_ID
+        next unless event.type == :start
 
-        complete_waiter(event.payload[:completion], error)
+        complete_waiter(
+          event.payload[:completion],
+          error
+        )
       end
 
-      @waiting.values.each { |waiter| complete_waiter(waiter, error) }
+      @waiting.values.each do |waiter|
+        complete_waiter(waiter, error)
+      end
       @waiting.clear
       @fsms.clear
       @lifecycle_mutex.synchronize do
+        @admitted_session_ids.clear
         @outstanding_sessions = 0
         @idle_cond.broadcast
       end
@@ -376,14 +408,15 @@ module Phronomy
       items
     end
 
-    # Framework failures are reported and made terminal. No automatic restart,
-    # replay, or pending-queue recovery is attempted.
     def notify_unexpected_dispatcher_failure(error)
       @lifecycle_mutex.synchronize do
         @state = :failed
+        @admitted_session_ids.clear
         @idle_cond.broadcast
       end
-      @waiting.values.each { |waiter| complete_waiter(waiter, error) }
+      @waiting.values.each do |waiter|
+        complete_waiter(waiter, error)
+      end
       @runtime.__event_loop_failed(error)
     end
 
@@ -406,7 +439,9 @@ module Phronomy
 
     def decrement_outstanding
       @lifecycle_mutex.synchronize do
-        @outstanding_sessions -= 1 if @outstanding_sessions.positive?
+        if @outstanding_sessions.positive?
+          @outstanding_sessions -= 1
+        end
         @idle_cond.broadcast if @outstanding_sessions.zero?
       end
     end
@@ -425,6 +460,7 @@ module Phronomy
     def finalize_terminated(status)
       @lifecycle_mutex.synchronize do
         @state = :terminated
+        @admitted_session_ids.clear
         @task = nil unless @task&.alive?
         @idle_cond.broadcast
       end
@@ -440,7 +476,10 @@ module Phronomy
           waiter.transition!(:failed, error: payload)
         else
           waiter.backend.unblock(payload, nil)
-          waiter.transition!(:completed, value: payload)
+          waiter.transition!(
+            :completed,
+            value: payload
+          )
         end
       else
         waiter.push(payload)
@@ -450,7 +489,9 @@ module Phronomy
     def enqueue(item)
       depth = @queue_metrics_mutex.synchronize do
         @queue_depth += 1
-        @max_queue_depth = @queue_depth if @queue_depth > @max_queue_depth
+        if @queue_depth > @max_queue_depth
+          @max_queue_depth = @queue_depth
+        end
         @queue_depth
       end
       @queue.push(item)
@@ -483,7 +524,11 @@ module Phronomy
       max_depth = nil
       should_warn = @queue_metrics_mutex.synchronize do
         last = @last_queue_backlog_warning_at
-        next false if last && (now - last) < QUEUE_BACKLOG_WARNING_INTERVAL_SECONDS
+        if last &&
+            (now - last) <
+                QUEUE_BACKLOG_WARNING_INTERVAL_SECONDS
+          next false
+        end
 
         @last_queue_backlog_warning_at = now
         max_depth = @max_queue_depth
@@ -495,18 +540,16 @@ module Phronomy
         "[Phronomy::EventLoop] Queue backlog is high: " \
         "depth=#{depth} max_depth=#{max_depth} " \
         "threshold=#{QUEUE_BACKLOG_WARNING_THRESHOLD} " \
-        "event=#{event.type.inspect} target_id=#{event.target_id.inspect}. " \
-        "Events are not dropped; inspect slow callbacks or high streaming concurrency."
+        "event=#{event.type.inspect} " \
+        "target_id=#{event.target_id.inspect}. " \
+        "Events are not dropped; inspect slow callbacks or " \
+        "high streaming concurrency."
       )
     end
 
     def warn_queue_backlog(message)
       logger = Phronomy.configuration.logger
-      if logger
-        logger.warn(message)
-      else
-        Kernel.warn(message)
-      end
+      logger ? logger.warn(message) : Kernel.warn(message)
     rescue
       nil
     end
@@ -521,29 +564,38 @@ module Phronomy
     end
 
     def check_starvation_lag(lag_ns, event)
-      threshold = Phronomy.configuration.event_loop_starvation_threshold_seconds
-      return unless threshold && lag_ns > (threshold * 1_000_000_000)
+      threshold =
+        Phronomy.configuration
+          .event_loop_starvation_threshold_seconds
+      return unless threshold
+      return unless lag_ns > (threshold * 1_000_000_000)
 
       Phronomy.configuration.logger&.warn do
-        "[Phronomy::EventLoop] Starvation detected: event #{event.type.inspect} " \
+        "[Phronomy::EventLoop] Starvation detected: " \
+          "event #{event.type.inspect} " \
           "for target #{event.target_id.inspect} waited " \
-          "#{format("%.3f", lag_ns / 1_000_000_000.0)}s in queue " \
-          "(threshold: #{threshold}s)"
+          "#{format("%.3f", lag_ns / 1_000_000_000.0)}s " \
+          "in queue (threshold: #{threshold}s)"
       end
     end
 
     def check_dispatch_time(dispatch_start_ns, event)
-      threshold = Phronomy.configuration.event_loop_dispatch_threshold_seconds
+      threshold =
+        Phronomy.configuration
+          .event_loop_dispatch_threshold_seconds
       return unless threshold
 
       elapsed_ns = monotonic_nanoseconds - dispatch_start_ns
-      return unless elapsed_ns > (threshold * 1_000_000_000)
+      return unless elapsed_ns >
+        (threshold * 1_000_000_000)
 
       Phronomy.configuration.logger&.warn do
-        "[Phronomy::EventLoop] Long dispatch: event #{event.type.inspect} " \
+        "[Phronomy::EventLoop] Long dispatch: " \
+          "event #{event.type.inspect} " \
           "for target #{event.target_id.inspect} took " \
-          "#{format("%.3f", elapsed_ns / 1_000_000_000.0)}s on the EventLoop thread " \
-          "(threshold: #{threshold}s). Consider moving blocking work to BlockingAdapterPool."
+          "#{format("%.3f", elapsed_ns / 1_000_000_000.0)}s " \
+          "on the EventLoop thread (threshold: #{threshold}s). " \
+          "Consider moving blocking work to BlockingAdapterPool."
       end
     end
 
@@ -552,7 +604,10 @@ module Phronomy
     end
 
     def monotonic_nanoseconds
-      Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+      Process.clock_gettime(
+        Process::CLOCK_MONOTONIC,
+        :nanosecond
+      )
     end
   end
 end

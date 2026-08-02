@@ -2,10 +2,10 @@
 
 module Phronomy
   module Agent
-    # Immutable carrier for an LLM adapter operation result.
+    # Immutable carrier for one LLM adapter operation outcome.
     #
-    # BlockingAdapterPool worker or timer threads create this value, but do not
-    # mutate AgentInvocation. FSMSession delivers it through :action_completed,
+    # Worker/timer threads create this value without mutating AgentInvocation.
+    # AgentInvocationSessionBuilder posts it as :llm_completed or :llm_failed,
     # and AgentInvocation applies it on the EventLoop thread.
     #
     # @api private

@@ -27,7 +27,6 @@ It provides composable building blocks — Workflows, Agents, Tools, Filters, an
 | Feature | Stability |
 |---|---|
 | **Workflow** — Stateful, branching workflows with wait_state/send_event | Stable |
-| **Workflow action_timeout** — Per-state `action_timeout:` keyword on `state` DSL; cancels Task-returning entry actions that exceed the limit and raises `Phronomy::ActionTimeoutError` | Beta |
 | **Agent** — ReAct-style tool-calling agents with guardrails and conversation history | Stable |
 | **Before-Completion Hook** — Three-tier LLM parameter injection | Stable |
 | **Context Management** — Token budget calculation, estimation, and pruning; `Agent::Base` protected hooks: `build_context` (overridable), `trim_messages`, `trim_to_budget`, `compact_messages`, `budget_exceeded?`, `drop_messages_over` | Stable |
@@ -53,11 +52,11 @@ It provides composable building blocks — Workflows, Agents, Tools, Filters, an
 |---|---|
 | **EventLoop** — Runtime-owned event-driven execution core shared by all Agent invocations, Tool invocations, and Workflow sessions. Not configurable; EventLoop is always active when the Runtime is running. `Phronomy::EventLoop` itself is an internal API | Beta |
 | **`invoke` / `invoke_async`** — `Agent::Base#invoke` blocks the calling thread and returns the final result Hash; `Agent::Base#invoke_async` returns a `Phronomy::Task` immediately without blocking; `Workflow#invoke` and `Workflow#invoke_async` follow the same contract | Stable |
-| **`stream` / `stream_async`** — `Agent::Base#stream` blocks the calling thread while delivering stream events; `Agent::Base#stream_async` returns a `Phronomy::Task` immediately; both require a block; stream callbacks execute on the EventLoop thread and must return quickly — blocking I/O or synchronous Agent calls inside a callback cause stalls | Beta |
-| **Stream events** — `:token` (LLM delta), `:tool_call`, `:tool_result` (intermediate); `:done`, `:approval_required`, `:error` (terminal, delivered at most once per Task interval) | Beta |
-| **`stream_callback_error_policy`** — Configures what Phronomy does when a terminal stream callback raises: `:report` (default) logs the exception and preserves the Agent result in the Task; `:fail_task` logs and fails the Task with `Phronomy::StreamCallbackError`; neither policy stops the EventLoop; Agent internal errors are never replaced by callback errors | Beta |
+| **Agent async events** — `invoke_async(..., on_event:)` and `stream_async(..., on_event:)` share `:tool_call`, `:tool_result`, `:approval_required`, `:done`, `:error`, `:timeout`, and `:cancelled`; streaming adds `:token` | Beta |
+| **`stream` / `stream_async`** — callbacks execute on the EventLoop thread and must return quickly; the block form remains a compatibility alias for `on_event:` | Beta |
+| **`stream_callback_error_policy`** — Backward-compatible setting shared by `invoke_async` and `stream_async` terminal `on_event:` callbacks: `:report` (default) preserves the Agent result, while `:fail_task` fails the returned Task with `Phronomy::StreamCallbackError`; Agent execution errors are never replaced by callback errors | Beta |
 | **`invoke_async` / `call_async`** — `Agent::Base#invoke_async` and `Workflow#invoke_async` return a `Task`; `Agent::Context::Capability::Base#call_async` similarly; compatible with EventLoop and standalone contexts | Stable |
-| **`Task#map`** — transforms a `Task`'s completed value via a block; returns a new `Task` whose value is the block's return value; if the source task fails or is cancelled the mapped task propagates the error without calling the block; primary use-case: `invoke_async.map { \|r\| ctx.merge(answer: r[:output]) }` to wire agent results into a `WorkflowContext` | Stable |
+| **`Task#map`** — transforms a Task's completed value and propagates failure/cancellation; Workflow entry actions do not await mapped Tasks | Stable |
 | **CancellationToken** — Cooperative cancellation via `cancel!`/`cancelled?`/`raise_if_cancelled!`; `timeout_after(seconds)` for monotonic-clock deadlines; optional `deadline:` (wall-clock) for backward compatibility; passed as `config: { cancellation_token: token }` to agents and `dispatch_parallel`; injected into `tool.execute` when the method declares a `cancellation_token:` keyword; bridged to `MCP::Cancellation` in `Phronomy::Tools::Mcp#execute` | Experimental |
 | **`dispatch_parallel` / `fan_out` `force_kill:` option** — `force_kill: false` (default) leaves timed-out workers running and raises `TimeoutError` immediately; `force_kill: true` restores the old `Thread#kill` behaviour with a `logger.warn` | Beta |
 | **`execution_mode` DSL on `Agent::Context::Capability::Base`** — Declares how a tool's `execute` should be dispatched: `:cooperative` (same scheduler thread), `:blocking_io` (default; offloaded to `BlockingAdapterPool`), `:cpu_bound`, `:external_process`; Tool-specific timeout/retry belongs to the Tool implementation or its client | Experimental |
@@ -293,19 +292,66 @@ final = app.send_event(state: state, event: :approve)
 puts "Approved: #{final.approved}"  # => true
 ```
 
-Use `invoke_async + Task#map` to run an agent
-asynchronously inside a Workflow entry action.  The mapped Task returns a `WorkflowContext`,
-which `FSMSession` picks up via the standard `:action_completed` path:
+Start the Agent as an asynchronous activity of the active state, then
+map its lifecycle event to an application-defined Workflow event:
 
 ```ruby
-# Async workflow: workflow that runs an agent and captures the result.
-entry :translate, ->(ctx) {
-  TranslationAgent.new.invoke_async(ctx.query).map do |result|
-    ctx.merge(answer: result[:output])   # returns WorkflowContext
+class TranslationContext
+  include Phronomy::WorkflowContext
+
+  field :query
+  field :answer
+  field :error
+
+  def handle_fsm_event(event)
+    case event.type
+    when :translation_completed
+      self.answer = event.payload[:answer]
+    when :translation_failed
+      self.error = event.payload[:error]
+    end
+    false
   end
-}
-transition from: :translate, to: :done   # no on: needed
+end
+
+workflow = nil
+
+workflow = Phronomy::Workflow.define(TranslationContext) do
+  initial :translate
+
+  state :translate, action: ->(ctx) {
+    TranslationAgent.new.invoke_async(
+      ctx.query,
+      on_event: ->(event) {
+        case event.type
+        when :done
+          workflow.signal(
+            thread_id: ctx.thread_id,
+            event: :translation_completed,
+            payload: {answer: event.payload[:output]}
+          )
+        when :error, :timeout, :cancelled
+          workflow.signal(
+            thread_id: ctx.thread_id,
+            event: :translation_failed,
+            payload: {error: event.payload[:error]}
+          )
+        end
+      }
+    )
+    ctx
+  }
+
+  state :done
+  state :failed
+
+  transition from: :translate, on: :translation_completed, to: :done
+  transition from: :translate, on: :translation_failed, to: :failed
+end
 ```
+
+The application owns payload interpretation, correlation, and field updates.
+Phronomy does not automatically copy Agent results into WorkflowContext.
 
 ### Multi-Agent — Agent-as-Tool pattern
 

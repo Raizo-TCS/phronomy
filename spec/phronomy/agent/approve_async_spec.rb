@@ -50,7 +50,8 @@ RSpec.describe Phronomy::Agent::Base do
       double(
         "invocation",
         id: "invocation-1",
-        stream_listener: stream_listener,
+        event_listener: stream_listener,
+        mode: stream_listener ? :stream : :invoke,
         tool_invocations: []
       ).tap do |invocation|
         allow(invocation).to receive(:merge_config!).and_return(invocation)

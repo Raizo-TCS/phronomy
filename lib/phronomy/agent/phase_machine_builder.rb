@@ -4,7 +4,11 @@ require "state_machines"
 
 module Phronomy
   module Agent
-    # Builds the state_machines-backed PhaseTracker for AgentInvocation.
+    # Compiles AgentInvocation phase topology.
+    #
+    # Async completion is represented by explicit FSM events. This builder does
+    # not await Tasks or register Task callbacks.
+    #
     # @api private
     class PhaseMachineBuilder
       TOOL_EVENTS = %i[
@@ -16,17 +20,17 @@ module Phronomy
         tool_cancelled
       ].freeze
 
-      def initialize(entry_actions: {}, action_timeouts: {})
+      def initialize(entry_actions: {})
         @entry_actions = entry_actions
-        @action_timeouts = action_timeouts
       end
 
       def build
-        entry_acts = @entry_actions
-        act_timeouts = @action_timeouts
-        build_cb = method(:build_entry_callback)
+        entry_actions = @entry_actions
+        callback_builder = method(:build_entry_callback)
 
         Class.new do
+          attr_accessor :context, :current_event
+
           state_machine :phase, initial: :idle do
             state :idle
             state :filtering_input
@@ -47,37 +51,42 @@ module Phronomy
               transition idle: :filtering_input
 
               transition filtering_input: :building_context,
-                if: ->(m) { m.context&.input_passed? }
+                if: ->(machine) { machine.context&.input_passed? }
               transition filtering_input: :blocked,
-                if: ->(m) { m.context&.input_blocked? }
+                if: ->(machine) { machine.context&.input_blocked? }
 
               transition building_context: :calling_llm
-
-              transition calling_llm: :starting_tools,
-                if: ->(m) { m.context&.tool_call_pending? }
-              transition calling_llm: :output_filtering
-
               transition starting_tools: :evaluating_tools
 
               transition evaluating_tools: :failed,
-                if: ->(m) { m.context&.tool_batch_failed? }
+                if: ->(machine) { machine.context&.tool_batch_failed? }
               transition evaluating_tools: :blocked,
-                if: ->(m) { m.context&.tool_batch_rejected? }
+                if: ->(machine) { machine.context&.tool_batch_rejected? }
               transition evaluating_tools: :recording_tool_results,
-                if: ->(m) { m.context&.tool_batch_completed? }
+                if: ->(machine) { machine.context&.tool_batch_completed? }
               transition evaluating_tools: :suspended,
-                if: ->(m) { m.context&.approval_required? }
+                if: ->(machine) { machine.context&.approval_required? }
               transition evaluating_tools: :dispatching_tools,
-                if: ->(m) { m.context&.ready_to_dispatch? }
+                if: ->(machine) { machine.context&.ready_to_dispatch? }
               transition evaluating_tools: :waiting_for_tools
 
               transition dispatching_tools: :evaluating_tools
               transition recording_tool_results: :calling_llm
 
               transition output_filtering: :completed,
-                if: ->(m) { m.context&.output_passed? }
+                if: ->(machine) { machine.context&.output_passed? }
               transition output_filtering: :blocked,
-                if: ->(m) { m.context&.output_blocked? }
+                if: ->(machine) { machine.context&.output_blocked? }
+            end
+
+            event :llm_completed do
+              transition calling_llm: :starting_tools,
+                if: ->(machine) { machine.context&.tool_call_pending? }
+              transition calling_llm: :output_filtering
+            end
+
+            event :llm_failed do
+              transition calling_llm: :failed
             end
 
             TOOL_EVENTS.each do |event_name|
@@ -90,86 +99,29 @@ module Phronomy
               transition suspended: :waiting_for_tools
             end
 
-            entry_acts.each do |state_name, callables|
+            entry_actions.each do |state_name, callables|
               callables.each do |callable|
-                timeout_secs = act_timeouts[state_name]
-                after_transition to: state_name,
-                  do: build_cb.call(callable, state_name, timeout_secs)
+                after_transition(
+                  to: state_name,
+                  do: callback_builder.call(callable, state_name)
+                )
               end
             end
-          end
-
-          attr_accessor :context,
-            :async_pending,
-            :session_id,
-            :event_loop,
-            :timer_queue_provider
-
-          def initialize
-            super
-            @context = nil
-            @async_pending = false
-            @session_id = nil
           end
         end
       end
 
       private
 
-      def build_entry_callback(callable, state_name, timeout_secs)
-        handle = method(:handle_entry_action_result)
+      def build_entry_callback(callable, state_name)
         ->(machine) {
           result = callable.call(machine.context)
-          handle.call(machine, result, state_name, timeout_secs)
+          if result.is_a?(Phronomy::Task)
+            raise Phronomy::InvalidAsyncEntryActionError,
+              "Agent entry action for #{state_name.inspect} returned Phronomy::Task"
+          end
+          machine.context = result if result.respond_to?(:set_graph_metadata)
         }
-      end
-
-      def handle_entry_action_result(machine, result, state_name, timeout_secs)
-        if result.is_a?(Phronomy::Task)
-          dispatch_task(machine, result, state_name, timeout_secs)
-        elsif result.respond_to?(:set_graph_metadata)
-          machine.context = result
-        end
-      end
-
-      def dispatch_task(machine, result, state_name, timeout_secs)
-        machine.async_pending = true
-        session_id = machine.session_id
-        if timeout_secs
-          machine.timer_queue_provider.call.schedule(seconds: timeout_secs) do
-            next if result.done?
-
-            machine.event_loop.post(
-              Phronomy::Event.new(
-                type: :error,
-                target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-                payload: {
-                  session_id: session_id,
-                  result: Phronomy::ActionTimeoutError.new(
-                    "Action in state #{state_name.inspect} timed out after #{timeout_secs}s"
-                  )
-                }
-              )
-            )
-          end
-        end
-
-        result.on_complete do |task_result, error|
-          event = if error
-            Phronomy::Event.new(
-              type: :error,
-              target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-              payload: {session_id: session_id, result: error}
-            )
-          else
-            Phronomy::Event.new(
-              type: :action_completed,
-              target_id: session_id,
-              payload: task_result
-            )
-          end
-          machine.event_loop.post(event)
-        end
       end
     end
   end

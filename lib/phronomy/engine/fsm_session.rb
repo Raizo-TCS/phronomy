@@ -3,19 +3,33 @@
 module Phronomy
   # Event-driven execution wrapper for a single FSM session.
   #
-  # Used by WorkflowRunner and Agent/Tool Invocation builders. All public
-  # methods are called from the EventLoop thread; FSMSession is not thread-safe.
+  # All public methods are called from the Runtime-owned EventLoop thread.
+  # FSMSession owns FSM execution only; it does not own external Task handles,
+  # activity tokens, callback correlation, or domain-specific stale-event policy.
   class FSMSession
     FINISH = WorkflowRunner::FINISH
 
-    attr_reader :id
+    attr_reader :id, :context
 
-    def initialize(id:, context:, entry_point:, entry_actions:, auto_state_set:,
-      declared_states:, wait_state_names:, external_events:, phase_machine_class:,
-      recursion_limit:, event_loop:, timer_queue_provider:, action_timeouts: {},
-      resume_event: nil, resume_phase: nil)
+    def initialize(
+      id:,
+      context:,
+      entry_point:,
+      entry_actions:,
+      auto_state_set:,
+      declared_states:,
+      wait_state_names:,
+      external_events:,
+      phase_machine_class:,
+      recursion_limit:,
+      event_loop:,
+      resume_event: nil,
+      resume_phase: nil,
+      stable_observer: nil
+    )
       @id = id
       @ctx = context
+      @context = context
       @entry_point = entry_point
       @entry_actions = entry_actions
       @auto_state_set = auto_state_set
@@ -24,11 +38,10 @@ module Phronomy
       @external_events = external_events
       @phase_machine_class = phase_machine_class
       @recursion_limit = recursion_limit
-      @action_timeouts = action_timeouts
       @event_loop = event_loop
-      @timer_queue_provider = timer_queue_provider
       @resume_event = resume_event
       @resume_phase = resume_phase
+      @stable_observer = stable_observer
       @step = 0
       @done = false
       @current_state = nil
@@ -40,140 +53,116 @@ module Phronomy
         @current_state = @resume_phase
         @tracker = build_tracker(@current_state)
         @tracker.context = @ctx
-        @tracker.session_id = @id if @tracker.respond_to?(:session_id=)
-        fire_and_advance!(@resume_event)
+        fire_and_advance!(
+          Phronomy::Event.new(
+            type: @resume_event,
+            target_id: @id,
+            payload: nil
+          )
+        )
       else
         @current_state = @entry_point
         @tracker = build_tracker(@current_state)
         @tracker.context = @ctx
-        @tracker.session_id = @id if @tracker.respond_to?(:session_id=)
-        (@entry_actions[@current_state] || []).each do |callable|
-          result = callable.call(@ctx)
-          if result.is_a?(Phronomy::Task)
-            @tracker.async_pending = true
-            session_id = @id
-            current_state_name = @current_state
-            timeout_secs = @action_timeouts[current_state_name]
-            if timeout_secs
-              @timer_queue_provider.call.schedule(seconds: timeout_secs) do
-                next if result.done?
-
-                @event_loop.post(
-                  Event.new(
-                    type: :error,
-                    target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-                    payload: {
-                      session_id: session_id,
-                      result: Phronomy::ActionTimeoutError.new(
-                        "Action in state #{current_state_name.inspect} timed out after #{timeout_secs}s"
-                      )
-                    }
-                  )
-                )
-              end
-            end
-            result.on_complete do |task_result, error|
-              event = if error
-                Event.new(
-                  type: :error,
-                  target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-                  payload: {session_id: session_id, result: error}
-                )
-              else
-                Event.new(
-                  type: :action_completed,
-                  target_id: session_id,
-                  payload: task_result
-                )
-              end
-              @event_loop.post(event)
-            end
-            break
-          elsif _fsm_context?(result)
-            @ctx = result
-          end
-        end
+        run_initial_entry_actions!
         @tracker.context = @ctx
-        advance_or_halt unless @tracker.async_pending
+        advance_or_halt
       end
-    rescue => e
-      finish_with_error(e)
+    rescue => error
+      finish_with_error(error)
     end
 
     def handle(event)
       return if @done
 
-      if event.type == :action_completed
-        apply_action_result(event.payload)
-        @tracker.context = @ctx
-        @tracker.async_pending = false
-        advance_or_halt
+      context_disposition = apply_context_event(event)
+      return if context_disposition == :consume
+
+      if context_disposition &&
+          !has_external_event_from?(@current_state, event.type)
         return
       end
 
-      if event.type == :state_completed
-        @tracker.async_pending = false if @tracker.async_pending
-        fire_and_advance!(event.type)
-        return
-      end
-
-      handled_by_context = @ctx.respond_to?(:handle_fsm_event) &&
-        @ctx.handle_fsm_event(event)
-      if handled_by_context && !has_external_event_from?(@current_state, event.type)
-        return
-      end
-
-      fire_and_advance!(event.type)
-    rescue => e
-      finish_with_error(e)
+      fire_and_advance!(event)
+    rescue => error
+      finish_with_error(error)
     end
 
     private
 
-    def apply_action_result(payload)
-      if _fsm_context?(payload)
-        @ctx = payload
-      elsif @ctx.respond_to?(:apply_fsm_action_result)
-        updated = @ctx.apply_fsm_action_result(payload)
-        @ctx = updated if _fsm_context?(updated)
+    def run_initial_entry_actions!
+      Array(@entry_actions[@current_state]).each do |callable|
+        result = callable.call(@ctx)
+        apply_synchronous_action_result!(result, @current_state)
       end
     end
 
-    def fire_and_advance!(event_name)
+    def apply_synchronous_action_result!(result, state_name)
+      if result.is_a?(Phronomy::Task)
+        raise Phronomy::InvalidAsyncEntryActionError,
+          "Entry action for state #{state_name.inspect} returned Phronomy::Task. " \
+          "Start the asynchronous operation, register its callback/listener, " \
+          "and return the WorkflowContext or nil."
+      end
+
+      if _fsm_context?(result)
+        @ctx = result
+        @context = result
+      end
+    end
+
+    def apply_context_event(event)
+      return false unless @ctx.respond_to?(:handle_fsm_event)
+
+      result = @ctx.handle_fsm_event(event)
+      return :consume if result == :consume
+
+      if _fsm_context?(result)
+        @ctx = result
+        @context = result
+        @tracker.context = @ctx
+        true
+      else
+        !!result
+      end
+    end
+
+    def fire_and_advance!(event)
       if @step >= @recursion_limit
         raise Phronomy::RecursionLimitError,
           "Recursion limit (#{@recursion_limit}) exceeded"
       end
 
-      fire_event!(@tracker, event_name, @current_state)
+      @tracker.context = @ctx
+      @tracker.current_event = event if @tracker.respond_to?(:current_event=)
+      transitioned = fire_event!(@tracker, event.type, @current_state)
+      return unless transitioned
+
       @ctx = @tracker.context
-      next_phase = @tracker.phase.to_sym
-      @current_state = (next_phase == @current_state) ? FINISH : next_phase
+      @context = @ctx
+      @current_state = @tracker.phase.to_sym
       @step += 1
-
-      if @tracker.async_pending
-        @tracker.async_pending = false
-        return
-      end
-
       advance_or_halt
+    ensure
+      @tracker.current_event = nil if @tracker&.respond_to?(:current_event=)
     end
 
     def advance_or_halt
       return finish! if @current_state == FINISH
 
+      notify_stable_state!
+
       if @wait_state_names.include?(@current_state)
-        return halt!
+        halt!
+        return
       end
 
       if @auto_state_set.key?(@current_state)
-        @event_loop.post(Event.new(type: :state_completed, target_id: @id, payload: nil))
+        post_session_event(:state_completed)
         return
       end
 
-      if has_external_event_from?(@current_state)
-        return
-      end
+      return if has_external_event_from?(@current_state)
 
       unless @declared_states.include?(@current_state)
         raise ArgumentError, "State #{@current_state.inspect} is not defined"
@@ -182,47 +171,89 @@ module Phronomy
       finish!
     end
 
+    def notify_stable_state!
+      return unless @stable_observer
+
+      @stable_observer.call(
+        {
+          state: @current_state,
+          context: @ctx
+        }
+      )
+    end
+
+    def post_session_event(type, payload = nil)
+      event = Phronomy::Event.new(
+        type: type,
+        target_id: @id,
+        payload: payload
+      )
+      accepted =
+        if @event_loop.respond_to?(:post_to_session)
+          @event_loop.post_to_session(event)
+        else
+          @event_loop.post(event)
+        end
+      return if accepted
+
+      raise Phronomy::RuntimeShutdownError,
+        "EventLoop rejected #{type.inspect} for FSMSession #{@id}"
+    end
+
     def finish!
+      return if @done
+
       @done = true
       @ctx.set_graph_metadata(thread_id: @id, phase: :__end__)
-      @event_loop.post(
-        Event.new(
-          type: :finished,
-          target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-          payload: {session_id: @id, result: @ctx}
-        )
-      )
+      post_terminal_event(:finished, @ctx)
     end
 
     def halt!
+      return if @done
+
       @done = true
       @ctx.set_graph_metadata(thread_id: @id, phase: @current_state)
-      @event_loop.post(
-        Event.new(
-          type: :halted,
-          target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-          payload: {session_id: @id, result: @ctx}
-        )
-      )
+      post_terminal_event(:halted, @ctx)
     end
 
     def finish_with_error(error)
+      return if @done
+
       @done = true
-      @event_loop.post(
-        Event.new(
-          type: :error,
+      post_terminal_event(:error, error)
+    end
+
+    def post_terminal_event(type, result)
+      accepted = @event_loop.post(
+        Phronomy::Event.new(
+          type: type,
           target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-          payload: {session_id: @id, result: error}
+          payload: {session_id: @id, result: result}
         )
+      )
+      return if accepted
+
+      Phronomy.configuration.logger&.warn(
+        "[Phronomy::FSMSession] EventLoop rejected terminal event " \
+        "#{type.inspect} for #{@id}"
       )
     end
 
     def fire_event!(tracker, event_name, from_state)
-      return if tracker.send(event_name)
+      unless tracker.respond_to?(event_name)
+        raise ArgumentError,
+          "Unknown FSM event #{event_name.inspect} for state #{from_state.inspect}"
+      end
+
+      return true if tracker.public_send(event_name)
+
+      # A declared external event whose guards all reject is a valid no-op.
+      # Applications use this to reject stale or unrelated correlated events.
+      return false if has_external_event_from?(from_state, event_name)
 
       raise ArgumentError,
         "Transition from #{from_state.inspect} via event #{event_name.inspect} failed. " \
-        "Ensure at least one guard matches or add a fallback (no-guard) transition."
+        "The event is not declared for the current state."
     end
 
     def has_external_event_from?(state, event_name = nil)
@@ -235,10 +266,6 @@ module Phronomy
     def build_tracker(from_state)
       machine = @phase_machine_class.new
       machine.instance_variable_set(:@phase, from_state.to_s)
-      machine.event_loop = @event_loop if machine.respond_to?(:event_loop=)
-      if machine.respond_to?(:timer_queue_provider=)
-        machine.timer_queue_provider = @timer_queue_provider
-      end
       machine
     end
 

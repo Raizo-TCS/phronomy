@@ -2,16 +2,28 @@
 
 module Phronomy
   module Agent
-    # Represents a single event emitted during a streaming agent invocation.
+    # Immutable event emitted by Agent async APIs.
     #
-    # type values:
-    #   :token       — a content delta from the LLM (payload: { content: String })
-    #   :tool_call   — the LLM requested a tool call (payload: { tool_call: Object })
-    #   :tool_result — a tool finished executing (payload: { tool_call_id: String, tool_name: String,
-    #                                                         tool_result: Object })
-    #   :done        — the agent finished (payload: { output: String, messages: Array,
-    #                                                  usage: TokenUsage })
-    #   :error       — an unrecoverable error occurred (payload: { error: Exception })
+    # invoke_async and stream_async share lifecycle and Tool events. Streaming
+    # additionally emits :token events.
+    #
+    # Common event types:
+    #   :tool_call
+    #   :tool_result
+    #   :approval_required
+    #   :done
+    #   :error
+    #   :timeout
+    #   :cancelled
+    #
+    # Streaming-only event type:
+    #   :token
     StreamEvent = Data.define(:type, :payload)
   end
+end
+
+require_relative "agent/async_event_api"
+
+unless Phronomy::Agent::Base < Phronomy::Agent::AsyncEventApi
+  Phronomy::Agent::Base.prepend(Phronomy::Agent::AsyncEventApi)
 end

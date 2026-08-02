@@ -2,199 +2,147 @@
 
 ## 1. Overview
 
-`StateStore` provides pluggable persistence for `Workflow` thread
-state. This decouples the workflow runtime from any specific storage technology.
+`StateStore` persists serializable `WorkflowContext` snapshots by Workflow
+`thread_id`. It does not persist Runtime objects, FSMSession instances, running
+Tasks, callbacks, or provider operations.
+
+A store may be configured globally, per Workflow definition, or per invocation:
 
 ```ruby
-Phronomy.configure do |c|
-  c.state_store = Phronomy::StateStore::Redis.new(client: Redis.new)
+Phronomy.configure do |config|
+  config.state_store = MyStateStore.new
 end
-```
 
-The store is accessed by `WorkflowRunner#invoke` via `config[:thread_id]`:
-
-```ruby
-app.invoke({}, config: { thread_id: "user-42" })
-```
-
-When no store is configured, `InMemory` is used (data does not survive process
-restart).
-
----
-
-## 2. Class Hierarchy
-
-```
-Phronomy::StateStore::Base        (abstract)
-├── Phronomy::StateStore::InMemory
-├── Phronomy::StateStore::ActiveRecord
-└── Phronomy::StateStore::Redis
-```
-
----
-
-## 3. StateStore::Base
-
-`lib/phronomy/state_store/base.rb`
-
-Abstract class. Subclasses must implement:
-
-| Method | Signature | Contract |
-|--------|-----------|---------|
-| `save` | `(thread_id, state_hash)` | Persist state (any serialisable Hash) |
-| `load` | `(thread_id) → Hash \| nil` | Return stored state or nil if absent |
-| `clear` | `(thread_id)` | Delete stored state for that thread |
-
----
-
-## 4. StateStore::InMemory
-
-`lib/phronomy/state_store/in_memory.rb`
-
-Hash-backed in-process store. Thread-safe via `Mutex`.
-
-```ruby
-store = Phronomy::StateStore::InMemory.new
-store.save("t1", { messages: ["hello"] })
-store.load("t1")   # => { messages: ["hello"] }
-store.clear("t1")
-store.load("t1")   # => nil
-```
-
-Used as the default when no store is configured.
-
----
-
-## 5. StateStore::ActiveRecord
-
-`lib/phronomy/state_store/active_record.rb`
-
-Persists state as JSON in a database table using any ActiveRecord-compatible
-model class.
-
-### Constructor
-
-```ruby
-store = Phronomy::StateStore::ActiveRecord.new(
-  model_class: PhronmyState,   # AR model with :thread_id and :state_json
-  encryptor:   nil             # optional Encryptor::Base instance
-)
-```
-
-### Expected schema
-
-```sql
-CREATE TABLE phronomy_states (
-  id         BIGINT PRIMARY KEY AUTO_INCREMENT,
-  thread_id  VARCHAR(255) NOT NULL UNIQUE,
-  state_json TEXT         NOT NULL,
-  created_at DATETIME,
-  updated_at DATETIME
-);
-```
-
-### Save / Load
-
-- **Save**: `find_or_initialize_by(thread_id:)` then assign `state_json` and
-  save.  If `encryptor:` is set, the JSON string is encrypted before storage
-  and decrypted on load.
-- **Load**: returns `JSON.parse(record.state_json, symbolize_names: true)` or
-  `nil` if no record.
-- **Clear**: `record&.destroy`.
-
----
-
-## 6. StateStore::Redis
-
-`lib/phronomy/state_store/redis.rb`
-
-Persists state as a JSON string in Redis. Requires the `redis` gem.
-
-```ruby
-store = Phronomy::StateStore::Redis.new(
-  client: Redis.new(url: ENV["REDIS_URL"]),
-  ttl:    3600   # seconds; nil = no expiry
-)
-```
-
-### Key convention
-
-```
-phronomy:state:<thread_id>
-```
-
-`KEY_PREFIX = "phronomy:state:"` (constant on the class).
-
-### Save / Load / Clear
-
-- **Save**: `SET phronomy:state:<thread_id> <json>` with optional `EX ttl`.
-- **Load**: `GET key` → `JSON.parse(..., symbolize_names: true)` or nil.
-- **Clear**: `DEL key`.
-
----
-
-## 7. Encryptors
-
-Optional encryption for `ActiveRecord` store.
-
-### Encryptor::Base
-
-`lib/phronomy/encryptor/base.rb`
-
-```ruby
-def encrypt(plaintext) → String   # must be overridden
-def decrypt(ciphertext) → String  # must be overridden
-```
-
-### Encryptor::ActiveSupport
-
-`lib/phronomy/encryptor/active_support.rb`
-
-Uses `ActiveSupport::MessageEncryptor` with AES-256-GCM. Requires
-`activesupport` gem.
-
-```ruby
-key   = ActiveSupport::KeyGenerator.new(ENV["SECRET_KEY_BASE"])
-          .generate_key("phronomy_state", 32)
-enc   = Phronomy::Encryptor::ActiveSupport.new(key: key)
-store = Phronomy::StateStore::ActiveRecord.new(
-  model_class: PhronmyState,
-  encryptor:   enc
-)
-```
-
-The encryptor wraps `ActiveSupport::MessageEncryptor.new(key)`. `encrypt` calls
-`#encrypt_and_sign`; `decrypt` calls `#decrypt_and_verify`.
-
----
-
-## 8. Integration with WorkflowRunner
-
-`WorkflowRunner#invoke` loads and saves state automatically:
-
-```ruby
-def invoke(input, config: {})
-  thread_id = config[:thread_id]
-  stored    = thread_id ? @store.load(thread_id) : nil
-  state     = build_initial_state(stored || {}, input)
-
-  run_workflow(state, config).tap do |final|
-    @store.save(thread_id, final) if thread_id
-  end
+workflow = Phronomy::Workflow.define(MyContext, state_store: another_store) do
+  # ...
 end
+
+workflow.invoke(
+  input,
+  config: {
+    thread_id: "workflow-42",
+    state_store: request_specific_store
+  }
+)
 ```
 
-This means resuming a suspended conversation is automatic — the caller only
-needs to pass the same `thread_id`.
+The effective precedence is:
 
----
+1. `config[:state_store]`
+2. store supplied to `Workflow.define`
+3. `Phronomy.configuration.state_store`
 
-## 9. Design Decisions
+When no store is configured, Workflow execution remains in memory and no
+snapshot is written. A new execution without an explicit `config[:thread_id]`
+also remains unpersisted, even when a default store exists; the generated UUID is
+an execution identifier, not an implicit durable-state key.
 
-| Decision | Rationale |
-|----------|-----------|
-| Pluggable via single interface | Tests use InMemory; production uses AR or Redis — same code |
-| `find_or_initialize_by` in AR store | One query for upsert logic without requiring `INSERT OR REPLACE` SQL |
-| Redis TTL optional | Short-lived threads (chatbots) benefit from auto-expiry; long-lived agents set `nil` |
-| Encryption at store level, not graph level | Keeps graph runtime pure; encryption is an infrastructure concern |
-| `symbolize_names: true` on parse | State fields are accessed as symbols throughout the graph runtime |
+## 2. Interface
+
+`Phronomy::StateStore::Base` defines:
+
+| Method | Contract |
+|---|---|
+| `load(thread_id)` | Return a snapshot Hash or `nil` |
+| `save(thread_id, snapshot)` | Replace the snapshot for the thread |
+| `delete(thread_id)` | Delete the snapshot if present |
+
+A snapshot has the following shape:
+
+```ruby
+{
+  fields: workflow_context.to_h,
+  phase: workflow_context.phase.to_s
+}
+```
+
+`fields` are application data. `phase` records the phase reached when the
+snapshot was written.
+
+## 3. Common execution preparation
+
+`Workflow#invoke`, `Workflow#invoke_async`, and `Workflow#stream` use the same
+`WorkflowRunner` preparation path:
+
+```text
+select effective StateStore
+→ determine thread_id and recursion_limit
+→ load snapshot when an existing thread_id was supplied
+→ merge stored fields with the current input
+→ build WorkflowContext
+→ register one FSMSession with the Runtime EventLoop
+```
+
+Current input overrides values loaded from the snapshot:
+
+```ruby
+initial_fields = stored_fields.merge(input)
+```
+
+Changing from `invoke` to `stream` therefore changes only observation behavior;
+it does not change initial context or persistence semantics.
+
+## 4. Common finalization
+
+A Workflow result is finalized after its FSMSession reports `:finished` or
+`:halted`:
+
+```text
+FSMSession terminal event
+→ WorkflowRunner finalizer
+→ StateStore#save
+→ public completion Task settles
+```
+
+Consequently:
+
+- synchronous `invoke` raises a save failure on the caller thread;
+- `invoke_async` fails its returned Task;
+- synchronous `stream` raises the failure on the caller thread.
+
+The same snapshot format is used for all three APIs.
+
+## 5. Resume and live events
+
+`resume` and `send_event` continue from a halted `WorkflowContext` supplied by
+the caller. They do not rebuild a new context from stored fields before firing
+the event. Their resulting terminal/halted context is persisted by the common
+finalizer.
+
+`Workflow#signal` targets an already-live FSMSession. It neither loads nor saves
+a snapshot by itself. Persistence occurs when that session subsequently reaches
+a terminal or halted boundary, or when an application-defined checkpoint is
+implemented separately.
+
+## 6. What is not durable
+
+The following are deliberately not stored:
+
+- `Phronomy::Task` instances;
+- callback/listener closures;
+- Agent or Tool provider operations;
+- EventLoop queue contents;
+- FSMSession objects;
+- application-owned Task registries.
+
+If a process stops while external work is running, Phronomy does not reconstruct
+that work from the Workflow snapshot. Applications that require durable
+orchestration need an explicit recovery/idempotency design.
+
+Serializable correlation values needed after restart may be stored as ordinary
+WorkflowContext fields:
+
+```ruby
+field :generation_request_id
+field :provider_request_id
+```
+
+## 7. Stored phase is not automatic process recovery
+
+Loading a snapshot for a new `invoke` restores `fields`; it does not automatically
+recreate an FSMSession at the stored phase. Continuing a known halted context is
+performed through `resume` or `send_event`.
+
+Automatic recovery from an arbitrary stored phase would require additional
+policy for entry replay, external side effects, operation reconstruction, and
+idempotency. That behavior is outside the current StateStore contract.

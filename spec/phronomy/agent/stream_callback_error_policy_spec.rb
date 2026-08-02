@@ -307,7 +307,8 @@ RSpec.describe "Agent terminal stream callback error policy" do
       resumed_invocation = double(
         "resumed_invocation",
         id: "invocation-1",
-        stream_listener: listener,
+        event_listener: listener,
+        mode: :stream,
         tool_invocations: []
       )
       allow(resumed_invocation).to receive(:merge_config!)

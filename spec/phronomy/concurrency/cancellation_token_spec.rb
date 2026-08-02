@@ -188,12 +188,12 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
       expect(result[:output]).to eq("ok")
     end
 
-    it "raises CancellationError for a deadline-expired token" do
+    it "raises TimeoutError for a deadline-expired token" do
       token = described_class.new(deadline: Time.now - 1)
 
       expect {
         bare_agent_class.new.invoke("hello", config: {cancellation_token: token})
-      }.to raise_error(Phronomy::CancellationError)
+      }.to raise_error(Phronomy::TimeoutError)
     end
   end
 

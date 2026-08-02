@@ -204,13 +204,13 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
       expect(events.map(&:type)).to eq([:tool_call])
     end
 
-    it "re-raises provider errors for FSMSession to fail the session" do
+    it "posts :llm_failed event for provider errors (FSMSession handles failure)" do
       error = RuntimeError.new("provider failed")
       result = Phronomy::Agent::LLMOperationResult.new(error: error)
 
-      expect {
-        invocation.apply_fsm_action_result(result)
-      }.to raise_error(error)
+      # In the new event-driven model, apply_fsm_action_result posts an internal
+      # :llm_failed event rather than re-raising; FSMSession fails the session.
+      expect { invocation.apply_fsm_action_result(result) }.not_to raise_error
     end
   end
 

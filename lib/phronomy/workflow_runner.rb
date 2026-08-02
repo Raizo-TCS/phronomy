@@ -1,214 +1,275 @@
 # frozen_string_literal: true
 
 require "securerandom"
-require "state_machines"
 
 module Phronomy
-  # Execution engine for compiled workflows.
-  # Manages state entry/exit action execution, phase transitions, halt/resume, and wait states.
-  # Instantiated by Phronomy::Workflow and used internally.
+  # Execution boundary for compiled Workflows.
   #
-  # == Design principle
+  # WorkflowRunner prepares WorkflowContext instances, registers FSMSession
+  # objects with the Runtime-owned EventLoop, observes completion, and persists
+  # serializable Workflow snapshots. All Workflow execution APIs share this
+  # path; their only differences are blocking and observation semantics.
   #
-  # State transitions are driven entirely by state_machines. The PhaseTracker
-  # holds a reference to the current WorkflowContext via +attr_accessor :context+,
-  # and guard lambdas evaluate +m.context+ (the WorkflowContext) rather than
-  # the PhaseTracker itself. This ensures that "what happens next" is always
-  # determined by the declared state machine topology, never by Phronomy internals.
-  #
-  # Entry and exit actions are registered as state_machines +after_transition to:+
-  # and +before_transition from:+ callbacks respectively. Entry actions may either
-  # mutate the context in place or return a new context (e.g. via +s.merge(...)+).
-  # When an entry action returns a Phronomy::WorkflowContext, that value replaces
-  # the current context; otherwise the return value is ignored.
-  # Exit actions are always mutation-in-place; their return value is ignored.
-  #
-  # The sole exception is the initial state: state_machines does not fire transition
-  # callbacks on initialization, so the entry action for the entry point is invoked
-  # directly by WorkflowRunner before the main execution loop begins.
-  #
-  # == Two transition categories registered in PhaseTracker
-  #
-  #   1. state_completed  — all auto-fire transitions (with or without guards).
-  #                        Fired when an action state's action completes.
-  #                        Guards are evaluated in declaration order; first match wins.
-  #                        (declared with +transition from: :foo, to: :bar+ or
-  #                         +transition from: :foo, guard: ..., to: :bar+)
-  #
-  #   2. <event_name>    — external events triggered by human input, originating
-  #                        from wait states
-  #                        (declared with +transition from: :awaiting, on: :approve, to: :run+)
   # @api private
   class WorkflowRunner
     include Phronomy::Runnable
 
-    # Sentinel value for the terminal state of a workflow.
     FINISH = :__end__
 
-    def initialize(state_class:, entry_actions:, declared_states:, auto_transitions:, external_events:, entry_point:, exit_actions: {}, wait_state_names: [], state_store: nil, action_timeouts: {})
+    Execution = Data.define(
+      :context,
+      :thread_id,
+      :recursion_limit,
+      :store,
+      :persist
+    )
+
+    def initialize(
+      state_class:,
+      entry_actions:,
+      declared_states:,
+      auto_transitions:,
+      external_events:,
+      entry_point:,
+      exit_actions: {},
+      wait_state_names: [],
+      state_store: nil
+    )
       @state_class = state_class
-      @entry_actions = entry_actions   # { state_name => [callable, ...] }
+      @entry_actions = entry_actions
       @declared_states = declared_states
-      # Lookup set: states with at least one auto-fire transition declared.
-      @auto_state_set = auto_transitions.each_with_object({}) { |t, h| h[t[:from]] = true }
-      @external_events = external_events    # { name => [{from:, to:, guard:}, ...] }
+      @auto_state_set = auto_transitions.each_with_object({}) do |transition, set|
+        set[transition[:from]] = true
+      end
+      @external_events = external_events
       @entry_point = entry_point
       @wait_state_names = wait_state_names
       @state_store = state_store
-      @action_timeouts = action_timeouts   # { state_name => seconds }
       @phase_machine_class = Workflow::PhaseMachineBuilder.new(
         entry_point: @entry_point,
         declared_states: @declared_states,
         wait_state_names: @wait_state_names,
         external_events: @external_events,
         entry_actions: @entry_actions,
-        action_timeouts: @action_timeouts,
         auto_transitions: auto_transitions,
         exit_actions: exit_actions
       ).build
     end
 
-    # Executes the workflow from the initial state.
-    # @param input [Hash] initial context field values
-    # @param config [Hash] { thread_id:, recursion_limit:, user_id:, session_id:, state_store: }
-    # @return [Object] final context (includes Phronomy::WorkflowContext)
-    # @api private
     def invoke(input, config: {})
+      ensure_blocking_call_allowed!(:invoke, :invoke_async)
       caller_meta = {}
       caller_meta[:user_id] = config[:user_id] if config[:user_id]
       caller_meta[:session_id] = config[:session_id] if config[:session_id]
 
       trace("workflow.invoke", input: input.inspect, **caller_meta) do |_span|
-        state, thread_id, recursion_limit, store = _build_initial_context(input, config)
-        result = run_via_event_loop(state, recursion_limit: recursion_limit)
-        store&.save(thread_id, {fields: result.to_h, phase: result.phase.to_s}) if config[:thread_id]
+        execution = prepare_new_execution(input, config)
+        result = start_execution(execution).wait_result
         [result, nil]
       end
     end
 
-    # Registers the workflow with the EventLoop and returns a {Phronomy::Task}
-    # immediately without blocking the caller.  The task resolves with the final
-    # context when the workflow finishes.
-    #
-    # This is the EventLoop-driven equivalent of spawning a thread around
-    # {#invoke}.  No extra OS thread is created; the EventLoop's existing thread
-    # drives the execution.
-    #
-    # @param input [Hash] initial context field values
-    # @param config [Hash]
-    # @return [Phronomy::Task]
-    # @api private
     def invoke_deferred(input, config: {})
-      runtime = Phronomy::Runtime.instance
-      event_loop = runtime.event_loop
-      state, thread_id, recursion_limit, store = _build_initial_context(input, config)
-      result_task = Phronomy::Task.deferred(name: "workflow-async:#{thread_id}")
-      session = build_session_for(
-        context: state,
-        recursion_limit: recursion_limit,
-        runtime: runtime
-      )
-      if store && config[:thread_id]
-        # Wrap so that state is persisted when the task resolves.
-        persist_task = Phronomy::Task.deferred(name: "workflow-async-persist:#{thread_id}")
-        event_loop.register(session, completion: persist_task)
-        persist_task.on_complete do |result, error|
-          store.save(thread_id, {fields: result.to_h, phase: result.phase.to_s}) unless error
-          if error
-            result_task.backend.unblock(nil, error)
-            result_task.transition!(:failed, error: error)
-          else
-            result_task.backend.unblock(result, nil)
-            result_task.transition!(:completed, value: result)
-          end
-        end
-      else
-        event_loop.register(session, completion: result_task)
-      end
-      result_task
+      execution = prepare_new_execution(input, config)
+      start_execution(execution)
+    rescue => error
+      failed_task("workflow-async:preparation", error)
     end
 
-    # Generic resume. Equivalent to +send_event(state:, event: :resume, input:)+.
-    # @param state [Object] halted context
-    # @param input [Hash, nil] optional field updates to merge before resuming
-    # @return [Object] final context
-    # @api private
+    def stream(input, config: {}, &observer)
+      ensure_blocking_call_allowed!(:stream, :invoke_async)
+      raise ArgumentError, "stream requires a block" unless observer
+
+      execution = prepare_new_execution(input, config)
+      start_execution(
+        execution,
+        stable_observer: observer
+      ).wait_result
+    end
+
     def resume(state:, input: nil)
       send_event(state: state, event: :resume, input: input)
     end
 
-    # Fires a named event to advance a halted workflow.
-    #
-    # The special event +:resume+ selects the first external event registered
-    # for the current wait state and fires it.
-    #
-    # @param state [Object] halted context
-    # @param event [Symbol] named event or +:resume+ for generic resumption
-    # @param input [Hash, nil] optional field updates to merge before resuming
-    # @return [Object] final context
-    # @api private
     def send_event(state:, event:, input: nil)
-      state = state.merge(input) if input
-      event = event.to_sym
-      current_phase = state.phase
-
-      ev_to_fire = if event == :resume
-        # Find the first external event that can originate from the current wait state.
-        name, = @external_events.find { |_, ts| ts.any? { |t| t[:from] == current_phase } }
-        unless name
-          raise ArgumentError,
-            "No external event registered for wait state #{current_phase.inspect}"
-        end
-        name
-      else
-        unless @external_events.key?(event)
-          raise ArgumentError,
-            "Unknown event #{event.inspect}. Valid events: #{@external_events.keys.inspect}"
-        end
-        event
+      ensure_blocking_call_allowed!(:send_event, :signal)
+      context = input ? state.merge(input) : state
+      current_phase = context.phase.to_sym
+      event_name = resolve_resume_event(current_phase, event)
+      thread_id = context.thread_id
+      unless thread_id
+        raise ArgumentError, "Halted WorkflowContext has no thread_id"
       end
 
-      run_via_event_loop(state,
+      execution = Execution.new(
+        context: context,
+        thread_id: thread_id.to_s,
         recursion_limit: Phronomy.configuration.recursion_limit,
-        resume_event: ev_to_fire, resume_phase: current_phase)
+        store: configured_store,
+        persist: true
+      )
+      start_execution(
+        execution,
+        resume_event: event_name,
+        resume_phase: current_phase
+      ).wait_result
     end
 
-    # Streaming execution. Yields { state: Symbol, context: Object } after each state action completes.
-    # @param input [Hash]
-    # @param config [Hash]
-    # @yield [Hash]
-    # @return [Object] final context
-    # @api private
-    def stream(input, config: {}, &block)
-      thread_id = config[:thread_id] || SecureRandom.uuid
-      recursion_limit = config.fetch(:recursion_limit, Phronomy.configuration.recursion_limit)
-      state = @state_class.new(**input)
-      state.set_graph_metadata(thread_id: thread_id)
-      run_workflow(state, recursion_limit: recursion_limit, &block)
+    # Posts an application-defined event to a currently live Workflow session.
+    #
+    # Admission is asynchronous. A true result means the EventLoop accepted the
+    # event for an admitted session; it does not mean that a transition matched.
+    # A false result means that the Runtime is stopping or the session is no
+    # longer admitted.
+    def signal(thread_id:, event:, payload: nil)
+      if thread_id.nil?
+        raise ArgumentError, "thread_id is required"
+      end
+
+      event_name = event.to_sym
+      unless @external_events.key?(event_name)
+        raise ArgumentError,
+          "Unknown event #{event_name.inspect}. " \
+          "Valid events: #{@external_events.keys.inspect}"
+      end
+
+      Phronomy::Runtime.instance.event_loop.post_to_session(
+        Phronomy::Event.new(
+          type: event_name,
+          target_id: thread_id.to_s,
+          payload: payload
+        )
+      )
     end
 
     private
 
-    # Builds the initial WorkflowContext from input and config.
-    # Returns [state, thread_id, recursion_limit, store].
-    def _build_initial_context(input, config)
-      thread_id = config[:thread_id] || SecureRandom.uuid
-      recursion_limit = config.fetch(:recursion_limit, Phronomy.configuration.recursion_limit)
-      store = config.fetch(:state_store, @state_store) || Phronomy.configuration.state_store
-      snapshot = (store && config[:thread_id]) ? store.load(thread_id) : nil
-      initial_fields = if snapshot && snapshot[:fields]
-        snapshot[:fields].transform_keys(&:to_sym).merge(input.transform_keys(&:to_sym))
+    def ensure_blocking_call_allowed!(method_name, async_alternative)
+      return unless Phronomy::Runtime.instance.event_loop.current?
+
+      raise Phronomy::Error,
+        "Cannot call Workflow##{method_name} from the EventLoop thread. " \
+        "Use #{async_alternative} instead."
+    end
+
+    def prepare_new_execution(input, config)
+      thread_id = (config[:thread_id] || SecureRandom.uuid).to_s
+      recursion_limit = config.fetch(
+        :recursion_limit,
+        Phronomy.configuration.recursion_limit
+      )
+      store = configured_store(config)
+      snapshot = store&.load(thread_id) if config[:thread_id]
+
+      stored_fields = snapshot && snapshot[:fields]
+      initial_fields = if stored_fields
+        stored_fields
+          .transform_keys(&:to_sym)
+          .merge(input.transform_keys(&:to_sym))
       else
         input
       end
-      state = @state_class.new(**initial_fields)
-      state.set_graph_metadata(thread_id: thread_id)
-      [state, thread_id, recursion_limit, store]
+
+      context = @state_class.new(**initial_fields)
+      context.set_graph_metadata(thread_id: thread_id)
+
+      Execution.new(
+        context: context,
+        thread_id: thread_id,
+        recursion_limit: recursion_limit,
+        store: store,
+        persist: !config[:thread_id].nil?
+      )
     end
 
-    # Builds an FSMSession for the given context. Used in EventLoop mode.
-    def build_session_for(context:, recursion_limit:, runtime: Phronomy::Runtime.instance,
-      resume_event: nil, resume_phase: nil)
+    def configured_store(config = {})
+      config.fetch(:state_store, @state_store) ||
+        Phronomy.configuration.state_store
+    end
+
+    def start_execution(
+      execution,
+      resume_event: nil,
+      resume_phase: nil,
+      stable_observer: nil
+    )
+      runtime = Phronomy::Runtime.instance
+      result_task = Phronomy::Task.deferred(
+        name: "workflow:#{execution.thread_id}"
+      )
+      source_task = Phronomy::Task.deferred(
+        name: "workflow-source:#{execution.thread_id}"
+      )
+
+      source_task.on_complete do |result, error|
+        finalize_execution(
+          result_task: result_task,
+          result: result,
+          error: error,
+          store: execution.store,
+          thread_id: execution.thread_id,
+          persist: execution.persist
+        )
+      end
+
+      session = build_session_for(
+        context: execution.context,
+        recursion_limit: execution.recursion_limit,
+        runtime: runtime,
+        resume_event: resume_event,
+        resume_phase: resume_phase,
+        stable_observer: stable_observer
+      )
+      runtime.event_loop.register(session, completion: source_task)
+      result_task
+    rescue => error
+      fail_task(result_task, error) if result_task
+      result_task || failed_task("workflow:registration", error)
+    end
+
+    def finalize_execution(
+      result_task:,
+      result:,
+      error:,
+      store:,
+      thread_id:,
+      persist:
+    )
+      if error
+        fail_task(result_task, error)
+        return
+      end
+
+      begin
+        persist_snapshot(store, thread_id, result, persist: persist)
+      rescue => persistence_error
+        fail_task(result_task, persistence_error)
+        return
+      end
+
+      complete_task(result_task, result)
+    end
+
+    def persist_snapshot(store, thread_id, context, persist:)
+      return unless store && persist
+
+      store.save(
+        thread_id,
+        {
+          fields: context.to_h,
+          phase: context.phase.to_s
+        }
+      )
+    end
+
+    def build_session_for(
+      context:,
+      recursion_limit:,
+      runtime:,
+      resume_event: nil,
+      resume_phase: nil,
+      stable_observer: nil
+    )
       Phronomy::FSMSession.new(
         id: context.thread_id,
         context: context,
@@ -221,171 +282,48 @@ module Phronomy
         phase_machine_class: @phase_machine_class,
         recursion_limit: recursion_limit,
         event_loop: runtime.event_loop,
-        timer_queue_provider: -> { runtime.timer_queue },
-        action_timeouts: @action_timeouts,
         resume_event: resume_event,
-        resume_phase: resume_phase
+        resume_phase: resume_phase,
+        stable_observer: stable_observer
       )
     end
 
-    # Executes the workflow via the default Runtime-owned EventLoop.
-    # Blocks the calling thread on a completion queue until the workflow
-    # finishes, halts at a wait state, or raises an error.
-    def run_via_event_loop(context, recursion_limit:, resume_event: nil, resume_phase: nil)
-      runtime = Phronomy::Runtime.instance
-      event_loop = runtime.event_loop
-      session = build_session_for(
-        context: context,
-        recursion_limit: recursion_limit,
-        runtime: runtime,
-        resume_event: resume_event,
-        resume_phase: resume_phase
-      )
-      completion_queue = event_loop.register(session)
-      result = completion_queue.pop
-      raise result if result.is_a?(Exception)
-      result
-    end
-
-    def run_workflow(ctx, resume_event: nil, resume_phase: nil, recursion_limit: 25, &event_block)
-      # Mark the current thread as a synchronous execution context.
-      # This allows WorkflowContext field mutations via setters without raising
-      # WorkflowContextOwnershipError (which would otherwise fire since EventLoop
-      # is always active and run_workflow runs on the caller's thread).
-      Thread.current[:phronomy_sync_execution] = Thread.current[:phronomy_sync_execution].to_i + 1
-      _run_workflow_body(ctx, resume_event: resume_event, resume_phase: resume_phase,
-        recursion_limit: recursion_limit, &event_block)
-    ensure
-      depth = Thread.current[:phronomy_sync_execution].to_i - 1
-      Thread.current[:phronomy_sync_execution] = (depth > 0) ? depth : nil
-    end
-
-    def _run_workflow_body(ctx, resume_event: nil, resume_phase: nil, recursion_limit: 25, &event_block)
-      if resume_event
-        # -- Resume from a wait state -------------------------------------------
-        # Fire the external event on a tracker positioned at the wait state.
-        # state_machines will invoke before_transition (exit) and after_transition
-        # (entry) callbacks as part of the transition, so both actions fire here.
-        current_state = resume_phase
-        tracker = new_phase_machine(current_state)
-        tracker.context = ctx
-        fire_event!(tracker, resume_event, current_state)
-        ctx = tracker.context
-        next_phase = tracker.phase.to_sym
-        current_state = (next_phase == current_state) ? FINISH : next_phase
-      else
-        # -- Fresh start --------------------------------------------------------
-        current_state = @entry_point
-        tracker = new_phase_machine(current_state)
-        tracker.context = ctx
-        # state_machines only fires after_transition callbacks on transitions.
-        # The entry point has no prior transition, so we invoke its entry actions directly.
-        @entry_actions[current_state]&.each do |c|
-          result = c.call(ctx)
-          if result.is_a?(Phronomy::Task)
-            timeout_secs = @action_timeouts[current_state]
-            if timeout_secs
-              if result.join(timeout_secs).nil?
-                result.cancel!
-                raise Phronomy::ActionTimeoutError,
-                  "Action in state #{current_state.inspect} timed out after #{timeout_secs}s"
-              end
-            end
-            task_result = result.wait_result
-            ctx = task_result if task_result.is_a?(Phronomy::WorkflowContext)
-          elsif result.is_a?(Phronomy::WorkflowContext)
-            ctx = result
-          end
+    def resolve_resume_event(current_phase, event)
+      event_name = event.to_sym
+      unless event_name == :resume
+        unless @external_events.key?(event_name)
+          raise ArgumentError,
+            "Unknown event #{event_name.inspect}. " \
+            "Valid events: #{@external_events.keys.inspect}"
         end
-        tracker.context = ctx
+        return event_name
       end
 
-      # Event queue: decouple action execution from transition firing.
-      # Events are enqueued after visiting a state and processed at the top
-      # of the next iteration so that guards always see the freshest context.
-      event_queue = []
-      step = 0
-
-      loop do
-        break if current_state == FINISH
-
-        # -- Process next pending event -----------------------------------------
-        # Dequeue one event and fire it against the state machine. Guards are
-        # evaluated here (at fire time). Entry/exit callbacks fire inside fire_event!.
-        if (event = event_queue.shift)
-          if step >= recursion_limit
-            raise Phronomy::RecursionLimitError,
-              "Recursion limit (#{recursion_limit}) exceeded"
-          end
-
-          fire_event!(tracker, event, current_state)
-          ctx = tracker.context
-          next_phase = tracker.phase.to_sym
-          # When next_phase == current_state no transition matched → terminal state.
-          current_state = (next_phase == current_state) ? FINISH : next_phase
-          step += 1
-          next
-        end
-
-        # -- Queue empty: check for halt -----------------------------------------
-        # Auto-halt at wait states: persist phase in context and return to caller.
-        # The caller resumes via send_event.
-        if @wait_state_names.include?(current_state)
-          ctx.set_graph_metadata(thread_id: ctx.thread_id, phase: current_state)
-          return ctx
-        end
-
-        # -- Validate state is known --------------------------------------------
-        unless @declared_states.include?(current_state)
-          raise ArgumentError, "State #{current_state.inspect} is not defined"
-        end
-
-        # -- Emit stream event and enqueue transition ---------------------------
-        # Entry action for current_state has already been invoked (either by the
-        # initial manual call above, or by the after_transition callback fired
-        # inside fire_event! on the previous iteration).
-        event_block&.call({state: current_state, context: ctx})
-
-        # state_completed: unified event for all auto-fire transitions.
-        # No enqueue:      terminal state — next iteration exits via FINISH check.
-        if @auto_state_set.key?(current_state)
-          event_queue << :state_completed
-        else
-          current_state = FINISH
+      name, = @external_events.find do |_candidate, transitions|
+        Array(transitions).any? do |transition|
+          transition[:from] == current_phase
         end
       end
-
-      ctx.set_graph_metadata(thread_id: ctx.thread_id, phase: :__end__)
-      ctx
-    end
-
-    # Fires +event_name+ on +tracker+, raising a descriptive error if no
-    # transition matches. state_machines event methods return false when no
-    # transition can be taken (invalid state or all guards fail).
-    def fire_event!(tracker, event_name, from_state)
-      return if tracker.send(event_name)
+      return name if name
 
       raise ArgumentError,
-        "Transition from #{from_state.inspect} via event #{event_name.inspect} failed. " \
-        "Ensure at least one guard matches or add a fallback (no-guard) transition."
+        "No external event registered for state #{current_phase.inspect}"
     end
 
-    # Builds the PhaseTracker class backed by state_machines.
-    #
-    # Four event/callback types are registered:
-    #   state_completed       — all auto-fire transitions (guarded and unguarded)
-    #   <external_name>       — external events originating from wait states
-    #   after_transition to   — entry callbacks (invoked when entering a state)
-    #   before_transition from — exit callbacks (invoked when leaving a state)
-    #
-    # Guard lambdas bridge the PhaseTracker and WorkflowContext via +m.context+.
-    # Creates a PhaseTracker instance initialized to +from_state+.
-    def new_phase_machine(from_state)
-      machine = @phase_machine_class.new
-      # Override the initial state set by state_machine's initializer so we can
-      # resume from an arbitrary state (e.g. after a wait state).
-      machine.instance_variable_set(:@phase, from_state.to_s)
-      machine
+    def complete_task(task, value)
+      task.backend.unblock(value, nil)
+      task.transition!(:completed, value: value)
+    end
+
+    def fail_task(task, error)
+      task.backend.unblock(nil, error)
+      task.transition!(:failed, error: error)
+    end
+
+    def failed_task(name, error)
+      task = Phronomy::Task.deferred(name: name)
+      fail_task(task, error)
+      task
     end
   end
 end

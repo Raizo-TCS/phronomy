@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `Workflow#signal(thread_id:, event:, payload:)` for FIFO delivery to a live
+  Workflow FSMSession.
+- Symmetric Agent `on_event:` support for `invoke_async` and `stream_async`;
+  streaming differs only by adding `:token` events.
 - `Agent#approve_async` and `Agent::Base.approve_async` resume a suspended
   AgentInvocation without blocking the caller and return a `Phronomy::Task`.
 - Streaming invocations resumed through `approve_async` continue to deliver
@@ -22,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Implicit awaiting of Task-returning Workflow/Agent/Tool entry actions and the
+  Workflow `action_timeout:` DSL. Entry actions are synchronous RTC callbacks.
+- The duplicate caller-thread `WorkflowRunner#run_workflow` execution path.
 - Agent-wide automatic replay: `Agent::Base.retry_policy` and the `Retryable`
   concern. A failed AgentInvocation is no longer started again by Phronomy.
 - Agent-class `invoke_timeout`. Callers that need a root deadline should pass an
@@ -38,6 +45,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `Workflow#invoke`, `#invoke_async`, and `#stream` now share context
+  preparation, StateStore load/save, EventLoop registration, and FSMSession
+  execution.
+- Agent terminal outcomes are delivered to `on_event` before the returned Task
+  is settled. `Task#on_complete`, `wait_result`, and cancellation remain active.
+- Mapping Agent events to Workflow events, correlation, stale-event handling,
+  result persistence, and external Task cancellation are application concerns.
 - LLM transport timeout, transient-error retry, backoff, and jitter are delegated
   to RubyLLM or another configured LLM adapter. Phronomy only translates the
   adapter's final provider error.

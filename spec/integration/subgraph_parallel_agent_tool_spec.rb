@@ -2,11 +2,14 @@
 
 require_relative "spec_helper"
 require_relative "support/llm_stub"
+require "securerandom"
 
-# Group 13: Subgraph nesting / Agent-as-Tool (rewritten with Phronomy::Workflow DSL)
-# TC-001..TC-003: pure workflow tests (no LLM calls)
-# TC-008..TC-010: LLM-required tests (AgentTool with Agent::Base)
-
+# Group 13: Subgraph nesting / Agent-as-Tool.
+#
+# Nested Workflow completion is integrated through the generic Task contract:
+# the application registers Task#on_complete and maps it to a parent Workflow
+# event. The parent entry action returns synchronously and is not implicitly
+# awaited by Phronomy.
 RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
   class G13BaseState
     include Phronomy::WorkflowContext
@@ -15,6 +18,25 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
     field :step, type: :replace, default: 0
     field :log, type: :append, default: -> { [] }
     field :meta, type: :merge, default: -> { {} }
+    field :subworkflow_request_id, type: :replace
+    field :subworkflow_error, type: :replace
+
+    def handle_fsm_event(event)
+      case event.type
+      when :subworkflow_completed
+        return :consume unless
+          event.payload[:request_id] == subworkflow_request_id
+
+        self.value = event.payload[:value]
+        self.step = event.payload[:step] if event.payload.key?(:step)
+      when :subworkflow_failed
+        return :consume unless
+          event.payload[:request_id] == subworkflow_request_id
+
+        self.subworkflow_error = event.payload[:error]
+      end
+      false
+    end
   end
 
   class G13SubState
@@ -29,14 +51,16 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
       initial :s1
       state :s1
       state :s2
-      entry :s1, ->(s) {
-        s.value = "#{s.value}_s1"
-        s.step += 1
+
+      entry :s1, ->(state) {
+        state.value = "#{state.value}_s1"
+        state.step += 1
       }
-      entry :s2, ->(s) {
-        s.value = "#{s.value}_s2"
-        s.step += 1
+      entry :s2, ->(state) {
+        state.value = "#{state.value}_s2"
+        state.step += 1
       }
+
       transition from: :s1, to: :s2
       transition from: :s2, to: :__finish__
     end
@@ -48,159 +72,277 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
       state :router
       state :high
       state :low
-      entry :high, ->(s) {
-        s.value = "high_#{s.value}"
-        s.step += 1
+
+      entry :high, ->(state) {
+        state.value = "high_#{state.value}"
+        state.step += 1
       }
-      entry :low, ->(s) {
-        s.value = "low_#{s.value}"
-        s.step += 1
+      entry :low, ->(state) {
+        state.value = "low_#{state.value}"
+        state.step += 1
       }
+
       transition from: :high, to: :__finish__
       transition from: :low, to: :__finish__
-      transition from: :router, guard: ->(s) { s.value.to_s.start_with?("h") }, to: :high
+      transition(
+        from: :router,
+        guard: ->(state) {
+          state.value.to_s.start_with?("h")
+        },
+        to: :high
+      )
       transition from: :router, to: :low
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # TC-001: flat workflow (no subgraph, no parallel) — baseline
-  # ---------------------------------------------------------------------------
+  def signal_subworkflow_completion(
+    parent_workflow:,
+    parent_thread_id:,
+    request_id:,
+    task:
+  )
+    task.on_complete do |result, error|
+      parent_workflow.signal(
+        thread_id: parent_thread_id,
+        event: error ? :subworkflow_failed : :subworkflow_completed,
+        payload: {
+          request_id: request_id,
+          value: result&.value,
+          step: result&.step,
+          error: error
+        }
+      )
+    end
+  end
+
   it "TC-001: flat linear workflow executes all states in order" do
     app = Phronomy::Workflow.define(G13BaseState) do
       initial :a
       state :a
       state :b
-      entry :a, ->(s) {
-        s.value = "a"
-        s.step += 1
+
+      entry :a, ->(state) {
+        state.value = "a"
+        state.step += 1
       }
-      entry :b, ->(s) {
-        s.value = "#{s.value}_b"
-        s.step += 1
+      entry :b, ->(state) {
+        state.value = "#{state.value}_b"
+        state.step += 1
       }
+
       transition from: :a, to: :b
       transition from: :b, to: :__finish__
     end
+
     final = app.invoke({})
     expect(final.value).to eq("a_b")
     expect(final.step).to eq(2)
   end
 
-  # ---------------------------------------------------------------------------
-  # TC-002: linear sub-workflow embedded via state action
-  # ---------------------------------------------------------------------------
-  it "TC-002: linear sub-workflow result is merged into parent state" do
-    sub = linear_subworkflow
-    app = Phronomy::Workflow.define(G13BaseState) do
+  it "TC-002: maps a linear sub-workflow Task into parent events" do
+    subworkflow = linear_subworkflow
+    completion_mapper = method(:signal_subworkflow_completion)
+    parent_workflow = nil
+
+    parent_workflow = Phronomy::Workflow.define(G13BaseState) do
       initial :before
       state :before
       state :nested
       state :after
-      entry :before, ->(s) {
-        s.merge(value: "init", step: 0)
+      state :failed
+
+      entry :before, ->(state) {
+        state.merge(value: "init", step: 0)
       }
-      entry :nested, ->(s) {
-        Phronomy::Task.spawn {
-          result = sub.invoke({value: s.value, step: s.step})
-          s.merge(value: result.value, step: result.step)
-        }
+
+      entry :nested, ->(state) {
+        request_id = SecureRandom.uuid
+        next_state = state.merge(
+          subworkflow_request_id: request_id,
+          subworkflow_error: nil
+        )
+        task = subworkflow.invoke_async(
+          {
+            value: next_state.value,
+            step: next_state.step
+          }
+        )
+
+        completion_mapper.call(
+          parent_workflow: parent_workflow,
+          parent_thread_id: next_state.thread_id,
+          request_id: request_id,
+          task: task
+        )
+
+        next_state
       }
-      entry :after, ->(s) { s.merge(value: "#{s.value}_after") }
+
+      entry :after, ->(state) {
+        state.merge(value: "#{state.value}_after")
+      }
+
+      entry :failed, ->(state) {
+        raise(
+          state.subworkflow_error ||
+          Phronomy::Error.new("Nested Workflow failed")
+        )
+      }
+
+      transition(
+        from: :nested,
+        on: :subworkflow_completed,
+        to: :after
+      )
+      transition(
+        from: :nested,
+        on: :subworkflow_failed,
+        to: :failed
+      )
       transition from: :before, to: :nested
-      transition from: :nested, to: :after
       transition from: :after, to: :__finish__
     end
-    final = app.invoke({})
+
+    final = parent_workflow.invoke({})
     expect(final.value).to eq("init_s1_s2_after")
     expect(final.step).to eq(2)
   end
 
-  # ---------------------------------------------------------------------------
-  # TC-003: branching sub-workflow (conditional routing inside sub-workflow)
-  # ---------------------------------------------------------------------------
-  it "TC-003: branching sub-workflow routes correctly based on input value" do
-    sub = branching_subworkflow
-    app = Phronomy::Workflow.define(G13BaseState) do
+  it "TC-003: maps a branching sub-workflow Task into parent events" do
+    subworkflow = branching_subworkflow
+    completion_mapper = method(:signal_subworkflow_completion)
+    parent_workflow = nil
+
+    parent_workflow = Phronomy::Workflow.define(G13BaseState) do
       initial :nested
       state :nested
-      entry :nested, ->(s) {
-        # Sub-workflow calls from EventLoop entry actions must use Task.spawn
-        # so the EventLoop thread is not blocked awaiting sub-session completion.
-        Phronomy::Task.spawn {
-          result = sub.invoke({value: "high_input", step: 0})
-          s.merge(value: result.value)
-        }
+      state :completed
+      state :failed
+
+      entry :nested, ->(state) {
+        request_id = SecureRandom.uuid
+        next_state = state.merge(
+          subworkflow_request_id: request_id,
+          subworkflow_error: nil
+        )
+        task = subworkflow.invoke_async(
+          {value: "high_input", step: 0}
+        )
+
+        completion_mapper.call(
+          parent_workflow: parent_workflow,
+          parent_thread_id: next_state.thread_id,
+          request_id: request_id,
+          task: task
+        )
+
+        next_state
       }
-      transition from: :nested, to: :__finish__
+
+      entry :failed, ->(state) {
+        raise(
+          state.subworkflow_error ||
+          Phronomy::Error.new("Nested Workflow failed")
+        )
+      }
+
+      transition(
+        from: :nested,
+        on: :subworkflow_completed,
+        to: :completed
+      )
+      transition(
+        from: :nested,
+        on: :subworkflow_failed,
+        to: :failed
+      )
+      transition from: :completed, to: :__finish__
     end
-    final = app.invoke({})
+
+    final = parent_workflow.invoke({})
     expect(final.value).to start_with("high_")
+    expect(final.step).to eq(1)
   end
 
-  # ---------------------------------------------------------------------------
-  # TC-008: AgentTool.from_agent generates a tool with correct name/description
-  # ---------------------------------------------------------------------------
-  it "TC-008: AgentTool.from_agent generates a tool with the expected name and description" do
+  it "TC-008: AgentTool.from_agent generates the expected metadata" do
     stub_agent = Class.new(Phronomy::Agent::Base) do
       def self.name
         "SummarizerAgent"
       end
     end
-    tool_klass = Phronomy::Tools::Agent.from_agent(
+
+    tool_class = Phronomy::Tools::Agent.from_agent(
       stub_agent,
       description: "Summarizes long documents"
     )
-    expect(tool_klass.new.name).to eq("summarizer")
-    expect(tool_klass.description).to eq("Summarizes long documents")
-    expect(tool_klass.ancestors).to include(Phronomy::Tools::Agent)
+
+    expect(tool_class.new.name).to eq("summarizer")
+    expect(tool_class.description).to eq("Summarizes long documents")
+    expect(tool_class.ancestors).to include(Phronomy::Tools::Agent)
   end
 
-  # ---------------------------------------------------------------------------
-  # TC-009: AgentTool with explicit tool_name overrides auto-derived name
-  # ---------------------------------------------------------------------------
-  it "TC-009: AgentTool respects an explicit tool_name override" do
+  it "TC-009: AgentTool respects an explicit tool_name" do
     stub_agent = Class.new(Phronomy::Agent::Base) do
       def self.name
         "TranslatorAgent"
       end
     end
-    tool_klass = Phronomy::Tools::Agent.from_agent(
+
+    tool_class = Phronomy::Tools::Agent.from_agent(
       stub_agent,
       tool_name: "my_translator",
       description: "Translates text"
     )
-    expect(tool_klass.new.name).to eq("my_translator")
+
+    expect(tool_class.new.name).to eq("my_translator")
   end
 
-  # ---------------------------------------------------------------------------
-  # TC-010: Base uses AgentTool to delegate to a sub-agent (LLM required)
-  # ---------------------------------------------------------------------------
-  it "TC-010: Base delegates a question to a wrapped sub-agent via AgentTool" do
+  it "TC-010: Base delegates to a wrapped sub-agent" do
     sub_agent_class = Class.new(Phronomy::Agent::Base) do
       model LM_STUDIO_MODEL
       provider :openai
-      instructions "You are a math agent. Answer the arithmetic question concisely with only the numeric result."
+      instructions(
+        "You are a math agent. Answer with only the numeric result."
+      )
     end
     sub_agent_class.define_singleton_method(:name) { "MathAgent" }
 
     math_tool = Phronomy::Tools::Agent.from_agent(
       sub_agent_class,
       tool_name: "math_solver",
-      description: "Solves arithmetic questions. Pass the full question as input."
+      description:
+        "Solves arithmetic questions. Pass the full question as input."
     )
 
     parent_class = Class.new(Phronomy::Agent::Base) do
       model LM_STUDIO_MODEL
       provider :openai
-      instructions "You are an orchestrator. Use the math_solver tool to answer math questions. Do not answer yourself."
+      instructions(
+        "Use the math_solver tool for math questions. " \
+        "Do not answer directly."
+      )
       tools math_tool
     end
 
-    tool_resp = LLMStub.tool_call_response("math_solver", {input: "What is 12 multiplied by 9? Use the math_solver tool."})
-    LLMStub.activate(responses: [tool_resp, "108", "The answer is 108."])
+    tool_response = LLMStub.tool_call_response(
+      "math_solver",
+      {
+        input:
+          "What is 12 multiplied by 9? Use the math_solver tool."
+      }
+    )
+    LLMStub.activate(
+      responses: [
+        tool_response,
+        "108",
+        "The answer is 108."
+      ]
+    )
 
-    result = parent_class.new.invoke("What is 12 multiplied by 9? Use the math_solver tool.")
+    result = parent_class.new.invoke(
+      "What is 12 multiplied by 9? Use the math_solver tool."
+    )
+
     expect(result[:output]).to be_a(String)
     expect(result[:output]).not_to be_empty
     expect(result[:output]).to include("108")
