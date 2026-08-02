@@ -280,3 +280,58 @@ RSpec.describe "Agent async event contract" do
     }.to raise_error(ArgumentError, /on_event.*block|block.*on_event/i)
   end
 end
+
+# Direct unit tests for normalize_terminal_error and invocation_timeout_expired?
+# to avoid relying on async EventLoop timing for branch coverage.
+RSpec.describe "Agent::AsyncEventApi normalize_terminal_error" do
+  let(:agent) { Class.new(Phronomy::Agent::Base).new }
+
+  def normalize(error, config = {})
+    invocation = double("invocation", config: config)
+    agent.send(:normalize_terminal_error, error, invocation)
+  end
+
+  it "returns non-CancellationError unchanged" do
+    err = RuntimeError.new("boom")
+    expect(normalize(err)).to be(err)
+  end
+
+  it "returns CancellationError unchanged when no deadline is set" do
+    token = Phronomy::Concurrency::CancellationToken.new
+    token.cancel!
+    err = Phronomy::CancellationError.new("explicit cancel")
+    result = normalize(err, {cancellation_token: token})
+    expect(result).to be_a(Phronomy::CancellationError)
+  end
+
+  it "converts CancellationError to TimeoutError when wall-clock deadline has expired" do
+    token = Phronomy::Concurrency::CancellationToken.new(deadline: Time.now - 1)
+    err = Phronomy::CancellationError.new("deadline")
+    result = normalize(err, {cancellation_token: token})
+    expect(result).to be_a(Phronomy::TimeoutError)
+    expect(result.message).to eq("deadline")
+  end
+
+  it "returns CancellationError unchanged when invocation is nil" do
+    err = Phronomy::CancellationError.new("nil invocation")
+    result = agent.send(:normalize_terminal_error, err, nil)
+    expect(result).to be_a(Phronomy::CancellationError)
+  end
+
+  it "converts to TimeoutError when InvocationContext has an expired deadline" do
+    ic = Phronomy::InvocationContext.new(
+      deadline: Phronomy::Concurrency::Deadline.in(-1)
+    )
+    err = Phronomy::CancellationError.new("ic deadline")
+    invocation = double("invocation", config: {invocation_context: ic})
+    result = agent.send(:normalize_terminal_error, err, invocation)
+    expect(result).to be_a(Phronomy::TimeoutError)
+  end
+
+  it "converts to TimeoutError for monotonic deadline token (timeout_after)" do
+    token = Phronomy::Concurrency::CancellationToken.timeout_after(-1)
+    err = Phronomy::CancellationError.new("monotonic")
+    result = normalize(err, {cancellation_token: token})
+    expect(result).to be_a(Phronomy::TimeoutError)
+  end
+end
