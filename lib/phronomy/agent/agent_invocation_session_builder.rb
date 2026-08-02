@@ -218,8 +218,14 @@ module Phronomy
           end
         end
 
-        chat.on_tool_call do |tool_call|
-          raise Phronomy::Agent::ToolCallIntercepted.new(tool_call)
+        if chat.respond_to?(:before_tool_call)
+          chat.before_tool_call do |tool_call|
+            raise Phronomy::Agent::ToolCallIntercepted.new(tool_call)
+          end
+        else
+          chat.on_tool_call do |tool_call|
+            raise Phronomy::Agent::ToolCallIntercepted.new(tool_call)
+          end
         end
       end
       private_class_method :install_tool_interceptors
