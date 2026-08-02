@@ -104,65 +104,14 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Implements the Generator-Verifier multi-agent coordination pattern
-(Anthropic blog, Pattern 1): a generator agent produces an
-answer while a verifier agent evaluates its quality.</p>
-<p>All prompt construction and result parsing are provided by the caller,
-giving full control over the LLM dialogue.
-The generator and verifier agents are configurable, and the pipeline
-retries until confidence passes the threshold or max iterations are reached.</p>
+    <p>Implements the Generator-Verifier multi-agent coordination pattern.</p>
+<p>Agent completion is integrated through application-defined Workflow events;
+Workflow entry actions do not return or await Agent Tasks.</p>
 
   </div>
 </div>
 <div class="tags">
   
-  <div class="examples">
-    <h4 class="tag_title">Examples:</h4>
-    
-      
-        <h5 class="example_title"><div class='inline'><p>Basic usage with custom prompt builders</p></div></h5>
-      
-      <pre class="example code"><code><span class='id identifier rubyid_pipeline'>pipeline</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>GeneratorVerifier</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::GeneratorVerifier#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-  <span class='label'>draft_agent:</span>           <span class='const'>MyDraftAgent</span><span class='comma'>,</span>
-  <span class='label'>review_agent:</span>          <span class='const'>MyReviewAgent</span><span class='comma'>,</span>
-  <span class='label'>draft_prompt_builder:</span>  <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='id identifier rubyid_feedback'>feedback</span><span class='rparen'>)</span> <span class='tlambeg'>{</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Question: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_input'>input</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span> <span class='rbrace'>}</span><span class='comma'>,</span>
-  <span class='label'>review_prompt_builder:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='id identifier rubyid_draft'>draft</span><span class='comma'>,</span> <span class='id identifier rubyid_citations'>citations</span><span class='rparen'>)</span> <span class='tlambeg'>{</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Review: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_draft'>draft</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span> <span class='rbrace'>}</span>
-<span class='rparen'>)</span>
-<span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_pipeline'>pipeline</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>What is the refund policy?</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
-<span class='id identifier rubyid_puts'>puts</span> <span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_output'>output</span>      <span class='comment'># the final answer string
-</span><span class='id identifier rubyid_puts'>puts</span> <span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_trusted?'>trusted?</span>    <span class='comment'># true when confidence &gt;= threshold</span></code></pre>
-    
-      
-        <h5 class="example_title"><div class='inline'><p>Custom result parsers</p></div></h5>
-      
-      <pre class="example code"><code>pipeline = Phronomy::GeneratorVerifier.new(
-  ...,
-  draft_result_parser:  -&gt;(text) { my_parse_draft(text) },
-  review_result_parser: -&gt;(text) { my_parse_review(text) }
-)</code></pre>
-    
-      
-        <h5 class="example_title"><div class='inline'><p>Raising on low confidence</p></div></h5>
-      
-      <pre class="example code"><code>pipeline = Phronomy::GeneratorVerifier.new(
-  ...,
-  raise_if_untrusted: true
-)
-begin
-  result = pipeline.invoke(&quot;question&quot;)
-rescue Phronomy::LowConfidenceError =&gt; e
-  puts &quot;Untrusted: #{e.result.confidence}&quot;
-end</code></pre>
-    
-  </div>
-
-
-  <p class="tag_title">See Also:</p>
-  <ul class="see">
-    
-      <li><a href="https://claude.com/blog/multi-agent-coordination-patterns" target="_parent" title="https://claude.com/blog/multi-agent-coordination-patterns">https://claude.com/blog/multi-agent-coordination-patterns</a></li>
-    
-  </ul>
 
 </div><h2>Defined Under Namespace</h2>
 <p class="children">
@@ -184,30 +133,12 @@ end</code></pre>
     <dl class="constants">
       
         <dt id="DEFAULT_CONFIDENCE_THRESHOLD-constant" class="">DEFAULT_CONFIDENCE_THRESHOLD =
-          <div class="docstring">
-  <div class="discussion">
-    <p>Default confidence threshold for trusting an answer.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div>
+          
         </dt>
         <dd><pre class="code"><span class='float'>0.7</span></pre></dd>
       
         <dt id="DEFAULT_MAX_ITERATIONS-constant" class="">DEFAULT_MAX_ITERATIONS =
-          <div class="docstring">
-  <div class="discussion">
-    <p>Default maximum draft-review cycles before returning best effort.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div>
+          
         </dt>
         <dd><pre class="code"><span class='int'>3</span></pre></dd>
       
@@ -244,7 +175,7 @@ end</code></pre>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of GeneratorVerifier.</p></div></span>
@@ -255,7 +186,7 @@ end</code></pre>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#invoke-instance_method" title="#invoke (instance method)">#<strong>invoke</strong>(input, config: {})  &#x21d2; Result </a>
+      <a href="#invoke-instance_method" title="#invoke (instance method)">#<strong>invoke</strong>(input, config: {})  &#x21d2; Object </a>
     
 
     
@@ -266,10 +197,10 @@ end</code></pre>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'><p>Run the generator-verifier pipeline.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -292,169 +223,12 @@ end</code></pre>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Returns a new instance of GeneratorVerifier.</p>
+    <p>Returns a new instance of GeneratorVerifier.</p>
 
   </div>
 </div>
 <div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>draft_agent</span>
-      
-      
-        <span class='type'>(<tt>Class</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>subclass of Phronomy::Agent::Base
-used to generate answer drafts</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>review_agent</span>
-      
-      
-        <span class='type'>(<tt>Class</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>subclass of Phronomy::Agent::Base
-used to evaluate each draft</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>draft_prompt_builder</span>
-      
-      
-        <span class='type'>(<tt>#call</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p><code>call(input, feedback)</code> → String
-prompt for the generator. <code>feedback</code> is nil on the first iteration and
-contains the reviewer's feedback string on subsequent iterations.</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>review_prompt_builder</span>
-      
-      
-        <span class='type'>(<tt>#call</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p><code>call(input, draft, citations)</code> → String
-prompt for the verifier. <code>citations</code> is an Array of Hashes.</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>draft_result_parser</span>
-      
-      
-        <span class='type'>(<tt>#call</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p><code>call(text)</code> → Hash with
-<code>:answer</code>, <code>:confidence</code>, and <code>:citations</code> keys. Defaults to JSON parsing
-with a safe fallback when the response cannot be parsed.</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>review_result_parser</span>
-      
-      
-        <span class='type'>(<tt>#call</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p><code>call(text)</code> → Hash with
-<code>:approved</code>, <code>:score</code>, and <code>:feedback</code> keys. Defaults to JSON parsing
-with a safe fallback.</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>confidence_threshold</span>
-      
-      
-        <span class='type'>(<tt>Float</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>DEFAULT_CONFIDENCE_THRESHOLD</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>minimum combined confidence to
-trust an answer (default: 0.7)</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>max_iterations</span>
-      
-      
-        <span class='type'>(<tt>Integer</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>DEFAULT_MAX_ITERATIONS</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>maximum draft-review cycles
-before returning the best-effort answer (default: 3)</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>raise_if_untrusted</span>
-      
-      
-        <span class='type'>(<tt>Boolean</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>false</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>when <code>true</code>, raises
-<span class='object_link'><a href="LowConfidenceError.html" title="Phronomy::LowConfidenceError (class)">LowConfidenceError</a></span> if the final result does not meet the
-confidence threshold (default: false)</p></div>
-      
-    </li>
-  
-</ul>
-
 
 </div><table class="source_code">
   <tr>
@@ -462,31 +236,33 @@ confidence threshold (default: false)</p></div>
       <pre class="lines">
 
 
-116
-117
-118
-119
-120
-121
-122
-123
-124
-125
-126
-127
-128
-129
-130
-131
-132
-133
-134
-135
-136
-137</pre>
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/generator_verifier.rb', line 116</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/generator_verifier.rb', line 79</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>draft_agent:</span><span class='comma'>,</span>
@@ -503,8 +279,10 @@ confidence threshold (default: false)</p></div>
   <span class='ivar'>@review_agent_class</span> <span class='op'>=</span> <span class='id identifier rubyid_review_agent'>review_agent</span>
   <span class='ivar'>@draft_prompt_builder</span> <span class='op'>=</span> <span class='id identifier rubyid_draft_prompt_builder'>draft_prompt_builder</span>
   <span class='ivar'>@review_prompt_builder</span> <span class='op'>=</span> <span class='id identifier rubyid_review_prompt_builder'>review_prompt_builder</span>
-  <span class='ivar'>@draft_result_parser</span> <span class='op'>=</span> <span class='id identifier rubyid_draft_result_parser'>draft_result_parser</span> <span class='op'>||</span> <span class='id identifier rubyid_method'>method</span><span class='lparen'>(</span><span class='symbol'>:default_parse_draft</span><span class='rparen'>)</span>
-  <span class='ivar'>@review_result_parser</span> <span class='op'>=</span> <span class='id identifier rubyid_review_result_parser'>review_result_parser</span> <span class='op'>||</span> <span class='id identifier rubyid_method'>method</span><span class='lparen'>(</span><span class='symbol'>:default_parse_review</span><span class='rparen'>)</span>
+  <span class='ivar'>@draft_result_parser</span> <span class='op'>=</span>
+    <span class='id identifier rubyid_draft_result_parser'>draft_result_parser</span> <span class='op'>||</span> <span class='id identifier rubyid_method'>method</span><span class='lparen'>(</span><span class='symbol'>:default_parse_draft</span><span class='rparen'>)</span>
+  <span class='ivar'>@review_result_parser</span> <span class='op'>=</span>
+    <span class='id identifier rubyid_review_result_parser'>review_result_parser</span> <span class='op'>||</span> <span class='id identifier rubyid_method'>method</span><span class='lparen'>(</span><span class='symbol'>:default_parse_review</span><span class='rparen'>)</span>
   <span class='ivar'>@threshold</span> <span class='op'>=</span> <span class='id identifier rubyid_confidence_threshold'>confidence_threshold</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span>
   <span class='ivar'>@max_iterations</span> <span class='op'>=</span> <span class='id identifier rubyid_max_iterations'>max_iterations</span><span class='period'>.</span><span class='id identifier rubyid_to_i'>to_i</span>
   <span class='ivar'>@raise_if_untrusted</span> <span class='op'>=</span> <span class='id identifier rubyid_raise_if_untrusted'>raise_if_untrusted</span>
@@ -525,118 +303,41 @@ confidence threshold (default: false)</p></div>
       <div class="method_details first">
   <h3 class="signature first" id="invoke-instance_method">
   
-    #<strong>invoke</strong>(input, config: {})  &#x21d2; <tt><span class='object_link'><a href="GeneratorVerifier/Result.html" title="Phronomy::GeneratorVerifier::Result (class)">Result</a></span></tt> 
+    #<strong>invoke</strong>(input, config: {})  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Run the generator-verifier pipeline.</p>
-
-  </div>
-</div>
-<div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
-  
-    <li>
-      
-        <span class='name'>input</span>
-      
-      
-        <span class='type'>(<tt>String</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>the user question or task description</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>config</span>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>{}</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>forwarded to the underlying agents (e.g. thread_id)</p></div>
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="GeneratorVerifier/Result.html" title="Phronomy::GeneratorVerifier::Result (class)">Result</a></span></tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="LowConfidenceError.html" title="Phronomy::LowConfidenceError (class)">Phronomy::LowConfidenceError</a></span></tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>when <code>raise_if_untrusted:</code> is <code>true</code>
-and the result does not meet the confidence threshold</p></div>
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-147
-148
-149
-150
-151
-152
-153
-154
-155
-156
-157
-158
-159
-160
-161
-162</pre>
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/generator_verifier.rb', line 147</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/generator_verifier.rb', line 104</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_app'>app</span> <span class='op'>=</span> <span class='id identifier rubyid_compiled_workflow'>compiled_workflow</span>
-  <span class='id identifier rubyid_state'>state</span> <span class='op'>=</span> <span class='id identifier rubyid_app'>app</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='lbrace'>{</span><span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_state'>state</span> <span class='op'>=</span> <span class='id identifier rubyid_compiled_workflow'>compiled_workflow</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='lbrace'>{</span><span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_confidence'>confidence</span> <span class='op'>=</span> <span class='id identifier rubyid_combined_confidence'>combined_confidence</span><span class='lparen'>(</span><span class='id identifier rubyid_state'>state</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_trusted'>trusted</span> <span class='op'>=</span> <span class='id identifier rubyid_confidence'>confidence</span> <span class='op'>&gt;=</span> <span class='ivar'>@threshold</span>
   <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="GeneratorVerifier/Result.html" title="Phronomy::GeneratorVerifier::Result (class)">Result</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::GeneratorVerifier#initialize (method)">new</a></span></span><span class='lparen'>(</span>
@@ -647,7 +348,9 @@ and the result does not meet the confidence threshold</p></div>
     <span class='label'>review_notes:</span> <span class='id identifier rubyid_state'>state</span><span class='period'>.</span><span class='id identifier rubyid_review_notes'>review_notes</span><span class='comma'>,</span>
     <span class='label'>trusted:</span> <span class='id identifier rubyid_trusted'>trusted</span>
   <span class='rparen'>)</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="LowConfidenceError.html" title="Phronomy::LowConfidenceError (class)">LowConfidenceError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="LowConfidenceError.html#initialize-instance_method" title="Phronomy::LowConfidenceError#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='ivar'>@raise_if_untrusted</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_trusted'>trusted</span>
+  <span class='kw'>if</span> <span class='ivar'>@raise_if_untrusted</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_trusted'>trusted</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="LowConfidenceError.html" title="Phronomy::LowConfidenceError (class)">LowConfidenceError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="LowConfidenceError.html#initialize-instance_method" title="Phronomy::LowConfidenceError#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
   <span class='id identifier rubyid_result'>result</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -660,7 +363,7 @@ and the result does not meet the confidence threshold</p></div>
 </div>
 
       <div id="footer">
-  Generated on Sat Aug  1 07:11:52 2026 by
+  Generated on Sun Aug  2 05:51:02 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

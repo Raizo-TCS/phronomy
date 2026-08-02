@@ -97,10 +97,6 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Stable</td>
 </tr>
 <tr>
-<td><strong>Workflow action_timeout</strong> — Per-state <code>action_timeout:</code> keyword on <code>state</code> DSL; cancels Task-returning entry actions that exceed the limit and raises <code>Phronomy::ActionTimeoutError</code></td>
-<td>Beta</td>
-</tr>
-<tr>
 <td><strong>Agent</strong> — ReAct-style tool-calling agents with guardrails and conversation history</td>
 <td>Stable</td>
 </tr>
@@ -190,15 +186,15 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Stable</td>
 </tr>
 <tr>
-<td><strong><code>stream</code> / <code>stream_async</code></strong> — <code>Agent::Base#stream</code> blocks the calling thread while delivering stream events; <code>Agent::Base#stream_async</code> returns a <code>Phronomy::Task</code> immediately; both require a block; stream callbacks execute on the EventLoop thread and must return quickly — blocking I/O or synchronous Agent calls inside a callback cause stalls</td>
+<td><strong>Agent async events</strong> — <code>invoke_async(..., on_event:)</code> and <code>stream_async(..., on_event:)</code> share <code>:tool_call</code>, <code>:tool_result</code>, <code>:approval_required</code>, <code>:done</code>, <code>:error</code>, <code>:timeout</code>, and <code>:cancelled</code>; streaming adds <code>:token</code></td>
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong>Stream events</strong> — <code>:token</code> (LLM delta), <code>:tool_call</code>, <code>:tool_result</code> (intermediate); <code>:done</code>, <code>:approval_required</code>, <code>:error</code> (terminal, delivered at most once per Task interval)</td>
+<td><strong><code>stream</code> / <code>stream_async</code></strong> — callbacks execute on the EventLoop thread and must return quickly; the block form remains a compatibility alias for <code>on_event:</code></td>
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong><code>stream_callback_error_policy</code></strong> — Configures what Phronomy does when a terminal stream callback raises: <code>:report</code> (default) logs the exception and preserves the Agent result in the Task; <code>:fail_task</code> logs and fails the Task with <code>Phronomy::StreamCallbackError</code>; neither policy stops the EventLoop; Agent internal errors are never replaced by callback errors</td>
+<td><strong><code>stream_callback_error_policy</code></strong> — Backward-compatible setting shared by <code>invoke_async</code> and <code>stream_async</code> terminal <code>on_event:</code> callbacks: <code>:report</code> (default) preserves the Agent result, while <code>:fail_task</code> fails the returned Task with <code>Phronomy::StreamCallbackError</code>; Agent execution errors are never replaced by callback errors</td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -206,9 +202,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Stable</td>
 </tr>
 <tr>
-<td><strong><code>Task#map</code></strong> — transforms a <code>Task</code>'s completed value via a block; returns a new <code>Task</code> whose value is the block's return value; if the source task fails or is cancelled the mapped task propagates the error without calling the block; primary use-case: `invoke_async.map { \</td>
-<td>r\</td>
-<td>ctx.merge(answer: <a href=":output">r</a>) }<code>to wire agent results into a</code>WorkflowContext`</td>
+<td><strong><code>Task#map</code></strong> — transforms a Task's completed value and propagates failure/cancellation; Workflow entry actions do not await mapped Tasks</td>
 <td>Stable</td>
 </tr>
 <tr>
@@ -551,17 +545,63 @@ persisted across process restarts and is <strong>not</strong> shared between pod
 </span><span class='id identifier rubyid_final'>final</span> <span class='op'>=</span> <span class='id identifier rubyid_app'>app</span><span class='period'>.</span><span class='id identifier rubyid_send_event'>send_event</span><span class='lparen'>(</span><span class='label'>state:</span> <span class='id identifier rubyid_state'>state</span><span class='comma'>,</span> <span class='label'>event:</span> <span class='symbol'>:approve</span><span class='rparen'>)</span>
 <span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Approved: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_final'>final</span><span class='period'>.</span><span class='id identifier rubyid_approved'>approved</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>  <span class='comment'># =&gt; true
 </span></code></pre>
-<p>Use <code>invoke_async + Task#map</code> to run an agent
-asynchronously inside a Workflow entry action.  The mapped Task returns a <code>WorkflowContext</code>,
-which <code>FSMSession</code> picks up via the standard <code>:action_completed</code> path:</p>
-<pre class="code ruby"><code class="ruby"><span class='comment'># Async workflow: workflow that runs an agent and captures the result.
-</span><span class='id identifier rubyid_entry'>entry</span> <span class='symbol'>:translate</span><span class='comma'>,</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
-  <span class='const'>TranslationAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_query'>query</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_result'>result</span><span class='op'>|</span>
-    <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>answer:</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span><span class='rparen'>)</span>   <span class='comment'># returns WorkflowContext
-</span>  <span class='kw'>end</span>
-<span class='rbrace'>}</span>
-<span class='id identifier rubyid_transition'>transition</span> <span class='label'>from:</span> <span class='symbol'>:translate</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:done</span>   <span class='comment'># no on: needed
-</span></code></pre>
+<p>Start the Agent as an asynchronous activity of the active state, then
+map its lifecycle event to an application-defined Workflow event:</p>
+<pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>TranslationContext</span>
+  <span class='id identifier rubyid_include'>include</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/WorkflowContext.html" title="Phronomy::WorkflowContext (module)">WorkflowContext</a></span></span>
+
+  <span class='id identifier rubyid_field'>field</span> <span class='symbol'>:query</span>
+  <span class='id identifier rubyid_field'>field</span> <span class='symbol'>:answer</span>
+  <span class='id identifier rubyid_field'>field</span> <span class='symbol'>:error</span>
+
+  <span class='kw'>def</span> <span class='id identifier rubyid_handle_fsm_event'>handle_fsm_event</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
+    <span class='kw'>case</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span>
+    <span class='kw'>when</span> <span class='symbol'>:translation_completed</span>
+      <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_answer'>answer</span> <span class='op'>=</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='lbracket'>[</span><span class='symbol'>:answer</span><span class='rbracket'>]</span>
+    <span class='kw'>when</span> <span class='symbol'>:translation_failed</span>
+      <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='lbracket'>[</span><span class='symbol'>:error</span><span class='rbracket'>]</span>
+    <span class='kw'>end</span>
+    <span class='kw'>false</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span>
+
+<span class='id identifier rubyid_workflow'>workflow</span> <span class='op'>=</span> <span class='kw'>nil</span>
+
+<span class='id identifier rubyid_workflow'>workflow</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Workflow.html" title="Phronomy::Workflow (class)">Workflow</a></span></span><span class='period'>.</span><span class='id identifier rubyid_define'><span class='object_link'><a href="Phronomy/Workflow.html#define-class_method" title="Phronomy::Workflow.define (method)">define</a></span></span><span class='lparen'>(</span><span class='const'>TranslationContext</span><span class='rparen'>)</span> <span class='kw'>do</span>
+  <span class='id identifier rubyid_initial'>initial</span> <span class='symbol'>:translate</span>
+
+  <span class='id identifier rubyid_state'>state</span> <span class='symbol'>:translate</span><span class='comma'>,</span> <span class='label'>action:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+    <span class='const'>TranslationAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span>
+      <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_query'>query</span><span class='comma'>,</span>
+      <span class='label'>on_event:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+        <span class='kw'>case</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span>
+        <span class='kw'>when</span> <span class='symbol'>:done</span>
+          <span class='id identifier rubyid_workflow'>workflow</span><span class='period'>.</span><span class='id identifier rubyid_signal'>signal</span><span class='lparen'>(</span>
+            <span class='label'>thread_id:</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
+            <span class='label'>event:</span> <span class='symbol'>:translation_completed</span><span class='comma'>,</span>
+            <span class='label'>payload:</span> <span class='lbrace'>{</span><span class='label'>answer:</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span><span class='rbrace'>}</span>
+          <span class='rparen'>)</span>
+        <span class='kw'>when</span> <span class='symbol'>:error</span><span class='comma'>,</span> <span class='symbol'>:timeout</span><span class='comma'>,</span> <span class='symbol'>:cancelled</span>
+          <span class='id identifier rubyid_workflow'>workflow</span><span class='period'>.</span><span class='id identifier rubyid_signal'>signal</span><span class='lparen'>(</span>
+            <span class='label'>thread_id:</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
+            <span class='label'>event:</span> <span class='symbol'>:translation_failed</span><span class='comma'>,</span>
+            <span class='label'>payload:</span> <span class='lbrace'>{</span><span class='label'>error:</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='lbracket'>[</span><span class='symbol'>:error</span><span class='rbracket'>]</span><span class='rbrace'>}</span>
+          <span class='rparen'>)</span>
+        <span class='kw'>end</span>
+      <span class='rbrace'>}</span>
+    <span class='rparen'>)</span>
+    <span class='id identifier rubyid_ctx'>ctx</span>
+  <span class='rbrace'>}</span>
+
+  <span class='id identifier rubyid_state'>state</span> <span class='symbol'>:done</span>
+  <span class='id identifier rubyid_state'>state</span> <span class='symbol'>:failed</span>
+
+  <span class='id identifier rubyid_transition'>transition</span> <span class='label'>from:</span> <span class='symbol'>:translate</span><span class='comma'>,</span> <span class='label'>on:</span> <span class='symbol'>:translation_completed</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:done</span>
+  <span class='id identifier rubyid_transition'>transition</span> <span class='label'>from:</span> <span class='symbol'>:translate</span><span class='comma'>,</span> <span class='label'>on:</span> <span class='symbol'>:translation_failed</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:failed</span>
+<span class='kw'>end</span>
+</code></pre>
+<p>The application owns payload interpretation, correlation, and field updates.
+Phronomy does not automatically copy Agent results into WorkflowContext.</p>
 <h3 id="Multi_Agent___Agent_as_Tool_pattern">Multi-Agent — Agent-as-Tool pattern</h3>
 <p>Wrap sub-agents as <code>Agent::Context::Capability::Base</code> subclasses so the orchestrator LLM can call them on demand.</p>
 <pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>ResearchTool</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Capability.html" title="Phronomy::Agent::Context::Capability (module)">Capability</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Capability/Base.html" title="Phronomy::Agent::Context::Capability::Base (class)">Base</a></span></span>
@@ -1267,7 +1307,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat Aug  1 07:11:50 2026 by
+  Generated on Sun Aug  2 05:51:00 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

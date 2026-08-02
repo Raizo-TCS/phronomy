@@ -67,6 +67,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h2 id="_Unreleased_">[Unreleased]</h2>
 <h3 id="Added">Added</h3>
 <ul>
+<li><code>Workflow#signal(thread_id:, event:, payload:)</code> for FIFO delivery to a live
+Workflow FSMSession.</li>
+<li>Symmetric Agent <code>on_event:</code> support for <code>invoke_async</code> and <code>stream_async</code>;
+streaming differs only by adding <code>:token</code> events.</li>
 <li><code>Agent#approve_async</code> and <code>Agent::Base.approve_async</code> resume a suspended
 AgentInvocation without blocking the caller and return a <code>Phronomy::Task</code>.</li>
 <li>Streaming invocations resumed through <code>approve_async</code> continue to deliver
@@ -78,6 +82,9 @@ terminal stream events on the Runtime-owned EventLoop thread.</li>
 </ul>
 <h3 id="Removed">Removed</h3>
 <ul>
+<li>Implicit awaiting of Task-returning Workflow/Agent/Tool entry actions and the
+Workflow <code>action_timeout:</code> DSL. Entry actions are synchronous RTC callbacks.</li>
+<li>The duplicate caller-thread <code>WorkflowRunner#run_workflow</code> execution path.</li>
 <li>Agent-wide automatic replay: <code>Agent::Base.retry_policy</code> and the <code>Retryable</code>
 concern. A failed AgentInvocation is no longer started again by Phronomy.</li>
 <li>Agent-class <code>invoke_timeout</code>. Callers that need a root deadline should pass an
@@ -94,6 +101,13 @@ Runtime-owned EventLoop streaming path.</li>
 </ul>
 <h3 id="Changed">Changed</h3>
 <ul>
+<li><code>Workflow#invoke</code>, <code>#invoke_async</code>, and <code>#stream</code> now share context
+preparation, StateStore load/save, EventLoop registration, and FSMSession
+execution.</li>
+<li>Agent terminal outcomes are delivered to <code>on_event</code> before the returned Task
+is settled. <code>Task#on_complete</code>, <code>wait_result</code>, and cancellation remain active.</li>
+<li>Mapping Agent events to Workflow events, correlation, stale-event handling,
+result persistence, and external Task cancellation are application concerns.</li>
 <li>LLM transport timeout, transient-error retry, backoff, and jitter are delegated
 to RubyLLM or another configured LLM adapter. Phronomy only translates the
 adapter's final provider error.</li>
@@ -1340,7 +1354,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sat Aug  1 07:11:50 2026 by
+  Generated on Sun Aug  2 05:51:00 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

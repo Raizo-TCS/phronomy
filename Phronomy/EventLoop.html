@@ -104,12 +104,7 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Runtime-owned event loop that manages all FSMSession instances.</p>
-<p>A dedicated real thread reads from a Runtime-local AsyncQueue and dispatches
-events to their target FSMSession. The EventLoop is created at most once by
-its owning Runtime and is never restarted after shutdown.</p>
-<p>FSMSession handlers run on the EventLoop thread. They must not perform
-blocking work or call synchronous invoke APIs from that thread.</p>
+    <p>Runtime-owned FIFO event loop for FSMSession instances.</p>
 
   </div>
 </div>
@@ -160,7 +155,7 @@ blocking work or call synchronous invoke APIs from that thread.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#average_lag_seconds-instance_method" title="#average_lag_seconds (instance method)">#<strong>average_lag_seconds</strong>  &#x21d2; Float </a>
+      <a href="#admitted_session%3F-instance_method" title="#admitted_session? (instance method)">#<strong>admitted_session?</strong>(session_id)  &#x21d2; Boolean </a>
     
 
     
@@ -171,7 +166,29 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   
   
   
-  <span class="private note title">private</span>
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#average_lag_seconds-instance_method" title="#average_lag_seconds (instance method)">#<strong>average_lag_seconds</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -193,10 +210,10 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'><p>Stops external admission at the Runtime boundary while allowing already accepted work to complete on this EventLoop.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -215,10 +232,10 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns true only for this EventLoop's dispatcher Task.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -237,7 +254,7 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -261,7 +278,7 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of EventLoop.</p></div></span>
@@ -272,7 +289,7 @@ blocking work or call synchronous invoke APIs from that thread.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#last_lag_seconds-instance_method" title="#last_lag_seconds (instance method)">#<strong>last_lag_seconds</strong>  &#x21d2; Float </a>
+      <a href="#last_lag_seconds-instance_method" title="#last_lag_seconds (instance method)">#<strong>last_lag_seconds</strong>  &#x21d2; Object </a>
     
 
     
@@ -283,7 +300,7 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -294,7 +311,7 @@ blocking work or call synchronous invoke APIs from that thread.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#max_lag_seconds-instance_method" title="#max_lag_seconds (instance method)">#<strong>max_lag_seconds</strong>  &#x21d2; Float </a>
+      <a href="#max_lag_seconds-instance_method" title="#max_lag_seconds (instance method)">#<strong>max_lag_seconds</strong>  &#x21d2; Object </a>
     
 
     
@@ -305,7 +322,7 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -316,7 +333,7 @@ blocking work or call synchronous invoke APIs from that thread.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#max_queue_depth-instance_method" title="#max_queue_depth (instance method)">#<strong>max_queue_depth</strong>  &#x21d2; Integer </a>
+      <a href="#max_queue_depth-instance_method" title="#max_queue_depth (instance method)">#<strong>max_queue_depth</strong>  &#x21d2; Object </a>
     
 
     
@@ -327,10 +344,10 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'><p>Highest EventLoop queue depth observed during this Runtime lifetime.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -338,7 +355,7 @@ blocking work or call synchronous invoke APIs from that thread.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#post-instance_method" title="#post (instance method)">#<strong>post</strong>(event)  &#x21d2; Boolean </a>
+      <a href="#post-instance_method" title="#post (instance method)">#<strong>post</strong>(event)  &#x21d2; Object </a>
     
 
     
@@ -349,10 +366,10 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'><p>Posts an event.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Internal post operation.</p></div></span>
   
 </li>
 
@@ -360,7 +377,7 @@ blocking work or call synchronous invoke APIs from that thread.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#queue_depth-instance_method" title="#queue_depth (instance method)">#<strong>queue_depth</strong>  &#x21d2; Integer </a>
+      <a href="#post_to_session-instance_method" title="#post_to_session (instance method)">#<strong>post_to_session</strong>(event)  &#x21d2; Object </a>
     
 
     
@@ -371,10 +388,10 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'><p>Number of events currently waiting in the EventLoop queue.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Posts an event only when the target session has been admitted and has not queued a terminal management event.</p></div></span>
   
 </li>
 
@@ -382,7 +399,7 @@ blocking work or call synchronous invoke APIs from that thread.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#register-instance_method" title="#register (instance method)">#<strong>register</strong>(fsm_session, completion: nil)  &#x21d2; Phronomy::Concurrency::AsyncQueue, Phronomy::Task </a>
+      <a href="#queue_depth-instance_method" title="#queue_depth (instance method)">#<strong>queue_depth</strong>  &#x21d2; Object </a>
     
 
     
@@ -393,10 +410,10 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'><p>Registers an FSMSession and returns its completion queue.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -404,7 +421,7 @@ blocking work or call synchronous invoke APIs from that thread.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#shutdown-instance_method" title="#shutdown (instance method)">#<strong>shutdown</strong>(deadline:, cancel_grace:)  &#x21d2; Symbol </a>
+      <a href="#register-instance_method" title="#register (instance method)">#<strong>register</strong>(fsm_session, completion: nil)  &#x21d2; Object </a>
     
 
     
@@ -415,10 +432,10 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'><p>Runtime-only terminal shutdown.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -426,7 +443,7 @@ blocking work or call synchronous invoke APIs from that thread.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#state-instance_method" title="#state (instance method)">#<strong>state</strong>  &#x21d2; Symbol </a>
+      <a href="#shutdown-instance_method" title="#shutdown (instance method)">#<strong>shutdown</strong>(deadline:, cancel_grace:)  &#x21d2; Object </a>
     
 
     
@@ -437,7 +454,29 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   
   
   
-  <span class="private note title">private</span>
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#state-instance_method" title="#state (instance method)">#<strong>state</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -459,7 +498,7 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -470,7 +509,7 @@ blocking work or call synchronous invoke APIs from that thread.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#wait_until_idle-instance_method" title="#wait_until_idle (instance method)">#<strong>wait_until_idle</strong>(deadline)  &#x21d2; Boolean </a>
+      <a href="#wait_until_idle-instance_method" title="#wait_until_idle (instance method)">#<strong>wait_until_idle</strong>(deadline)  &#x21d2; Object </a>
     
 
     
@@ -481,10 +520,10 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'><p>Waits until no queued :start or active session remains.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -507,34 +546,12 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Returns a new instance of EventLoop.</p>
+    <p>Returns a new instance of EventLoop.</p>
 
   </div>
 </div>
 <div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>runtime</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Phronomy::Runtime</a></span></tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>owning Runtime</p></div>
-      
-    </li>
-  
-</ul>
-
 
 </div><table class="source_code">
   <tr>
@@ -542,6 +559,12 @@ blocking work or call synchronous invoke APIs from that thread.</p>
       <pre class="lines">
 
 
+17
+18
+19
+20
+21
+22
 23
 24
 25
@@ -567,10 +590,11 @@ blocking work or call synchronous invoke APIs from that thread.</p>
 45
 46
 47
-48</pre>
+48
+49</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 23</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 17</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>runtime:</span><span class='rparen'>)</span>
   <span class='ivar'>@runtime</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span>
@@ -579,8 +603,15 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   <span class='ivar'>@queue_depth</span> <span class='op'>=</span> <span class='int'>0</span>
   <span class='ivar'>@max_queue_depth</span> <span class='op'>=</span> <span class='int'>0</span>
   <span class='ivar'>@last_queue_backlog_warning_at</span> <span class='op'>=</span> <span class='kw'>nil</span>
-  <span class='ivar'>@fsms</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+
+  <span class='comment'># @fsms and @waiting are dispatcher-thread-owned.
+</span>  <span class='ivar'>@fsms</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
   <span class='ivar'>@waiting</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+
+  <span class='comment'># Admission is shared by caller threads and the dispatcher. A session ID
+</span>  <span class='comment'># enters this set before its :start event is queued and leaves when its
+</span>  <span class='comment'># terminal management event is queued.
+</span>  <span class='ivar'>@admitted_session_ids</span> <span class='op'>=</span> <span class='const'>Set</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
 
   <span class='ivar'>@lifecycle_mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@idle_cond</span> <span class='op'>=</span> <span class='const'>ConditionVariable</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
@@ -611,9 +642,9 @@ blocking work or call synchronous invoke APIs from that thread.</p>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="average_lag_seconds-instance_method">
+  <h3 class="signature first" id="admitted_session?-instance_method">
   
-    #<strong>average_lag_seconds</strong>  &#x21d2; <tt>Float</tt> 
+    #<strong>admitted_session?</strong>(session_id)  &#x21d2; <tt>Boolean</tt> 
   
 
   
@@ -621,11 +652,7 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    
 
   </div>
 </div>
@@ -637,7 +664,7 @@ blocking work or call synchronous invoke APIs from that thread.</p>
     <li>
       
       
-        <span class='type'>(<tt>Float</tt>)</span>
+        <span class='type'>(<tt>Boolean</tt>)</span>
       
       
       
@@ -651,16 +678,50 @@ blocking work or call synchronous invoke APIs from that thread.</p>
       <pre class="lines">
 
 
-64
-65
-66
-67
-68
-69
-70</pre>
+181
+182
+183
+184
+185</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 64</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 181</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_admitted_session?'>admitted_session?</span><span class='lparen'>(</span><span class='id identifier rubyid_session_id'>session_id</span><span class='rparen'>)</span>
+  <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='ivar'>@admitted_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_session_id'>session_id</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="average_lag_seconds-instance_method">
+  
+    #<strong>average_lag_seconds</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+59
+60
+61
+62
+63
+64
+65</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 59</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_average_lag_seconds'>average_lag_seconds</span>
   <span class='ivar'>@lag_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -683,35 +744,21 @@ blocking work or call synchronous invoke APIs from that thread.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Stops external admission at the Runtime boundary while allowing already
-accepted work to complete on this EventLoop.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-170
-171
-172
-173
-174
-175</pre>
+195
+196
+197
+198
+199
+200</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 170</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 195</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_begin_draining'>begin_draining</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -735,11 +782,7 @@ accepted work to complete on this EventLoop.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Returns true only for this EventLoop's dispatcher Task.</p>
+    
 
   </div>
 </div>
@@ -765,12 +808,12 @@ accepted work to complete on this EventLoop.</p>
       <pre class="lines">
 
 
-157
-158
-159</pre>
+187
+188
+189</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 157</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 187</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_current?'>current?</span>
   <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="Task.html#current-class_method" title="Phronomy::Task.current (method)">current</a></span></span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='ivar'>@task</span><span class='rparen'>)</span>
@@ -791,11 +834,7 @@ accepted work to complete on this EventLoop.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    
 
   </div>
 </div>
@@ -821,15 +860,19 @@ accepted work to complete on this EventLoop.</p>
       <pre class="lines">
 
 
-179
-180
-181</pre>
+202
+203
+204
+205
+206</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 179</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 202</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_idle?'>idle?</span>
-  <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@outstanding_sessions</span><span class='period'>.</span><span class='id identifier rubyid_zero?'>zero?</span> <span class='rbrace'>}</span>
+  <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='ivar'>@outstanding_sessions</span><span class='period'>.</span><span class='id identifier rubyid_zero?'>zero?</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -839,50 +882,24 @@ accepted work to complete on this EventLoop.</p>
       <div class="method_details ">
   <h3 class="signature " id="last_lag_seconds-instance_method">
   
-    #<strong>last_lag_seconds</strong>  &#x21d2; <tt>Float</tt> 
+    #<strong>last_lag_seconds</strong>  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Float</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
+51
 52
-53
-54</pre>
+53</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 51</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_last_lag_seconds'>last_lag_seconds</span>
   <span class='ivar'>@lag_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@last_lag_ns</span> <span class='rbrace'>}</span> <span class='op'>/</span> <span class='float'>1_000_000_000.0</span>
@@ -895,50 +912,24 @@ accepted work to complete on this EventLoop.</p>
       <div class="method_details ">
   <h3 class="signature " id="max_lag_seconds-instance_method">
   
-    #<strong>max_lag_seconds</strong>  &#x21d2; <tt>Float</tt> 
+    #<strong>max_lag_seconds</strong>  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Float</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-58
-59
-60</pre>
+55
+56
+57</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 58</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 55</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_lag_seconds'>max_lag_seconds</span>
   <span class='ivar'>@lag_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@max_lag_ns</span> <span class='rbrace'>}</span> <span class='op'>/</span> <span class='float'>1_000_000_000.0</span>
@@ -951,50 +942,24 @@ accepted work to complete on this EventLoop.</p>
       <div class="method_details ">
   <h3 class="signature " id="max_queue_depth-instance_method">
   
-    #<strong>max_queue_depth</strong>  &#x21d2; <tt>Integer</tt> 
+    #<strong>max_queue_depth</strong>  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Highest EventLoop queue depth observed during this Runtime lifetime.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Integer</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-83
-84
-85</pre>
+71
+72
+73</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 83</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 71</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_queue_depth'>max_queue_depth</span>
   <span class='ivar'>@queue_metrics_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@max_queue_depth</span> <span class='rbrace'>}</span>
@@ -1007,7 +972,7 @@ accepted work to complete on this EventLoop.</p>
       <div class="method_details ">
   <h3 class="signature " id="post-instance_method">
   
-    #<strong>post</strong>(event)  &#x21d2; <tt>Boolean</tt> 
+    #<strong>post</strong>(event)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -1015,46 +980,13 @@ accepted work to complete on this EventLoop.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Posts an event. Returns false after stopping begins.</p>
-<p>Async completion callbacks may race with shutdown, so rejection is a
-boolean result rather than an exception.</p>
+    <p>Internal post operation. Management terminal events close admission for
+their session before the terminal event is enqueued.</p>
 
   </div>
 </div>
 <div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>event</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="Event.html" title="Phronomy::Event (class)">Phronomy::Event</a></span></tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Boolean</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
 
 </div><table class="source_code">
   <tr>
@@ -1062,6 +994,20 @@ boolean result rather than an exception.</p>
       <pre class="lines">
 
 
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
 141
 142
 143
@@ -1073,18 +1019,108 @@ boolean result rather than an exception.</p>
 149
 150
 151
-152
-153</pre>
+152</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 141</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 127</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_post'>post</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_queued_depth'>queued_depth</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='id identifier rubyid_accepted'>accepted</span> <span class='op'>=</span> <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='kw'>next</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='id identifier rubyid_accepting_events?'>accepting_events?</span>
 
-    <span class='id identifier rubyid_queued_depth'>queued_depth</span> <span class='op'>=</span> <span class='id identifier rubyid_enqueue'>enqueue</span><span class='lparen'>(</span><span class='lbracket'>[</span><span class='id identifier rubyid_event'>event</span><span class='comma'>,</span> <span class='id identifier rubyid_monotonic_nanoseconds'>monotonic_nanoseconds</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_terminal_session_id'>terminal_session_id</span> <span class='op'>=</span> <span class='kw'>nil</span>
+    <span class='kw'>if</span> <span class='id identifier rubyid_terminal_management_event?'>terminal_management_event?</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_terminal_session_id'>terminal_session_id</span> <span class='op'>=</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:session_id</span><span class='rparen'>)</span>
+      <span class='ivar'>@admitted_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_terminal_session_id'>terminal_session_id</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>begin</span>
+      <span class='id identifier rubyid_queued_depth'>queued_depth</span> <span class='op'>=</span> <span class='id identifier rubyid_enqueue'>enqueue</span><span class='lparen'>(</span>
+        <span class='lbracket'>[</span><span class='id identifier rubyid_event'>event</span><span class='comma'>,</span> <span class='id identifier rubyid_monotonic_nanoseconds'>monotonic_nanoseconds</span><span class='rbracket'>]</span>
+      <span class='rparen'>)</span>
+    <span class='kw'>rescue</span>
+      <span class='ivar'>@admitted_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='id identifier rubyid_terminal_session_id'>terminal_session_id</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_terminal_session_id'>terminal_session_id</span>
+      <span class='id identifier rubyid_raise'>raise</span>
+    <span class='kw'>end</span>
+    <span class='kw'>true</span>
+  <span class='kw'>end</span>
+  <span class='kw'>return</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='id identifier rubyid_accepted'>accepted</span>
+
+  <span class='id identifier rubyid_check_queue_backlog'>check_queue_backlog</span><span class='lparen'>(</span><span class='id identifier rubyid_queued_depth'>queued_depth</span><span class='comma'>,</span> <span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
+  <span class='kw'>true</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="post_to_session-instance_method">
+  
+    #<strong>post_to_session</strong>(event)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Posts an event only when the target session has been admitted and has not
+queued a terminal management event. The event remains FIFO with all other
+EventLoop work.</p>
+<p>A true result reports admission, not transition success.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 159</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_post_to_session'>post_to_session</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_target_id'>target_id</span> <span class='op'>==</span> <span class='const'><span class='object_link'><a href="#SYSTEM_CHANNEL_ID-constant" title="Phronomy::EventLoop::SYSTEM_CHANNEL_ID (constant)">SYSTEM_CHANNEL_ID</a></span></span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>post_to_session cannot target the system channel</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+
+  <span class='id identifier rubyid_queued_depth'>queued_depth</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='id identifier rubyid_accepted'>accepted</span> <span class='op'>=</span> <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='kw'>next</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='id identifier rubyid_accepting_events?'>accepting_events?</span>
+    <span class='kw'>next</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='ivar'>@admitted_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_target_id'>target_id</span><span class='rparen'>)</span>
+
+    <span class='id identifier rubyid_queued_depth'>queued_depth</span> <span class='op'>=</span> <span class='id identifier rubyid_enqueue'>enqueue</span><span class='lparen'>(</span>
+      <span class='lbracket'>[</span><span class='id identifier rubyid_event'>event</span><span class='comma'>,</span> <span class='id identifier rubyid_monotonic_nanoseconds'>monotonic_nanoseconds</span><span class='rbracket'>]</span>
+    <span class='rparen'>)</span>
     <span class='kw'>true</span>
   <span class='kw'>end</span>
   <span class='kw'>return</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='id identifier rubyid_accepted'>accepted</span>
@@ -1100,51 +1136,24 @@ boolean result rather than an exception.</p>
       <div class="method_details ">
   <h3 class="signature " id="queue_depth-instance_method">
   
-    #<strong>queue_depth</strong>  &#x21d2; <tt>Integer</tt> 
+    #<strong>queue_depth</strong>  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Number of events currently waiting in the EventLoop queue.
-The event being dispatched is not included.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Integer</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-76
-77
-78</pre>
+67
+68
+69</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 76</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 67</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_queue_depth'>queue_depth</span>
   <span class='ivar'>@queue_metrics_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@queue_depth</span> <span class='rbrace'>}</span>
@@ -1157,75 +1166,40 @@ The event being dispatched is not included.</p>
       <div class="method_details ">
   <h3 class="signature " id="register-instance_method">
   
-    #<strong>register</strong>(fsm_session, completion: nil)  &#x21d2; <tt><span class='object_link'><a href="Concurrency/AsyncQueue.html" title="Phronomy::Concurrency::AsyncQueue (class)">Phronomy::Concurrency::AsyncQueue</a></span></tt>, <tt><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt> 
+    #<strong>register</strong>(fsm_session, completion: nil)  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Registers an FSMSession and returns its completion queue.</p>
-<p><code>outstanding_sessions</code> is incremented before the :start event is enqueued,
-so shutdown also accounts for accepted sessions that have not yet been
-dispatched.</p>
-
-  </div>
-</div>
-<div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
-  
-    <li>
-      
-        <span class='name'>fsm_session</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="FSMSession.html" title="Phronomy::FSMSession (class)">Phronomy::FSMSession</a></span></tt>)</span>
-      
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>completion</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="Concurrency/AsyncQueue.html" title="Phronomy::Concurrency::AsyncQueue (class)">Phronomy::Concurrency::AsyncQueue</a></span></tt>, <tt><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
 97
 98
 99
@@ -1252,45 +1226,51 @@ dispatched.</p>
 120
 121
 122
-123
-124
-125
-126
-127
-128
-129
-130
-131</pre>
+123</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 97</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 75</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_register'>register</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='comma'>,</span> <span class='label'>completion:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_current?'>current?</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_completion'>completion</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='rparen'>)</span>
     <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span>
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Cannot call synchronous Workflow#invoke from an EventLoop action. </span><span class='tstring_end'>&quot;</span></span> \
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Cannot call a synchronous invocation API from an EventLoop action. </span><span class='tstring_end'>&quot;</span></span> \
       <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Schedule work asynchronously instead.</span><span class='tstring_end'>&quot;</span></span>
   <span class='kw'>end</span>
 
-  <span class='id identifier rubyid_completion_queue'>completion_queue</span> <span class='op'>=</span> <span class='id identifier rubyid_completion'>completion</span> <span class='op'>||</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/AsyncQueue.html" title="Phronomy::Concurrency::AsyncQueue (class)">AsyncQueue</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/AsyncQueue.html#initialize-instance_method" title="Phronomy::Concurrency::AsyncQueue#initialize (method)">new</a></span></span>
+  <span class='id identifier rubyid_completion_queue'>completion_queue</span> <span class='op'>=</span>
+    <span class='id identifier rubyid_completion'>completion</span> <span class='op'>||</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/AsyncQueue.html" title="Phronomy::Concurrency::AsyncQueue (class)">AsyncQueue</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/AsyncQueue.html#initialize-instance_method" title="Phronomy::Concurrency::AsyncQueue#initialize (method)">new</a></span></span>
   <span class='id identifier rubyid_scheduler'>scheduler</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime/Scheduler.html" title="Phronomy::Runtime::Scheduler (class)">Scheduler</a></span></span><span class='period'>.</span><span class='id identifier rubyid_current'><span class='object_link'><a href="Runtime/Scheduler.html#current-class_method" title="Phronomy::Runtime::Scheduler.current (method)">current</a></span></span>
-  <span class='kw'>if</span> <span class='id identifier rubyid_scheduler'>scheduler</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_completion_queue'>completion_queue</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:expect_cross_thread_push</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_scheduler'>scheduler</span> <span class='op'>&amp;&amp;</span>
+      <span class='id identifier rubyid_completion_queue'>completion_queue</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:expect_cross_thread_push</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_completion_queue'>completion_queue</span><span class='period'>.</span><span class='id identifier rubyid_expect_cross_thread_push'>expect_cross_thread_push</span><span class='lparen'>(</span><span class='id identifier rubyid_scheduler'>scheduler</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
 
   <span class='id identifier rubyid_event'>event</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Event.html" title="Phronomy::Event (class)">Event</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
     <span class='label'>type:</span> <span class='symbol'>:start</span><span class='comma'>,</span>
     <span class='label'>target_id:</span> <span class='const'><span class='object_link'><a href="#SYSTEM_CHANNEL_ID-constant" title="Phronomy::EventLoop::SYSTEM_CHANNEL_ID (constant)">SYSTEM_CHANNEL_ID</a></span></span><span class='comma'>,</span>
-    <span class='label'>payload:</span> <span class='lbrace'>{</span><span class='label'>session:</span> <span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='comma'>,</span> <span class='label'>completion:</span> <span class='id identifier rubyid_completion_queue'>completion_queue</span><span class='rbrace'>}</span>
+    <span class='label'>payload:</span> <span class='lbrace'>{</span>
+      <span class='label'>session:</span> <span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='comma'>,</span>
+      <span class='label'>completion:</span> <span class='id identifier rubyid_completion_queue'>completion_queue</span>
+    <span class='rbrace'>}</span>
   <span class='rparen'>)</span>
   <span class='id identifier rubyid_queued_depth'>queued_depth</span> <span class='op'>=</span> <span class='kw'>nil</span>
 
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='id identifier rubyid_ensure_accepting_registrations!'>ensure_accepting_registrations!</span>
+    <span class='kw'>if</span> <span class='ivar'>@admitted_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>FSMSession </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_content'> is already registered</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+
+    <span class='ivar'>@admitted_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
     <span class='ivar'>@outstanding_sessions</span> <span class='op'>+=</span> <span class='int'>1</span>
     <span class='kw'>begin</span>
-      <span class='id identifier rubyid_queued_depth'>queued_depth</span> <span class='op'>=</span> <span class='id identifier rubyid_enqueue'>enqueue</span><span class='lparen'>(</span><span class='lbracket'>[</span><span class='id identifier rubyid_event'>event</span><span class='comma'>,</span> <span class='id identifier rubyid_monotonic_nanoseconds'>monotonic_nanoseconds</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_queued_depth'>queued_depth</span> <span class='op'>=</span> <span class='id identifier rubyid_enqueue'>enqueue</span><span class='lparen'>(</span>
+        <span class='lbracket'>[</span><span class='id identifier rubyid_event'>event</span><span class='comma'>,</span> <span class='id identifier rubyid_monotonic_nanoseconds'>monotonic_nanoseconds</span><span class='rbracket'>]</span>
+      <span class='rparen'>)</span>
     <span class='kw'>rescue</span>
+      <span class='ivar'>@admitted_session_ids</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_fsm_session'>fsm_session</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
       <span class='ivar'>@outstanding_sessions</span> <span class='op'>-=</span> <span class='int'>1</span>
       <span class='ivar'>@idle_cond</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span> <span class='kw'>if</span> <span class='ivar'>@outstanding_sessions</span><span class='period'>.</span><span class='id identifier rubyid_zero?'>zero?</span>
       <span class='id identifier rubyid_raise'>raise</span>
@@ -1308,93 +1288,18 @@ dispatched.</p>
       <div class="method_details ">
   <h3 class="signature " id="shutdown-instance_method">
   
-    #<strong>shutdown</strong>(deadline:, cancel_grace:)  &#x21d2; <tt>Symbol</tt> 
+    #<strong>shutdown</strong>(deadline:, cancel_grace:)  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Runtime-only terminal shutdown.</p>
-<p>On graceful timeout the dispatcher is cancelled. It cleans abandoned
-waiters from its own thread before exiting so Task completion callbacks
-retain EventLoop thread affinity. An idempotent post-join cleanup remains
-as a defensive fallback.</p>
-
-  </div>
-</div>
-<div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
-  
-    <li>
-      
-        <span class='name'>deadline</span>
-      
-      
-        <span class='type'>(<tt>Numeric</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>absolute monotonic deadline</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>cancel_grace</span>
-      
-      
-        <span class='type'>(<tt>Numeric</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>seconds to wait after Task#cancel!</p></div>
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Symbol</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>:terminated, :cancelled, :cancel_timeout, or :failed</p></div>
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-210
-211
-212
-213
-214
-215
-216
-217
-218
-219
 220
 221
 222
@@ -1409,10 +1314,21 @@ as a defensive fallback.</p>
 231
 232
 233
-234</pre>
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 210</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 220</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span><span class='label'>deadline:</span><span class='comma'>,</span> <span class='label'>cancel_grace:</span><span class='rparen'>)</span>
   <span class='ivar'>@shutdown_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1430,13 +1346,14 @@ as a defensive fallback.</p>
       <span class='id identifier rubyid_join_until'>join_until</span><span class='lparen'>(</span><span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
     <span class='kw'>end</span>
 
-    <span class='ivar'>@shutdown_status</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_task_alive?'>task_alive?</span>
-      <span class='id identifier rubyid_cancel_and_cleanup'>cancel_and_cleanup</span><span class='lparen'>(</span><span class='id identifier rubyid_cancel_grace'>cancel_grace</span><span class='rparen'>)</span>
-    <span class='kw'>elsif</span> <span class='id identifier rubyid_state'>state</span> <span class='op'>==</span> <span class='symbol'>:failed</span>
-      <span class='symbol'>:failed</span>
-    <span class='kw'>else</span>
-      <span class='id identifier rubyid_finalize_terminated'>finalize_terminated</span><span class='lparen'>(</span><span class='symbol'>:terminated</span><span class='rparen'>)</span>
-    <span class='kw'>end</span>
+    <span class='ivar'>@shutdown_status</span> <span class='op'>=</span>
+      <span class='kw'>if</span> <span class='id identifier rubyid_task_alive?'>task_alive?</span>
+        <span class='id identifier rubyid_cancel_and_cleanup'>cancel_and_cleanup</span><span class='lparen'>(</span><span class='id identifier rubyid_cancel_grace'>cancel_grace</span><span class='rparen'>)</span>
+      <span class='kw'>elsif</span> <span class='id identifier rubyid_state'>state</span> <span class='op'>==</span> <span class='symbol'>:failed</span>
+        <span class='symbol'>:failed</span>
+      <span class='kw'>else</span>
+        <span class='id identifier rubyid_finalize_terminated'>finalize_terminated</span><span class='lparen'>(</span><span class='symbol'>:terminated</span><span class='rparen'>)</span>
+      <span class='kw'>end</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1447,50 +1364,24 @@ as a defensive fallback.</p>
       <div class="method_details ">
   <h3 class="signature " id="state-instance_method">
   
-    #<strong>state</strong>  &#x21d2; <tt>Symbol</tt> 
+    #<strong>state</strong>  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Symbol</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-163
-164
-165</pre>
+191
+192
+193</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 163</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 191</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_state'>state</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@state</span> <span class='rbrace'>}</span>
@@ -1511,11 +1402,7 @@ as a defensive fallback.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    
 
   </div>
 </div>
@@ -1541,12 +1428,12 @@ as a defensive fallback.</p>
       <pre class="lines">
 
 
-238
-239
-240</pre>
+247
+248
+249</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 238</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 247</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_task_alive?'>task_alive?</span>
   <span class='ivar'>@task</span><span class='op'>&amp;.</span><span class='id identifier rubyid_alive?'>alive?</span> <span class='op'>||</span> <span class='kw'>false</span>
@@ -1559,79 +1446,32 @@ as a defensive fallback.</p>
       <div class="method_details ">
   <h3 class="signature " id="wait_until_idle-instance_method">
   
-    #<strong>wait_until_idle</strong>(deadline)  &#x21d2; <tt>Boolean</tt> 
+    #<strong>wait_until_idle</strong>(deadline)  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Waits until no queued :start or active session remains.</p>
-
-  </div>
-</div>
-<div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
-  
-    <li>
-      
-        <span class='name'>deadline</span>
-      
-      
-        <span class='type'>(<tt>Numeric</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>absolute monotonic deadline</p></div>
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Boolean</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>false on timeout</p></div>
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-187
-188
-189
-190
-191
-192
-193
-194
-195
-196
-197</pre>
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 187</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 208</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_wait_until_idle'>wait_until_idle</span><span class='lparen'>(</span><span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1654,7 +1494,7 @@ as a defensive fallback.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Aug  1 07:11:52 2026 by
+  Generated on Sun Aug  2 05:51:02 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

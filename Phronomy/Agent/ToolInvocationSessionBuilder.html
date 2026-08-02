@@ -108,7 +108,10 @@
   <strong>This class is part of a private API.</strong>
   You should avoid using this class if possible, as it may be removed or be changed in the future.
 </p>
-<p>Builds a generic FSMSession for one ToolInvocation.</p>
+<p>Builds an FSMSession for one ToolInvocation.</p>
+<p>Authorization and execution Tasks are observed by ToolInvocation-specific
+callbacks that post explicit FSM events. The generated phase machine does
+not await Tasks.</p>
 
   </div>
 </div>
@@ -143,9 +146,7 @@
         <dd><pre class="code"><span class='lbrace'>{</span>
   <span class='label'>idle:</span> <span class='kw'>true</span><span class='comma'>,</span>
   <span class='label'>validating:</span> <span class='kw'>true</span><span class='comma'>,</span>
-  <span class='label'>authorizing:</span> <span class='kw'>true</span><span class='comma'>,</span>
-  <span class='label'>queued:</span> <span class='kw'>true</span><span class='comma'>,</span>
-  <span class='label'>running:</span> <span class='kw'>true</span>
+  <span class='label'>queued:</span> <span class='kw'>true</span>
 <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
       
         <dt id="DECLARED_STATES-constant" class="">DECLARED_STATES =
@@ -204,9 +205,43 @@
 </div>
         </dt>
         <dd><pre class="code"><span class='lbrace'>{</span>
-  <span class='label'>approve:</span> <span class='lbracket'>[</span><span class='lbrace'>{</span><span class='label'>from:</span> <span class='symbol'>:awaiting_approval</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:authorized</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='kw'>nil</span><span class='rbrace'>}</span><span class='rbracket'>]</span><span class='comma'>,</span>
-  <span class='label'>reject:</span> <span class='lbracket'>[</span><span class='lbrace'>{</span><span class='label'>from:</span> <span class='symbol'>:awaiting_approval</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:rejected</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='kw'>nil</span><span class='rbrace'>}</span><span class='rbracket'>]</span><span class='comma'>,</span>
-  <span class='label'>dispatch:</span> <span class='lbracket'>[</span><span class='lbrace'>{</span><span class='label'>from:</span> <span class='symbol'>:authorized</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:queued</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='kw'>nil</span><span class='rbrace'>}</span><span class='rbracket'>]</span><span class='comma'>,</span>
+  <span class='label'>authorization_completed:</span> <span class='lbracket'>[</span>
+    <span class='lbrace'>{</span><span class='label'>from:</span> <span class='symbol'>:authorizing</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:cancelled</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+      <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
+    <span class='rbrace'>}</span><span class='rbrace'>}</span><span class='comma'>,</span>
+    <span class='lbrace'>{</span><span class='label'>from:</span> <span class='symbol'>:authorizing</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:failed</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+      <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_failed?'>failed?</span>
+    <span class='rbrace'>}</span><span class='rbrace'>}</span><span class='comma'>,</span>
+    <span class='lbrace'>{</span><span class='label'>from:</span> <span class='symbol'>:authorizing</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:rejected</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+      <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_rejected?'>rejected?</span>
+    <span class='rbrace'>}</span><span class='rbrace'>}</span><span class='comma'>,</span>
+    <span class='lbrace'>{</span><span class='label'>from:</span> <span class='symbol'>:authorizing</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:awaiting_approval</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+      <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_awaiting_approval?'>awaiting_approval?</span>
+    <span class='rbrace'>}</span><span class='rbrace'>}</span><span class='comma'>,</span>
+    <span class='lbrace'>{</span><span class='label'>from:</span> <span class='symbol'>:authorizing</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:authorized</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+      <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_authorized?'>authorized?</span>
+    <span class='rbrace'>}</span><span class='rbrace'>}</span>
+  <span class='rbracket'>]</span><span class='comma'>,</span>
+  <span class='label'>execution_completed:</span> <span class='lbracket'>[</span>
+    <span class='lbrace'>{</span><span class='label'>from:</span> <span class='symbol'>:running</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:cancelled</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+      <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
+    <span class='rbrace'>}</span><span class='rbrace'>}</span><span class='comma'>,</span>
+    <span class='lbrace'>{</span><span class='label'>from:</span> <span class='symbol'>:running</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:failed</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+      <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_failed?'>failed?</span>
+    <span class='rbrace'>}</span><span class='rbrace'>}</span><span class='comma'>,</span>
+    <span class='lbrace'>{</span><span class='label'>from:</span> <span class='symbol'>:running</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:completed</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+      <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_execution_completed?'>execution_completed?</span>
+    <span class='rbrace'>}</span><span class='rbrace'>}</span>
+  <span class='rbracket'>]</span><span class='comma'>,</span>
+  <span class='label'>approve:</span> <span class='lbracket'>[</span>
+    <span class='lbrace'>{</span><span class='label'>from:</span> <span class='symbol'>:awaiting_approval</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:authorized</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='kw'>nil</span><span class='rbrace'>}</span>
+  <span class='rbracket'>]</span><span class='comma'>,</span>
+  <span class='label'>reject:</span> <span class='lbracket'>[</span>
+    <span class='lbrace'>{</span><span class='label'>from:</span> <span class='symbol'>:awaiting_approval</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:rejected</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='kw'>nil</span><span class='rbrace'>}</span>
+  <span class='rbracket'>]</span><span class='comma'>,</span>
+  <span class='label'>dispatch:</span> <span class='lbracket'>[</span>
+    <span class='lbrace'>{</span><span class='label'>from:</span> <span class='symbol'>:authorized</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:queued</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='kw'>nil</span><span class='rbrace'>}</span>
+  <span class='rbracket'>]</span><span class='comma'>,</span>
   <span class='label'>cancel:</span> <span class='lbracket'>[</span>
     <span class='lbrace'>{</span><span class='label'>from:</span> <span class='symbol'>:awaiting_approval</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:cancelled</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='kw'>nil</span><span class='rbrace'>}</span><span class='comma'>,</span>
     <span class='lbrace'>{</span><span class='label'>from:</span> <span class='symbol'>:authorized</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:cancelled</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='kw'>nil</span><span class='rbrace'>}</span><span class='comma'>,</span>
@@ -314,15 +349,27 @@
       <pre class="lines">
 
 
-37
-38
-39</pre>
+74
+75
+76
+77
+78
+79
+80
+81
+82</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation_session_builder.rb', line 37</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation_session_builder.rb', line 74</span>
 
-<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_build'>build</span><span class='lparen'>(</span><span class='label'>tool_invocation:</span><span class='comma'>,</span> <span class='label'>runtime:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_build_session'>build_session</span><span class='lparen'>(</span><span class='label'>tool_invocation:</span> <span class='id identifier rubyid_tool_invocation'>tool_invocation</span><span class='comma'>,</span> <span class='label'>runtime:</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_build'>build</span><span class='lparen'>(</span>
+  <span class='label'>tool_invocation:</span><span class='comma'>,</span>
+  <span class='label'>runtime:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span>
+<span class='rparen'>)</span>
+  <span class='id identifier rubyid_build_session'>build_session</span><span class='lparen'>(</span>
+    <span class='label'>tool_invocation:</span> <span class='id identifier rubyid_tool_invocation'>tool_invocation</span><span class='comma'>,</span>
+    <span class='label'>runtime:</span> <span class='id identifier rubyid_runtime'>runtime</span>
+  <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -357,22 +404,22 @@
       <pre class="lines">
 
 
-41
-42
-43
-44
-45
-46
-47
-48
-49
-50
-51
-52
-53</pre>
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation_session_builder.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation_session_builder.rb', line 84</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_build_for_resume'>build_for_resume</span><span class='lparen'>(</span>
   <span class='label'>tool_invocation:</span><span class='comma'>,</span>
@@ -397,7 +444,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sat Aug  1 07:11:55 2026 by
+  Generated on Sun Aug  2 05:51:05 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

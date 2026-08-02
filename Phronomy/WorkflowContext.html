@@ -88,33 +88,19 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Module for defining workflow context (the data that travels through a workflow).
-Include in a class and use the field DSL to declare context fields.</p>
-<p>In StateChart terminology this is the &quot;extended state&quot; or &quot;context&quot; —
-data associated with the current execution that does not affect transitions
-directly, as opposed to the current phase (which is the machine's state).</p>
-<p>Field update policies:</p>
-<pre class="code ruby"><code class="ruby">:replace (default) -- overwrites with the new value
-:append            -- appends to an Array
-:merge             -- shallow-merges into a Hash (top-level keys are merged; nested objects are replaced)</code></pre>
+    <p>Module for defining Workflow context data.</p>
+<p>In StateChart terminology this is the extended state/context, as opposed to
+the current FSM phase.</p>
+<p>An application context may define <code>handle_fsm_event(event)</code>. FSMSession calls
+it on the EventLoop thread before evaluating a declared transition. The
+method may mutate the context and return <code>false</code> to continue transition
+evaluation, return a replacement WorkflowContext, or return <code>:consume</code> to
+discard a stale/unrelated event without firing a transition.</p>
 
   </div>
 </div>
 <div class="tags">
   
-  <div class="examples">
-    <h4 class="tag_title">Examples:</h4>
-    
-      
-      <pre class="example code"><code><span class='kw'>class</span> <span class='const'>ScanContext</span>
-  <span class='id identifier rubyid_include'>include</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'>WorkflowContext</span>
-  <span class='id identifier rubyid_field'>field</span> <span class='symbol'>:messages</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='symbol'>:append</span><span class='comma'>,</span> <span class='label'>default:</span> <span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='lbracket'>[</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
-  <span class='id identifier rubyid_field'>field</span> <span class='symbol'>:query</span><span class='comma'>,</span>    <span class='label'>type:</span> <span class='symbol'>:replace</span>
-  <span class='id identifier rubyid_field'>field</span> <span class='symbol'>:metadata</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='symbol'>:merge</span><span class='comma'>,</span>   <span class='label'>default:</span> <span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='lbrace'>{</span><span class='rbrace'>}</span> <span class='rbrace'>}</span>
-<span class='kw'>end</span></code></pre>
-    
-  </div>
-
 
 </div><h2>Defined Under Namespace</h2>
 <p class="children">
@@ -155,7 +141,7 @@ directly, as opposed to the current phase (which is the machine's state).</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Internal workflow metadata accessors (not user-defined fields).</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute thread_id.</p></div></span>
   
 </li>
 
@@ -222,7 +208,7 @@ directly, as opposed to the current phase (which is the machine's state).</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns true if the workflow is paused mid-execution (not yet completed).</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -244,7 +230,7 @@ directly, as opposed to the current phase (which is the machine's state).</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>mutant:disable - multiple genuine equivalent mutations: is_a?(Proc) vs instance_of?(Proc) (Proc has no subclasses in practice), <a href="">config</a>/fetch() for always-present :default key, @thread_id=nil removal (unset ivar is already nil), @phase=:<strong>end</strong> → nil or removal (phase method returns :<strong>end</strong> via @phase||:<strong>end</strong> fallback), raise message #inspect vs #{} (spec checks exception class not message text).</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -252,7 +238,7 @@ directly, as opposed to the current phase (which is the machine's state).</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#merge-instance_method" title="#merge (instance method)">#<strong>merge</strong>(updates)  &#x21d2; self.class </a>
+      <a href="#merge-instance_method" title="#merge (instance method)">#<strong>merge</strong>(updates)  &#x21d2; Object </a>
     
 
     
@@ -266,7 +252,7 @@ directly, as opposed to the current phase (which is the machine's state).</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns a new context instance with the specified field updates applied.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns a new context with field update policies applied.</p></div></span>
   
 </li>
 
@@ -274,7 +260,7 @@ directly, as opposed to the current phase (which is the machine's state).</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#phase-instance_method" title="#phase (instance method)">#<strong>phase</strong>  &#x21d2; Symbol </a>
+      <a href="#phase-instance_method" title="#phase (instance method)">#<strong>phase</strong>  &#x21d2; Object </a>
     
 
     
@@ -288,7 +274,7 @@ directly, as opposed to the current phase (which is the machine's state).</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns the current execution phase of the workflow.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -310,7 +296,7 @@ directly, as opposed to the current phase (which is the machine's state).</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Sets internal workflow metadata.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -318,7 +304,7 @@ directly, as opposed to the current phase (which is the machine's state).</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#to_h-instance_method" title="#to_h (instance method)">#<strong>to_h</strong>  &#x21d2; Hash </a>
+      <a href="#to_h-instance_method" title="#to_h (instance method)">#<strong>to_h</strong>  &#x21d2; Object </a>
     
 
     
@@ -332,7 +318,7 @@ directly, as opposed to the current phase (which is the machine's state).</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Converts user-defined fields to a Hash (excludes internal workflow metadata).</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -358,8 +344,7 @@ directly, as opposed to the current phase (which is the machine's state).</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Internal workflow metadata accessors (not user-defined fields).
-These are preserved through merge but excluded from to_h.</p>
+    <p>Returns the value of attribute thread_id.</p>
 
   </div>
 </div>
@@ -372,12 +357,12 @@ These are preserved through merge but excluded from to_h.</p>
       <pre class="lines">
 
 
-64
-65
-66</pre>
+43
+44
+45</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 64</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 43</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
   <span class='ivar'>@thread_id</span>
@@ -409,13 +394,13 @@ These are preserved through merge but excluded from to_h.</p>
       <pre class="lines">
 
 
-24
-25
-26
-27</pre>
+15
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 24</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 15</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_included'>included</span><span class='lparen'>(</span><span class='id identifier rubyid_base'>base</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_base'>base</span><span class='period'>.</span><span class='id identifier rubyid_extend'>extend</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="WorkflowContext/ClassMethods.html" title="Phronomy::WorkflowContext::ClassMethods (module)">ClassMethods</a></span></span><span class='rparen'>)</span>
@@ -443,8 +428,7 @@ These are preserved through merge but excluded from to_h.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns true if the workflow is paused mid-execution (not yet completed).
-mutant:disable - phase != :<strong>end</strong> vs !phase.eql?(:<strong>end</strong>) vs !phase.equal?(:<strong>end</strong>) are genuine equivalents for Symbol (Symbols are interned so == / eql? / equal? all behave identically)</p>
+    
 
   </div>
 </div>
@@ -470,12 +454,12 @@ mutant:disable - phase != :<strong>end</strong> vs !phase.eql?(:<strong>end</str
       <pre class="lines">
 
 
-82
-83
-84</pre>
+49
+50
+51</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 82</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 49</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_halted?'>halted?</span>
   <span class='id identifier rubyid_phase'>phase</span> <span class='op'>!=</span> <span class='symbol'>:__end__</span>
@@ -494,60 +478,56 @@ mutant:disable - phase != :<strong>end</strong> vs !phase.eql?(:<strong>end</str
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>mutant:disable - multiple genuine equivalent mutations: is_a?(Proc) vs instance_of?(Proc) (Proc has no subclasses in practice), <a href="">config</a>/fetch() for always-present :default key, @thread_id=nil removal (unset ivar is already nil), @phase=:<strong>end</strong> → nil or removal (phase method returns :<strong>end</strong> via @phase||:<strong>end</strong> fallback), raise message #inspect vs #{} (spec checks exception class not message text)</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>ArgumentError</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-98
-99
-100
-101
-102
-103
-104
-105
-106
-107
-108
-109
-110</pre>
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 98</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 59</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_attrs'>attrs</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_unknown'>unknown</span> <span class='op'>=</span> <span class='id identifier rubyid_attrs'>attrs</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span> <span class='op'>-</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Unknown WorkflowContext field(s): </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_unknown'>unknown</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_unknown'>unknown</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
+  <span class='kw'>unless</span> <span class='id identifier rubyid_unknown'>unknown</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Unknown WorkflowContext field(s): </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_unknown'>unknown</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
 
   <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='op'>|</span>
-    <span class='id identifier rubyid_default'>default</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:default</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Proc</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:default</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span> <span class='op'>:</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:default</span><span class='rbracket'>]</span>
-    <span class='comment'># Bypass the write guard in initialize — ownership enforcement begins
-</span>    <span class='comment'># after construction is complete.
-</span>    <span class='id identifier rubyid_instance_variable_set'>instance_variable_set</span><span class='lparen'>(</span><span class='symbol'>:&quot;@</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id identifier rubyid_attrs'>attrs</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_default'>default</span><span class='rparen'>)</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_default'>default</span> <span class='op'>=</span>
+      <span class='kw'>if</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:default</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Proc</span><span class='rparen'>)</span>
+        <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:default</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span>
+      <span class='kw'>else</span>
+        <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:default</span><span class='rbracket'>]</span>
+      <span class='kw'>end</span>
+    <span class='id identifier rubyid_instance_variable_set'>instance_variable_set</span><span class='lparen'>(</span>
+      <span class='symbol'>:&quot;@</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+      <span class='id identifier rubyid_attrs'>attrs</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_default'>default</span><span class='rparen'>)</span>
+    <span class='rparen'>)</span>
   <span class='kw'>end</span>
   <span class='ivar'>@thread_id</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@phase</span> <span class='op'>=</span> <span class='symbol'>:__end__</span>
@@ -560,7 +540,7 @@ mutant:disable - phase != :<strong>end</strong> vs !phase.eql?(:<strong>end</str
       <div class="method_details ">
   <h3 class="signature " id="merge-instance_method">
   
-    #<strong>merge</strong>(updates)  &#x21d2; <tt>self.class</tt> 
+    #<strong>merge</strong>(updates)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -568,67 +548,12 @@ mutant:disable - phase != :<strong>end</strong> vs !phase.eql?(:<strong>end</str
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a new context instance with the specified field updates applied.
-Updated fields follow the field's declared <code>:type</code> semantics (:replace, :append,
-or :merge). Unchanged fields are deep-copied on a best-effort basis — objects
-that do not support <code>#dup</code> (e.g. integers, frozen objects) are carried over
-by reference. Internal workflow metadata (thread_id, phase) is preserved.
-mutant:disable - multiple genuine equivalent mutations: send/public_send/<strong>send</strong> are identical (all field accessors are public), <a href="">fields</a>/fetch() and field_<a href="">config</a>/fetch() for always-present keys, <a href="">updates</a>/fetch() when updates.key?(name) is already true, Array() wrapping for append fields that always hold Arrays, (send||{})/send equivalence for merge fields that always hold Hashes, deep_dup_value(send) vs send are equivalent under killfork (coverage selection does not trace the deep_dup_value call site across the fork boundary), raise message inspect vs to_s (spec checks exception class only)</p>
+    <p>Returns a new context with field update policies applied.</p>
 
   </div>
 </div>
 <div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>updates</span>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>{ field_name =&gt; new_value }</p></div>
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>self.class</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>new context instance</p></div>
-      
-    </li>
-  
-</ul>
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>ArgumentError</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>if updates contains keys that are not declared fields</p></div>
-      
-    </li>
-  
-</ul>
 
 </div><table class="source_code">
   <tr>
@@ -636,57 +561,67 @@ mutant:disable - multiple genuine equivalent mutations: send/public_send/<strong
       <pre class="lines">
 
 
-122
-123
-124
-125
-126
-127
-128
-129
-130
-131
-132
-133
-134
-135
-136
-137
-138
-139
-140
-141
-142
-143
-144
-145
-146
-147
-148</pre>
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 122</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 83</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='id identifier rubyid_updates'>updates</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_unknown'>unknown</span> <span class='op'>=</span> <span class='id identifier rubyid_updates'>updates</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span> <span class='op'>-</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span>
-  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Unknown WorkflowContext field(s): </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_unknown'>unknown</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_unknown'>unknown</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
+  <span class='kw'>unless</span> <span class='id identifier rubyid_unknown'>unknown</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Unknown WorkflowContext field(s): </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_unknown'>unknown</span><span class='period'>.</span><span class='id identifier rubyid_inspect'>inspect</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
 
   <span class='id identifier rubyid_new_attrs'>new_attrs</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
   <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_each_key'>each_key</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='op'>|</span>
     <span class='id identifier rubyid_field_config'>field_config</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span>
-    <span class='id identifier rubyid_new_attrs'>new_attrs</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_updates'>updates</span><span class='period'>.</span><span class='id identifier rubyid_key?'>key?</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
-      <span class='kw'>case</span> <span class='id identifier rubyid_field_config'>field_config</span><span class='lbracket'>[</span><span class='symbol'>:type</span><span class='rbracket'>]</span>
-      <span class='kw'>when</span> <span class='symbol'>:append</span>
-        <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_updates'>updates</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span><span class='rparen'>)</span>
-      <span class='kw'>when</span> <span class='symbol'>:merge</span>
-        <span class='lparen'>(</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='id identifier rubyid_updates'>updates</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_new_attrs'>new_attrs</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span> <span class='op'>=</span>
+      <span class='kw'>if</span> <span class='id identifier rubyid_updates'>updates</span><span class='period'>.</span><span class='id identifier rubyid_key?'>key?</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
+        <span class='kw'>case</span> <span class='id identifier rubyid_field_config'>field_config</span><span class='lbracket'>[</span><span class='symbol'>:type</span><span class='rbracket'>]</span>
+        <span class='kw'>when</span> <span class='symbol'>:append</span>
+          <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_public_send'>public_send</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_updates'>updates</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+        <span class='kw'>when</span> <span class='symbol'>:merge</span>
+          <span class='lparen'>(</span><span class='id identifier rubyid_public_send'>public_send</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='id identifier rubyid_updates'>updates</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+        <span class='kw'>else</span>
+          <span class='id identifier rubyid_updates'>updates</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span>
+        <span class='kw'>end</span>
       <span class='kw'>else</span>
-        <span class='id identifier rubyid_updates'>updates</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span>
+        <span class='id identifier rubyid_deep_dup_value'>deep_dup_value</span><span class='lparen'>(</span><span class='id identifier rubyid_public_send'>public_send</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span><span class='rparen'>)</span>
       <span class='kw'>end</span>
-    <span class='kw'>else</span>
-      <span class='id identifier rubyid_deep_dup_value'>deep_dup_value</span><span class='lparen'>(</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span><span class='rparen'>)</span>
-    <span class='kw'>end</span>
   <span class='kw'>end</span>
+
   <span class='id identifier rubyid_new_context'>new_context</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_new_attrs'>new_attrs</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_new_context'>new_context</span><span class='period'>.</span><span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span>
     <span class='label'>thread_id:</span> <span class='ivar'>@thread_id</span><span class='comma'>,</span>
@@ -702,52 +637,24 @@ mutant:disable - multiple genuine equivalent mutations: send/public_send/<strong
       <div class="method_details ">
   <h3 class="signature " id="phase-instance_method">
   
-    #<strong>phase</strong>  &#x21d2; <tt>Symbol</tt> 
+    #<strong>phase</strong>  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the current execution phase of the workflow.
-Encoding:</p>
-<pre class="code ruby"><code class="ruby">:__end__           — workflow completed (or not yet started)
-:awaiting_&lt;name&gt;   — halted at a wait_state(:awaiting_&lt;name&gt;) declaration
-:&lt;state&gt;           — resuming at &lt;state&gt; (workflow paused before its execution)
-</code></pre>
-<p>mutant:disable - @phase is always non-nil (set to :<strong>end</strong> in initialize, only changed by set_graph_metadata which never sets nil), so the || :<strong>end</strong> fallback branch is never reached — all mutations of the right-hand side are genuine equivalents</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Symbol</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-74
-75
-76</pre>
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 74</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_phase'>phase</span>
   <span class='ivar'>@phase</span> <span class='op'>||</span> <span class='symbol'>:__end__</span>
@@ -766,60 +673,20 @@ Encoding:</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Sets internal workflow metadata. Returns self.
-mutant:disable - mutations replacing return value <code>self</code> with nil or removing the last line are genuine equivalents: callers chain on the return value only in merge which immediately discards it</p>
-
-  </div>
-</div>
-<div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
-  
-    <li>
-      
-        <span class='name'>thread_id</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>phase</span>
-      
-      
-        <span class='type'>(<tt>Symbol</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
-</ul>
-
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-91
-92
-93
-94
-95</pre>
+53
+54
+55
+56
+57</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 91</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 53</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>phase:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='kw'>unless</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -834,53 +701,30 @@ mutant:disable - mutations replacing return value <code>self</code> with nil or 
       <div class="method_details ">
   <h3 class="signature " id="to_h-instance_method">
   
-    #<strong>to_h</strong>  &#x21d2; <tt>Hash</tt> 
+    #<strong>to_h</strong>  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Converts user-defined fields to a Hash (excludes internal workflow metadata).
-mutant:disable - send/public_send/<strong>send</strong> are genuine equivalents (all field accessors are public methods)</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-154
-155
-156
-157
-158</pre>
+116
+117
+118
+119
+120</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 154</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow_context.rb', line 116</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_to_h'>to_h</span>
-  <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span><span class='period'>.</span><span class='id identifier rubyid_each_with_object'>each_with_object</span><span class='lparen'>(</span><span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_h'>h</span><span class='op'>|</span>
-    <span class='id identifier rubyid_h'>h</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
+  <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_fields'>fields</span><span class='period'>.</span><span class='id identifier rubyid_keys'>keys</span><span class='period'>.</span><span class='id identifier rubyid_each_with_object'>each_with_object</span><span class='lparen'>(</span><span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_result'>result</span><span class='op'>|</span>
+    <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_public_send'>public_send</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -893,7 +737,7 @@ mutant:disable - send/public_send/<strong>send</strong> are genuine equivalents 
 </div>
 
       <div id="footer">
-  Generated on Sat Aug  1 07:11:50 2026 by
+  Generated on Sun Aug  2 05:51:01 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

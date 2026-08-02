@@ -108,8 +108,9 @@
   <strong>This class is part of a private API.</strong>
   You should avoid using this class if possible, as it may be removed or be changed in the future.
 </p>
-<p>Builds Phronomy::FSMSession instances for AgentInvocation objects.</p>
-<p>This is a builder/factory, not the stateful invocation itself.</p>
+<p>Builds FSMSession instances for AgentInvocation objects.</p>
+<p>Blocking/provider work returns through explicit Agent-internal events.
+Entry actions start operations and return synchronously.</p>
 
   </div>
 </div>
@@ -145,7 +146,6 @@
   <span class='label'>idle:</span> <span class='kw'>true</span><span class='comma'>,</span>
   <span class='label'>filtering_input:</span> <span class='kw'>true</span><span class='comma'>,</span>
   <span class='label'>building_context:</span> <span class='kw'>true</span><span class='comma'>,</span>
-  <span class='label'>calling_llm:</span> <span class='kw'>true</span><span class='comma'>,</span>
   <span class='label'>starting_tools:</span> <span class='kw'>true</span><span class='comma'>,</span>
   <span class='label'>evaluating_tools:</span> <span class='kw'>true</span><span class='comma'>,</span>
   <span class='label'>dispatching_tools:</span> <span class='kw'>true</span><span class='comma'>,</span>
@@ -317,7 +317,6 @@
       <pre class="lines">
 
 
-39
 40
 41
 42
@@ -338,10 +337,16 @@
 57
 58
 59
-60</pre>
+60
+61
+62
+63
+64
+65
+66</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation_session_builder.rb', line 39</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation_session_builder.rb', line 40</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_build'>build</span><span class='lparen'>(</span>
   <span class='label'>agent:</span><span class='comma'>,</span>
@@ -361,9 +366,14 @@
     <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
     <span class='label'>approval_policy:</span> <span class='id identifier rubyid_approval_policy'>approval_policy</span><span class='comma'>,</span>
     <span class='label'>approval_listener:</span> <span class='id identifier rubyid_approval_listener'>approval_listener</span><span class='comma'>,</span>
-    <span class='label'>stream_listener:</span> <span class='lparen'>(</span><span class='id identifier rubyid_mode'>mode</span> <span class='op'>==</span> <span class='symbol'>:stream</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id identifier rubyid_on_event'>on_event</span> <span class='op'>:</span> <span class='kw'>nil</span>
+    <span class='label'>event_listener:</span> <span class='id identifier rubyid_on_event'>on_event</span><span class='comma'>,</span>
+    <span class='label'>mode:</span> <span class='id identifier rubyid_mode'>mode</span>
   <span class='rparen'>)</span>
-  <span class='id identifier rubyid_build_session'>build_session</span><span class='lparen'>(</span><span class='label'>agent_invocation:</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='comma'>,</span> <span class='label'>runtime:</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='comma'>,</span> <span class='label'>mode:</span> <span class='id identifier rubyid_mode'>mode</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_build_session'>build_session</span><span class='lparen'>(</span>
+    <span class='label'>agent_invocation:</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='comma'>,</span>
+    <span class='label'>runtime:</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='comma'>,</span>
+    <span class='label'>mode:</span> <span class='id identifier rubyid_mode'>mode</span>
+  <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -398,12 +408,6 @@
       <pre class="lines">
 
 
-62
-63
-64
-65
-66
-67
 68
 69
 70
@@ -411,10 +415,16 @@
 72
 73
 74
-75</pre>
+75
+76
+77
+78
+79
+80
+81</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation_session_builder.rb', line 62</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation_session_builder.rb', line 68</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_build_for_resume'>build_for_resume</span><span class='lparen'>(</span>
   <span class='label'>agent_invocation:</span><span class='comma'>,</span>
@@ -425,7 +435,7 @@
   <span class='id identifier rubyid_build_session'>build_session</span><span class='lparen'>(</span>
     <span class='label'>agent_invocation:</span> <span class='id identifier rubyid_agent_invocation'>agent_invocation</span><span class='comma'>,</span>
     <span class='label'>runtime:</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='comma'>,</span>
-    <span class='label'>mode:</span> <span class='id identifier rubyid_agent_invocation'>agent_invocation</span><span class='period'>.</span><span class='id identifier rubyid_stream_listener'>stream_listener</span> <span class='op'>?</span> <span class='symbol'>:stream</span> <span class='op'>:</span> <span class='symbol'>:invoke</span><span class='comma'>,</span>
+    <span class='label'>mode:</span> <span class='id identifier rubyid_agent_invocation'>agent_invocation</span><span class='period'>.</span><span class='id identifier rubyid_mode'>mode</span><span class='comma'>,</span>
     <span class='label'>resume_event:</span> <span class='id identifier rubyid_resume_event'>resume_event</span><span class='comma'>,</span>
     <span class='label'>resume_phase:</span> <span class='id identifier rubyid_resume_phase'>resume_phase</span>
   <span class='rparen'>)</span>
@@ -440,7 +450,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sat Aug  1 07:11:55 2026 by
+  Generated on Sun Aug  2 05:51:05 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
