@@ -270,7 +270,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#transition-instance_method" title="#transition (instance method)">#<strong>transition</strong>(from:, to:, guard: nil, on: nil)  &#x21d2; Object </a>
+      <a href="#transition-instance_method" title="#transition (instance method)">#<strong>transition</strong>(from:, to:, guard: nil, on: nil, action: nil)  &#x21d2; Object </a>
     
 
     
@@ -284,7 +284,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Guards may accept either (context) or (context, event).</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Declares a transition.</p></div></span>
   
 </li>
 
@@ -393,13 +393,6 @@
       <pre class="lines">
 
 
-127
-128
-129
-130
-131
-132
-133
 134
 135
 136
@@ -428,10 +421,21 @@
 159
 160
 161
-162</pre>
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 127</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 134</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_build'>build</span>
   <span class='id identifier rubyid_validate_graph!'>validate_graph!</span>
@@ -445,13 +449,17 @@
       <span class='id identifier rubyid_external_events'>external_events</span><span class='lbracket'>[</span><span class='id identifier rubyid_event_name'>event_name</span><span class='rbracket'>]</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span>
         <span class='label'>from:</span> <span class='id identifier rubyid_transition'>transition</span><span class='lbracket'>[</span><span class='symbol'>:from</span><span class='rbracket'>]</span><span class='comma'>,</span>
         <span class='label'>to:</span> <span class='id identifier rubyid_transition'>transition</span><span class='lbracket'>[</span><span class='symbol'>:to</span><span class='rbracket'>]</span><span class='comma'>,</span>
-        <span class='label'>guard:</span> <span class='id identifier rubyid_transition'>transition</span><span class='lbracket'>[</span><span class='symbol'>:guard</span><span class='rbracket'>]</span>
+        <span class='label'>guard:</span> <span class='id identifier rubyid_transition'>transition</span><span class='lbracket'>[</span><span class='symbol'>:guard</span><span class='rbracket'>]</span><span class='comma'>,</span>
+        <span class='label'>action:</span> <span class='id identifier rubyid_transition'>transition</span><span class='lbracket'>[</span><span class='symbol'>:action</span><span class='rbracket'>]</span><span class='comma'>,</span>
+        <span class='label'>event:</span> <span class='id identifier rubyid_event_name'>event_name</span>
       <span class='rbrace'>}</span>
     <span class='kw'>else</span>
       <span class='id identifier rubyid_auto_transitions'>auto_transitions</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span>
         <span class='label'>from:</span> <span class='id identifier rubyid_transition'>transition</span><span class='lbracket'>[</span><span class='symbol'>:from</span><span class='rbracket'>]</span><span class='comma'>,</span>
         <span class='label'>to:</span> <span class='id identifier rubyid_transition'>transition</span><span class='lbracket'>[</span><span class='symbol'>:to</span><span class='rbracket'>]</span><span class='comma'>,</span>
-        <span class='label'>guard:</span> <span class='id identifier rubyid_transition'>transition</span><span class='lbracket'>[</span><span class='symbol'>:guard</span><span class='rbracket'>]</span>
+        <span class='label'>guard:</span> <span class='id identifier rubyid_transition'>transition</span><span class='lbracket'>[</span><span class='symbol'>:guard</span><span class='rbracket'>]</span><span class='comma'>,</span>
+        <span class='label'>action:</span> <span class='id identifier rubyid_transition'>transition</span><span class='lbracket'>[</span><span class='symbol'>:action</span><span class='rbracket'>]</span><span class='comma'>,</span>
+        <span class='label'>event:</span> <span class='symbol'>:state_completed</span>
       <span class='rbrace'>}</span>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
@@ -620,7 +628,7 @@ return the context or nil. Returning Phronomy::Task is an error.</p>
       <div class="method_details ">
   <h3 class="signature " id="transition-instance_method">
   
-    #<strong>transition</strong>(from:, to:, guard: nil, on: nil)  &#x21d2; <tt>Object</tt> 
+    #<strong>transition</strong>(from:, to:, guard: nil, on: nil, action: nil)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -628,7 +636,12 @@ return the context or nil. Returning Phronomy::Task is an error.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Guards may accept either (context) or (context, event).</p>
+    <p>Declares a transition.</p>
+<p>Guards and actions may accept either (context) or (context, event).
+Transition actions are synchronous Run-to-Completion callbacks executed
+after the source exit callbacks and before the target entry callbacks.
+They may start asynchronous work and register listeners, but returning
+Phronomy::Task is an error; completion must arrive as a later event.</p>
 
   </div>
 </div>
@@ -641,26 +654,28 @@ return the context or nil. Returning Phronomy::Task is an error.</p>
       <pre class="lines">
 
 
-117
-118
-119
-120
-121
-122
 123
 124
-125</pre>
+125
+126
+127
+128
+129
+130
+131
+132</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 117</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 123</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_transition'>transition</span><span class='lparen'>(</span><span class='label'>from:</span><span class='comma'>,</span> <span class='label'>to:</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_transition'>transition</span><span class='lparen'>(</span><span class='label'>from:</span><span class='comma'>,</span> <span class='label'>to:</span><span class='comma'>,</span> <span class='label'>guard:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>action:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_destination'>destination</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='id identifier rubyid_to'>to</span> <span class='op'>==</span> <span class='symbol'>:__finish__</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='const'><span class='object_link'><a href="#FINISH-constant" title="Phronomy::Workflow::Builder::FINISH (constant)">FINISH</a></span></span> <span class='op'>:</span> <span class='id identifier rubyid_to'>to</span>
   <span class='ivar'>@transitions</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span>
     <span class='label'>from:</span> <span class='id identifier rubyid_from'>from</span><span class='comma'>,</span>
     <span class='label'>to:</span> <span class='id identifier rubyid_destination'>destination</span><span class='comma'>,</span>
     <span class='label'>guard:</span> <span class='id identifier rubyid_guard'>guard</span><span class='comma'>,</span>
-    <span class='label'>on:</span> <span class='id identifier rubyid_on'>on</span>
+    <span class='label'>on:</span> <span class='id identifier rubyid_on'>on</span><span class='comma'>,</span>
+    <span class='label'>action:</span> <span class='id identifier rubyid_action'>action</span>
   <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -703,7 +718,7 @@ return the context or nil. Returning Phronomy::Task is an error.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug  2 08:27:34 2026 by
+  Generated on Sun Aug  2 10:42:23 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

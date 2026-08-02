@@ -4,7 +4,7 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-  Exception: Phronomy::SchedulerReentrancyError
+  Exception: Phronomy::InvalidAsyncWorkflowActionError
   
     &mdash; Documentation by YARD 0.9.45
   
@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="../css/common.css" type="text/css">
 
 <script type="text/javascript">
-  pathId = "Phronomy::SchedulerReentrancyError";
+  pathId = "Phronomy::InvalidAsyncWorkflowActionError";
   relpath = '../';
 </script>
 
@@ -38,10 +38,10 @@
       <div id="header">
         <div id="menu">
   
-    <a href="../_index.html">Index (S)</a> &raquo;
+    <a href="../_index.html">Index (I)</a> &raquo;
     <span class='title'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span>
      &raquo; 
-    <span class="title">SchedulerReentrancyError</span>
+    <span class="title">InvalidAsyncWorkflowActionError</span>
   
 </div>
 
@@ -61,7 +61,7 @@
         <div class="clear"></div>
       </div>
 
-      <div id="content"><h1>Exception: Phronomy::SchedulerReentrancyError
+      <div id="content"><h1>Exception: Phronomy::InvalidAsyncWorkflowActionError
   
   
   
@@ -80,7 +80,7 @@
           
             <li class="next"><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></li>
           
-            <li class="next">Phronomy::SchedulerReentrancyError</li>
+            <li class="next">Phronomy::InvalidAsyncWorkflowActionError</li>
           
         </ul>
         <a href="#" class="inheritanceTree">show all</a>
@@ -100,7 +100,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy.rb
+    <dd>lib/phronomy/invalid_async_workflow_action_error.rb
 </dd>
   </dl>
   
@@ -108,30 +108,20 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Raised when Agent#invoke (a synchronous, blocking call) is attempted from
-inside an active scheduler task and <code>strict_runtime_guards</code> is enabled.</p>
-<p>Calling a blocking invocation from within a scheduler task stalls the
-scheduler until the inner invocation completes, preventing other tasks from
-making progress (hidden deadlock risk).  Use Agent#invoke_async followed by
-<code>#await</code> inside scheduler tasks instead.</p>
-<p>This error is only raised when:</p>
-<pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="../Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span> <span class='op'>=</span> <span class='kw'>true</span> <span class='rbrace'>}</span>
-</code></pre>
-<p>By default a warning is logged and execution continues.</p>
+    <p>Base error for synchronous Workflow callbacks that return Phronomy::Task.</p>
+<p>Workflow callbacks may start asynchronous work, but they must return
+synchronously and deliver completion through a later explicit event.</p>
 
   </div>
 </div>
 <div class="tags">
   
 
-  <p class="tag_title">See Also:</p>
-  <ul class="see">
-    
-      <li><span class='object_link'><a href="Runtime.html#in_scheduler_context%3F-class_method" title="Phronomy::Runtime.in_scheduler_context? (method)">Runtime.in_scheduler_context?</a></span></li>
-    
-  </ul>
-
+</div><div id="subclasses">
+  <h2>Direct Known Subclasses</h2>
+  <p class="children"><span class='object_link'><a href="InvalidAsyncEntryActionError.html" title="Phronomy::InvalidAsyncEntryActionError (class)">InvalidAsyncEntryActionError</a></span>, <span class='object_link'><a href="InvalidAsyncTransitionActionError.html" title="Phronomy::InvalidAsyncTransitionActionError (class)">InvalidAsyncTransitionActionError</a></span></p>
 </div>
+
 
 
 
@@ -151,7 +141,7 @@ making progress (hidden deadlock risk).  Use Agent#invoke_async followed by
 </div>
 
       <div id="footer">
-  Generated on Sun Aug  2 10:42:23 2026 by
+  Generated on Sun Aug  2 10:42:27 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

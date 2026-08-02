@@ -202,7 +202,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Stable</td>
 </tr>
 <tr>
-<td><strong><code>Task#map</code></strong> — transforms a Task's completed value and propagates failure/cancellation; Workflow entry actions do not await mapped Tasks</td>
+<td><strong><code>Task#map</code></strong> — transforms a Task's completed value and propagates failure/cancellation; Workflow entry and transition actions do not await mapped Tasks</td>
 <td>Stable</td>
 </tr>
 <tr>
@@ -602,6 +602,43 @@ map its lifecycle event to an application-defined Workflow event:</p>
 </code></pre>
 <p>The application owns payload interpretation, correlation, and field updates.
 Phronomy does not automatically copy Agent results into WorkflowContext.</p>
+<p>Transitions may define an <code>action:</code> callback in addition to a <code>guard:</code>:</p>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_transition'>transition</span><span class='lparen'>(</span>
+  <span class='label'>from:</span> <span class='symbol'>:review</span><span class='comma'>,</span>
+  <span class='label'>on:</span> <span class='symbol'>:approved</span><span class='comma'>,</span>
+  <span class='label'>to:</span> <span class='symbol'>:publish</span><span class='comma'>,</span>
+  <span class='label'>guard:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_context'>context</span><span class='comma'>,</span> <span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+    <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='lbracket'>[</span><span class='symbol'>:request_id</span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='id identifier rubyid_context'>context</span><span class='period'>.</span><span class='id identifier rubyid_request_id'>request_id</span>
+  <span class='rbrace'>}</span><span class='comma'>,</span>
+  <span class='label'>action:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_context'>context</span><span class='comma'>,</span> <span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+    <span class='id identifier rubyid_context'>context</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>approved_by:</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='lbracket'>[</span><span class='symbol'>:reviewer</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+  <span class='rbrace'>}</span>
+<span class='rparen'>)</span>
+</code></pre>
+<p>The callback order for a successful transition is:</p>
+<pre class="code text"><code class="text">source exit callbacks
+-&gt; selected transition action
+-&gt; target entry callbacks
+</code></pre>
+<p>Transition actions may accept either <code>(context)</code> or <code>(context, event)</code>. A
+returned Workflow context replaces the current context before target entry
+callbacks run. Returning <code>nil</code> or another non-context value preserves the
+current context.</p>
+<p>Like entry actions, transition actions are synchronous Run-to-Completion
+callbacks. They may start asynchronous work and register a listener that later
+calls <code>Workflow#signal</code>, but they must return the context or <code>nil</code> immediately.
+Returning <code>Phronomy::Task</code> raises
+<code>Phronomy::InvalidAsyncTransitionActionError</code>; Phronomy does not implicitly
+await it.</p>
+<p>For a transition with <code>on:</code>, the two-argument action receives the external
+<code>Phronomy::Event</code>. For an automatic transition without <code>on:</code>, it receives the
+internal event:</p>
+<pre class="code text"><code class="text">event.type    == :state_completed
+event.payload == nil
+</code></pre>
+<p>When several transitions have the same source and event, guards are evaluated
+in declaration order. The first matching transition is selected, and only that
+transition's action runs.</p>
 <h3 id="Multi_Agent___Agent_as_Tool_pattern">Multi-Agent — Agent-as-Tool pattern</h3>
 <p>Wrap sub-agents as <code>Agent::Context::Capability::Base</code> subclasses so the orchestrator LLM can call them on demand.</p>
 <pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>ResearchTool</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Capability.html" title="Phronomy::Agent::Context::Capability (module)">Capability</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Capability/Base.html" title="Phronomy::Agent::Context::Capability::Base (class)">Base</a></span></span>
@@ -1307,7 +1344,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sun Aug  2 08:27:33 2026 by
+  Generated on Sun Aug  2 10:42:22 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

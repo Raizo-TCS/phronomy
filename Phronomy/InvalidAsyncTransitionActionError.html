@@ -4,7 +4,7 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-  Module: Phronomy::OutputParser
+  Exception: Phronomy::InvalidAsyncTransitionActionError
   
     &mdash; Documentation by YARD 0.9.45
   
@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="../css/common.css" type="text/css">
 
 <script type="text/javascript">
-  pathId = "Phronomy::OutputParser";
+  pathId = "Phronomy::InvalidAsyncTransitionActionError";
   relpath = '../';
 </script>
 
@@ -38,10 +38,10 @@
       <div id="header">
         <div id="menu">
   
-    <a href="../_index.html">Index (O)</a> &raquo;
+    <a href="../_index.html">Index (I)</a> &raquo;
     <span class='title'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span>
      &raquo; 
-    <span class="title">OutputParser</span>
+    <span class="title">InvalidAsyncTransitionActionError</span>
   
 </div>
 
@@ -61,12 +61,34 @@
         <div class="clear"></div>
       </div>
 
-      <div id="content"><h1>Module: Phronomy::OutputParser
+      <div id="content"><h1>Exception: Phronomy::InvalidAsyncTransitionActionError
   
   
   
 </h1>
 <div class="box_info">
+  
+  <dl>
+    <dt>Inherits:</dt>
+    <dd>
+      <span class="inheritName"><span class='object_link'><a href="InvalidAsyncWorkflowActionError.html" title="Phronomy::InvalidAsyncWorkflowActionError (class)">InvalidAsyncWorkflowActionError</a></span></span>
+      
+        <ul class="fullTree">
+          <li>Object</li>
+          
+            <li class="next">StandardError</li>
+          
+            <li class="next"><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></li>
+          
+            <li class="next"><span class='object_link'><a href="InvalidAsyncWorkflowActionError.html" title="Phronomy::InvalidAsyncWorkflowActionError (class)">InvalidAsyncWorkflowActionError</a></span></li>
+          
+            <li class="next">Phronomy::InvalidAsyncTransitionActionError</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+    </dd>
+  </dl>
   
 
   
@@ -80,37 +102,51 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/output_parser.rb<span class="defines">,<br>
-  lib/phronomy/output_parser/base.rb,<br> lib/phronomy/output_parser/json_parser.rb,<br> lib/phronomy/output_parser/structured_parser.rb</span>
-
+    <dd>lib/phronomy/invalid_async_transition_action_error.rb
 </dd>
   </dl>
   
 </div>
 
-<h2>Defined Under Namespace</h2>
-<p class="children">
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>Raised when a synchronous Workflow transition action returns Phronomy::Task.</p>
+<p>Transition actions are Run-to-Completion callbacks. They may start
+asynchronous work, but completion must return through a later explicit event.</p>
+
+  </div>
+</div>
+<div class="tags">
   
-    
+
+</div>
+
+
+
+
+
+
+
   
-    
-      <strong class="classes">Classes:</strong> <span class='object_link'><a href="OutputParser/Base.html" title="Phronomy::OutputParser::Base (class)">Base</a></span>, <span class='object_link'><a href="OutputParser/JsonParser.html" title="Phronomy::OutputParser::JsonParser (class)">JsonParser</a></span>, <span class='object_link'><a href="OutputParser/StructuredParser.html" title="Phronomy::OutputParser::StructuredParser (class)">StructuredParser</a></span>
-    
   
-</p>
-
-
-
-
-
-
-
-
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 </div>
 
       <div id="footer">
-  Generated on Sun Aug  2 10:42:23 2026 by
+  Generated on Sun Aug  2 10:42:27 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

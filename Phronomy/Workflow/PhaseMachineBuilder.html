@@ -361,22 +361,7 @@ cancel external work, or interpret application event payloads.</p>
 99
 100
 101
-102
-103
-104
-105
-106
-107
-108
-109
-110
-111
-112
-113
-114
-115
-116
-117</pre>
+102</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/workflow/phase_machine_builder.rb', line 33</span>
@@ -388,58 +373,38 @@ cancel external work, or interpret application event payloads.</p>
   <span class='id identifier rubyid_external_events'>external_events</span> <span class='op'>=</span> <span class='ivar'>@external_events</span>
   <span class='id identifier rubyid_entry_actions'>entry_actions</span> <span class='op'>=</span> <span class='ivar'>@entry_actions</span>
   <span class='id identifier rubyid_exit_actions'>exit_actions</span> <span class='op'>=</span> <span class='ivar'>@exit_actions</span>
-  <span class='id identifier rubyid_guard_caller'>guard_caller</span> <span class='op'>=</span> <span class='id identifier rubyid_method'>method</span><span class='lparen'>(</span><span class='symbol'>:call_guard</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_condition_builder'>condition_builder</span> <span class='op'>=</span> <span class='id identifier rubyid_method'>method</span><span class='lparen'>(</span><span class='symbol'>:build_transition_condition</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_entry_callback_builder'>entry_callback_builder</span> <span class='op'>=</span> <span class='id identifier rubyid_method'>method</span><span class='lparen'>(</span><span class='symbol'>:build_entry_callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_exit_callback_builder'>exit_callback_builder</span> <span class='op'>=</span> <span class='id identifier rubyid_method'>method</span><span class='lparen'>(</span><span class='symbol'>:build_exit_callback</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_transition_callback'>transition_callback</span> <span class='op'>=</span> <span class='id identifier rubyid_build_transition_action_callback'>build_transition_action_callback</span>
 
   <span class='const'>Class</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_attr_accessor'>attr_accessor</span> <span class='symbol'>:context</span><span class='comma'>,</span> <span class='symbol'>:current_event</span>
+    <span class='id identifier rubyid_attr_accessor'>attr_accessor</span><span class='lparen'>(</span>
+      <span class='symbol'>:context</span><span class='comma'>,</span>
+      <span class='symbol'>:current_event</span><span class='comma'>,</span>
+      <span class='symbol'>:selected_transition_action</span><span class='comma'>,</span>
+      <span class='symbol'>:selected_transition_metadata</span>
+    <span class='rparen'>)</span>
 
     <span class='id identifier rubyid_state_machine'>state_machine</span> <span class='symbol'>:phase</span><span class='comma'>,</span> <span class='label'>initial:</span> <span class='id identifier rubyid_entry'>entry</span> <span class='kw'>do</span>
       <span class='id identifier rubyid_all_states'>all_states</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_state_name'>state_name</span><span class='op'>|</span> <span class='id identifier rubyid_state'>state</span> <span class='id identifier rubyid_state_name'>state_name</span> <span class='rbrace'>}</span>
 
       <span class='id identifier rubyid_event'>event</span> <span class='symbol'>:state_completed</span> <span class='kw'>do</span>
         <span class='id identifier rubyid_auto_transitions'>auto_transitions</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='op'>|</span>
-          <span class='kw'>if</span> <span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='lbracket'>[</span><span class='symbol'>:guard</span><span class='rbracket'>]</span>
-            <span class='id identifier rubyid_guard'>guard</span> <span class='op'>=</span> <span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='lbracket'>[</span><span class='symbol'>:guard</span><span class='rbracket'>]</span>
-            <span class='id identifier rubyid_transition'>transition</span><span class='lparen'>(</span>
-              <span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='lbracket'>[</span><span class='symbol'>:from</span><span class='rbracket'>]</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='lbracket'>[</span><span class='symbol'>:to</span><span class='rbracket'>]</span><span class='comma'>,</span>
-              <span class='symbol'>:if</span> <span class='op'>=&gt;</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_machine'>machine</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
-                <span class='id identifier rubyid_guard_caller'>guard_caller</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span>
-                  <span class='id identifier rubyid_guard'>guard</span><span class='comma'>,</span>
-                  <span class='id identifier rubyid_machine'>machine</span><span class='period'>.</span><span class='id identifier rubyid_context'>context</span><span class='comma'>,</span>
-                  <span class='id identifier rubyid_machine'>machine</span><span class='period'>.</span><span class='id identifier rubyid_current_event'>current_event</span>
-                <span class='rparen'>)</span>
-              <span class='rbrace'>}</span>
-            <span class='rparen'>)</span>
-          <span class='kw'>else</span>
-            <span class='id identifier rubyid_transition'>transition</span><span class='lparen'>(</span>
-              <span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='lbracket'>[</span><span class='symbol'>:from</span><span class='rbracket'>]</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='lbracket'>[</span><span class='symbol'>:to</span><span class='rbracket'>]</span>
-            <span class='rparen'>)</span>
-          <span class='kw'>end</span>
+          <span class='id identifier rubyid_transition'>transition</span><span class='lparen'>(</span>
+            <span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='lbracket'>[</span><span class='symbol'>:from</span><span class='rbracket'>]</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='lbracket'>[</span><span class='symbol'>:to</span><span class='rbracket'>]</span><span class='comma'>,</span>
+            <span class='symbol'>:if</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_condition_builder'>condition_builder</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='rparen'>)</span>
+          <span class='rparen'>)</span>
         <span class='kw'>end</span>
       <span class='kw'>end</span>
 
       <span class='id identifier rubyid_external_events'>external_events</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_event_name'>event_name</span><span class='comma'>,</span> <span class='id identifier rubyid_transitions'>transitions</span><span class='op'>|</span>
         <span class='id identifier rubyid_event'>event</span> <span class='id identifier rubyid_event_name'>event_name</span> <span class='kw'>do</span>
           <span class='id identifier rubyid_transitions'>transitions</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='op'>|</span>
-            <span class='kw'>if</span> <span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='lbracket'>[</span><span class='symbol'>:guard</span><span class='rbracket'>]</span>
-              <span class='id identifier rubyid_guard'>guard</span> <span class='op'>=</span> <span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='lbracket'>[</span><span class='symbol'>:guard</span><span class='rbracket'>]</span>
-              <span class='id identifier rubyid_transition'>transition</span><span class='lparen'>(</span>
-                <span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='lbracket'>[</span><span class='symbol'>:from</span><span class='rbracket'>]</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='lbracket'>[</span><span class='symbol'>:to</span><span class='rbracket'>]</span><span class='comma'>,</span>
-                <span class='symbol'>:if</span> <span class='op'>=&gt;</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_machine'>machine</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
-                  <span class='id identifier rubyid_guard_caller'>guard_caller</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span>
-                    <span class='id identifier rubyid_guard'>guard</span><span class='comma'>,</span>
-                    <span class='id identifier rubyid_machine'>machine</span><span class='period'>.</span><span class='id identifier rubyid_context'>context</span><span class='comma'>,</span>
-                    <span class='id identifier rubyid_machine'>machine</span><span class='period'>.</span><span class='id identifier rubyid_current_event'>current_event</span>
-                  <span class='rparen'>)</span>
-                <span class='rbrace'>}</span>
-              <span class='rparen'>)</span>
-            <span class='kw'>else</span>
-              <span class='id identifier rubyid_transition'>transition</span><span class='lparen'>(</span>
-                <span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='lbracket'>[</span><span class='symbol'>:from</span><span class='rbracket'>]</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='lbracket'>[</span><span class='symbol'>:to</span><span class='rbracket'>]</span>
-              <span class='rparen'>)</span>
-            <span class='kw'>end</span>
+            <span class='id identifier rubyid_transition'>transition</span><span class='lparen'>(</span>
+              <span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='lbracket'>[</span><span class='symbol'>:from</span><span class='rbracket'>]</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='lbracket'>[</span><span class='symbol'>:to</span><span class='rbracket'>]</span><span class='comma'>,</span>
+              <span class='symbol'>:if</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_condition_builder'>condition_builder</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_transition_definition'>transition_definition</span><span class='rparen'>)</span>
+            <span class='rparen'>)</span>
           <span class='kw'>end</span>
         <span class='kw'>end</span>
       <span class='kw'>end</span>
@@ -453,7 +418,10 @@ cancel external work, or interpret application event payloads.</p>
         <span class='kw'>end</span>
       <span class='kw'>end</span>
 
-      <span class='id identifier rubyid_exit_actions'>exit_actions</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_state_name'>state_name</span><span class='comma'>,</span> <span class='id identifier rubyid_callables'>callables</span><span class='op'>|</span>
+      <span class='comment'># Both source exit callbacks and the transition action are
+</span>      <span class='comment'># before_transition callbacks. Register exits first to preserve the
+</span>      <span class='comment'># required exit -&gt; transition action -&gt; entry ordering.
+</span>      <span class='id identifier rubyid_exit_actions'>exit_actions</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_state_name'>state_name</span><span class='comma'>,</span> <span class='id identifier rubyid_callables'>callables</span><span class='op'>|</span>
         <span class='id identifier rubyid_callables'>callables</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_callable'>callable</span><span class='op'>|</span>
           <span class='id identifier rubyid_before_transition'>before_transition</span><span class='lparen'>(</span>
             <span class='label'>from:</span> <span class='id identifier rubyid_state_name'>state_name</span><span class='comma'>,</span>
@@ -461,6 +429,8 @@ cancel external work, or interpret application event payloads.</p>
           <span class='rparen'>)</span>
         <span class='kw'>end</span>
       <span class='kw'>end</span>
+
+      <span class='id identifier rubyid_before_transition'>before_transition</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_transition_callback'>transition_callback</span><span class='rparen'>)</span>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
@@ -476,7 +446,7 @@ cancel external work, or interpret application event payloads.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug  2 08:27:37 2026 by
+  Generated on Sun Aug  2 10:42:27 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

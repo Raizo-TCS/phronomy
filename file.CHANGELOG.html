@@ -69,6 +69,12 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <ul>
 <li><code>Workflow#signal(thread_id:, event:, payload:)</code> for FIFO delivery to a live
 Workflow FSMSession.</li>
+<li>Workflow transition <code>action:</code> callbacks, executed after source exit callbacks
+and before target entry callbacks. Actions may accept <code>(context)</code> or
+<code>(context, event)</code> and may return a replacement Workflow context.</li>
+<li><code>InvalidAsyncWorkflowActionError</code> and
+<code>InvalidAsyncTransitionActionError</code>. Transition actions may start async work,
+but returning a <code>Phronomy::Task</code> is rejected rather than implicitly awaited.</li>
 <li>Symmetric Agent <code>on_event:</code> support for <code>invoke_async</code> and <code>stream_async</code>;
 streaming differs only by adding <code>:token</code> events.</li>
 <li><code>Agent#approve_async</code> and <code>Agent::Base.approve_async</code> resume a suspended
@@ -104,6 +110,9 @@ Runtime-owned EventLoop streaming path.</li>
 <li><code>Workflow#invoke</code>, <code>#invoke_async</code>, and <code>#stream</code> now share context
 preparation, StateStore load/save, EventLoop registration, and FSMSession
 execution.</li>
+<li>Workflow entry and transition action return values use the same
+<code>set_graph_metadata</code> context protocol as FSMSession, including duck-typed
+context replacements.</li>
 <li>Agent terminal outcomes are delivered to <code>on_event</code> before the returned Task
 is settled. <code>Task#on_complete</code>, <code>wait_result</code>, and cancellation remain active.</li>
 <li>Mapping Agent events to Workflow events, correlation, stale-event handling,
@@ -1354,7 +1363,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sun Aug  2 08:27:34 2026 by
+  Generated on Sun Aug  2 10:42:23 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
