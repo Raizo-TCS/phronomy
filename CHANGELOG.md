@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `_register_tool_invocation_session`, `_start_approval_resume`). The
   duplicate definitions in `Agent::Base` have been removed. No public
   behavior change is intended.
+- Remove `faraday` and `event_stream_parser` from gemspec declared
+  dependencies; both are transitive dependencies of `ruby_llm` and are
+  not used directly by phronomy.
 
 ### Added
 
