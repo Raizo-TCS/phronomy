@@ -445,8 +445,8 @@ module Phronomy
       end
 
       def purge!
-        ensure_no_active_execution!
         persistence.transaction do |tx|
+          tx.executions.assert_idle!(agent_id)
           tx.journals.delete(agent_id)
           tx.executions.delete_for_agent(agent_id)
           tx.agents.delete(agent_id)
@@ -507,9 +507,9 @@ module Phronomy
       end
 
       def mutate_context!(kind, context_affecting: true)
-        ensure_no_active_execution!
         next_root = nil
         persistence.transaction do |tx|
+          tx.executions.assert_idle!(agent_id)
           current = tx.agents.load(agent_id)
           record = Agent::JournalRecord.new(
             agent_id: agent_id,

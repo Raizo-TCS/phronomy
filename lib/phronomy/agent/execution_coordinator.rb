@@ -437,7 +437,23 @@ module Phronomy
           )
           # EventLoop is shutting down — settle immediately on this thread.
           unless posted
-            deliver_on_event_loop(activation, result_task, outcome, commit_error)
+            # EventLoop is shutting down; settle the task without calling the listener.
+            if commit_error
+              fail_task(result_task, commit_error)
+            else
+              case outcome&.fetch(:type)
+              when :suspended
+                complete_task(result_task, outcome.fetch(:result))
+              when :completed
+                @agent.persistence.activations.delete(activation.execution_id)
+                complete_task(result_task, outcome.fetch(:result))
+              when :failed
+                @agent.persistence.activations.delete(activation.execution_id)
+                fail_task(result_task, outcome.fetch(:error))
+              else
+                fail_task(result_task, Phronomy::Error.new("EventLoop shutting down"))
+              end
+            end
           end
         end
       rescue => caught
@@ -458,8 +474,8 @@ module Phronomy
         case outcome.fetch(:type)
         when :suspended
           result = outcome.fetch(:result)
-          deliver_terminal(activation, :approval_required, request: result.fetch(:approval_request))
-          complete_task(result_task, result)
+          cb_error = deliver_terminal(activation, :approval_required, request: result.fetch(:approval_request))
+          settle_after_terminal(result_task, cb_error, :approval_required, result)
         when :completed
           @agent.persistence.activations.delete(activation.execution_id)
           result = outcome.fetch(:result)
@@ -561,7 +577,9 @@ module Phronomy
 
         @agent.persistence.transaction do |tx|
           encoded_records, call_records = encode_runtime_records(
-            activation, tx: tx, snapshot: runtime_snapshot, context_candidate: true
+            activation, tx: tx, snapshot: runtime_snapshot,
+            # Exclude tool/LLM records from transcript when the invocation was rejected.
+            context_candidate: !invocation.rejected
           )
           output_ref = tx.contents.put_text(invocation.output.to_s)
           root = tx.agents.load(@agent.agent_id)
@@ -929,7 +947,8 @@ module Phronomy
             event: StreamEvent.new(type: event_type, payload: result || {error: execution_error}),
             invocation_id: nil,
             callback_error_policy: policy)
-          if policy == :fail_task
+          # Execution error takes priority over callback error.
+          if policy == :fail_task && execution_error.nil?
             wrapped = @agent.send(:_build_stream_callback_error,
               event_type: event_type, callback_error: callback_error, result: result)
             fail_task(result_task, wrapped)

@@ -132,6 +132,17 @@ module Phronomy
           ],
           resume: [
             {from: :suspended, to: :waiting_for_tools, guard: nil}
+          ],
+          application_callback_failed: [
+            {from: :filtering_input, to: :failed, guard: nil},
+            {from: :building_context, to: :failed, guard: nil},
+            {from: :calling_llm, to: :failed, guard: nil},
+            {from: :starting_tools, to: :failed, guard: nil},
+            {from: :evaluating_tools, to: :failed, guard: nil},
+            {from: :waiting_for_tools, to: :failed, guard: nil},
+            {from: :dispatching_tools, to: :failed, guard: nil},
+            {from: :recording_tool_results, to: :failed, guard: nil},
+            {from: :output_filtering, to: :failed, guard: nil}
           ]
         )
       end

@@ -133,7 +133,8 @@ module Phronomy
 
       def notify_callback_failure(failure)
         invocation = @mutex.synchronize { @invocation }
-        session_id = invocation&.session_id
+        # FSMSession is created with id: invocation.id; session_id is only set at finish!/halt!.
+        session_id = invocation&.id
 
         if session_id
           runtime = Phronomy::Runtime.instance

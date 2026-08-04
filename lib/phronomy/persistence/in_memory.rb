@@ -198,6 +198,15 @@ module Phronomy
             @owner.state[:executions].delete_if { |_id, execution| execution.agent_id == agent_id.to_s }
           end
         end
+
+        # Raises AgentBusyError if there is an active execution for agent_id.
+        # Must be called from within a transaction (monitor already held).
+        def assert_idle!(agent_id)
+          active = @owner.state[:executions].values.find do |candidate|
+            candidate.agent_id == agent_id.to_s && candidate.active?
+          end
+          raise Phronomy::AgentBusyError, "agent has an active or suspended execution: #{agent_id}" if active
+        end
       end
 
       attr_reader :state
