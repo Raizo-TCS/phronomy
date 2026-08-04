@@ -120,8 +120,11 @@ module IntegrationFactors
     base_klass = Phronomy::Agent::Base
     model_name = LM_STUDIO_MODEL
     tool_arg = tools
+    # Each call gets a unique definition id so agents don't collide in Persistence.
+    defn_id = "integration-factor-#{SecureRandom.hex(4)}"
 
     Class.new(base_klass) do
+      agent_definition id: defn_id, version: 1
       model model_name
       provider :openai  # directs to openai_api_base (LM Studio); sets assume_model_exists: true
       instructions "You are a helpful assistant. Use tools when they are useful."
@@ -539,8 +542,10 @@ module IntegrationFactors
   # @return [Phronomy::Agent::Base]
   def self.approval_agent(agent_label, tool_class:, handler:)
     base_class = Phronomy::Agent::Base
+    defn_id = "integration-approval-#{SecureRandom.hex(4)}"
 
     agent_class = Class.new(base_class) do
+      agent_definition id: defn_id, version: 1
       model "test-model"
       tools(tool_class)
     end
@@ -629,9 +634,9 @@ module IntegrationFactors
     compact_label: "none"
   )
     sources = static_knowledge_sources(static_knowledge_label)
-    t_label = trim_label
-    g_label = trigger_label
-    c_label = compact_label
+    # trim/trigger/compact_label were used by the old build_context API which is
+    # replaced by ContextAssembler in the new architecture. The labels are kept
+    # as parameters for pairwise compatibility but have no runtime effect.
 
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-18", version: 1
@@ -639,33 +644,6 @@ module IntegrationFactors
       provider :openai
       instructions "You are a helpful assistant."
       static_knowledge(*sources) unless sources.empty?
-
-      define_method(:build_context) do |input, messages: [], thread_id: nil, config: {}, **kwargs|
-        msgs = case t_label
-        when "none", "remove_none" then Array(messages)
-        when "remove_some"
-          m = Array(messages)
-          (m.size <= 1) ? m : m[1..]
-        else
-          raise ArgumentError, "Unknown trim_label: #{t_label}"
-        end
-
-        if g_label == "true" && c_label != "none"
-          msgs = case c_label
-          when "summarise_range"
-            m = Array(msgs)
-            m.empty? ? m : compact_messages(m, keep_tail: [m.size - 1, 0].max) { "Earlier conversation summary." }
-          when "multi_range"
-            m = Array(msgs)
-            (m.length < 2) ? m : compact_messages(m, keep_tail: [m.size - 1, 0].max) { "First compaction summary." }
-          else
-            msgs
-          end
-        end
-
-        super(input, messages: msgs, thread_id: thread_id, config: config, **kwargs)
-      end
-      protected :build_context
     end
   end
 
@@ -1081,7 +1059,7 @@ module IntegrationFactors
       instructions "You are a worker agent."
 
       if failing
-        define_method(:invoke) do |input, messages: [], thread_id: nil, config: {}|
+        define_method(:invoke) do |input, thread_id: nil, config: {}, **|
           raise "worker_error"
         end
       end

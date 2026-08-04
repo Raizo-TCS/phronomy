@@ -26,6 +26,7 @@ module Phronomy
             model_config: projection.model_config
           }
         )
+        agent.send(:run_before_completion_hooks!, invocation.chat, invocation.config)
         install_tool_interceptors(invocation.chat)
         invocation
       end

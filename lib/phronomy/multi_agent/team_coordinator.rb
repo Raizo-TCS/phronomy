@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "securerandom"
+
 module Phronomy
   module MultiAgent
     # Implements the "Agent teams" coordination pattern (Anthropic blog, Pattern 3).
@@ -212,8 +214,9 @@ module Phronomy
           worker = scheduler ? scheduler.call(available) : default_scheduler(available)
 
           begin
-            result = worker.agent.invoke(task[:description], messages: worker.messages)
-            worker.messages = result[:messages]
+            # Worker agent retains conversation history in its Journal.
+            result = worker.agent.invoke(task[:description])
+            worker.messages = Array(result[:messages])
             worker.status = :available
             entry = {task: task, result: result[:output], worker: worker.index, error: nil}
             assignments << entry
@@ -253,6 +256,7 @@ module Phronomy
         finalize_tool = build_finalize_tool(task_queue)
 
         coordinator_class = Class.new(Phronomy::Agent::Base) do
+          agent_definition id: "team-coordinator-#{SecureRandom.hex(4)}", version: 1
           model coordinator_model_val
           provider coordinator_provider_val if coordinator_provider_val
           instructions coordinator_instructions_val

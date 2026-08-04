@@ -8,11 +8,15 @@ RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
   def stub_worker(&response_block)
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-144", version: 1
-      define_method(:invoke) do |input, messages: [], thread_id: nil, config: {}|
-        msgs_in = Array(messages)
+      define_method(:initialize) do
+        super()
+        @_stub_messages = []
+      end
+      define_method(:invoke) do |input, thread_id: nil, config: {}|
+        msgs_in = @_stub_messages.dup
         output = response_block ? response_block.call(input, msgs_in) : "ok"
-        new_msgs = msgs_in + [{role: "user", content: input}, {role: "assistant", content: output}]
-        {output: output, messages: new_msgs}
+        @_stub_messages = msgs_in + [{role: "user", content: input}, {role: "assistant", content: output.to_s}]
+        {output: output, messages: @_stub_messages.dup}
       end
     end
   end
