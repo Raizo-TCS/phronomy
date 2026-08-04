@@ -197,18 +197,15 @@ RSpec.describe Phronomy::Agent::Base do
       expect(results.size).to eq(2)
     end
 
-    context "with messages in config" do
-      let(:prev_msg) { double("PrevMessage", role: :user, content: "previous") }
-
-      it "injects the provided messages into the chat" do
-        skip "messages: parameter removed from invoke; history managed via Agent Journal"
-        agent.invoke("Hello", messages: [prev_msg])
-        expect(fake_chat.messages).to include(prev_msg)
+    context "stateful conversation (Agent Journal)" do
+      it "accumulates conversation in the Agent Journal after each invoke" do
+        agent.invoke("Hello")
+        # The Journal should advance (input + response recorded).
+        expect(agent.agent_root.journal_position).to be > 0
       end
 
-      it "works without messages in config" do
-        agent.invoke("Hello", thread_id: "t1")
-        # no error is raised — empty history is used
+      it "does not raise when invoked with a thread_id" do
+        expect { agent.invoke("Hello", thread_id: "t1") }.not_to raise_error
       end
     end
 
@@ -259,10 +256,10 @@ RSpec.describe Phronomy::Agent::Base do
 
       let(:prev_msg) { double("PrevMessage", role: :user, content: "previous") }
 
-      it "injects history messages into the chat via the Assembler" do
-        skip "messages: parameter removed from invoke; history managed via Agent Journal"
-        agent.invoke("Hello", messages: [prev_msg])
-        expect(fake_chat.messages).to include(prev_msg)
+      it "records conversation in the Agent Journal (replaces messages: injection)" do
+        agent.invoke("Hello")
+        # Journal position advances: confirms input + response were recorded.
+        expect(agent.agent_root.journal_position).to be > 0
       end
     end
   end

@@ -428,22 +428,18 @@ module Phronomy
           case outcome.fetch(:type)
           when :suspended
             result = outcome.fetch(:result)
-            deliver_terminal(
-              activation,
-              :approval_required,
-              request: result.fetch(:approval_request)
-            )
+            deliver_terminal(activation, :approval_required, request: result.fetch(:approval_request))
             complete_task(result_task, result)
           when :completed
             @agent.persistence.activations.delete(activation.execution_id)
             result = outcome.fetch(:result)
-            deliver_terminal(activation, :done, result)
-            complete_task(result_task, result)
+            cb_error = deliver_terminal(activation, :done, result)
+            settle_after_terminal(result_task, cb_error, :done, result)
           when :failed
             @agent.persistence.activations.delete(activation.execution_id)
             terminal_error = outcome.fetch(:error)
-            deliver_terminal(activation, terminal_event_type(terminal_error), error: terminal_error)
-            fail_task(result_task, terminal_error)
+            cb_error = deliver_terminal(activation, terminal_event_type(terminal_error), error: terminal_error)
+            settle_after_terminal(result_task, cb_error, terminal_event_type(terminal_error), nil, terminal_error)
           else
             raise Phronomy::Error, "unknown terminal outcome: #{outcome.inspect}"
           end
@@ -884,14 +880,31 @@ module Phronomy
         end
       end
 
+      # Delivers a terminal event to the on_event listener; returns the callback error or nil.
       def deliver_terminal(activation, type, payload)
         listener = activation.application_listener
-        return unless listener
-        listener.call(StreamEvent.new(type: type, payload: payload))
-      rescue => error
-        Phronomy.configuration.logger&.warn(
-          "Agent terminal event listener failed: #{error.class}: #{error.message}"
-        )
+        return nil unless listener
+
+        @agent.send(:_deliver_stream_event, listener, StreamEvent.new(type: type, payload: payload))
+      end
+
+      # Settles the result Task, applying stream_callback_error_policy when the
+      # terminal event callback raised.
+      def settle_after_terminal(result_task, callback_error, event_type, result, execution_error = nil)
+        if callback_error
+          policy = Phronomy.configuration.stream_callback_error_policy
+          @agent.send(:_report_stream_callback_error, callback_error,
+            event: StreamEvent.new(type: event_type, payload: result || {error: execution_error}),
+            invocation_id: nil,
+            callback_error_policy: policy)
+          if policy == :fail_task
+            wrapped = @agent.send(:_build_stream_callback_error,
+              event_type: event_type, callback_error: callback_error, result: result)
+            fail_task(result_task, wrapped)
+            return
+          end
+        end
+        execution_error ? fail_task(result_task, execution_error) : complete_task(result_task, result)
       end
 
       def dispatch_approval_listener(invocation, request)

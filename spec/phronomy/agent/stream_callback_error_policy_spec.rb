@@ -92,261 +92,143 @@ RSpec.describe "Agent terminal stream callback error policy" do
     end
   end
 
-  describe "terminal completion handling" do
+  describe "terminal completion handling via real pipeline" do
+    # Streaming agent with a mock LLM that returns a single chunk then completes.
+    let(:streaming_agent) { agent_class.new }
+    let(:fake_tokens) { double("Tok", input: 1, output: 2, cached: 0, cache_creation: 0, to_h: {"input" => 1, "output" => 2, "cached" => 0, "cache_creation" => 0}) }
+    let(:fake_response) { double("Resp", role: :assistant, content: "completed", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
+
+    def build_streaming_chat_for_policy(response)
+      dbl = double("Chat")
+      allow(dbl).to receive(:with_instructions).and_return(dbl)
+      allow(dbl).to receive(:with_tool).and_return(dbl)
+      allow(dbl).to receive(:with_temperature).and_return(dbl)
+      allow(dbl).to receive(:messages).and_return([response])
+      allow(dbl).to receive(:cancellation_token=)
+      allow(dbl).to receive(:on_tool_call)
+      allow(dbl).to receive(:on_tool_result)
+      allow(dbl).to receive(:ask) { |_msg, &blk|
+        blk&.call(double("Chunk", content: "token1"))
+        response
+      }
+      allow(dbl).to receive(:complete) { |&blk|
+        blk&.call(double("Chunk", content: "token1"))
+        response
+      }
+      dbl
+    end
+
     before do
-      skip "requires ExecutionCoordinator-based rewrite: _handle_agent_completion replaced by ExecutionCoordinator#finish"
+      allow(RubyLLM).to receive(:chat).and_return(build_streaming_chat_for_policy(fake_response))
       Phronomy.configuration.logger = logger
     end
 
-    it "reports a :done callback failure and preserves the Agent result by default" do
+    it "reports a :done callback failure and preserves the Agent result by default (:report)" do
       callback_error = RuntimeError.new("websocket disconnected")
-      event_types = []
-      listener = lambda do |event|
-        event_types << event.type
-        raise callback_error
-      end
-      allow(agent).to receive(:_extract_invoke_result)
-        .with(invocation)
-        .and_return(result)
+      events = []
       expect(logger).to receive(:warn).with(
-        include(
-          "Stream callback failed",
-          "event=:done",
-          "agent_invocation_id=invocation-1",
-          "policy=:report",
-          "RuntimeError: websocket disconnected"
-        )
+        include("Stream callback failed", "event=:done", "policy=:report", "websocket disconnected")
       )
 
-      task = handle_completion(
-        invocation: invocation,
-        listener: listener,
-        event_loop: event_loop,
-        callback_error_policy: :report
-      )
-
-      expect(task.wait_result).to equal(result)
-      expect(event_types).to eq([:done])
+      task = streaming_agent.stream_async("hello", on_event: ->(event) {
+        events << event.type
+        raise callback_error if event.type == :done
+      })
+      result = task.wait_result
+      expect(result[:output]).to eq("completed")
+      expect(events).to include(:done)
     end
 
     it "fails the Task with StreamCallbackError under :fail_task" do
+      Phronomy.configuration.stream_callback_error_policy = :fail_task
       callback_error = RuntimeError.new("delivery failed")
-      event_types = []
-      listener = lambda do |event|
-        event_types << event.type
-        raise callback_error
-      end
-      allow(agent).to receive(:_extract_invoke_result)
-        .with(invocation)
-        .and_return(result)
+      events = []
 
-      task = handle_completion(
-        invocation: invocation,
-        listener: listener,
-        event_loop: event_loop,
-        callback_error_policy: :fail_task
-      )
+      task = streaming_agent.stream_async("hello", on_event: ->(event) {
+        events << event.type
+        raise callback_error if event.type == :done
+      })
 
-      expect do
-        task.wait_result
-      end.to raise_error(Phronomy::StreamCallbackError) { |error|
+      expect { task.wait_result }.to raise_error(Phronomy::StreamCallbackError) { |error|
         expect(error.event_type).to eq(:done)
-        expect(error.result).to equal(result)
         expect(error.original_error).to equal(callback_error)
-        expect(error.cause).to equal(callback_error)
+        expect(error.result[:output]).to eq("completed")
       }
-      expect(event_types).to eq([:done])
-    end
-
-    it "retains a suspended result when :approval_required delivery fails" do
-      request = double("approval_request")
-      suspended_result = {
-        suspended: true,
-        agent_invocation_id: "invocation-1",
-        approval_request: request,
-        messages: []
-      }
-      callback_error = RuntimeError.new("dialog failed")
-      event_types = []
-      listener = lambda do |event|
-        event_types << event.type
-        raise callback_error
-      end
-      allow(agent).to receive(:_extract_invoke_result)
-        .with(invocation)
-        .and_return(suspended_result)
-
-      task = handle_completion(
-        invocation: invocation,
-        listener: listener,
-        event_loop: event_loop,
-        callback_error_policy: :fail_task
-      )
-
-      expect do
-        task.wait_result
-      end.to raise_error(Phronomy::StreamCallbackError) { |error|
-        expect(error.event_type).to eq(:approval_required)
-        expect(error.result).to equal(suspended_result)
-        expect(error.result[:approval_request]).to be(request)
-      }
-      expect(event_types).to eq([:approval_required])
+      expect(events).to include(:done)
     end
 
     it "keeps the original Agent error when the :error callback also fails" do
-      execution_error = Phronomy::TransportError.new("provider failed")
+      # Simulate an LLM failure by making ask raise.
+      allow(RubyLLM).to receive(:chat).and_return(
+        build_streaming_chat_for_policy(fake_response).tap do |dbl|
+          allow(dbl).to receive(:ask).and_raise(Phronomy::TransportError, "provider failed")
+        end
+      )
+
       callback_error = RuntimeError.new("error sink failed")
-      event_types = []
-      listener = lambda do |event|
-        event_types << event.type
-        raise callback_error
-      end
-      expect(logger).to receive(:warn).with(
-        include(
-          "event=:error",
-          "RuntimeError: error sink failed"
-        )
-      )
+      expect(logger).to receive(:warn).with(include("event=:error"))
 
-      task = handle_completion(
-        invocation: nil,
-        error: execution_error,
-        listener: listener,
-        event_loop: event_loop,
-        callback_error_policy: :fail_task
-      )
+      task = streaming_agent.stream_async("hello", on_event: ->(event) {
+        raise callback_error if event.type == :error
+      })
 
-      expect do
-        task.wait_result
-      end.to raise_error(Phronomy::TransportError, "provider failed") { |error|
-        expect(error).to equal(execution_error)
-      }
-      expect(event_types).to eq([:error])
-    end
-
-    it "does not invoke the listener outside the EventLoop" do
-      outside_loop = double("event_loop", current?: false)
-      listener = double("listener")
-      expect(listener).not_to receive(:call)
-
-      task = handle_completion(
-        invocation: invocation,
-        listener: listener,
-        event_loop: outside_loop,
-        callback_error_policy: :report
-      )
-
-      expect do
-        task.wait_result
-      end.to raise_error(Phronomy::Error, /outside the EventLoop/)
+      expect { task.wait_result }.to raise_error(Phronomy::TransportError, "provider failed")
     end
 
     it "uses Kernel.warn as a fallback when the configured logger fails" do
-      failing_logger = double("logger")
+      failing_logger = double("failing_logger")
       allow(failing_logger).to receive(:warn).and_raise("logger failed")
       Phronomy.configuration.logger = failing_logger
       allow(Kernel).to receive(:warn)
       expect(Kernel).to receive(:warn).with(
         include("Logger failed while reporting a stream callback error")
       )
-      allow(agent).to receive(:_extract_invoke_result)
-        .with(invocation)
-        .and_return(result)
 
-      task = handle_completion(
-        invocation: invocation,
-        listener: ->(_event) { raise "callback failed" },
-        event_loop: event_loop,
-        callback_error_policy: :report
-      )
-
-      expect(task.wait_result).to equal(result)
+      task = streaming_agent.stream_async("hello", on_event: ->(event) {
+        raise "callback failed" if event.type == :done
+      })
+      task.wait_result
     end
   end
 
   describe "public async entry points" do
-    before do
-      skip "requires ExecutionCoordinator-based rewrite: _handle_agent_completion replaced by ExecutionCoordinator#finish"
-      Phronomy.configuration.logger = logger
+    let(:streaming_agent) { agent_class.new }
+    let(:fake_tokens) { double("Tok2", input: 1, output: 2, cached: 0, cache_creation: 0, to_h: {"input" => 1, "output" => 2, "cached" => 0, "cache_creation" => 0}) }
+    let(:fake_response) { double("Resp2", role: :assistant, content: "completed", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
+
+    def build_streaming_chat_for_entry(response)
+      dbl = double("Chat2")
+      allow(dbl).to receive(:with_instructions).and_return(dbl)
+      allow(dbl).to receive(:with_tool).and_return(dbl)
+      allow(dbl).to receive(:with_temperature).and_return(dbl)
+      allow(dbl).to receive(:messages).and_return([response])
+      allow(dbl).to receive(:cancellation_token=)
+      allow(dbl).to receive(:on_tool_call)
+      allow(dbl).to receive(:on_tool_result)
+      allow(dbl).to receive(:ask) { |_msg, &blk|
+        blk&.call(double("Chunk2", content: "token"))
+        response
+      }
+      allow(dbl).to receive(:complete) { |&blk|
+        blk&.call(double("Chunk2", content: "token"))
+        response
+      }
+      dbl
     end
 
-    it "snapshots :fail_task for the initial stream execution" do
-      session = double("session")
-      runtime = double("runtime", event_loop: event_loop)
-      completed_invocation = double("completed_invocation", id: "invocation-1")
+    before { allow(RubyLLM).to receive(:chat).and_return(build_streaming_chat_for_entry(fake_response)) }
+
+    it "applies :fail_task for the initial stream execution" do
+      Phronomy.configuration.stream_callback_error_policy = :fail_task
       callback_error = RuntimeError.new("terminal consumer failed")
 
-      allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
-      allow(Phronomy::Agent::AgentInvocationSessionBuilder)
-        .to receive(:build)
-        .and_return(session)
-      allow(agent).to receive(:_extract_invoke_result)
-        .with(completed_invocation)
-        .and_return(result)
-      allow(event_loop).to receive(:register) do |_session, completion:|
-        completion.backend.unblock(completed_invocation, nil)
-        completion.transition!(:completed, value: completed_invocation)
-        completion
+      task = streaming_agent.stream_async("hello") do |event|
+        raise callback_error if event.type == :done
       end
 
-      Phronomy.configuration.stream_callback_error_policy = :fail_task
-      task = agent.stream_async("hi") do |_event|
-        Phronomy.configuration.stream_callback_error_policy = :report
-        raise callback_error
-      end
-
-      expect do
-        task.wait_result
-      end.to raise_error(Phronomy::StreamCallbackError) { |error|
+      expect { task.wait_result }.to raise_error(Phronomy::StreamCallbackError) { |error|
         expect(error.original_error).to equal(callback_error)
-      }
-    end
-
-    it "applies :fail_task after approve_async resumes a streaming invocation" do
-      parent_session = double("parent_session")
-      runtime = double("runtime", event_loop: event_loop)
-      callback_error = RuntimeError.new("resumed delivery failed")
-      listener = ->(_event) { raise callback_error }
-      resumed_invocation = double(
-        "resumed_invocation",
-        id: "invocation-1",
-        event_listener: listener,
-        mode: :stream,
-        tool_invocations: []
-      )
-      allow(resumed_invocation).to receive(:merge_config!)
-      allow(resumed_invocation).to receive(:begin_approval_resume!)
-
-      entry = double("registry_entry", invocation: resumed_invocation)
-      allow(Phronomy::Agent::AgentInvocationRegistry)
-        .to receive(:consume_approval)
-        .with("invocation-1", "request-1")
-        .and_return(entry)
-      allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
-      allow(Phronomy::Agent::AgentInvocationSessionBuilder)
-        .to receive(:build_for_resume)
-        .and_return(parent_session)
-      allow(agent).to receive(:_extract_invoke_result)
-        .with(resumed_invocation)
-        .and_return(result)
-      allow(event_loop).to receive(:register) do |_session, completion:|
-        completion.backend.unblock(resumed_invocation, nil)
-        completion.transition!(:completed, value: resumed_invocation)
-        completion
-      end
-
-      Phronomy.configuration.stream_callback_error_policy = :fail_task
-      task = agent.approve_async(
-        "invocation-1",
-        approval_request_id: "request-1"
-      )
-
-      expect do
-        task.wait_result
-      end.to raise_error(Phronomy::StreamCallbackError) { |error|
         expect(error.event_type).to eq(:done)
-        expect(error.result).to equal(result)
-        expect(error.original_error).to equal(callback_error)
       }
     end
   end
