@@ -6,11 +6,13 @@ require "spec_helper"
 # Test agents
 # ---------------------------------------------------------------------------
 class StreamingBasicAgent < Phronomy::Agent::Base
+  agent_definition id: "streaming-basic-agent", version: 1
   model "test-model"
   instructions "You are a helpful assistant."
 end
 
 class StreamingReactAgent < Phronomy::Agent::Base
+  agent_definition id: "streaming-react-agent", version: 1
   model "test-model"
   instructions "You are a helpful assistant."
 end

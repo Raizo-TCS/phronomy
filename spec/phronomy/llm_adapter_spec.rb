@@ -135,6 +135,7 @@ RSpec.describe "LLMAdapter abstraction" do
   describe "Agent::Base routes LLM calls through LLMAdapter" do
     let(:agent_class) do
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-116", version: 1
         model "test-model"
         instructions "You are a test agent."
       end

@@ -33,7 +33,7 @@ module Phronomy
       return if missing.empty?
 
       raise UnsupportedBackendError,
-        "Persistence backend lacks required capabilities: #{missing.keys.join(', ')}"
+        "Persistence backend lacks required capabilities: #{missing.keys.join(", ")}"
     end
   end
 end

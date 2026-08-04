@@ -2,6 +2,7 @@
 
 require "securerandom"
 require_relative "concerns/filterable"
+require_relative "concerns/before_completion"
 require_relative "concerns/error_translation"
 
 module Phronomy
@@ -30,6 +31,7 @@ module Phronomy
     class Base
       include Phronomy::Runnable
       include Concerns::Filterable
+      include Concerns::BeforeCompletion
       include Concerns::ErrorTranslation
 
       APPROVAL_CONFIGURATION_INIT_MUTEX = Mutex.new
@@ -313,12 +315,22 @@ module Phronomy
         end
 
         # Defines or reads the stable Agent definition identity.
+        # Subclass with no explicit declaration inherits the parent's definition.
         def agent_definition(id: nil, version: nil)
           if id || version
             raise ArgumentError, "agent_definition requires id: and version:" unless id && version
             @agent_definition = {id: id.to_s.freeze, version: Integer(version)}.freeze
           end
           return @agent_definition if @agent_definition
+
+          # Walk ancestors to support anonymous runtime subclasses and abstract bases.
+          klass = superclass
+          while klass.respond_to?(:agent_definition, true) &&
+              klass < Phronomy::Agent::Base
+            defn = klass.instance_variable_get(:@agent_definition)
+            return defn if defn
+            klass = klass.superclass
+          end
 
           raise Phronomy::ConfigurationError,
             "#{name || self} must declare agent_definition id: ..., version: ..."
@@ -332,7 +344,7 @@ module Phronomy
           new(agent_id: agent_id, persistence: persistence, load_existing: true)
         end
 
-        def approve(execution_id, approval_request_id:, approved: true, config: {}, persistence:)
+        def approve(execution_id, approval_request_id:, persistence:, approved: true, config: {})
           approve_async(
             execution_id,
             approval_request_id: approval_request_id,
@@ -342,7 +354,7 @@ module Phronomy
           ).wait_result
         end
 
-        def approve_async(execution_id, approval_request_id:, approved: true, config: {}, persistence:)
+        def approve_async(execution_id, approval_request_id:, persistence:, approved: true, config: {})
           execution = persistence.executions.load(execution_id)
           load(execution.agent_id, persistence: persistence).approve_async(
             execution_id,
@@ -523,7 +535,7 @@ module Phronomy
       end
 
       def yield_context_revision(current, proposed)
-        proposed.context_revision == current.context_revision ? current.context_revision + 1 : proposed.context_revision
+        (proposed.context_revision == current.context_revision) ? current.context_revision + 1 : proposed.context_revision
       end
 
       def ensure_no_active_execution!
@@ -613,7 +625,6 @@ module Phronomy
           Kernel.warn("[phronomy] WARNING: #{msg}")
         end
       end
-
 
       # Registers a per-instance knowledge source. Knowledge chunks from all
       # registered sources are included in every LLM call via +build_context+.
@@ -761,24 +772,28 @@ module Phronomy
 
       def _apply_context_to_chat(chat, context)
         model_config = context[:model_config] || {}
-        apply_instructions(
-          chat,
-          context[:system],
-          cache: model_config["cache_instructions"],
-          provider: model_config["provider"]
-        ) if context[:system]
+        if context[:system]
+          apply_instructions(
+            chat,
+            context[:system],
+            cache: model_config["cache_instructions"],
+            provider: model_config["provider"]
+          )
+        end
         (context[:tool_classes] || []).each { |tc| chat.with_tool(prepare_tool_class(tc)) }
         context[:messages].each { |msg| chat.messages << msg }
       end
 
       def _replace_chat_messages(chat, projection)
         chat.messages.clear
-        apply_instructions(
-          chat,
-          projection.system,
-          cache: projection.model_config["cache_instructions"],
-          provider: projection.model_config["provider"]
-        ) if projection.system
+        if projection.system
+          apply_instructions(
+            chat,
+            projection.system,
+            cache: projection.model_config["cache_instructions"],
+            provider: projection.model_config["provider"]
+          )
+        end
         projection.messages.each { |message| chat.messages << message }
         chat
       end
@@ -894,7 +909,15 @@ module Phronomy
       # @api public
       def check_cancellation!(config, message = "invocation cancelled")
         ct = config[:cancellation_token]
-        raise Phronomy::CancellationError, message if ct&.cancelled?
+        return unless ct&.cancelled?
+
+        # Deadline expiry is a timeout; explicit cancel! is a cancellation.
+        if (ct.respond_to?(:deadline) && ct.deadline && Time.now >= ct.deadline) ||
+            (ct.respond_to?(:remaining_monotonic_seconds) &&
+             ct.remaining_monotonic_seconds == 0.0)
+          raise Phronomy::TimeoutError, message
+        end
+        raise Phronomy::CancellationError, message
       end
 
       # Builds the final Tool class to register with RubyLLM. Alias and Tool

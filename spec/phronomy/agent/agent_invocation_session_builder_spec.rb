@@ -4,7 +4,10 @@ require "spec_helper"
 
 RSpec.describe Phronomy::Agent::AgentInvocationSessionBuilder do
   let(:agent_class) do
-    Class.new(Phronomy::Agent::Base) { model "test-model" }
+    Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-32", version: 1
+      model "test-model"
+    end
   end
   let(:agent) { agent_class.new }
 

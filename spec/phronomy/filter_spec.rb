@@ -58,7 +58,10 @@ end
 
 RSpec.describe "Agent::Base filter integration (Issue #389)" do
   def build_agent_class
-    klass = Class.new(Phronomy::Agent::Base) { model "test" }
+    klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-110", version: 1
+      model "test"
+    end
     # Stub _start_invocation to skip the real FSM/LLM pipeline while still
     # exercising the filter layer. Filters transform the input/output around the
     # stubbed LLM call.
@@ -203,6 +206,7 @@ RSpec.describe "Agent::Base filter integration (Issue #389)" do
       end
 
       agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-111", version: 1
         model "test"
         tools tool_class
       end
@@ -229,6 +233,7 @@ RSpec.describe "Agent::Base filter integration (Issue #389)" do
       end
 
       agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-112", version: 1
         model "test"
         tools tool_a, tool_b
       end
@@ -252,6 +257,7 @@ RSpec.describe "Agent::Base filter integration (Issue #389)" do
       end
 
       agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-113", version: 1
         model "test"
         tools tool_class
         tool_result_filter(

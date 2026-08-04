@@ -27,7 +27,6 @@ require_relative "support/llm_stub"
 RSpec.describe "Group 30: Approval Resume", :integration do
   after do
     LLMStub.deactivate
-    Phronomy::Agent::AgentInvocationRegistry.clear!
   end
 
   # ---------------------------------------------------------------------------

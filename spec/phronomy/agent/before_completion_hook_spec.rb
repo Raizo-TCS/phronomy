@@ -6,6 +6,7 @@ require "spec_helper"
 # Fixture agent classes
 # ---------------------------------------------------------------------------
 class HookBaseAgent < Phronomy::Agent::Base
+  agent_definition id: "hook-base-agent", version: 1
   model "test-model"
   instructions "You are a helpful assistant."
 end

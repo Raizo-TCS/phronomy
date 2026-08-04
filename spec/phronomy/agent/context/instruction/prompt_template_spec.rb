@@ -97,6 +97,7 @@ RSpec.describe "Agent::Base instructions with PromptTemplate" do
     )
 
     agent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-45", version: 1
       model "test-model"
       instructions tmpl
     end
@@ -109,6 +110,7 @@ RSpec.describe "Agent::Base instructions with PromptTemplate" do
     tmpl = Phronomy::Agent::Context::Instruction::PromptTemplate.new(template: "Act as a {{role}}.")
 
     agent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-46", version: 1
       model "test-model"
       instructions tmpl
     end

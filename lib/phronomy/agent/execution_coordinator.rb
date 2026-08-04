@@ -432,7 +432,7 @@ module Phronomy
           when :failed
             @agent.persistence.activations.delete(activation.execution_id)
             terminal_error = outcome.fetch(:error)
-            deliver_terminal(activation, :error, error: terminal_error)
+            deliver_terminal(activation, terminal_event_type(terminal_error), error: terminal_error)
             fail_task(result_task, terminal_error)
           else
             raise Phronomy::Error, "unknown terminal outcome: #{outcome.inspect}"
@@ -646,7 +646,7 @@ module Phronomy
             "class" => call_error.class.name,
             "message" => call_error.message
           ) : nil
-          usage_ref = if response && response.respond_to?(:tokens) && response.tokens
+          usage_ref = if response&.respond_to?(:tokens) && response.tokens
             tx.contents.put_json(json_value(response.tokens.to_h))
           end
           call = LLMCallRecord.new(
@@ -914,6 +914,13 @@ module Phronomy
         return :blocked if defined?(Phronomy::FilterBlockError) && error.is_a?(Phronomy::FilterBlockError)
 
         :failed
+      end
+
+      def terminal_event_type(error)
+        return :timeout if defined?(Phronomy::TimeoutError) && error.is_a?(Phronomy::TimeoutError)
+        return :cancelled if defined?(Phronomy::CancellationError) && error.is_a?(Phronomy::CancellationError)
+
+        :error
       end
 
       def execution_terminal_kind(status)

@@ -31,6 +31,7 @@ RSpec.describe "Group 26: Multi-Agent Handoff", :integration do
   describe "TC-001: single_agent; no_handoff; fresh; one agent" do
     it "runner returns entry agent output without handoff" do
       klass = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-7", version: 1
         model IntegrationFactors::LM_MODEL_26
         provider :openai
         instructions "You are a helpful assistant."

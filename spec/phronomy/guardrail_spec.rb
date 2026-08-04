@@ -41,7 +41,7 @@ RSpec.describe Phronomy::Filter::Base do
 end
 
 RSpec.describe "Agent::Base blocking filter integration" do
-  let(:agent_class) { Class.new(Phronomy::Agent::Base) }
+  let(:agent_class) { Class.new(Phronomy::Agent::Base) { agent_definition id: "test-agent-205", version: 1 } }
   let(:agent) { agent_class.new }
 
   let(:no_bad_input) do

@@ -5,7 +5,10 @@ require "spec_helper"
 RSpec.describe Phronomy::Agent::Base do
   describe "#check_cancellation! (Issue #223)" do
     let(:agent) do
-      Class.new(Phronomy::Agent::Base) { model "test-model" }.new
+      Class.new(Phronomy::Agent::Base) {
+        agent_definition id: "test-agent-202", version: 1
+        model "test-model"
+      }.new
     end
 
     it "does nothing when config has no cancellation_token" do
@@ -41,6 +44,7 @@ RSpec.describe Phronomy::Agent::Base do
   describe "invoke_async (Issue #291)" do
     let(:agent) do
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-40", version: 1
         instructions "test"
         model "gpt-4o-mini"
       end.new
@@ -85,6 +89,7 @@ RSpec.describe Phronomy::Agent::Base do
   describe "#invoke SchedulerReentrancyError guard (Issue #291)" do
     let(:agent) do
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-41", version: 1
         instructions "test"
         model "gpt-4o-mini"
       end.new
@@ -142,6 +147,7 @@ RSpec.describe Phronomy::Agent::Base do
   describe "#stream_async EventLoop delivery" do
     let(:agent) do
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-42", version: 1
         instructions "test"
         model "gpt-4o-mini"
       end.new
@@ -286,6 +292,7 @@ end
 RSpec.describe "Agent::Base invocation_context: keyword argument (Issue #301)" do
   let(:agent) do
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-43", version: 1
       instructions "test"
       model "gpt-4o-mini"
     end.new

@@ -5,6 +5,7 @@ require "spec_helper"
 RSpec.describe Phronomy::Tools::Agent do
   # A minimal stub agent that echoes its input with a prefix.
   class EchoAgent < Phronomy::Agent::Base
+    agent_definition id: "echo-agent", version: 1
     model "openai/gpt-4o-mini"
     instructions "You are an echo agent."
 
@@ -17,6 +18,7 @@ RSpec.describe Phronomy::Tools::Agent do
   # Agent with an explicit module namespace to test name derivation.
   module Nested
     class SummarizerAgent < Phronomy::Agent::Base
+      agent_definition id: "summarizer-agent", version: 1
       model "openai/gpt-4o-mini"
       instructions "You summarize text."
 

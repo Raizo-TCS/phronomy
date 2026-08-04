@@ -266,6 +266,7 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
 
   it "TC-008: AgentTool.from_agent generates the expected metadata" do
     stub_agent = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-14", version: 1
       def self.name
         "SummarizerAgent"
       end
@@ -283,6 +284,7 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
 
   it "TC-009: AgentTool respects an explicit tool_name" do
     stub_agent = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-15", version: 1
       def self.name
         "TranslatorAgent"
       end
@@ -299,6 +301,7 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
 
   it "TC-010: Base delegates to a wrapped sub-agent" do
     sub_agent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-16", version: 1
       model LM_STUDIO_MODEL
       provider :openai
       instructions(
@@ -315,6 +318,7 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
     )
 
     parent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-17", version: 1
       model LM_STUDIO_MODEL
       provider :openai
       instructions(

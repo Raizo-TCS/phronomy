@@ -211,7 +211,7 @@ module Phronomy
         @executions = Executions.new(self)
         @activations = Phronomy::Agent::ActivationRegistry.new
         super(contents: @contents, agents: @agents, journals: @journals,
-          executions: @executions, activations: @activations)
+              executions: @executions, activations: @activations)
       end
 
       def capabilities
@@ -223,7 +223,7 @@ module Phronomy
           snapshot = Marshal.load(Marshal.dump(@state))
           begin
             yield self
-          rescue Exception
+          rescue
             @state = snapshot
             raise
           end

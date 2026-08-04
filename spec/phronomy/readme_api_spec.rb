@@ -46,6 +46,7 @@ RSpec.describe "README API smoke tests (Issue #141)" do
   describe "Agent::Base DSL" do
     it "supports the README Agent class definition" do
       klass = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-149", version: 1
         model "gpt-4o"
         instructions "You are a research assistant."
         max_iterations 5
@@ -65,6 +66,7 @@ RSpec.describe "README API smoke tests (Issue #141)" do
       end
 
       klass = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-150", version: 1
         model "gpt-4o"
         instructions "test"
       end

@@ -63,7 +63,10 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   # -------------------------------------------------------------------------
   describe "before_completion hook raises during streaming" do
     it "propagates the hook exception to the caller" do
-      agent_class = Class.new(Phronomy::Agent::Base) { model "test-model" }
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-102", version: 1
+        model "test-model"
+      end
       agent = agent_class.new
       agent.before_completion = ->(_ctx) { raise "hook failed during stream" }
 
@@ -226,7 +229,10 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     end
 
     it "registers tool_approval_policy that raises without error at registration" do
-      agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
+      agent = Class.new(Phronomy::Agent::Base) {
+        agent_definition id: "test-agent-204", version: 1
+        model "test-model"
+      }.new
       expect {
         agent.tool_approval_policy { |_req| raise "approval policy failed" }
       }.not_to raise_error

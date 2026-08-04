@@ -80,6 +80,7 @@ RSpec.describe "Fault injection (Issue #213)" do
 
     it "propagates an exception raised by a before_completion hook" do
       agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-105", version: 1
         model "test-model"
       end
 
@@ -98,6 +99,7 @@ RSpec.describe "Fault injection (Issue #213)" do
 
     it "propagates the exception unchanged (not translated to a Phronomy error)" do
       agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-106", version: 1
         model "test-model"
       end
 
@@ -121,6 +123,7 @@ RSpec.describe "Fault injection (Issue #213)" do
 
     let(:good_agent) do
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-107", version: 1
         define_method(:invoke) { |input, **| {output: "ok:#{input}", messages: []} }
         define_method(:invoke_async) do |input, **kw|
           Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
@@ -130,6 +133,7 @@ RSpec.describe "Fault injection (Issue #213)" do
 
     let(:bad_agent) do
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-108", version: 1
         define_method(:invoke) { |*| raise "simulated failure" }
         define_method(:invoke_async) do |input, **kw|
           Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
@@ -165,6 +169,7 @@ RSpec.describe "Fault injection (Issue #213)" do
       mutex = Mutex.new
 
       tracking_good = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-109", version: 1
         define_method(:invoke) do |input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
           mutex.synchronize { ran << input }
           {output: "ok", messages: []}

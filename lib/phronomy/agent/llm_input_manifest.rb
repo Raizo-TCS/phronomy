@@ -92,13 +92,12 @@ module Phronomy
         raise ArgumentError, "manifest positions must be contiguous: #{actual.inspect}" unless actual == expected
 
         ask_count = segments.count { |segment| segment.delivery == :ask_argument }
-        expected_ask_count = call_mode == :ask ? 1 : 0
+        expected_ask_count = (call_mode == :ask) ? 1 : 0
         unless ask_count == expected_ask_count
           raise ArgumentError,
             "#{call_mode} manifest requires #{expected_ask_count} ask_argument segment(s), got #{ask_count}"
         end
       end
     end
-
   end
 end

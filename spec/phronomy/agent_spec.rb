@@ -4,6 +4,7 @@ require "spec_helper"
 
 # --- Agent classes for testing ---
 class BasicAgent < Phronomy::Agent::Base
+  agent_definition id: "basic-agent", version: 1
   model "test-model"
   instructions "You are a test assistant."
   temperature 0.5
@@ -11,10 +12,12 @@ class BasicAgent < Phronomy::Agent::Base
 end
 
 class InstructionProcAgent < Phronomy::Agent::Base
+  agent_definition id: "instruction-proc-agent", version: 1
   instructions(->(input) { "Context: #{input[:context]}" })
 end
 
 class NoModelAgent < Phronomy::Agent::Base
+  agent_definition id: "no-model-agent", version: 1
 end
 
 RSpec.describe Phronomy::Agent::Base do
@@ -81,6 +84,7 @@ RSpec.describe Phronomy::Agent::Base do
       let(:parent) do
         t = tool_a
         Class.new(Phronomy::Agent::Base) do
+          agent_definition id: "test-agent-76", version: 1
           model "parent-model"
           provider :openai
           instructions "Parent instructions."
@@ -219,6 +223,7 @@ RSpec.describe Phronomy::Agent::Base do
 
       let(:budget_agent_class) do
         Class.new(Phronomy::Agent::Base) do
+          agent_definition id: "test-agent-77", version: 1
           model "test-model"
           max_output_tokens 2048
           context_overhead 300
@@ -293,19 +298,28 @@ RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
 
   describe ".tools (splat form — backward compatible)" do
     it "stores the tool classes" do
-      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-78", version: 1
+        model "m"
+      end
       agent_class.tools(tool_a, tool_b)
       expect(agent_class.tools).to eq([tool_a, tool_b])
     end
 
     it "sets tool_aliases to an empty hash" do
-      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-79", version: 1
+        model "m"
+      end
       agent_class.tools(tool_a)
       expect(agent_class.tool_aliases).to eq({})
     end
 
     it "registers each tool with chat.with_tool" do
-      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-80", version: 1
+        model "m"
+      end
       agent_class.tools(tool_a, tool_b)
       agent_class.new.invoke("hello")
       expect(fake_chat).to have_received(:with_tool).twice
@@ -314,19 +328,28 @@ RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
 
   describe ".tools (hash form with aliases)" do
     it "stores the tool classes" do
-      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-81", version: 1
+        model "m"
+      end
       agent_class.tools(tool_a => "alpha", tool_b => "beta")
       expect(agent_class.tools).to eq([tool_a, tool_b])
     end
 
     it "stores the aliases" do
-      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-82", version: 1
+        model "m"
+      end
       agent_class.tools(tool_a => "alpha", tool_b => nil)
       expect(agent_class.tool_aliases).to eq({tool_a => "alpha"})
     end
 
     it "registers tools with aliased anonymous subclasses when an alias is given" do
-      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-83", version: 1
+        model "m"
+      end
       agent_class.tools(tool_a => "alpha", tool_b => nil)
       agent_class.new.invoke("hello")
       # Verify with_tool was called twice (once aliased, once plain)
@@ -341,7 +364,10 @@ RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
         tool_name "original_name"
         def execute = ""
       end
-      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-84", version: 1
+        model "m"
+      end
       agent_class.tools(klass => nil)
       # No alias stored — tool_aliases is empty for this key
       expect(agent_class.tool_aliases[klass]).to be_nil
@@ -378,6 +404,7 @@ RSpec.describe "Phronomy::Agent::Base temperature DSL zero value (Issue #30 / ID
 
   it "stores 0 correctly via the temperature DSL (0 is truthy in Ruby)" do
     klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-85", version: 1
       model "test-model"
       temperature 0
     end
@@ -386,6 +413,7 @@ RSpec.describe "Phronomy::Agent::Base temperature DSL zero value (Issue #30 / ID
 
   it "stores 0.0 correctly via the temperature DSL" do
     klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-86", version: 1
       model "test-model"
       temperature 0.0
     end
@@ -394,6 +422,7 @@ RSpec.describe "Phronomy::Agent::Base temperature DSL zero value (Issue #30 / ID
 
   it "calls with_temperature(0) on the chat object when temperature is 0" do
     klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-87", version: 1
       model "test-model"
       temperature 0
     end
@@ -413,6 +442,7 @@ RSpec.describe "Phronomy::Agent::Base tool_aliases inheritance (Issue #126)" do
 
   it "inherits parent aliases in a subclass" do
     parent = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-88", version: 1
       # tool_alias is registered via the hash form of .tools
     end
     parent.instance_variable_set(:@tool_aliases, {"ToolA" => "search"})
@@ -443,6 +473,7 @@ end
 
 RSpec.describe "Agent thread-local context cache cleanup (issue #128)" do
   class CacheCleanupAgent < Phronomy::Agent::Base
+    agent_definition id: "cache-cleanup-agent", version: 1
     model "test-model"
   end
 
@@ -520,6 +551,7 @@ RSpec.describe "Agent static_knowledge caching (issue #127)" do
     ks = CountingKnowledgeSource.new("policy text")
 
     agent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-90", version: 1
       model "test-model"
     end
     agent_class.static_knowledge(ks)
@@ -536,6 +568,7 @@ RSpec.describe "Agent static_knowledge caching (issue #127)" do
     ks = CountingKnowledgeSource.new("v1 text")
 
     agent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-91", version: 1
       model "test-model"
     end
     agent_class.static_knowledge(ks)
@@ -553,6 +586,7 @@ RSpec.describe "Agent static_knowledge caching (issue #127)" do
     ks = CountingKnowledgeSource.new("refreshable text")
 
     agent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-92", version: 1
       model "test-model"
     end
     agent_class.static_knowledge(ks)

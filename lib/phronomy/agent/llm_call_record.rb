@@ -47,6 +47,5 @@ module Phronomy
         end
       end
     end
-
   end
 end

@@ -111,7 +111,10 @@ RSpec.describe "Security specs (Issue #214)" do
     end
 
     def build_agent
-      Class.new(Phronomy::Agent::Base) { model "test-model" }.new
+      Class.new(Phronomy::Agent::Base) {
+        agent_definition id: "test-agent-206", version: 1
+        model "test-model"
+      }.new
     end
 
     context "tool_approval_policy API (Issue #214 / 0.15.0 migration)" do
@@ -176,7 +179,10 @@ RSpec.describe "Security specs (Issue #214)" do
     end
 
     it "does not call the LLM when input guardrail rejects" do
-      agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
+      agent = Class.new(Phronomy::Agent::Base) {
+        agent_definition id: "test-agent-207", version: 1
+        model "test-model"
+      }.new
       agent.add_input_filter(rejecting_guardrail)
 
       # RubyLLM.chat must never be called when the guardrail fires before it.
@@ -187,7 +193,10 @@ RSpec.describe "Security specs (Issue #214)" do
     end
 
     it "raises FilterBlockError before any LLM interaction occurs" do
-      agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
+      agent = Class.new(Phronomy::Agent::Base) {
+        agent_definition id: "test-agent-208", version: 1
+        model "test-model"
+      }.new
       agent.add_input_filter(rejecting_guardrail)
 
       error = nil
@@ -218,7 +227,10 @@ RSpec.describe "Security specs (Issue #214)" do
     it "raises FilterBlockError with the guardrail reason, not the raw LLM output" do
       raw_llm_output = "Here is your key: sk-abcdefghijklmnopqrstuvwxyz123456789"
 
-      agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
+      agent = Class.new(Phronomy::Agent::Base) {
+        agent_definition id: "test-agent-209", version: 1
+        model "test-model"
+      }.new
       agent.add_output_filter(secret_filter_guardrail)
 
       chat_double = double("Chat")
@@ -314,7 +326,10 @@ RSpec.describe "Security specs (Issue #214)" do
         end
       end.new
 
-      agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
+      agent = Class.new(Phronomy::Agent::Base) {
+        agent_definition id: "test-agent-210", version: 1
+        model "test-model"
+      }.new
       agent.add_input_filter(reject_all)
 
       begin

@@ -634,6 +634,7 @@ module IntegrationFactors
     c_label = compact_label
 
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-18", version: 1
       model LM_STUDIO_MODEL
       provider :openai
       instructions "You are a helpful assistant."
@@ -700,6 +701,7 @@ module IntegrationFactors
     case label
     when "base"
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-19", version: 1
         model LM_STUDIO_MODEL
         provider :openai
         instructions "You are a helpful assistant."
@@ -755,11 +757,13 @@ module IntegrationFactors
   # Returns [entry_class, target_class].
   def self.handoff_linear_classes
     entry_klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-20", version: 1
       model LM_MODEL_26
       provider :openai
       instructions "You are a triage assistant. Route billing questions to billing."
     end
     target_klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-21", version: 1
       model LM_MODEL_26
       provider :openai
       instructions "You are a billing assistant. Answer billing questions."
@@ -772,6 +776,7 @@ module IntegrationFactors
   def self.handoff_hub_spoke_instances(spoke_count: 2)
     spoke_klasses = (1..spoke_count).map do |i|
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-22", version: 1
         model LM_MODEL_26
         provider :openai
         instructions "You are spoke agent #{i}."
@@ -779,6 +784,7 @@ module IntegrationFactors
     end
 
     hub_klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-23", version: 1
       model LM_MODEL_26
       provider :openai
       instructions "You are a hub agent. Route to spokes when needed."
@@ -803,6 +809,7 @@ module IntegrationFactors
     case label
     when "base", "react"
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-24", version: 1
         model LM_MODEL_27
         provider :openai
         instructions "You are a helpful assistant."
@@ -986,6 +993,7 @@ module IntegrationFactors
   # @return [Class]
   def self.approval_resume_agent(*tool_classes)
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-25", version: 1
       model LM_MODEL_30
       provider :openai
       instructions "You are a helpful assistant. Use tools when asked."
@@ -1006,6 +1014,7 @@ module IntegrationFactors
   # @return [Class]
   def self.ss_researcher_class
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-26", version: 1
       model LM_MODEL_31
       provider :openai
       instructions "You are a research assistant."
@@ -1065,6 +1074,7 @@ module IntegrationFactors
   # @return [Class]
   def self.tc_worker_class(failing: false)
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-27", version: 1
       model LM_MODEL_32
       provider :openai
       context_window 32_768
@@ -1117,6 +1127,7 @@ module IntegrationFactors
   # @return [Class<Phronomy::Agent::Base>]
   def self.gv_agent_class
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-28", version: 1
       model LM_MODEL_33
       provider :openai
     end
@@ -1180,6 +1191,7 @@ module IntegrationFactors
   # @return [Class<Phronomy::Agent::Base>]
   def self.orch_subagent_class
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-29", version: 1
       model LM_MODEL_34
       provider :openai
       instructions "You are a specialist subagent."
@@ -1260,10 +1272,12 @@ module IntegrationFactors
   # @return [Array<Hash>]
   def self.bp_tasks(label)
     good = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-30", version: 1
       define_method(:invoke) { |input, config: {}, thread_id: nil| {output: "ok:#{input}", messages: []} }
       define_method(:invoke_async) { |input, **_kw| Phronomy::Runtime.instance.spawn(name: "stub-async") { invoke(input) } }
     end
     bad = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-31", version: 1
       define_method(:invoke) { |*| raise "task_error" }
       define_method(:invoke_async) { |input, **_kw| Phronomy::Runtime.instance.spawn(name: "stub-async") { invoke(input) } }
     end

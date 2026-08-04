@@ -88,6 +88,7 @@ RSpec.describe "Group 10: PromptTemplate", :integration do
       )
 
       klass = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-13", version: 1
         model IntegrationFactors::LM_STUDIO_MODEL
         provider :openai
         instructions tmpl

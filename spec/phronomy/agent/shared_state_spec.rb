@@ -10,6 +10,7 @@ RSpec.describe Phronomy::Agent::SharedState do
   # to write via the injected write_finding tool. When omitted, nothing is written.
   def stub_researcher(name: "StubResearcher", &findings_block)
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-47", version: 1
       define_singleton_method(:name) { name }
 
       define_method(:invoke) do |input, config: {}|
@@ -26,6 +27,7 @@ RSpec.describe Phronomy::Agent::SharedState do
   # stored on the class (set by SharedState before invocation).
   def stub_researcher_with_tools(name: "ToolResearcher")
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-48", version: 1
       define_singleton_method(:name) { name }
 
       define_method(:invoke) do |_input, config: {}|
@@ -209,6 +211,7 @@ RSpec.describe Phronomy::Agent::SharedState do
 
     it "does not raise when only max_cycles is set" do
       r = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-49", version: 1
         define_method(:invoke) { |_input, config: {}| {output: "ok", messages: []} }
       end
       klass = Class.new(described_class) do
@@ -220,6 +223,7 @@ RSpec.describe Phronomy::Agent::SharedState do
 
     it "does not raise when only timeout is set" do
       r = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-50", version: 1
         define_method(:invoke) { |_input, config: {}| {output: "ok", messages: []} }
       end
       klass = Class.new(described_class) do
@@ -237,6 +241,7 @@ RSpec.describe Phronomy::Agent::SharedState do
   describe "#invoke execution" do
     def build_simple_researcher
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-51", version: 1
         define_method(:invoke) { |_input, config: {}| {output: "ok", messages: []} }
       end
     end
@@ -255,6 +260,7 @@ RSpec.describe Phronomy::Agent::SharedState do
     it "runs exactly max_cycles cycles when no other condition triggers" do
       invocation_count = 0
       r = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-52", version: 1
         define_method(:invoke) do |_input, config: {}|
           invocation_count += 1
           {output: "ok", messages: []}
@@ -271,6 +277,7 @@ RSpec.describe Phronomy::Agent::SharedState do
     it "runs all researchers once per cycle, in declaration order" do
       call_log = []
       r1 = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-53", version: 1
         define_singleton_method(:name) { "R1" }
         define_method(:invoke) { |_i, config: {}|
           call_log << :r1
@@ -278,6 +285,7 @@ RSpec.describe Phronomy::Agent::SharedState do
         }
       end
       r2 = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-54", version: 1
         define_singleton_method(:name) { "R2" }
         define_method(:invoke) { |_i, config: {}|
           call_log << :r2
@@ -295,6 +303,7 @@ RSpec.describe Phronomy::Agent::SharedState do
     it "terminates early when terminate_when returns true" do
       call_count = 0
       r = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-55", version: 1
         define_method(:invoke) do |_i, config: {}|
           call_count += 1
           {output: "ok", messages: []}
@@ -320,6 +329,7 @@ RSpec.describe Phronomy::Agent::SharedState do
     it "terminates early on timeout" do
       call_count = 0
       r = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-56", version: 1
         define_method(:invoke) { |_i, config: {}|
           call_count += 1
           sleep(0.05)
@@ -338,6 +348,7 @@ RSpec.describe Phronomy::Agent::SharedState do
 
     it "reports terminated_by: :max_cycles when stopping due to cycle limit" do
       r = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-57", version: 1
         define_method(:invoke) { |_i, config: {}| {output: "ok", messages: []} }
       end
       klass = Class.new(described_class) do
@@ -351,6 +362,7 @@ RSpec.describe Phronomy::Agent::SharedState do
     it "always includes the tool-usage guide in the prompt" do
       received_inputs = []
       r = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-58", version: 1
         define_method(:invoke) do |input, config: {}|
           received_inputs << input
           {output: "ok", messages: []}
@@ -370,6 +382,7 @@ RSpec.describe Phronomy::Agent::SharedState do
     it "passes prior store contents in the prompt for later cycles" do
       received_inputs = []
       r = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-59", version: 1
         define_method(:invoke) do |input, config: {}|
           received_inputs << input
           {output: "ok", messages: []}
@@ -387,6 +400,7 @@ RSpec.describe Phronomy::Agent::SharedState do
 
     it "applies the aggregate block to the final store and returns it as :output" do
       r = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-60", version: 1
         define_method(:invoke) { |_i, config: {}| {output: "ok", messages: []} }
       end
       klass = Class.new(described_class) do
@@ -400,6 +414,7 @@ RSpec.describe Phronomy::Agent::SharedState do
 
     it "returns store.read_all as :output when no aggregate block is set" do
       r = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-61", version: 1
         define_method(:invoke) { |_i, config: {}| {output: "ok", messages: []} }
       end
       klass = Class.new(described_class) do
@@ -413,6 +428,7 @@ RSpec.describe Phronomy::Agent::SharedState do
     it "appends per-agent instruction to the prompt when member has instruction:" do
       received_input = nil
       r = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-62", version: 1
         define_method(:invoke) do |input, config: {}|
           received_input = input
           {output: "ok", messages: []}
@@ -427,6 +443,7 @@ RSpec.describe Phronomy::Agent::SharedState do
     it "does not append instruction text when member has no instruction" do
       received_input = nil
       r = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-63", version: 1
         define_method(:invoke) do |input, config: {}|
           received_input = input
           {output: "ok", messages: []}
@@ -441,6 +458,7 @@ RSpec.describe Phronomy::Agent::SharedState do
     it "uses team coordination text when defined, replacing the default guide" do
       received_input = nil
       r = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-64", version: 1
         define_method(:invoke) do |input, config: {}|
           received_input = input
           {output: "ok", messages: []}
@@ -459,6 +477,7 @@ RSpec.describe Phronomy::Agent::SharedState do
     it "uses the default coordination guide when coordination is not configured" do
       received_input = nil
       r = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-65", version: 1
         define_method(:invoke) do |input, config: {}|
           received_input = input
           {output: "ok", messages: []}
@@ -482,6 +501,7 @@ RSpec.describe Phronomy::Agent::SharedState do
       received_tool_names = []
 
       r = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-66", version: 1
         define_method(:invoke) do |_input, config: {}|
           # Collect tool names from the class tools list
           received_tool_names.concat(self.class.tools.map(&:tool_name))
@@ -508,6 +528,7 @@ RSpec.describe Phronomy::Agent::SharedState do
 
       # Access the store via the aggregate block
       r = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-67", version: 1
         define_method(:invoke) do |_input, config: {}|
           write_tool = self.class.tools.find { |t| t.tool_name == "write_finding" }
           write_tool.new.execute(content: "Key finding")
@@ -534,6 +555,7 @@ RSpec.describe Phronomy::Agent::SharedState do
       store_json = nil
 
       r = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-68", version: 1
         define_method(:invoke) do |_input, config: {}|
           read_tool = self.class.tools.find { |t| t.tool_name == "read_store" }
           store_json = read_tool.new.execute

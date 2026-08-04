@@ -103,7 +103,7 @@ module Phronomy
         else
           scientific_exponent = decimal_position - 1
           fraction = digits[1..]
-          coefficient = fraction.nil? || fraction.empty? ? digits[0] : "#{digits[0]}.#{fraction}"
+          coefficient = (fraction.nil? || fraction.empty?) ? digits[0] : "#{digits[0]}.#{fraction}"
           exponent_sign = scientific_exponent.negative? ? "" : "+"
           "#{coefficient}e#{exponent_sign}#{scientific_exponent}"
         end
@@ -112,7 +112,7 @@ module Phronomy
 
       def normalize_plain_decimal(raw)
         raw = raw.delete_suffix(".0")
-        raw == "-0" ? "0" : raw
+        (raw == "-0") ? "0" : raw
       end
 
       def negative_zero?(value)
@@ -133,5 +133,4 @@ module Phronomy
       end
     end
   end
-
 end
