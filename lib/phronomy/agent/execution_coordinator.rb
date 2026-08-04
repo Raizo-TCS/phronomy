@@ -12,6 +12,11 @@ module Phronomy
       # settlement run on the EventLoop thread.
       AgentTerminalCommand = Struct.new(:coordinator, :activation, :result_task, :outcome, :commit_error)
 
+      # Command posted to EventLoop when preparation fails before any Activation
+      # is created. Carries the on_event listener so deliver_on_event_loop can
+      # route terminal event delivery to the EventLoop thread.
+      PrepFailureCommand = Struct.new(:coordinator, :on_event_listener, :result_task, :error)
+
       def initialize(agent)
         @agent = agent
       end
@@ -35,16 +40,16 @@ module Phronomy
         preparation.on_complete do |prepared, error|
           if error
             translated_error = translated(error)
-            # Deliver terminal event to the listener before failing the task.
-            if on_event
-              begin
-                event_type = terminal_event_type(translated_error)
-                on_event.call(StreamEvent.new(type: event_type, payload: {error: translated_error}))
-              rescue => _cb_error
-                nil # ignore listener failures during preparation errors
-              end
-            end
-            fail_task(result_task, translated_error)
+            cmd = PrepFailureCommand.new(self, on_event, result_task, translated_error)
+            posted = runtime.event_loop.post(
+              Phronomy::Event.new(
+                type: :agent_terminal_ready,
+                target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
+                payload: {command: cmd}
+              )
+            )
+            # EventLoop is shutting down; settle directly without calling the listener.
+            fail_task(result_task, translated_error) unless posted
           else
             register(prepared, result_task, mode: mode,
               approval_policy: approval_policy,
@@ -149,7 +154,12 @@ module Phronomy
           ).build_followup(
             base_manifest: activation.base_manifest,
             agent_root: root,
-            execution: staged
+            execution: staged,
+            patch: @agent.send(
+              :run_before_llm_input_hooks,
+              call_sequence: staged.llm_calls.length + 1,
+              config: activation.invocation&.config || {}
+            )
           )
           refs = Array(staged.metadata["manifest_refs"]) + [manifest_ref]
           updated = staged.with(
@@ -231,7 +241,8 @@ module Phronomy
               input: filtered_input,
               agent_root: root,
               execution: staged,
-              config: effective_config
+              config: effective_config,
+              patch: @agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: effective_config)
             )
             active_execution = staged.with(
               status: :active,
@@ -463,8 +474,30 @@ module Phronomy
 
       public # EventLoop calls deliver_on_event_loop from dispatch_management.
 
-      # Called by EventLoop#dispatch_management on the EventLoop thread.
-      def deliver_on_event_loop(activation, result_task, outcome, commit_error)
+      # Single-dispatch entry called by EventLoop#dispatch_management on the
+      # EventLoop thread. Routes to the appropriate handler based on command type.
+      def deliver_on_event_loop(cmd)
+        case cmd
+        when PrepFailureCommand
+          _deliver_prep_failure(cmd)
+        when AgentTerminalCommand
+          _deliver_execution_terminal(cmd.activation, cmd.result_task, cmd.outcome, cmd.commit_error)
+        else
+          raise Phronomy::Error, "unknown terminal command type: #{cmd.class}"
+        end
+      end
+
+      private
+
+      def _deliver_prep_failure(cmd)
+        listener = cmd.on_event_listener
+        error = cmd.error
+        event_type = terminal_event_type(error)
+        @agent.send(:_deliver_stream_event, listener, StreamEvent.new(type: event_type, payload: {error: error})) if listener
+        fail_task(cmd.result_task, error)
+      end
+
+      def _deliver_execution_terminal(activation, result_task, outcome, commit_error)
         if commit_error
           deliver_terminal(activation, :error, error: commit_error)
           fail_task(result_task, commit_error)

@@ -59,23 +59,20 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   end
 
   # -------------------------------------------------------------------------
-  # 4. before_completion hook raises during streaming (non-EventLoop path)
+  # 4. before_llm_input hook raises during execution
   # -------------------------------------------------------------------------
-  describe "before_completion hook raises during streaming" do
+  describe "before_llm_input hook raises during execution" do
     it "propagates the hook exception to the caller" do
       agent_class = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-102", version: 1
         model "test-model"
       end
       agent = agent_class.new
-      agent.before_completion = ->(_ctx) { raise "hook failed during stream" }
-
-      chat_double = double("RubyLLM::Chat")
-      allow(chat_double).to receive(:messages).and_return([])
+      agent.before_llm_input = ->(_ctx) { raise "hook failed" }
 
       expect {
-        agent.send(:run_before_completion_hooks!, chat_double, {})
-      }.to raise_error(RuntimeError, "hook failed during stream")
+        agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: {})
+      }.to raise_error(RuntimeError, "hook failed")
     end
   end
 
@@ -154,13 +151,10 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   end
 
   # -------------------------------------------------------------------------
-  # 11. before_completion returns invalid type (Issue #243)
+  # 11. before_llm_input returns invalid type (non-LLMInputPatch)
   # -------------------------------------------------------------------------
-  describe "before_completion hook returns invalid type (non-Hash)" do
-    # When a before_completion hook returns a non-Hash value (e.g. Integer 42),
-    # the current implementation silently ignores it — only Hash return values
-    # are merged into the LLM call params.  This documents the current contract.
-
+  describe "before_llm_input hook returns invalid type (non-LLMInputPatch)" do
+    # Non-LLMInputPatch return values are silently ignored.
     let(:agent_class) {
       Class.new(Phronomy::Agent::Base) {
         agent_definition id: "test-agent-301", version: 1
@@ -168,22 +162,17 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
       }
     }
     let(:agent) { agent_class.new }
-    let(:chat_double) do
-      dbl = double("RubyLLM::Chat")
-      allow(dbl).to receive(:messages).and_return([])
-      dbl
-    end
 
     it "silently ignores an Integer return value from the hook" do
-      agent.before_completion = ->(_ctx) { 42 }
-      result = agent.send(:run_before_completion_hooks!, chat_double, {})
-      expect(result).to eq({})
+      agent.before_llm_input = ->(_ctx) { 42 }
+      result = agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: {})
+      expect(result).to eq(Phronomy::Agent::LLMInputPatch.empty)
     end
 
     it "silently ignores a String return value from the hook" do
-      agent.before_completion = ->(_ctx) { "not a hash" }
-      result = agent.send(:run_before_completion_hooks!, chat_double, {})
-      expect(result).to eq({})
+      agent.before_llm_input = ->(_ctx) { "not a patch" }
+      result = agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: {})
+      expect(result).to eq(Phronomy::Agent::LLMInputPatch.empty)
     end
   end
 
@@ -245,28 +234,19 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   end
 
   # -------------------------------------------------------------------------
-  # 15. before_completion raises + output_guardrail registered (Issue #243)
+  # 15. before_llm_input raises + output_guardrail registered (Issue #243)
   # -------------------------------------------------------------------------
-  describe "before_completion raises with output_guardrail also registered" do
-    # When before_completion raises, the exception propagates before the LLM
-    # call and before run_output_guardrails! is reached.  The guardrail must
-    # NOT be invoked.
-
+  describe "before_llm_input raises with output_guardrail also registered" do
     let(:agent_class) {
       Class.new(Phronomy::Agent::Base) {
         agent_definition id: "test-agent-302", version: 1
         model "test-model"
       }
     }
-    let(:chat_double) do
-      dbl = double("RubyLLM::Chat")
-      allow(dbl).to receive(:messages).and_return([])
-      dbl
-    end
 
     it "propagates the hook exception and does not invoke the output filter" do
       agent = agent_class.new
-      agent.before_completion = ->(_ctx) { raise "hook exploded" }
+      agent.before_llm_input = ->(_ctx) { raise "hook exploded" }
 
       spy_filter = Class.new(Phronomy::Filter::Base) do
         attr_accessor :invoked
@@ -278,7 +258,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
       agent.add_output_filter(spy_filter)
 
       expect {
-        agent.send(:run_before_completion_hooks!, chat_double, {})
+        agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: {})
       }.to raise_error(RuntimeError, "hook exploded")
 
       expect(spy_filter.invoked).to be_falsey

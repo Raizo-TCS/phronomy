@@ -661,11 +661,21 @@ module IntegrationFactors
     when "nil"
       ->(_ctx) {}
     when "empty_hash"
-      ->(_ctx) { {} }
+      ->(_ctx) { Phronomy::Agent::LLMInputPatch.empty }
     when "param_merge"
-      ->(_ctx) { {temperature: 0.1} }
+      ->(_ctx) {
+        Phronomy::Agent::LLMInputPatch.new(
+          model_config_patch: {temperature: 0.1},
+          segment_candidates: nil, response_schema_candidate: nil, selection_policy_override: nil
+        )
+      }
     when "model_override"
-      ->(_ctx) { {model: LM_STUDIO_MODEL} }
+      ->(_ctx) {
+        Phronomy::Agent::LLMInputPatch.new(
+          model_config_patch: {model: LM_STUDIO_MODEL},
+          segment_candidates: nil, response_schema_candidate: nil, selection_policy_override: nil
+        )
+      }
     else
       raise ArgumentError, "Unknown bc_hook_return label: #{return_label}"
     end
@@ -689,7 +699,7 @@ module IntegrationFactors
     end
   end
 
-  # Builds an agent instance with the before_completion hook configured at
+  # Builds an agent instance with the before_llm_input hook configured at
   # the appropriate tier(s). Returns the agent instance.
   # Callers are responsible for resetting global config after the test.
   #
@@ -704,20 +714,20 @@ module IntegrationFactors
     when "none"
       klass.new
     when "global"
-      Phronomy.configuration.before_completion = callable
+      Phronomy.configuration.before_llm_input = callable
       klass.new
     when "class_level"
-      klass.before_completion callable
+      klass.before_llm_input callable
       klass.new
     when "instance_level"
       instance = klass.new
-      instance.before_completion = callable
+      instance.before_llm_input = callable
       instance
     when "multi_tier"
-      Phronomy.configuration.before_completion = callable
-      klass.before_completion callable
+      Phronomy.configuration.before_llm_input = callable
+      klass.before_llm_input callable
       instance = klass.new
-      instance.before_completion = callable
+      instance.before_llm_input = callable
       instance
     else
       raise ArgumentError, "Unknown bc_hook_tier label: #{tier_label}"

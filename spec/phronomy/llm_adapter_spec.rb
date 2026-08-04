@@ -168,7 +168,7 @@ RSpec.describe "LLMAdapter abstraction" do
         {system: nil, messages: [], tool_classes: []}
       )
       allow_any_instance_of(agent_class).to receive(:apply_instructions)
-      allow_any_instance_of(agent_class).to receive(:run_before_completion_hooks!)
+      allow_any_instance_of(agent_class).to receive(:run_before_llm_input_hooks).and_return(Phronomy::Agent::LLMInputPatch.empty)
       allow_any_instance_of(agent_class).to receive(:check_cancellation!)
       # chat.respond_to? is called for :cancellation_token=, :on_tool_call_batch, and :before_tool_call
       allow(chat).to receive(:respond_to?).and_return(false)

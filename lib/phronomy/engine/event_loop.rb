@@ -321,9 +321,7 @@ module Phronomy
         session.start
       when :agent_terminal_ready
         cmd = event.payload.fetch(:command)
-        cmd.coordinator.deliver_on_event_loop(
-          cmd.activation, cmd.result_task, cmd.outcome, cmd.commit_error
-        )
+        cmd.coordinator.deliver_on_event_loop(cmd)
       end
     end
 

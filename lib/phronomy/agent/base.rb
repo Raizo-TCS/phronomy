@@ -2,7 +2,7 @@
 
 require "securerandom"
 require_relative "concerns/filterable"
-require_relative "concerns/before_completion"
+require_relative "concerns/before_llm_input"
 require_relative "concerns/error_translation"
 
 module Phronomy
@@ -31,7 +31,7 @@ module Phronomy
     class Base
       include Phronomy::Runnable
       include Concerns::Filterable
-      include Concerns::BeforeCompletion
+      include Concerns::BeforeLLMInput
       include Concerns::ErrorTranslation
 
       APPROVAL_CONFIGURATION_INIT_MUTEX = Mutex.new
@@ -814,9 +814,27 @@ module Phronomy
             overhead: self.class.context_overhead
           )
         else
+          ruby_llm_model = RubyLLM.models.find(model_name)
+          return nil unless ruby_llm_model
+
+          registry_context    = ruby_llm_model.context_window.to_i
+          registry_max_output = ruby_llm_model.max_output_tokens.to_i
+
+          # Priority: agent explicit → framework default → registry (if < context_window)
+          output_reserve =
+            self.class.max_output_tokens ||
+            Phronomy.configuration.default_output_reserve ||
+            (registry_max_output < registry_context ? registry_max_output : nil)
+
+          if output_reserve.nil?
+            raise Phronomy::InvalidContextBudgetConfigurationError,
+              "Cannot determine output token reserve for model '#{model_name}'. " \
+              "Set max_output_tokens on the agent or Phronomy.configure { |c| c.default_output_reserve = N }."
+          end
+
           Phronomy::LlmContextWindow::TokenBudget.new(
-            model: model_name,
-            max_output_tokens: self.class.max_output_tokens,
+            context_window: registry_context,
+            max_output_tokens: output_reserve,
             overhead: self.class.context_overhead
           )
         end

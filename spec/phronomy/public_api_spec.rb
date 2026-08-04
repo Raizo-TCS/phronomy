@@ -15,7 +15,7 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
 
     it "exposes the supported DSL class methods" do
       expect(subject).to respond_to(
-        :model, :instructions, :tools, :max_iterations, :before_completion
+        :model, :instructions, :tools, :max_iterations, :before_llm_input
       )
     end
 
