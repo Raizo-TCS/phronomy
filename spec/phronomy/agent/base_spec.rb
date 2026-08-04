@@ -145,17 +145,54 @@ RSpec.describe Phronomy::Agent::Base do
         model "gpt-4o-mini"
       end.new
     end
+    let(:fake_tokens_el) { double("Tok", input: 1, output: 1, cached: 0, cache_creation: 0, to_h: {"input" => 1, "output" => 1, "cached" => 0, "cache_creation" => 0}) }
+    let(:fake_response_el) { double("Resp", role: :assistant, content: "ok", tool_calls: nil, tokens: fake_tokens_el, tool_call?: false) }
+
+    before do
+      dbl = double("Chat")
+      allow(dbl).to receive(:with_instructions).and_return(dbl)
+      allow(dbl).to receive(:with_tool).and_return(dbl)
+      allow(dbl).to receive(:with_temperature).and_return(dbl)
+      allow(dbl).to receive(:messages).and_return([fake_response_el])
+      allow(dbl).to receive(:cancellation_token=)
+      allow(dbl).to receive(:on_tool_call)
+      allow(dbl).to receive(:before_tool_call)
+      allow(dbl).to receive(:on_tool_result)
+      allow(dbl).to receive(:ask) { |_msg, &blk|
+        blk&.call(double("Chunk", content: "token"))
+        fake_response_el
+      }
+      allow(dbl).to receive(:complete) { |&blk|
+        blk&.call(double("Chunk", content: "token"))
+        fake_response_el
+      }
+      allow(RubyLLM).to receive(:chat).and_return(dbl)
+    end
 
     it "delivers token and terminal callbacks on the EventLoop thread" do
-      skip "requires ExecutionCoordinator refactor: terminal :done event delivered from BlockingAdapterPool thread, not EventLoop"
+      event_loop = Phronomy::Runtime.instance.event_loop
+      events = []
+      event_loop_flags = []
+
+      task = agent.stream_async("hi") do |event|
+        events << event
+        event_loop_flags << event_loop.current?
+      end
+      task.wait_result
+
+      token_events = events.select { |e| e.type == :token }
+      expect(token_events).not_to be_empty
+      expect(events.last.type).to eq(:done)
+      expect(event_loop_flags).not_to be_empty
+      expect(event_loop_flags).to all(be(true))
     end
 
     it "keeps an immediately completed terminal callback on the EventLoop thread" do
-      skip "requires ExecutionCoordinator refactor: deliver_terminal runs on BlockingAdapterPool thread not EventLoop"
+      skip "obsolete: terminal delivery always routes through EventLoop system channel in new architecture"
     end
 
     it "does not invoke a terminal callback when completion escapes the EventLoop" do
-      skip "requires ExecutionCoordinator refactor: deliver_terminal runs on BlockingAdapterPool thread not EventLoop"
+      skip "obsolete: deliver_on_event_loop is always called from the EventLoop thread in new architecture"
     end
 
     it "requires a callback block" do

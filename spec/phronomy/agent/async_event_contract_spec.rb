@@ -95,7 +95,27 @@ RSpec.describe "Agent async event contract" do
   end
 
   it "runs invoke_async and stream_async listeners on the EventLoop thread" do
-    skip "requires ExecutionCoordinator refactor: deliver_terminal runs on BlockingAdapterPool thread not EventLoop"
+    caller_thread = Thread.current
+    event_loop = Phronomy::Runtime.instance.event_loop
+
+    [:invoke_async, :stream_async].each do |method_name|
+      callback_threads = []
+      on_event_loop = []
+      SymmetricAsyncEventAgent.new.public_send(
+        method_name,
+        "hello",
+        on_event: ->(_event) {
+          callback_threads << Thread.current
+          on_event_loop << event_loop.current?
+        }
+      ).wait_result
+
+      expect(callback_threads).not_to be_empty
+      expect(callback_threads).to all(satisfy { |thread|
+        thread != caller_thread
+      })
+      expect(on_event_loop).to all(be(true))
+    end
   end
 
   it "delivers shared tool events independently of streaming mode" do

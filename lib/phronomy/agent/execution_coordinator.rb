@@ -7,6 +7,11 @@ module Phronomy
     class ExecutionCoordinator
       Prepared = Data.define(:execution, :runtime_projection, :filtered_input, :config)
 
+      # Internal command object posted to the EventLoop system channel after a
+      # Persistence transaction commits; ensures terminal delivery and Task
+      # settlement run on the EventLoop thread.
+      AgentTerminalCommand = Struct.new(:coordinator, :activation, :result_task, :outcome, :commit_error)
+
       def initialize(agent)
         @agent = agent
       end
@@ -412,41 +417,62 @@ module Phronomy
       end
 
       def finish(activation, result_task, invocation, error)
-        operation = Phronomy::Runtime.instance.blocking_io.submit do
+        runtime = Phronomy::Runtime.instance
+        operation = runtime.blocking_io.submit do
           compute_terminal(activation, invocation, error)
         end
         operation.on_complete do |outcome, commit_error|
-          if commit_error
-            # The Repository still contains an active/suspended Execution and
-            # the Activation retains its unacknowledged Runtime buffer. Keep it
-            # registered so a recovery path can retry the atomic commit.
-            deliver_terminal(activation, :error, error: commit_error)
-            fail_task(result_task, commit_error)
-            next
-          end
-
-          case outcome.fetch(:type)
-          when :suspended
-            result = outcome.fetch(:result)
-            deliver_terminal(activation, :approval_required, request: result.fetch(:approval_request))
-            complete_task(result_task, result)
-          when :completed
-            @agent.persistence.activations.delete(activation.execution_id)
-            result = outcome.fetch(:result)
-            cb_error = deliver_terminal(activation, :done, result)
-            settle_after_terminal(result_task, cb_error, :done, result)
-          when :failed
-            @agent.persistence.activations.delete(activation.execution_id)
-            terminal_error = outcome.fetch(:error)
-            cb_error = deliver_terminal(activation, terminal_event_type(terminal_error), error: terminal_error)
-            settle_after_terminal(result_task, cb_error, terminal_event_type(terminal_error), nil, terminal_error)
-          else
-            raise Phronomy::Error, "unknown terminal outcome: #{outcome.inspect}"
+          # Post back to the EventLoop so that terminal delivery and Task
+          # settlement always run on the EventLoop thread, preserving the
+          # Application event-listener thread-affinity contract.
+          cmd = AgentTerminalCommand.new(
+            self, activation, result_task, outcome, commit_error
+          )
+          posted = runtime.event_loop.post(
+            Phronomy::Event.new(
+              type: :agent_terminal_ready,
+              target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
+              payload: {command: cmd}
+            )
+          )
+          # EventLoop is shutting down — settle immediately on this thread.
+          unless posted
+            deliver_on_event_loop(activation, result_task, outcome, commit_error)
           end
         end
       rescue => caught
         # No terminal transaction was committed, so retain the Activation.
         fail_task(result_task, translated(caught))
+      end
+
+      public # EventLoop calls deliver_on_event_loop from dispatch_management.
+
+      # Called by EventLoop#dispatch_management on the EventLoop thread.
+      def deliver_on_event_loop(activation, result_task, outcome, commit_error)
+        if commit_error
+          deliver_terminal(activation, :error, error: commit_error)
+          fail_task(result_task, commit_error)
+          return
+        end
+
+        case outcome.fetch(:type)
+        when :suspended
+          result = outcome.fetch(:result)
+          deliver_terminal(activation, :approval_required, request: result.fetch(:approval_request))
+          complete_task(result_task, result)
+        when :completed
+          @agent.persistence.activations.delete(activation.execution_id)
+          result = outcome.fetch(:result)
+          cb_error = deliver_terminal(activation, :done, result)
+          settle_after_terminal(result_task, cb_error, :done, result)
+        when :failed
+          @agent.persistence.activations.delete(activation.execution_id)
+          terminal_error = outcome.fetch(:error)
+          cb_error = deliver_terminal(activation, terminal_event_type(terminal_error), error: terminal_error)
+          settle_after_terminal(result_task, cb_error, terminal_event_type(terminal_error), nil, terminal_error)
+        else
+          raise Phronomy::Error, "unknown terminal outcome: #{outcome.inspect}"
+        end
       end
 
       def compute_terminal(activation, invocation, error)
