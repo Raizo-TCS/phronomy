@@ -29,7 +29,17 @@ module Phronomy
         end
         preparation.on_complete do |prepared, error|
           if error
-            fail_task(result_task, translated(error))
+            translated_error = translated(error)
+            # Deliver terminal event to the listener before failing the task.
+            if on_event
+              begin
+                event_type = terminal_event_type(translated_error)
+                on_event.call(StreamEvent.new(type: event_type, payload: {error: translated_error}))
+              rescue => _cb_error
+                nil # ignore listener failures during preparation errors
+              end
+            end
+            fail_task(result_task, translated_error)
           else
             register(prepared, result_task, mode: mode,
               approval_policy: approval_policy,

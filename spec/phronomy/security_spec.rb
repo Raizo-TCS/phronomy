@@ -237,7 +237,7 @@ RSpec.describe "Security specs (Issue #214)" do
       response = double("response",
         content: raw_llm_output,
         tool_call?: false,
-        tokens: double(input: 5, output: 20, cached: 0, cache_creation: 0))
+        tokens: double(input: 5, output: 20, cached: 0, cache_creation: 0, to_h: {"input" => 5, "output" => 20, "cached" => 0, "cache_creation" => 0}))
       allow(RubyLLM).to receive(:chat).and_return(chat_double)
       allow(chat_double).to receive(:with_tool).and_return(chat_double)
       allow(chat_double).to receive(:with_instructions).and_return(chat_double)

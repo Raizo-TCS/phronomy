@@ -62,20 +62,16 @@ RSpec.describe "Agent::Base filter integration (Issue #389)" do
       agent_definition id: "test-agent-110", version: 1
       model "test"
     end
-    # Stub _start_invocation to skip the real FSM/LLM pipeline while still
-    # exercising the filter layer. Filters transform the input/output around the
-    # stubbed LLM call.
-    allow_any_instance_of(klass).to receive(:_start_invocation) do |agent_self, result_task, input, messages:, thread_id:, config:, approval_snapshot: {}, **|
-      filtered = agent_self.send(:run_input_filters!, input)
-      user_message = agent_self.send(:extract_message, filtered)
-      raw_output = "result:#{user_message}"
-      filtered_output = agent_self.send(:run_output_filters!, raw_output)
-      result = {output: filtered_output, messages: [], usage: nil}
-      result_task.backend.unblock(result, nil)
-      result_task.transition!(:completed, value: result)
-    rescue => e
-      result_task.backend.unblock(nil, e)
-      result_task.transition!(:failed, error: e)
+    # Stub ExecutionCoordinator#start to exercise the filter layer without a real LLM.
+    allow_any_instance_of(Phronomy::Agent::ExecutionCoordinator).to receive(:start) do |coord, input, **_kwargs|
+      ag = coord.instance_variable_get(:@agent)
+      Phronomy::Task.spawn(name: "filter-stub") do
+        filtered = ag.send(:run_input_filters!, input)
+        user_message = ag.send(:extract_message, filtered)
+        raw_output = "result:#{user_message}"
+        filtered_output = ag.send(:run_output_filters!, raw_output)
+        {output: filtered_output, messages: [], usage: nil}
+      end
     end
     klass
   end

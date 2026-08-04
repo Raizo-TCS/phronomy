@@ -59,13 +59,16 @@ module Phronomy
           thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
         end
         _check_scheduler_reentrancy(:stream, :stream_async)
-        stream_async(
-          input,
-          thread_id: thread_id,
-          config: config,
-          on_tool_approval_required: on_tool_approval_required,
-          on_event: listener
-        ).wait_result
+        trace("agent.stream", input: input, **_build_caller_meta(config)) do |_span|
+          result = stream_async(
+            input,
+            thread_id: thread_id,
+            config: config,
+            on_tool_approval_required: on_tool_approval_required,
+            on_event: listener
+          ).wait_result
+          [result, result[:usage]]
+        end
       end
 
       def stream_async(

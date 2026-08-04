@@ -21,7 +21,7 @@ class NoModelAgent < Phronomy::Agent::Base
 end
 
 RSpec.describe Phronomy::Agent::Base do
-  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0) }
+  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0, to_h: {"input" => 10, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
   let(:fake_message) { double("Message", content: "LLM response", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
   let(:fake_messages) { [fake_message] }
   let(:fake_chat) do
@@ -201,6 +201,7 @@ RSpec.describe Phronomy::Agent::Base do
       let(:prev_msg) { double("PrevMessage", role: :user, content: "previous") }
 
       it "injects the provided messages into the chat" do
+        skip "messages: parameter removed from invoke; history managed via Agent Journal"
         agent.invoke("Hello", messages: [prev_msg])
         expect(fake_chat.messages).to include(prev_msg)
       end
@@ -259,6 +260,7 @@ RSpec.describe Phronomy::Agent::Base do
       let(:prev_msg) { double("PrevMessage", role: :user, content: "previous") }
 
       it "injects history messages into the chat via the Assembler" do
+        skip "messages: parameter removed from invoke; history managed via Agent Journal"
         agent.invoke("Hello", messages: [prev_msg])
         expect(fake_chat.messages).to include(prev_msg)
       end
@@ -267,7 +269,7 @@ RSpec.describe Phronomy::Agent::Base do
 end
 
 RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
-  let(:alias_tokens) { double("Tokens", input: 5, output: 2, cached: 0, cache_creation: 0) }
+  let(:alias_tokens) { double("Tokens", input: 5, output: 2, cached: 0, cache_creation: 0, to_h: {"input" => 5, "output" => 2, "cached" => 0, "cache_creation" => 0}) }
   let(:fake_chat) do
     dbl = double("Chat")
     allow(dbl).to receive(:with_instructions).and_return(dbl)
@@ -381,7 +383,7 @@ end
 # to fail silently for temperature(0). In Ruby, 0 and 0.0 are truthy, so this
 # code is actually correct. These specs document and lock in the correct behavior.
 RSpec.describe "Phronomy::Agent::Base temperature DSL zero value (Issue #30 / ID-12)" do
-  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0) }
+  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0, to_h: {"input" => 10, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
   let(:fake_message) { double("Message", content: "LLM response", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
   let(:fake_messages) { [fake_message] }
   let(:fake_chat) do
@@ -477,7 +479,7 @@ RSpec.describe "Agent thread-local context cache cleanup (issue #128)" do
     model "test-model"
   end
 
-  let(:reply_tokens) { double("Tokens", input: 5, output: 5, cached: 0, cache_creation: 0) }
+  let(:reply_tokens) { double("Tokens", input: 5, output: 5, cached: 0, cache_creation: 0, to_h: {"input" => 5, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
   let(:reply_msg) do
     double("Msg", role: :assistant, content: "hi", tool_calls: nil, tokens: reply_tokens, tool_call?: false)
   end
@@ -529,7 +531,7 @@ RSpec.describe "Agent static_knowledge caching (issue #127)" do
     end
   end
 
-  let(:reply_tokens) { double("Tokens", input: 5, output: 5, cached: 0, cache_creation: 0) }
+  let(:reply_tokens) { double("Tokens", input: 5, output: 5, cached: 0, cache_creation: 0, to_h: {"input" => 5, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
   let(:reply_msg) do
     double("Msg", role: :assistant, content: "answer", tool_calls: nil, tokens: reply_tokens, tool_call?: false)
   end

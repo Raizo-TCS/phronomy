@@ -142,8 +142,7 @@ RSpec.describe "LLMAdapter abstraction" do
     end
 
     let(:fake_response) do
-      tokens = double("tokens",
-        input: 10, output: 20, cached: 0, cache_creation: 0)
+      tokens = double("tokens", input: 10, output: 20, cached: 0, cache_creation: 0, to_h: {"input" => 10, "output" => 20, "cached" => 0, "cache_creation" => 0})
       double("response", content: "adapter response", tokens: tokens)
     end
 

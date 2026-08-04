@@ -73,7 +73,7 @@ end
 
 # ---------------------------------------------------------------------------
 RSpec.describe "Agent::Base instructions with PromptTemplate" do
-  let(:fake_tokens) { double("Tokens", input: 5, output: 3, cached: 0, cache_creation: 0) }
+  let(:fake_tokens) { double("Tokens", input: 5, output: 3, cached: 0, cache_creation: 0, to_h: {"input" => 5, "output" => 3, "cached" => 0, "cache_creation" => 0}) }
   let(:fake_response) { double("Response", content: "answer", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
   let(:fake_chat) do
     dbl = double("Chat")

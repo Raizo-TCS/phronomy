@@ -174,7 +174,7 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
     end
 
     it "applies a normal response on the current thread" do
-      tokens = double("tokens", input: 1, output: 2, cached: 0, cache_creation: 0)
+      tokens = double("tokens", input: 1, output: 2, cached: 0, cache_creation: 0, to_h: {"input" => 1, "output" => 2, "cached" => 0, "cache_creation" => 0})
       response = double("response", content: "answer", tokens: tokens)
       result = Phronomy::Agent::LLMOperationResult.new(response: response)
 

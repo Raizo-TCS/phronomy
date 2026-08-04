@@ -261,7 +261,7 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
 
       # Bare agent (no invoke override): _invoke_impl checks the token
       # and raises CancellationError before any LLM call is attempted.
-      bare_agent = Class.new(Phronomy::Agent::Base)
+      bare_agent = Class.new(Phronomy::Agent::Base) { agent_definition id: "test-agent-bare-cancel", version: 1 }
 
       expect {
         orchestrator.dispatch_parallel(
