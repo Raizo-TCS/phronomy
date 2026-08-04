@@ -90,13 +90,71 @@ module Phronomy
         end
       end
 
+      # Immutable record of a non-terminal Application callback failure.
+      ApplicationCallbackFailure = Data.define(:event_type, :error) do
+        def to_stream_callback_error
+          wrapped = Phronomy::StreamCallbackError.new(
+            event_type: event_type,
+            original_error: error,
+            result: nil
+          )
+          begin
+            raise wrapped, cause: error
+          rescue Phronomy::StreamCallbackError => e
+            e.set_backtrace(error.backtrace)
+            e
+          end
+        end
+      end
+
+      attr_reader :callback_failure
+
+      def callback_failed?
+        @mutex.synchronize { !@callback_failure.nil? }
+      end
+
       def record_event(event)
+        # Skip delivery if a prior callback already failed.
+        return if callback_failed?
+
         @mutex.synchronize { @runtime_events << event }
         application_listener&.call(event)
-      rescue => error
-        @mutex.synchronize { @callback_errors << error }
+      rescue => cb_error
+        failure = ApplicationCallbackFailure.new(event_type: event.type, error: cb_error)
+        @mutex.synchronize do
+          @callback_failure = failure
+          @application_listener = nil
+        end
+
+        notify_callback_failure(failure)
+      end
+
+      private
+
+      def notify_callback_failure(failure)
+        invocation = @mutex.synchronize { @invocation }
+        session_id = invocation&.session_id
+
+        if session_id
+          runtime = Phronomy::Runtime.instance
+          accepted = runtime.event_loop.post_to_session(
+            Phronomy::Event.new(
+              type: :application_callback_failed,
+              target_id: session_id,
+              payload: {failure: failure}
+            )
+          )
+          unless accepted
+            Phronomy.configuration.logger&.warn(
+              "[Phronomy] Callback failure recorded but could not notify FSM: " \
+              "execution_id=#{@execution_id} event_type=#{failure.event_type}"
+            )
+          end
+        end
+
         Phronomy.configuration.logger&.warn(
-          "Agent event listener failed: #{error.class}: #{error.message}"
+          "[Phronomy] Application event listener failed: " \
+          "#{failure.error.class}: #{failure.error.message}"
         )
       end
     end

@@ -299,6 +299,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
       allow(dbl).to receive(:with_tool).and_return(dbl)
       allow(dbl).to receive(:with_temperature).and_return(dbl)
       allow(dbl).to receive(:on_tool_call)
+      allow(dbl).to receive(:before_tool_call)
       allow(dbl).to receive(:on_tool_result)
       allow(dbl).to receive(:ask)
         .and_yield(chunk1).and_yield(chunk2).and_yield(chunk3)
@@ -313,6 +314,12 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
         model "test-model"
       }
     }
+    let(:streaming_agent_class) {
+      Class.new(Phronomy::Agent::Base) {
+        agent_definition id: "test-agent-303", version: 1
+        model "test-model"
+      }
+    }
     let(:streaming_agent) { streaming_agent_class.new }
 
     before do
@@ -320,11 +327,48 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     end
 
     it "propagates the callback exception to the stream caller" do
-      skip "requires ExecutionCoordinator refactor: AgentExecutionActivation#record_event absorbs callback exceptions"
+      chunk_count = 0
+      received_event_types = []
+
+      expect {
+        streaming_agent.stream("trigger streaming") do |event|
+          received_event_types << event.type
+          if event.type == :token
+            chunk_count += 1
+            raise "callback exploded on chunk #{chunk_count}" if chunk_count == 2
+          end
+        end
+      }.to raise_error(Phronomy::StreamCallbackError) { |error|
+        expect(error.event_type).to eq(:token)
+        expect(error.original_error.message).to eq("callback exploded on chunk 2")
+      }
     end
 
     it "does not leave the agent in a bad state; a subsequent invoke succeeds" do
-      skip "requires ExecutionCoordinator refactor: AgentExecutionActivation#record_event absorbs callback exceptions"
+      expect {
+        streaming_agent.stream("trigger streaming") do |event|
+          raise "boom" if event.type == :token
+        end
+      }.to raise_error(Phronomy::StreamCallbackError)
+
+      # Prepare a non-raising chat double for the follow-up invoke.
+      calm_chat = double("CalmChat")
+      calm_tokens = double("CalmTokens", input: 1, output: 1, cached: 0, cache_creation: 0,
+        to_h: {"input" => 1, "output" => 1, "cached" => 0, "cache_creation" => 0})
+      calm_message = double("CalmMessage", content: "ok", tool_calls: nil, tokens: calm_tokens,
+        tool_call?: false, role: :assistant)
+      allow(calm_chat).to receive(:with_instructions).and_return(calm_chat)
+      allow(calm_chat).to receive(:with_tool).and_return(calm_chat)
+      allow(calm_chat).to receive(:with_temperature).and_return(calm_chat)
+      allow(calm_chat).to receive(:on_tool_call)
+      allow(calm_chat).to receive(:before_tool_call)
+      allow(calm_chat).to receive(:on_tool_result)
+      allow(calm_chat).to receive(:ask).and_return(calm_message)
+      allow(calm_chat).to receive(:messages).and_return([])
+      allow(streaming_agent).to receive(:build_chat).and_return(calm_chat)
+
+      result = streaming_agent.invoke("hello again")
+      expect(result[:output]).to eq("ok")
     end
   end
 end

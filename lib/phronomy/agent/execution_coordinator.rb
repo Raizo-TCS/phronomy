@@ -476,6 +476,12 @@ module Phronomy
       end
 
       def compute_terminal(activation, invocation, error)
+        # Callback failure is the authoritative source of truth; always check first.
+        if (cb_failure = activation.callback_failure)
+          terminal = commit_failed(activation, invocation, cb_failure.to_stream_callback_error)
+          return {type: :failed, error: terminal.fetch(:error)}
+        end
+
         if error
           terminal = commit_failed(activation, invocation, error)
           return {type: :failed, error: terminal.fetch(:error)}

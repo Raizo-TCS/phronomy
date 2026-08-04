@@ -26,6 +26,8 @@ module Phronomy
         llm_failed
       ].freeze
 
+      CALLBACK_FAILED_EVENTS = %i[application_callback_failed].freeze
+
       attr_accessor :input,
         :messages,
         :chat,
@@ -143,6 +145,11 @@ module Phronomy
 
         if LLM_EVENT_TYPES.include?(event.type)
           apply_llm_event(event)
+          return true
+        end
+
+        if CALLBACK_FAILED_EVENTS.include?(event.type)
+          @error ||= event.payload.fetch(:failure).to_stream_callback_error
           return true
         end
 

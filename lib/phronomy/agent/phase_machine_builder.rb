@@ -99,6 +99,18 @@ module Phronomy
               transition suspended: :waiting_for_tools
             end
 
+            event :application_callback_failed do
+              transition filtering_input: :failed
+              transition building_context: :failed
+              transition calling_llm: :failed
+              transition starting_tools: :failed
+              transition evaluating_tools: :failed
+              transition waiting_for_tools: :failed
+              transition dispatching_tools: :failed
+              transition recording_tool_results: :failed
+              transition output_filtering: :failed
+            end
+
             entry_actions.each do |state_name, callables|
               callables.each do |callable|
                 after_transition(
