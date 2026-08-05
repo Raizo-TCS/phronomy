@@ -6,15 +6,7 @@ module Phronomy
   module Agent
     class ExecutionCoordinator
       Prepared = Data.define(:execution, :runtime_projection, :filtered_input, :config)
-
-      # Internal command object posted to the EventLoop system channel after a
-      # Persistence transaction commits; ensures terminal delivery and Task
-      # settlement run on the EventLoop thread.
       AgentTerminalCommand = Struct.new(:coordinator, :activation, :result_task, :outcome, :commit_error)
-
-      # Command posted to EventLoop when preparation fails before any Activation
-      # is created. Carries the on_event listener so deliver_on_event_loop can
-      # route terminal event delivery to the EventLoop thread.
       PrepFailureCommand = Struct.new(:coordinator, :on_event_listener, :result_task, :error)
 
       def initialize(agent)
@@ -22,34 +14,17 @@ module Phronomy
       end
 
       def start(
-        input,
-        thread_id: nil,
-        config: {},
-        mode: :invoke,
-        approval_policy: nil,
-        approval_listener: nil,
-        on_event: nil
+        input, thread_id: nil, config: {}, mode: :invoke,
+        approval_policy: nil, approval_listener: nil, on_event: nil
       )
-        result_task = Phronomy::Task.deferred(
-          name: "agent-#{@agent.agent_id}-#{mode}"
-        )
+        result_task = Phronomy::Task.deferred(name: "agent-#{@agent.agent_id}-#{mode}")
         runtime = Phronomy::Runtime.instance
         preparation = runtime.blocking_io.submit do
           prepare(input, thread_id: thread_id, config: config)
         end
         preparation.on_complete do |prepared, error|
           if error
-            translated_error = translated(error)
-            cmd = PrepFailureCommand.new(self, on_event, result_task, translated_error)
-            posted = runtime.event_loop.post(
-              Phronomy::Event.new(
-                type: :agent_terminal_ready,
-                target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-                payload: {command: cmd}
-              )
-            )
-            # EventLoop is shutting down; settle directly without calling the listener.
-            fail_task(result_task, translated_error) unless posted
+            post_prep_failure(runtime, on_event, result_task, translated(error))
           else
             register(prepared, result_task, mode: mode,
               approval_policy: approval_policy,
@@ -59,7 +34,11 @@ module Phronomy
         end
         result_task
       rescue => error
-        fail_task(result_task, translated(error))
+        if defined?(runtime) && runtime
+          post_prep_failure(runtime, on_event, result_task, translated(error))
+        else
+          fail_task(result_task, translated(error))
+        end
         result_task
       end
 
@@ -131,10 +110,7 @@ module Phronomy
       # This method is executed on the blocking adapter pool, never on EventLoop.
       def prepare_next_llm_call(activation)
         snapshot = activation.runtime_snapshot
-        manifest = nil
-        manifest_ref = nil
-        updated = nil
-        root = nil
+        manifest = manifest_ref = updated = root = nil
 
         @agent.persistence.transaction do |tx|
           root = tx.agents.load(@agent.agent_id)
@@ -148,45 +124,40 @@ module Phronomy
             working_records: current.working_records + encoded_records,
             llm_calls: current.llm_calls + call_records
           )
+          patch = @agent.send(
+            :run_before_llm_input_hooks,
+            call_sequence: staged.llm_calls.length + 1,
+            config: activation.invocation&.config || {}
+          )
           manifest, manifest_ref = ContextAssembler.new(
-            agent: @agent,
-            persistence: tx
+            agent: @agent, persistence: tx
           ).build_followup(
             base_manifest: activation.base_manifest,
-            agent_root: root,
-            execution: staged,
-            patch: @agent.send(
-              :run_before_llm_input_hooks,
-              call_sequence: staged.llm_calls.length + 1,
-              config: activation.invocation&.config || {}
-            )
+            agent_root: root, execution: staged, patch: patch
           )
           refs = Array(staged.metadata["manifest_refs"]) + [manifest_ref]
           updated = staged.with(
             phase: :calling_llm,
             metadata: staged.metadata.merge(
-              "manifest_ref" => manifest_ref,
-              "manifest_refs" => refs
+              "manifest_ref" => manifest_ref, "manifest_refs" => refs
             )
           )
-          tx.executions.save(
-            current.execution_id,
-            expected_revision: current.execution_revision,
-            execution: updated
-          )
+          tx.executions.save(current.execution_id,
+            expected_revision: current.execution_revision, execution: updated)
         end
 
-        projection = RubyLLMMaterializer.new(
-          agent: @agent,
-          persistence: @agent.persistence
-        ).materialize(manifest: manifest, manifest_ref: manifest_ref)
-        activation.acknowledge_runtime_snapshot(snapshot)
+        # The checkpoint is already durable. Advance the Activation before any
+        # fallible materialization so terminal failure cannot encode the same
+        # Runtime buffer twice.
         activation.replace_execution(updated)
+        activation.acknowledge_runtime_snapshot(snapshot)
+
+        projection = RubyLLMMaterializer.new(
+          agent: @agent, persistence: @agent.persistence
+        ).materialize(manifest: manifest, manifest_ref: manifest_ref)
         activation.replace_runtime_projection(projection)
         projection
       end
-
-      private
 
       def prepare(input, thread_id:, config:)
         raw_message = @agent.send(:extract_message, input)
@@ -242,7 +213,11 @@ module Phronomy
               agent_root: root,
               execution: staged,
               config: effective_config,
-              patch: @agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: effective_config)
+              patch: @agent.send(
+                :run_before_llm_input_hooks,
+                call_sequence: 1,
+                config: effective_config
+              )
             )
             active_execution = staged.with(
               status: :active,
@@ -408,23 +383,12 @@ module Phronomy
         end
         event_loop.register(session, completion: source_task)
       rescue => error
-        if prepared
-          activation ||= AgentExecutionActivation.new(
-            execution: prepared.execution,
-            agent: @agent,
-            runtime_projection: prepared.runtime_projection,
-            coordinator: self
-          )
-          begin
-            terminal = commit_failed(activation, nil, error)
-            @agent.persistence.activations.delete(prepared.execution.execution_id)
-            fail_task(result_task, terminal.fetch(:error))
-          rescue => persistence_error
-            fail_task(result_task, persistence_error)
-          end
-        else
-          fail_task(result_task, translated(error))
-        end
+        activation ||= AgentExecutionActivation.new(
+          execution: prepared.execution, agent: @agent,
+          runtime_projection: prepared.runtime_projection, coordinator: self,
+          application_listener: on_event
+        )
+        finish(activation, result_task, activation.invocation, error)
       end
 
       def finish(activation, result_task, invocation, error)
@@ -433,116 +397,62 @@ module Phronomy
           compute_terminal(activation, invocation, error)
         end
         operation.on_complete do |outcome, commit_error|
-          # Post back to the EventLoop so that terminal delivery and Task
-          # settlement always run on the EventLoop thread, preserving the
-          # Application event-listener thread-affinity contract.
-          cmd = AgentTerminalCommand.new(
+          command = AgentTerminalCommand.new(
             self, activation, result_task, outcome, commit_error
           )
           posted = runtime.event_loop.post(
             Phronomy::Event.new(
               type: :agent_terminal_ready,
               target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
-              payload: {command: cmd}
+              payload: {command: command}
             )
           )
-          # EventLoop is shutting down — settle immediately on this thread.
-          unless posted
-            # EventLoop is shutting down; settle the task without calling the listener.
-            if commit_error
-              fail_task(result_task, commit_error)
-            else
-              case outcome&.fetch(:type)
-              when :suspended
-                complete_task(result_task, outcome.fetch(:result))
-              when :completed
-                @agent.persistence.activations.delete(activation.execution_id)
-                complete_task(result_task, outcome.fetch(:result))
-              when :failed
-                @agent.persistence.activations.delete(activation.execution_id)
-                fail_task(result_task, outcome.fetch(:error))
-              else
-                fail_task(result_task, Phronomy::Error.new("EventLoop shutting down"))
-              end
-            end
-          end
+          settle_without_listener(activation, result_task, outcome, commit_error) unless posted
         end
       rescue => caught
-        # No terminal transaction was committed, so retain the Activation.
         fail_task(result_task, translated(caught))
       end
 
-      public # EventLoop calls deliver_on_event_loop from dispatch_management.
+      public
 
-      # Single-dispatch entry called by EventLoop#dispatch_management on the
-      # EventLoop thread. Routes to the appropriate handler based on command type.
-      def deliver_on_event_loop(cmd)
-        case cmd
+      def deliver_on_event_loop(command)
+        case command
         when PrepFailureCommand
-          _deliver_prep_failure(cmd)
+          callback_error = @agent.send(
+            :_deliver_stream_event,
+            command.on_event_listener,
+            StreamEvent.new(
+              type: terminal_event_type(command.error),
+              payload: {error: command.error}
+            )
+          )
+          settle_after_terminal(
+            command.result_task, callback_error,
+            terminal_event_type(command.error), nil, command.error
+          )
         when AgentTerminalCommand
-          _deliver_execution_terminal(cmd.activation, cmd.result_task, cmd.outcome, cmd.commit_error)
+          deliver_execution_terminal(command)
         else
-          raise Phronomy::Error, "unknown terminal command type: #{cmd.class}"
+          raise Phronomy::Error, "unknown terminal command: #{command.class}"
         end
       end
 
       private
 
-      def _deliver_prep_failure(cmd)
-        listener = cmd.on_event_listener
-        error = cmd.error
-        event_type = terminal_event_type(error)
-        @agent.send(:_deliver_stream_event, listener, StreamEvent.new(type: event_type, payload: {error: error})) if listener
-        fail_task(cmd.result_task, error)
-      end
-
-      def _deliver_execution_terminal(activation, result_task, outcome, commit_error)
-        if commit_error
-          deliver_terminal(activation, :error, error: commit_error)
-          fail_task(result_task, commit_error)
-          return
-        end
-
-        case outcome.fetch(:type)
-        when :suspended
-          result = outcome.fetch(:result)
-          cb_error = deliver_terminal(activation, :approval_required, request: result.fetch(:approval_request))
-          settle_after_terminal(result_task, cb_error, :approval_required, result)
-        when :completed
-          @agent.persistence.activations.delete(activation.execution_id)
-          result = outcome.fetch(:result)
-          cb_error = deliver_terminal(activation, :done, result)
-          settle_after_terminal(result_task, cb_error, :done, result)
-        when :failed
-          @agent.persistence.activations.delete(activation.execution_id)
-          terminal_error = outcome.fetch(:error)
-          cb_error = deliver_terminal(activation, terminal_event_type(terminal_error), error: terminal_error)
-          settle_after_terminal(result_task, cb_error, terminal_event_type(terminal_error), nil, terminal_error)
-        else
-          raise Phronomy::Error, "unknown terminal outcome: #{outcome.inspect}"
-        end
-      end
-
       def compute_terminal(activation, invocation, error)
-        # Callback failure is the authoritative source of truth; always check first.
-        if (cb_failure = activation.callback_failure)
-          terminal = commit_failed(activation, invocation, cb_failure.to_stream_callback_error)
+        if (failure = activation.callback_failure)
+          terminal = commit_failed(activation, invocation, failure.to_stream_callback_error)
           return {type: :failed, error: terminal.fetch(:error)}
         end
-
         if error
           terminal = commit_failed(activation, invocation, error)
           return {type: :failed, error: terminal.fetch(:error)}
         end
-
-        if invocation.phase == :suspended
+        if invocation&.phase == :suspended
           return {type: :suspended, result: commit_suspended(activation, invocation)}
         end
-
         raise invocation.block_error if invocation.input_blocked? || invocation.output_blocked?
         raise invocation.error if invocation.error
-
         {type: :completed, result: commit_completed(activation, invocation)}
       rescue => caught
         terminal = commit_failed(activation, invocation, caught)
@@ -610,9 +520,7 @@ module Phronomy
 
         @agent.persistence.transaction do |tx|
           encoded_records, call_records = encode_runtime_records(
-            activation, tx: tx, snapshot: runtime_snapshot,
-            # Exclude tool/LLM records from transcript when the invocation was rejected.
-            context_candidate: !invocation.rejected
+            activation, tx: tx, snapshot: runtime_snapshot, context_candidate: true
           )
           output_ref = tx.contents.put_text(invocation.output.to_s)
           root = tx.agents.load(@agent.agent_id)
@@ -735,7 +643,7 @@ module Phronomy
             "class" => call_error.class.name,
             "message" => call_error.message
           ) : nil
-          usage_ref = if response&.respond_to?(:tokens) && response.tokens
+          usage_ref = if response && response.respond_to?(:tokens) && response.tokens
             tx.contents.put_json(json_value(response.tokens.to_h))
           end
           call = LLMCallRecord.new(
@@ -776,6 +684,25 @@ module Phronomy
               context_candidate: context_candidate
             )
           end
+        end
+
+        if (active = snapshot[:active_call])
+          abandoned = LLMCallRecord.new(
+            execution_id: execution.execution_id,
+            sequence: execution.llm_calls.length + calls.length + 1,
+            status: :cancelled,
+            manifest_ref: active.fetch(:manifest_ref),
+            started_at: active.fetch(:started_at),
+            completed_at: Time.now.utc.iso8601(6),
+            metadata: {"reason" => "execution_terminalized_before_provider_settlement"}
+          )
+          calls << abandoned
+          records << JournalRecord.new(
+            agent_id: @agent.agent_id, execution_id: execution.execution_id,
+            kind: :llm_call_recorded, channel: :audit,
+            content_ref: tx.contents.put_json(abandoned.to_h),
+            context_generation: root.transcript_generation, context_candidate: false
+          )
         end
 
         snapshot.fetch(:runtime_events).each do |event|
@@ -963,32 +890,91 @@ module Phronomy
         end
       end
 
-      # Delivers a terminal event to the on_event listener; returns the callback error or nil.
       def deliver_terminal(activation, type, payload)
         listener = activation.application_listener
         return nil unless listener
-
         @agent.send(:_deliver_stream_event, listener, StreamEvent.new(type: type, payload: payload))
       end
 
-      # Settles the result Task, applying stream_callback_error_policy when the
-      # terminal event callback raised.
+      def post_prep_failure(runtime, listener, result_task, error)
+        command = PrepFailureCommand.new(self, listener, result_task, error)
+        posted = runtime.event_loop.post(
+          Phronomy::Event.new(
+            type: :agent_terminal_ready,
+            target_id: Phronomy::EventLoop::SYSTEM_CHANNEL_ID,
+            payload: {command: command}
+          )
+        )
+        fail_task(result_task, error) unless posted
+      end
+
+      def deliver_execution_terminal(command)
+        activation = command.activation
+        if command.commit_error
+          callback_error = deliver_terminal(activation, :error, error: command.commit_error)
+          settle_after_terminal(command.result_task, callback_error, :error, nil, command.commit_error)
+          return
+        end
+        outcome = command.outcome
+        case outcome.fetch(:type)
+        when :suspended
+          result = outcome.fetch(:result)
+          callback_error = deliver_terminal(
+            activation, :approval_required,
+            request: result.fetch(:approval_request)
+          )
+          settle_after_terminal(command.result_task, callback_error, :approval_required, result)
+        when :completed
+          @agent.persistence.activations.delete(activation.execution_id)
+          result = outcome.fetch(:result)
+          callback_error = deliver_terminal(activation, :done, result)
+          settle_after_terminal(command.result_task, callback_error, :done, result)
+        when :failed
+          @agent.persistence.activations.delete(activation.execution_id)
+          error = outcome.fetch(:error)
+          type = terminal_event_type(error)
+          callback_error = deliver_terminal(activation, type, error: error)
+          settle_after_terminal(command.result_task, callback_error, type, nil, error)
+        end
+      end
+
+      def settle_without_listener(activation, result_task, outcome, commit_error)
+        return fail_task(result_task, commit_error) if commit_error
+        case outcome&.fetch(:type)
+        when :suspended then complete_task(result_task, outcome.fetch(:result))
+        when :completed
+          @agent.persistence.activations.delete(activation.execution_id)
+          complete_task(result_task, outcome.fetch(:result))
+        when :failed
+          @agent.persistence.activations.delete(activation.execution_id)
+          fail_task(result_task, outcome.fetch(:error))
+        else
+          fail_task(result_task, Phronomy::RuntimeShutdownError.new("EventLoop is not accepting terminal delivery"))
+        end
+      end
+
       def settle_after_terminal(result_task, callback_error, event_type, result, execution_error = nil)
         if callback_error
           policy = Phronomy.configuration.stream_callback_error_policy
-          @agent.send(:_report_stream_callback_error, callback_error,
+          @agent.send(
+            :_report_stream_callback_error, callback_error,
             event: StreamEvent.new(type: event_type, payload: result || {error: execution_error}),
-            invocation_id: nil,
-            callback_error_policy: policy)
-          # Execution error takes priority over callback error.
+            invocation_id: nil, callback_error_policy: policy
+          )
           if policy == :fail_task && execution_error.nil?
-            wrapped = @agent.send(:_build_stream_callback_error,
-              event_type: event_type, callback_error: callback_error, result: result)
-            fail_task(result_task, wrapped)
-            return
+            return fail_task(result_task, @agent.send(
+              :_build_stream_callback_error,
+              event_type: event_type, callback_error: callback_error, result: result
+            ))
           end
         end
         execution_error ? fail_task(result_task, execution_error) : complete_task(result_task, result)
+      end
+
+      def terminal_event_type(error)
+        return :timeout if error.is_a?(Phronomy::TimeoutError)
+        return :cancelled if error.is_a?(Phronomy::CancellationError)
+        :error
       end
 
       def dispatch_approval_listener(invocation, request)
@@ -1021,13 +1007,6 @@ module Phronomy
         return :blocked if defined?(Phronomy::FilterBlockError) && error.is_a?(Phronomy::FilterBlockError)
 
         :failed
-      end
-
-      def terminal_event_type(error)
-        return :timeout if defined?(Phronomy::TimeoutError) && error.is_a?(Phronomy::TimeoutError)
-        return :cancelled if defined?(Phronomy::CancellationError) && error.is_a?(Phronomy::CancellationError)
-
-        :error
       end
 
       def execution_terminal_kind(status)

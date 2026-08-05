@@ -99,7 +99,18 @@ module Phronomy
           "invocation cancelled before LLM call"
         )
         if replace_messages
-          agent.send(:_replace_chat_messages, invocation.chat, projection)
+          invocation.chat = agent.send(:build_chat, model_config: projection.model_config)
+          agent.send(
+            :_apply_context_to_chat,
+            invocation.chat,
+            {
+              system: projection.system,
+              messages: projection.messages,
+              tool_classes: projection.tool_classes,
+              model_config: projection.model_config
+            }
+          )
+          install_tool_interceptors(invocation.chat)
           invocation.config[:phronomy_runtime_projection] = projection
         end
         activation.begin_llm_call(projection)

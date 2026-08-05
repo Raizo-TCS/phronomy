@@ -89,12 +89,12 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
   # TC-006: global × empty_hash × base × invoke
   #         Global hook returning {}; Base invoke; hook called; params unchanged.
   # ---------------------------------------------------------------------------
-  describe "TC-006: global hook returning {}; Base.invoke — params unchanged" do
+  describe "TC-006: global hook returning nil; Base.invoke — params unchanged" do
     it "calls the global hook" do
       called = false
       Phronomy.configuration.before_llm_input = ->(_ctx) {
         called = true
-        {}
+        nil
       }
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
@@ -103,7 +103,7 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
     end
 
     it "invoke succeeds after hook" do
-      Phronomy.configuration.before_llm_input = ->(_ctx) { {} }
+      Phronomy.configuration.before_llm_input = ->(_ctx) { nil }
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
       result = klass.new.invoke("Say hello.")
@@ -120,8 +120,7 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
     it "hook is called and request body contains temperature" do
       Phronomy.configuration.before_llm_input = ->(_ctx) {
         Phronomy::Agent::LLMInputPatch.new(
-          model_config_patch: {temperature: 0.1},
-          segment_candidates: nil, response_schema_candidate: nil, selection_policy_override: nil
+          model_config_patch: {temperature: 0.1}
         )
       }
       klass = IntegrationFactors.bc_agent_class("base")
@@ -149,14 +148,14 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
   # TC-010: class_level × empty_hash × base × invoke
   #         Class-level hook returning {}; Base invoke; hook is called.
   # ---------------------------------------------------------------------------
-  describe "TC-010: class-level hook returning {}; Base.invoke — hook called" do
+  describe "TC-010: class-level hook returning nil; Base.invoke — hook called" do
     it "calls the class-level hook" do
       called = false
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
       klass.before_llm_input ->(_ctx) {
         called = true
-        {}
+        nil
       }
       klass.new.invoke("Say hello.")
       expect(called).to be true
@@ -172,7 +171,7 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
     it "temperature from hook appears in LLM request" do
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
-      klass.before_llm_input ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}, segment_candidates: nil, response_schema_candidate: nil, selection_policy_override: nil) }
+      klass.before_llm_input ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
       klass.new.invoke("Say hello.")
       expect(@llm.calls.first).to include("temperature" => 0.1)
     end
@@ -190,8 +189,7 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
       klass.before_llm_input ->(_ctx) {
         hook_called = true
         Phronomy::Agent::LLMInputPatch.new(
-          model_config_patch: {model: LM_MODEL_25},
-          segment_candidates: nil, response_schema_candidate: nil, selection_policy_override: nil
+          model_config_patch: {model: LM_MODEL_25}
         )
       }
       klass.new.invoke("Say hello.")
@@ -235,7 +233,7 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
       agent = klass.new
-      agent.before_llm_input = ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}, segment_candidates: nil, response_schema_candidate: nil, selection_policy_override: nil) }
+      agent.before_llm_input = ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
       agent.invoke("Say hello.")
       expect(@llm.calls.first).to include("temperature" => 0.1)
     end
@@ -254,8 +252,7 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
       agent.before_llm_input = ->(_ctx) {
         hook_called = true
         Phronomy::Agent::LLMInputPatch.new(
-          model_config_patch: {model: LM_MODEL_25},
-          segment_candidates: nil, response_schema_candidate: nil, selection_policy_override: nil
+          model_config_patch: {model: LM_MODEL_25}
         )
       }
       agent.invoke("Say hello.")
@@ -304,12 +301,12 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-019: all tiers return temperature; Base.invoke — temperature merged and sent" do
     it "temperature from merged hooks appears in LLM request" do
-      Phronomy.configuration.before_llm_input = ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}, segment_candidates: nil, response_schema_candidate: nil, selection_policy_override: nil) }
+      Phronomy.configuration.before_llm_input = ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
-      klass.before_llm_input ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}, segment_candidates: nil, response_schema_candidate: nil, selection_policy_override: nil) }
+      klass.before_llm_input ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
       agent = klass.new
-      agent.before_llm_input = ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}, segment_candidates: nil, response_schema_candidate: nil, selection_policy_override: nil) }
+      agent.before_llm_input = ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
       agent.invoke("Say hello.")
       expect(@llm.calls.first).to include("temperature" => 0.1)
     end

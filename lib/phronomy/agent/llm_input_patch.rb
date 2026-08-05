@@ -2,24 +2,19 @@
 
 module Phronomy
   module Agent
-    # Typed result returned by a before_llm_input hook.
-    # All fields are optional; nil means "no override for this field".
-    #
-    # @param model_config_patch        [Hash, nil]  Overrides merged into model config
-    #   (model:, temperature:, max_output_tokens:, etc.)
-    # @param segment_candidates        [Array<Hash>, nil]  Extra segments to inject.
-    #   Each hash: { content: String, category: Symbol, role: Symbol }
-    # @param response_schema_candidate [Object, nil]  Structured-output schema override.
-    # @param selection_policy_override [Object, nil]  ContextSelector policy override.
-    LLMInputPatch = Data.define(
-      :model_config_patch,
-      :segment_candidates,
-      :response_schema_candidate,
-      :selection_policy_override
-    ) do
+    # Typed, canonicalizable input customization returned by before_llm_input.
+    # v1 deliberately exposes only fields that are fully applied to every call.
+    LLMInputPatch = Data.define(:model_config_patch, :segment_candidates) do
+      def initialize(model_config_patch: nil, segment_candidates: nil)
+        super(
+          model_config_patch: model_config_patch && Immutable.copy(model_config_patch),
+          segment_candidates: segment_candidates && Immutable.copy(Array(segment_candidates))
+        )
+        freeze
+      end
+
       def self.empty
-        new(model_config_patch: nil, segment_candidates: nil,
-            response_schema_candidate: nil, selection_policy_override: nil)
+        new
       end
     end
   end

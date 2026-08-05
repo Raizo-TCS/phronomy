@@ -154,7 +154,6 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   # 11. before_llm_input returns invalid type (non-LLMInputPatch)
   # -------------------------------------------------------------------------
   describe "before_llm_input hook returns invalid type (non-LLMInputPatch)" do
-    # Non-LLMInputPatch return values are silently ignored.
     let(:agent_class) {
       Class.new(Phronomy::Agent::Base) {
         agent_definition id: "test-agent-301", version: 1
@@ -163,16 +162,18 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     }
     let(:agent) { agent_class.new }
 
-    it "silently ignores an Integer return value from the hook" do
+    it "raises TypeError for an Integer return value from the hook" do
       agent.before_llm_input = ->(_ctx) { 42 }
-      result = agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: {})
-      expect(result).to eq(Phronomy::Agent::LLMInputPatch.empty)
+      expect {
+        agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: {})
+      }.to raise_error(TypeError, /LLMInputPatch/)
     end
 
-    it "silently ignores a String return value from the hook" do
+    it "raises TypeError for a String return value from the hook" do
       agent.before_llm_input = ->(_ctx) { "not a patch" }
-      result = agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: {})
-      expect(result).to eq(Phronomy::Agent::LLMInputPatch.empty)
+      expect {
+        agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: {})
+      }.to raise_error(TypeError, /LLMInputPatch/)
     end
   end
 

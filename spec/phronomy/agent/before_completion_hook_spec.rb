@@ -31,15 +31,21 @@ RSpec.describe "before_llm_input hook" do
     let(:agent) { HookBaseAgent.new }
     let(:config) { {thread_id: "t1"} }
 
-    it "exposes agent, config, and call_sequence" do
-      ctx = described_class.new(agent: agent, config: config, call_sequence: 1)
-      expect(ctx.agent).to be(agent)
+    it "exposes agent_id, config, and call_sequence" do
+      ctx = described_class.new(
+        agent_id: agent.agent_id, agent_definition_id: "hook-base-agent",
+        definition_version: 1, config: config, call_sequence: 1
+      )
+      expect(ctx.agent_id).to eq(agent.agent_id)
       expect(ctx.config).to eq(config)
       expect(ctx.call_sequence).to eq(1)
     end
 
     it "is frozen (immutable)" do
-      ctx = described_class.new(agent: agent, config: config, call_sequence: 2)
+      ctx = described_class.new(
+        agent_id: agent.agent_id, agent_definition_id: "hook-base-agent",
+        definition_version: 1, config: config, call_sequence: 2
+      )
       expect(ctx).to be_frozen
     end
   end
@@ -52,17 +58,10 @@ RSpec.describe "before_llm_input hook" do
       patch = described_class.empty
       expect(patch.model_config_patch).to be_nil
       expect(patch.segment_candidates).to be_nil
-      expect(patch.response_schema_candidate).to be_nil
-      expect(patch.selection_policy_override).to be_nil
     end
 
     it "accepts model_config_patch" do
-      patch = described_class.new(
-        model_config_patch: {temperature: 0.3},
-        segment_candidates: nil,
-        response_schema_candidate: nil,
-        selection_policy_override: nil
-      )
+      patch = described_class.new(model_config_patch: {temperature: 0.3})
       expect(patch.model_config_patch).to eq({temperature: 0.3})
     end
   end
@@ -127,7 +126,7 @@ RSpec.describe "before_llm_input hook" do
       agent = HookBaseAgent.new
       agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: config)
       expect(received_ctx).to be_a(Phronomy::Agent::LLMInputBuildContext)
-      expect(received_ctx.agent).to be(agent)
+      expect(received_ctx.agent_id).to eq(agent.agent_id)
       expect(received_ctx.call_sequence).to eq(1)
       expect(received_ctx.config).to eq(config)
     end
@@ -166,12 +165,10 @@ RSpec.describe "before_llm_input hook" do
 
     it "merges model_config_patch from multiple hooks (later hooks win)" do
       patch_a = Phronomy::Agent::LLMInputPatch.new(
-        model_config_patch: {temperature: 0.5, model: "model-a"},
-        segment_candidates: nil, response_schema_candidate: nil, selection_policy_override: nil
+        model_config_patch: {temperature: 0.5, model: "model-a"}
       )
       patch_b = Phronomy::Agent::LLMInputPatch.new(
-        model_config_patch: {model: "model-b"},
-        segment_candidates: nil, response_schema_candidate: nil, selection_policy_override: nil
+        model_config_patch: {model: "model-b"}
       )
       Phronomy.configuration.before_llm_input = ->(_ctx) { patch_a }
       agent = HookBaseAgent.new
@@ -184,14 +181,8 @@ RSpec.describe "before_llm_input hook" do
     it "appends segment_candidates from multiple hooks" do
       seg_a = {content: "hello", category: :knowledge, role: :user}
       seg_b = {content: "world", category: :knowledge, role: :user}
-      patch_a = Phronomy::Agent::LLMInputPatch.new(
-        model_config_patch: nil, segment_candidates: [seg_a],
-        response_schema_candidate: nil, selection_policy_override: nil
-      )
-      patch_b = Phronomy::Agent::LLMInputPatch.new(
-        model_config_patch: nil, segment_candidates: [seg_b],
-        response_schema_candidate: nil, selection_policy_override: nil
-      )
+      patch_a = Phronomy::Agent::LLMInputPatch.new(segment_candidates: [seg_a])
+      patch_b = Phronomy::Agent::LLMInputPatch.new(segment_candidates: [seg_b])
       Phronomy.configuration.before_llm_input = ->(_ctx) { patch_a }
       agent = HookBaseAgent.new
       agent.before_llm_input = ->(_ctx) { patch_b }
@@ -199,12 +190,13 @@ RSpec.describe "before_llm_input hook" do
       expect(result.segment_candidates).to eq([seg_a, seg_b])
     end
 
-    it "ignores nil and non-LLMInputPatch return values from hooks" do
+    it "raises TypeError for non-LLMInputPatch return values from hooks" do
       Phronomy.configuration.before_llm_input = ->(_ctx) {}
       HookBaseAgent.before_llm_input ->(_ctx) { "invalid" }
       agent = HookBaseAgent.new
-      result = agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: {})
-      expect(result).to eq(Phronomy::Agent::LLMInputPatch.empty)
+      expect {
+        agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: {})
+      }.to raise_error(TypeError, /LLMInputPatch/)
     end
   end
 end

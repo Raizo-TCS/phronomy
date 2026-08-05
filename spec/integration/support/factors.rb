@@ -665,15 +665,13 @@ module IntegrationFactors
     when "param_merge"
       ->(_ctx) {
         Phronomy::Agent::LLMInputPatch.new(
-          model_config_patch: {temperature: 0.1},
-          segment_candidates: nil, response_schema_candidate: nil, selection_policy_override: nil
+          model_config_patch: {temperature: 0.1}
         )
       }
     when "model_override"
       ->(_ctx) {
         Phronomy::Agent::LLMInputPatch.new(
-          model_config_patch: {model: LM_STUDIO_MODEL},
-          segment_candidates: nil, response_schema_candidate: nil, selection_policy_override: nil
+          model_config_patch: {model: LM_STUDIO_MODEL}
         )
       }
     else
