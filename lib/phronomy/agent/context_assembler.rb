@@ -3,7 +3,7 @@
 module Phronomy
   module Agent
     class ContextAssembler
-      ASSEMBLY_POLICY_VERSION = 3
+      ASSEMBLY_POLICY_VERSION = 4
       SEGMENT_ORIGIN_METADATA_KEY = "phronomy_origin"
       BEFORE_LLM_INPUT_ORIGIN = "before_llm_input"
 

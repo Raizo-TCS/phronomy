@@ -298,8 +298,9 @@ module Phronomy
           end
         end
 
-        # Tokens reserved for the system prompt + tool definitions overhead.
-        # Subtract this from the context window before computing the memory budget.
+        # Tokens reserved for the system prompt + tool definitions in the legacy
+        # build_context path. Manifest-first assembly ignores this value because
+        # ContextAssembler estimates actual mandatory content for each LLM Call.
         #
         # @example
         #   class MyAgent < Phronomy::Agent::Base
