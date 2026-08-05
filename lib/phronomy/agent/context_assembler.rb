@@ -3,7 +3,9 @@
 module Phronomy
   module Agent
     class ContextAssembler
-      ASSEMBLY_POLICY_VERSION = 2
+      ASSEMBLY_POLICY_VERSION = 3
+      SEGMENT_ORIGIN_METADATA_KEY = "phronomy_origin"
+      BEFORE_LLM_INPUT_ORIGIN = "before_llm_input"
 
       def initialize(agent:, persistence:, selector: ContextSelector.new)
         @agent = agent
@@ -54,7 +56,9 @@ module Phronomy
         projection = JournalProjection.new(persistence: @persistence, agent_root: agent_root)
         model_cfg = effective_model_config(config, patch)
         candidates = normalize_candidates(patch.segment_candidates)
-        system_segments = base_manifest.segments.select { |s| s.role == :system }
+        system_segments = base_manifest.segments.select do |segment|
+          segment.role == :system && !before_llm_input_segment?(segment)
+        end
         working_records = execution.working_records.select do |record|
           record.context_candidate &&
             record.context_generation == agent_root.transcript_generation
@@ -155,7 +159,12 @@ module Phronomy
         candidates.each do |candidate|
           early = %i[instruction structured_state knowledge memory summary].include?(candidate[:category])
           next unless early == before_history
-          segments << text_segment(candidate[:category], candidate[:role], candidate[:content])
+          segments << text_segment(
+            candidate[:category],
+            candidate[:role],
+            candidate[:content],
+            metadata: {SEGMENT_ORIGIN_METADATA_KEY => BEFORE_LLM_INPUT_ORIGIN}
+          )
         end
       end
 
@@ -163,8 +172,15 @@ module Phronomy
         category == :instruction ? :system : :user
       end
 
-      def text_segment(category, role, content)
-        segment(category, role, @persistence.contents.put_text(content.to_s), :chat_message)
+      def text_segment(category, role, content, metadata: {})
+        segment(
+          category, role, @persistence.contents.put_text(content.to_s), :chat_message,
+          metadata: metadata
+        )
+      end
+
+      def before_llm_input_segment?(segment)
+        segment.metadata[SEGMENT_ORIGIN_METADATA_KEY] == BEFORE_LLM_INPUT_ORIGIN
       end
 
       def segment_from_record(record)
