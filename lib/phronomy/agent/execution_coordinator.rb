@@ -124,16 +124,18 @@ module Phronomy
             working_records: current.working_records + encoded_records,
             llm_calls: current.llm_calls + call_records
           )
+          invocation_config = activation.invocation&.config || {}
           patch = @agent.send(
             :run_before_llm_input_hooks,
             call_sequence: staged.llm_calls.length + 1,
-            config: activation.invocation&.config || {}
+            config: invocation_config
           )
           manifest, manifest_ref = ContextAssembler.new(
             agent: @agent, persistence: tx
           ).build_followup(
             base_manifest: activation.base_manifest,
-            agent_root: root, execution: staged, patch: patch
+            agent_root: root, execution: staged,
+            config: invocation_config, patch: patch
           )
           refs = Array(staged.metadata["manifest_refs"]) + [manifest_ref]
           updated = staged.with(

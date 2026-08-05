@@ -44,10 +44,15 @@ module Phronomy
         )
       end
 
-      def build_followup(base_manifest:, agent_root:, execution:, patch: LLMInputPatch.empty)
+      def build_followup(
+        base_manifest:,
+        agent_root:,
+        execution:,
+        config: {},
+        patch: LLMInputPatch.empty
+      )
         projection = JournalProjection.new(persistence: @persistence, agent_root: agent_root)
-        base_model = fetch_json(base_manifest.model_config_ref)
-        model_cfg = apply_model_config_patch(base_model, patch.model_config_patch)
+        model_cfg = effective_model_config(config, patch)
         candidates = normalize_candidates(patch.segment_candidates)
         system_segments = base_manifest.segments.select { |s| s.role == :system }
         working_records = execution.working_records.select do |record|

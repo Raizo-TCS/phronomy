@@ -33,4 +33,75 @@ RSpec.describe "stateful manifest follow-up regressions" do
       )
     }.to raise_error(Phronomy::InvalidContextBudgetConfigurationError)
   end
+
+  describe "build_followup model config base" do
+    let(:persistence) { Phronomy::Persistence::InMemory.new }
+    let(:agent_class) do
+      Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "followup-model-test", version: 1
+        model "base-model"
+      end
+    end
+    let(:agent) { agent_class.new(persistence: persistence) }
+
+    def build_test_manifest(model_name)
+      model_cfg = {"model" => model_name}
+      model_ref = persistence.contents.put_json(model_cfg)
+      tool_ref  = persistence.contents.put_json([])
+      Phronomy::Agent::LLMInputManifest.new(
+        call_sequence: 1, call_mode: :complete,
+        segments: [], model_config_ref: model_ref,
+        tool_definitions_ref: tool_ref,
+        assembly_policy_version: 2, ruby_llm_version: nil, adapter_name: "test"
+      )
+    end
+
+    def resolve_model_from_manifest(manifest)
+      JSON.parse(persistence.contents.fetch_text(manifest.model_config_ref))["model"]
+    end
+
+    it "applies each follow-up patch to the agent base config, not the initial Manifest" do
+      root = agent.instance_variable_get(:@root)
+      execution = Phronomy::Agent::AgentExecution.start(
+        agent_root: root,
+        input_record: Phronomy::Agent::JournalRecord.new(
+          agent_id: agent.agent_id, kind: :input_received,
+          channel: :external, role: :user,
+          content_ref: persistence.contents.put_text("hi"),
+          context_generation: root.transcript_generation, context_candidate: false
+        ),
+        metadata: {}
+      ).with(execution_revision: 0, working_records: [])
+      base_manifest = build_test_manifest("call-one-model")
+
+      assembler = Phronomy::Agent::ContextAssembler.new(agent: agent, persistence: persistence)
+      result_manifest, _ref = assembler.build_followup(
+        base_manifest: base_manifest, agent_root: root, execution: execution, config: {}
+      )
+      expect(resolve_model_from_manifest(result_manifest)).to eq("base-model")
+    end
+
+    it "applies the current follow-up patch on top of agent base config" do
+      root = agent.instance_variable_get(:@root)
+      execution = Phronomy::Agent::AgentExecution.start(
+        agent_root: root,
+        input_record: Phronomy::Agent::JournalRecord.new(
+          agent_id: agent.agent_id, kind: :input_received,
+          channel: :external, role: :user,
+          content_ref: persistence.contents.put_text("hi"),
+          context_generation: root.transcript_generation, context_candidate: false
+        ),
+        metadata: {}
+      ).with(execution_revision: 0, working_records: [])
+      base_manifest = build_test_manifest("call-one-model")
+
+      patch = Phronomy::Agent::LLMInputPatch.new(model_config_patch: {model: "call-two-model"})
+      assembler = Phronomy::Agent::ContextAssembler.new(agent: agent, persistence: persistence)
+      result_manifest, _ref = assembler.build_followup(
+        base_manifest: base_manifest, agent_root: root, execution: execution,
+        config: {}, patch: patch
+      )
+      expect(resolve_model_from_manifest(result_manifest)).to eq("call-two-model")
+    end
+  end
 end
