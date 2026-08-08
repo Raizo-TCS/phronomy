@@ -131,22 +131,6 @@ t6 = Benchmark.measure("CancellationToken#raise_if_cancelled! (no-op)") do
 end
 
 # ---------------------------------------------------------------------------
-# Target 7: Agent::Base#trim_messages on a 2000-message history
-# ---------------------------------------------------------------------------
-BenchMsg = Struct.new(:content) unless defined?(BenchMsg)
-
-TRIM_MESSAGES = Array.new(2_000) { |i| BenchMsg.new("msg #{i}") }
-TRIM_ITERATIONS = 500
-
-bench_trim_agent = Class.new(Phronomy::Agent::Base).new
-
-t7 = Benchmark.measure("Agent::Base#trim_messages (2000-msg history)") do
-  TRIM_ITERATIONS.times do
-    bench_trim_agent.send(:trim_messages, TRIM_MESSAGES, keep: 1_800)
-  end
-end
-
-# ---------------------------------------------------------------------------
 # Print results and store in REGRESSION_RESULTS
 # ---------------------------------------------------------------------------
 puts "=== bench_regression ==="
@@ -159,8 +143,7 @@ metrics = {
   "tool_params_schema_definition" => [t3, REGRESSION_ITERATIONS],
   "dispatch_parallel_10" => [t4, PARALLEL_ITERATIONS],
   "cancellation_token_cancelled" => [t5, 8 * CANCEL_ITERATIONS],
-  "cancellation_token_raise_if_cancelled_noop" => [t6, RAISE_ITERATIONS],
-  "trim_messages_2000" => [t7, TRIM_ITERATIONS]
+  "cancellation_token_raise_if_cancelled_noop" => [t6, RAISE_ITERATIONS]
 }
 
 REGRESSION_RESULTS = {} # rubocop:disable Style/MutableConstant
