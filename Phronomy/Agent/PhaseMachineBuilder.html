@@ -384,7 +384,19 @@ not await Tasks or register Task callbacks.</p>
 109
 110
 111
-112</pre>
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/phase_machine_builder.rb', line 27</span>
@@ -464,6 +476,18 @@ not await Tasks or register Task callbacks.</p>
         <span class='id identifier rubyid_transition'>transition</span> <span class='label'>suspended:</span> <span class='symbol'>:waiting_for_tools</span>
       <span class='kw'>end</span>
 
+      <span class='id identifier rubyid_event'>event</span> <span class='symbol'>:application_callback_failed</span> <span class='kw'>do</span>
+        <span class='id identifier rubyid_transition'>transition</span> <span class='label'>filtering_input:</span> <span class='symbol'>:failed</span>
+        <span class='id identifier rubyid_transition'>transition</span> <span class='label'>building_context:</span> <span class='symbol'>:failed</span>
+        <span class='id identifier rubyid_transition'>transition</span> <span class='label'>calling_llm:</span> <span class='symbol'>:failed</span>
+        <span class='id identifier rubyid_transition'>transition</span> <span class='label'>starting_tools:</span> <span class='symbol'>:failed</span>
+        <span class='id identifier rubyid_transition'>transition</span> <span class='label'>evaluating_tools:</span> <span class='symbol'>:failed</span>
+        <span class='id identifier rubyid_transition'>transition</span> <span class='label'>waiting_for_tools:</span> <span class='symbol'>:failed</span>
+        <span class='id identifier rubyid_transition'>transition</span> <span class='label'>dispatching_tools:</span> <span class='symbol'>:failed</span>
+        <span class='id identifier rubyid_transition'>transition</span> <span class='label'>recording_tool_results:</span> <span class='symbol'>:failed</span>
+        <span class='id identifier rubyid_transition'>transition</span> <span class='label'>output_filtering:</span> <span class='symbol'>:failed</span>
+      <span class='kw'>end</span>
+
       <span class='id identifier rubyid_entry_actions'>entry_actions</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_state_name'>state_name</span><span class='comma'>,</span> <span class='id identifier rubyid_callables'>callables</span><span class='op'>|</span>
         <span class='id identifier rubyid_callables'>callables</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_callable'>callable</span><span class='op'>|</span>
           <span class='id identifier rubyid_after_transition'>after_transition</span><span class='lparen'>(</span>
@@ -485,7 +509,7 @@ not await Tasks or register Task callbacks.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Aug  3 00:18:26 2026 by
+  Generated on Sat Aug  8 06:59:03 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

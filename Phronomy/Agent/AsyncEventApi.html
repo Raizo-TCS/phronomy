@@ -64,7 +64,7 @@
       <div id="content"><h1>Module: Phronomy::Agent::AsyncEventApi
   
   
-  <span class="private note title">Private</span>
+  
 </h1>
 <div class="box_info">
   
@@ -93,14 +93,8 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This module is part of a private API.</strong>
-  You should avoid using this module if possible, as it may be removed or be changed in the future.
-</p>
-<p>Symmetric Agent async event contract layered onto Agent::Base.</p>
-<p>invoke_async and stream_async share lifecycle/tool events. stream_async
-additionally emits :token events. The returned Task remains a normal Task
-and is settled after the terminal event listener returns.</p>
+    <p>Public Agent execution API. Agent instances are always stateful and all
+operations are coordinated through Phronomy::Persistence.</p>
 
   </div>
 </div>
@@ -125,7 +119,7 @@ and is settled after the terminal event listener returns.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#invoke-instance_method" title="#invoke (instance method)">#<strong>invoke</strong>(input, messages: [], thread_id: nil, config: {}, invocation_context: nil, on_event: nil)  &#x21d2; Hash </a>
+      <a href="#approve-instance_method" title="#approve (instance method)">#<strong>approve</strong>(execution_id, approval_request_id:, approved: true, config: {})  &#x21d2; Object </a>
     
 
     
@@ -139,7 +133,7 @@ and is settled after the terminal event listener returns.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Invokes the agent synchronously and returns the terminal result.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -147,7 +141,7 @@ and is settled after the terminal event listener returns.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#invoke_async-instance_method" title="#invoke_async (instance method)">#<strong>invoke_async</strong>(input, messages: [], thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil)  &#x21d2; Phronomy::Task </a>
+      <a href="#approve_async-instance_method" title="#approve_async (instance method)">#<strong>approve_async</strong>(execution_id, approval_request_id:, approved: true, config: {})  &#x21d2; Object </a>
     
 
     
@@ -161,7 +155,7 @@ and is settled after the terminal event listener returns.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Invokes the agent asynchronously.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -169,7 +163,7 @@ and is settled after the terminal event listener returns.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#stream-instance_method" title="#stream (instance method)">#<strong>stream</strong>(input, messages: [], thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil) {|event| ... } &#x21d2; Hash </a>
+      <a href="#invoke-instance_method" title="#invoke (instance method)">#<strong>invoke</strong>(input, thread_id: nil, config: {}, invocation_context: nil, on_event: nil)  &#x21d2; Object </a>
     
 
     
@@ -183,7 +177,7 @@ and is settled after the terminal event listener returns.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Invokes the agent synchronously and emits streaming events.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -191,7 +185,7 @@ and is settled after the terminal event listener returns.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#stream_async-instance_method" title="#stream_async (instance method)">#<strong>stream_async</strong>(input, messages: [], thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil) {|event| ... } &#x21d2; Phronomy::Task </a>
+      <a href="#invoke_async-instance_method" title="#invoke_async (instance method)">#<strong>invoke_async</strong>(input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil)  &#x21d2; Object </a>
     
 
     
@@ -205,7 +199,51 @@ and is settled after the terminal event listener returns.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Invokes the agent asynchronously and emits streaming events.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#stream-instance_method" title="#stream (instance method)">#<strong>stream</strong>(input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil, &amp;block)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#stream_async-instance_method" title="#stream_async (instance method)">#<strong>stream_async</strong>(input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil, &amp;block)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -221,162 +259,161 @@ and is settled after the terminal event listener returns.</p>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="invoke-instance_method">
+  <h3 class="signature first" id="approve-instance_method">
   
-    #<strong>invoke</strong>(input, messages: [], thread_id: nil, config: {}, invocation_context: nil, on_event: nil)  &#x21d2; <tt>Hash</tt> 
-  
-
+    #<strong>approve</strong>(execution_id, approval_request_id:, approved: true, config: {})  &#x21d2; <tt>Object</tt> 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Invokes the agent synchronously and returns the terminal result.</p>
-<p>Provider errors are translated after the configured LLM adapter returns
-its final result. Phronomy does not replay the Agent invocation.</p>
 
-  </div>
-</div>
-<div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>input</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>Hash</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>user input for this invocation</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>messages</span>
-      
-      
-        <span class='type'>(<tt>Array&lt;RubyLLM::Message&gt;</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>[]</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>conversation history</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>thread_id</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>conversation thread identifier</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>config</span>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>{}</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>additional runtime options</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>invocation_context</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../InvocationContext.html" title="Phronomy::InvocationContext (class)">Phronomy::InvocationContext</a></span></tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>first-class invocation context</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>on_event</span>
-      
-      
-        <span class='type'>(<tt>Proc</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>listener for lifecycle and Tool events</p></div>
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>terminal invocation result</p></div>
-      
-    </li>
-  
-</ul>
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../SchedulerReentrancyError.html" title="Phronomy::SchedulerReentrancyError (class)">Phronomy::SchedulerReentrancyError</a></span></tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>when called from the
-EventLoop thread or a guarded scheduler context</p></div>
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
+100
+101
+102
+103
+104
+105
+106
+107
+108</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 100</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_approve'>approve</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid__check_scheduler_reentrancy'>_check_scheduler_reentrancy</span><span class='lparen'>(</span><span class='symbol'>:approve</span><span class='comma'>,</span> <span class='symbol'>:approve_async</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_approve_async'>approve_async</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
+    <span class='label'>approval_request_id:</span> <span class='id identifier rubyid_approval_request_id'>approval_request_id</span><span class='comma'>,</span>
+    <span class='label'>approved:</span> <span class='id identifier rubyid_approved'>approved</span><span class='comma'>,</span>
+    <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span>
+  <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="approve_async-instance_method">
+  
+    #<strong>approve_async</strong>(execution_id, approval_request_id:, approved: true, config: {})  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+110
+111
+112
+113
+114
+115
+116
+117</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 110</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_approve_async'>approve_async</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_execution_coordinator'>execution_coordinator</span><span class='period'>.</span><span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
+    <span class='label'>approval_request_id:</span> <span class='id identifier rubyid_approval_request_id'>approval_request_id</span><span class='comma'>,</span>
+    <span class='label'>approved:</span> <span class='id identifier rubyid_approved'>approved</span><span class='comma'>,</span>
+    <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span>
+  <span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="invoke-instance_method">
+  
+    #<strong>invoke</strong>(input, thread_id: nil, config: {}, invocation_context: nil, on_event: nil)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 8</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on_event:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span>
+    <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid__apply_invocation_context'>_apply_invocation_context</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid__check_scheduler_reentrancy'>_check_scheduler_reentrancy</span><span class='lparen'>(</span><span class='symbol'>:invoke</span><span class='comma'>,</span> <span class='symbol'>:invoke_async</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent.invoke</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid__build_caller_meta'>_build_caller_meta</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid__span'>_span</span><span class='op'>|</span>
+    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span>
+      <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
+      <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
+      <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
+      <span class='label'>on_event:</span> <span class='id identifier rubyid_on_event'>on_event</span>
+    <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
+    <span class='lbracket'>[</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:usage</span><span class='rbracket'>]</span><span class='rbracket'>]</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="invoke_async-instance_method">
+  
+    #<strong>invoke_async</strong>(input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+24
+25
+26
+27
+28
 29
 30
 31
@@ -393,8 +430,75 @@ EventLoop thread or a guarded scheduler context</p></div>
 42
 43
 44
-45
-46
+45</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 24</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span>
+  <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
+  <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span>
+  <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
+  <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span>
+  <span class='label'>on_tool_approval_required:</span> <span class='kw'>nil</span><span class='comma'>,</span>
+  <span class='label'>on_event:</span> <span class='kw'>nil</span>
+<span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span>
+    <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid__apply_invocation_context'>_apply_invocation_context</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_approval'>approval</span> <span class='op'>=</span> <span class='id identifier rubyid__approval_configuration_snapshot'>_approval_configuration_snapshot</span><span class='lparen'>(</span><span class='id identifier rubyid_on_tool_approval_required'>on_tool_approval_required</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_execution_coordinator'>execution_coordinator</span><span class='period'>.</span><span class='id identifier rubyid_start'>start</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
+    <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
+    <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
+    <span class='label'>mode:</span> <span class='symbol'>:invoke</span><span class='comma'>,</span>
+    <span class='label'>approval_policy:</span> <span class='id identifier rubyid_approval'>approval</span><span class='lbracket'>[</span><span class='symbol'>:policy</span><span class='rbracket'>]</span><span class='comma'>,</span>
+    <span class='label'>approval_listener:</span> <span class='id identifier rubyid_approval'>approval</span><span class='lbracket'>[</span><span class='symbol'>:listener</span><span class='rbracket'>]</span><span class='comma'>,</span>
+    <span class='label'>on_event:</span> <span class='id identifier rubyid_on_event'>on_event</span>
+  <span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="stream-instance_method">
+  
+    #<strong>stream</strong>(input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil, &amp;block)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
 47
 48
 49
@@ -408,39 +512,45 @@ EventLoop thread or a guarded scheduler context</p></div>
 57
 58
 59
-60</pre>
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 47</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
-  <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span>
   <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
   <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>on_event:</span> <span class='kw'>nil</span>
+  <span class='label'>on_tool_approval_required:</span> <span class='kw'>nil</span><span class='comma'>,</span>
+  <span class='label'>on_event:</span> <span class='kw'>nil</span><span class='comma'>,</span>
+  <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span>
 <span class='rparen'>)</span>
+  <span class='id identifier rubyid_listener'>listener</span> <span class='op'>=</span> <span class='id identifier rubyid_resolve_event_listener'>resolve_event_listener</span><span class='lparen'>(</span><span class='id identifier rubyid_on_event'>on_event</span><span class='comma'>,</span> <span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stream requires on_event: or a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_listener'>listener</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span>
-    <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid__apply_invocation_context'>_apply_invocation_context</span><span class='lparen'>(</span>
-      <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
-      <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
-      <span class='id identifier rubyid_invocation_context'>invocation_context</span>
-    <span class='rparen'>)</span>
+    <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid__apply_invocation_context'>_apply_invocation_context</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
-  <span class='id identifier rubyid__check_scheduler_reentrancy'>_check_scheduler_reentrancy</span><span class='lparen'>(</span><span class='symbol'>:invoke</span><span class='comma'>,</span> <span class='symbol'>:invoke_async</span><span class='rparen'>)</span>
-
-  <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span>
-    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent.invoke</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
-    <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
-    <span class='op'>**</span><span class='id identifier rubyid__build_caller_meta'>_build_caller_meta</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
-  <span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid__span'>_span</span><span class='op'>|</span>
-    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span>
+  <span class='id identifier rubyid__check_scheduler_reentrancy'>_check_scheduler_reentrancy</span><span class='lparen'>(</span><span class='symbol'>:stream</span><span class='comma'>,</span> <span class='symbol'>:stream_async</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent.stream</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid__build_caller_meta'>_build_caller_meta</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid__span'>_span</span><span class='op'>|</span>
+    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_stream_async'>stream_async</span><span class='lparen'>(</span>
       <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
-      <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span>
       <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
       <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
-      <span class='label'>on_event:</span> <span class='id identifier rubyid_on_event'>on_event</span>
+      <span class='label'>on_tool_approval_required:</span> <span class='id identifier rubyid_on_tool_approval_required'>on_tool_approval_required</span><span class='comma'>,</span>
+      <span class='label'>on_event:</span> <span class='id identifier rubyid_listener'>listener</span>
     <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
     <span class='lbracket'>[</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:usage</span><span class='rbracket'>]</span><span class='rbracket'>]</span>
   <span class='kw'>end</span>
@@ -451,9 +561,9 @@ EventLoop thread or a guarded scheduler context</p></div>
 </div>
     
       <div class="method_details ">
-  <h3 class="signature " id="invoke_async-instance_method">
+  <h3 class="signature " id="stream_async-instance_method">
   
-    #<strong>invoke_async</strong>(input, messages: [], thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil)  &#x21d2; <tt><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt> 
+    #<strong>stream_async</strong>(input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil, &amp;block)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -461,142 +571,21 @@ EventLoop thread or a guarded scheduler context</p></div>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Invokes the agent asynchronously.</p>
-<p>The returned Task settles after the terminal event listener returns.
-Lifecycle and Tool events are delivered from the Runtime-owned
-EventLoop thread.</p>
+    
 
   </div>
 </div>
 <div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>input</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>Hash</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>user input for this invocation</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>messages</span>
-      
-      
-        <span class='type'>(<tt>Array&lt;RubyLLM::Message&gt;</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>[]</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>conversation history</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>thread_id</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>conversation thread identifier</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>config</span>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>{}</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>additional runtime options</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>invocation_context</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../InvocationContext.html" title="Phronomy::InvocationContext (class)">Phronomy::InvocationContext</a></span></tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>first-class invocation context</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>on_tool_approval_required</span>
-      
-      
-        <span class='type'>(<tt>Proc</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>per-invocation approval
-notification listener</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>on_event</span>
-      
-      
-        <span class='type'>(<tt>Proc</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>listener for lifecycle and Tool events</p></div>
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
+<p class="tag_title">Raises:</p>
+<ul class="raise">
   
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt>)</span>
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
       
       
-      
-        &mdash;
-        <div class='inline'><p>Task resolving to the terminal result</p></div>
       
     </li>
   
@@ -608,6 +597,11 @@ notification listener</p></div>
       <pre class="lines">
 
 
+74
+75
+76
+77
+78
 79
 80
 81
@@ -627,605 +621,13 @@ notification listener</p></div>
 95
 96
 97
-98
-99
-100
-101
-102
-103
-104
-105
-106
-107
-108
-109
-110
-111
-112
-113
-114</pre>
+98</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 79</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span>
-  <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
-  <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span>
-  <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
-  <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>on_tool_approval_required:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>on_event:</span> <span class='kw'>nil</span>
-<span class='rparen'>)</span>
-  <span class='kw'>if</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span>
-    <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid__apply_invocation_context'>_apply_invocation_context</span><span class='lparen'>(</span>
-      <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
-      <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
-      <span class='id identifier rubyid_invocation_context'>invocation_context</span>
-    <span class='rparen'>)</span>
-  <span class='kw'>end</span>
-
-  <span class='id identifier rubyid_result_task'>result_task</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="../Task.html#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span></span><span class='lparen'>(</span>
-    <span class='label'>name:</span>
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent-</span><span class='embexpr_beg'>#{</span><span class='lparen'>(</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span> <span class='op'>||</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>anonymous</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_downcase'>downcase</span><span class='embexpr_end'>}</span><span class='tstring_content'>-async</span><span class='tstring_end'>&quot;</span></span>
-  <span class='rparen'>)</span>
-  <span class='id identifier rubyid_approval_snapshot'>approval_snapshot</span> <span class='op'>=</span> <span class='id identifier rubyid__approval_configuration_snapshot'>_approval_configuration_snapshot</span><span class='lparen'>(</span>
-    <span class='id identifier rubyid_on_tool_approval_required'>on_tool_approval_required</span>
-  <span class='rparen'>)</span>
-  <span class='id identifier rubyid__start_invocation'>_start_invocation</span><span class='lparen'>(</span>
-    <span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span>
-    <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
-    <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span>
-    <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
-    <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
-    <span class='label'>approval_snapshot:</span> <span class='id identifier rubyid_approval_snapshot'>approval_snapshot</span><span class='comma'>,</span>
-    <span class='label'>mode:</span> <span class='symbol'>:invoke</span><span class='comma'>,</span>
-    <span class='label'>on_event:</span> <span class='id identifier rubyid_on_event'>on_event</span>
-  <span class='rparen'>)</span>
-  <span class='id identifier rubyid_result_task'>result_task</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="stream-instance_method">
-  
-    #<strong>stream</strong>(input, messages: [], thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil) {|event| ... } &#x21d2; <tt>Hash</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Invokes the agent synchronously and emits streaming events.</p>
-<p>Accepts either <code>on_event:</code> or a block. Event callbacks run on the
-Runtime-owned EventLoop thread; the calling thread waits for the final
-Task result.</p>
-
-  </div>
-</div>
-<div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
-  
-    <li>
-      
-        <span class='name'>input</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>Hash</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>user input for this invocation</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>messages</span>
-      
-      
-        <span class='type'>(<tt>Array&lt;RubyLLM::Message&gt;</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>[]</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>conversation history</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>thread_id</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>conversation thread identifier</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>config</span>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>{}</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>additional runtime options</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>invocation_context</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../InvocationContext.html" title="Phronomy::InvocationContext (class)">Phronomy::InvocationContext</a></span></tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>first-class invocation context</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>on_tool_approval_required</span>
-      
-      
-        <span class='type'>(<tt>Proc</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>per-invocation approval
-notification listener</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>on_event</span>
-      
-      
-        <span class='type'>(<tt>Proc</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>event listener</p></div>
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Yield Parameters:</p>
-<ul class="yieldparam">
-  
-    <li>
-      
-        <span class='name'>event</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="StreamEvent.html" title="Phronomy::Agent::StreamEvent (class)">Phronomy::Agent::StreamEvent</a></span></tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>terminal invocation result</p></div>
-      
-    </li>
-  
-</ul>
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>ArgumentError</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>when no listener is supplied or both listener
-forms are supplied</p></div>
-      
-    </li>
-  
-    <li>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../SchedulerReentrancyError.html" title="Phronomy::SchedulerReentrancyError (class)">Phronomy::SchedulerReentrancyError</a></span></tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>when called from the
-EventLoop thread or a guarded scheduler context</p></div>
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-203
-204
-205
-206
-207
-208
-209
-210
-211
-212
-213
-214
-215
-216
-217
-218
-219
-220
-221
-222
-223
-224
-225
-226
-227
-228
-229
-230
-231
-232
-233
-234
-235
-236
-237
-238
-239
-240
-241
-242
-243
-244</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 203</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span>
-  <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
-  <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span>
-  <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
-  <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>on_tool_approval_required:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>on_event:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span>
-<span class='rparen'>)</span>
-  <span class='id identifier rubyid_listener'>listener</span> <span class='op'>=</span> <span class='id identifier rubyid_resolve_event_listener'>resolve_event_listener</span><span class='lparen'>(</span><span class='id identifier rubyid_on_event'>on_event</span><span class='comma'>,</span> <span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='kw'>unless</span> <span class='id identifier rubyid_listener'>listener</span>
-    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span>
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stream requires on_event: or a block</span><span class='tstring_end'>&quot;</span></span>
-  <span class='kw'>end</span>
-
-  <span class='kw'>if</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span>
-    <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid__apply_invocation_context'>_apply_invocation_context</span><span class='lparen'>(</span>
-      <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
-      <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
-      <span class='id identifier rubyid_invocation_context'>invocation_context</span>
-    <span class='rparen'>)</span>
-  <span class='kw'>end</span>
-  <span class='id identifier rubyid__check_scheduler_reentrancy'>_check_scheduler_reentrancy</span><span class='lparen'>(</span><span class='symbol'>:stream</span><span class='comma'>,</span> <span class='symbol'>:stream_async</span><span class='rparen'>)</span>
-
-  <span class='id identifier rubyid_trace'>trace</span><span class='lparen'>(</span>
-    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent.stream</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
-    <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
-    <span class='op'>**</span><span class='id identifier rubyid__build_caller_meta'>_build_caller_meta</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
-  <span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid__span'>_span</span><span class='op'>|</span>
-    <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_stream_async'>stream_async</span><span class='lparen'>(</span>
-      <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
-      <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span>
-      <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
-      <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
-      <span class='label'>on_tool_approval_required:</span>
-        <span class='id identifier rubyid_on_tool_approval_required'>on_tool_approval_required</span><span class='comma'>,</span>
-      <span class='label'>on_event:</span> <span class='id identifier rubyid_listener'>listener</span>
-    <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
-    <span class='lbracket'>[</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:usage</span><span class='rbracket'>]</span><span class='rbracket'>]</span>
-  <span class='kw'>end</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="stream_async-instance_method">
-  
-    #<strong>stream_async</strong>(input, messages: [], thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil) {|event| ... } &#x21d2; <tt><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Invokes the agent asynchronously and emits streaming events.</p>
-<p>Accepts either <code>on_event:</code> or a block. Supplying both is rejected.
-Token events are emitted only by streaming invocations; lifecycle and
-Tool events use the same contract as <span class='object_link'><a href="#invoke_async-instance_method" title="Phronomy::Agent::AsyncEventApi#invoke_async (method)">#invoke_async</a></span>.</p>
-
-  </div>
-</div>
-<div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
-  
-    <li>
-      
-        <span class='name'>input</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>Hash</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>user input for this invocation</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>messages</span>
-      
-      
-        <span class='type'>(<tt>Array&lt;RubyLLM::Message&gt;</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>[]</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>conversation history</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>thread_id</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>conversation thread identifier</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>config</span>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>{}</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>additional runtime options</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>invocation_context</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../InvocationContext.html" title="Phronomy::InvocationContext (class)">Phronomy::InvocationContext</a></span></tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>first-class invocation context</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>on_tool_approval_required</span>
-      
-      
-        <span class='type'>(<tt>Proc</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>per-invocation approval
-notification listener</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>on_event</span>
-      
-      
-        <span class='type'>(<tt>Proc</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>event listener</p></div>
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Yield Parameters:</p>
-<ul class="yieldparam">
-  
-    <li>
-      
-        <span class='name'>event</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="StreamEvent.html" title="Phronomy::Agent::StreamEvent (class)">Phronomy::Agent::StreamEvent</a></span></tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Phronomy::Task</a></span></tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>Task resolving to the terminal result</p></div>
-      
-    </li>
-  
-</ul>
-<p class="tag_title">Raises:</p>
-<ul class="raise">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>ArgumentError</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>when no listener is supplied or both listener
-forms are supplied</p></div>
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-136
-137
-138
-139
-140
-141
-142
-143
-144
-145
-146
-147
-148
-149
-150
-151
-152
-153
-154
-155
-156
-157
-158
-159
-160
-161
-162
-163
-164
-165
-166
-167
-168
-169
-170
-171
-172
-173
-174
-175
-176
-177
-178
-179</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 136</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 74</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream_async'>stream_async</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
-  <span class='label'>messages:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span>
   <span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
   <span class='label'>invocation_context:</span> <span class='kw'>nil</span><span class='comma'>,</span>
@@ -1234,38 +636,20 @@ forms are supplied</p></div>
   <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span>
 <span class='rparen'>)</span>
   <span class='id identifier rubyid_listener'>listener</span> <span class='op'>=</span> <span class='id identifier rubyid_resolve_event_listener'>resolve_event_listener</span><span class='lparen'>(</span><span class='id identifier rubyid_on_event'>on_event</span><span class='comma'>,</span> <span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='kw'>unless</span> <span class='id identifier rubyid_listener'>listener</span>
-    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span>
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stream_async requires on_event: or a block</span><span class='tstring_end'>&quot;</span></span>
-  <span class='kw'>end</span>
-
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stream_async requires on_event: or a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_listener'>listener</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span>
-    <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid__apply_invocation_context'>_apply_invocation_context</span><span class='lparen'>(</span>
-      <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
-      <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
-      <span class='id identifier rubyid_invocation_context'>invocation_context</span>
-    <span class='rparen'>)</span>
+    <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid__apply_invocation_context'>_apply_invocation_context</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
-
-  <span class='id identifier rubyid_result_task'>result_task</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="../Task.html#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span></span><span class='lparen'>(</span>
-    <span class='label'>name:</span>
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent-</span><span class='embexpr_beg'>#{</span><span class='lparen'>(</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span> <span class='op'>||</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>anonymous</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_downcase'>downcase</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span> \
-      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-stream-async</span><span class='tstring_end'>&quot;</span></span>
-  <span class='rparen'>)</span>
-  <span class='id identifier rubyid_approval_snapshot'>approval_snapshot</span> <span class='op'>=</span> <span class='id identifier rubyid__approval_configuration_snapshot'>_approval_configuration_snapshot</span><span class='lparen'>(</span>
-    <span class='id identifier rubyid_on_tool_approval_required'>on_tool_approval_required</span>
-  <span class='rparen'>)</span>
-  <span class='id identifier rubyid__start_invocation'>_start_invocation</span><span class='lparen'>(</span>
-    <span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span>
+  <span class='id identifier rubyid_approval'>approval</span> <span class='op'>=</span> <span class='id identifier rubyid__approval_configuration_snapshot'>_approval_configuration_snapshot</span><span class='lparen'>(</span><span class='id identifier rubyid_on_tool_approval_required'>on_tool_approval_required</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_execution_coordinator'>execution_coordinator</span><span class='period'>.</span><span class='id identifier rubyid_start'>start</span><span class='lparen'>(</span>
     <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
-    <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span>
     <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
     <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
-    <span class='label'>approval_snapshot:</span> <span class='id identifier rubyid_approval_snapshot'>approval_snapshot</span><span class='comma'>,</span>
     <span class='label'>mode:</span> <span class='symbol'>:stream</span><span class='comma'>,</span>
+    <span class='label'>approval_policy:</span> <span class='id identifier rubyid_approval'>approval</span><span class='lbracket'>[</span><span class='symbol'>:policy</span><span class='rbracket'>]</span><span class='comma'>,</span>
+    <span class='label'>approval_listener:</span> <span class='id identifier rubyid_approval'>approval</span><span class='lbracket'>[</span><span class='symbol'>:listener</span><span class='rbracket'>]</span><span class='comma'>,</span>
     <span class='label'>on_event:</span> <span class='id identifier rubyid_listener'>listener</span>
   <span class='rparen'>)</span>
-  <span class='id identifier rubyid_result_task'>result_task</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1277,7 +661,7 @@ forms are supplied</p></div>
 </div>
 
       <div id="footer">
-  Generated on Mon Aug  3 00:18:23 2026 by
+  Generated on Sat Aug  8 06:59:00 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

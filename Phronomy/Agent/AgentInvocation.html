@@ -173,6 +173,24 @@ both the Application listener and the returned Task.</p>
 </span><span class='words_sep'>  </span><span class='tstring_content'>llm_failed</span><span class='words_sep'>
 </span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
       
+        <dt id="CALLBACK_FAILED_EVENTS-constant" class="">CALLBACK_FAILED_EVENTS =
+          <div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This constant is part of a private API.</strong>
+  You should avoid using this constant if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='qsymbols_beg'>%i[</span><span class='tstring_content'>application_callback_failed</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
+      
     </dl>
   
 
@@ -342,6 +360,33 @@ both the Application listener and the returned Task.</p>
   <span class="summary_signature">
     
       <a href="#config-instance_method" title="#config (instance method)">#<strong>config</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#current_llm_call_id-instance_method" title="#current_llm_call_id (instance method)">#<strong>current_llm_call_id</strong>  &#x21d2; Object </a>
     
 
     
@@ -728,6 +773,33 @@ both the Application listener and the returned Task.</p>
       <li class="public ">
   <span class="summary_signature">
     
+      <a href="#tool_batch_llm_call_id-instance_method" title="#tool_batch_llm_call_id (instance method)">#<strong>tool_batch_llm_call_id</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#tool_invocations-instance_method" title="#tool_invocations (instance method)">#<strong>tool_invocations</strong>  &#x21d2; Object </a>
     
 
@@ -816,7 +888,7 @@ both the Application listener and the returned Task.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#accept_tool_calls!-instance_method" title="#accept_tool_calls! (instance method)">#<strong>accept_tool_calls!</strong>(tool_calls)  &#x21d2; Object </a>
+      <a href="#accept_tool_calls!-instance_method" title="#accept_tool_calls! (instance method)">#<strong>accept_tool_calls!</strong>(tool_calls, llm_call_id: nil)  &#x21d2; Object </a>
     
 
     
@@ -852,7 +924,7 @@ both the Application listener and the returned Task.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Deprecated internal compatibility hook.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -927,6 +999,28 @@ both the Application listener and the returned Task.</p>
   <span class="summary_signature">
     
       <a href="#begin_approval_resume!-instance_method" title="#begin_approval_resume! (instance method)">#<strong>begin_approval_resume!</strong>(approved:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#begin_llm_call!-instance_method" title="#begin_llm_call! (instance method)">#<strong>begin_llm_call!</strong>(llm_call_id)  &#x21d2; Object </a>
     
 
     
@@ -1250,7 +1344,7 @@ both the Application listener and the returned Task.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Compatibility aliases for existing internal callers.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -1466,10 +1560,6 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-55
-56
-57
-58
 59
 60
 61
@@ -1510,10 +1600,16 @@ both the Application listener and the returned Task.</p>
 96
 97
 98
-99</pre>
+99
+100
+101
+102
+103
+104
+105</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 55</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 59</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>agent:</span><span class='comma'>,</span>
@@ -1559,6 +1655,8 @@ both the Application listener and the returned Task.</p>
   <span class='ivar'>@error</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@session_id</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@phase</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@current_llm_call_id</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@tool_batch_llm_call_id</span> <span class='op'>=</span> <span class='kw'>nil</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1600,12 +1698,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-43
-44
-45</pre>
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_agent'>agent</span>
   <span class='ivar'>@agent</span>
@@ -1645,12 +1743,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-43
-44
-45</pre>
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approval_listener'>approval_listener</span>
   <span class='ivar'>@approval_listener</span>
@@ -1690,12 +1788,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-43
-44
-45</pre>
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approval_policy'>approval_policy</span>
   <span class='ivar'>@approval_policy</span>
@@ -1735,12 +1833,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-29
-30
-31</pre>
+31
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approval_request'>approval_request</span>
   <span class='ivar'>@approval_request</span>
@@ -1780,12 +1878,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-29
-30
-31</pre>
+31
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_block_error'>block_error</span>
   <span class='ivar'>@block_error</span>
@@ -1825,12 +1923,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-29
-30
-31</pre>
+31
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_chat'>chat</span>
   <span class='ivar'>@chat</span>
@@ -1870,15 +1968,60 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-43
-44
-45</pre>
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_config'>config</span>
   <span class='ivar'>@config</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="current_llm_call_id-instance_method">
+  
+    #<strong>current_llm_call_id</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+45
+46
+47</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 45</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_current_llm_call_id'>current_llm_call_id</span>
+  <span class='ivar'>@current_llm_call_id</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1915,12 +2058,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-29
-30
-31</pre>
+31
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_error'>error</span>
   <span class='ivar'>@error</span>
@@ -1960,12 +2103,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-29
-30
-31</pre>
+31
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_listener'>event_listener</span>
   <span class='ivar'>@event_listener</span>
@@ -2005,12 +2148,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-43
-44
-45</pre>
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_id'>id</span>
   <span class='ivar'>@id</span>
@@ -2050,12 +2193,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-29
-30
-31</pre>
+31
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_input'>input</span>
   <span class='ivar'>@input</span>
@@ -2095,12 +2238,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-29
-30
-31</pre>
+31
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_input_blocked'>input_blocked</span>
   <span class='ivar'>@input_blocked</span>
@@ -2140,12 +2283,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-29
-30
-31</pre>
+31
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_messages'>messages</span>
   <span class='ivar'>@messages</span>
@@ -2185,12 +2328,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-43
-44
-45</pre>
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_mode'>mode</span>
   <span class='ivar'>@mode</span>
@@ -2230,12 +2373,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-29
-30
-31</pre>
+31
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_output'>output</span>
   <span class='ivar'>@output</span>
@@ -2275,12 +2418,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-29
-30
-31</pre>
+31
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_output_blocked'>output_blocked</span>
   <span class='ivar'>@output_blocked</span>
@@ -2320,12 +2463,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-43
-44
-45</pre>
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pending_tool_calls'>pending_tool_calls</span>
   <span class='ivar'>@pending_tool_calls</span>
@@ -2365,12 +2508,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-43
-44
-45</pre>
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_phase'>phase</span>
   <span class='ivar'>@phase</span>
@@ -2410,12 +2553,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-29
-30
-31</pre>
+31
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_rejected'>rejected</span>
   <span class='ivar'>@rejected</span>
@@ -2455,12 +2598,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-43
-44
-45</pre>
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_session_id'>session_id</span>
   <span class='ivar'>@session_id</span>
@@ -2500,15 +2643,60 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-43
-44
-45</pre>
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
   <span class='ivar'>@thread_id</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="tool_batch_llm_call_id-instance_method">
+  
+    #<strong>tool_batch_llm_call_id</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+45
+46
+47</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 45</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_tool_batch_llm_call_id'>tool_batch_llm_call_id</span>
+  <span class='ivar'>@tool_batch_llm_call_id</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -2545,12 +2733,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-43
-44
-45</pre>
+45
+46
+47</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 45</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_invocations'>tool_invocations</span>
   <span class='ivar'>@tool_invocations</span>
@@ -2590,12 +2778,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-29
-30
-31</pre>
+31
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_usage'>usage</span>
   <span class='ivar'>@usage</span>
@@ -2635,12 +2823,12 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-29
-30
-31</pre>
+31
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_user_message_sent'>user_message_sent</span>
   <span class='ivar'>@user_message_sent</span>
@@ -2660,7 +2848,7 @@ both the Application listener and the returned Task.</p>
       <div class="method_details first">
   <h3 class="signature first" id="accept_tool_calls!-instance_method">
   
-    #<strong>accept_tool_calls!</strong>(tool_calls)  &#x21d2; <tt>Object</tt> 
+    #<strong>accept_tool_calls!</strong>(tool_calls, llm_call_id: nil)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -2685,33 +2873,43 @@ both the Application listener and the returned Task.</p>
       <pre class="lines">
 
 
-188
-189
-190
-191
-192
-193
-194
-195
-196
-197
-198
-199
-200
-201</pre>
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 188</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 202</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_accept_tool_calls!'>accept_tool_calls!</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_calls'>tool_calls</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_accept_tool_calls!'>accept_tool_calls!</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_calls'>tool_calls</span><span class='comma'>,</span> <span class='label'>llm_call_id:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@user_message_sent</span> <span class='op'>=</span> <span class='kw'>true</span>
   <span class='ivar'>@pending_tool_calls</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_calls'>tool_calls</span><span class='rparen'>)</span>
   <span class='ivar'>@messages</span> <span class='op'>=</span> <span class='ivar'>@chat</span><span class='period'>.</span><span class='id identifier rubyid_messages'>messages</span>
+  <span class='ivar'>@tool_batch_llm_call_id</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='id identifier rubyid_llm_call_id'>llm_call_id</span> <span class='op'>||</span> <span class='ivar'>@current_llm_call_id</span><span class='rparen'>)</span><span class='op'>&amp;.</span><span class='id identifier rubyid_to_s'>to_s</span>
+  <span class='ivar'>@current_llm_call_id</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@pending_tool_calls</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_tool_call'>tool_call</span><span class='op'>|</span>
     <span class='id identifier rubyid_deliver_event'>deliver_event</span><span class='lparen'>(</span>
       <span class='const'><span class='object_link'><a href="StreamEvent.html" title="Phronomy::Agent::StreamEvent (class)">StreamEvent</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
         <span class='label'>type:</span> <span class='symbol'>:tool_call</span><span class='comma'>,</span>
-        <span class='label'>payload:</span> <span class='lbrace'>{</span><span class='label'>tool_call:</span> <span class='id identifier rubyid_tool_call'>tool_call</span><span class='rbrace'>}</span>
+        <span class='label'>payload:</span> <span class='lbrace'>{</span>
+          <span class='label'>tool_call:</span> <span class='id identifier rubyid_tool_call'>tool_call</span><span class='comma'>,</span>
+          <span class='label'>llm_call_id:</span> <span class='ivar'>@tool_batch_llm_call_id</span>
+        <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span>
       <span class='rparen'>)</span>
     <span class='rparen'>)</span>
   <span class='kw'>end</span>
@@ -2737,8 +2935,7 @@ both the Application listener and the returned Task.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Deprecated internal compatibility hook. FSMSession no longer calls
-this method; asynchronous results enter through explicit events.</p>
+
 
   </div>
 </div>
@@ -2751,27 +2948,27 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-169
-170
-171
-172
-173
-174
-175
-176
-177
-178
-179
-180
-181
-182
 183
 184
 185
-186</pre>
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 169</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 183</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_apply_fsm_action_result'>apply_fsm_action_result</span><span class='lparen'>(</span><span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_event_type'>event_type</span> <span class='op'>=</span>
@@ -2824,21 +3021,22 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-203
-204
-205
-206
-207
-208
-209
-210
-211
-212
-213
-214</pre>
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 203</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 222</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_apply_llm_response!'>apply_llm_response!</span><span class='lparen'>(</span><span class='id identifier rubyid_response'>response</span><span class='rparen'>)</span>
   <span class='kw'>unless</span> <span class='id identifier rubyid_response'>response</span>
@@ -2850,6 +3048,7 @@ this method; asynchronous results enter through explicit events.</p>
   <span class='ivar'>@usage</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../TokenUsage.html" title="Phronomy::TokenUsage (class)">TokenUsage</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_tokens'><span class='object_link'><a href="../TokenUsage.html#from_tokens-class_method" title="Phronomy::TokenUsage.from_tokens (method)">from_tokens</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_response'>response</span><span class='period'>.</span><span class='id identifier rubyid_tokens'>tokens</span><span class='rparen'>)</span>
   <span class='ivar'>@messages</span> <span class='op'>=</span> <span class='ivar'>@chat</span><span class='period'>.</span><span class='id identifier rubyid_messages'>messages</span>
   <span class='ivar'>@pending_tool_calls</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+  <span class='ivar'>@current_llm_call_id</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -2885,24 +3084,24 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-225
-226
-227
-228
-229
-230
-231
-232
-233
-234
-235
-236
-237
-238
-239</pre>
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 225</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 245</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approval_context'>approval_context</span>
   <span class='kw'>return</span> <span class='ivar'>@config</span><span class='lbracket'>[</span><span class='symbol'>:approval_context</span><span class='rbracket'>]</span> <span class='kw'>if</span> <span class='ivar'>@config</span><span class='lbracket'>[</span><span class='symbol'>:approval_context</span><span class='rbracket'>]</span>
@@ -2965,15 +3164,15 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-304
-305
-306
-307
-308
-309</pre>
+331
+332
+333
+334
+335
+336</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 304</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 331</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approval_required?'>approval_required?</span>
   <span class='op'>!</span><span class='ivar'>@human_rejection</span> <span class='op'>&amp;&amp;</span>
@@ -3014,18 +3213,18 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-241
-242
-243
-244
-245
-246
-247
-248
-249</pre>
+261
+262
+263
+264
+265
+266
+267
+268
+269</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 241</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 261</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_begin_approval_resume!'>begin_approval_resume!</span><span class='lparen'>(</span><span class='label'>approved:</span><span class='rparen'>)</span>
   <span class='ivar'>@human_rejection</span> <span class='op'>=</span> <span class='op'>!</span><span class='id identifier rubyid_approved'>approved</span>
@@ -3034,6 +3233,51 @@ this method; asynchronous results enter through explicit events.</p>
     <span class='period'>.</span><span class='id identifier rubyid_map'>map</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:id</span><span class='rparen'>)</span>
   <span class='ivar'>@approval_resume_in_progress</span> <span class='op'>=</span>
     <span class='op'>!</span><span class='ivar'>@pending_approval_resolution_ids</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
+  <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="begin_llm_call!-instance_method">
+  
+    #<strong>begin_llm_call!</strong>(llm_call_id)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+124
+125
+126
+127</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 124</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_begin_llm_call!'>begin_llm_call!</span><span class='lparen'>(</span><span class='id identifier rubyid_llm_call_id'>llm_call_id</span><span class='rparen'>)</span>
+  <span class='ivar'>@current_llm_call_id</span> <span class='op'>=</span> <span class='id identifier rubyid_llm_call_id'>llm_call_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -3069,19 +3313,21 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-127
-128
-129
-130
-131</pre>
+137
+138
+139
+140
+141
+142</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 127</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 137</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear_tool_batch!'>clear_tool_batch!</span>
   <span class='ivar'>@pending_tool_calls</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
   <span class='ivar'>@tool_invocations</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
   <span class='ivar'>@approval_request</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@tool_batch_llm_call_id</span> <span class='op'>=</span> <span class='kw'>nil</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -3116,17 +3362,6 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-133
-134
-135
-136
-137
-138
-139
-140
-141
-142
-143
 144
 145
 146
@@ -3148,10 +3383,26 @@ this method; asynchronous results enter through explicit events.</p>
 162
 163
 164
-165</pre>
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 133</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 144</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_handle_fsm_event'>handle_fsm_event</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span> <span class='op'>==</span> <span class='symbol'>:llm_stream_chunk</span>
@@ -3166,6 +3417,11 @@ this method; asynchronous results enter through explicit events.</p>
 
   <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="#LLM_EVENT_TYPES-constant" title="Phronomy::Agent::AgentInvocation::LLM_EVENT_TYPES (constant)">LLM_EVENT_TYPES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_apply_llm_event'>apply_llm_event</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
+    <span class='kw'>return</span> <span class='kw'>true</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="#CALLBACK_FAILED_EVENTS-constant" title="Phronomy::Agent::AgentInvocation::CALLBACK_FAILED_EVENTS (constant)">CALLBACK_FAILED_EVENTS</a></span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span><span class='rparen'>)</span>
+    <span class='ivar'>@error</span> <span class='op'>||=</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:failure</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_to_stream_callback_error'>to_stream_callback_error</span>
     <span class='kw'>return</span> <span class='kw'>true</span>
   <span class='kw'>end</span>
 
@@ -3232,12 +3488,12 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-283
-284
-285</pre>
+310
+311
+312</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 283</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 310</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_input_blocked?'>input_blocked?</span>
   <span class='ivar'>@input_blocked</span>
@@ -3288,12 +3544,12 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-279
-280
-281</pre>
+306
+307
+308</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 279</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 306</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_input_passed?'>input_passed?</span>
   <span class='op'>!</span><span class='ivar'>@input_blocked</span>
@@ -3331,13 +3587,13 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-220
-221
-222
-223</pre>
+240
+241
+242
+243</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 220</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 240</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_merge_config!'>merge_config!</span><span class='lparen'>(</span><span class='id identifier rubyid_values'>values</span><span class='rparen'>)</span>
   <span class='ivar'>@config</span><span class='period'>.</span><span class='id identifier rubyid_merge!'>merge!</span><span class='lparen'>(</span><span class='id identifier rubyid_values'>values</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_values'>values</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
@@ -3389,12 +3645,12 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-291
-292
-293</pre>
+318
+319
+320</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 291</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 318</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_output_blocked?'>output_blocked?</span>
   <span class='ivar'>@output_blocked</span>
@@ -3445,12 +3701,12 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-287
-288
-289</pre>
+314
+315
+316</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 287</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 314</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_output_passed?'>output_passed?</span>
   <span class='op'>!</span><span class='ivar'>@output_blocked</span>
@@ -3501,13 +3757,13 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-299
-300
-301
-302</pre>
+326
+327
+328
+329</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 299</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 326</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_preflight_complete?'>preflight_complete?</span>
   <span class='op'>!</span><span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span> <span class='op'>&amp;&amp;</span>
@@ -3546,13 +3802,13 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-251
-252
-253
-254</pre>
+271
+272
+273
+274</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 251</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 271</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_prepare_approval_request!'>prepare_approval_request!</span>
   <span class='ivar'>@approval_request</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ToolApprovalRequest.html" title="Phronomy::Agent::ToolApprovalRequest (class)">ToolApprovalRequest</a></span></span><span class='period'>.</span><span class='id identifier rubyid_build'><span class='object_link'><a href="ToolApprovalRequest.html#build-class_method" title="Phronomy::Agent::ToolApprovalRequest.build (method)">build</a></span></span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
@@ -3604,18 +3860,18 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-311
-312
-313
-314
-315
-316
-317
-318
-319</pre>
+338
+339
+340
+341
+342
+343
+344
+345
+346</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 311</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 338</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_ready_to_dispatch?'>ready_to_dispatch?</span>
   <span class='op'>!</span><span class='ivar'>@approval_resume_in_progress</span> <span class='op'>&amp;&amp;</span>
@@ -3659,37 +3915,45 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-256
-257
-258
-259
-260
-261
-262
-263
-264
-265
-266
-267
-268
-269
-270
-271
-272
-273
-274
-275
 276
-277</pre>
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 256</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 276</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_record_tool_results!'>record_tool_results!</span>
   <span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_invocation'>invocation</span><span class='op'>|</span>
+    <span class='id identifier rubyid_tool_content'>tool_content</span> <span class='op'>=</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='period'>.</span><span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
     <span class='ivar'>@chat</span><span class='period'>.</span><span class='id identifier rubyid_add_message'>add_message</span><span class='lparen'>(</span>
       <span class='label'>role:</span> <span class='symbol'>:tool</span><span class='comma'>,</span>
-      <span class='label'>content:</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='period'>.</span><span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span>
+      <span class='label'>content:</span> <span class='id identifier rubyid_tool_content'>tool_content</span><span class='comma'>,</span>
       <span class='label'>tool_call_id:</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='period'>.</span><span class='id identifier rubyid_tool_call_id'>tool_call_id</span>
     <span class='rparen'>)</span>
     <span class='id identifier rubyid_deliver_event'>deliver_event</span><span class='lparen'>(</span>
@@ -3698,8 +3962,14 @@ this method; asynchronous results enter through explicit events.</p>
         <span class='label'>payload:</span> <span class='lbrace'>{</span>
           <span class='label'>tool_call_id:</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='period'>.</span><span class='id identifier rubyid_tool_call_id'>tool_call_id</span><span class='comma'>,</span>
           <span class='label'>tool_name:</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='period'>.</span><span class='id identifier rubyid_tool_name'>tool_name</span><span class='comma'>,</span>
-          <span class='label'>tool_result:</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='period'>.</span><span class='id identifier rubyid_result'>result</span>
-        <span class='rbrace'>}</span>
+          <span class='label'>tool_result:</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='period'>.</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span>
+          <span class='label'>tool_message:</span> <span class='lbrace'>{</span>
+            <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>role</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+            <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>content</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_tool_content'>tool_content</span><span class='comma'>,</span>
+            <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool_call_id</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='period'>.</span><span class='id identifier rubyid_tool_call_id'>tool_call_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+          <span class='rbrace'>}</span><span class='comma'>,</span>
+          <span class='label'>llm_call_id:</span> <span class='ivar'>@tool_batch_llm_call_id</span>
+        <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span>
       <span class='rparen'>)</span>
     <span class='rparen'>)</span>
   <span class='kw'>end</span>
@@ -3740,13 +4010,13 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-114
-115
-116
-117</pre>
+119
+120
+121
+122</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 114</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 119</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>phase:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@session_id</span> <span class='op'>=</span> <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='kw'>if</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
@@ -3772,7 +4042,7 @@ this method; asynchronous results enter through explicit events.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Compatibility aliases for existing internal callers.</p>
+
 
   </div>
 </div>
@@ -3785,12 +4055,12 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-102
-103
-104</pre>
+107
+108
+109</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 102</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 107</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream_listener'>stream_listener</span>
   <span class='ivar'>@event_listener</span>
@@ -3828,12 +4098,12 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-106
-107
-108</pre>
+111
+112
+113</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 106</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 111</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream_listener='>stream_listener=</span><span class='lparen'>(</span><span class='id identifier rubyid_listener'>listener</span><span class='rparen'>)</span>
   <span class='ivar'>@event_listener</span> <span class='op'>=</span> <span class='id identifier rubyid_listener'>listener</span>
@@ -3884,12 +4154,12 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-110
-111
-112</pre>
+115
+116
+117</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 110</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 115</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_streaming?'>streaming?</span>
   <span class='ivar'>@mode</span> <span class='op'>==</span> <span class='symbol'>:stream</span>
@@ -3940,13 +4210,13 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-349
-350
-351
-352</pre>
+376
+377
+378
+379</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 349</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 376</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_batch_completed?'>tool_batch_completed?</span>
   <span class='id identifier rubyid_tool_batch_terminal?'>tool_batch_terminal?</span> <span class='op'>&amp;&amp;</span>
@@ -3998,25 +4268,25 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-326
-327
-328
-329
-330
-331
-332
-333
-334
-335
-336
-337
-338
-339
-340
-341</pre>
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 326</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 353</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_batch_failed?'>tool_batch_failed?</span>
   <span class='kw'>return</span> <span class='kw'>false</span> <span class='kw'>if</span> <span class='ivar'>@human_rejection</span> <span class='op'>||</span> <span class='ivar'>@approval_resume_in_progress</span>
@@ -4080,14 +4350,14 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-343
-344
-345
-346
-347</pre>
+370
+371
+372
+373
+374</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 343</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 370</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_batch_rejected?'>tool_batch_rejected?</span>
   <span class='kw'>return</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_any?'>any?</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:rejected?</span><span class='rparen'>)</span>
@@ -4140,13 +4410,13 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-321
-322
-323
-324</pre>
+348
+349
+350
+351</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 321</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 348</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_batch_terminal?'>tool_batch_terminal?</span>
   <span class='op'>!</span><span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span> <span class='op'>&amp;&amp;</span>
@@ -4198,12 +4468,12 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-295
-296
-297</pre>
+322
+323
+324</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 295</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 322</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_call_pending?'>tool_call_pending?</span>
   <span class='op'>!</span><span class='ivar'>@pending_tool_calls</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
@@ -4241,12 +4511,12 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-216
-217
-218</pre>
+236
+237
+238</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 216</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation.rb', line 236</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_invocation'>tool_invocation</span><span class='lparen'>(</span><span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
   <span class='ivar'>@tool_invocations</span><span class='period'>.</span><span class='id identifier rubyid_find'>find</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_invocation'>invocation</span><span class='op'>|</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span> <span class='op'>==</span> <span class='id identifier rubyid_id'>id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span> <span class='rbrace'>}</span>
@@ -4261,7 +4531,7 @@ this method; asynchronous results enter through explicit events.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Aug  3 00:18:26 2026 by
+  Generated on Sat Aug  8 06:59:02 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
