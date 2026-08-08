@@ -14,9 +14,10 @@ module Phronomy
     #   4. Conversation — historical messages added via #add_messages
     #
     # Token budgeting:
-    #   When a budget is given, conversation messages are trimmed from oldest to
-    #   newest until they fit. Capability token cost is estimated and deducted
-    #   from the budget before conversation trimming so the reserve is accurate.
+    #   When a budget is given, Assembler validates that the supplied conversation
+    #   messages fit after instruction, knowledge, and capability costs are
+    #   accounted for. It does not prune messages; Manifest-first Context Policy
+    #   is responsible for context selection.
     #   Knowledge chunks are always included in full (they are assumed to be
     #   pre-screened by the caller). When no budget is given all messages are
     #   passed through unchanged.
@@ -44,7 +45,7 @@ module Phronomy
       end
 
       # @param budget [Phronomy::LlmContextWindow::TokenBudget, nil]
-      #   when nil no token trimming is performed
+      #   when nil no budget validation is performed
       # @api private
       # mutant:disable - @instruction = nil deletion is a genuine equivalent (uninitialized Ruby instance variables return nil)
       def initialize(budget: nil)
@@ -57,7 +58,7 @@ module Phronomy
 
       # Register tool classes (Region 2).
       # Estimates their token cost and deducts it from the budget so that
-      # conversation trimming accounts for tool definition overhead.
+      # budget estimation accounts for tool definition overhead.
       #
       # @param tool_classes [Array<Class, Object>] tool classes or instances
       # @return [self]

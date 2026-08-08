@@ -107,6 +107,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove `faraday` and `event_stream_parser` from gemspec declared
   dependencies; both are transitive dependencies of `ruby_llm` and are
   not used directly by phronomy.
+- `Workflow#invoke`, `#invoke_async`, and `#stream` now share context
+  preparation, StateStore load/save, EventLoop registration, and FSMSession
+  execution.
+- Workflow entry and transition action return values use the same
+  `set_graph_metadata` context protocol as FSMSession, including duck-typed
+  context replacements.
+- Agent terminal outcomes are delivered to `on_event` before the returned Task
+  is settled. `Task#on_complete`, `wait_result`, and cancellation remain active.
+- Mapping Agent events to Workflow events, correlation, stale-event handling,
+  result persistence, and external Task cancellation are application concerns.
+- LLM transport timeout, transient-error retry, backoff, and jitter are delegated
+  to RubyLLM or another configured LLM adapter. Phronomy only translates the
+  adapter's final provider error.
+- Agent execution now creates exactly one AgentInvocation session per call.
+- Parallel Tool mode dispatches the complete authorized ToolCall batch; Runtime's
+  bounded workers and queues remain the coarse process-protection boundary.
+- Caller-provided deadline and cancellation-token propagation is unchanged.
 
 ### Removed
 
@@ -136,26 +153,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unused `InvocationContext#provider_limits`.
 - `Configuration#stream_queue_max_size`, which no longer affected the
   Runtime-owned EventLoop streaming path.
-
-### Changed
-
-- `Workflow#invoke`, `#invoke_async`, and `#stream` now share context
-  preparation, StateStore load/save, EventLoop registration, and FSMSession
-  execution.
-- Workflow entry and transition action return values use the same
-  `set_graph_metadata` context protocol as FSMSession, including duck-typed
-  context replacements.
-- Agent terminal outcomes are delivered to `on_event` before the returned Task
-  is settled. `Task#on_complete`, `wait_result`, and cancellation remain active.
-- Mapping Agent events to Workflow events, correlation, stale-event handling,
-  result persistence, and external Task cancellation are application concerns.
-- LLM transport timeout, transient-error retry, backoff, and jitter are delegated
-  to RubyLLM or another configured LLM adapter. Phronomy only translates the
-  adapter's final provider error.
-- Agent execution now creates exactly one AgentInvocation session per call.
-- Parallel Tool mode dispatches the complete authorized ToolCall batch; Runtime's
-  bounded workers and queues remain the coarse process-protection boundary.
-- Caller-provided deadline and cancellation-token propagation is unchanged.
 
 ### Fixed
 

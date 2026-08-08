@@ -15,6 +15,7 @@ module Phronomy
     #
     # @example Minimal agent
     #   class GreetingAgent < Phronomy::Agent::Base
+    #     agent_definition id: "greeting-agent", version: 1
     #     model "gpt-4o-mini"
     #     instructions "You are a friendly greeter."
     #   end
@@ -23,6 +24,7 @@ module Phronomy
     #
     # @example Agent with tools
     #   class ResearchAgent < Phronomy::Agent::Base
+    #     agent_definition id: "research-agent", version: 1
     #     model "gpt-4o"
     #     instructions "You are a research assistant."
     #     tools WebSearchTool, CalculatorTool
