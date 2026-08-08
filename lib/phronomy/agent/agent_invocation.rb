@@ -275,9 +275,10 @@ module Phronomy
 
       def record_tool_results!
         @tool_invocations.each do |invocation|
+          tool_content = invocation.result.to_s
           @chat.add_message(
             role: :tool,
-            content: invocation.result.to_s,
+            content: tool_content,
             tool_call_id: invocation.tool_call_id
           )
           deliver_event(
@@ -287,6 +288,11 @@ module Phronomy
                 tool_call_id: invocation.tool_call_id,
                 tool_name: invocation.tool_name,
                 tool_result: invocation.result,
+                tool_message: {
+                  "role" => "tool",
+                  "content" => tool_content,
+                  "tool_call_id" => invocation.tool_call_id.to_s
+                },
                 llm_call_id: @tool_batch_llm_call_id
               }.compact
             )

@@ -116,9 +116,9 @@ module Phronomy
         index = 0
         while index < segments.length
           segment = segments[index]
-          if assistant_segment?(segment)
-            grouped, consumed = assistant_group(segments, index)
-            result << materialize_assistant_group(grouped)
+          if legacy_assistant_segment?(segment)
+            grouped, consumed = legacy_assistant_group(segments, index)
+            result << materialize_legacy_assistant_group(grouped)
             index += consumed
           else
             result << materialize_segment(segment)
@@ -128,23 +128,26 @@ module Phronomy
         result
       end
 
-      def assistant_segment?(segment)
+      # New canonical records preserve one logical assistant/tool message per
+      # record. These legacy helpers remain only so already-persisted state from
+      # the preceding stateful refactor can still be read during migration.
+      def legacy_assistant_segment?(segment)
         segment.role&.to_sym == :assistant &&
           %i[llm_message tool_call].include?(segment.category.to_sym)
       end
 
-      def assistant_group(segments, start_index)
+      def legacy_assistant_group(segments, start_index)
         first = segments.fetch(start_index)
         llm_call_id = metadata_value(first, "llm_call_id")
-        return runtime_assistant_group(segments, start_index, llm_call_id) if llm_call_id
+        return legacy_runtime_assistant_group(segments, start_index, llm_call_id) if llm_call_id
 
-        import_assistant_group(segments, start_index)
+        legacy_import_assistant_group(segments, start_index)
       end
 
-      def runtime_assistant_group(segments, start_index, llm_call_id)
+      def legacy_runtime_assistant_group(segments, start_index, llm_call_id)
         group = []
         index = start_index
-        while (segment = segments[index]) && assistant_segment?(segment) &&
+        while (segment = segments[index]) && legacy_assistant_segment?(segment) &&
             metadata_value(segment, "llm_call_id").to_s == llm_call_id.to_s
           group << segment
           index += 1
@@ -152,13 +155,13 @@ module Phronomy
         [group, group.length]
       end
 
-      def import_assistant_group(segments, start_index)
+      def legacy_import_assistant_group(segments, start_index)
         first = segments.fetch(start_index)
         group = [first]
         index = start_index + 1
         last = first
 
-        while (segment = segments[index]) && assistant_segment?(segment)
+        while (segment = segments[index]) && legacy_assistant_segment?(segment)
           break unless segment.category.to_sym == :tool_call
           break unless contiguous_source?(last, segment)
           break if metadata_value(segment, "llm_call_id")
@@ -178,7 +181,7 @@ module Phronomy
         Integer(right_sequence) == Integer(left_sequence) + 1
       end
 
-      def materialize_assistant_group(segments)
+      def materialize_legacy_assistant_group(segments)
         content_segments = segments.select { |segment| segment.category.to_sym == :llm_message }
         if content_segments.length > 1
           raise ArgumentError, "ambiguous assistant message group contains multiple content records"
@@ -191,12 +194,7 @@ module Phronomy
           if tool_calls.key?(tool_call_id)
             raise ArgumentError, "duplicate Tool Call in assistant message: #{tool_call_id}"
           end
-          tool_calls[tool_call_id] = RubyLLM::ToolCall.new(
-            id: tool_call_id,
-            name: payload.fetch("name"),
-            arguments: payload.fetch("arguments", {}),
-            thought_signature: payload["thought_signature"]
-          )
+          tool_calls[tool_call_id] = materialize_tool_call(payload)
         end
 
         content = if content_segments.empty?
@@ -214,9 +212,16 @@ module Phronomy
 
       def materialize_segment(segment)
         case segment.category.to_sym
+        when :assistant_message
+          materialize_canonical_message(segment, expected_role: :assistant)
+        when :tool_message
+          materialize_canonical_message(segment, expected_role: :tool)
         when :tool_call
-          materialize_assistant_group([segment])
+          materialize_legacy_assistant_group([segment])
         when :tool_result
+          unless segment.role&.to_sym == :tool
+            raise ArgumentError, "raw Tool result is not an LLM message"
+          end
           RubyLLM::Message.new(
             role: :tool,
             content: @persistence.contents.fetch_text(segment.content_ref),
@@ -230,6 +235,59 @@ module Phronomy
             tool_call_id: segment.tool_call_id
           )
         end
+      end
+
+      def materialize_canonical_message(segment, expected_role:)
+        payload = fetch_json(segment.content_ref)
+        role = payload.fetch("role").to_sym
+        unless role == expected_role
+          raise ArgumentError,
+            "canonical #{segment.category} role mismatch: #{role.inspect}"
+        end
+        if segment.role && segment.role.to_sym != role
+          raise ArgumentError,
+            "manifest role does not match canonical message: #{segment.role.inspect} != #{role.inspect}"
+        end
+
+        tool_calls = materialize_tool_calls(payload["tool_calls"])
+        message = RubyLLM::Message.new(
+          role: role,
+          content: initial_content_for(role, payload.fetch("content", nil), tool_calls),
+          tool_calls: tool_calls.empty? ? nil : tool_calls,
+          tool_call_id: payload["tool_call_id"],
+          model_id: payload["model_id"]
+        )
+
+        # RubyLLM normalizes Hash content during Message initialization. A
+        # canonical message may legitimately contain structured assistant
+        # content, so restore the captured logical value after construction.
+        message.content = payload["content"] if payload.key?("content")
+        message
+      end
+
+      def initial_content_for(role, content, tool_calls)
+        return "" if role == :assistant && content.nil? && !tool_calls.empty?
+
+        content.nil? ? "" : content
+      end
+
+      def materialize_tool_calls(payloads)
+        Array(payloads).each_with_object({}) do |payload, result|
+          tool_call_id = payload.fetch("id").to_s
+          if result.key?(tool_call_id)
+            raise ArgumentError, "duplicate Tool Call in assistant message: #{tool_call_id}"
+          end
+          result[tool_call_id] = materialize_tool_call(payload)
+        end
+      end
+
+      def materialize_tool_call(payload)
+        RubyLLM::ToolCall.new(
+          id: payload.fetch("id").to_s,
+          name: payload.fetch("name"),
+          arguments: payload.fetch("arguments", {}),
+          thought_signature: payload["thought_signature"]
+        )
       end
 
       def metadata_value(segment, name)

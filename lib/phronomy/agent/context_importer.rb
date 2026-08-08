@@ -26,7 +26,7 @@ module Phronomy
         def import_messages(messages, system_message: :reject)
           source_messages = Array(messages)
           validate_protocol!(source_messages)
-          records = source_messages.flat_map do |message|
+          records = source_messages.map do |message|
             import_message(message, system_message: system_message)
           end
           ImportedContext.new(records: records.freeze)
@@ -34,14 +34,13 @@ module Phronomy
 
         private
 
-        # Imported history has no runtime Provider Call identity. The flattened
-        # Journal representation must therefore retain enough protocol structure
-        # to reconstruct message boundaries from order alone. Ambiguous or broken
-        # histories are rejected instead of receiving synthetic execution/call IDs.
+        # Import validation is defined by the external-message contract, not by
+        # limitations of Phronomy's internal representation. Each supplied
+        # message is one explicit logical message and is journaled without
+        # splitting its assistant content from its Tool Calls.
         def validate_protocol!(messages)
           pending = {}
           seen_tool_call_ids = {}
-          previous_non_tool_role = nil
 
           messages.each_with_index do |message, index|
             role = read(message, :role).to_sym
@@ -53,14 +52,7 @@ module Phronomy
 
             case role
             when :assistant
-              calls = tool_calls_for(message)
-              content = read_optional(message, :content)
-              if previous_non_tool_role == :assistant &&
-                  calls.any? && (content.nil? || content.to_s.empty?)
-                raise ArgumentError,
-                  "tool-call-only assistant message is ambiguous after a preceding assistant message"
-              end
-              calls.each do |call|
+              tool_calls_for(message).each do |call|
                 payload = normalize(read_tool_call(call))
                 call_id = payload.fetch("id").to_s
                 raise ArgumentError, "tool_call requires id" if call_id.empty?
@@ -70,7 +62,6 @@ module Phronomy
                 seen_tool_call_ids[call_id] = true
                 pending[call_id] = true
               end
-              previous_non_tool_role = :assistant
             when :tool
               call_id = read_optional(message, :tool_call_id).to_s
               raise ArgumentError, "tool message requires tool_call_id" if call_id.empty?
@@ -78,7 +69,7 @@ module Phronomy
                 raise ArgumentError, "orphan or duplicate Tool Result: #{call_id}"
               end
             when :user, :system
-              previous_non_tool_role = role
+              # No Tool protocol state is introduced by these roles.
             else
               raise ArgumentError, "unsupported message role: #{role.inspect}"
             end
@@ -107,53 +98,66 @@ module Phronomy
             raise ArgumentError,
               "unsupported system_message policy: #{system_message.inspect}"
           when :user
-            [text_record(:external_message, :external, :user, read(message, :content))]
+            text_record(:external_message, :external, :user, read(message, :content))
           when :assistant
             import_assistant(message)
           when :tool
-            tool_call_id = read_optional(message, :tool_call_id)
-            raise ArgumentError, "tool message requires tool_call_id" if tool_call_id.to_s.empty?
-
-            [ImportedRecord.new(
-              kind: :tool_result,
-              channel: :tool,
-              role: :tool,
-              content: String(read(message, :content)),
-              content_format: :text,
-              metadata: {"tool_call_id" => tool_call_id.to_s}
-            )]
+            import_tool_message(message)
           else
             raise ArgumentError, "unsupported message role: #{role.inspect}"
           end
         end
 
         def import_assistant(message)
-          result = []
+          calls = tool_calls_for(message).map { |call| normalize(read_tool_call(call)) }
           content = read_optional(message, :content)
-          unless content.nil? || content.to_s.empty?
-            result << text_record(:llm_message, :llm, :assistant, content)
-          end
-
-          tool_calls_for(message).each do |call|
-            payload = normalize(read_tool_call(call))
-            call_id = payload.fetch("id").to_s
-            result << ImportedRecord.new(
-              kind: :tool_call,
-              channel: :tool,
-              role: :assistant,
-              content: payload,
-              content_format: :json,
-              metadata: {
-                "tool_call_id" => call_id,
-                "tool_name" => payload.fetch("name").to_s
-              }
-            )
-          end
-          if result.empty?
+          content = "" if content.nil? && !calls.empty?
+          if (content.nil? || (content.respond_to?(:empty?) && content.empty?)) && calls.empty?
             raise ArgumentError,
               "assistant message requires content or one or more tool_calls"
           end
-          result
+
+          payload = {
+            "role" => "assistant",
+            "content" => normalize(content),
+            "tool_calls" => calls
+          }
+          model_id = read_optional(message, :model_id)
+          payload["model_id"] = model_id.to_s if model_id
+
+          ImportedRecord.new(
+            kind: :assistant_message,
+            channel: :llm,
+            role: :assistant,
+            content: payload,
+            content_format: :json,
+            metadata: assistant_metadata(calls)
+          )
+        end
+
+        def import_tool_message(message)
+          tool_call_id = read_optional(message, :tool_call_id).to_s
+          raise ArgumentError, "tool message requires tool_call_id" if tool_call_id.empty?
+
+          ImportedRecord.new(
+            kind: :tool_message,
+            channel: :tool,
+            role: :tool,
+            content: {
+              "role" => "tool",
+              "content" => String(read(message, :content)),
+              "tool_call_id" => tool_call_id
+            },
+            content_format: :json,
+            metadata: {"tool_call_id" => tool_call_id}
+          )
+        end
+
+        def assistant_metadata(calls)
+          {
+            "tool_call_ids" => calls.map { |call| call.fetch("id").to_s },
+            "tool_names" => calls.map { |call| call.fetch("name").to_s }
+          }
         end
 
         def tool_calls_for(message)
@@ -178,8 +182,9 @@ module Phronomy
           {
             id: read(call, :id),
             name: read(call, :name),
-            arguments: read_optional(call, :arguments) || {}
-          }
+            arguments: read_optional(call, :arguments) || {},
+            thought_signature: read_optional(call, :thought_signature)
+          }.compact
         end
 
         def read(value, name)

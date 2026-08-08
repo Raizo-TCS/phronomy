@@ -665,6 +665,7 @@ module Phronomy
           intercepted = error.is_a?(ToolCallIntercepted)
           call_error = intercepted ? nil : error
           output_ref = assistant_output_ref(tx, outcome)
+          assistant_ref = assistant_message_ref(tx, outcome)
           error_ref = call_error ? tx.contents.put_json(
             "class" => call_error.class.name,
             "message" => call_error.message
@@ -702,37 +703,19 @@ module Phronomy
             context_generation: root.transcript_generation,
             context_candidate: false
           )
-          if output_ref
+
+          if assistant_ref
             records << JournalRecord.new(
               agent_id: @agent.agent_id,
               execution_id: execution.execution_id,
               llm_call_id: llm_call_id,
-              kind: :llm_message,
+              kind: :assistant_message,
               channel: :llm,
               role: :assistant,
-              content_ref: output_ref,
-              context_generation: root.transcript_generation,
-              context_candidate: context_candidate
-            )
-          end
-          Array(outcome&.tool_calls).each do |tool_call_payload|
-            tool_call_id = tool_call_payload.fetch("id").to_s
-            tool_name = tool_call_payload.fetch("name").to_s
-            records << JournalRecord.new(
-              agent_id: @agent.agent_id,
-              execution_id: execution.execution_id,
-              llm_call_id: llm_call_id,
-              kind: :tool_call,
-              channel: :tool,
-              role: :assistant,
-              content_ref: tx.contents.put_json(tool_call_payload),
-              causation_id: tool_call_id,
+              content_ref: assistant_ref,
               context_generation: root.transcript_generation,
               context_candidate: context_candidate,
-              metadata: {
-                "tool_call_id" => tool_call_id,
-                "tool_name" => tool_name
-              }
+              metadata: assistant_message_metadata(outcome)
             )
           end
         end
@@ -764,14 +747,18 @@ module Phronomy
         snapshot.fetch(:runtime_events).each do |event|
           case event.type
           when :tool_call
-            # Tool Calls are canonicalized from ProviderCallOutcome above.
-            # StreamEvent(:tool_call) is an application/runtime notification,
-            # not the durable source of truth for the Provider response.
+            # Tool Calls remain part of the captured assistant message. The
+            # StreamEvent is an application/runtime notification only.
             next
           when :tool_result
             payload = event.payload
             llm_call_id = payload[:llm_call_id] || payload["llm_call_id"]
             tool_call_id = payload.fetch(:tool_call_id).to_s
+            tool_name = payload.fetch(:tool_name).to_s
+
+            # The raw Tool return value is an execution fact, not an LLM message.
+            # Keep it in the complete Journal, but never expose it directly as a
+            # Context candidate.
             result_ref = put_runtime_content(tx, payload.fetch(:tool_result))
             records << JournalRecord.new(
               agent_id: @agent.agent_id,
@@ -779,19 +766,62 @@ module Phronomy
               llm_call_id: llm_call_id,
               kind: :tool_result,
               channel: :tool,
-              role: :tool,
               content_ref: result_ref,
+              causation_id: tool_call_id,
+              context_generation: root.transcript_generation,
+              context_candidate: false,
+              metadata: {
+                "tool_call_id" => tool_call_id,
+                "tool_name" => tool_name
+              }
+            )
+
+            # Separately preserve the exact Tool message that was appended to
+            # RubyLLM Chat and therefore became eligible for a later Manifest.
+            message_payload = if payload.key?(:tool_message)
+              payload.fetch(:tool_message)
+            else
+              payload.fetch("tool_message")
+            end
+            records << JournalRecord.new(
+              agent_id: @agent.agent_id,
+              execution_id: execution.execution_id,
+              llm_call_id: llm_call_id,
+              kind: :tool_message,
+              channel: :tool,
+              role: :tool,
+              content_ref: tx.contents.put_json(json_value(message_payload)),
               causation_id: tool_call_id,
               context_generation: root.transcript_generation,
               context_candidate: context_candidate,
               metadata: {
                 "tool_call_id" => tool_call_id,
-                "tool_name" => payload.fetch(:tool_name).to_s
+                "tool_name" => tool_name
               }
             )
           end
         end
         [records, calls]
+      end
+
+      def assistant_message_ref(tx, outcome)
+        return unless outcome
+
+        payload = {
+          "role" => "assistant",
+          "content" => json_value(outcome.content),
+          "tool_calls" => json_value(Array(outcome.tool_calls)),
+          "model_id" => outcome.metadata["model_id"]
+        }.compact
+        tx.contents.put_json(payload)
+      end
+
+      def assistant_message_metadata(outcome)
+        calls = Array(outcome&.tool_calls)
+        {
+          "tool_call_ids" => calls.map { |call| call.fetch("id").to_s },
+          "tool_names" => calls.map { |call| call.fetch("name").to_s }
+        }
       end
 
       def assistant_output_ref(tx, outcome)

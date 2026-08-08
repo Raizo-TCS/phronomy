@@ -56,11 +56,71 @@ module Phronomy
       private
 
       def validate_tool_dependencies!(all_candidates, selected_candidates)
+        selected_ids = selected_candidates.to_h { |candidate| [candidate.candidate_id, true] }
+        validate_canonical_tool_dependencies!(all_candidates, selected_ids)
+        validate_legacy_tool_dependencies!(all_candidates, selected_candidates, selected_ids)
+      end
+
+      def validate_canonical_tool_dependencies!(all_candidates, selected_ids)
+        assistants = Array(all_candidates).select { |candidate| candidate.category == :assistant_message }
+        tool_messages = Array(all_candidates).select { |candidate| candidate.category == :tool_message }
+          .group_by(&:tool_call_id)
+        assistant_by_tool_call_id = {}
+
+        tool_messages.each do |tool_call_id, messages|
+          if messages.length > 1
+            raise ArgumentError, "duplicate Tool message in Context candidates: #{tool_call_id}"
+          end
+        end
+
+        assistants.each do |assistant|
+          canonical_tool_call_ids(assistant).each do |tool_call_id|
+            if assistant_by_tool_call_id.key?(tool_call_id)
+              raise ArgumentError,
+                "duplicate assistant Tool Call id in Context candidates: #{tool_call_id}"
+            end
+            assistant_by_tool_call_id[tool_call_id] = assistant
+          end
+        end
+
+        assistants.each do |assistant|
+          next unless selected_ids[assistant.candidate_id]
+
+          canonical_tool_call_ids(assistant).each do |tool_call_id|
+            messages = tool_messages.fetch(tool_call_id, [])
+            if messages.empty?
+              raise ArgumentError,
+                "ContextPlan selected assistant Tool Call without a Tool message: #{tool_call_id}"
+            end
+            missing = messages.reject { |message| selected_ids[message.candidate_id] }
+            unless missing.empty?
+              raise ArgumentError,
+                "ContextPlan split assistant/Tool message dependency: #{tool_call_id}"
+            end
+          end
+        end
+
+        tool_messages.each do |tool_call_id, messages|
+          messages.each do |message|
+            next unless selected_ids[message.candidate_id]
+
+            assistant = assistant_by_tool_call_id[tool_call_id]
+            unless assistant && selected_ids[assistant.candidate_id]
+              raise ArgumentError,
+                "ContextPlan selected orphan Tool message: #{tool_call_id}"
+            end
+          end
+        end
+      end
+
+      # Compatibility for Journal state written by the preceding stateful
+      # refactor, where assistant content, Tool Calls and Tool Results were
+      # flattened into separate Context candidates.
+      def validate_legacy_tool_dependencies!(all_candidates, selected_candidates, selected_ids)
         all_calls = Array(all_candidates).select { |candidate| candidate.category == :tool_call }
           .to_h { |candidate| [candidate.tool_call_id, candidate] }
         all_results = Array(all_candidates).select { |candidate| candidate.category == :tool_result }
           .group_by(&:tool_call_id)
-        selected_ids = selected_candidates.to_h { |candidate| [candidate.candidate_id, true] }
 
         selected_candidates.each do |candidate|
           case candidate.category
@@ -83,6 +143,12 @@ module Phronomy
             end
           end
         end
+      end
+
+      def canonical_tool_call_ids(candidate)
+        Array(candidate.metadata["tool_call_ids"] || candidate.metadata[:tool_call_ids])
+          .compact
+          .map(&:to_s)
       end
 
       def validate_derived_contents!(request, plan)

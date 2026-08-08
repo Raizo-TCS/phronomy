@@ -8,7 +8,7 @@ RSpec.describe Phronomy::Agent::JournalRecord do
       agent_id: "agent-1",
       execution_id: "execution-1",
       llm_call_id: "llm-1",
-      kind: :llm_message,
+      kind: :assistant_message,
       channel: :llm,
       role: :assistant,
       content_ref: "sha256:content"

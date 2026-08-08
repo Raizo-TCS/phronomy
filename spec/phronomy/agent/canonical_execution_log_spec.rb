@@ -69,4 +69,47 @@ RSpec.describe "Canonical Complete Execution Log capture" do
     expect(activation.runtime_snapshot.fetch(:runtime_events).map(&:type))
       .to eq(%i[tool_call tool_result])
   end
+
+  it "records the exact Tool-role message separately from the raw Tool result" do
+    events = []
+    invocation = Phronomy::Agent::AgentInvocation.new(
+      agent: Object.new,
+      input: "input",
+      messages: [],
+      config: {},
+      event_listener: ->(event) { events << event }
+    )
+    chat = Class.new do
+      attr_reader :messages
+
+      def initialize
+        @messages = []
+      end
+
+      def add_message(attributes)
+        message = RubyLLM::Message.new(attributes)
+        @messages << message
+        message
+      end
+    end.new
+    invocation.chat = chat
+    invocation.tool_invocations = [
+      Struct.new(:result, :tool_call_id, :tool_name).new(
+        {price: 100}, "price-call", "price"
+      )
+    ]
+    invocation.instance_variable_set(:@tool_batch_llm_call_id, "llm-1")
+
+    invocation.record_tool_results!
+
+    event = events.fetch(0)
+    expect(event.type).to eq(:tool_result)
+    expect(event.payload.fetch(:tool_result)).to eq(price: 100)
+    expect(event.payload.fetch(:tool_message)).to eq(
+      "role" => "tool",
+      "content" => "{:price=>100}",
+      "tool_call_id" => "price-call"
+    )
+    expect(chat.messages.fetch(0).content).to eq("{:price=>100}")
+  end
 end

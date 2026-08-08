@@ -11,13 +11,18 @@ RSpec.describe "Context Policy selection" do
     execution_id: "exec-1",
     llm_call_id: nil,
     tool_call_id: nil,
+    tool_call_ids: [],
     tokens: 5
   )
+    role = case category
+    when :tool_message, :tool_result then :tool
+    else :assistant
+    end
     Phronomy::Agent::ContextCandidate.new(
       candidate_id: id,
       source_kind: source_kind,
       category: category,
-      role: category == :tool_result ? :tool : :assistant,
+      role: role,
       content_ref: "content-#{id}",
       record_id: "record-#{id}",
       agent_id: "agent-1",
@@ -27,7 +32,11 @@ RSpec.describe "Context Policy selection" do
       sequence: sequence,
       requirement: :optional,
       priority: source_kind == :working ? 100 : 0,
-      metadata: {"estimated_tokens" => tokens, "source_sequence" => sequence}
+      metadata: {
+        "estimated_tokens" => tokens,
+        "source_sequence" => sequence,
+        "tool_call_ids" => tool_call_ids
+      }
     )
   end
 
@@ -61,42 +70,79 @@ RSpec.describe "Context Policy selection" do
 
   it "does not use execution_id as an atomic selection boundary" do
     candidates = [
-      candidate(id: "a", category: :llm_message, sequence: 1),
-      candidate(id: "b", category: :llm_message, sequence: 2)
+      candidate(id: "a", category: :assistant_message, sequence: 1),
+      candidate(id: "b", category: :assistant_message, sequence: 2)
     ]
 
     units = parts.fetch(:unit_builder).build(candidates)
     expect(units.map(&:candidate_ids)).to contain_exactly(["a"], ["b"])
   end
 
-  it "keeps one Provider parallel Tool batch and all Tool Results atomic" do
+  it "keeps one assistant message and all matching Tool messages atomic" do
     candidates = [
-      candidate(id: "text", category: :llm_message, sequence: 1, llm_call_id: "llm-1"),
-      candidate(id: "call-a", category: :tool_call, sequence: 2,
-        llm_call_id: "llm-1", tool_call_id: "call-a"),
-      candidate(id: "call-b", category: :tool_call, sequence: 3,
-        llm_call_id: "llm-1", tool_call_id: "call-b"),
-      candidate(id: "result-a", category: :tool_result, sequence: 4,
-        llm_call_id: "llm-1", tool_call_id: "call-a"),
-      candidate(id: "result-b", category: :tool_result, sequence: 5,
-        llm_call_id: "llm-1", tool_call_id: "call-b")
+      candidate(
+        id: "assistant",
+        category: :assistant_message,
+        sequence: 1,
+        llm_call_id: "llm-1",
+        tool_call_ids: %w[call-a call-b]
+      ),
+      candidate(
+        id: "result-a",
+        category: :tool_message,
+        sequence: 2,
+        llm_call_id: "llm-1",
+        tool_call_id: "call-a"
+      ),
+      candidate(
+        id: "result-b",
+        category: :tool_message,
+        sequence: 3,
+        llm_call_id: "llm-1",
+        tool_call_id: "call-b"
+      )
     ]
 
     units = parts.fetch(:unit_builder).build(candidates)
     expect(units.length).to eq(1)
     expect(units.first.kind).to eq(:tool_exchange)
     expect(units.first.candidate_ids).to contain_exactly(
-      "text", "call-a", "call-b", "result-a", "result-b"
+      "assistant", "result-a", "result-b"
     )
+  end
+
+  it "uses the same Tool dependency rule for imported messages without llm_call_id" do
+    candidates = [
+      candidate(
+        id: "assistant",
+        category: :assistant_message,
+        sequence: 10,
+        execution_id: nil,
+        llm_call_id: nil,
+        tool_call_ids: ["call-a"]
+      ),
+      candidate(
+        id: "result",
+        category: :tool_message,
+        sequence: 11,
+        execution_id: nil,
+        llm_call_id: nil,
+        tool_call_id: "call-a"
+      )
+    ]
+
+    units = parts.fetch(:unit_builder).build(candidates)
+    expect(units.length).to eq(1)
+    expect(units.first.candidate_ids).to contain_exactly("assistant", "result")
   end
 
   it "requires only the latest current Tool exchange and may drop older working history" do
     candidates = [
-      candidate(id: "old", category: :llm_message, sequence: 1,
+      candidate(id: "old", category: :assistant_message, sequence: 1,
         source_kind: :working, tokens: 80),
-      candidate(id: "call", category: :tool_call, sequence: 2,
-        source_kind: :working, llm_call_id: "llm-2", tool_call_id: "call", tokens: 10),
-      candidate(id: "result", category: :tool_result, sequence: 3,
+      candidate(id: "assistant", category: :assistant_message, sequence: 2,
+        source_kind: :working, llm_call_id: "llm-2", tool_call_ids: ["call"], tokens: 10),
+      candidate(id: "result", category: :tool_message, sequence: 3,
         source_kind: :working, llm_call_id: "llm-2", tool_call_id: "call", tokens: 10)
     ]
     context_request = request(candidates, context_window: 40, mandatory: 5)
@@ -107,7 +153,7 @@ RSpec.describe "Context Policy selection" do
       plan: plan
     )
 
-    expect(validated.selected_candidates.map(&:candidate_id)).to contain_exactly("call", "result")
+    expect(validated.selected_candidates.map(&:candidate_id)).to contain_exactly("assistant", "result")
     expect(validated.selected_units.first.requirement).to eq(:protocol_required)
   end
 end

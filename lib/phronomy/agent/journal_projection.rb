@@ -3,7 +3,10 @@
 module Phronomy
   module Agent
     class JournalProjection
-      MESSAGE_KINDS = %i[external_message llm_message tool_call tool_result].freeze
+      MESSAGE_KINDS = %i[
+        external_message assistant_message tool_message
+        llm_message tool_call tool_result
+      ].freeze
 
       def initialize(persistence:, agent_root:)
         @persistence = persistence

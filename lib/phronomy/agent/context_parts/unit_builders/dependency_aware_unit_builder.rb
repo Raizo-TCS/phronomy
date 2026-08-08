@@ -11,11 +11,25 @@ module Phronomy
           def build(candidates)
             ordered = Array(candidates).sort_by { |candidate| [candidate.sequence || 0, candidate.candidate_id] }
             by_id = ordered.to_h { |candidate| [candidate.candidate_id, candidate] }
-            tool_results = ordered.select { |candidate| candidate.category == :tool_result }
+
+            canonical_assistants = ordered.select { |candidate| candidate.category == :assistant_message }
+            canonical_tool_messages = ordered.select { |candidate| candidate.category == :tool_message }
               .group_by(&:tool_call_id)
-            calls_by_llm = ordered.select { |candidate| candidate.category == :tool_call && candidate.llm_call_id }
-              .group_by(&:llm_call_id)
-            assistant_by_llm = ordered.select do |candidate|
+            assistant_by_tool_call_id = canonical_assistants.each_with_object({}) do |candidate, result|
+              canonical_tool_call_ids(candidate).each do |tool_call_id|
+                if result.key?(tool_call_id)
+                  raise ArgumentError, "duplicate assistant Tool Call id in Context candidates: #{tool_call_id}"
+                end
+                result[tool_call_id] = candidate
+              end
+            end
+
+            legacy_tool_results = ordered.select { |candidate| candidate.category == :tool_result }
+              .group_by(&:tool_call_id)
+            legacy_calls_by_llm = ordered.select do |candidate|
+              candidate.category == :tool_call && candidate.llm_call_id
+            end.group_by(&:llm_call_id)
+            legacy_assistant_by_llm = ordered.select do |candidate|
               candidate.llm_call_id && %i[llm_message tool_call].include?(candidate.category)
             end.group_by(&:llm_call_id)
 
@@ -24,15 +38,20 @@ module Phronomy
             ordered.each_with_index do |candidate, index|
               next if claimed.include?(candidate.candidate_id)
 
-              group = if runtime_tool_exchange?(candidate, calls_by_llm)
-                runtime_tool_exchange(
+              group = canonical_tool_exchange(
+                candidate,
+                assistant_by_tool_call_id: assistant_by_tool_call_id,
+                tool_messages: canonical_tool_messages
+              )
+              group ||= if legacy_runtime_tool_exchange?(candidate, legacy_calls_by_llm)
+                legacy_runtime_tool_exchange(
                   candidate,
-                  assistant_by_llm: assistant_by_llm,
-                  calls_by_llm: calls_by_llm,
-                  tool_results: tool_results
+                  assistant_by_llm: legacy_assistant_by_llm,
+                  calls_by_llm: legacy_calls_by_llm,
+                  tool_results: legacy_tool_results
                 )
               else
-                import_tool_exchange(ordered, index, tool_results)
+                legacy_import_tool_exchange(ordered, index, legacy_tool_results)
               end
 
               if group && !group.empty?
@@ -49,13 +68,34 @@ module Phronomy
 
           private
 
-          def runtime_tool_exchange?(candidate, calls_by_llm)
+          def canonical_tool_exchange(candidate, assistant_by_tool_call_id:, tool_messages:)
+            assistant = if candidate.category == :assistant_message
+              candidate
+            elsif candidate.category == :tool_message
+              assistant_by_tool_call_id[candidate.tool_call_id]
+            end
+            return unless assistant
+
+            call_ids = canonical_tool_call_ids(assistant)
+            return if call_ids.empty?
+
+            messages = call_ids.flat_map { |tool_call_id| tool_messages.fetch(tool_call_id, []) }
+            ([assistant] + messages).uniq.sort_by { |item| [item.sequence || 0, item.candidate_id] }
+          end
+
+          def canonical_tool_call_ids(candidate)
+            Array(candidate.metadata["tool_call_ids"] || candidate.metadata[:tool_call_ids])
+              .compact
+              .map(&:to_s)
+          end
+
+          def legacy_runtime_tool_exchange?(candidate, calls_by_llm)
             candidate.llm_call_id &&
               calls_by_llm.key?(candidate.llm_call_id) &&
               %i[llm_message tool_call].include?(candidate.category)
           end
 
-          def runtime_tool_exchange(candidate, assistant_by_llm:, calls_by_llm:, tool_results:)
+          def legacy_runtime_tool_exchange(candidate, assistant_by_llm:, calls_by_llm:, tool_results:)
             llm_call_id = candidate.llm_call_id
             calls = calls_by_llm.fetch(llm_call_id)
             call_ids = calls.map(&:tool_call_id).compact
@@ -64,7 +104,7 @@ module Phronomy
             (assistant + results).uniq.sort_by { |item| [item.sequence || 0, item.candidate_id] }
           end
 
-          def import_tool_exchange(ordered, index, tool_results)
+          def legacy_import_tool_exchange(ordered, index, tool_results)
             candidate = ordered.fetch(index)
             return unless %i[llm_message tool_call].include?(candidate.category)
             return if candidate.llm_call_id
@@ -120,7 +160,11 @@ module Phronomy
             else
               :optional
             end
-            tool_call_ids = candidates.map(&:tool_call_id).compact.uniq
+            tool_call_ids = candidates.flat_map do |candidate|
+              call_ids = canonical_tool_call_ids(candidate)
+              call_ids << candidate.tool_call_id if candidate.tool_call_id
+              call_ids
+            end.compact.uniq
             llm_call_ids = candidates.map(&:llm_call_id).compact.uniq
             digest = Digest::SHA256.hexdigest(ids.join("\0"))[0, 20]
 
