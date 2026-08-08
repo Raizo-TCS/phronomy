@@ -38,7 +38,9 @@ The Journal therefore does not need to infer or reconstruct a source message bou
 
 ### Import boundary
 
-The application supplying imported history is responsible for satisfying Phronomy's Import contract. Phronomy interprets valid input according to that contract and rejects only data that is invalid under the contract, such as unsupported roles, missing Tool Call IDs, orphan/duplicate Tool results, unresolved Tool calls, or unsupported attachments.
+The application supplying imported history is responsible for satisfying Phronomy's Import contract. Phronomy interprets valid input according to that contract and rejects only data that is invalid under the contract, such as unsupported roles, missing Tool Call IDs, orphan/duplicate Tool results, unresolved Tool calls, or malformed message structure.
+
+External resource acquisition is not a `ContextImporter` responsibility. Files, URLs and similar resources are obtained and interpreted by the Application or Tool that owns that capability; Phronomy journals the logical content/results it actually receives. `ContextImporter` therefore does not introduce RubyLLM-specific attachment handling or an attachment-specific reject path.
 
 Phronomy must not reject an otherwise valid input merely because an internal flattened representation would lose information. In particular, two separately supplied assistant messages remain two separate Journal messages.
 

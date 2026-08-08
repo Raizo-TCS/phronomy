@@ -83,12 +83,6 @@ module Phronomy
 
         def import_message(message, system_message:)
           role = read(message, :role).to_sym
-          attachments = read_optional(message, :attachments)
-          if attachments && !Array(attachments).empty?
-            raise ArgumentError,
-              "message attachments require an explicit attachment importer"
-          end
-
           case role
           when :system
             if system_message == :reject

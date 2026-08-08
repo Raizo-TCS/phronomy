@@ -44,6 +44,20 @@ RSpec.describe Phronomy::Agent::ContextImporter do
     )
   end
 
+  it "does not interpret attachment metadata at the Import boundary" do
+    message = {
+      role: :user,
+      content: "already materialized content",
+      attachments: [Object.new]
+    }
+
+    context = described_class.import_messages([message])
+
+    expect(context.records.length).to eq(1)
+    expect(context.records.first.kind).to eq(:external_message)
+    expect(context.records.first.content).to eq("already materialized content")
+  end
+
   it "preserves assistant content and parallel Tool Calls inside one record" do
     call_a = RubyLLM::ToolCall.new(id: "a", name: "one", arguments: {})
     call_b = RubyLLM::ToolCall.new(id: "b", name: "two", arguments: {})
