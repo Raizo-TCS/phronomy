@@ -298,8 +298,8 @@ module Phronomy
           end
         end
 
-        # Tokens reserved for the system prompt + tool definitions in the legacy
-        # build_context path. Manifest-first assembly ignores this value because
+        # Tokens reserved in the legacy build_context path only.
+        # Manifest-first assembly ignores this value because
         # ContextAssembler estimates actual mandatory content for each LLM Call.
         #
         # @example
@@ -628,7 +628,7 @@ module Phronomy
       end
 
       # Registers a per-instance knowledge source. Knowledge chunks from all
-      # registered sources are included in every LLM call via +build_context+.
+      # registered sources are included in every LLM call via the Context Policy.
       #
       # @param source [#fetch] any object responding to +fetch(query:)+
       # @return [void]

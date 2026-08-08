@@ -9,19 +9,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-
-- Refactor: `Agent::AsyncEventApi` is now the single implementation of
-  `invoke`, `invoke_async`, `stream`, `stream_async`, and their session
-  lifecycle helpers (`_start_invocation`, `_handle_agent_completion`,
-  `_register_tool_invocation_session`, `_start_approval_resume`). The
-  duplicate definitions in `Agent::Base` have been removed. No public
-  behavior change is intended.
-- Remove `faraday` and `event_stream_parser` from gemspec declared
-  dependencies; both are transitive dependencies of `ruby_llm` and are
-  not used directly by phronomy.
-
 ### Added
+
+- Stateful Agent identity and persistence:
+  - Every concrete Agent definition declares a stable `agent_definition id:, version:`.
+  - Every Agent instance has a stable `agent_id`.
+  - `Agent::Base.create` creates a persistent Agent instance.
+  - `Agent::Base.load` restores an Agent from a shared Persistence backend.
+  - `Agent#agent_root`, `#transcript`, `#clear_transcript!`, `#clear_memory!`,
+    `#reset_context!`, `#close!`, and `#purge!` provide explicit state lifecycle operations.
+
+- Persistence-backed Agent execution state:
+  - Agent executions have stable `execution_id` values and are persisted separately from the owning Agent.
+  - Suspended approval executions remain represented in Persistence.
+  - Resuming after process loss still requires future durable activation rehydration support.
+
+- Canonical Complete Execution Log:
+  - Phronomy records observed logical execution facts in an append-only Agent Journal.
+  - Provider assistant responses preserve assistant content and all Tool Calls as one logical assistant message.
+  - Raw Tool return values and the Tool-role messages sent back to the LLM are represented as separate execution facts.
+
+- Per-LLM-call canonical Manifests:
+  - Each LLM Call is assembled from a canonical Manifest.
+  - The Manifest records the logical input selected for that specific LLM Call.
+  - Runtime RubyLLM messages are materialized from the Manifest rather than treated as the source of truth.
+
+- Context Policy domain:
+  - Context candidates are selected from canonical history without deleting the underlying Journal.
+  - Tool Call / Tool message protocol dependencies are selected atomically.
+  - Required context is validated independently from optional historical context.
+  - `ContextBudgetExceededError` is raised when required context cannot fit in the available model budget.
+
+- Context import for stateful Agents:
+  - Existing user / assistant / Tool history can be supplied through Agent creation context.
+  - Imported assistant messages retain their original logical message boundary and Tool Calls.
+  - Invalid Tool protocol histories are rejected instead of being guessed or repaired.
 
 - `Workflow#signal(thread_id:, event:, payload:)` for FIFO delivery to a live
   Workflow FSMSession.
@@ -42,7 +64,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - EventLoop emits a rate-limited warning when its shared event queue reaches
   1,000 pending entries. Events are observed only; they are not dropped.
 
+### Changed
+
+- Agent instances are now always stateful and Persistence-backed.
+
+- Conversation history ownership has moved from the caller to the Agent:
+  callers no longer need to pass the previous `messages` array back on every invocation.
+  Completed invocation results may still expose `result[:messages]` as a materialized
+  transcript projection.
+
+- `agent_definition id:, version:` is required for concrete Agent definitions.
+  Loading persisted Agent state validates the stored definition identity and version
+  against the runtime Agent class.
+
+- Context-window management is now Manifest-first:
+  canonical Agent history is retained in the Journal while each LLM Call receives
+  only the context selected for its Manifest.
+
+- Context pruning no longer means deleting or mutating historical Agent messages.
+  Context Policy omission affects only the current LLM Call input.
+
+- Tool execution results and Tool protocol messages are no longer treated as the
+  same value. The raw Tool return value is retained as an execution fact while the
+  exact Tool-role message remains independently available for LLM context assembly.
+
+- `thread_id` is an execution/correlation identifier rather than the owner of
+  conversation state. Persistent Agent identity is defined by `agent_id`.
+
+- `context_overhead` is retained only for the legacy `build_context` path.
+  Manifest-first context assembly accounts for actual mandatory context instead of
+  reserving this value as Tool/system-prompt overhead.
+
+- Phronomy now requires `ruby_llm >= 1.15, < 2` so Provider assistant messages can
+  be captured before Agent-owned Tool execution begins.
+
+- Refactor: `Agent::AsyncEventApi` is now the single implementation of
+  `invoke`, `invoke_async`, `stream`, `stream_async`, and their session
+  lifecycle helpers (`_start_invocation`, `_handle_agent_completion`,
+  `_register_tool_invocation_session`, `_start_approval_resume`). The
+  duplicate definitions in `Agent::Base` have been removed. No public
+  behavior change is intended.
+- Remove `faraday` and `event_stream_parser` from gemspec declared
+  dependencies; both are transitive dependencies of `ruby_llm` and are
+  not used directly by phronomy.
+
 ### Removed
+
+- Caller-managed `messages:` continuation from the Agent invocation API.
+  Stateful Agent history is now obtained from the Agent's persisted Journal.
+
+- `Agent::Base#trim_messages` and the legacy Agent-level message-trimming model.
+  Context selection is performed by the Context Policy / Manifest assembly path.
+
+- The assumption that `build_context` and the legacy `LlmContextWindow::Assembler`
+  are the long-term single authority for LLM input. ADR-012 defines the replacement
+  Journal / Context Policy / Manifest architecture.
 
 - Implicit awaiting of Task-returning Workflow/Agent/Tool entry actions and the
   Workflow `action_timeout:` DSL. Entry actions are synchronous RTC callbacks.

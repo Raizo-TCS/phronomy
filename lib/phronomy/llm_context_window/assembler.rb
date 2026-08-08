@@ -131,8 +131,7 @@ module Phronomy
       # Raises {Phronomy::ContextLengthError} when a budget is set and the
       # conversation messages do not fit within the remaining token allowance.
       # No automatic trimming is performed — callers must pre-process messages
-      # (e.g. via Agent::Base#trim_messages or #compact_messages) before
-      # passing them to the Assembler.
+      # before passing them to the Assembler.
       #
       # mutant:disable - multiple genuine equivalent mutations: map{}.join("\n\n") → map{} is genuine; `unless knowledge_text.empty?` vs ternary is genuine; `{ system: unless system_text.empty? }` vs ternary is genuine; `messages:` shorthand vs `messages: messages` is genuine
       def build
@@ -149,7 +148,7 @@ module Phronomy
             raise Phronomy::ContextLengthError,
               "Context exceeds token budget: messages require #{msg_tokens} tokens but " \
               "only #{remaining} available (context_window=#{@budget.context_window}, " \
-              "used_by_system=#{used}). Override build_context to trim or compact messages."
+              "used_by_system=#{used}). Use the Context Policy path to manage message budget."
           end
         end
 

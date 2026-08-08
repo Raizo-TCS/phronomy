@@ -27,9 +27,9 @@ It provides composable building blocks — Workflows, Agents, Tools, Filters, an
 | Feature | Stability |
 |---|---|
 | **Workflow** — Stateful, branching workflows with wait_state/send_event | Stable |
-| **Agent** — ReAct-style tool-calling agents with guardrails and conversation history | Stable |
+| **Agent** — Stateful ReAct-style tool-calling agents with stable `agent_id`, persistence-backed execution state, canonical execution history, guardrails, and conversation context | Stable |
 | **Before-Completion Hook** — Three-tier LLM parameter injection | Stable |
-| **Context Management** — Token budget calculation, estimation, and pruning; `Agent::Base` protected hooks: `build_context` (overridable), `trim_messages`, `trim_to_budget`, `compact_messages`, `budget_exceeded?`, `drop_messages_over` | Stable |
+| **Context Management** — Canonical Journal + per-LLM-call Manifest architecture with token-budget-aware selection and protocol-safe Tool Call / Tool message dependencies. Context selection never deletes canonical execution history | Stable |
 | **Filters** — Input/output transformation and blocking via `Filter::Base`; call `block!(reason)` to reject and raise `FilterBlockError` | Beta |
 | **`PromptInjectionFilter`** — Built-in `Filter::Base` subclass that detects prompt-injection patterns; usable standalone or as part of a filter chain | Beta |
 | **`Agent::Context::Capability::Base.redact_params` / `.max_result_size`** — Class-level DSL: `redact_params` masks parameter values in log/trace output; `max_result_size` truncates oversized tool results before they reach the LLM | Beta |
@@ -78,7 +78,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Filters, an
 | **`Phronomy::MultiAgent::Orchestrator`** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
 | **`Phronomy::MultiAgent::TeamCoordinator`** — Agent teams pattern: LLM coordinator + stateful workers with sequential task assignment (worker-local message history persisted across tasks) | Beta |
 | **Agent::SharedState** — Shared state pattern: peer agents collaborate via a shared KnowledgeStore; `member` DSL with per-agent instructions and `coordination` team protocol | Experimental |
-| **Human-in-the-loop approval** — `Agent::Base#invoke` returns `{ suspended: true, agent_invocation_id: String, approval_request: Phronomy::Agent::ToolApprovalRequest }` when a tool requiring approval is encountered; `Agent::Base#approve(id, approval_request_id:, approved:)` (synchronous) or `Agent::Base#approve_async(id, approval_request_id:, approved:)` (returns `Task`) resumes execution; approval state is in-process only — not persisted across process restarts or shared across pods | Beta |
+| **Human-in-the-loop approval** — `Agent::Base#invoke` returns `{ suspended: true, execution_id: String, approval_request: Phronomy::Agent::ToolApprovalRequest }` when approval is required. `#approve` / `#approve_async` resume that execution. Suspended execution state is stored in Persistence, but durable activation rehydration after a process restart is not yet supported | Beta |
 | **`tool_approval_policy`** — Instance-level callable that maps each `ToolApprovalRequest` to `:allow`, `:require_approval`, or `:reject`; set on the agent instance before invoking | Beta |
 | **`Filter::Base` — unified value filter interface** — `Phronomy::Filter::Base` with a single abstract method `call(value, **context)`; apply to user input (`add_input_filter` / `input_filter` DSL), final LLM output (`add_output_filter` / `output_filter` DSL), or individual tool return values (`add_tool_result_filter(tool_class?, filter)` / `tool_result_filter` DSL); filters transform values and return the result, or raise `Phronomy::FilterBlockError` to reject; filter chains are composable; the same filter instance can be reused across all three sites | Beta |
 
@@ -736,32 +736,78 @@ child process (stdio transport) or release the HTTP connection:
 search_tool.close
 ```
 
-### Conversation History — passing prior messages
+### Agent State and Conversation History
 
-Phronomy does not manage conversation history internally. The application owns the
-message array and passes it in via the `messages:` keyword argument:
+Phronomy Agents are stateful objects. Each Agent has a stable `agent_id`, a persistent Agent root, an append-only execution Journal, and zero or more Agent executions.
+
+Every concrete Agent definition must declare a stable definition identity:
 
 ```ruby
-# First turn
-result1 = MyAgent.new.invoke("Hello! I'm Alice.", thread_id: "session-1")
-prior_messages = result1[:messages]   # Array<RubyLLM::Message>
+class ResearchAgent < Phronomy::Agent::Base
+  agent_definition id: "research-agent", version: 1
 
-# Second turn — pass prior messages so the agent has context
-result2 = MyAgent.new.invoke(
-  "What is my name?",
-  messages: prior_messages,
-  thread_id: "session-1"
-)
-puts result2[:output]   # => "Your name is Alice."
+  model "gpt-4o"
+  instructions "You are a research assistant."
+end
 ```
 
-`result[:messages]` contains the complete message history after each invocation.
-Persist it however suits your application (in-memory hash, Redis, ActiveRecord, etc.).
+The definition ID identifies the application-level Agent definition. The version is checked when a previously persisted Agent is loaded so that persisted state is not silently interpreted by an incompatible Agent definition.
 
-> **Note on `thread_id`**: `thread_id` is a correlation identifier used internally for
-> EventLoop session routing and compaction context. It does **not** automatically persist or
-> restore conversation history — you must pass `messages:` explicitly on each turn as shown above.
+Create and continue using the same Agent instance normally:
 
+```ruby
+persistence = Phronomy::Persistence::InMemory.new
+
+agent = ResearchAgent.create(
+  agent_id: "research-session-42",
+  persistence: persistence
+)
+
+agent.invoke("My name is Alice.")
+result = agent.invoke("What is my name?")
+
+puts result[:output]
+```
+
+Conversation history does not need to be passed back through `messages:` on every invocation. The Agent's canonical history is retained in its Journal and selected automatically when later LLM Calls are assembled.
+
+A persisted Agent can be loaded again when the same Persistence backend is available:
+
+```ruby
+agent = ResearchAgent.load(
+  "research-session-42",
+  persistence: persistence
+)
+
+result = agent.invoke("Continue our previous discussion.")
+```
+
+`result[:messages]` remains available as a materialized transcript of the Agent's current conversation history. It is a projection of canonical Agent state, not the authoritative storage mechanism and does not need to be supplied to the next `invoke`.
+
+Existing external conversation history can be supplied when a new Agent is created:
+
+```ruby
+agent = ResearchAgent.create(
+  context: existing_messages,
+  persistence: persistence
+)
+```
+
+Imported history must satisfy Phronomy's Import contract. User, assistant, and Tool messages are journaled without destroying their logical message boundaries. System instructions are Agent configuration and are not imported as ordinary conversation messages.
+
+`thread_id` is an execution correlation identifier. It does not identify the persistent Agent and is not a substitute for `agent_id`.
+
+The current conversation or memory view can be advanced without deleting the canonical Journal:
+
+```ruby
+agent.clear_transcript!
+agent.clear_memory!
+agent.reset_context!
+```
+
+These operations change which historical records belong to the active context generation. The underlying append-only Journal remains intact.
+
+`purge!` is different: it permanently removes the Agent and its persisted execution history from the configured Persistence backend.
 
 ## Configuration
 
@@ -864,46 +910,57 @@ end
 
 ## Context Management
 
-Phronomy includes a context window management layer. When model metadata is
-available (either from the built-in registry or via an explicit `context_window:` setting),
-agents automatically stay within the configured token limit.
+Phronomy uses a Manifest-first context architecture for stateful Agents.
 
-### TokenBudget
+The main flow is:
 
-Derives the effective token budget from RubyLLM's model registry:
-
-```ruby
-budget = Phronomy::LlmContextWindow::TokenBudget.new(
-  model:    "claude-3-5-sonnet-20241022",  # looks up context_window + max_output_tokens
-  overhead: 500                            # extra reservation for tool definitions
-)
-budget.context_window       # => 200_000
-budget.max_output_tokens    # => 8_192
-budget.effective_input_limit # => 191_308
+```text
+Canonical Journal
+      ↓
+Context Policy
+      ↓
+LLM Call Manifest
+      ↓
+Runtime Projection
+      ↓
+RubyLLM / Provider
 ```
 
-Or supply explicit values (useful for local / unregistered models):
+The **Journal** is the canonical append-only record of logical execution facts observed by Phronomy.
+
+The **Manifest** is the canonical logical input fixed for one particular LLM Call.
+
+Context-window management therefore does not trim or rewrite the Agent's canonical history. Instead, Phronomy selects the subset of available context needed for each LLM Call and records that selection in the Manifest.
+
+This distinction allows old history to remain available even when it does not fit in the current model's context window.
+
+Tool protocol dependencies are preserved during selection. For example, an assistant message containing Tool Calls and the corresponding Tool-role messages are selected as a protocol-safe unit rather than independently pruning messages in a way that would create an invalid LLM conversation.
+
+When the available budget is insufficient, optional historical context can be omitted from the current Manifest. Required context is never silently removed merely to satisfy the budget. If the required input cannot fit, Phronomy raises `ContextBudgetExceededError`.
+
+### Context-window configuration
+
+Phronomy derives the effective context budget from RubyLLM model metadata when available.
+
+For local or otherwise unregistered models, the context window can be declared explicitly:
 
 ```ruby
-budget = Phronomy::LlmContextWindow::TokenBudget.new(
-  context_window:    32_768,
-  max_output_tokens: 4_096
-)
-```
+class LocalAgent < Phronomy::Agent::Base
+  agent_definition id: "local-agent", version: 1
 
-### Agent DSL extensions
-
-```ruby
-class MyAgent < Phronomy::Agent::Base
-  model "gpt-4o"
-  max_output_tokens 4096   # override max_output_tokens from registry
-  context_overhead  600    # extra reservation for system prompt + tools
-  # LLM timeout/retry is configured on RubyLLM, not on the Agent class.
+  model "local-model"
+  context_window 32_768
+  max_output_tokens 4_096
 end
 ```
 
-`Agent::Base#invoke` builds a `TokenBudget` automatically. When the model is not in the
-registry the budget is silently skipped.
+`context_window` determines the model's total context capacity.
+
+`max_output_tokens` reserves capacity for the model's output.
+
+The legacy `context_overhead` setting remains for compatibility with the legacy `build_context` path, but it is not the mechanism used to reserve system-prompt or Tool-definition space in Manifest-first context assembly. New Agent implementations should not rely on `context_overhead` for that purpose.
+
+The current default Context Policy is framework-managed. Public custom Context Policy APIs, deterministic persistent compaction, and other advanced policy extension points are still evolving and should not yet be treated as stable application APIs.
 
 > **Note on CJK languages**: The default `TokenEstimator` uses a character-ratio heuristic
 > calibrated for ASCII/Latin text (4 chars/token). For Chinese, Japanese, and Korean text,
