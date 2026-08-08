@@ -107,9 +107,9 @@ RSpec.describe "Canonical Complete Execution Log capture" do
     expect(event.payload.fetch(:tool_result)).to eq(price: 100)
     expect(event.payload.fetch(:tool_message)).to eq(
       "role" => "tool",
-      "content" => "{:price=>100}",
+      "content" => {price: 100}.inspect,
       "tool_call_id" => "price-call"
     )
-    expect(chat.messages.fetch(0).content).to eq("{:price=>100}")
+    expect(chat.messages.fetch(0).content).to eq({price: 100}.inspect)
   end
 end
