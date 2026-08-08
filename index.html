@@ -101,7 +101,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Stable</td>
 </tr>
 <tr>
-<td><strong>Before-Completion Hook</strong> — Three-tier LLM parameter injection</td>
+<td><strong>Before-LLM-Input Hook</strong> — Three-tier per-call LLM input customization via <code>before_llm_input</code> and <code>LLMInputPatch</code></td>
 <td>Stable</td>
 </tr>
 <tr>
@@ -202,7 +202,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Stable</td>
 </tr>
 <tr>
-<td><strong><code>Task#map</code></strong> — transforms a Task's completed value and propagates failure/cancellation; Workflow entry and transition actions do not await mapped Tasks</td>
+<td><strong><code>Task#map</code></strong> — transforms a Task's completed value and propagates failure/cancellation. <code>Task#map</code> remains available for application-level Task composition, but Workflow entry and transition actions must not return a Task</td>
 <td>Stable</td>
 </tr>
 <tr>
@@ -738,23 +738,89 @@ Call it when the underlying file or content has changed:</p>
 <span class='id identifier rubyid_puts'>puts</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span>           <span class='comment'># final answer
 </span><span class='id identifier rubyid_puts'>puts</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:agent</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span>      <span class='comment'># =&gt; BillingAgent
 </span></code></pre>
-<h3 id="Before_Completion_Hook___Dynamic_LLM_parameter_injection">Before-Completion Hook — Dynamic LLM parameter injection</h3>
-<pre class="code ruby"><code class="ruby"><span class='comment'># Class-level: applies to all instances
-</span><span class='kw'>class</span> <span class='const'>MyAgent</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Base.html" title="Phronomy::Agent::Base (class)">Base</a></span></span>
+<h3 id="Before_LLM_Input_Hook___Per_call_LLM_input_customization">Before-LLM-Input Hook — Per-call LLM input customization</h3>
+<p><code>before_llm_input</code> runs before every LLM call and allows an application to
+customize that call without mutating the Agent, RubyLLM chat, or canonical
+Journal state directly.</p>
+<p>Hooks can be configured at three levels:</p>
+<ol>
+<li>global — applies to every Agent</li>
+<li>class — applies to every instance of one Agent definition</li>
+<li>instance — applies only to one Agent instance</li>
+</ol>
+<p>They run in that order: global → class → instance.</p>
+<p>A hook receives an immutable <code>Phronomy::Agent::LLMInputBuildContext</code> containing
+metadata about the LLM call:</p>
+<ul>
+<li><code>agent_id</code></li>
+<li><code>agent_definition_id</code></li>
+<li><code>definition_version</code></li>
+<li><code>config</code></li>
+<li><code>call_sequence</code></li>
+</ul>
+<p>The hook does not receive the mutable Agent instance, RubyLLM messages, or
+<code>RubyLLM::Chat</code>.</p>
+<p>Return either:</p>
+<ul>
+<li><code>nil</code> to leave the call unchanged, or</li>
+<li>a <code>Phronomy::Agent::LLMInputPatch</code></li>
+</ul>
+<h3 id="Class_level_hook">Class-level hook</h3>
+<pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>MyAgent</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Base.html" title="Phronomy::Agent::Base (class)">Base</a></span></span>
+  <span class='id identifier rubyid_agent_definition'>agent_definition</span> <span class='label'>id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>my-agent</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>version:</span> <span class='int'>1</span>
+
   <span class='id identifier rubyid_model'>model</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>gpt-4o</span><span class='tstring_end'>&quot;</span></span>
-  <span class='id identifier rubyid_before_completion'>before_completion</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span> <span class='lbrace'>{</span> <span class='label'>temperature:</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:precise</span><span class='rbracket'>]</span> <span class='op'>?</span> <span class='float'>0.0</span> <span class='op'>:</span> <span class='float'>0.7</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span>
-<span class='kw'>end</span>
 
-<span class='comment'># Instance-level: overrides class hook for this agent only
-</span><span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
-<span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_before_completion'>before_completion</span> <span class='op'>=</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span> <span class='lbrace'>{</span> <span class='label'>max_tokens:</span> <span class='int'>512</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span>
-
-<span class='comment'># Global: applies to every agent across the app
-</span><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span>
-  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_before_completion'>before_completion</span> <span class='op'>=</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span> <span class='lbrace'>{</span> <span class='label'>temperature:</span> <span class='float'>0.3</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span>
+  <span class='id identifier rubyid_before_llm_input'>before_llm_input</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+    <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/LLMInputPatch.html" title="Phronomy::Agent::LLMInputPatch (class)">LLMInputPatch</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Agent/LLMInputPatch.html#initialize-instance_method" title="Phronomy::Agent::LLMInputPatch#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+      <span class='label'>model_config_patch:</span> <span class='lbrace'>{</span>
+        <span class='label'>temperature:</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:precise</span><span class='rbracket'>]</span> <span class='op'>?</span> <span class='float'>0.0</span> <span class='op'>:</span> <span class='float'>0.7</span>
+      <span class='rbrace'>}</span>
+    <span class='rparen'>)</span>
+  <span class='rbrace'>}</span>
 <span class='kw'>end</span>
 </code></pre>
-<p>Hooks are called in order — global → class → instance — and shallow-merged (<code>Hash#merge</code>; last hook wins on key conflicts).</p>
+<h3 id="Instance_level_hook">Instance-level hook</h3>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
+
+<span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_before_llm_input'>before_llm_input</span> <span class='op'>=</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid__ctx'>_ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+  <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/LLMInputPatch.html" title="Phronomy::Agent::LLMInputPatch (class)">LLMInputPatch</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Agent/LLMInputPatch.html#initialize-instance_method" title="Phronomy::Agent::LLMInputPatch#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+    <span class='label'>model_config_patch:</span> <span class='lbrace'>{</span>
+      <span class='label'>max_output_tokens:</span> <span class='int'>512</span>
+    <span class='rbrace'>}</span>
+  <span class='rparen'>)</span>
+<span class='rbrace'>}</span>
+</code></pre>
+<h3 id="Global_hook">Global hook</h3>
+<pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_config'>config</span><span class='op'>|</span>
+  <span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_before_llm_input'>before_llm_input</span> <span class='op'>=</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid__ctx'>_ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+    <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/LLMInputPatch.html" title="Phronomy::Agent::LLMInputPatch (class)">LLMInputPatch</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Agent/LLMInputPatch.html#initialize-instance_method" title="Phronomy::Agent::LLMInputPatch#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+      <span class='label'>model_config_patch:</span> <span class='lbrace'>{</span>
+        <span class='label'>temperature:</span> <span class='float'>0.3</span>
+      <span class='rbrace'>}</span>
+    <span class='rparen'>)</span>
+  <span class='rbrace'>}</span>
+<span class='kw'>end</span>
+</code></pre>
+<p>When multiple hooks provide <code>model_config_patch</code>, patches are merged in hook
+order and later values win on key conflicts.</p>
+<p><code>LLMInputPatch</code> can also supply <code>segment_candidates</code> for additional per-call
+context. Those segments participate in Manifest-first input assembly. This is
+intended for logical context supplied by the application; applications should
+not mutate RubyLLM message history directly.</p>
+<pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/LLMInputPatch.html" title="Phronomy::Agent::LLMInputPatch (class)">LLMInputPatch</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Agent/LLMInputPatch.html#initialize-instance_method" title="Phronomy::Agent::LLMInputPatch#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+  <span class='label'>segment_candidates:</span> <span class='lbracket'>[</span>
+    <span class='lbrace'>{</span>
+      <span class='label'>content:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>The customer is on the enterprise plan.</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+      <span class='label'>category:</span> <span class='symbol'>:knowledge</span><span class='comma'>,</span>
+      <span class='label'>role:</span> <span class='symbol'>:user</span>
+    <span class='rbrace'>}</span>
+  <span class='rbracket'>]</span>
+<span class='rparen'>)</span>
+</code></pre>
+<p>The Journal remains the canonical record of observed execution history.
+<code>before_llm_input</code> customizes the logical input assembled for a particular LLM
+call; it does not rewrite previously recorded Journal history.</p>
 <h3 id="GeneratorVerifier___Generator_Verifier_loop_with_custom_prompt_builders">GeneratorVerifier — Generator-Verifier loop with custom prompt builders</h3>
 <pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_pipeline'>pipeline</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/GeneratorVerifier.html" title="Phronomy::GeneratorVerifier (class)">GeneratorVerifier</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/GeneratorVerifier.html#initialize-instance_method" title="Phronomy::GeneratorVerifier#initialize (method)">new</a></span></span><span class='lparen'>(</span>
   <span class='label'>draft_agent:</span>  <span class='const'>PolicyDraftAgent</span><span class='comma'>,</span>
@@ -972,7 +1038,7 @@ child process (stdio transport) or release the HTTP connection:</p>
   <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_default_model'>default_model</span>                   <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>gpt-4o-mini</span><span class='tstring_end'>&quot;</span></span>
   <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_recursion_limit'>recursion_limit</span>                 <span class='op'>=</span> <span class='int'>25</span>
   <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_tracer'>tracer</span>                          <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tracing.html" title="Phronomy::Tracing (module)">Tracing</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tracing/NullTracer.html" title="Phronomy::Tracing::NullTracer (class)">NullTracer</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
-  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_before_completion'>before_completion</span>               <span class='op'>=</span> <span class='kw'>nil</span>   <span class='comment'># optional; global hook lambda
+  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_before_llm_input'>before_llm_input</span>                 <span class='op'>=</span> <span class='kw'>nil</span>   <span class='comment'># optional global before_llm_input hook
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_trace_pii'>trace_pii</span>                       <span class='op'>=</span> <span class='kw'>false</span> <span class='comment'># default; set to true only when trace data contains no PII
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span>                          <span class='op'>=</span> <span class='kw'>nil</span>   <span class='comment'># optional; any object responding to #warn (e.g. Rails.logger)
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span>   <span class='op'>=</span> <span class='int'>5</span>     <span class='comment'># seconds to wait for sessions to drain on shutdown
@@ -1006,10 +1072,8 @@ Understanding when to use each prevents scheduler stalls and hidden deadlocks.</
 <td><code>agent.invoke(input)</code> — blocks the calling thread until done</td>
 </tr>
 <tr>
-<td>Workflow action / EventLoop callback</td>
-<td>`agent.invoke_async(input).map {</td>
-<td>r</td>
-<td>ctx.merge(output: <a href=":output">r</a>) }` — returns a Task and resumes by state transition</td>
+<td>Workflow action</td>
+<td>Start <code>invoke_async</code> and use <code>Workflow#signal</code> in the <code>on_event:</code> callback to deliver the result as a later Workflow event</td>
 </tr>
 <tr>
 <td>Top-level code that wants explicit async</td>
@@ -1038,11 +1102,18 @@ Understanding when to use each prevents scheduler stalls and hidden deadlocks.</
 </tbody>
 </table>
 <h3 id="Why_this_matters">Why this matters</h3>
-<p><code>invoke</code> is a synchronous wrapper that calls <code>invoke_async</code> and then <em>blocks</em> the calling
-thread until the task completes.  It is intended for top-level application threads such as
-Rails controller actions, CLI scripts, or background jobs.  Inside EventLoop-driven
-workflow actions, return a Task and let <code>Task#map</code> / <code>Task#on_complete</code> drive the next
-state transition instead of waiting inside the EventLoop thread.</p>
+<p><code>invoke</code> is a synchronous wrapper around asynchronous Agent execution and blocks
+the calling thread until the Agent finishes. It is appropriate for top-level
+application code such as CLI commands, controller actions, or background jobs.</p>
+<p>Workflow entry and transition actions have a different contract: they are
+synchronous Run-to-Completion callbacks and must finish promptly.</p>
+<p>If a Workflow action needs an Agent or another asynchronous operation, start the
+operation asynchronously, register its completion listener, return the Workflow
+context, and use <code>Workflow#signal</code> to deliver completion as a later Workflow
+event.</p>
+<p>Do not call blocking <code>Agent#invoke</code> from an EventLoop callback, and do not return
+the <code>Task</code> from <code>Agent#invoke_async</code> as the result of a Workflow entry or
+transition action.</p>
 <h3 id="Runtime_guard">Runtime guard</h3>
 <p>Phronomy detects this pattern automatically:</p>
 <pre class="code ruby"><code class="ruby"><span class='comment'># Default (soft mode): logs a warning and continues
@@ -1060,14 +1131,82 @@ state transition instead of waiting inside the EventLoop thread.</p>
 
 <span class='comment'># Explicit async from top-level code
 </span><span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_my_agent'>my_agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
-
-<span class='comment'># Workflow action / EventLoop-safe use
-</span><span class='const'>NODE</span> <span class='op'>=</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
-  <span class='id identifier rubyid_my_agent'>my_agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_result'>result</span><span class='op'>|</span>
-    <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>answer:</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span><span class='rparen'>)</span>
-  <span class='rbrace'>}</span>
-<span class='rbrace'>}</span>
 </code></pre>
+<h3 id="Async_work_inside_a_Workflow">Async work inside a Workflow</h3>
+<p>Workflow entry and transition actions are synchronous Run-to-Completion
+callbacks.</p>
+<p>They may start asynchronous work, but they must return the Workflow context (or
+<code>nil</code>). Returning a <code>Phronomy::Task</code> from an entry or transition action is an
+error.</p>
+<p>When an asynchronous Agent finishes, deliver its result back to the live
+Workflow as a later event with <code>Workflow#signal</code>.</p>
+<pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>AnswerContext</span>
+  <span class='id identifier rubyid_include'>include</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/WorkflowContext.html" title="Phronomy::WorkflowContext (module)">WorkflowContext</a></span></span>
+
+  <span class='id identifier rubyid_field'>field</span> <span class='symbol'>:question</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='symbol'>:replace</span><span class='comma'>,</span> <span class='label'>default:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_field'>field</span> <span class='symbol'>:answer</span><span class='comma'>,</span>   <span class='label'>type:</span> <span class='symbol'>:replace</span><span class='comma'>,</span> <span class='label'>default:</span> <span class='kw'>nil</span>
+<span class='kw'>end</span>
+
+<span class='id identifier rubyid_workflow'>workflow</span> <span class='op'>=</span> <span class='kw'>nil</span>
+
+<span class='id identifier rubyid_workflow'>workflow</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Workflow.html" title="Phronomy::Workflow (class)">Workflow</a></span></span><span class='period'>.</span><span class='id identifier rubyid_define'><span class='object_link'><a href="Phronomy/Workflow.html#define-class_method" title="Phronomy::Workflow.define (method)">define</a></span></span><span class='lparen'>(</span><span class='const'>AnswerContext</span><span class='rparen'>)</span> <span class='kw'>do</span>
+  <span class='id identifier rubyid_initial'>initial</span> <span class='symbol'>:asking</span>
+
+  <span class='id identifier rubyid_state'>state</span> <span class='symbol'>:asking</span>
+  <span class='id identifier rubyid_state'>state</span> <span class='symbol'>:done</span>
+
+  <span class='id identifier rubyid_entry'>entry</span> <span class='symbol'>:asking</span><span class='comma'>,</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+    <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_thread_id'>thread_id</span>
+
+    <span class='id identifier rubyid_my_agent'>my_agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span>
+      <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_question'>question</span><span class='comma'>,</span>
+      <span class='label'>on_event:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+        <span class='kw'>next</span> <span class='kw'>unless</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span> <span class='op'>==</span> <span class='symbol'>:done</span>
+
+        <span class='id identifier rubyid_workflow'>workflow</span><span class='period'>.</span><span class='id identifier rubyid_signal'>signal</span><span class='lparen'>(</span>
+          <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
+          <span class='label'>event:</span> <span class='symbol'>:answer_ready</span><span class='comma'>,</span>
+          <span class='label'>payload:</span> <span class='lbrace'>{</span> <span class='label'>answer:</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
+        <span class='rparen'>)</span>
+      <span class='rbrace'>}</span>
+    <span class='rparen'>)</span>
+
+    <span class='id identifier rubyid_ctx'>ctx</span>
+  <span class='rbrace'>}</span>
+
+  <span class='id identifier rubyid_transition'>transition</span><span class='lparen'>(</span>
+    <span class='label'>from:</span> <span class='symbol'>:asking</span><span class='comma'>,</span>
+    <span class='label'>on:</span> <span class='symbol'>:answer_ready</span><span class='comma'>,</span>
+    <span class='label'>to:</span> <span class='symbol'>:done</span><span class='comma'>,</span>
+    <span class='label'>action:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='comma'>,</span> <span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span> <span class='tlambeg'>{</span>
+      <span class='id identifier rubyid_ctx'>ctx</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>answer:</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='lbracket'>[</span><span class='symbol'>:answer</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+    <span class='rbrace'>}</span>
+  <span class='rparen'>)</span>
+
+  <span class='id identifier rubyid_transition'>transition</span> <span class='label'>from:</span> <span class='symbol'>:done</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:__finish__</span>
+<span class='kw'>end</span>
+</code></pre>
+<p>The important separation is:</p>
+<pre class="code text"><code class="text">Workflow action
+    │
+    ├─ starts asynchronous work
+    │
+    └─ returns context immediately
+             │
+             ▼
+       asynchronous Agent
+             │
+             ▼
+      on_event / callback
+             │
+             ▼
+       Workflow#signal
+             │
+             ▼
+      later Workflow event
+</code></pre>
+<p><code>Task#map</code> remains a valid Task API for transforming Task results, but a mapped
+Task must not be returned from a Workflow entry or transition action.</p>
 <h3 id="_immediate_backend__synchronous___test_mode_">:immediate backend (synchronous / test mode)</h3>
 <p>The <code>:immediate</code> backend runs tasks synchronously using <code>FakeScheduler</code>
 (backed by <code>Task::ImmediateBackend</code>).  Blocking I/O is isolated in <code>BlockingAdapterPool</code>.
@@ -1128,7 +1267,7 @@ tokenizer-backed callable:</p>
 <p>Pass a <code>CancellationToken</code> to any agent via <code>config: { cancellation_token: token }</code>.
 Cancellation is checked at multiple granular checkpoints: before the LLM call,
 after each streaming chunk, before each parallel
-tool-call batch, and after each <code>before_completion</code> hook. <code>CancellationError</code> is
+tool-call batch, and after each <code>before_llm_input</code> hook. <code>CancellationError</code> is
 raised immediately. Phronomy does not replay the complete Agent invocation. No threads are force-killed — <code>ensure</code>
 blocks always execute.</p>
 <blockquote>
@@ -1288,11 +1427,6 @@ request, statement, or session timeouts.</p>
 <td>Automated code review agent</td>
 </tr>
 <tr>
-<td>16</td>
-<td><code>16_before_completion_hook/</code></td>
-<td>Global/class/instance before_completion hooks</td>
-</tr>
-<tr>
 <td>17</td>
 <td><code>17_multi_agent_handoff/</code></td>
 <td>Hub-and-spoke agent routing via Runner</td>
@@ -1376,7 +1510,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat Aug  8 07:49:53 2026 by
+  Generated on Sat Aug  8 08:46:41 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
