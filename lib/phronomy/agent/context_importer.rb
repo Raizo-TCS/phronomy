@@ -24,13 +24,71 @@ module Phronomy
 
       class << self
         def import_messages(messages, system_message: :reject)
-          records = Array(messages).flat_map do |message|
+          source_messages = Array(messages)
+          validate_protocol!(source_messages)
+          records = source_messages.flat_map do |message|
             import_message(message, system_message: system_message)
           end
           ImportedContext.new(records: records.freeze)
         end
 
         private
+
+        # Imported history has no runtime Provider Call identity. The flattened
+        # Journal representation must therefore retain enough protocol structure
+        # to reconstruct message boundaries from order alone. Ambiguous or broken
+        # histories are rejected instead of receiving synthetic execution/call IDs.
+        def validate_protocol!(messages)
+          pending = {}
+          seen_tool_call_ids = {}
+          previous_non_tool_role = nil
+
+          messages.each_with_index do |message, index|
+            role = read(message, :role).to_sym
+
+            if pending.any? && role != :tool
+              raise ArgumentError,
+                "message #{index} appears before Tool Results for: #{pending.keys.join(', ')}"
+            end
+
+            case role
+            when :assistant
+              calls = tool_calls_for(message)
+              content = read_optional(message, :content)
+              if previous_non_tool_role == :assistant &&
+                  calls.any? && (content.nil? || content.to_s.empty?)
+                raise ArgumentError,
+                  "tool-call-only assistant message is ambiguous after a preceding assistant message"
+              end
+              calls.each do |call|
+                payload = normalize(read_tool_call(call))
+                call_id = payload.fetch("id").to_s
+                raise ArgumentError, "tool_call requires id" if call_id.empty?
+                if seen_tool_call_ids[call_id]
+                  raise ArgumentError, "duplicate tool_call id: #{call_id}"
+                end
+                seen_tool_call_ids[call_id] = true
+                pending[call_id] = true
+              end
+              previous_non_tool_role = :assistant
+            when :tool
+              call_id = read_optional(message, :tool_call_id).to_s
+              raise ArgumentError, "tool message requires tool_call_id" if call_id.empty?
+              unless pending.delete(call_id)
+                raise ArgumentError, "orphan or duplicate Tool Result: #{call_id}"
+              end
+            when :user, :system
+              previous_non_tool_role = role
+            else
+              raise ArgumentError, "unsupported message role: #{role.inspect}"
+            end
+          end
+
+          return if pending.empty?
+
+          raise ArgumentError,
+            "imported history ends before Tool Results for: #{pending.keys.join(', ')}"
+        end
 
         def import_message(message, system_message:)
           role = read(message, :role).to_sym
@@ -76,8 +134,7 @@ module Phronomy
             result << text_record(:llm_message, :llm, :assistant, content)
           end
 
-          tool_calls = read_optional(message, :tool_calls)
-          Array(tool_calls.respond_to?(:values) ? tool_calls.values : tool_calls).each do |call|
+          tool_calls_for(message).each do |call|
             payload = normalize(read_tool_call(call))
             call_id = payload.fetch("id").to_s
             result << ImportedRecord.new(
@@ -97,6 +154,11 @@ module Phronomy
               "assistant message requires content or one or more tool_calls"
           end
           result
+        end
+
+        def tool_calls_for(message)
+          tool_calls = read_optional(message, :tool_calls)
+          Array(tool_calls.respond_to?(:values) ? tool_calls.values : tool_calls)
         end
 
         def text_record(kind, channel, role, content)

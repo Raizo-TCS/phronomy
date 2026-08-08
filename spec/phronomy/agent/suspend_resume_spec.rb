@@ -31,12 +31,22 @@ def build_hitl_chat(tool_name: "hitl_tool", tool_args: {"value" => "hello"},
     thought_signature: nil,
     to_h: {id: tool_call_id, name: tool_name, arguments: tool_args}
   )
+  # Simulate RubyLLM >= 1.15: messages.last is the complete assistant message
+  # with tool_calls populated before before_tool_call fires.
+  fake_assistant_msg = double(
+    "AssistantMessage",
+    role: :assistant,
+    content: nil,
+    tool_calls: [fake_tc],
+    tokens: FAKE_HITL_TOKENS,
+    tool_call?: true
+  )
   final_resp = double("FinalResp", content: final_response, tokens: FAKE_HITL_TOKENS)
   dbl = double("HITLChat")
   allow(dbl).to receive(:with_instructions).and_return(dbl)
   allow(dbl).to receive(:with_tool).and_return(dbl)
   allow(dbl).to receive(:with_temperature).and_return(dbl)
-  allow(dbl).to receive(:messages) { messages_list }
+  allow(dbl).to receive(:messages) { messages_list + [fake_assistant_msg] }
   allow(dbl).to receive(:tools) { tools_hash }
   allow(dbl).to receive(:add_message)
   allow(dbl).to receive(:cancellation_token=)

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "securerandom"
 require "time"
 
 module Phronomy
@@ -46,24 +47,33 @@ module Phronomy
         @mutex.synchronize { @runtime_projection = value }
       end
 
+      # Allocates Provider Call identity before transport begins. This identity is
+      # provenance only; Context selection must not use it as a semantic boundary.
       def begin_llm_call(projection)
+        call_context = {
+          llm_call_id: SecureRandom.uuid,
+          manifest_ref: projection.manifest_ref,
+          started_at: Time.now.utc.iso8601(6)
+        }.freeze
         @mutex.synchronize do
+          if @active_call
+            raise Phronomy::Error,
+              "cannot start a Provider Call while another Provider Call is active"
+          end
           @runtime_projection = projection
-          @active_call = {
-            manifest_ref: projection.manifest_ref,
-            started_at: Time.now.utc.iso8601(6)
-          }
+          @active_call = call_context
         end
-        projection
+        call_context
       end
 
       def record_llm_result(response:, error:, streaming:)
         @mutex.synchronize do
-          active_call = @active_call || {
-            manifest_ref: @runtime_projection.manifest_ref,
-            started_at: Time.now.utc.iso8601(6)
-          }
+          active_call = @active_call
+          unless active_call
+            raise Phronomy::Error, "LLM result arrived without an active Provider Call"
+          end
           @llm_results << {
+            llm_call_id: active_call.fetch(:llm_call_id),
             response: response,
             error: error,
             streaming: streaming,
@@ -114,10 +124,16 @@ module Phronomy
         @mutex.synchronize { !@callback_failure.nil? }
       end
 
+      # Canonical runtime recording is independent of Application callback health.
+      # Once an event is observed it is appended even after a listener has failed.
       def record_event(event)
-        return if callback_failed?
-        @mutex.synchronize { @runtime_events << event }
-        application_listener&.call(event)
+        listener = @mutex.synchronize do
+          @runtime_events << event
+          @callback_failure ? nil : @application_listener
+        end
+        return unless listener
+
+        listener.call(event)
       rescue => callback_error
         failure = ApplicationCallbackFailure.new(
           event_type: event.type, error: callback_error

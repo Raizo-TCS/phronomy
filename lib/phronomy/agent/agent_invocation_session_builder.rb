@@ -217,29 +217,58 @@ module Phronomy
           invocation.chat,
           invocation.config
         )
-        install_tool_interceptors(invocation.chat)
+        install_tool_interceptors(invocation.chat, invocation)
         invocation
       end
       private_class_method :building_context_action
 
-      def self.install_tool_interceptors(chat)
+      # RubyLLM >= 1.15 adds the complete assistant Message to chat.messages
+      # before before_tool_call is fired. Capture that Message at the control
+      # boundary instead of trying to recover it after the exception unwinds.
+      def self.install_tool_interceptors(chat, invocation = nil)
+        unless chat.respond_to?(:before_tool_call)
+          raise Phronomy::ConfigurationError,
+            "Agent-owned Tool execution requires RubyLLM >= 1.15 (before_tool_call callback)"
+        end
+
         if chat.respond_to?(:on_tool_call_batch)
           chat.on_tool_call_batch do |tool_calls|
-            raise Phronomy::Agent::ToolCallIntercepted.new(tool_calls)
+            raise build_tool_interception(chat, tool_calls, invocation)
           end
         end
 
-        if chat.respond_to?(:before_tool_call)
-          chat.before_tool_call do |tool_call|
-            raise Phronomy::Agent::ToolCallIntercepted.new(tool_call)
-          end
-        else
-          chat.on_tool_call do |tool_call|
-            raise Phronomy::Agent::ToolCallIntercepted.new(tool_call)
-          end
+        chat.before_tool_call do |tool_call|
+          raise build_tool_interception(chat, [tool_call], invocation)
         end
       end
       private_class_method :install_tool_interceptors
+
+      def self.build_tool_interception(chat, fallback_tool_calls, invocation)
+        assistant_message = chat.messages.last
+        unless assistant_message &&
+            assistant_message.respond_to?(:role) &&
+            assistant_message.role.to_sym == :assistant &&
+            assistant_message.respond_to?(:tool_calls)
+          raise Phronomy::Error,
+            "RubyLLM Tool callback fired before the complete assistant message was observable"
+        end
+
+        message_tool_calls = assistant_message.tool_calls
+        tool_calls = if message_tool_calls.respond_to?(:values)
+          message_tool_calls.values
+        else
+          Array(message_tool_calls)
+        end
+        tool_calls = Array(fallback_tool_calls) if tool_calls.empty?
+
+        ToolCallIntercepted.new(
+          tool_calls,
+          assistant_message: assistant_message,
+          assistant_outcome: ProviderCallOutcome.capture(assistant_message),
+          llm_call_id: invocation&.current_llm_call_id
+        )
+      end
+      private_class_method :build_tool_interception
 
       def self.calling_llm_action(agent, runtime, invocation)
         user_message = invocation.user_message_sent ?

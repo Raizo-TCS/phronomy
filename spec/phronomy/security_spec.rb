@@ -244,6 +244,7 @@ RSpec.describe "Security specs (Issue #214)" do
       allow(chat_double).to receive(:with_temperature).and_return(chat_double)
       allow(chat_double).to receive(:cancellation_token=)
       allow(chat_double).to receive(:on_tool_call)
+      allow(chat_double).to receive(:before_tool_call)
       allow(chat_double).to receive(:on_tool_result)
       allow(chat_double).to receive(:ask).and_return(response)
       allow(chat_double).to receive(:messages).and_return([])

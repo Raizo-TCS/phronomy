@@ -82,6 +82,7 @@ RSpec.describe "Agent::Base instructions with PromptTemplate" do
     allow(dbl).to receive(:with_temperature).and_return(dbl)
     allow(dbl).to receive(:cancellation_token=)
     allow(dbl).to receive(:on_tool_call)
+    allow(dbl).to receive(:before_tool_call)
     allow(dbl).to receive(:on_tool_result)
     allow(dbl).to receive(:ask).and_return(fake_response)
     allow(dbl).to receive(:messages).and_return([fake_response])

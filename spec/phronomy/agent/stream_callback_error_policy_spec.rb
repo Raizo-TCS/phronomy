@@ -106,6 +106,7 @@ RSpec.describe "Agent terminal stream callback error policy" do
       allow(dbl).to receive(:messages).and_return([response])
       allow(dbl).to receive(:cancellation_token=)
       allow(dbl).to receive(:on_tool_call)
+      allow(dbl).to receive(:before_tool_call)
       allow(dbl).to receive(:on_tool_result)
       allow(dbl).to receive(:ask) { |_msg, &blk|
         blk&.call(double("Chunk", content: "token1"))
@@ -204,6 +205,7 @@ RSpec.describe "Agent terminal stream callback error policy" do
       allow(dbl).to receive(:messages).and_return([response])
       allow(dbl).to receive(:cancellation_token=)
       allow(dbl).to receive(:on_tool_call)
+      allow(dbl).to receive(:before_tool_call)
       allow(dbl).to receive(:on_tool_result)
       allow(dbl).to receive(:ask) { |_msg, &blk|
         blk&.call(double("Chunk2", content: "token"))

@@ -48,7 +48,7 @@ RSpec.describe "stateful manifest follow-up regressions" do
     def build_test_manifest(model_name)
       model_cfg = {"model" => model_name}
       model_ref = persistence.contents.put_json(model_cfg)
-      tool_ref  = persistence.contents.put_json([])
+      tool_ref = persistence.contents.put_json([])
       Phronomy::Agent::LLMInputManifest.new(
         call_sequence: 1, call_mode: :complete,
         segments: [], model_config_ref: model_ref,
@@ -165,7 +165,7 @@ RSpec.describe "stateful manifest follow-up regressions" do
         persistence.contents.fetch_text(segment.content_ref) == "Be concise"
       end
       expect(hook_segment.metadata).to include("phronomy_origin" => "before_llm_input")
-      expect(manifest.assembly_policy_version).to eq(4)
+      expect(manifest.assembly_policy_version).to eq(5)
     end
 
     it "includes the same hook instruction only once in a follow-up Call" do
@@ -199,5 +199,4 @@ RSpec.describe "stateful manifest follow-up regressions" do
       expect(contents).not_to include("Use tools when useful")
     end
   end
-
 end

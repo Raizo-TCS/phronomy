@@ -27,45 +27,73 @@ RSpec.describe Phronomy::Agent::TokenBudgetResolver do
     expect(budget.effective_input_limit).to eq(900)
   end
 
-  it "deducts actual mandatory Manifest content exactly once" do
-    selector_class = Class.new do
-      attr_reader :token_budget, :mandatory_bytes
-
-      def select(agent_root:, journal_projection:, token_budget:, mandatory_bytes:)
-        @token_budget = token_budget
-        @mandatory_bytes = mandatory_bytes
-        []
-      end
-    end
-    selector = selector_class.new
-
+  it "builds and finally validates the canonical Manifest against the same budget" do
     root = agent.agent_root
     input_ref = persistence.contents.put_text("hello")
     input_record = Phronomy::Agent::JournalRecord.new(
-      agent_id: agent.agent_id, kind: :input_received,
-      channel: :external, role: :user, content_ref: input_ref,
-      context_generation: root.transcript_generation, context_candidate: false
+      agent_id: agent.agent_id,
+      kind: :external_message,
+      channel: :external,
+      role: :user,
+      content_ref: input_ref,
+      context_generation: root.transcript_generation,
+      context_candidate: true
     )
     execution = Phronomy::Agent::AgentExecution.start(
-      agent_root: root, input_record: input_record,
-      metadata: {"current_input_ref" => input_ref}
-    ).with(execution_revision: 0, working_records: [])
+      agent_root: root,
+      input_record: input_record,
+      metadata: {
+        "current_input_ref" => input_ref,
+        "current_input_record_id" => input_record.record_id
+      }
+    ).with(execution_revision: 0, working_records: [input_record])
 
-    assembler = Phronomy::Agent::ContextAssembler.new(
-      agent: agent, persistence: persistence, selector: selector
+    manifest, = Phronomy::Agent::ContextAssembler.new(
+      agent: agent,
+      persistence: persistence
+    ).build_initial(
+      input: "hello",
+      agent_root: root,
+      execution: execution
     )
-    manifest, = assembler.build_initial(
-      input: "hello", agent_root: root, execution: execution
-    )
 
-    mandatory_estimate =
-      Phronomy::LlmContextWindow::TokenEstimator.estimate(selector.mandatory_bytes)
-    expected_remaining = [900 - mandatory_estimate, 0].max
-
-    expect(selector.mandatory_bytes).to include("Base instruction")
-    expect(selector.mandatory_bytes).to include("hello")
-    expect(selector.token_budget.overhead).to eq(0)
-    expect(selector.token_budget.available(used: mandatory_estimate)).to eq(expected_remaining)
-    expect(manifest.assembly_policy_version).to eq(4)
+    expect(manifest.assembly_policy_version).to eq(5)
+    expect(manifest.segments.map(&:category)).to include(:instruction, :current_input)
+    expect(manifest.segments.count { |segment| segment.delivery == :ask_argument }).to eq(1)
   end
+  it "does not charge Provider configuration metadata as prompt tokens" do
+    root = agent.agent_root
+    input_ref = persistence.contents.put_text("hello")
+    input_record = Phronomy::Agent::JournalRecord.new(
+      agent_id: agent.agent_id,
+      kind: :external_message,
+      channel: :external,
+      role: :user,
+      content_ref: input_ref,
+      context_generation: root.transcript_generation,
+      context_candidate: true
+    )
+    execution = Phronomy::Agent::AgentExecution.start(
+      agent_root: root,
+      input_record: input_record,
+      metadata: {
+        "current_input_ref" => input_ref,
+        "current_input_record_id" => input_record.record_id
+      }
+    ).with(execution_revision: 0, working_records: [input_record])
+
+    manifest, = Phronomy::Agent::ContextAssembler.new(
+      agent: agent,
+      persistence: persistence
+    ).build_initial(
+      input: "hello",
+      agent_root: root,
+      execution: execution,
+      config: {thread_id: "x" * 20_000}
+    )
+
+    model_config = persistence.contents.fetch_json(manifest.model_config_ref)
+    expect(model_config.fetch("thread_id").length).to eq(20_000)
+  end
+
 end

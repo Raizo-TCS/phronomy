@@ -35,12 +35,22 @@ def build_approve_async_chat(tool_instance:, final_response: "resumed")
     thought_signature: nil,
     to_h: {id: "call_001", name: "hitl_tool", arguments: {"value" => "hello"}}
   )
+  # Simulate RubyLLM >= 1.15: messages.last is the complete assistant message
+  # with tool_calls populated before before_tool_call fires.
+  fake_assistant_msg = double(
+    "AssistantMessage",
+    role: :assistant,
+    content: nil,
+    tool_calls: [fake_tc],
+    tokens: FAKE_APPROVE_ASYNC_TOKENS,
+    tool_call?: true
+  )
   final_resp = double("FinalResp", content: final_response, tokens: FAKE_APPROVE_ASYNC_TOKENS)
   dbl = double("HITLChat")
   allow(dbl).to receive(:with_instructions).and_return(dbl)
   allow(dbl).to receive(:with_tool).and_return(dbl)
   allow(dbl).to receive(:with_temperature).and_return(dbl)
-  allow(dbl).to receive(:messages) { [] }
+  allow(dbl).to receive(:messages) { [fake_assistant_msg] }
   allow(dbl).to receive(:tools) { {hitl_tool: tool_instance} }
   allow(dbl).to receive(:add_message)
   allow(dbl).to receive(:cancellation_token=)

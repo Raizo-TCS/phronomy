@@ -52,7 +52,9 @@ module Phronomy
         :tool_invocations,
         :session_id,
         :phase,
-        :mode
+        :mode,
+        :current_llm_call_id,
+        :tool_batch_llm_call_id
 
       def initialize(
         agent:,
@@ -98,9 +100,10 @@ module Phronomy
         @error = nil
         @session_id = nil
         @phase = nil
+        @current_llm_call_id = nil
+        @tool_batch_llm_call_id = nil
       end
 
-      # Compatibility aliases for existing internal callers.
       def stream_listener
         @event_listener
       end
@@ -118,6 +121,11 @@ module Phronomy
         @phase = phase
       end
 
+      def begin_llm_call!(llm_call_id)
+        @current_llm_call_id = llm_call_id.to_s
+        self
+      end
+
       def pending_tool_calls=(calls)
         @pending_tool_calls = Array(calls)
       end
@@ -130,6 +138,7 @@ module Phronomy
         @pending_tool_calls = []
         @tool_invocations = []
         @approval_request = nil
+        @tool_batch_llm_call_id = nil
       end
 
       def handle_fsm_event(event)
@@ -171,8 +180,6 @@ module Phronomy
         true
       end
 
-      # Deprecated internal compatibility hook. FSMSession no longer calls
-      # this method; asynchronous results enter through explicit events.
       def apply_fsm_action_result(result)
         event_type =
           if result.respond_to?(:error) &&
@@ -192,15 +199,20 @@ module Phronomy
         self
       end
 
-      def accept_tool_calls!(tool_calls)
+      def accept_tool_calls!(tool_calls, llm_call_id: nil)
         @user_message_sent = true
         @pending_tool_calls = Array(tool_calls)
         @messages = @chat.messages
+        @tool_batch_llm_call_id = (llm_call_id || @current_llm_call_id)&.to_s
+        @current_llm_call_id = nil
         @pending_tool_calls.each do |tool_call|
           deliver_event(
             StreamEvent.new(
               type: :tool_call,
-              payload: {tool_call: tool_call}
+              payload: {
+                tool_call: tool_call,
+                llm_call_id: @tool_batch_llm_call_id
+              }.compact
             )
           )
         end
@@ -217,6 +229,7 @@ module Phronomy
         @usage = Phronomy::TokenUsage.from_tokens(response.tokens)
         @messages = @chat.messages
         @pending_tool_calls = []
+        @current_llm_call_id = nil
         self
       end
 
@@ -273,8 +286,9 @@ module Phronomy
               payload: {
                 tool_call_id: invocation.tool_call_id,
                 tool_name: invocation.tool_name,
-                tool_result: invocation.result
-              }
+                tool_result: invocation.result,
+                llm_call_id: @tool_batch_llm_call_id
+              }.compact
             )
           )
         end
@@ -368,6 +382,7 @@ module Phronomy
         end
 
         if event.type == :llm_failed
+          @current_llm_call_id = nil
           @error = result.error ||
             Phronomy::Error.new("LLM operation failed without an error")
           return
@@ -375,8 +390,12 @@ module Phronomy
 
         if result.error
           if result.error.is_a?(ToolCallIntercepted)
-            accept_tool_calls!(result.error.tool_calls)
+            accept_tool_calls!(
+              result.error.tool_calls,
+              llm_call_id: result.error.llm_call_id
+            )
           else
+            @current_llm_call_id = nil
             @error = result.error
           end
         else

@@ -5,9 +5,14 @@ require "time"
 
 module Phronomy
   module Agent
+    # One immutable entry in the Agent's append-only Canonical Complete Execution Log.
+    #
+    # Raw logical execution facts are never rewritten for Context selection or
+    # compaction. Derived Context artifacts must be appended separately and keep
+    # stable provenance back to their raw source records.
     class JournalRecord
       ATTRIBUTES = %i[
-        record_id agent_id sequence execution_id kind channel role content_ref
+        record_id agent_id sequence execution_id llm_call_id kind channel role content_ref
         parent_id causation_id correlation_id visibility context_generation
         context_candidate occurred_at metadata
       ].freeze
@@ -21,6 +26,7 @@ module Phronomy
         record_id: SecureRandom.uuid,
         sequence: nil,
         execution_id: nil,
+        llm_call_id: nil,
         role: nil,
         content_ref: nil,
         parent_id: nil,

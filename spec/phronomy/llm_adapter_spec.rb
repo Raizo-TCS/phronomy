@@ -170,8 +170,11 @@ RSpec.describe "LLMAdapter abstraction" do
       allow_any_instance_of(agent_class).to receive(:apply_instructions)
       allow_any_instance_of(agent_class).to receive(:run_before_llm_input_hooks).and_return(Phronomy::Agent::LLMInputPatch.empty)
       allow_any_instance_of(agent_class).to receive(:check_cancellation!)
-      # chat.respond_to? is called for :cancellation_token=, :on_tool_call_batch, and :before_tool_call
-      allow(chat).to receive(:respond_to?).and_return(false)
+      # before_tool_call must respond true (>= 1.15 guard); other optional methods return false
+      allow(chat).to receive(:before_tool_call)
+      allow(chat).to receive(:respond_to?) do |method_name, *|
+        method_name.to_sym == :before_tool_call
+      end
 
       result = agent_class.new.invoke("hello")
       expect(result[:output]).to eq("adapter response")

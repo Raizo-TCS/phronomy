@@ -26,7 +26,7 @@ module Phronomy
             model_config: projection.model_config
           }
         )
-        install_tool_interceptors(invocation.chat)
+        install_tool_interceptors(invocation.chat, invocation)
         invocation
       end
 
@@ -93,6 +93,7 @@ module Phronomy
         streaming:,
         replace_messages:
       )
+        call_started = false
         agent.send(
           :check_cancellation!,
           invocation.config,
@@ -110,10 +111,13 @@ module Phronomy
               model_config: projection.model_config
             }
           )
-          install_tool_interceptors(invocation.chat)
+          install_tool_interceptors(invocation.chat, invocation)
           invocation.config[:phronomy_runtime_projection] = projection
         end
-        activation.begin_llm_call(projection)
+
+        call_context = activation.begin_llm_call(projection)
+        call_started = true
+        invocation.begin_llm_call!(call_context.fetch(:llm_call_id))
         message = projection.ask_message
 
         operation = if streaming
@@ -149,18 +153,20 @@ module Phronomy
           streaming: streaming
         )
       rescue => error
-        activation.record_llm_result(
-          response: nil,
-          error: error,
-          streaming: streaming
-        )
+        if call_started
+          activation.record_llm_result(
+            response: canonical_response_for(nil, error),
+            error: error,
+            streaming: streaming
+          )
+        end
         post_llm_result(runtime, invocation, nil, error, streaming: streaming)
       end
 
       def observe_manifest_call(operation, activation, invocation, runtime:, streaming:)
         operation.on_complete do |response, error|
           activation.record_llm_result(
-            response: response,
+            response: canonical_response_for(response, error),
             error: error,
             streaming: streaming
           )
@@ -171,6 +177,14 @@ module Phronomy
             error,
             streaming: streaming
           )
+        end
+      end
+
+      def canonical_response_for(response, error)
+        if error.is_a?(ToolCallIntercepted)
+          error.assistant_outcome || ProviderCallOutcome.capture(response)
+        else
+          ProviderCallOutcome.capture(response)
         end
       end
 

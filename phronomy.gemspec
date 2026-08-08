@@ -34,12 +34,13 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  # Required dependencies
-  spec.add_dependency "ruby_llm", ">= 1.3", "< 2"
+  # Required dependencies. Agent-owned Tool execution depends on RubyLLM's
+  # additive after_message/before_tool_call callback contract introduced in 1.15.
+  spec.add_dependency "ruby_llm", ">= 1.15", "< 2"
   spec.add_dependency "zeitwerk", ">= 2.6", "< 3"
   spec.add_dependency "state_machines", "~> 0.6"
   spec.add_dependency "mcp", "~> 1.0"
 
   # For more information and examples about making a new gem, check out our
-  # guide at: https://guides.rubygems.org/make-your-own-gem/
+  # guide at: https://guides.rubygems.org/specification-reference/
 end

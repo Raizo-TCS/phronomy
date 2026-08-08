@@ -131,7 +131,7 @@ module Phronomy
             config: invocation_config
           )
           manifest, manifest_ref = ContextAssembler.new(
-            agent: @agent, persistence: tx
+            agent: @agent, persistence: tx, policy: context_policy_for(staged)
           ).build_followup(
             base_manifest: activation.base_manifest,
             agent_root: root, execution: staged,
@@ -148,9 +148,6 @@ module Phronomy
             expected_revision: current.execution_revision, execution: updated)
         end
 
-        # The checkpoint is already durable. Advance the Activation before any
-        # fallible materialization so terminal failure cannot encode the same
-        # Runtime buffer twice.
         activation.replace_execution(updated)
         activation.acknowledge_runtime_snapshot(snapshot)
 
@@ -209,7 +206,8 @@ module Phronomy
             )
             manifest, manifest_ref = ContextAssembler.new(
               agent: @agent,
-              persistence: tx
+              persistence: tx,
+              policy: context_policy_for(staged)
             ).build_initial(
               input: filtered_input,
               agent_root: root,
@@ -270,10 +268,15 @@ module Phronomy
             context_generation: root.transcript_generation,
             context_candidate: false
           )
+          policy_descriptor = ContextPolicies::Default.new.descriptor
           execution = AgentExecution.start(
             agent_root: root,
             input_record: input_record,
-            metadata: {"thread_id" => thread_id, "current_input_ref" => input_ref}.compact
+            metadata: {
+              "thread_id" => thread_id,
+              "current_input_ref" => input_ref,
+              "context_policy" => policy_descriptor.to_h
+            }.compact
           )
           input_record = JournalRecord.from_h(
             input_record.to_h.merge("execution_id" => execution.execution_id)
@@ -527,7 +530,27 @@ module Phronomy
           output_ref = tx.contents.put_text(invocation.output.to_s)
           root = tx.agents.load(@agent.agent_id)
           current = tx.executions.load(execution.execution_id)
-          all_records = current.working_records + encoded_records
+          final_output_record = JournalRecord.new(
+            agent_id: @agent.agent_id,
+            execution_id: current.execution_id,
+            kind: :final_output,
+            channel: :audit,
+            role: :assistant,
+            content_ref: output_ref,
+            context_generation: root.transcript_generation,
+            context_candidate: false
+          )
+          completed_record = JournalRecord.new(
+            agent_id: @agent.agent_id,
+            execution_id: current.execution_id,
+            kind: invocation.rejected ? :execution_rejected : :execution_completed,
+            channel: :audit,
+            content_ref: output_ref,
+            context_generation: root.transcript_generation,
+            context_candidate: false
+          )
+          all_records = current.working_records + encoded_records +
+            [final_output_record, completed_record]
           appended = tx.journals.append(
             root.agent_id,
             expected_position: root.journal_position,
@@ -636,19 +659,21 @@ module Phronomy
         calls = []
 
         snapshot.fetch(:llm_results).each_with_index do |item, index|
-          response = item[:response]
+          outcome = item[:response]
           error = item[:error]
+          llm_call_id = item.fetch(:llm_call_id).to_s
           intercepted = error.is_a?(ToolCallIntercepted)
           call_error = intercepted ? nil : error
-          output_ref = response ? tx.contents.put_text(response.content.to_s) : nil
+          output_ref = assistant_output_ref(tx, outcome)
           error_ref = call_error ? tx.contents.put_json(
             "class" => call_error.class.name,
             "message" => call_error.message
           ) : nil
-          usage_ref = if response && response.respond_to?(:tokens) && response.tokens
-            tx.contents.put_json(json_value(response.tokens.to_h))
+          usage_ref = if outcome && !outcome.usage.empty?
+            tx.contents.put_json(json_value(outcome.usage))
           end
           call = LLMCallRecord.new(
+            llm_call_id: llm_call_id,
             execution_id: execution.execution_id,
             sequence: execution.llm_calls.length + index + 1,
             status: call_error ? :failed : :completed,
@@ -660,7 +685,9 @@ module Phronomy
             completed_at: Time.now.utc.iso8601(6),
             metadata: {
               "streaming" => item[:streaming],
-              "tool_call_intercepted" => intercepted
+              "tool_call_intercepted" => intercepted,
+              "assistant_outcome_captured" => !outcome.nil?,
+              "tool_call_count" => outcome ? outcome.tool_calls.length : 0
             }
           )
           calls << call
@@ -668,6 +695,7 @@ module Phronomy
           records << JournalRecord.new(
             agent_id: @agent.agent_id,
             execution_id: execution.execution_id,
+            llm_call_id: llm_call_id,
             kind: :llm_call_recorded,
             channel: :audit,
             content_ref: call_ref,
@@ -678,6 +706,7 @@ module Phronomy
             records << JournalRecord.new(
               agent_id: @agent.agent_id,
               execution_id: execution.execution_id,
+              llm_call_id: llm_call_id,
               kind: :llm_message,
               channel: :llm,
               role: :assistant,
@@ -686,10 +715,31 @@ module Phronomy
               context_candidate: context_candidate
             )
           end
+          Array(outcome&.tool_calls).each do |tool_call_payload|
+            tool_call_id = tool_call_payload.fetch("id").to_s
+            tool_name = tool_call_payload.fetch("name").to_s
+            records << JournalRecord.new(
+              agent_id: @agent.agent_id,
+              execution_id: execution.execution_id,
+              llm_call_id: llm_call_id,
+              kind: :tool_call,
+              channel: :tool,
+              role: :assistant,
+              content_ref: tx.contents.put_json(tool_call_payload),
+              causation_id: tool_call_id,
+              context_generation: root.transcript_generation,
+              context_candidate: context_candidate,
+              metadata: {
+                "tool_call_id" => tool_call_id,
+                "tool_name" => tool_name
+              }
+            )
+          end
         end
 
         if (active = snapshot[:active_call])
           abandoned = LLMCallRecord.new(
+            llm_call_id: active.fetch(:llm_call_id),
             execution_id: execution.execution_id,
             sequence: execution.llm_calls.length + calls.length + 1,
             status: :cancelled,
@@ -700,41 +750,33 @@ module Phronomy
           )
           calls << abandoned
           records << JournalRecord.new(
-            agent_id: @agent.agent_id, execution_id: execution.execution_id,
-            kind: :llm_call_recorded, channel: :audit,
+            agent_id: @agent.agent_id,
+            execution_id: execution.execution_id,
+            llm_call_id: abandoned.llm_call_id,
+            kind: :llm_call_recorded,
+            channel: :audit,
             content_ref: tx.contents.put_json(abandoned.to_h),
-            context_generation: root.transcript_generation, context_candidate: false
+            context_generation: root.transcript_generation,
+            context_candidate: false
           )
         end
 
         snapshot.fetch(:runtime_events).each do |event|
           case event.type
           when :tool_call
-            tool_call = event.payload.fetch(:tool_call)
-            payload = json_value(tool_call.to_h)
-            content_ref = tx.contents.put_json(payload)
-            records << JournalRecord.new(
-              agent_id: @agent.agent_id,
-              execution_id: execution.execution_id,
-              kind: :tool_call,
-              channel: :tool,
-              role: :assistant,
-              content_ref: content_ref,
-              causation_id: tool_call.id.to_s,
-              context_generation: root.transcript_generation,
-              context_candidate: context_candidate,
-              metadata: {
-                "tool_call_id" => tool_call.id.to_s,
-                "tool_name" => tool_call.name.to_s
-              }
-            )
+            # Tool Calls are canonicalized from ProviderCallOutcome above.
+            # StreamEvent(:tool_call) is an application/runtime notification,
+            # not the durable source of truth for the Provider response.
+            next
           when :tool_result
             payload = event.payload
+            llm_call_id = payload[:llm_call_id] || payload["llm_call_id"]
             tool_call_id = payload.fetch(:tool_call_id).to_s
             result_ref = put_runtime_content(tx, payload.fetch(:tool_result))
             records << JournalRecord.new(
               agent_id: @agent.agent_id,
               execution_id: execution.execution_id,
+              llm_call_id: llm_call_id,
               kind: :tool_result,
               channel: :tool,
               role: :tool,
@@ -750,6 +792,14 @@ module Phronomy
           end
         end
         [records, calls]
+      end
+
+      def assistant_output_ref(tx, outcome)
+        return unless outcome&.content_present?
+
+        content = outcome.content
+        text = content.is_a?(String) ? content : Phronomy::CanonicalJSON.dump(content)
+        tx.contents.put_text(text)
       end
 
       def put_runtime_content(tx, value)
@@ -879,17 +929,25 @@ module Phronomy
         }
       end
 
+      def context_policy_for(execution)
+        descriptor_hash = execution.metadata.fetch("context_policy") do
+          ContextPolicies::Default.new.descriptor.to_h
+        end
+        descriptor = ContextPolicyDescriptor.from_h(descriptor_hash)
+        ContextPolicyRegistry.default.resolve(descriptor)
+      end
+
       def transcript_messages(root)
         materializer = RubyLLMMaterializer.new(
           agent: @agent,
           persistence: @agent.persistence
         )
-        JournalProjection.new(
-          persistence: @agent.persistence,
-          agent_root: root
-        ).transcript_records.map do |record|
-          materializer.materialize_journal_record(record)
-        end
+        materializer.materialize_journal_records(
+          JournalProjection.new(
+            persistence: @agent.persistence,
+            agent_root: root
+          ).transcript_records
+        )
       end
 
       def deliver_terminal(activation, type, payload)
