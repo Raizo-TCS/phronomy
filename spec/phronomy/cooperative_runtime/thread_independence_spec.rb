@@ -22,10 +22,10 @@ RSpec.describe "Thread-independence under FakeScheduler (Issue #309)" do
   end
 
   around do |example|
-    Phronomy::Runtime.instance = cooperative_runtime
+    previous = Phronomy::Runtime.replace_default_for_test(cooperative_runtime)
     example.run
   ensure
-    Phronomy::Runtime.instance_variable_set(:@instance, nil)
+    Phronomy::Runtime.restore_default_for_test(previous)
   end
 
   # Returns a minimal agent class that short-circuits invoke without LLM.

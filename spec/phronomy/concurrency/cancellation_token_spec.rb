@@ -8,16 +8,6 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
       expect(described_class.new.cancelled?).to be false
     end
 
-    it "accepts an optional deadline" do
-      deadline = Time.now + 60
-      token = described_class.new(deadline: deadline)
-      expect(token.deadline).to eq(deadline)
-    end
-
-    it "returns nil deadline when none is provided" do
-      expect(described_class.new.deadline).to be_nil
-    end
-
     it "accepts a monotonic_deadline option and is cancelled once it has elapsed" do
       token = described_class.new(
         monotonic_deadline: Process.clock_gettime(Process::CLOCK_MONOTONIC) - 1
@@ -66,28 +56,11 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
       expect(token.cancelled?).to be true
     end
 
-    it "returns false when the deadline is in the future" do
-      token = described_class.new(deadline: Time.now + 3600)
-      expect(token.cancelled?).to be false
-    end
-
-    it "returns true when the deadline has passed" do
-      token = described_class.new(deadline: Time.now - 1)
-      expect(token.cancelled?).to be true
-    end
-
     it "is thread-safe — concurrent cancel!/cancelled? calls do not raise" do
       token = described_class.new
       threads = 10.times.map { Thread.new { token.cancel! } } +
         10.times.map { Thread.new { token.cancelled? } }
       expect { threads.each(&:join) }.not_to raise_error
-    end
-
-    it "returns true when the wall-clock deadline is exactly equal to the current time" do
-      t = Time.now
-      token = described_class.new(deadline: t)
-      allow(Time).to receive(:now).and_return(t)
-      expect(token.cancelled?).to be true
     end
   end
 
@@ -108,7 +81,7 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
 
     it "has a nil wall-clock deadline (uses monotonic clock internally)" do
       token = described_class.timeout_after(60)
-      expect(token.deadline).to be_nil
+      expect(token.remaining_monotonic_seconds).to be > 0
     end
 
     it "can still be explicitly cancelled before the timeout elapses" do
@@ -190,7 +163,7 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
     end
 
     it "raises TimeoutError for a deadline-expired token" do
-      token = described_class.new(deadline: Time.now - 1)
+      token = described_class.timeout_after(-1)
 
       expect {
         bare_agent_class.new.invoke("hello", config: {cancellation_token: token})
@@ -328,11 +301,6 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
   describe "#remaining_monotonic_seconds" do
     it "returns nil when no monotonic deadline is set" do
       token = described_class.new
-      expect(token.remaining_monotonic_seconds).to be_nil
-    end
-
-    it "returns nil when only a wall-clock deadline is set" do
-      token = described_class.new(deadline: Time.now + 60)
       expect(token.remaining_monotonic_seconds).to be_nil
     end
 

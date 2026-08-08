@@ -125,36 +125,4 @@ RSpec.describe Phronomy::Agent::RubyLLMMaterializer do
     message = materializer.materialize_journal_record(record)
     expect(message.content).to eq("answer" => 42)
   end
-
-  it "still reads legacy flattened assistant/tool records during migration" do
-    text_ref = persistence.contents.put_text("checking")
-    call_ref = persistence.contents.put_json(
-      "id" => "a", "name" => "one", "arguments" => {}
-    )
-    result_ref = persistence.contents.put_text("1")
-
-    records = [
-      Phronomy::Agent::JournalRecord.new(
-        agent_id: "agent-1", sequence: 10,
-        kind: :llm_message, channel: :llm, role: :assistant,
-        content_ref: text_ref
-      ),
-      Phronomy::Agent::JournalRecord.new(
-        agent_id: "agent-1", sequence: 11,
-        kind: :tool_call, channel: :tool, role: :assistant,
-        content_ref: call_ref, metadata: {"tool_call_id" => "a"}
-      ),
-      Phronomy::Agent::JournalRecord.new(
-        agent_id: "agent-1", sequence: 12,
-        kind: :tool_result, channel: :tool, role: :tool,
-        content_ref: result_ref, metadata: {"tool_call_id" => "a"}
-      )
-    ]
-
-    messages = materializer.materialize_journal_records(records)
-    expect(messages.length).to eq(2)
-    expect(messages.first.content).to eq("checking")
-    expect(messages.first.tool_calls.keys).to eq(["a"])
-    expect(messages.last.tool_call_id).to eq("a")
-  end
 end

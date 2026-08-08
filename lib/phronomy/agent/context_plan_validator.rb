@@ -58,7 +58,6 @@ module Phronomy
       def validate_tool_dependencies!(all_candidates, selected_candidates)
         selected_ids = selected_candidates.to_h { |candidate| [candidate.candidate_id, true] }
         validate_canonical_tool_dependencies!(all_candidates, selected_ids)
-        validate_legacy_tool_dependencies!(all_candidates, selected_candidates, selected_ids)
       end
 
       def validate_canonical_tool_dependencies!(all_candidates, selected_ids)
@@ -108,38 +107,6 @@ module Phronomy
             unless assistant && selected_ids[assistant.candidate_id]
               raise ArgumentError,
                 "ContextPlan selected orphan Tool message: #{tool_call_id}"
-            end
-          end
-        end
-      end
-
-      # Compatibility for Journal state written by the preceding stateful
-      # refactor, where assistant content, Tool Calls and Tool Results were
-      # flattened into separate Context candidates.
-      def validate_legacy_tool_dependencies!(all_candidates, selected_candidates, selected_ids)
-        all_calls = Array(all_candidates).select { |candidate| candidate.category == :tool_call }
-          .to_h { |candidate| [candidate.tool_call_id, candidate] }
-        all_results = Array(all_candidates).select { |candidate| candidate.category == :tool_result }
-          .group_by(&:tool_call_id)
-
-        selected_candidates.each do |candidate|
-          case candidate.category
-          when :tool_result
-            call = all_calls[candidate.tool_call_id]
-            unless call && selected_ids[call.candidate_id]
-              raise ArgumentError,
-                "ContextPlan selected orphan Tool Result: #{candidate.tool_call_id}"
-            end
-          when :tool_call
-            results = all_results.fetch(candidate.tool_call_id, [])
-            if results.empty?
-              raise ArgumentError,
-                "ContextPlan selected Tool Call without a Tool Result: #{candidate.tool_call_id}"
-            end
-            missing = results.reject { |result| selected_ids[result.candidate_id] }
-            unless missing.empty?
-              raise ArgumentError,
-                "ContextPlan split Tool Call/Result dependency: #{candidate.tool_call_id}"
             end
           end
         end

@@ -325,7 +325,7 @@ RSpec.describe "Group 13: Subgraph / Agent-as-Tool", :integration do
         "Use the math_solver tool for math questions. " \
         "Do not answer directly."
       )
-      tools math_tool
+      tools(math_tool => nil)
     end
 
     tool_response = LLMStub.tool_call_response(

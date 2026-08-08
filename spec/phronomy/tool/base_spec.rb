@@ -51,9 +51,9 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
         expect(hello_tool_class.on_error).to eq(:raise)
       end
 
-      it "can be set to :return_empty (deprecated alias)" do
+      it "raises ArgumentError for unknown on_error value :return_empty" do
         expect { Class.new(described_class) { on_error :return_empty } }
-          .to output(/deprecated.*suppress/i).to_stderr
+          .to raise_error(ArgumentError, /return_empty/)
       end
 
       it "can be set to :suppress (new canonical name, issue #165)" do
@@ -93,26 +93,6 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       context "with on_error :raise (default)" do
         it "raises Phronomy::ToolError" do
           expect { failing_tool.call({}) }.to raise_error(Phronomy::ToolError, /execution failed/)
-        end
-      end
-
-      context "on_error :return_empty" do
-        let(:failing_tool_class) do
-          Class.new(described_class) do
-            on_error :return_empty
-
-            def execute
-              raise "something went wrong"
-            end
-          end
-        end
-
-        it "returns a descriptive error string without raising an exception (Issue #147)" do
-          expect(failing_tool.call({})).to match(/Tool error suppressed:.*went wrong/)
-        end
-
-        it "does not raise an exception" do
-          expect { failing_tool.call({}) }.not_to raise_error
         end
       end
 
@@ -2532,13 +2512,13 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
   end
 
   describe ".on_error DSL — logger branch" do
-    it "calls logger.warn with deprecation message when logger is configured" do
+    it "raises ArgumentError for :return_empty (removed API)" do
       logged = []
       logger = double("Logger")
       allow(logger).to receive(:warn) { |msg| logged << msg }
       allow(Phronomy.configuration).to receive(:logger).and_return(logger)
-      Class.new(described_class) { on_error :return_empty }
-      expect(logged.first).to match(/deprecated.*suppress/i)
+      expect { Class.new(described_class) { on_error :return_empty } }
+        .to raise_error(ArgumentError)
     end
 
     it "returns :raise when called without argument and never set" do
@@ -2556,19 +2536,6 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       klass = Class.new(described_class)
       klass.on_error(:suppress)
       expect(klass.on_error).to eq(:suppress)
-    end
-
-    it "stores :return_empty behavior" do
-      klass = Class.new(described_class)
-      allow(Phronomy.configuration).to receive(:logger).and_return(nil)
-      expect { klass.on_error(:return_empty) }.to output.to_stderr
-      expect(klass.on_error).to eq(:return_empty)
-    end
-
-    it "outputs deprecation to stderr when :return_empty and no logger configured" do
-      allow(Phronomy.configuration).to receive(:logger).and_return(nil)
-      expect { Class.new(described_class) { on_error :return_empty } }
-        .to output(/deprecated.*suppress/i).to_stderr
     end
 
     it "does not output deprecation when behavior is :suppress" do

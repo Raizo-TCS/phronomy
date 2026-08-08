@@ -4,27 +4,9 @@ require "securerandom"
 
 module Phronomy
   module Agent
-    # Mutable state for one concrete ToolCall.
-    #
-    # The object owns Tool-domain state. FSMSession owns transitions, while
-    # ToolInvocationSessionBuilder converts Task completion into explicit
-    # Tool-internal events.
-    #
-    # @api private
     class ToolInvocation
-      AuthorizationOutcome = Struct.new(
-        :decision,
-        :facts,
-        :reason,
-        :error,
-        :cancelled
-      )
-
-      ExecutionOutcome = Struct.new(
-        :result,
-        :error,
-        :cancelled
-      )
+      AuthorizationOutcome = Struct.new(:decision, :facts, :reason, :error, :cancelled)
+      ExecutionOutcome = Struct.new(:result, :error, :cancelled)
 
       PREFLIGHT_SETTLED_STATES = %i[
         authorized awaiting_approval rejected failed cancelled completed
@@ -53,21 +35,14 @@ module Phronomy
         :origin,
         :metadata
 
-      def self.missing(
-        parent_agent_invocation_id:,
-        agent:,
-        tool_call:,
-        config: {}
-      )
+      def self.missing(parent_agent_invocation_id:, agent:, tool_call:, config: {})
         new(
           parent_agent_invocation_id: parent_agent_invocation_id,
           agent: agent,
           tool: nil,
           tool_call: tool_call,
           config: config
-        ).tap do |invocation|
-          invocation.send(:complete_missing_tool!)
-        end
+        ).tap { |invocation| invocation.send(:complete_missing_tool!) }
       end
 
       def initialize(
@@ -81,37 +56,20 @@ module Phronomy
         id: SecureRandom.uuid
       )
         @id = id.to_s
-        @parent_agent_invocation_id =
-          parent_agent_invocation_id.to_s
+        @parent_agent_invocation_id = parent_agent_invocation_id.to_s
         @agent = agent
         @tool = tool
         @tool_name = tool_call.name.to_s
-        @tool_call_id =
-          tool_call.respond_to?(:id) ? tool_call.id : nil
-        raw_arguments =
-          if tool_call.respond_to?(:arguments)
-            tool_call.arguments || {}
-          else
-            {}
-          end
+        @tool_call_id = tool_call.respond_to?(:id) ? tool_call.id : nil
+        raw_arguments = tool_call.respond_to?(:arguments) ? (tool_call.arguments || {}) : {}
         @raw_arguments = immutable_copy(raw_arguments)
         @config = config
         @approval_policy = approval_policy
-        @approval_context =
-          immutable_copy(approval_context || {})
-        @origin =
-          if tool&.respond_to?(:tool_origin)
-            tool.tool_origin.to_sym
-          else
-            :local
-          end
-        @metadata =
-          immutable_copy(
-            tool&.respond_to?(:approval_metadata) ?
-              tool.approval_metadata :
-              {}
-          )
-
+        @approval_context = immutable_copy(approval_context || {})
+        @origin = tool&.respond_to?(:tool_origin) ? tool.tool_origin.to_sym : :local
+        @metadata = immutable_copy(
+          tool&.respond_to?(:approval_metadata) ? tool.approval_metadata : {}
+        )
         @arguments = nil
         @facts = {}.freeze
         @final_decision = nil
@@ -129,17 +87,11 @@ module Phronomy
         @phase = phase
       end
 
-      # Applies Tool-internal asynchronous completion events on the EventLoop
-      # thread. The return value tells FSMSession that the event was consumed by
-      # the context before its declared transition is evaluated.
       def handle_fsm_event(event)
         case event.type
         when :authorization_completed
           outcome = event.payload
-          if outcome.is_a?(Exception)
-            outcome =
-              AuthorizationOutcome.new(error: outcome)
-          end
+          outcome = AuthorizationOutcome.new(error: outcome) if outcome.is_a?(Exception)
           apply_authorization_outcome(outcome)
           true
         when :execution_completed
@@ -157,37 +109,14 @@ module Phronomy
         end
       end
 
-      # Deprecated internal compatibility hook. FSMSession no longer calls
-      # this method; asynchronous results enter through explicit events.
-      def apply_fsm_action_result(outcome)
-        event_type =
-          case outcome
-          when AuthorizationOutcome
-            :authorization_completed
-          when ExecutionOutcome
-            :execution_completed
-          else
-            return self
-          end
-        handle_fsm_event(
-          Phronomy::Event.new(
-            type: event_type,
-            target_id: @id,
-            payload: outcome
-          )
-        )
-        self
-      end
-
       def validate!
         return self if terminal?
 
-        validated, schema_error =
-          if @tool.respond_to?(:validate_and_coerce, true)
-            @tool.send(:validate_and_coerce, @raw_arguments)
-          else
-            [@raw_arguments, nil]
-          end
+        validated, schema_error = if @tool.respond_to?(:validate_and_coerce, true)
+          @tool.send(:validate_and_coerce, @raw_arguments)
+        else
+          [@raw_arguments, nil]
+        end
 
         if schema_error
           if @tool.class.respond_to?(:on_schema_error) &&
@@ -218,37 +147,22 @@ module Phronomy
           size: Phronomy.configuration.authorization_pool_size,
           queue_size: Phronomy.configuration.authorization_queue_size
         )
-        timeout = @config.fetch(
-          :authorization_timeout,
-          Phronomy.configuration.authorization_timeout
-        )
-        cancellation_token = @config[:cancellation_token]
+        timeout = @config.fetch(:authorization_timeout, Phronomy.configuration.authorization_timeout)
         pending = pool.submit(
           timeout: timeout,
-          cancellation_token: cancellation_token,
+          cancellation_token: @config[:cancellation_token],
           on_full: :raise
-        ) do
-          evaluate_authorization
-        end
+        ) { evaluate_authorization }
 
-        task = Phronomy::Task.deferred(
-          name: "tool-authorization:#{@tool_name}"
-        )
+        task = Phronomy::Task.deferred(name: "tool-authorization:#{@tool_name}")
         pending.on_complete do |outcome, error|
-          resolved =
-            if error
-              authorization_failure_outcome(error)
-            else
-              outcome
-            end
+          resolved = error ? authorization_failure_outcome(error) : outcome
           task.backend.unblock(resolved, nil)
           task.transition!(:completed, value: resolved)
         end
         task
       rescue => error
-        task = Phronomy::Task.deferred(
-          name: "tool-authorization:#{@tool_name}"
-        )
+        task = Phronomy::Task.deferred(name: "tool-authorization:#{@tool_name}")
         outcome = authorization_failure_outcome(error)
         task.backend.unblock(outcome, nil)
         task.transition!(:completed, value: outcome)
@@ -256,36 +170,28 @@ module Phronomy
       end
 
       def execution_task(runtime: Phronomy::Runtime.instance)
-        pending =
-          Phronomy::Agent::ToolExecutor.call_invocation_async(
-            tool_invocation: self,
-            cancellation_token: @config[:cancellation_token],
-            config: @config,
-            runtime: runtime
-          )
-        task = Phronomy::Task.deferred(
-          name: "tool-execution:#{@tool_name}"
+        pending = Phronomy::Agent::ToolExecutor.call_invocation_async(
+          tool_invocation: self,
+          cancellation_token: @config[:cancellation_token],
+          config: @config,
+          runtime: runtime
         )
+        task = Phronomy::Task.deferred(name: "tool-execution:#{@tool_name}")
         pending.on_complete do |result, error|
-          outcome =
-            if error
-              ExecutionOutcome.new(
-                error: error,
-                cancelled: error.is_a?(
-                  Phronomy::CancellationError
-                )
-              )
-            else
-              ExecutionOutcome.new(result: result)
-            end
+          outcome = if error
+            ExecutionOutcome.new(
+              error: error,
+              cancelled: error.is_a?(Phronomy::CancellationError)
+            )
+          else
+            ExecutionOutcome.new(result: result)
+          end
           task.backend.unblock(outcome, nil)
           task.transition!(:completed, value: outcome)
         end
         task
       rescue => error
-        task = Phronomy::Task.deferred(
-          name: "tool-execution:#{@tool_name}"
-        )
+        task = Phronomy::Task.deferred(name: "tool-execution:#{@tool_name}")
         outcome = ExecutionOutcome.new(
           error: error,
           cancelled: error.is_a?(Phronomy::CancellationError)
@@ -295,10 +201,8 @@ module Phronomy
         task
       end
 
-      def mark_awaiting_approval!
-        @status = :awaiting_approval
-        self
-      end
+      def mark_awaiting_approval! = (@status = :awaiting_approval
+                                     self)
 
       def mark_authorized!
         @approval_consumed = true if @status == :awaiting_approval
@@ -306,83 +210,40 @@ module Phronomy
         self
       end
 
-      def mark_queued!
-        @status = :queued
-        self
-      end
+      def mark_queued! = (@status = :queued
+                          self)
 
-      def mark_running!
-        @status = :running
-        self
-      end
+      def mark_running! = (@status = :running
+                           self)
 
-      def mark_rejected!
-        @final_decision = :reject
-        @status = :rejected
-        self
-      end
+      def mark_rejected! = (@final_decision = :reject
+                            @status = :rejected
+                            self)
 
-      def mark_cancelled!
-        @status = :cancelled
-        self
-      end
+      def mark_cancelled! = (@status = :cancelled
+                             self)
 
-      def mark_framework_failed!(error)
-        @error = error
-        @status = :failed
-        self
-      end
+      def mark_framework_failed!(error) = (@error = error
+                                           @status = :failed
+                                           self)
 
-      def validation_passed?
-        @status == :valid
-      end
-
-      def validation_completed?
-        @status == :completed
-      end
-
-      def failed?
-        @status == :failed
-      end
-
-      def cancelled?
-        @status == :cancelled
-      end
-
-      def rejected?
-        @status == :rejected
-      end
-
-      def awaiting_approval?
-        @status == :awaiting_approval
-      end
-
-      def authorized?
-        @status == :authorized
-      end
-
-      def execution_completed?
-        @status == :completed
-      end
-
-      def preflight_settled?
-        PREFLIGHT_SETTLED_STATES.include?(@status)
-      end
-
-      def terminal?
-        TERMINAL_STATES.include?(@status)
-      end
+      def validation_passed? = @status == :valid
+      def validation_completed? = @status == :completed
+      def failed? = @status == :failed
+      def cancelled? = @status == :cancelled
+      def rejected? = @status == :rejected
+      def awaiting_approval? = @status == :awaiting_approval
+      def authorized? = @status == :authorized
+      def execution_completed? = @status == :completed
+      def preflight_settled? = PREFLIGHT_SETTLED_STATES.include?(@status)
+      def terminal? = TERMINAL_STATES.include?(@status)
 
       def dispatchable?
-        return false unless @status == :queued
-
-        @final_decision == :allow || @approval_consumed
+        @status == :queued && (@final_decision == :allow || @approval_consumed)
       end
 
       def tool_schema
-        @tool&.respond_to?(:params_schema) ?
-          @tool.params_schema :
-          {}
+        @tool&.respond_to?(:params_schema) ? @tool.params_schema : {}
       end
 
       def display_arguments
@@ -390,94 +251,55 @@ module Phronomy
       end
 
       def display_facts
-        sensitive_values = sensitive_argument_values
-        redact_value(@facts, sensitive_values)
+        redact_value(@facts, sensitive_argument_values)
       end
 
       private
 
       def evaluate_authorization
-        request = build_request(
-          facts: {},
-          default_decision: nil
-        )
+        request = build_request(facts: {}, default_decision: nil)
         facts = evaluate_facts
         request = request.with(facts: facts)
         default_decision = evaluate_default_decision(request)
-        request = request.with(
-          default_decision: default_decision
-        )
-        decision =
-          if @approval_policy
-            @approval_policy.call(request)
-          else
-            default_decision
-          end
+        request = request.with(default_decision: default_decision)
+        decision = @approval_policy ? @approval_policy.call(request) : default_decision
         decision = decision.to_sym if decision.respond_to?(:to_sym)
 
-        unless ApprovalEvaluationRequest::VALID_DECISIONS
-            .include?(decision)
+        unless ApprovalEvaluationRequest::VALID_DECISIONS.include?(decision)
           raise Phronomy::ConfigurationError,
-            "tool_approval_policy must return :allow, " \
-            ":require_approval, or :reject " \
+            "tool_approval_policy must return :allow, :require_approval, or :reject " \
             "(got #{decision.inspect})"
         end
 
-        reason =
-          if decision == :require_approval
-            if @origin == :mcp
-              "MCP Tool execution requires approval"
-            else
-              "Tool execution requires approval"
-            end
-          end
-
-        AuthorizationOutcome.new(
-          decision: decision,
-          facts: facts,
-          reason: reason
-        )
+        reason = if decision == :require_approval
+          (@origin == :mcp) ?
+            "MCP Tool execution requires approval" :
+            "Tool execution requires approval"
+        end
+        AuthorizationOutcome.new(decision: decision, facts: facts, reason: reason)
       end
 
       def evaluate_facts
-        callable =
-          if @tool.class.respond_to?(:approval_facts)
-            @tool.class.approval_facts
-          end
+        callable = @tool.class.approval_facts if @tool.class.respond_to?(:approval_facts)
         return {} unless callable
 
-        value = callable.call(
-          @arguments,
-          @approval_context
-        )
+        value = callable.call(@arguments, @approval_context)
         unless value.nil? || value.is_a?(Hash)
           raise Phronomy::ConfigurationError,
-            "approval_facts must return a Hash or nil " \
-            "(got #{value.class})"
+            "approval_facts must return a Hash or nil (got #{value.class})"
         end
         immutable_copy(value || {})
       end
 
       def evaluate_default_decision(request)
-        requirement =
-          if @tool.respond_to?(:requires_approval)
-            @tool.requires_approval
-          else
-            false
-          end
-        if requirement.respond_to?(:call)
-          requirement = requirement.call(request)
-        end
-
+        requirement = @tool.respond_to?(:requires_approval) ? @tool.requires_approval : false
+        requirement = requirement.call(request) if requirement.respond_to?(:call)
         case requirement
-        when true
-          :require_approval
-        when false, nil
-          :allow
+        when true then :require_approval
+        when false, nil then :allow
         else
           raise Phronomy::ConfigurationError,
-            "requires_approval callable must return true or false " \
-            "(got #{requirement.inspect})"
+            "requires_approval callable must return true or false (got #{requirement.inspect})"
         end
       end
 
@@ -506,15 +328,10 @@ module Phronomy
           AuthorizationOutcome.new(
             decision: :require_approval,
             facts: {},
-            reason:
-              "Authorization could not be completed safely: " \
-              "#{error.message}"
+            reason: "Authorization could not be completed safely: #{error.message}"
           )
         elsif error.is_a?(Phronomy::CancellationError)
-          AuthorizationOutcome.new(
-            error: error,
-            cancelled: true
-          )
+          AuthorizationOutcome.new(error: error, cancelled: true)
         else
           AuthorizationOutcome.new(error: error)
         end
@@ -522,48 +339,38 @@ module Phronomy
 
       def apply_authorization_outcome(outcome)
         unless outcome.is_a?(AuthorizationOutcome)
-          raise Phronomy::Error,
-            "Expected AuthorizationOutcome, got #{outcome.class}"
+          raise Phronomy::Error, "Expected AuthorizationOutcome, got #{outcome.class}"
         end
-
         @facts = immutable_copy(outcome.facts || {})
         @authorization_reason = outcome.reason
         @error = outcome.error
-
         if outcome.cancelled
           @status = :cancelled
         elsif outcome.error
           @status = :failed
         else
           @final_decision = outcome.decision
-          @status =
-            case outcome.decision
-            when :allow
-              :authorized
-            when :require_approval
-              :awaiting_approval
-            when :reject
-              :rejected
-            end
+          @status = case outcome.decision
+          when :allow then :authorized
+          when :require_approval then :awaiting_approval
+          when :reject then :rejected
+          end
         end
       end
 
       def apply_execution_outcome(outcome)
         unless outcome.is_a?(ExecutionOutcome)
-          raise Phronomy::Error,
-            "Expected ExecutionOutcome, got #{outcome.class}"
+          raise Phronomy::Error, "Expected ExecutionOutcome, got #{outcome.class}"
         end
-
         @result = outcome.result
         @error = outcome.error
-        @status =
-          if outcome.cancelled
-            :cancelled
-          elsif outcome.error
-            :failed
-          else
-            :completed
-          end
+        @status = if outcome.cancelled
+          :cancelled
+        elsif outcome.error
+          :failed
+        else
+          :completed
+        end
       end
 
       def complete_missing_tool!
@@ -575,8 +382,7 @@ module Phronomy
         case value
         when Hash
           value.each_with_object({}) do |(key, item), result|
-            result[immutable_copy(key)] =
-              immutable_copy(item)
+            result[immutable_copy(key)] = immutable_copy(item)
           end.freeze
         when Array
           value.map { |item| immutable_copy(item) }.freeze
@@ -589,9 +395,7 @@ module Phronomy
 
       def redact_for_display(value)
         if @tool&.respond_to?(:redacted_args, true)
-          immutable_copy(
-            @tool.send(:redacted_args, value || {})
-          )
+          immutable_copy(@tool.send(:redacted_args, value || {}))
         else
           immutable_copy(value || {})
         end
@@ -599,30 +403,20 @@ module Phronomy
 
       def sensitive_argument_values
         return [] unless @tool&.class&.respond_to?(:redact_params)
-
-        normalized =
-          (@arguments || @raw_arguments || {})
-            .transform_keys(&:to_sym)
-        @tool.class.redact_params.filter_map do |name|
-          normalized[name]
-        end
+        normalized = (@arguments || @raw_arguments || {}).transform_keys(&:to_sym)
+        @tool.class.redact_params.filter_map { |name| normalized[name] }
       end
 
       def redact_value(value, sensitive_values)
-        if sensitive_values.any? { |sensitive| sensitive == value }
-          return "[REDACTED]"
-        end
+        return "[REDACTED]" if sensitive_values.any? { |sensitive| sensitive == value }
 
         case value
         when Hash
           value.each_with_object({}) do |(key, item), result|
-            result[key] =
-              redact_value(item, sensitive_values)
+            result[key] = redact_value(item, sensitive_values)
           end.freeze
         when Array
-          value.map do |item|
-            redact_value(item, sensitive_values)
-          end.freeze
+          value.map { |item| redact_value(item, sensitive_values) }.freeze
         when String
           "[REDACTED]"
         else

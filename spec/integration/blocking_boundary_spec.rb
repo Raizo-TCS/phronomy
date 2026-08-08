@@ -38,13 +38,12 @@ end
 RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
   # Ensure a fresh Runtime pool for each example so spy state does not leak.
   around(:each) do |example|
-    old_runtime = Phronomy::Runtime.instance
-    Phronomy::Runtime.instance = Phronomy::Runtime.new
+    old_runtime = Phronomy::Runtime.replace_default_for_test(Phronomy::Runtime.new)
     example.run
   ensure
     # Shut down the per-example runtime pool gracefully.
     Phronomy::Runtime.instance.blocking_io.shutdown(drain_timeout: 5)
-    Phronomy::Runtime.instance = old_runtime
+    Phronomy::Runtime.restore_default_for_test(old_runtime)
   end
 
   let(:pool) { Phronomy::Runtime.instance.blocking_io }
@@ -85,7 +84,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
         model "openai/gpt-oss-20b"
         provider :openai
         instructions "Call the tool with input 'hello'."
-        tools tool
+        tools(tool => nil)
       end
     end
 
@@ -144,7 +143,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
         model "openai/gpt-oss-20b"
         provider :openai
         instructions "Call the cooperative tool with input 'test'."
-        tools tool
+        tools(tool => nil)
       end
     end
 

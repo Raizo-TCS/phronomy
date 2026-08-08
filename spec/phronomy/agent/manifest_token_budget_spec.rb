@@ -10,20 +10,18 @@ RSpec.describe Phronomy::Agent::TokenBudgetResolver do
       model "local-model"
       context_window 1_000
       max_output_tokens 100
-      context_overhead 200
       instructions "Base instruction"
     end
   end
   let(:agent) { agent_class.new(persistence: persistence) }
 
-  it "does not reserve legacy context_overhead in the Manifest-first budget" do
+  it "does not include context_overhead in the Manifest-first budget" do
     budget = described_class.new(agent: agent).resolve(
       "model" => "local-model",
       "context_window" => 1_000,
       "max_output_tokens" => 100
     )
 
-    expect(budget.overhead).to eq(0)
     expect(budget.effective_input_limit).to eq(900)
   end
 

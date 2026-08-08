@@ -367,7 +367,6 @@ module Phronomy
         session = Agent::AgentInvocationSessionBuilder.build(
           agent: @agent,
           input: prepared.filtered_input,
-          messages: prepared.runtime_projection.messages,
           config: effective_config,
           approval_policy: approval_policy,
           approval_listener: approval_listener,

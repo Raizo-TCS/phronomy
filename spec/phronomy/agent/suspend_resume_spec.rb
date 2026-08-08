@@ -14,7 +14,7 @@ class HITLAgent < Phronomy::Agent::Base
   agent_definition id: "hitl-agent", version: 1
   model "test-model"
   instructions "You are a test assistant."
-  tools HITLTool
+  tools HITLTool => nil
 end
 
 FAKE_HITL_TOKENS = Struct.new(:input, :output, :cached, :cache_creation).new(10, 5, 0, 0)

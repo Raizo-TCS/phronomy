@@ -628,8 +628,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
       expect {
         orchestrator.dispatch_parallel(
           {agent: slow_agent_class, input: "x"},
-          timeout: 0.05,
-          force_kill: false
+          timeout: 0.05
         )
       }.to raise_error(Phronomy::TimeoutError)
     end
@@ -638,8 +637,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
       expect {
         orchestrator.dispatch_parallel(
           {agent: slow_agent_class, input: "x"},
-          timeout: 0.05,
-          force_kill: true
+          timeout: 0.05
         )
       }.to raise_error(Phronomy::TimeoutError)
     end
@@ -656,8 +654,7 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
         orchestrator.fan_out(
           agent: slow_agent_class,
           inputs: ["x"],
-          timeout: 0.05,
-          force_kill: false
+          timeout: 0.05
         )
       }.to raise_error(Phronomy::TimeoutError)
     end

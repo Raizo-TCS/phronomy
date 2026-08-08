@@ -27,28 +27,28 @@ class ApprovalBaseAgent < Phronomy::Agent::Base
   agent_definition id: "approval-base-agent", version: 1
   model "test-model"
   instructions "You are a helpful assistant."
-  tools ApprovalTestTool
+  tools ApprovalTestTool => nil
 end
 
 class ApprovalRequiredBaseAgent < Phronomy::Agent::Base
   agent_definition id: "approval-required-base-agent", version: 1
   model "test-model"
   instructions "You are a helpful assistant."
-  tools ApprovalRequiredTool
+  tools ApprovalRequiredTool => nil
 end
 
 class ApprovalReactAgent < Phronomy::Agent::Base
   agent_definition id: "approval-react-agent", version: 1
   model "test-model"
   instructions "You are a helpful assistant."
-  tools ApprovalTestTool
+  tools ApprovalTestTool => nil
 end
 
 class ApprovalRequiredReactAgent < Phronomy::Agent::Base
   agent_definition id: "approval-required-react-agent", version: 1
   model "test-model"
   instructions "You are a helpful assistant."
-  tools ApprovalRequiredTool
+  tools ApprovalRequiredTool => nil
 end
 
 RSpec.describe "Agent approval gate" do

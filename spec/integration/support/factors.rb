@@ -51,10 +51,10 @@ module IntegrationFactors
   end
 
   class ReturnEmptyOnErrorTool < Phronomy::Agent::Context::Capability::Base
-    description "Always raises but returns empty (used to test on_error: :return_empty)"
+    description "Always raises but suppresses the error"
     param :input, type: :string, desc: "Any string input"
 
-    on_error :return_empty
+    on_error :suppress
 
     def execute(input:)
       raise "Simulated tool error for input: #{input}"
@@ -131,7 +131,7 @@ module IntegrationFactors
 
       case tool_arg
       when Hash then self.tools(tool_arg)
-      when Array then self.tools(*tool_arg) unless tool_arg.empty?
+      when Array then self.tools(tool_arg.to_h { |t| [t, nil] }) unless tool_arg.empty?
       end
     end
   end
@@ -305,7 +305,7 @@ module IntegrationFactors
 
       case tool_arg
       when Hash then self.tools(tool_arg)
-      when Array then self.tools(*tool_arg) unless tool_arg.empty?
+      when Array then self.tools(tool_arg.to_h { |t| [t, nil] }) unless tool_arg.empty?
       end
     end
   end
@@ -547,7 +547,7 @@ module IntegrationFactors
     agent_class = Class.new(base_class) do
       agent_definition id: defn_id, version: 1
       model "test-model"
-      tools(tool_class)
+      tools(tool_class => nil)
     end
 
     agent = agent_class.new
@@ -983,7 +983,7 @@ module IntegrationFactors
       model LM_MODEL_30
       provider :openai
       instructions "You are a helpful assistant. Use tools when asked."
-      tools(*tool_classes)
+      tools(tool_classes.to_h { |t| [t, nil] })
     end
   end
 

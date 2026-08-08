@@ -39,7 +39,7 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
 
   let(:agent) { instance_double(Phronomy::Agent::Base) }
   let(:invocation) do
-    described_class.new(agent: agent, input: "hello", messages: [], config: {})
+    described_class.new(agent: agent, input: "hello", config: {})
   end
 
   def tool_event(type, child)
@@ -90,7 +90,7 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
   describe "constructor" do
     it "uses id from config when provided" do
       inv = described_class.new(
-        agent: agent, input: "hi", messages: [], config: {agent_invocation_id: "custom-id"}
+        agent: agent, input: "hi", config: {agent_invocation_id: "custom-id"}
       )
       expect(inv.id).to eq("custom-id")
     end
@@ -99,7 +99,7 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
       policy = ->(_req) { :allow }
       ctx = instance_double(Phronomy::InvocationContext, approval_policy: policy)
       inv = described_class.new(
-        agent: agent, input: "hi", messages: [], config: {invocation_context: ctx}
+        agent: agent, input: "hi", config: {invocation_context: ctx}
       )
       expect(inv.instance_variable_get(:@approval_policy)).to eq(policy)
     end
@@ -109,7 +109,7 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
       ctx = instance_double(Phronomy::InvocationContext)
       allow(ctx).to receive(:respond_to?).with(:approval_policy).and_return(false)
       inv = described_class.new(
-        agent: agent, input: "hi", messages: [],
+        agent: agent, input: "hi",
         config: {invocation_context: ctx}, approval_policy: policy
       )
       expect(inv.instance_variable_get(:@approval_policy)).to eq(policy)
@@ -150,9 +150,8 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
       inv = described_class.new(
         agent: agent,
         input: "hi",
-        messages: [],
         config: {},
-        stream_listener: ->(event) { received << event }
+        event_listener: ->(event) { received << event }
       )
       event = Phronomy::Event.new(
         type: :llm_stream_chunk,
@@ -166,54 +165,6 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
     end
   end
 
-  describe "#apply_fsm_action_result" do
-    let(:chat) { double("chat", messages: [:message]) }
-
-    before do
-      invocation.chat = chat
-    end
-
-    it "applies a normal response on the current thread" do
-      tokens = double("tokens", input: 1, output: 2, cached: 0, cache_creation: 0, to_h: {"input" => 1, "output" => 2, "cached" => 0, "cache_creation" => 0})
-      response = double("response", content: "answer", tokens: tokens)
-      result = Phronomy::Agent::LLMOperationResult.new(response: response)
-
-      expect(invocation.apply_fsm_action_result(result)).to be(invocation)
-      expect(invocation.output).to eq("answer")
-      expect(invocation.messages).to eq([:message])
-      expect(invocation.pending_tool_calls).to be_empty
-    end
-
-    it "classifies ToolCallIntercepted inside AgentInvocation" do
-      tool_call = double("tool_call", name: "lookup")
-      events = []
-      inv = described_class.new(
-        agent: agent,
-        input: "hi",
-        messages: [],
-        config: {},
-        stream_listener: ->(event) { events << event }
-      )
-      inv.chat = chat
-      error = Phronomy::Agent::ToolCallIntercepted.new(tool_call)
-      result = Phronomy::Agent::LLMOperationResult.new(error: error, streaming: true)
-
-      inv.apply_fsm_action_result(result)
-
-      expect(inv.pending_tool_calls).to eq([tool_call])
-      expect(events.map(&:type)).to eq([:tool_call])
-    end
-
-    it "posts :llm_failed event for provider errors (FSMSession handles failure)" do
-      error = RuntimeError.new("provider failed")
-      result = Phronomy::Agent::LLMOperationResult.new(error: error)
-
-      # In the new event-driven model, apply_fsm_action_result posts an internal
-      # :llm_failed event rather than re-raising; FSMSession fails the session.
-      expect { invocation.apply_fsm_action_result(result) }.not_to raise_error
-    end
-  end
-
   describe "#set_graph_metadata" do
     it "sets session_id from thread_id" do
       invocation.set_graph_metadata(thread_id: "thr-1", phase: :calling_llm)
@@ -224,14 +175,14 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
   describe "#approval_context" do
     it "returns config[:approval_context] when set" do
       inv = described_class.new(
-        agent: agent, input: "hi", messages: [],
+        agent: agent, input: "hi",
         config: {approval_context: {role: :admin}}
       )
       expect(inv.approval_context).to eq({role: :admin})
     end
 
     it "returns empty hash when no invocation_context" do
-      inv = described_class.new(agent: agent, input: "hi", messages: [], config: {})
+      inv = described_class.new(agent: agent, input: "hi", config: {})
       expect(inv.approval_context).to eq({})
     end
 
@@ -242,7 +193,7 @@ RSpec.describe Phronomy::Agent::AgentInvocation do
       allow(ctx).to receive(:respond_to?).with(:task_id).and_return(true)
       allow(ctx).to receive(:respond_to?).with(:parent_task_id).and_return(false)
       inv = described_class.new(
-        agent: agent, input: "hi", messages: [], config: {invocation_context: ctx}
+        agent: agent, input: "hi", config: {invocation_context: ctx}
       )
       result = inv.approval_context
       expect(result[:task_id]).to eq("t1")

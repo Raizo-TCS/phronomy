@@ -89,7 +89,7 @@ RSpec.describe Phronomy::Agent::Base do
           model "parent-model"
           provider :openai
           instructions "Parent instructions."
-          tools t
+          tools t => nil
         end
       end
 
@@ -125,7 +125,7 @@ RSpec.describe Phronomy::Agent::Base do
           tool_name "tool_b"
           def execute = "b"
         }
-        child = Class.new(parent) { tools tool_b }
+        child = Class.new(parent) { tools tool_b => nil }
         expect(child.tools).to eq([tool_b])
         expect(parent.tools).to eq([tool_a])
       end
@@ -225,24 +225,24 @@ RSpec.describe Phronomy::Agent::Base do
           agent_definition id: "test-agent-77", version: 1
           model "test-model"
           max_output_tokens 2048
-          context_overhead 300
         end
       end
 
       it "max_output_tokens DSL value overrides max_output_tokens from the registry" do
-        budget = budget_agent_class.new.send(:build_token_budget)
+        agent = budget_agent_class.new
+        budget = Phronomy::Agent::TokenBudgetResolver.new(agent: agent).resolve(
+          "model" => "test-model", "max_output_tokens" => budget_agent_class.max_output_tokens
+        )
         expect(budget).not_to be_nil
         expect(budget.max_output_tokens).to eq(2048)
       end
 
-      it "context_overhead DSL value is reflected in the budget overhead" do
-        budget = budget_agent_class.new.send(:build_token_budget)
-        expect(budget.overhead).to eq(300)
-      end
-
-      it "effective_input_limit equals context_window minus max_output_tokens minus overhead" do
-        budget = budget_agent_class.new.send(:build_token_budget)
-        expect(budget.effective_input_limit).to eq(32_768 - 2048 - 300)
+      it "effective_input_limit equals context_window minus max_output_tokens" do
+        agent = budget_agent_class.new
+        budget = Phronomy::Agent::TokenBudgetResolver.new(agent: agent).resolve(
+          "model" => "test-model", "max_output_tokens" => budget_agent_class.max_output_tokens
+        )
+        expect(budget.effective_input_limit).to eq(32_768 - 2048)
       end
     end
 
@@ -294,36 +294,6 @@ RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
     Class.new(Phronomy::Agent::Context::Capability::Base) do
       description "Tool B"
       def execute = "b"
-    end
-  end
-
-  describe ".tools (splat form — backward compatible)" do
-    it "stores the tool classes" do
-      agent_class = Class.new(Phronomy::Agent::Base) do
-        agent_definition id: "test-agent-78", version: 1
-        model "m"
-      end
-      agent_class.tools(tool_a, tool_b)
-      expect(agent_class.tools).to eq([tool_a, tool_b])
-    end
-
-    it "sets tool_aliases to an empty hash" do
-      agent_class = Class.new(Phronomy::Agent::Base) do
-        agent_definition id: "test-agent-79", version: 1
-        model "m"
-      end
-      agent_class.tools(tool_a)
-      expect(agent_class.tool_aliases).to eq({})
-    end
-
-    it "registers each tool with chat.with_tool" do
-      agent_class = Class.new(Phronomy::Agent::Base) do
-        agent_definition id: "test-agent-80", version: 1
-        model "m"
-      end
-      agent_class.tools(tool_a, tool_b)
-      agent_class.new.invoke("hello")
-      expect(fake_chat).to have_received(:with_tool).twice
     end
   end
 

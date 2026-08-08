@@ -18,6 +18,7 @@ RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
         @_stub_messages = msgs_in + [{role: "user", content: input}, {role: "assistant", content: output.to_s}]
         {output: output, messages: @_stub_messages.dup}
       end
+      define_method(:transcript) { @_stub_messages }
     end
   end
 

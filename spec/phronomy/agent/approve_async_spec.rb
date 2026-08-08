@@ -19,7 +19,7 @@ unless defined?(HITLAgentForApproveAsync)
     agent_definition id: "hitl-agent-approve-async", version: 1
     model "test-model"
     instructions "You are a test assistant."
-    tools HITLTool
+    tools HITLTool => nil
   end
 end
 

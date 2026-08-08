@@ -222,32 +222,6 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
     end
   end
 
-  describe "Agent::Base#build_chat_class" do
-    let(:agent_class) do
-      Class.new(Phronomy::Agent::Base) do
-        agent_definition id: "test-agent-143", version: 1
-        model "test-model"
-        instructions "test"
-      end
-    end
-
-    it "returns nil when parallel_tool_execution is off" do
-      agent = agent_class.new
-      Phronomy.configure { |c| c.parallel_tool_execution = false }
-      expect(agent.send(:build_chat_class)).to be_nil
-    ensure
-      Phronomy.configure { |c| c.parallel_tool_execution = false }
-    end
-
-    it "returns ParallelToolChat when parallel_tool_execution is on" do
-      agent = agent_class.new
-      Phronomy.configure { |c| c.parallel_tool_execution = true }
-      expect(agent.send(:build_chat_class)).to be(Phronomy::MultiAgent::ParallelToolChat)
-    ensure
-      Phronomy.configure { |c| c.parallel_tool_execution = false }
-    end
-  end
-
   # ---------------------------------------------------------------------------
   # Regression: issue #295 — eliminate double-Thread for :blocking_io tools
   # ---------------------------------------------------------------------------

@@ -204,7 +204,7 @@ RSpec.describe "Agent::Base filter integration (Issue #389)" do
       agent_class = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-111", version: 1
         model "test"
-        tools tool_class
+        tools tool_class => nil
       end
 
       agent = agent_class.new
@@ -231,7 +231,7 @@ RSpec.describe "Agent::Base filter integration (Issue #389)" do
       agent_class = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-112", version: 1
         model "test"
-        tools tool_a, tool_b
+        tools tool_a => nil, tool_b => nil
       end
 
       agent = agent_class.new
@@ -255,7 +255,7 @@ RSpec.describe "Agent::Base filter integration (Issue #389)" do
       agent_class = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-113", version: 1
         model "test"
-        tools tool_class
+        tools tool_class => nil
         tool_result_filter(
           Class.new(Phronomy::Filter::Base) do
             def call(value, **_context) = value.to_s.upcase

@@ -60,7 +60,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
         description "Returns a short fact about a supported city"
         param :city, type: :string, desc: "One of: Tokyo, London, Paris",
           enum: %w[Tokyo London Paris]
-        on_error :return_empty
+        on_error :suppress
         requires_approval true
 
         def execute(city:)
@@ -212,7 +212,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
       Class.new(IntegrationFactors::CalculatorTool) do
         description parent_desc
         requires_approval true
-        on_error :return_empty
+        on_error :suppress
       end
     end
     let(:agent) do
@@ -241,7 +241,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
       Class.new(IntegrationFactors::EnumCitySelectorTool) do
         description parent_desc
         requires_approval true
-        on_error :return_empty
+        on_error :suppress
       end
     end
     let(:agent) { IntegrationFactors.agent_class("react", tools: {tool_class => nil}).new }

@@ -75,7 +75,6 @@ RSpec.describe "Canonical Complete Execution Log capture" do
     invocation = Phronomy::Agent::AgentInvocation.new(
       agent: Object.new,
       input: "input",
-      messages: [],
       config: {},
       event_listener: ->(event) { events << event }
     )

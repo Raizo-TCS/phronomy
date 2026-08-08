@@ -12,15 +12,7 @@ module Phronomy
   end
 end
 
-require_relative "agent/fsm_runtime_adapter"
 require_relative "agent/async_event_api"
-
-unless Phronomy::Agent::AgentInvocationSessionBuilder.singleton_class <
-    Phronomy::Agent::FsmRuntimeAdapter
-  Phronomy::Agent::AgentInvocationSessionBuilder.singleton_class.prepend(
-    Phronomy::Agent::FsmRuntimeAdapter
-  )
-end
 
 unless Phronomy::Agent::Base < Phronomy::Agent::AsyncEventApi
   Phronomy::Agent::Base.prepend(Phronomy::Agent::AsyncEventApi)

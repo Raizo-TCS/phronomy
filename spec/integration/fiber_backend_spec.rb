@@ -205,8 +205,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
     end
 
     around do |ex|
-      old = Phronomy::Runtime.default_if_initialized_for_test
-      Phronomy::Runtime.instance = runtime
+      old = Phronomy::Runtime.replace_default_for_test(runtime)
       ex.run
     ensure
       begin
@@ -214,7 +213,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
       rescue
         nil
       end
-      Phronomy::Runtime.instance = old
+      Phronomy::Runtime.restore_default_for_test(old)
     end
 
     before { LLMStub.activate(responses: ["Hello from fiber!"]) }
@@ -246,8 +245,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
     end
 
     around do |ex|
-      old = Phronomy::Runtime.default_if_initialized_for_test
-      Phronomy::Runtime.instance = runtime
+      old = Phronomy::Runtime.replace_default_for_test(runtime)
       ex.run
     ensure
       begin
@@ -255,7 +253,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
       rescue
         nil
       end
-      Phronomy::Runtime.instance = old
+      Phronomy::Runtime.restore_default_for_test(old)
     end
 
     before { LLMStub.activate(responses: ["LLM response"]) }
@@ -288,8 +286,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
   # -------------------------------------------------------------------------
   describe "TC-010: mixed_tools — FbBlockingTool (:blocking_io) and FbCooperativeTool (:cooperative) both execute correctly under :fiber" do
     around do |ex|
-      old = Phronomy::Runtime.default_if_initialized_for_test
-      Phronomy::Runtime.instance = runtime
+      old = Phronomy::Runtime.replace_default_for_test(runtime)
       ex.run
     ensure
       begin
@@ -297,7 +294,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
       rescue
         nil
       end
-      Phronomy::Runtime.instance = old
+      Phronomy::Runtime.restore_default_for_test(old)
     end
 
     it "FbBlockingTool#call_async routes through the pool and returns the correct result" do
@@ -332,8 +329,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
   # -------------------------------------------------------------------------
   describe "TC-011: rag_fetch — VectorStore::InMemory#search_async routes through pool and returns correct results under :fiber" do
     around do |ex|
-      old = Phronomy::Runtime.default_if_initialized_for_test
-      Phronomy::Runtime.instance = runtime
+      old = Phronomy::Runtime.replace_default_for_test(runtime)
       ex.run
     ensure
       begin
@@ -341,7 +337,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
       rescue
         nil
       end
-      Phronomy::Runtime.instance = old
+      Phronomy::Runtime.restore_default_for_test(old)
     end
 
     it "search_async awaited inside a spawned fiber returns the correct top result" do

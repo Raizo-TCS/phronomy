@@ -43,9 +43,8 @@ module Phronomy
             "set max_output_tokens or Phronomy.configuration.default_output_reserve"
         end
 
-        # ContextAssembler passes the actual mandatory Manifest content to
-        # ContextSelector. Reserving context_overhead here would count system
-        # instructions and tool definitions a second time.
+        # Mandatory Manifest content is accounted separately by ContextAssembler
+        # and the final budget validator. TokenBudget reserves output capacity only.
         Phronomy::LlmContextWindow::TokenBudget.new(
           context_window: context_window,
           max_output_tokens: reserve
@@ -62,7 +61,9 @@ module Phronomy
       end
 
       def stringify_keys(hash)
-        hash.to_h.each_with_object({}) { |(key, value), result| result[key.to_s] = value }
+        hash.to_h.each_with_object({}) do |(key, value), result|
+          result[key.to_s] = value
+        end
       end
     end
   end

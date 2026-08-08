@@ -6,6 +6,7 @@ module Phronomy
     #
     # Blocking/provider work returns through explicit Agent-internal events.
     # Entry actions start operations and return synchronously.
+    # Every LLM Call is prepared from a canonical Manifest and RuntimeProjection.
     #
     # @api private
     class AgentInvocationSessionBuilder
@@ -40,7 +41,6 @@ module Phronomy
       def self.build(
         agent:,
         input:,
-        messages:,
         config:,
         approval_policy: nil,
         approval_listener: nil,
@@ -51,7 +51,6 @@ module Phronomy
         invocation = AgentInvocation.new(
           agent: agent,
           input: input,
-          messages: messages,
           config: config,
           approval_policy: approval_policy,
           approval_listener: approval_listener,
@@ -181,41 +180,20 @@ module Phronomy
       end
       private_class_method :build_entry_actions
 
-      def self.filtering_input_action(agent, invocation)
-        agent.send(
-          :check_cancellation!,
-          invocation.config,
-          "invocation cancelled before input filtering"
-        )
-        invocation.input = agent.send(
-          :run_input_filters!,
-          invocation.input
-        )
-        invocation
-      rescue Phronomy::FilterBlockError => error
-        invocation.input_blocked = true
-        invocation.block_error = error
+      def self.filtering_input_action(_agent, invocation)
+        invocation.input = invocation.config.fetch(:phronomy_filtered_input)
         invocation
       end
       private_class_method :filtering_input_action
 
       def self.building_context_action(agent, invocation)
-        invocation.chat = agent.send(:build_chat)
-        context = agent.send(
-          :build_context,
-          invocation.input,
-          messages: invocation.messages,
-          thread_id: invocation.thread_id,
-          config: invocation.config,
-          budget: agent.send(:build_token_budget),
-          instruction: agent.send(:build_instructions, invocation.input),
-          tools: agent.class.tools + agent.send(:_handoff_tools)
-        )
-        agent.send(:_apply_context_to_chat, invocation.chat, context)
+        projection = invocation.config.fetch(:phronomy_runtime_projection)
+        invocation.chat = agent.send(:build_chat, model_config: projection.model_config)
         agent.send(
-          :run_before_completion_hooks!,
+          :_apply_runtime_projection_to_chat,
           invocation.chat,
-          invocation.config
+          projection,
+          invocation: invocation
         )
         install_tool_interceptors(invocation.chat, invocation)
         invocation
@@ -270,23 +248,10 @@ module Phronomy
       private_class_method :build_tool_interception
 
       def self.calling_llm_action(agent, runtime, invocation)
-        user_message = invocation.user_message_sent ?
-          nil :
-          agent.send(:extract_message, invocation.input)
-        agent.send(
-          :check_cancellation!,
-          invocation.config,
-          "invocation cancelled before LLM call"
-        )
-        operation = Phronomy.configuration.llm_adapter.complete_async(
-          invocation.chat,
-          user_message,
-          config: invocation.config
-        )
-        observe_llm_operation(
-          operation,
+        prepare_and_start_llm_call(
+          agent,
+          runtime,
           invocation,
-          runtime: runtime,
           streaming: false
         )
         invocation
@@ -294,77 +259,175 @@ module Phronomy
       private_class_method :calling_llm_action
 
       def self.calling_llm_stream_action(agent, runtime, invocation)
-        user_message = invocation.user_message_sent ?
-          nil :
-          agent.send(:extract_message, invocation.input)
-        agent.send(
-          :check_cancellation!,
-          invocation.config,
-          "invocation cancelled before LLM call"
-        )
-
-        operation = Phronomy.configuration.llm_adapter.stream_async(
-          invocation.chat,
-          user_message,
-          config: invocation.config
-        ) do |chunk|
-          agent.send(
-            :check_cancellation!,
-            invocation.config,
-            "invocation cancelled during streaming"
-          )
-          post_to_invocation!(
-            runtime,
-            invocation.id,
-            :llm_stream_chunk,
-            {content: chunk.content}
-          )
-        end
-
-        observe_llm_operation(
-          operation,
+        prepare_and_start_llm_call(
+          agent,
+          runtime,
           invocation,
-          runtime: runtime,
           streaming: true
         )
         invocation
       end
       private_class_method :calling_llm_stream_action
 
-      def self.observe_llm_operation(
-        operation,
-        invocation,
-        runtime:,
-        streaming:
-      )
-        operation.on_complete do |response, error|
-          result = LLMOperationResult.new(
-            response: response,
-            error: error,
-            streaming: streaming
-          )
-          event_type =
-            if error && !error.is_a?(ToolCallIntercepted)
-              :llm_failed
+      def self.prepare_and_start_llm_call(agent, runtime, invocation, streaming:)
+        activation = invocation.config.fetch(:phronomy_activation)
+        if invocation.user_message_sent
+          preparation = runtime.blocking_io.submit do
+            activation.coordinator.prepare_next_llm_call(activation)
+          end
+          preparation.on_complete do |projection, error|
+            if error
+              post_preparation_failure(runtime, invocation, error, streaming: streaming)
             else
-              :llm_completed
+              start_provider_call(
+                agent,
+                runtime,
+                invocation,
+                activation,
+                projection,
+                streaming: streaming,
+                replace_messages: true
+              )
             end
-          post_to_invocation!(
+          end
+        else
+          start_provider_call(
+            agent,
             runtime,
-            invocation.id,
-            event_type,
-            result
+            invocation,
+            activation,
+            activation.runtime_projection,
+            streaming: streaming,
+            replace_messages: false
           )
         end
       end
-      private_class_method :observe_llm_operation
+      private_class_method :prepare_and_start_llm_call
 
-      def self.post_to_invocation!(
+      def self.start_provider_call(
+        agent,
         runtime,
-        invocation_id,
-        event_type,
-        payload
+        invocation,
+        activation,
+        projection,
+        streaming:,
+        replace_messages:
       )
+        call_started = false
+        agent.send(
+          :check_cancellation!,
+          invocation.config,
+          "invocation cancelled before LLM call"
+        )
+        if replace_messages
+          invocation.chat = agent.send(:build_chat, model_config: projection.model_config)
+          agent.send(
+            :_apply_runtime_projection_to_chat,
+            invocation.chat,
+            projection,
+            invocation: invocation
+          )
+          install_tool_interceptors(invocation.chat, invocation)
+          invocation.config[:phronomy_runtime_projection] = projection
+        end
+
+        call_context = activation.begin_llm_call(projection)
+        call_started = true
+        invocation.begin_llm_call!(call_context.fetch(:llm_call_id))
+        message = projection.ask_message
+
+        operation = if streaming
+          Phronomy.configuration.llm_adapter.stream_async(
+            invocation.chat,
+            message,
+            config: invocation.config
+          ) do |chunk|
+            agent.send(
+              :check_cancellation!,
+              invocation.config,
+              "invocation cancelled during streaming"
+            )
+            post_to_invocation!(
+              runtime,
+              invocation.id,
+              :llm_stream_chunk,
+              {content: chunk.content}
+            )
+          end
+        else
+          Phronomy.configuration.llm_adapter.complete_async(
+            invocation.chat,
+            message,
+            config: invocation.config
+          )
+        end
+        observe_manifest_call(
+          operation,
+          activation,
+          invocation,
+          runtime: runtime,
+          streaming: streaming
+        )
+      rescue => error
+        if call_started
+          activation.record_llm_result(
+            response: canonical_response_for(nil, error),
+            error: error,
+            streaming: streaming
+          )
+        end
+        post_llm_result(runtime, invocation, nil, error, streaming: streaming)
+      end
+      private_class_method :start_provider_call
+
+      def self.observe_manifest_call(operation, activation, invocation, runtime:, streaming:)
+        operation.on_complete do |response, error|
+          activation.record_llm_result(
+            response: canonical_response_for(response, error),
+            error: error,
+            streaming: streaming
+          )
+          post_llm_result(
+            runtime,
+            invocation,
+            response,
+            error,
+            streaming: streaming
+          )
+        end
+      end
+      private_class_method :observe_manifest_call
+
+      def self.canonical_response_for(response, error)
+        if error.is_a?(ToolCallIntercepted)
+          error.assistant_outcome || ProviderCallOutcome.capture(response)
+        else
+          ProviderCallOutcome.capture(response)
+        end
+      end
+      private_class_method :canonical_response_for
+
+      def self.post_preparation_failure(runtime, invocation, error, streaming:)
+        post_llm_result(runtime, invocation, nil, error, streaming: streaming)
+      end
+      private_class_method :post_preparation_failure
+
+      def self.post_llm_result(runtime, invocation, response, error, streaming:)
+        result = LLMOperationResult.new(
+          response: response,
+          error: error,
+          streaming: streaming
+        )
+        event_type = if error && !error.is_a?(ToolCallIntercepted)
+          :llm_failed
+        else
+          :llm_completed
+        end
+        post_to_invocation!(runtime, invocation.id, event_type, result)
+      end
+      private_class_method :post_llm_result
+
+      def self.post_to_invocation!(runtime, invocation_id, event_type, payload)
         accepted = runtime.event_loop.post_to_session(
           Phronomy::Event.new(
             type: event_type,

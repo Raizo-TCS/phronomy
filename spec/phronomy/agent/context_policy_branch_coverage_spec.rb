@@ -288,18 +288,6 @@ RSpec.describe "Context Policy branch coverage" do
       expect(exchange.requirement).to eq(:declared_required)
     end
 
-    it "handles legacy runtime tool exchange (llm_call_id present)" do
-      candidates = [
-        make_candidate(id: "asst", category: :llm_message, sequence: 1, llm_call_id: "llm1"),
-        make_candidate(id: "call", category: :tool_call, sequence: 2, llm_call_id: "llm1", tool_call_id: "tc1"),
-        make_candidate(id: "result", category: :tool_result, sequence: 3, llm_call_id: "llm1", tool_call_id: "tc1")
-      ]
-      units = unit_builder.build(candidates)
-      exchange = units.find { |u| u.kind == :tool_exchange }
-      expect(exchange).not_to be_nil
-      expect(exchange.candidate_ids).to include("asst", "call", "result")
-    end
-
     it "uses symbol key for tool_call_ids metadata" do
       candidate = cand_class.new(
         candidate_id: "a", source_kind: :journal, category: :assistant_message,
@@ -333,30 +321,6 @@ RSpec.describe "Context Policy branch coverage" do
       # llm_message → legacy_import → next is not tool_call → returns nil → becomes :message
       msg_unit = units.find { |u| u.candidate_ids.include?("msg") }
       expect(msg_unit.kind).to eq(:message)
-    end
-
-    it "handles legacy import: llm_message + contiguous tool_call forms exchange" do
-      candidates = [
-        make_candidate(id: "lmsg", category: :llm_message, sequence: 1),
-        make_candidate(id: "tcall", category: :tool_call, sequence: 2, tool_call_id: "tc1"),
-        make_candidate(id: "tres", category: :tool_result, sequence: 3, tool_call_id: "tc1")
-      ]
-      units = unit_builder.build(candidates)
-      exchange = units.find { |u| u.kind == :tool_exchange }
-      expect(exchange).not_to be_nil
-      expect(exchange.candidate_ids).to include("lmsg", "tcall", "tres")
-    end
-
-    it "handles legacy import: tool_call_only (no preceding llm_message) + contiguous calls" do
-      candidates = [
-        make_candidate(id: "tc1", category: :tool_call, sequence: 1, tool_call_id: "id1"),
-        make_candidate(id: "tc2", category: :tool_call, sequence: 2, tool_call_id: "id2"),
-        make_candidate(id: "res1", category: :tool_result, sequence: 3, tool_call_id: "id1"),
-        make_candidate(id: "res2", category: :tool_result, sequence: 4, tool_call_id: "id2")
-      ]
-      units = unit_builder.build(candidates)
-      exchange = units.find { |u| u.kind == :tool_exchange }
-      expect(exchange).not_to be_nil
     end
   end
 
@@ -501,60 +465,6 @@ RSpec.describe "Context Policy branch coverage" do
       )
       expect { Phronomy::Agent::ContextPlanValidator.new.validate!(request: req, plan: plan) }
         .to raise_error(ArgumentError, /orphan Tool message/)
-    end
-
-    it "raises on orphan flat Tool Result (legacy format)" do
-      custom_builder = Class.new do
-        def build(candidates)
-          candidates.map.with_index do |c, i|
-            Phronomy::Agent::ContextSelectionUnit.new(
-              unit_id: "unit-#{c.candidate_id}", candidate_ids: [c.candidate_id],
-              dependency_unit_ids: [], kind: :message, requirement: c.requirement,
-              priority: 0, sequence_range: [i, i], metadata: {}
-            )
-          end
-        end
-      end.new
-
-      candidates = [
-        make_candidate(id: "res", category: :tool_result, sequence: 1, tool_call_id: "tc1")
-      ]
-      req = make_request(candidates, unit_builder: custom_builder)
-      units = custom_builder.build(candidates)
-      plan = plan_class.new(
-        selected_unit_ids: units.map(&:unit_id),
-        derived_contents: [], selected_tool_ids: [],
-        ordering_hints: {}, policy_descriptor: nil, metadata: {}
-      )
-      expect { Phronomy::Agent::ContextPlanValidator.new.validate!(request: req, plan: plan) }
-        .to raise_error(ArgumentError, /orphan Tool Result/)
-    end
-
-    it "raises on flat Tool Call selected without its Tool Result" do
-      custom_builder = Class.new do
-        def build(candidates)
-          candidates.map.with_index do |c, i|
-            Phronomy::Agent::ContextSelectionUnit.new(
-              unit_id: "unit-#{c.candidate_id}", candidate_ids: [c.candidate_id],
-              dependency_unit_ids: [], kind: :message, requirement: c.requirement,
-              priority: 0, sequence_range: [i, i], metadata: {}
-            )
-          end
-        end
-      end.new
-
-      candidates = [
-        make_candidate(id: "tc", category: :tool_call, sequence: 1, tool_call_id: "tc1")
-      ]
-      req = make_request(candidates, unit_builder: custom_builder)
-      units = custom_builder.build(candidates)
-      plan = plan_class.new(
-        selected_unit_ids: units.map(&:unit_id),
-        derived_contents: [], selected_tool_ids: [],
-        ordering_hints: {}, policy_descriptor: nil, metadata: {}
-      )
-      expect { Phronomy::Agent::ContextPlanValidator.new.validate!(request: req, plan: plan) }
-        .to raise_error(ArgumentError, /without a Tool Result/)
     end
   end
 

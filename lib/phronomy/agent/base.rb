@@ -27,7 +27,7 @@ module Phronomy
     #     agent_definition id: "research-agent", version: 1
     #     model "gpt-4o"
     #     instructions "You are a research assistant."
-    #     tools WebSearchTool, CalculatorTool
+    #     tools(WebSearchTool => nil, CalculatorTool => nil)
     #     max_iterations 15
     #   end
     class Base
@@ -86,40 +86,34 @@ module Phronomy
 
         # Registers tool classes for this agent.
         #
-        # Accepts either a splat of classes (backward-compatible) or a Hash mapping
-        # each class to an explicit alias name (String) or nil (use tool's own name).
-        # The alias form is useful when two tools share the same auto-generated name
-        # (e.g. two SearchTool classes from different modules).
+        # The setter accepts one Hash mapping each Tool class to an explicit alias
+        # name (String) or nil (use the Tool's own name). Calling without an
+        # argument returns the registered Tool classes.
         #
-        # @example Splat form (no alias)
-        #   tools WeatherTool, TimeTool
-        #
-        # @example Hash form (with optional per-tool alias)
+        # @example
         #   tools(
         #     Weather::SearchTool => "weather_search",
         #     Places::SearchTool  => "places_search",
         #     CurrentTimeTool     => nil
         #   )
         # @api public
-        def tools(*args)
-          if args.empty?
-            if instance_variable_defined?(:@tools)
-              return @tools
-            end
+        def tools(definitions = nil)
+          if definitions.nil?
+            return @tools if instance_variable_defined?(:@tools)
             return superclass.respond_to?(:tools) ? superclass.tools : []
           end
 
-          if args.length == 1 && args.first.is_a?(Hash)
-            hash = args.first
-            @tools = hash.keys
-            @tool_aliases = hash.transform_values { |v| v&.to_s }.reject { |_, v| v.nil? }
-          else
-            @tools = args
-            @tool_aliases = {}
+          unless definitions.is_a?(Hash)
+            raise ArgumentError,
+              "tools expects a Hash of ToolClass => alias_or_nil"
           end
+
+          @tools = definitions.keys
+          @tool_aliases = definitions.transform_values { |value| value&.to_s }
+            .reject { |_, value| value.nil? }
         end
 
-        # Returns the alias map registered via the hash form of .tools.
+        # Returns the alias map registered via .tools.
         # Merges parent class aliases so subclasses inherit their parent's mappings.
         # Subclass-specific aliases take precedence over parent aliases.
         # @return [Hash{Class => String}]
@@ -203,8 +197,6 @@ module Phronomy
         # @api public
         def static_knowledge(*sources)
           @static_knowledge_sources = sources.flatten
-          # Invalidate the cached chunks so the new sources are fetched on
-          # the next call to static_knowledge_chunks.
           @static_knowledge_chunks = nil
         end
 
@@ -228,15 +220,7 @@ module Phronomy
 
         # Clears the class-level knowledge cache so that the next +invoke+ call
         # re-fetches content from all registered static knowledge sources.
-        #
-        # Call this method when the underlying knowledge source has been updated
-        # at runtime (e.g. a file was rewritten, a DB record changed) and you
-        # want the agent to pick up the new content without restarting the
-        # process.
-        #
         # @return [nil]
-        # @example Refresh after updating a knowledge file
-        #   MyAgent.static_knowledge_refresh!
         # @api public
         def static_knowledge_refresh!
           @static_knowledge_chunks = nil
@@ -245,18 +229,6 @@ module Phronomy
         # When enabled, attaches Anthropic prompt-cache markers to the system
         # message so that the fixed instructions are served from cache on
         # subsequent turns, reducing input-token costs.
-        #
-        # Only has an effect when the agent also declares `provider :anthropic`.
-        # The cache_control field is provider-specific (the format differs
-        # between Anthropic direct, Bedrock, etc.), so the agent must explicitly
-        # declare its provider via the DSL rather than having it inferred from
-        # the model name.
-        #
-        # @example
-        #   class MyAgent < Phronomy::Agent::Base
-        #     provider :anthropic
-        #     cache_instructions true
-        #   end
         # @api public
         def cache_instructions(enabled = nil)
           if enabled.nil?
@@ -268,11 +240,6 @@ module Phronomy
 
         # Tokens to reserve for the model's output.
         # When nil, the model's max_output_tokens from the registry is used.
-        #
-        # @example
-        #   class MyAgent < Phronomy::Agent::Base
-        #     max_output_tokens 4096
-        #   end
         # @api public
         def max_output_tokens(val = nil)
           if val.nil?
@@ -283,37 +250,12 @@ module Phronomy
         end
 
         # Overrides the context window size used for token budget calculations.
-        # When set, this value takes precedence over the RubyLLM model registry,
-        # which is useful for locally-hosted models (e.g. LM Studio) where the
-        # actually-loaded context length may differ from the catalogue value.
-        #
-        # @example
-        #   class MyAgent < Phronomy::Agent::Base
-        #     context_window 4096
-        #   end
         # @api public
         def context_window(val = nil)
           if val.nil?
             @context_window
           else
             @context_window = val.to_i
-          end
-        end
-
-        # Tokens reserved in the legacy build_context path only.
-        # Manifest-first assembly ignores this value because
-        # ContextAssembler estimates actual mandatory content for each LLM Call.
-        #
-        # @example
-        #   class MyAgent < Phronomy::Agent::Base
-        #     context_overhead 500
-        #   end
-        # @api public
-        def context_overhead(val = nil)
-          if val.nil?
-            @context_overhead || 0
-          else
-            @context_overhead = val.to_i
           end
         end
 
@@ -326,7 +268,6 @@ module Phronomy
           end
           return @agent_definition if @agent_definition
 
-          # Walk ancestors to support anonymous runtime subclasses and abstract bases.
           klass = superclass
           while klass.respond_to?(:agent_definition, true) &&
               klass < Phronomy::Agent::Base
@@ -541,36 +482,18 @@ module Phronomy
         (proposed.context_revision == current.context_revision) ? current.context_revision + 1 : proposed.context_revision
       end
 
-      def ensure_no_active_execution!
-        return if persistence.executions.list_active(agent_id).empty?
-        raise Phronomy::AgentBusyError, "agent has an active or suspended execution: #{agent_id}"
-      end
-
       public
 
-      # Registers an anonymous handoff tool class on this agent instance.
-      # Called by Runner during construction when routes are configured.
-      # @param tool_class [Class<Phronomy::Agent::Context::Capability::Base>]
-      # @return [self]
-      # @api private
       def _add_handoff_tool(tool_class)
         @_handoff_tools ||= []
         @_handoff_tools << tool_class
         self
       end
 
-      # Returns handoff tool classes registered on this instance by Runner.
-      # @return [Array<Class>]
-      # @api private
       def _handoff_tools
         @_handoff_tools || []
       end
 
-      # Registers the final Agent/Application authorization policy.
-      # The block runs on the Runtime authorization pool and must return
-      # :allow, :require_approval, or :reject.
-      # @return [self]
-      # @api public
       def tool_approval_policy(&block)
         raise ArgumentError, "tool_approval_policy requires a block" unless block
 
@@ -578,9 +501,6 @@ module Phronomy
         self
       end
 
-      # Registers a non-blocking Application notification listener.
-      # @return [self]
-      # @api public
       def on_tool_approval_required(&block)
         raise ArgumentError, "on_tool_approval_required requires a block" unless block
 
@@ -590,19 +510,15 @@ module Phronomy
 
       private
 
-      # Merges an {InvocationContext} into the +thread_id+ / +config+ pair.
-      # Returns +[effective_thread_id, effective_config]+.
-      #
-      # Precedence rules (existing explicit values always win):
-      # - +thread_id+ argument > +ic.thread_id+
-      # - +config[:cancellation_token]+ > +ic.cancellation_token+ > token derived from +ic.deadline+
-      # - +ic+ is stored in +config[:invocation_context]+ (overwriting any previous value)
       def _apply_invocation_context(thread_id, config, ic)
         effective_thread_id = thread_id || ic.thread_id
         effective_config = config.merge(invocation_context: ic)
         if effective_config[:cancellation_token].nil?
           if (tok = ic.effective_timeout_token)
-            effective_config = effective_config.merge(cancellation_token: tok)
+            effective_config = effective_config.merge(
+              cancellation_token: tok,
+              phronomy_timeout_deadline: ic.deadline
+            )
           end
         end
         [effective_thread_id, effective_config]
@@ -629,22 +545,12 @@ module Phronomy
         end
       end
 
-      # Registers a per-instance knowledge source. Knowledge chunks from all
-      # registered sources are included in every LLM call via the Context Policy.
-      #
-      # @param source [#fetch] any object responding to +fetch(query:)+
-      # @return [void]
-      # @api public
       def add_knowledge_source(source)
         @instance_knowledge_sources ||= []
         @instance_knowledge_sources << source
       end
       protected :add_knowledge_source
 
-      # Returns knowledge chunks fetched from all instance-level knowledge sources.
-      #
-      # @return [Array<Hash>]
-      # @api private
       def instance_knowledge_chunks
         return [] unless @instance_knowledge_sources
         @instance_knowledge_sources.flat_map { |ks| ks.fetch(query: nil) }
@@ -667,20 +573,6 @@ module Phronomy
         translated
       end
 
-      def _build_stream_terminal_event(result)
-        if result[:suspended]
-          StreamEvent.new(
-            type: :approval_required,
-            payload: {request: result[:approval_request]}
-          )
-        else
-          StreamEvent.new(type: :done, payload: result)
-        end
-      end
-
-      # Returns the Application exception instead of allowing it to escape the
-      # shared EventLoop. A nil return means delivery succeeded or no listener
-      # was registered.
       def _deliver_stream_event(listener, event)
         return unless listener
 
@@ -773,22 +665,7 @@ module Phronomy
         meta
       end
 
-      def _apply_context_to_chat(chat, context)
-        model_config = context[:model_config] || {}
-        if context[:system]
-          apply_instructions(
-            chat,
-            context[:system],
-            cache: model_config["cache_instructions"],
-            provider: model_config["provider"]
-          )
-        end
-        (context[:tool_classes] || []).each { |tc| chat.with_tool(prepare_tool_class(tc)) }
-        context[:messages].each { |msg| chat.messages << msg }
-      end
-
-      def _replace_chat_messages(chat, projection)
-        chat.messages.clear
+      def _apply_runtime_projection_to_chat(chat, projection, invocation: nil)
         if projection.system
           apply_instructions(
             chat,
@@ -797,61 +674,11 @@ module Phronomy
             provider: projection.model_config["provider"]
           )
         end
+        projection.tool_classes.each do |tool_class|
+          chat.with_tool(prepare_tool_class(tool_class, invocation: invocation))
+        end
         projection.messages.each { |message| chat.messages << message }
         chat
-      end
-
-      # Builds a TokenBudget for this agent's model if possible.
-      # When context_window is set at the class level, that value is used directly
-      # (bypassing the RubyLLM catalogue) — useful for locally-hosted models where
-      # the loaded context length differs from the catalogue value.
-      # Returns nil when the model is not registered in RubyLLM (e.g. local/unknown models).
-      def build_token_budget
-        model_name = self.class.model
-        return nil unless model_name
-
-        if (cw = self.class.context_window)
-          Phronomy::LlmContextWindow::TokenBudget.new(
-            context_window: cw,
-            max_output_tokens: self.class.max_output_tokens || 0,
-            overhead: self.class.context_overhead
-          )
-        else
-          ruby_llm_model = RubyLLM.models.find(model_name)
-          return nil unless ruby_llm_model
-
-          registry_context = ruby_llm_model.context_window.to_i
-          registry_max_output = ruby_llm_model.max_output_tokens.to_i
-
-          # Priority: agent explicit → framework default → registry (if < context_window)
-          output_reserve =
-            self.class.max_output_tokens ||
-            Phronomy.configuration.default_output_reserve ||
-            ((registry_max_output < registry_context) ? registry_max_output : nil)
-
-          if output_reserve.nil?
-            raise Phronomy::InvalidContextBudgetConfigurationError,
-              "Cannot determine output token reserve for model '#{model_name}'. " \
-              "Set max_output_tokens on the agent or Phronomy.configure { |c| c.default_output_reserve = N }."
-          end
-
-          Phronomy::LlmContextWindow::TokenBudget.new(
-            context_window: registry_context,
-            max_output_tokens: output_reserve,
-            overhead: self.class.context_overhead
-          )
-        end
-      rescue Phronomy::LlmContextWindow::UnknownModelError, RubyLLM::ModelNotFoundError
-        nil
-      end
-
-      # Returns the chat class to instantiate for this invocation.
-      # When {Phronomy.configuration.parallel_tool_execution} is true,
-      # returns {ParallelToolChat} so that concurrent tool dispatch is enabled.
-      # Falls back to +nil+ otherwise, signalling {#build_chat} to use the
-      # standard +RubyLLM.chat+ factory.
-      def build_chat_class
-        Phronomy.configuration.parallel_tool_execution ? Phronomy::MultiAgent::ParallelToolChat : nil
       end
 
       def build_chat(model_config: nil)
@@ -892,10 +719,6 @@ module Phronomy
         end
       end
 
-      # Applies system instructions to a chat object.
-      # When cache_instructions is enabled and the provider is Anthropic,
-      # attaches a cache_control marker so that the fixed system prompt is
-      # eligible for prompt caching.
       def apply_instructions(chat, text, cache: false, provider: nil)
         if cache && provider.to_s == "anthropic"
           content = RubyLLM::Providers::Anthropic::Content.new(text, cache: true)
@@ -903,14 +726,6 @@ module Phronomy
         else
           chat.with_instructions(text)
         end
-      end
-
-      # Returns true when this agent explicitly declares `provider :anthropic`.
-      # Provider is intentionally checked via the DSL value rather than inferred
-      # from the model name, because cache_control format is API-endpoint-specific
-      # (Anthropic direct vs. Bedrock vs. OpenRouter all differ).
-      def anthropic_provider?
-        self.class.provider == :anthropic
       end
 
       def extract_message(input)
@@ -921,30 +736,21 @@ module Phronomy
         end
       end
 
-      # Raises CancellationError if the cancellation_token in config is cancelled.
-      # No-op when config has no cancellation_token or the token is not cancelled.
-      #
-      # @param config [Hash] the invocation config hash
-      # @param message [String] the message for the CancellationError
-      # @raise [Phronomy::CancellationError]
-      # @api public
       def check_cancellation!(config, message = "invocation cancelled")
+        timeout_deadline = config[:phronomy_timeout_deadline]
+        raise Phronomy::TimeoutError, message if timeout_deadline&.expired?
+
         ct = config[:cancellation_token]
         return unless ct&.cancelled?
 
-        # Deadline expiry is a timeout; explicit cancel! is a cancellation.
-        if (ct.respond_to?(:deadline) && ct.deadline && Time.now >= ct.deadline) ||
-            (ct.respond_to?(:remaining_monotonic_seconds) &&
-             ct.remaining_monotonic_seconds == 0.0)
+        if ct.respond_to?(:remaining_monotonic_seconds) &&
+            ct.remaining_monotonic_seconds == 0.0
           raise Phronomy::TimeoutError, message
         end
         raise Phronomy::CancellationError, message
       end
 
-      # Builds the final Tool class to register with RubyLLM. Alias and Tool
-      # result filters remain wrappers; authorization is handled only by
-      # ToolInvocation before Tool#call begins.
-      def prepare_tool_class(tool_class)
+      def prepare_tool_class(tool_class, invocation: nil)
         return tool_class unless tool_class.is_a?(Class)
 
         resolved = if (alias_name = self.class.tool_aliases[tool_class])

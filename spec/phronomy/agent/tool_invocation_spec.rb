@@ -87,7 +87,7 @@ RSpec.describe Phronomy::Agent::ToolInvocation do
 
   it "redacts sensitive arguments and String-valued facts from UI output" do
     invocation.validate!
-    invocation.apply_fsm_action_result(invocation.send(:evaluate_authorization))
+    invocation.send(:apply_authorization_outcome, invocation.send(:evaluate_authorization))
 
     expect(invocation.display_arguments[:body]).to eq("[REDACTED]")
     expect(invocation.display_facts[:recipient_count]).to eq(11)

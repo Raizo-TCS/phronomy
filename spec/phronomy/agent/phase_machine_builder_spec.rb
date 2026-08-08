@@ -12,7 +12,6 @@ RSpec.describe Phronomy::Agent::PhaseMachineBuilder do
     Phronomy::Agent::AgentInvocation.new(
       agent: double("agent"),
       input: "x",
-      messages: [],
       config: {}
     )
   end

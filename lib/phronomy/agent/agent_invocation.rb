@@ -29,7 +29,6 @@ module Phronomy
       CALLBACK_FAILED_EVENTS = %i[application_callback_failed].freeze
 
       attr_accessor :input,
-        :messages,
         :chat,
         :output,
         :usage,
@@ -59,18 +58,15 @@ module Phronomy
       def initialize(
         agent:,
         input:,
-        messages:,
         config:,
         approval_policy: nil,
         approval_listener: nil,
         event_listener: nil,
-        stream_listener: nil,
         mode: nil,
         id: nil
       )
         @agent = agent
         @input = input
-        @messages = Array(messages)
         @config = config
         @thread_id = config[:thread_id]
         @id = (id || config[:agent_invocation_id] || SecureRandom.uuid).to_s
@@ -80,8 +76,8 @@ module Phronomy
         end
         @approval_policy = invocation_policy || approval_policy
         @approval_listener = approval_listener
-        @event_listener = event_listener || stream_listener
-        @mode = (mode || (stream_listener ? :stream : :invoke)).to_sym
+        @event_listener = event_listener
+        @mode = (mode || :invoke).to_sym
 
         @chat = nil
         @output = nil
@@ -102,14 +98,6 @@ module Phronomy
         @phase = nil
         @current_llm_call_id = nil
         @tool_batch_llm_call_id = nil
-      end
-
-      def stream_listener
-        @event_listener
-      end
-
-      def stream_listener=(listener)
-        @event_listener = listener
       end
 
       def streaming?
@@ -180,29 +168,9 @@ module Phronomy
         true
       end
 
-      def apply_fsm_action_result(result)
-        event_type =
-          if result.respond_to?(:error) &&
-              result.error &&
-              !result.error.is_a?(ToolCallIntercepted)
-            :llm_failed
-          else
-            :llm_completed
-          end
-        handle_fsm_event(
-          Phronomy::Event.new(
-            type: event_type,
-            target_id: @id,
-            payload: result
-          )
-        )
-        self
-      end
-
       def accept_tool_calls!(tool_calls, llm_call_id: nil)
         @user_message_sent = true
         @pending_tool_calls = Array(tool_calls)
-        @messages = @chat.messages
         @tool_batch_llm_call_id = (llm_call_id || @current_llm_call_id)&.to_s
         @current_llm_call_id = nil
         @pending_tool_calls.each do |tool_call|
@@ -227,7 +195,6 @@ module Phronomy
         @user_message_sent = true
         @output = response.content
         @usage = Phronomy::TokenUsage.from_tokens(response.tokens)
-        @messages = @chat.messages
         @pending_tool_calls = []
         @current_llm_call_id = nil
         self
@@ -298,7 +265,6 @@ module Phronomy
             )
           )
         end
-        @messages = @chat.messages
         clear_tool_batch!
         self
       end

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "cgi"
+
 module Phronomy
   module Agent
     class ContextAssembler
@@ -305,13 +307,20 @@ module Phronomy
         @persistence.contents.fetch(ref)
       end
 
+      def context_tag(text, type:, trusted:)
+        "<context type=\"#{CGI.escapeHTML(type.to_s)}\" trusted=\"#{trusted}\">\n" \
+          "#{CGI.escapeHTML(text.to_s)}\n</context>"
+      end
+
       def build_system_text(input)
         instruction = @agent.send(:build_instructions, input)
         knowledge = @agent.class.static_knowledge_chunks + @agent.send(:instance_knowledge_chunks)
         parts = [instruction]
         knowledge.each do |chunk|
-          parts << Phronomy::LlmContextWindow::Assembler.xml_tag(
-            chunk[:content], type: chunk[:type] || :static, trusted: true
+          parts << context_tag(
+            chunk[:content],
+            type: chunk[:type] || :static,
+            trusted: true
           )
         end
         parts.compact.join("\n\n")

@@ -13,16 +13,13 @@ RSpec.describe Phronomy::Runtime do
     end
   end
 
-  describe ".instance=" do
-    after do
-      # Reset to a fresh instance after the test
-      described_class.instance_variable_set(:@instance, nil)
-    end
-
+  describe ".replace_default_for_test / .restore_default_for_test" do
     it "replaces the shared instance" do
       custom = described_class.new
-      described_class.instance = custom
+      previous = described_class.replace_default_for_test(custom)
       expect(described_class.instance).to be(custom)
+    ensure
+      described_class.restore_default_for_test(previous)
     end
   end
 
@@ -228,19 +225,10 @@ RSpec.describe Phronomy::Runtime do
       expect(described_class.instance.scheduler).to be_a(Phronomy::Runtime::FakeScheduler)
     end
 
-    it "uses FakeScheduler for :cooperative backend (deprecated alias for :immediate)" do
-      Phronomy.configure { |c| c.runtime_backend = :cooperative }
-      expect(described_class.instance.scheduler).to be_a(Phronomy::Runtime::FakeScheduler)
-    end
-
-    it "emits a deprecation warning when :cooperative is used (Issue #332)" do
-      logger = instance_double("Logger", warn: nil, info: nil, debug: nil, error: nil)
-      Phronomy.configure do |c|
-        c.runtime_backend = :cooperative
-        c.logger = logger
-      end
-      described_class.instance
-      expect(logger).to have_received(:warn).with(a_string_including(":cooperative is a deprecated alias"))
+    it "raises ConfigurationError for :cooperative backend (removed alias)" do
+      expect {
+        Phronomy.configure { |c| c.runtime_backend = :cooperative }
+      }.to raise_error(Phronomy::ConfigurationError)
     end
 
     it "uses ThreadScheduler for :thread backend" do

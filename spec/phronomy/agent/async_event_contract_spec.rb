@@ -124,7 +124,6 @@ RSpec.describe "Agent async event contract" do
       invocation = Phronomy::Agent::AgentInvocation.new(
         agent: SymmetricAsyncEventAgent.new,
         input: "hello",
-        messages: [],
         config: {},
         event_listener: ->(event) { event_types << event.type },
         mode: mode
@@ -146,7 +145,6 @@ RSpec.describe "Agent async event contract" do
       invocation = Phronomy::Agent::AgentInvocation.new(
         agent: SymmetricAsyncEventAgent.new,
         input: "hello",
-        messages: [],
         config: {},
         event_listener: ->(event) { event_types << event.type },
         mode: mode
@@ -331,7 +329,7 @@ RSpec.describe "Agent::Base#check_cancellation!" do
   end
 
   it "raises TimeoutError when wall-clock deadline has expired" do
-    token = Phronomy::Concurrency::CancellationToken.new(deadline: Time.now - 1)
+    token = Phronomy::Concurrency::CancellationToken.timeout_after(-1)
     result = check({cancellation_token: token})
     expect(result).to be_a(Phronomy::TimeoutError)
     expect(result.message).to eq("invocation cancelled")
@@ -343,7 +341,7 @@ RSpec.describe "Agent::Base#check_cancellation!" do
   end
 
   it "preserves a custom message" do
-    token = Phronomy::Concurrency::CancellationToken.new(deadline: Time.now - 1)
+    token = Phronomy::Concurrency::CancellationToken.timeout_after(-1)
     result = agent.send(:check_cancellation!, {cancellation_token: token}, "stopped")
     expect(result).to be_nil
   rescue => e

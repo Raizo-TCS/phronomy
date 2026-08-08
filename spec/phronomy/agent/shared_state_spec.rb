@@ -41,20 +41,6 @@ RSpec.describe Phronomy::Agent::SharedState do
   # ---------------------------------------------------------------------------
 
   describe "DSL" do
-    describe ".researchers" do
-      it "stores and reads back researcher classes via _researchers" do
-        r1 = stub_researcher_with_tools(name: "R1")
-        r2 = stub_researcher_with_tools(name: "R2")
-        klass = Class.new(described_class) { researchers r1, r2 }
-        expect(klass._researchers).to eq([r1, r2])
-      end
-
-      it "returns empty array when not configured" do
-        klass = Class.new(described_class)
-        expect(klass._researchers).to eq([])
-      end
-    end
-
     describe ".member" do
       it "registers a member class without instruction" do
         r = stub_researcher_with_tools(name: "R1")
@@ -79,14 +65,14 @@ RSpec.describe Phronomy::Agent::SharedState do
         expect(klass._members[1][:instruction]).to eq("Extra focus.")
       end
 
-      it "makes _researchers return the classes in declaration order" do
+      it "makes _members return the classes in declaration order" do
         r1 = stub_researcher_with_tools(name: "R1")
         r2 = stub_researcher_with_tools(name: "R2")
         klass = Class.new(described_class) do
           member r1
           member r2
         end
-        expect(klass._researchers).to eq([r1, r2])
+        expect(klass._members.map { |m| m[:klass] }).to eq([r1, r2])
       end
 
       it "returns empty array from _members when not configured" do
@@ -205,7 +191,7 @@ RSpec.describe Phronomy::Agent::SharedState do
   describe "#invoke argument validation" do
     it "raises ArgumentError when neither max_cycles nor timeout is set" do
       r = stub_researcher_with_tools
-      klass = Class.new(described_class) { researchers r }
+      klass = Class.new(described_class) { member r }
       expect { klass.new.invoke("question") }.to raise_error(ArgumentError, /max_cycles.*timeout|timeout.*max_cycles/i)
     end
 
@@ -215,7 +201,7 @@ RSpec.describe Phronomy::Agent::SharedState do
         define_method(:invoke) { |_input, config: {}| {output: "ok", messages: []} }
       end
       klass = Class.new(described_class) do
-        researchers r
+        member r
         max_cycles 1
       end
       expect { klass.new.invoke("q") }.not_to raise_error
@@ -227,7 +213,7 @@ RSpec.describe Phronomy::Agent::SharedState do
         define_method(:invoke) { |_input, config: {}| {output: "ok", messages: []} }
       end
       klass = Class.new(described_class) do
-        researchers r
+        member r
         timeout 10
       end
       expect { klass.new.invoke("q") }.not_to raise_error
@@ -249,7 +235,7 @@ RSpec.describe Phronomy::Agent::SharedState do
     it "returns a Hash with :output, :cycles, and :terminated_by keys" do
       r = build_simple_researcher
       klass = Class.new(described_class) do
-        researchers r
+        member r
         max_cycles 2
         aggregate { |store| store.read_all }
       end
@@ -267,7 +253,7 @@ RSpec.describe Phronomy::Agent::SharedState do
         end
       end
       klass = Class.new(described_class) do
-        researchers r
+        member r
         max_cycles 3
       end
       klass.new.invoke("q")
@@ -293,7 +279,8 @@ RSpec.describe Phronomy::Agent::SharedState do
         }
       end
       klass = Class.new(described_class) do
-        researchers r1, r2
+        member r1
+        member r2
         max_cycles 2
       end
       klass.new.invoke("q")
@@ -310,7 +297,7 @@ RSpec.describe Phronomy::Agent::SharedState do
         end
       end
       klass = Class.new(described_class) do
-        researchers r
+        member r
         max_cycles 10
         terminate_when { |store| store.size >= 2 }
       end
@@ -337,7 +324,7 @@ RSpec.describe Phronomy::Agent::SharedState do
         }
       end
       klass = Class.new(described_class) do
-        researchers r
+        member r
         timeout 0.08   # enough for one full cycle but not two
         max_cycles 100
       end
@@ -352,7 +339,7 @@ RSpec.describe Phronomy::Agent::SharedState do
         define_method(:invoke) { |_i, config: {}| {output: "ok", messages: []} }
       end
       klass = Class.new(described_class) do
-        researchers r
+        member r
         max_cycles 2
       end
       result = klass.new.invoke("q")
@@ -369,7 +356,7 @@ RSpec.describe Phronomy::Agent::SharedState do
         end
       end
       klass = Class.new(described_class) do
-        researchers r
+        member r
         max_cycles 1
       end
       klass.new.invoke("initial question")
@@ -389,7 +376,7 @@ RSpec.describe Phronomy::Agent::SharedState do
         end
       end
       klass = Class.new(described_class) do
-        researchers r
+        member r
         max_cycles 2
       end
       klass.new.invoke("initial question")
@@ -404,7 +391,7 @@ RSpec.describe Phronomy::Agent::SharedState do
         define_method(:invoke) { |_i, config: {}| {output: "ok", messages: []} }
       end
       klass = Class.new(described_class) do
-        researchers r
+        member r
         max_cycles 1
         aggregate { |store| {total: store.size, summary: "done"} }
       end
@@ -418,7 +405,7 @@ RSpec.describe Phronomy::Agent::SharedState do
         define_method(:invoke) { |_i, config: {}| {output: "ok", messages: []} }
       end
       klass = Class.new(described_class) do
-        researchers r
+        member r
         max_cycles 1
       end
       result = klass.new.invoke("q")
@@ -510,7 +497,7 @@ RSpec.describe Phronomy::Agent::SharedState do
       end
 
       klass = Class.new(described_class) do
-        researchers r
+        member r
         max_cycles 1
       end
       klass.new.invoke("q")
@@ -543,7 +530,7 @@ RSpec.describe Phronomy::Agent::SharedState do
           store.read_all
         }
       end
-      klass_with_r.researchers(r)
+      klass_with_r.member(r)
       klass_with_r.new.invoke("q")
 
       expect(store_ref).not_to be_nil
@@ -567,7 +554,7 @@ RSpec.describe Phronomy::Agent::SharedState do
         max_cycles 1
         aggregate { |store| store.read_all }
       end
-      klass.researchers(r)
+      klass.member(r)
       klass.new.invoke("q")
 
       expect { JSON.parse(store_json) }.not_to raise_error
