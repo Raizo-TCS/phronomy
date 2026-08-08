@@ -88,6 +88,7 @@ end
 # Target 4: Orchestrator#dispatch_parallel overhead (10 stub agents, no LLM)
 # ---------------------------------------------------------------------------
 stub_agent_class = Class.new(Phronomy::Agent::Base) do
+  agent_definition id: "bench-stub", version: 1
   define_method(:invoke) do |_input, messages: [], thread_id: nil, config: {}|
     {output: "stub", messages: []}
   end

@@ -54,6 +54,7 @@ class BenchKnowledgeSource < Phronomy::Agent::Context::Knowledge::Base
 end
 
 class BenchAgentWithKnowledge < Phronomy::Agent::Base
+  agent_definition id: "bench-knowledge", version: 1
   model "gpt-4o-mini"
   static_knowledge BenchKnowledgeSource.new
 end

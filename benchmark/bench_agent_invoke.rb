@@ -71,12 +71,14 @@ BENCH_RESP = BenchAgentMessage.assistant("benchmark complete")
 BENCH_RESP_CHAT = BenchStubChat.new(BENCH_RESP)
 
 bench_minimal_class = Class.new(Phronomy::Agent::Base) do
+  agent_definition id: "bench-minimal", version: 1
   model "stub-model"
 
   define_method(:build_chat) { |*| BenchStubChat.new(BENCH_RESP) }
 end
 
 bench_tool_class = Class.new(Phronomy::Agent::Base) do
+  agent_definition id: "bench-tool", version: 1
   model "stub-model"
   tools BenchNullTool
 
