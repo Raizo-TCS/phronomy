@@ -95,5 +95,4 @@ RSpec.describe Phronomy::Agent::TokenBudgetResolver do
     model_config = persistence.contents.fetch_json(manifest.model_config_ref)
     expect(model_config.fetch("thread_id").length).to eq(20_000)
   end
-
 end

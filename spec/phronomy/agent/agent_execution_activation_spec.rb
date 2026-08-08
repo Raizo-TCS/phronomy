@@ -55,5 +55,4 @@ RSpec.describe Phronomy::Agent::AgentExecutionActivation do
       activation.begin_llm_call(Struct.new(:manifest_ref).new("sha256:call-2"))
     }.to raise_error(Phronomy::Error, /another Provider Call is active/)
   end
-
 end

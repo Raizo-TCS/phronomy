@@ -56,7 +56,7 @@ module Phronomy
           tool_call_id: tool_call_id,
           sequence: sequence,
           requirement: :optional,
-          priority: source_kind == :working ? 100 : 0,
+          priority: (source_kind == :working) ? 100 : 0,
           metadata: metadata
         )
       end

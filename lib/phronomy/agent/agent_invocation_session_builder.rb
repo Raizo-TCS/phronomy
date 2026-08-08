@@ -245,8 +245,7 @@ module Phronomy
 
       def self.build_tool_interception(chat, fallback_tool_calls, invocation)
         assistant_message = chat.messages.last
-        unless assistant_message &&
-            assistant_message.respond_to?(:role) &&
+        unless assistant_message&.respond_to?(:role) &&
             assistant_message.role.to_sym == :assistant &&
             assistant_message.respond_to?(:tool_calls)
           raise Phronomy::Error,

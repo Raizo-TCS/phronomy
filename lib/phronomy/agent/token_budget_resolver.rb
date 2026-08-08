@@ -37,7 +37,7 @@ module Phronomy
       private
 
       def build_budget(context_window, reserve, model_name)
-        unless reserve && reserve.positive? && reserve < context_window
+        unless reserve&.positive? && reserve < context_window
           raise Phronomy::InvalidContextBudgetConfigurationError,
             "Cannot determine a valid output reserve for model #{model_name.inspect}; " \
             "set max_output_tokens or Phronomy.configuration.default_output_reserve"

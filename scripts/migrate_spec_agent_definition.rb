@@ -15,10 +15,9 @@ AGENT_BASE_PATTERN = /Phronomy::Agent::Base/
 def snake_case(class_name)
   # Remove trailing Agent/Tool suffixes, snake_case the name
   name = class_name.split("::").last
-  name = name.gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
-              .gsub(/([a-z\d])([A-Z])/, '\1_\2')
-              .downcase
-  name
+  name.gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
+    .gsub(/([a-z\d])([A-Z])/, '\1_\2')
+    .downcase
 end
 
 counter = 0
@@ -75,7 +74,7 @@ Dir.glob("#{SPEC_DIR}/**/*.rb").sort.each do |file|
       assignment = $2
       body = $3
       # Skip if agent_definition already present
-      if body =~ /agent_definition/
+      if /agent_definition/.match?(body)
         new_lines << line
       else
         id = counter += 1

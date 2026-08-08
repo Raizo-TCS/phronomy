@@ -31,7 +31,7 @@ RSpec.describe "Context Policy selection" do
       tool_call_id: tool_call_id,
       sequence: sequence,
       requirement: :optional,
-      priority: source_kind == :working ? 100 : 0,
+      priority: (source_kind == :working) ? 100 : 0,
       metadata: {
         "estimated_tokens" => tokens,
         "source_sequence" => sequence,

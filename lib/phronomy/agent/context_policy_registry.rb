@@ -23,7 +23,7 @@ module Phronomy
 
         key = [id.to_s, Integer(version)].freeze
         @mutex.synchronize do
-          raise ArgumentError, "Context Policy already registered: #{key.join('@')}" if @factories.key?(key)
+          raise ArgumentError, "Context Policy already registered: #{key.join("@")}" if @factories.key?(key)
           @factories[key] = factory
         end
         self
@@ -32,7 +32,7 @@ module Phronomy
       def resolve(descriptor)
         key = [descriptor.id.to_s, Integer(descriptor.version)]
         factory = @mutex.synchronize { @factories[key] }
-        raise Phronomy::ConfigurationError, "Unknown Context Policy: #{key.join('@')}" unless factory
+        raise Phronomy::ConfigurationError, "Unknown Context Policy: #{key.join("@")}" unless factory
 
         policy = factory.call(descriptor.config)
         unless policy.is_a?(ContextPolicy)

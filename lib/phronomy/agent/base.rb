@@ -818,14 +818,14 @@ module Phronomy
           ruby_llm_model = RubyLLM.models.find(model_name)
           return nil unless ruby_llm_model
 
-          registry_context    = ruby_llm_model.context_window.to_i
+          registry_context = ruby_llm_model.context_window.to_i
           registry_max_output = ruby_llm_model.max_output_tokens.to_i
 
           # Priority: agent explicit → framework default → registry (if < context_window)
           output_reserve =
             self.class.max_output_tokens ||
             Phronomy.configuration.default_output_reserve ||
-            (registry_max_output < registry_context ? registry_max_output : nil)
+            ((registry_max_output < registry_context) ? registry_max_output : nil)
 
           if output_reserve.nil?
             raise Phronomy::InvalidContextBudgetConfigurationError,

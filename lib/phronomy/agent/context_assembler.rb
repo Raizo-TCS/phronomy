@@ -249,7 +249,7 @@ module Phronomy
       end
 
       def default_role(category)
-        category == :instruction ? :system : :user
+        (category == :instruction) ? :system : :user
       end
 
       def text_segment(category, role, content, metadata: {})

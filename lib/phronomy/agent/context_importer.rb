@@ -47,7 +47,7 @@ module Phronomy
 
             if pending.any? && role != :tool
               raise ArgumentError,
-                "message #{index} appears before Tool Results for: #{pending.keys.join(', ')}"
+                "message #{index} appears before Tool Results for: #{pending.keys.join(", ")}"
             end
 
             case role
@@ -78,7 +78,7 @@ module Phronomy
           return if pending.empty?
 
           raise ArgumentError,
-            "imported history ends before Tool Results for: #{pending.keys.join(', ')}"
+            "imported history ends before Tool Results for: #{pending.keys.join(", ")}"
         end
 
         def import_message(message, system_message:)

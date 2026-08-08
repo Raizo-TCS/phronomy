@@ -155,10 +155,19 @@ RSpec.describe "before_llm_input hook" do
 
     it "calls hooks in order: global \u2192 class \u2192 instance" do
       call_order = []
-      Phronomy.configuration.before_llm_input = ->(_ctx) { call_order << :global; nil }
-      HookBaseAgent.before_llm_input ->(_ctx) { call_order << :class; nil }
+      Phronomy.configuration.before_llm_input = ->(_ctx) {
+        call_order << :global
+        nil
+      }
+      HookBaseAgent.before_llm_input ->(_ctx) {
+        call_order << :class
+        nil
+      }
       agent = HookBaseAgent.new
-      agent.before_llm_input = ->(_ctx) { call_order << :instance; nil }
+      agent.before_llm_input = ->(_ctx) {
+        call_order << :instance
+        nil
+      }
       agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: {})
       expect(call_order).to eq([:global, :class, :instance])
     end
@@ -200,4 +209,3 @@ RSpec.describe "before_llm_input hook" do
     end
   end
 end
-

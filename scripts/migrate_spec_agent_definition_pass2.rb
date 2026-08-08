@@ -16,7 +16,6 @@ files_modified = 0
 Dir.glob("#{SPEC_DIR}/**/*.rb").sort.each do |file|
   content = File.read(file)
   new_content = content.dup
-  modified = false
 
   # Pattern A: Class.new(Phronomy::Agent::Base) { body }.new
   new_content = new_content.gsub(
@@ -38,7 +37,7 @@ Dir.glob("#{SPEC_DIR}/**/*.rb").sort.each do |file|
 
   # Pattern C: { Class.new(Phronomy::Agent::Base) }  (no block, inside outer block)
   new_content = new_content.gsub(
-    /\{ Class\.new\(Phronomy::Agent::Base\) \}/
+    "{ Class.new(Phronomy::Agent::Base) }"
   ) do
     counter += 1
     "{ Class.new(Phronomy::Agent::Base) { agent_definition id: \"test-agent-#{counter}\", version: 1 } }"
@@ -47,7 +46,6 @@ Dir.glob("#{SPEC_DIR}/**/*.rb").sort.each do |file|
   if new_content != content
     File.write(file, new_content)
     files_modified += 1
-    modified = true
     puts "  patched: #{file.sub("#{SPEC_DIR}/", "spec/")}"
   end
 end

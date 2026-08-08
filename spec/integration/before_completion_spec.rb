@@ -103,7 +103,7 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
     end
 
     it "invoke succeeds after hook" do
-      Phronomy.configuration.before_llm_input = ->(_ctx) { nil }
+      Phronomy.configuration.before_llm_input = ->(_ctx) {}
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
       result = klass.new.invoke("Say hello.")
@@ -325,9 +325,15 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
       }
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
-      klass.before_llm_input ->(_ctx) { call_order << :class; nil }
+      klass.before_llm_input ->(_ctx) {
+        call_order << :class
+        nil
+      }
       agent = klass.new
-      agent.before_llm_input = ->(_ctx) { call_order << :instance; nil }
+      agent.before_llm_input = ->(_ctx) {
+        call_order << :instance
+        nil
+      }
       agent.invoke("Say hello.")
       expect(call_order).to eq([:global, :class, :instance])
     end

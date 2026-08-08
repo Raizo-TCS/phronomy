@@ -157,9 +157,11 @@ module Phronomy
               payload: {failure: failure}
             )
           )
-          Phronomy.configuration.logger&.warn(
-            "[Phronomy] Callback failure recorded but could not notify FSM: execution_id=#{@execution_id}"
-          ) unless accepted
+          unless accepted
+            Phronomy.configuration.logger&.warn(
+              "[Phronomy] Callback failure recorded but could not notify FSM: execution_id=#{@execution_id}"
+            )
+          end
         end
         Phronomy.configuration.logger&.warn(
           "[Phronomy] Application event listener failed: #{failure.error.class}: #{failure.error.message}"

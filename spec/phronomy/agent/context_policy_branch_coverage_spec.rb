@@ -11,7 +11,7 @@ RSpec.describe "Context Policy branch coverage" do
   let(:unit_builder) { Phronomy::Agent::ContextParts::UnitBuilders::DependencyAwareUnitBuilder.new }
 
   def make_candidate(id:, category:, sequence:, requirement: :optional, tool_call_id: nil,
-      tool_call_ids: [], llm_call_id: nil, source_kind: :journal)
+    tool_call_ids: [], llm_call_id: nil, source_kind: :journal)
     role = %i[tool_message tool_result].include?(category) ? :tool : :assistant
     cand_class.new(
       candidate_id: id, source_kind: source_kind, category: category, role: role,
@@ -183,7 +183,7 @@ RSpec.describe "Context Policy branch coverage" do
     # Use Struct so respond_to? works naturally without stubbing
     let(:msg_struct) { Struct.new(:role, :content, :tool_calls, :tokens, :model_id) }
     let(:call_struct) { Struct.new(:id, :name, :arguments) }
-    let(:tokens_struct) { Struct.new(:input, :output, keyword_init: true) }
+    let(:tokens_struct) { Struct.new(:input, :output) }
 
     it "returns nil for nil message" do
       expect(outcome_class.capture(nil)).to be_nil
@@ -306,7 +306,7 @@ RSpec.describe "Context Policy branch coverage" do
         role: :assistant, content_ref: "ref-a", record_id: "rec-a",
         agent_id: "ag-1", execution_id: "ex-1", llm_call_id: nil, tool_call_id: nil,
         sequence: 1, requirement: :optional, priority: 0,
-        metadata: {tool_call_ids: ["tc1"], "estimated_tokens" => 5, "source_sequence" => 1}
+        metadata: {:tool_call_ids => ["tc1"], "estimated_tokens" => 5, "source_sequence" => 1}
       )
       msg = make_candidate(id: "m", category: :tool_message, sequence: 2, tool_call_id: "tc1")
       units = unit_builder.build([candidate, msg])
@@ -433,7 +433,7 @@ RSpec.describe "Context Policy branch coverage" do
         make_candidate(id: "a", category: :assistant_message, sequence: 1, tool_call_ids: ["tc1"]),
         make_candidate(id: "b", category: :assistant_message, sequence: 2, tool_call_ids: ["tc1"])
       ]
-      req = make_request(candidates)
+      make_request(candidates)
       # unit_builder.build raises before we get to validator
       expect { unit_builder.build(candidates) }
         .to raise_error(ArgumentError, /duplicate assistant Tool Call id/)
@@ -644,7 +644,8 @@ RSpec.describe "Context Policy branch coverage" do
           make_candidate(id: id, category: :assistant_message, sequence: 0)
         },
         token_budget: Phronomy::LlmContextWindow::TokenBudget.new(
-          context_window: context_window, max_output_tokens: 0),
+          context_window: context_window, max_output_tokens: 0
+        ),
         model_config: {}, previous_manifest: nil, required_coverage: [],
         parts: {}, metadata: {"mandatory_token_estimate" => mandatory}
       )
