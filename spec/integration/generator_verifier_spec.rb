@@ -199,7 +199,8 @@ RSpec.describe "Group 33: GeneratorVerifier", :integration do
       pipeline.invoke("test")
     rescue Phronomy::LowConfidenceError
       # LLM call index 2 is the second draft agent call.
-      second_draft_user_msg = @llm.messages_for(2).find { |m| m["role"] == "user" }
+      # Use last user message: prior history may precede the current input.
+      second_draft_user_msg = @llm.messages_for(2).reverse.find { |m| m["role"] == "user" }
       expect(second_draft_user_msg["content"]).to include("Missing citation")
     end
   end
@@ -233,7 +234,8 @@ RSpec.describe "Group 33: GeneratorVerifier", :integration do
     it "the second draft prompt contains the reviewer's rejection feedback" do
       pipeline.invoke("What is the warranty period?")
       # LLM call 0: draft 1; call 1: review 1 (rejected); call 2: draft 2
-      second_draft_user_msg = @llm.messages_for(2).find { |m| m["role"] == "user" }
+      # Use last user message: prior history may precede the current input.
+      second_draft_user_msg = @llm.messages_for(2).reverse.find { |m| m["role"] == "user" }
       expect(second_draft_user_msg["content"]).to include("Missing citation")
     end
 

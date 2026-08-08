@@ -73,42 +73,36 @@ RSpec.describe "Fault injection (Issue #213)" do
   end
 
   # -------------------------------------------------------------------------
-  # 2. Before_completion hook exceptions propagate to the caller
+  # 2. before_llm_input hook exceptions propagate to the caller
   # -------------------------------------------------------------------------
-  describe "before_completion hook fault injection" do
+  describe "before_llm_input hook fault injection" do
     let(:exploding_hook) { ->(_ctx) { raise "hook exploded" } }
 
-    it "propagates an exception raised by a before_completion hook" do
+    it "propagates an exception raised by a before_llm_input hook" do
       agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-105", version: 1
         model "test-model"
       end
 
       agent = agent_class.new
-      agent.before_completion = exploding_hook
-
-      # Stub the internal chat so the hook fires without a real LLM call.
-      chat_double = double("RubyLLM::Chat")
-      allow(chat_double).to receive(:messages).and_return([])
-      allow(chat_double).to receive(:on).and_return(nil)
+      agent.before_llm_input = exploding_hook
 
       expect {
-        agent.send(:run_before_completion_hooks!, chat_double, {})
+        agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: {})
       }.to raise_error(RuntimeError, "hook exploded")
     end
 
     it "propagates the exception unchanged (not translated to a Phronomy error)" do
       agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-106", version: 1
         model "test-model"
       end
 
       agent = agent_class.new
-      agent.before_completion = ->(_ctx) { raise ArgumentError, "bad param" }
-
-      chat_double = double("RubyLLM::Chat")
-      allow(chat_double).to receive(:messages).and_return([])
+      agent.before_llm_input = ->(_ctx) { raise ArgumentError, "bad param" }
 
       expect {
-        agent.send(:run_before_completion_hooks!, chat_double, {})
+        agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: {})
       }.to raise_error(ArgumentError, "bad param")
     end
   end
@@ -121,6 +115,7 @@ RSpec.describe "Fault injection (Issue #213)" do
 
     let(:good_agent) do
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-107", version: 1
         define_method(:invoke) { |input, **| {output: "ok:#{input}", messages: []} }
         define_method(:invoke_async) do |input, **kw|
           Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
@@ -130,6 +125,7 @@ RSpec.describe "Fault injection (Issue #213)" do
 
     let(:bad_agent) do
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-108", version: 1
         define_method(:invoke) { |*| raise "simulated failure" }
         define_method(:invoke_async) do |input, **kw|
           Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
@@ -165,6 +161,7 @@ RSpec.describe "Fault injection (Issue #213)" do
       mutex = Mutex.new
 
       tracking_good = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-109", version: 1
         define_method(:invoke) do |input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
           mutex.synchronize { ran << input }
           {output: "ok", messages: []}

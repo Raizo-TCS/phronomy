@@ -21,7 +21,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   # -------------------------------------------------------------------------
   # Shared chat double helpers
   # -------------------------------------------------------------------------
-  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0) }
+  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0, to_h: {"input" => 10, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
   let(:fake_message) { double("Message", content: "LLM response", tool_calls: nil, tokens: fake_tokens) }
   let(:fake_chat) do
     dbl = double("RubyLLM::Chat")
@@ -59,20 +59,20 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   end
 
   # -------------------------------------------------------------------------
-  # 4. before_completion hook raises during streaming (non-EventLoop path)
+  # 4. before_llm_input hook raises during execution
   # -------------------------------------------------------------------------
-  describe "before_completion hook raises during streaming" do
+  describe "before_llm_input hook raises during execution" do
     it "propagates the hook exception to the caller" do
-      agent_class = Class.new(Phronomy::Agent::Base) { model "test-model" }
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-102", version: 1
+        model "test-model"
+      end
       agent = agent_class.new
-      agent.before_completion = ->(_ctx) { raise "hook failed during stream" }
-
-      chat_double = double("RubyLLM::Chat")
-      allow(chat_double).to receive(:messages).and_return([])
+      agent.before_llm_input = ->(_ctx) { raise "hook failed" }
 
       expect {
-        agent.send(:run_before_completion_hooks!, chat_double, {})
-      }.to raise_error(RuntimeError, "hook failed during stream")
+        agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: {})
+      }.to raise_error(RuntimeError, "hook failed")
     end
   end
 
@@ -151,31 +151,29 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   end
 
   # -------------------------------------------------------------------------
-  # 11. before_completion returns invalid type (Issue #243)
+  # 11. before_llm_input returns invalid type (non-LLMInputPatch)
   # -------------------------------------------------------------------------
-  describe "before_completion hook returns invalid type (non-Hash)" do
-    # When a before_completion hook returns a non-Hash value (e.g. Integer 42),
-    # the current implementation silently ignores it — only Hash return values
-    # are merged into the LLM call params.  This documents the current contract.
-
-    let(:agent_class) { Class.new(Phronomy::Agent::Base) { model "test-model" } }
+  describe "before_llm_input hook returns invalid type (non-LLMInputPatch)" do
+    let(:agent_class) {
+      Class.new(Phronomy::Agent::Base) {
+        agent_definition id: "test-agent-301", version: 1
+        model "test-model"
+      }
+    }
     let(:agent) { agent_class.new }
-    let(:chat_double) do
-      dbl = double("RubyLLM::Chat")
-      allow(dbl).to receive(:messages).and_return([])
-      dbl
+
+    it "raises TypeError for an Integer return value from the hook" do
+      agent.before_llm_input = ->(_ctx) { 42 }
+      expect {
+        agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: {})
+      }.to raise_error(TypeError, /LLMInputPatch/)
     end
 
-    it "silently ignores an Integer return value from the hook" do
-      agent.before_completion = ->(_ctx) { 42 }
-      result = agent.send(:run_before_completion_hooks!, chat_double, {})
-      expect(result).to eq({})
-    end
-
-    it "silently ignores a String return value from the hook" do
-      agent.before_completion = ->(_ctx) { "not a hash" }
-      result = agent.send(:run_before_completion_hooks!, chat_double, {})
-      expect(result).to eq({})
+    it "raises TypeError for a String return value from the hook" do
+      agent.before_llm_input = ->(_ctx) { "not a patch" }
+      expect {
+        agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: {})
+      }.to raise_error(TypeError, /LLMInputPatch/)
     end
   end
 
@@ -226,7 +224,10 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
     end
 
     it "registers tool_approval_policy that raises without error at registration" do
-      agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
+      agent = Class.new(Phronomy::Agent::Base) {
+        agent_definition id: "test-agent-204", version: 1
+        model "test-model"
+      }.new
       expect {
         agent.tool_approval_policy { |_req| raise "approval policy failed" }
       }.not_to raise_error
@@ -234,23 +235,19 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
   end
 
   # -------------------------------------------------------------------------
-  # 15. before_completion raises + output_guardrail registered (Issue #243)
+  # 15. before_llm_input raises + output_guardrail registered (Issue #243)
   # -------------------------------------------------------------------------
-  describe "before_completion raises with output_guardrail also registered" do
-    # When before_completion raises, the exception propagates before the LLM
-    # call and before run_output_guardrails! is reached.  The guardrail must
-    # NOT be invoked.
-
-    let(:agent_class) { Class.new(Phronomy::Agent::Base) { model "test-model" } }
-    let(:chat_double) do
-      dbl = double("RubyLLM::Chat")
-      allow(dbl).to receive(:messages).and_return([])
-      dbl
-    end
+  describe "before_llm_input raises with output_guardrail also registered" do
+    let(:agent_class) {
+      Class.new(Phronomy::Agent::Base) {
+        agent_definition id: "test-agent-302", version: 1
+        model "test-model"
+      }
+    }
 
     it "propagates the hook exception and does not invoke the output filter" do
       agent = agent_class.new
-      agent.before_completion = ->(_ctx) { raise "hook exploded" }
+      agent.before_llm_input = ->(_ctx) { raise "hook exploded" }
 
       spy_filter = Class.new(Phronomy::Filter::Base) do
         attr_accessor :invoked
@@ -262,7 +259,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
       agent.add_output_filter(spy_filter)
 
       expect {
-        agent.send(:run_before_completion_hooks!, chat_double, {})
+        agent.send(:run_before_llm_input_hooks, call_sequence: 1, config: {})
       }.to raise_error(RuntimeError, "hook exploded")
 
       expect(spy_filter.invoked).to be_falsey
@@ -283,6 +280,7 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
       allow(dbl).to receive(:with_tool).and_return(dbl)
       allow(dbl).to receive(:with_temperature).and_return(dbl)
       allow(dbl).to receive(:on_tool_call)
+      allow(dbl).to receive(:before_tool_call)
       allow(dbl).to receive(:on_tool_result)
       allow(dbl).to receive(:ask)
         .and_yield(chunk1).and_yield(chunk2).and_yield(chunk3)
@@ -291,7 +289,18 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
       dbl
     end
 
-    let(:streaming_agent_class) { Class.new(Phronomy::Agent::Base) { model "test-model" } }
+    let(:streaming_agent_class) {
+      Class.new(Phronomy::Agent::Base) {
+        agent_definition id: "test-agent-303", version: 1
+        model "test-model"
+      }
+    }
+    let(:streaming_agent_class) {
+      Class.new(Phronomy::Agent::Base) {
+        agent_definition id: "test-agent-303", version: 1
+        model "test-model"
+      }
+    }
     let(:streaming_agent) { streaming_agent_class.new }
 
     before do
@@ -310,33 +319,37 @@ RSpec.describe "Fault injection advanced (Issue #241)" do
             raise "callback exploded on chunk #{chunk_count}" if chunk_count == 2
           end
         end
-      }.to raise_error(RuntimeError, "callback exploded on chunk 2")
-
-      # An :error StreamEvent is delivered to the block before the exception re-raises.
-      expect(received_event_types).to include(:error)
+      }.to raise_error(Phronomy::StreamCallbackError) { |error|
+        expect(error.event_type).to eq(:token)
+        expect(error.original_error.message).to eq("callback exploded on chunk 2")
+      }
     end
 
     it "does not leave the agent in a bad state; a subsequent invoke succeeds" do
-      # First call: the callback raises on the very first token event.
       expect {
         streaming_agent.stream("trigger streaming") do |event|
           raise "boom" if event.type == :token
         end
-      }.to raise_error(RuntimeError, "boom")
+      }.to raise_error(Phronomy::StreamCallbackError)
 
       # Prepare a non-raising chat double for the follow-up invoke.
       calm_chat = double("CalmChat")
+      calm_tokens = double("CalmTokens", input: 1, output: 1, cached: 0, cache_creation: 0,
+        to_h: {"input" => 1, "output" => 1, "cached" => 0, "cache_creation" => 0})
+      calm_message = double("CalmMessage", content: "ok", tool_calls: nil, tokens: calm_tokens,
+        tool_call?: false, role: :assistant)
       allow(calm_chat).to receive(:with_instructions).and_return(calm_chat)
       allow(calm_chat).to receive(:with_tool).and_return(calm_chat)
       allow(calm_chat).to receive(:with_temperature).and_return(calm_chat)
       allow(calm_chat).to receive(:on_tool_call)
+      allow(calm_chat).to receive(:before_tool_call)
       allow(calm_chat).to receive(:on_tool_result)
-      allow(calm_chat).to receive(:ask).and_return(fake_message)
+      allow(calm_chat).to receive(:ask).and_return(calm_message)
       allow(calm_chat).to receive(:messages).and_return([])
       allow(streaming_agent).to receive(:build_chat).and_return(calm_chat)
 
       result = streaming_agent.invoke("hello again")
-      expect(result[:output]).to eq("LLM response")
+      expect(result[:output]).to eq("ok")
     end
   end
 end

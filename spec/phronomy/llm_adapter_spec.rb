@@ -135,14 +135,14 @@ RSpec.describe "LLMAdapter abstraction" do
   describe "Agent::Base routes LLM calls through LLMAdapter" do
     let(:agent_class) do
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-116", version: 1
         model "test-model"
         instructions "You are a test agent."
       end
     end
 
     let(:fake_response) do
-      tokens = double("tokens",
-        input: 10, output: 20, cached: 0, cache_creation: 0)
+      tokens = double("tokens", input: 10, output: 20, cached: 0, cache_creation: 0, to_h: {"input" => 10, "output" => 20, "cached" => 0, "cache_creation" => 0})
       double("response", content: "adapter response", tokens: tokens)
     end
 
@@ -168,10 +168,13 @@ RSpec.describe "LLMAdapter abstraction" do
         {system: nil, messages: [], tool_classes: []}
       )
       allow_any_instance_of(agent_class).to receive(:apply_instructions)
-      allow_any_instance_of(agent_class).to receive(:run_before_completion_hooks!)
+      allow_any_instance_of(agent_class).to receive(:run_before_llm_input_hooks).and_return(Phronomy::Agent::LLMInputPatch.empty)
       allow_any_instance_of(agent_class).to receive(:check_cancellation!)
-      # chat.respond_to? is called for :cancellation_token=, :on_tool_call_batch, and :before_tool_call
-      allow(chat).to receive(:respond_to?).and_return(false)
+      # before_tool_call must respond true (>= 1.15 guard); other optional methods return false
+      allow(chat).to receive(:before_tool_call)
+      allow(chat).to receive(:respond_to?) do |method_name, *|
+        method_name.to_sym == :before_tool_call
+      end
 
       result = agent_class.new.invoke("hello")
       expect(result[:output]).to eq("adapter response")

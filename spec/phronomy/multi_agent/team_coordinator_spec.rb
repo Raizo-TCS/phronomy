@@ -7,11 +7,16 @@ RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
   # and returns the output string. When omitted, returns "ok".
   def stub_worker(&response_block)
     Class.new(Phronomy::Agent::Base) do
-      define_method(:invoke) do |input, messages: [], thread_id: nil, config: {}|
-        msgs_in = Array(messages)
+      agent_definition id: "test-agent-144", version: 1
+      define_method(:initialize) do
+        super()
+        @_stub_messages = []
+      end
+      define_method(:invoke) do |input, thread_id: nil, config: {}|
+        msgs_in = @_stub_messages.dup
         output = response_block ? response_block.call(input, msgs_in) : "ok"
-        new_msgs = msgs_in + [{role: "user", content: input}, {role: "assistant", content: output}]
-        {output: output, messages: new_msgs}
+        @_stub_messages = msgs_in + [{role: "user", content: input}, {role: "assistant", content: output.to_s}]
+        {output: output, messages: @_stub_messages.dup}
       end
     end
   end
@@ -177,6 +182,7 @@ RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
     context "error handling" do
       it "re-raises worker exceptions by default (on_error: :raise)" do
         failing = Class.new(Phronomy::Agent::Base) do
+          agent_definition id: "test-agent-145", version: 1
           define_method(:invoke) { |_input, messages: [], thread_id: nil, config: {}| raise "worker exploded" }
         end
         klass = Class.new(described_class) { pool size: 1, agent: failing }
@@ -188,6 +194,7 @@ RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
 
       it "records failures and continues remaining tasks when on_error: :skip" do
         mixed = Class.new(Phronomy::Agent::Base) do
+          agent_definition id: "test-agent-146", version: 1
           define_method(:invoke) do |input, messages: [], thread_id: nil, config: {}|
             raise "boom" if input == "T1"
             {output: "ok:#{input}", messages: []}
@@ -230,6 +237,7 @@ RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
 
     it "yields :task_failed events when on_error: :skip" do
       failing = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-147", version: 1
         define_method(:invoke) { |_input, messages: [], thread_id: nil, config: {}| raise "fail" }
       end
       klass = Class.new(described_class) { pool size: 1, agent: failing, on_error: :skip }
@@ -384,6 +392,7 @@ RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
       call_log = []
 
       stub_agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-148", version: 1
         define_method(:invoke) do |input, **_kwargs|
           call_log << {start: input, time: Time.now.to_f}
           sleep(0) # yield to ensure any concurrent dispatch would interleave

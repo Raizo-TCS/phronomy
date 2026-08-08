@@ -120,8 +120,11 @@ module IntegrationFactors
     base_klass = Phronomy::Agent::Base
     model_name = LM_STUDIO_MODEL
     tool_arg = tools
+    # Each call gets a unique definition id so agents don't collide in Persistence.
+    defn_id = "integration-factor-#{SecureRandom.hex(4)}"
 
     Class.new(base_klass) do
+      agent_definition id: defn_id, version: 1
       model model_name
       provider :openai  # directs to openai_api_base (LM Studio); sets assume_model_exists: true
       instructions "You are a helpful assistant. Use tools when they are useful."
@@ -539,8 +542,10 @@ module IntegrationFactors
   # @return [Phronomy::Agent::Base]
   def self.approval_agent(agent_label, tool_class:, handler:)
     base_class = Phronomy::Agent::Base
+    defn_id = "integration-approval-#{SecureRandom.hex(4)}"
 
     agent_class = Class.new(base_class) do
+      agent_definition id: defn_id, version: 1
       model "test-model"
       tools(tool_class)
     end
@@ -629,42 +634,16 @@ module IntegrationFactors
     compact_label: "none"
   )
     sources = static_knowledge_sources(static_knowledge_label)
-    t_label = trim_label
-    g_label = trigger_label
-    c_label = compact_label
+    # trim/trigger/compact_label were used by the old build_context API which is
+    # replaced by ContextAssembler in the new architecture. The labels are kept
+    # as parameters for pairwise compatibility but have no runtime effect.
 
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-18", version: 1
       model LM_STUDIO_MODEL
       provider :openai
       instructions "You are a helpful assistant."
       static_knowledge(*sources) unless sources.empty?
-
-      define_method(:build_context) do |input, messages: [], thread_id: nil, config: {}, **kwargs|
-        msgs = case t_label
-        when "none", "remove_none" then Array(messages)
-        when "remove_some"
-          m = Array(messages)
-          (m.size <= 1) ? m : m[1..]
-        else
-          raise ArgumentError, "Unknown trim_label: #{t_label}"
-        end
-
-        if g_label == "true" && c_label != "none"
-          msgs = case c_label
-          when "summarise_range"
-            m = Array(msgs)
-            m.empty? ? m : compact_messages(m, keep_tail: [m.size - 1, 0].max) { "Earlier conversation summary." }
-          when "multi_range"
-            m = Array(msgs)
-            (m.length < 2) ? m : compact_messages(m, keep_tail: [m.size - 1, 0].max) { "First compaction summary." }
-          else
-            msgs
-          end
-        end
-
-        super(input, messages: msgs, thread_id: thread_id, config: config, **kwargs)
-      end
-      protected :build_context
     end
   end
 
@@ -682,11 +661,19 @@ module IntegrationFactors
     when "nil"
       ->(_ctx) {}
     when "empty_hash"
-      ->(_ctx) { {} }
+      ->(_ctx) { Phronomy::Agent::LLMInputPatch.empty }
     when "param_merge"
-      ->(_ctx) { {temperature: 0.1} }
+      ->(_ctx) {
+        Phronomy::Agent::LLMInputPatch.new(
+          model_config_patch: {temperature: 0.1}
+        )
+      }
     when "model_override"
-      ->(_ctx) { {model: LM_STUDIO_MODEL} }
+      ->(_ctx) {
+        Phronomy::Agent::LLMInputPatch.new(
+          model_config_patch: {model: LM_STUDIO_MODEL}
+        )
+      }
     else
       raise ArgumentError, "Unknown bc_hook_return label: #{return_label}"
     end
@@ -700,6 +687,7 @@ module IntegrationFactors
     case label
     when "base"
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-19", version: 1
         model LM_STUDIO_MODEL
         provider :openai
         instructions "You are a helpful assistant."
@@ -709,7 +697,7 @@ module IntegrationFactors
     end
   end
 
-  # Builds an agent instance with the before_completion hook configured at
+  # Builds an agent instance with the before_llm_input hook configured at
   # the appropriate tier(s). Returns the agent instance.
   # Callers are responsible for resetting global config after the test.
   #
@@ -724,20 +712,20 @@ module IntegrationFactors
     when "none"
       klass.new
     when "global"
-      Phronomy.configuration.before_completion = callable
+      Phronomy.configuration.before_llm_input = callable
       klass.new
     when "class_level"
-      klass.before_completion callable
+      klass.before_llm_input callable
       klass.new
     when "instance_level"
       instance = klass.new
-      instance.before_completion = callable
+      instance.before_llm_input = callable
       instance
     when "multi_tier"
-      Phronomy.configuration.before_completion = callable
-      klass.before_completion callable
+      Phronomy.configuration.before_llm_input = callable
+      klass.before_llm_input callable
       instance = klass.new
-      instance.before_completion = callable
+      instance.before_llm_input = callable
       instance
     else
       raise ArgumentError, "Unknown bc_hook_tier label: #{tier_label}"
@@ -755,11 +743,13 @@ module IntegrationFactors
   # Returns [entry_class, target_class].
   def self.handoff_linear_classes
     entry_klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-20", version: 1
       model LM_MODEL_26
       provider :openai
       instructions "You are a triage assistant. Route billing questions to billing."
     end
     target_klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-21", version: 1
       model LM_MODEL_26
       provider :openai
       instructions "You are a billing assistant. Answer billing questions."
@@ -772,6 +762,7 @@ module IntegrationFactors
   def self.handoff_hub_spoke_instances(spoke_count: 2)
     spoke_klasses = (1..spoke_count).map do |i|
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-22", version: 1
         model LM_MODEL_26
         provider :openai
         instructions "You are spoke agent #{i}."
@@ -779,6 +770,7 @@ module IntegrationFactors
     end
 
     hub_klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-23", version: 1
       model LM_MODEL_26
       provider :openai
       instructions "You are a hub agent. Route to spokes when needed."
@@ -803,6 +795,7 @@ module IntegrationFactors
     case label
     when "base", "react"
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-24", version: 1
         model LM_MODEL_27
         provider :openai
         instructions "You are a helpful assistant."
@@ -986,6 +979,7 @@ module IntegrationFactors
   # @return [Class]
   def self.approval_resume_agent(*tool_classes)
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-25", version: 1
       model LM_MODEL_30
       provider :openai
       instructions "You are a helpful assistant. Use tools when asked."
@@ -1006,6 +1000,7 @@ module IntegrationFactors
   # @return [Class]
   def self.ss_researcher_class
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-26", version: 1
       model LM_MODEL_31
       provider :openai
       instructions "You are a research assistant."
@@ -1065,13 +1060,14 @@ module IntegrationFactors
   # @return [Class]
   def self.tc_worker_class(failing: false)
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-27", version: 1
       model LM_MODEL_32
       provider :openai
       context_window 32_768
       instructions "You are a worker agent."
 
       if failing
-        define_method(:invoke) do |input, messages: [], thread_id: nil, config: {}|
+        define_method(:invoke) do |input, thread_id: nil, config: {}, **|
           raise "worker_error"
         end
       end
@@ -1117,6 +1113,7 @@ module IntegrationFactors
   # @return [Class<Phronomy::Agent::Base>]
   def self.gv_agent_class
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-28", version: 1
       model LM_MODEL_33
       provider :openai
     end
@@ -1180,6 +1177,7 @@ module IntegrationFactors
   # @return [Class<Phronomy::Agent::Base>]
   def self.orch_subagent_class
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-29", version: 1
       model LM_MODEL_34
       provider :openai
       instructions "You are a specialist subagent."
@@ -1260,10 +1258,12 @@ module IntegrationFactors
   # @return [Array<Hash>]
   def self.bp_tasks(label)
     good = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-30", version: 1
       define_method(:invoke) { |input, config: {}, thread_id: nil| {output: "ok:#{input}", messages: []} }
       define_method(:invoke_async) { |input, **_kw| Phronomy::Runtime.instance.spawn(name: "stub-async") { invoke(input) } }
     end
     bad = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-31", version: 1
       define_method(:invoke) { |*| raise "task_error" }
       define_method(:invoke_async) { |input, **_kw| Phronomy::Runtime.instance.spawn(name: "stub-async") { invoke(input) } }
     end

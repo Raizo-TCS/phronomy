@@ -176,6 +176,7 @@ class WebSearch < Phronomy::Agent::Context::Capability::Base
 end
 
 class ResearchAgent < Phronomy::Agent::Base
+  agent_definition id: "research-agent", version: 1
   model "gpt-4o"
   instructions "You are a research assistant. Use tools to answer questions."
   tools WebSearch

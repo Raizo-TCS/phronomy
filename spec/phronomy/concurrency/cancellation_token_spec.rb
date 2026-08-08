@@ -158,11 +158,12 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
   describe "Agent::Base integration" do
     # A bare agent class with no invoke override. Cancellation is checked
     # before the AgentInvocation session is registered.
-    let(:bare_agent_class) { Class.new(Phronomy::Agent::Base) }
+    let(:bare_agent_class) { Class.new(Phronomy::Agent::Base) { agent_definition id: "test-agent-203", version: 1 } }
 
     # An agent that short-circuits invoke to avoid real LLM calls.
     let(:success_agent_class) do
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-93", version: 1
         define_method(:invoke) do |_input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
           {output: "ok", messages: []}
         end
@@ -205,6 +206,7 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
     def token_capturing_agent
       received_tokens = []
       agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-94", version: 1
         define_method(:invoke) do |_input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
           received_tokens << config[:cancellation_token]
           {output: "ok", messages: []}
@@ -235,6 +237,7 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
       received_tokens = []
 
       agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-95", version: 1
         define_method(:invoke) do |_input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
           received_tokens << config[:cancellation_token]
           {output: "ok", messages: []}
@@ -258,7 +261,7 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
 
       # Bare agent (no invoke override): _invoke_impl checks the token
       # and raises CancellationError before any LLM call is attempted.
-      bare_agent = Class.new(Phronomy::Agent::Base)
+      bare_agent = Class.new(Phronomy::Agent::Base) { agent_definition id: "test-agent-bare-cancel", version: 1 }
 
       expect {
         orchestrator.dispatch_parallel(

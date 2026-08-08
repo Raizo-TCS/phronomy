@@ -22,11 +22,16 @@ module Phronomy
     # Tracer instance
     attr_accessor :tracer
 
-    # Global before_completion hook callable (Proc / lambda).
+    # Global before_llm_input hook callable (Proc / lambda).
     # Called before every LLM request across all agents.
-    # Receives a {Phronomy::Agent::BeforeCompletionContext}; must return a Hash
-    # of params to merge, or nil to pass through unchanged.
-    attr_accessor :before_completion
+    # Receives a {Phronomy::Agent::LLMInputBuildContext}; must return a
+    # {Phronomy::Agent::LLMInputPatch} or nil to pass through unchanged.
+    attr_accessor :before_llm_input
+
+    # Default output token reservation when an agent does not set max_output_tokens
+    # and the model registry value equals the context window (making it unusable
+    # as a per-request output reserve). Integer or nil.
+    attr_accessor :default_output_reserve
 
     # Recursion limit for graph execution (default: 25)
     attr_accessor :recursion_limit

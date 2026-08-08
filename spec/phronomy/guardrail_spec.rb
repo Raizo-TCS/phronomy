@@ -41,7 +41,7 @@ RSpec.describe Phronomy::Filter::Base do
 end
 
 RSpec.describe "Agent::Base blocking filter integration" do
-  let(:agent_class) { Class.new(Phronomy::Agent::Base) }
+  let(:agent_class) { Class.new(Phronomy::Agent::Base) { agent_definition id: "test-agent-205", version: 1 } }
   let(:agent) { agent_class.new }
 
   let(:no_bad_input) do
@@ -71,13 +71,14 @@ RSpec.describe "Agent::Base blocking filter integration" do
     it "does not raise when input passes the check" do
       agent.add_input_filter(no_bad_input)
       chat_double = double("Chat")
-      response = double("response", content: "ok", tool_call?: false, tokens: double(input: 5, output: 2, cached: 0, cache_creation: 0))
+      response = double("response", content: "ok", tool_call?: false, tokens: double(input: 5, output: 2, cached: 0, cache_creation: 0, to_h: {"input" => 5, "output" => 2, "cached" => 0, "cache_creation" => 0}))
       allow(RubyLLM).to receive(:chat).and_return(chat_double)
       allow(chat_double).to receive(:with_tool).and_return(chat_double)
       allow(chat_double).to receive(:with_instructions).and_return(chat_double)
       allow(chat_double).to receive(:with_temperature).and_return(chat_double)
       allow(chat_double).to receive(:cancellation_token=)
       allow(chat_double).to receive(:on_tool_call)
+      allow(chat_double).to receive(:before_tool_call)
       allow(chat_double).to receive(:on_tool_result)
       allow(chat_double).to receive(:ask).and_return(response)
       allow(chat_double).to receive(:messages).and_return([])
@@ -89,13 +90,14 @@ RSpec.describe "Agent::Base blocking filter integration" do
     it "raises FilterBlockError when output fails the check" do
       agent.add_output_filter(no_secret_output)
       chat_double = double("Chat")
-      response = double("response", content: "here is your SECRET key", tool_call?: false, tokens: double(input: 5, output: 10, cached: 0, cache_creation: 0))
+      response = double("response", content: "here is your SECRET key", tool_call?: false, tokens: double(input: 5, output: 10, cached: 0, cache_creation: 0, to_h: {"input" => 5, "output" => 10, "cached" => 0, "cache_creation" => 0}))
       allow(RubyLLM).to receive(:chat).and_return(chat_double)
       allow(chat_double).to receive(:with_tool).and_return(chat_double)
       allow(chat_double).to receive(:with_instructions).and_return(chat_double)
       allow(chat_double).to receive(:with_temperature).and_return(chat_double)
       allow(chat_double).to receive(:cancellation_token=)
       allow(chat_double).to receive(:on_tool_call)
+      allow(chat_double).to receive(:before_tool_call)
       allow(chat_double).to receive(:on_tool_result)
       allow(chat_double).to receive(:ask).and_return(response)
       allow(chat_double).to receive(:messages).and_return([])

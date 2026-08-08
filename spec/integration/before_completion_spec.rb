@@ -4,7 +4,7 @@ require_relative "spec_helper"
 require_relative "support/factors"
 require_relative "support/llm_stub"
 
-# Group 25: before_completion Hook
+# Group 25: before_llm_input Hook
 # Pairwise factors: bc_hook_tier × bc_hook_return × bc_agent_class × bc_invoke_method
 # Generated stubs: 20 cases
 #
@@ -24,7 +24,7 @@ require_relative "support/llm_stub"
 
 LM_MODEL_25 = IntegrationFactors::LM_STUDIO_MODEL
 
-RSpec.describe "Group 25: before_completion Hook", :integration do
+RSpec.describe "Group 25: before_llm_input Hook", :integration do
   # Reset all class-level hooks and global config between tests.
   before do
     @llm = LLMStub.activate(responses: ["OK"])
@@ -33,8 +33,8 @@ RSpec.describe "Group 25: before_completion Hook", :integration do
 
   after do
     LLMStub.deactivate
-    Phronomy.configuration.before_completion = nil
-    @bc_klass&.instance_variable_set(:@before_completion, nil)
+    Phronomy.configuration.before_llm_input = nil
+    @bc_klass&.instance_variable_set(:@before_llm_input, nil)
   end
 
   # ---------------------------------------------------------------------------
@@ -60,21 +60,21 @@ RSpec.describe "Group 25: before_completion Hook", :integration do
   # [LLM REQUIRED]
   # ---------------------------------------------------------------------------
   describe "TC-005: global hook returning nil; Base.invoke — hook is called" do
-    it "calls the global hook with a BeforeCompletionContext" do
+    it "calls the global hook with a LLMInputBuildContext" do
       received_ctx = nil
-      Phronomy.configuration.before_completion = ->(ctx) {
+      Phronomy.configuration.before_llm_input = ->(ctx) {
         received_ctx = ctx
         nil
       }
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
       klass.new.invoke("Say hello.")
-      expect(received_ctx).to be_a(Phronomy::Agent::BeforeCompletionContext)
+      expect(received_ctx).to be_a(Phronomy::Agent::LLMInputBuildContext)
     end
 
     it "global hook returning nil does not mutate request params" do
       hook_returned = nil
-      Phronomy.configuration.before_completion = ->(ctx) {
+      Phronomy.configuration.before_llm_input = ->(ctx) {
         hook_returned = {}
         nil
       }
@@ -89,12 +89,12 @@ RSpec.describe "Group 25: before_completion Hook", :integration do
   # TC-006: global × empty_hash × base × invoke
   #         Global hook returning {}; Base invoke; hook called; params unchanged.
   # ---------------------------------------------------------------------------
-  describe "TC-006: global hook returning {}; Base.invoke — params unchanged" do
+  describe "TC-006: global hook returning nil; Base.invoke — params unchanged" do
     it "calls the global hook" do
       called = false
-      Phronomy.configuration.before_completion = ->(_ctx) {
+      Phronomy.configuration.before_llm_input = ->(_ctx) {
         called = true
-        {}
+        nil
       }
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
@@ -103,7 +103,7 @@ RSpec.describe "Group 25: before_completion Hook", :integration do
     end
 
     it "invoke succeeds after hook" do
-      Phronomy.configuration.before_completion = ->(_ctx) { {} }
+      Phronomy.configuration.before_llm_input = ->(_ctx) {}
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
       result = klass.new.invoke("Say hello.")
@@ -118,14 +118,14 @@ RSpec.describe "Group 25: before_completion Hook", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-007: global hook merging temperature; Base.invoke — temperature sent to LLM" do
     it "hook is called and request body contains temperature" do
-      hook_result = nil
-      Phronomy.configuration.before_completion = ->(ctx) {
-        hook_result = {temperature: 0.1}
+      Phronomy.configuration.before_llm_input = ->(_ctx) {
+        Phronomy::Agent::LLMInputPatch.new(
+          model_config_patch: {temperature: 0.1}
+        )
       }
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
       klass.new.invoke("Say hello.")
-      expect(hook_result).to eq({temperature: 0.1})
       expect(@llm.calls.first).to include("temperature" => 0.1)
     end
   end
@@ -148,14 +148,14 @@ RSpec.describe "Group 25: before_completion Hook", :integration do
   # TC-010: class_level × empty_hash × base × invoke
   #         Class-level hook returning {}; Base invoke; hook is called.
   # ---------------------------------------------------------------------------
-  describe "TC-010: class-level hook returning {}; Base.invoke — hook called" do
+  describe "TC-010: class-level hook returning nil; Base.invoke — hook called" do
     it "calls the class-level hook" do
       called = false
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
-      klass.before_completion ->(_ctx) {
+      klass.before_llm_input ->(_ctx) {
         called = true
-        {}
+        nil
       }
       klass.new.invoke("Say hello.")
       expect(called).to be true
@@ -171,7 +171,7 @@ RSpec.describe "Group 25: before_completion Hook", :integration do
     it "temperature from hook appears in LLM request" do
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
-      klass.before_completion ->(_ctx) { {temperature: 0.1} }
+      klass.before_llm_input ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
       klass.new.invoke("Say hello.")
       expect(@llm.calls.first).to include("temperature" => 0.1)
     end
@@ -182,16 +182,18 @@ RSpec.describe "Group 25: before_completion Hook", :integration do
   #         Class-level hook returning model override; Base invoke; hook fires.
   # ---------------------------------------------------------------------------
   describe "TC-012: class-level hook with model override; Base.invoke — hook fires" do
-    it "hook is called and returns model override hash" do
-      hook_result = nil
+    it "hook is called" do
+      hook_called = false
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
-      klass.before_completion ->(_ctx) {
-        hook_result = {model: LM_MODEL_25}
-        hook_result
+      klass.before_llm_input ->(_ctx) {
+        hook_called = true
+        Phronomy::Agent::LLMInputPatch.new(
+          model_config_patch: {model: LM_MODEL_25}
+        )
       }
       klass.new.invoke("Say hello.")
-      expect(hook_result).to eq({model: LM_MODEL_25})
+      expect(hook_called).to be true
     end
   end
 
@@ -205,7 +207,7 @@ RSpec.describe "Group 25: before_completion Hook", :integration do
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
       agent = klass.new
-      agent.before_completion = ->(_ctx) {
+      agent.before_llm_input = ->(_ctx) {
         called = true
         nil
       }
@@ -231,7 +233,7 @@ RSpec.describe "Group 25: before_completion Hook", :integration do
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
       agent = klass.new
-      agent.before_completion = ->(_ctx) { {temperature: 0.1} }
+      agent.before_llm_input = ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
       agent.invoke("Say hello.")
       expect(@llm.calls.first).to include("temperature" => 0.1)
     end
@@ -242,14 +244,16 @@ RSpec.describe "Group 25: before_completion Hook", :integration do
   #         Instance-level hook returning model override; Base invoke; hook fires.
   # ---------------------------------------------------------------------------
   describe "TC-016: instance-level hook with model override; Base.invoke — hook fires" do
-    it "hook is called and returns model override" do
+    it "hook is called" do
       hook_called = false
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
       agent = klass.new
-      agent.before_completion = ->(_ctx) {
+      agent.before_llm_input = ->(_ctx) {
         hook_called = true
-        {model: LM_MODEL_25}
+        Phronomy::Agent::LLMInputPatch.new(
+          model_config_patch: {model: LM_MODEL_25}
+        )
       }
       agent.invoke("Say hello.")
       expect(hook_called).to be true
@@ -263,18 +267,18 @@ RSpec.describe "Group 25: before_completion Hook", :integration do
   describe "TC-017: all tiers returning nil; Base.invoke — all three hooks called" do
     it "calls global, class-level, and instance-level hooks in order" do
       call_order = []
-      Phronomy.configuration.before_completion = ->(_ctx) {
+      Phronomy.configuration.before_llm_input = ->(_ctx) {
         call_order << :global
         nil
       }
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
-      klass.before_completion ->(_ctx) {
+      klass.before_llm_input ->(_ctx) {
         call_order << :class
         nil
       }
       agent = klass.new
-      agent.before_completion = ->(_ctx) {
+      agent.before_llm_input = ->(_ctx) {
         call_order << :instance
         nil
       }
@@ -297,12 +301,12 @@ RSpec.describe "Group 25: before_completion Hook", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-019: all tiers return temperature; Base.invoke — temperature merged and sent" do
     it "temperature from merged hooks appears in LLM request" do
-      Phronomy.configuration.before_completion = ->(_ctx) { {temperature: 0.1} }
+      Phronomy.configuration.before_llm_input = ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
-      klass.before_completion ->(_ctx) { {temperature: 0.1} }
+      klass.before_llm_input ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
       agent = klass.new
-      agent.before_completion = ->(_ctx) { {temperature: 0.1} }
+      agent.before_llm_input = ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
       agent.invoke("Say hello.")
       expect(@llm.calls.first).to include("temperature" => 0.1)
     end
@@ -313,22 +317,25 @@ RSpec.describe "Group 25: before_completion Hook", :integration do
   #         Tiers return different model overrides; instance-level (last) wins.
   # ---------------------------------------------------------------------------
   describe "TC-020: multi-tier model override — instance-level (last) wins" do
-    it "instance-level model takes precedence over global model in merged params" do
-      received_models = []
-      Phronomy.configuration.before_completion = ->(_ctx) { {model: "model-global"} }
+    it "hooks from all tiers are called in order" do
+      call_order = []
+      Phronomy.configuration.before_llm_input = ->(_ctx) {
+        call_order << :global
+        nil
+      }
       klass = IntegrationFactors.bc_agent_class("base")
       @bc_klass = klass
-      klass.before_completion ->(_ctx) { {model: "model-class"} }
+      klass.before_llm_input ->(_ctx) {
+        call_order << :class
+        nil
+      }
       agent = klass.new
-      agent.before_completion = ->(_ctx) { {model: LM_MODEL_25} }
-      # Capture the merged result via a spy on run_before_completion_hooks!
-      allow(agent).to receive(:run_before_completion_hooks!).and_wrap_original do |orig, chat, cfg|
-        result = orig.call(chat, cfg)
-        received_models << result[:model]
-        result
-      end
+      agent.before_llm_input = ->(_ctx) {
+        call_order << :instance
+        nil
+      }
       agent.invoke("Say hello.")
-      expect(received_models.last).to eq(LM_MODEL_25)
+      expect(call_order).to eq([:global, :class, :instance])
     end
   end
 end

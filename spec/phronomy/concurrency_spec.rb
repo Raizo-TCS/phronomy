@@ -10,6 +10,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
   def stub_agent(output)
     out = output
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-96", version: 1
       define_method(:invoke) { |*| {output: out, messages: []} }
       define_method(:invoke_async) do |input, **kw|
         Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
@@ -29,6 +30,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
       agents = (1..5).map do |i|
         delay = (5 - i) * 0.01
         Class.new(Phronomy::Agent::Base) do
+          agent_definition id: "test-agent-97", version: 1
           define_method(:invoke) do |*|
             sleep delay
             {output: "task#{i}", messages: []}
@@ -52,6 +54,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
       error_2 = RuntimeError.new("error from task 2 (fast)")
 
       slow_fail = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-98", version: 1
         e = error_0
         define_method(:invoke) { |*|
           sleep 0.03
@@ -62,6 +65,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
         end
       end
       fast_fail = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-99", version: 1
         e = error_2
         define_method(:invoke) { |*| raise e }
         define_method(:invoke_async) do |input, **kw|
@@ -86,6 +90,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
       state_mutex = Mutex.new
 
       throttled = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-100", version: 1
         define_method(:invoke) do |*|
           state_mutex.synchronize do
             active += 1

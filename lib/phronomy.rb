@@ -20,6 +20,17 @@ loader.inflector.inflect("llm_adapter" => "LLMAdapter")
 loader.inflector.inflect("llm_operation_result" => "LLMOperationResult")
 # LLMAdapter::RubyLLM: "ruby_llm" maps to "RubyLLM" (not "RubyLlm").
 loader.inflector.inflect("ruby_llm" => "RubyLLM")
+# CanonicalJSON: preserve uppercase JSON acronym.
+loader.inflector.inflect("canonical_json" => "CanonicalJSON")
+# RubyLLMMaterializer: preserve the double-uppercase LLM acronym.
+loader.inflector.inflect("ruby_llm_materializer" => "RubyLLMMaterializer")
+# LLMCallRecord: preserve uppercase LLM acronym.
+loader.inflector.inflect("llm_call_record" => "LLMCallRecord")
+# LLMInputManifest: preserve uppercase LLM acronym.
+loader.inflector.inflect("llm_input_manifest" => "LLMInputManifest")
+# LLMInputBuildContext / LLMInputPatch: preserve uppercase LLM acronym.
+loader.inflector.inflect("llm_input_build_context" => "LLMInputBuildContext")
+loader.inflector.inflect("llm_input_patch" => "LLMInputPatch")
 # Collapse engine/ so that its contents autoload directly under Phronomy::
 # (no Engine:: prefix).  e.g. engine/event_loop.rb => Phronomy::EventLoop.
 # This allows the execution engine to be organised in its own subdirectory

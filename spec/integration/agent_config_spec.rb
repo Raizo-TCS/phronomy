@@ -38,6 +38,7 @@ RSpec.describe "Group 6: Agent Configuration Parameters", :integration do
     prov = provider
 
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-1", version: 1
       self.model(m) if m
       provider prov if prov
       self.instructions(instr) if instr.is_a?(String)

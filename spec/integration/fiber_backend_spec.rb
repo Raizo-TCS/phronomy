@@ -197,6 +197,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
   describe "TC-008: agent_invoke_async — Agent#invoke and #invoke_async return correct result under :fiber" do
     let(:agent_class) do
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-5", version: 1
         model "openai/gpt-oss-20b"
         provider :openai
         instructions "You are a test assistant."
@@ -237,6 +238,7 @@ RSpec.describe "Group 38: :fiber backend cooperative runtime", :integration do
   describe "TC-009: llm_adapter_suspend — LLMAdapter#complete_async suspends cooperatively under :fiber" do
     let(:agent_class) do
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-6", version: 1
         model "openai/gpt-oss-20b"
         provider :openai
         instructions "You are a test assistant."

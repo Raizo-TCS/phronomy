@@ -32,6 +32,7 @@ RSpec.describe "Thread-independence under FakeScheduler (Issue #309)" do
   def stub_agent_class(output = "ok")
     out = output
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-101", version: 1
       define_method(:invoke) do |_input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
         {output: out, messages: []}
       end

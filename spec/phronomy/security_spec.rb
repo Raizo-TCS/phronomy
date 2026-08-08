@@ -111,7 +111,10 @@ RSpec.describe "Security specs (Issue #214)" do
     end
 
     def build_agent
-      Class.new(Phronomy::Agent::Base) { model "test-model" }.new
+      Class.new(Phronomy::Agent::Base) {
+        agent_definition id: "test-agent-206", version: 1
+        model "test-model"
+      }.new
     end
 
     context "tool_approval_policy API (Issue #214 / 0.15.0 migration)" do
@@ -176,7 +179,10 @@ RSpec.describe "Security specs (Issue #214)" do
     end
 
     it "does not call the LLM when input guardrail rejects" do
-      agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
+      agent = Class.new(Phronomy::Agent::Base) {
+        agent_definition id: "test-agent-207", version: 1
+        model "test-model"
+      }.new
       agent.add_input_filter(rejecting_guardrail)
 
       # RubyLLM.chat must never be called when the guardrail fires before it.
@@ -187,7 +193,10 @@ RSpec.describe "Security specs (Issue #214)" do
     end
 
     it "raises FilterBlockError before any LLM interaction occurs" do
-      agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
+      agent = Class.new(Phronomy::Agent::Base) {
+        agent_definition id: "test-agent-208", version: 1
+        model "test-model"
+      }.new
       agent.add_input_filter(rejecting_guardrail)
 
       error = nil
@@ -218,20 +227,24 @@ RSpec.describe "Security specs (Issue #214)" do
     it "raises FilterBlockError with the guardrail reason, not the raw LLM output" do
       raw_llm_output = "Here is your key: sk-abcdefghijklmnopqrstuvwxyz123456789"
 
-      agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
+      agent = Class.new(Phronomy::Agent::Base) {
+        agent_definition id: "test-agent-209", version: 1
+        model "test-model"
+      }.new
       agent.add_output_filter(secret_filter_guardrail)
 
       chat_double = double("Chat")
       response = double("response",
         content: raw_llm_output,
         tool_call?: false,
-        tokens: double(input: 5, output: 20, cached: 0, cache_creation: 0))
+        tokens: double(input: 5, output: 20, cached: 0, cache_creation: 0, to_h: {"input" => 5, "output" => 20, "cached" => 0, "cache_creation" => 0}))
       allow(RubyLLM).to receive(:chat).and_return(chat_double)
       allow(chat_double).to receive(:with_tool).and_return(chat_double)
       allow(chat_double).to receive(:with_instructions).and_return(chat_double)
       allow(chat_double).to receive(:with_temperature).and_return(chat_double)
       allow(chat_double).to receive(:cancellation_token=)
       allow(chat_double).to receive(:on_tool_call)
+      allow(chat_double).to receive(:before_tool_call)
       allow(chat_double).to receive(:on_tool_result)
       allow(chat_double).to receive(:ask).and_return(response)
       allow(chat_double).to receive(:messages).and_return([])
@@ -314,7 +327,10 @@ RSpec.describe "Security specs (Issue #214)" do
         end
       end.new
 
-      agent = Class.new(Phronomy::Agent::Base) { model "test-model" }.new
+      agent = Class.new(Phronomy::Agent::Base) {
+        agent_definition id: "test-agent-210", version: 1
+        model "test-model"
+      }.new
       agent.add_input_filter(reject_all)
 
       begin

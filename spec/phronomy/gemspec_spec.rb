@@ -2,12 +2,7 @@
 
 require "spec_helper"
 
-# Regression tests for phronomy.gemspec packaging correctness.
-#
-# Finding 2 — vendor/ directory packaged inside the gem (Issue #<tbd>):
-#   The gemspec did not exclude vendor/ from spec.files, so bundled dependencies
-#   in vendor/bundle were included in the published gem, inflating its size by ~14 MB
-#   and shipping third-party code that users do not need.
+# Regression tests for phronomy.gemspec packaging and runtime dependency correctness.
 RSpec.describe "phronomy.gemspec packaging" do
   let(:gemspec) { Gem::Specification.load(File.expand_path("../../phronomy.gemspec", __dir__)) }
 
@@ -26,5 +21,13 @@ RSpec.describe "phronomy.gemspec packaging" do
   it "includes the lib/ directory" do
     lib_files = gemspec.files.select { |f| f.start_with?("lib/") }
     expect(lib_files).not_to be_empty
+  end
+
+  it "requires RubyLLM 1.15+ for additive Tool-control callbacks" do
+    dependency = gemspec.dependencies.find { |item| item.name == "ruby_llm" }
+    expect(dependency).not_to be_nil
+    expect(dependency.requirement.satisfied_by?(Gem::Version.new("1.14.9"))).to be(false)
+    expect(dependency.requirement.satisfied_by?(Gem::Version.new("1.15.0"))).to be(true)
+    expect(dependency.requirement.satisfied_by?(Gem::Version.new("2.0.0"))).to be(false)
   end
 end

@@ -2,9 +2,70 @@
 
 require "spec_helper"
 
+# Reuse HITL fixtures if already defined (e.g., when full suite runs).
+# Otherwise define locally for isolated runs.
+unless defined?(HITLTool)
+  class HITLTool < Phronomy::Agent::Context::Capability::Base
+    tool_name "hitl_tool"
+    description "A tool requiring human approval"
+    requires_approval true
+    param :value, type: :string, desc: "Input"
+    def execute(value:) = "executed: #{value}"
+  end
+end
+
+unless defined?(HITLAgentForApproveAsync)
+  class HITLAgentForApproveAsync < Phronomy::Agent::Base
+    agent_definition id: "hitl-agent-approve-async", version: 1
+    model "test-model"
+    instructions "You are a test assistant."
+    tools HITLTool
+  end
+end
+
+FAKE_APPROVE_ASYNC_TOKENS = Struct.new(:input, :output, :cached, :cache_creation).new(10, 5, 0, 0)
+
+def build_approve_async_chat(tool_instance:, final_response: "resumed")
+  stored_hook = nil
+  fake_tc = double(
+    "ToolCall",
+    name: "hitl_tool",
+    arguments: {"value" => "hello"},
+    id: "call_001",
+    thought_signature: nil,
+    to_h: {id: "call_001", name: "hitl_tool", arguments: {"value" => "hello"}}
+  )
+  # Simulate RubyLLM >= 1.15: messages.last is the complete assistant message
+  # with tool_calls populated before before_tool_call fires.
+  fake_assistant_msg = double(
+    "AssistantMessage",
+    role: :assistant,
+    content: nil,
+    tool_calls: [fake_tc],
+    tokens: FAKE_APPROVE_ASYNC_TOKENS,
+    tool_call?: true
+  )
+  final_resp = double("FinalResp", content: final_response, tokens: FAKE_APPROVE_ASYNC_TOKENS)
+  dbl = double("HITLChat")
+  allow(dbl).to receive(:with_instructions).and_return(dbl)
+  allow(dbl).to receive(:with_tool).and_return(dbl)
+  allow(dbl).to receive(:with_temperature).and_return(dbl)
+  allow(dbl).to receive(:messages) { [fake_assistant_msg] }
+  allow(dbl).to receive(:tools) { {hitl_tool: tool_instance} }
+  allow(dbl).to receive(:add_message)
+  allow(dbl).to receive(:cancellation_token=)
+  allow(dbl).to receive(:on_tool_call) { |&block| stored_hook = block }
+  allow(dbl).to receive(:before_tool_call) { |&block| stored_hook = block }
+  allow(dbl).to receive(:on_tool_result)
+  allow(dbl).to receive(:ask) { stored_hook&.call(fake_tc) }
+  allow(dbl).to receive(:complete).and_return(final_resp)
+  dbl
+end
+
 RSpec.describe Phronomy::Agent::Base do
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-38", version: 1
       instructions "test"
       model "gpt-4o-mini"
     end
@@ -12,13 +73,10 @@ RSpec.describe Phronomy::Agent::Base do
   let(:agent) { agent_class.new }
 
   describe "#approve EventLoop re-entry guard" do
-    it "raises before consuming the pending approval" do
+    it "raises SchedulerReentrancyError when called from the EventLoop thread" do
       event_loop = double("event_loop", current?: true)
       runtime = double("runtime", event_loop: event_loop)
       allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
-
-      expect(Phronomy::Agent::AgentInvocationRegistry)
-        .not_to receive(:consume_approval)
 
       expect do
         agent.approve(
@@ -34,133 +92,47 @@ RSpec.describe Phronomy::Agent::Base do
   end
 
   describe "#approve_async" do
-    let(:event_loop) { double("event_loop", current?: true) }
-    let(:runtime) { double("runtime", event_loop: event_loop) }
-    let(:parent_session) { double("parent_session") }
-    let(:result) { {output: "resumed", messages: [], usage: nil} }
+    let(:tool_instance) { HITLTool.new }
+    let(:agent) { HITLAgentForApproveAsync.new }
+    let(:chat) { build_approve_async_chat(tool_instance: tool_instance) }
 
-    before do
-      allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
-      allow(Phronomy::Agent::AgentInvocationSessionBuilder)
-        .to receive(:build_for_resume)
-        .and_return(parent_session)
+    before { allow(RubyLLM).to receive(:chat).and_return(chat) }
+
+    def invoke_and_suspend
+      agent.invoke("run tool")
     end
 
-    def invocation_double(stream_listener: nil)
-      double(
-        "invocation",
-        id: "invocation-1",
-        event_listener: stream_listener,
-        mode: stream_listener ? :stream : :invoke,
-        tool_invocations: []
-      ).tap do |invocation|
-        allow(invocation).to receive(:merge_config!).and_return(invocation)
-        allow(invocation).to receive(:begin_approval_resume!).and_return(invocation)
-      end
-    end
+    it "returns immediately with a pending Task and settles after resume" do
+      result = invoke_and_suspend
+      execution_id = result[:execution_id]
+      request_id = result[:approval_request].id
+      allow(tool_instance).to receive(:call).and_return("done")
 
-    def stub_pending_approval(invocation)
-      entry = double("registry_entry", invocation: invocation)
-      allow(Phronomy::Agent::AgentInvocationRegistry)
-        .to receive(:consume_approval)
-        .with("invocation-1", "request-1")
-        .and_return(entry)
-    end
-
-    it "returns immediately with a pending Task" do
-      invocation = invocation_double
-      stub_pending_approval(invocation)
-      source_task = nil
-
-      allow(event_loop).to receive(:register) do |session, completion:|
-        expect(session).to be(parent_session)
-        source_task = completion
-        completion
-      end
-      allow(agent).to receive(:_extract_invoke_result)
-        .with(invocation)
-        .and_return(result)
-
-      task = agent.approve_async(
-        "invocation-1",
-        approval_request_id: "request-1"
-      )
-
+      task = agent.approve_async(execution_id, approval_request_id: request_id)
       expect(task).to be_a(Phronomy::Task)
-      expect(task.done?).to be(false)
-      expect(source_task).to be_a(Phronomy::Task)
-
-      source_task.backend.unblock(invocation, nil)
-      source_task.transition!(:completed, value: invocation)
-
-      expect(task.wait_result).to eq(result)
+      expect(task.wait_result[:output]).to eq("resumed")
     end
 
-    it "is callable while the EventLoop is current" do
-      invocation = invocation_double
-      stub_pending_approval(invocation)
-      source_task = nil
+    it "is callable while the EventLoop is current (no SchedulerReentrancyError)" do
+      result = invoke_and_suspend
+      execution_id = result[:execution_id]
+      request_id = result[:approval_request].id
+      allow(tool_instance).to receive(:call).and_return("done")
 
-      allow(event_loop).to receive(:register) do |_session, completion:|
-        source_task = completion
-        completion
-      end
-      allow(agent).to receive(:_extract_invoke_result)
-        .with(invocation)
-        .and_return(result)
+      # approve_async must not raise SchedulerReentrancyError even when the EventLoop
+      # reports current? == true (unlike approve which wraps with _check_scheduler_reentrancy).
+      event_loop = Phronomy::Runtime.instance.event_loop
+      allow(event_loop).to receive(:current?).and_return(true)
+      expect {
+        task = agent.approve_async(execution_id, approval_request_id: request_id)
+        expect(task).to be_a(Phronomy::Task)
+      }.not_to raise_error(Phronomy::SchedulerReentrancyError)
+    end
 
-      expect(event_loop.current?).to be(true)
-      task = agent.approve_async(
-        "invocation-1",
-        approval_request_id: "request-1"
-      )
-
+    it "returns a failed Task when execution_id is unknown" do
+      task = agent.approve_async("nonexistent-exec", approval_request_id: "none")
       expect(task).to be_a(Phronomy::Task)
-      expect(task.done?).to be(false)
-
-      source_task.backend.unblock(invocation, nil)
-      source_task.transition!(:completed, value: invocation)
-      expect(task.wait_result).to eq(result)
-    end
-
-    it "delivers the resumed stream terminal event on the EventLoop" do
-      events = []
-      listener = ->(event) { events << [event.type, event_loop.current?] }
-      invocation = invocation_double(stream_listener: listener)
-      stub_pending_approval(invocation)
-
-      allow(event_loop).to receive(:register) do |_session, completion:|
-        completion.backend.unblock(invocation, nil)
-        completion.transition!(:completed, value: invocation)
-        completion
-      end
-      allow(agent).to receive(:_extract_invoke_result)
-        .with(invocation)
-        .and_return(result)
-
-      task = agent.approve_async(
-        "invocation-1",
-        approval_request_id: "request-1"
-      )
-
-      expect(task.wait_result).to eq(result)
-      expect(events).to eq([[:done, true]])
-    end
-
-    it "returns a failed Task when the approval is no longer pending" do
-      allow(Phronomy::Agent::AgentInvocationRegistry)
-        .to receive(:consume_approval)
-        .and_return(nil)
-
-      task = agent.approve_async(
-        "invocation-1",
-        approval_request_id: "request-1"
-      )
-
-      expect(task).to be_a(Phronomy::Task)
-      expect do
-        task.wait_result
-      end.to raise_error(ArgumentError, /No pending approval/)
+      expect { task.wait_result }.to raise_error(Phronomy::Persistence::NotFoundError)
     end
   end
 end

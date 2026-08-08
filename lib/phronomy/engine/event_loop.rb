@@ -319,6 +319,9 @@ module Phronomy
         @fsms[session.id] = session
         @waiting[session.id] = waiter if waiter
         session.start
+      when :agent_terminal_ready
+        cmd = event.payload.fetch(:command)
+        cmd.coordinator.deliver_on_event_loop(cmd)
       end
     end
 

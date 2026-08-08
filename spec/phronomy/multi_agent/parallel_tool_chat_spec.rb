@@ -225,6 +225,7 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
   describe "Agent::Base#build_chat_class" do
     let(:agent_class) do
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-143", version: 1
         model "test-model"
         instructions "test"
       end

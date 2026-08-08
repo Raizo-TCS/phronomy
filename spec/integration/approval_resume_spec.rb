@@ -16,7 +16,7 @@ require_relative "support/llm_stub"
 #   connection is required.
 #
 # NOTE: Updated for 0.15.0 Invocation architecture.
-#   - result[:agent_invocation_id] replaces result[:session_id]
+#   - result[:execution_id] replaces result[:session_id]
 #   - result[:approval_request] carries the ToolApprovalRequest
 #   - agent.approve(agent_invocation_id, approval_request_id:, approved:)
 #     replaces agent.approve(session_id, approved:)
@@ -27,7 +27,6 @@ require_relative "support/llm_stub"
 RSpec.describe "Group 30: Approval Resume", :integration do
   after do
     LLMStub.deactivate
-    Phronomy::Agent::AgentInvocationRegistry.clear!
   end
 
   # ---------------------------------------------------------------------------
@@ -53,10 +52,10 @@ RSpec.describe "Group 30: Approval Resume", :integration do
       expect(result[:suspended]).to be true
     end
 
-    it "invoke returns an :agent_invocation_id String" do
+    it "invoke returns an :execution_id String" do
       result = agent.invoke("Please use the approval tool")
-      expect(result[:agent_invocation_id]).to be_a(String)
-      expect(result[:agent_invocation_id]).not_to be_empty
+      expect(result[:execution_id]).to be_a(String)
+      expect(result[:execution_id]).not_to be_empty
     end
 
     it "invoke returns an :approval_request with a non-empty id" do
@@ -68,7 +67,7 @@ RSpec.describe "Group 30: Approval Resume", :integration do
     it "approve with approved: true returns output from the LLM" do
       suspend_result = agent.invoke("Please use the approval tool")
       resume_result = agent.approve(
-        suspend_result[:agent_invocation_id],
+        suspend_result[:execution_id],
         approval_request_id: suspend_result[:approval_request].id,
         approved: true
       )
@@ -79,7 +78,7 @@ RSpec.describe "Group 30: Approval Resume", :integration do
     it "approve_async returns a Task that resolves to the resumed output" do
       suspend_result = agent.invoke("Please use the approval tool")
       task = agent.approve_async(
-        suspend_result[:agent_invocation_id],
+        suspend_result[:execution_id],
         approval_request_id: suspend_result[:approval_request].id,
         approved: true
       )
@@ -93,7 +92,7 @@ RSpec.describe "Group 30: Approval Resume", :integration do
     it "approve with approved: true returns :suspended falsy" do
       suspend_result = agent.invoke("Please use the approval tool")
       resume_result = agent.approve(
-        suspend_result[:agent_invocation_id],
+        suspend_result[:execution_id],
         approval_request_id: suspend_result[:approval_request].id,
         approved: true
       )
@@ -123,13 +122,13 @@ RSpec.describe "Group 30: Approval Resume", :integration do
     it "invoke suspends on the first approval tool" do
       result = agent.invoke("Try the first tool")
       expect(result[:suspended]).to be true
-      expect(result[:agent_invocation_id]).to be_a(String)
+      expect(result[:execution_id]).to be_a(String)
     end
 
     it "approve with approved: false returns :rejected => true" do
       suspend_result = agent.invoke("Try the first tool")
       resume_result = agent.approve(
-        suspend_result[:agent_invocation_id],
+        suspend_result[:execution_id],
         approval_request_id: suspend_result[:approval_request].id,
         approved: false
       )
@@ -139,7 +138,7 @@ RSpec.describe "Group 30: Approval Resume", :integration do
     it "approve with approved: false does NOT execute the approval tool" do
       suspend_result = agent.invoke("Try the first tool")
       result = agent.approve(
-        suspend_result[:agent_invocation_id],
+        suspend_result[:execution_id],
         approval_request_id: suspend_result[:approval_request].id,
         approved: false
       )
@@ -178,9 +177,9 @@ RSpec.describe "Group 30: Approval Resume", :integration do
       expect(result[:output]).not_to be_empty
     end
 
-    it "invoke does not return an :agent_invocation_id (no suspension occurred)" do
+    it "invoke does not return suspended: true (no suspension occurred)" do
       result = agent.invoke("Use the approval tool")
-      expect(result[:agent_invocation_id]).to be_nil
+      expect(result[:suspended]).not_to eq(true)
     end
   end
 

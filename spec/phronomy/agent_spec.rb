@@ -4,6 +4,7 @@ require "spec_helper"
 
 # --- Agent classes for testing ---
 class BasicAgent < Phronomy::Agent::Base
+  agent_definition id: "basic-agent", version: 1
   model "test-model"
   instructions "You are a test assistant."
   temperature 0.5
@@ -11,14 +12,16 @@ class BasicAgent < Phronomy::Agent::Base
 end
 
 class InstructionProcAgent < Phronomy::Agent::Base
+  agent_definition id: "instruction-proc-agent", version: 1
   instructions(->(input) { "Context: #{input[:context]}" })
 end
 
 class NoModelAgent < Phronomy::Agent::Base
+  agent_definition id: "no-model-agent", version: 1
 end
 
 RSpec.describe Phronomy::Agent::Base do
-  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0) }
+  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0, to_h: {"input" => 10, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
   let(:fake_message) { double("Message", content: "LLM response", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
   let(:fake_messages) { [fake_message] }
   let(:fake_chat) do
@@ -28,6 +31,7 @@ RSpec.describe Phronomy::Agent::Base do
     allow(dbl).to receive(:with_temperature).and_return(dbl)
     allow(dbl).to receive(:cancellation_token=)
     allow(dbl).to receive(:on_tool_call)
+    allow(dbl).to receive(:before_tool_call)
     allow(dbl).to receive(:on_tool_result)
     allow(dbl).to receive(:ask).and_return(fake_message)
     allow(dbl).to receive(:messages).and_return(fake_messages)
@@ -81,6 +85,7 @@ RSpec.describe Phronomy::Agent::Base do
       let(:parent) do
         t = tool_a
         Class.new(Phronomy::Agent::Base) do
+          agent_definition id: "test-agent-76", version: 1
           model "parent-model"
           provider :openai
           instructions "Parent instructions."
@@ -193,17 +198,15 @@ RSpec.describe Phronomy::Agent::Base do
       expect(results.size).to eq(2)
     end
 
-    context "with messages in config" do
-      let(:prev_msg) { double("PrevMessage", role: :user, content: "previous") }
-
-      it "injects the provided messages into the chat" do
-        agent.invoke("Hello", messages: [prev_msg])
-        expect(fake_chat.messages).to include(prev_msg)
+    context "stateful conversation (Agent Journal)" do
+      it "accumulates conversation in the Agent Journal after each invoke" do
+        agent.invoke("Hello")
+        # The Journal should advance (input + response recorded).
+        expect(agent.agent_root.journal_position).to be > 0
       end
 
-      it "works without messages in config" do
-        agent.invoke("Hello", thread_id: "t1")
-        # no error is raised — empty history is used
+      it "does not raise when invoked with a thread_id" do
+        expect { agent.invoke("Hello", thread_id: "t1") }.not_to raise_error
       end
     end
 
@@ -219,6 +222,7 @@ RSpec.describe Phronomy::Agent::Base do
 
       let(:budget_agent_class) do
         Class.new(Phronomy::Agent::Base) do
+          agent_definition id: "test-agent-77", version: 1
           model "test-model"
           max_output_tokens 2048
           context_overhead 300
@@ -253,22 +257,24 @@ RSpec.describe Phronomy::Agent::Base do
 
       let(:prev_msg) { double("PrevMessage", role: :user, content: "previous") }
 
-      it "injects history messages into the chat via the Assembler" do
-        agent.invoke("Hello", messages: [prev_msg])
-        expect(fake_chat.messages).to include(prev_msg)
+      it "records conversation in the Agent Journal (replaces messages: injection)" do
+        agent.invoke("Hello")
+        # Journal position advances: confirms input + response were recorded.
+        expect(agent.agent_root.journal_position).to be > 0
       end
     end
   end
 end
 
 RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
-  let(:alias_tokens) { double("Tokens", input: 5, output: 2, cached: 0, cache_creation: 0) }
+  let(:alias_tokens) { double("Tokens", input: 5, output: 2, cached: 0, cache_creation: 0, to_h: {"input" => 5, "output" => 2, "cached" => 0, "cache_creation" => 0}) }
   let(:fake_chat) do
     dbl = double("Chat")
     allow(dbl).to receive(:with_instructions).and_return(dbl)
     allow(dbl).to receive(:with_tool).and_return(dbl)
     allow(dbl).to receive(:cancellation_token=)
     allow(dbl).to receive(:on_tool_call)
+    allow(dbl).to receive(:before_tool_call)
     allow(dbl).to receive(:on_tool_result)
     allow(dbl).to receive(:ask).and_return(double("Msg", content: "ok", tool_calls: nil, tokens: alias_tokens, tool_call?: false))
     allow(dbl).to receive(:messages).and_return([])
@@ -293,19 +299,28 @@ RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
 
   describe ".tools (splat form — backward compatible)" do
     it "stores the tool classes" do
-      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-78", version: 1
+        model "m"
+      end
       agent_class.tools(tool_a, tool_b)
       expect(agent_class.tools).to eq([tool_a, tool_b])
     end
 
     it "sets tool_aliases to an empty hash" do
-      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-79", version: 1
+        model "m"
+      end
       agent_class.tools(tool_a)
       expect(agent_class.tool_aliases).to eq({})
     end
 
     it "registers each tool with chat.with_tool" do
-      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-80", version: 1
+        model "m"
+      end
       agent_class.tools(tool_a, tool_b)
       agent_class.new.invoke("hello")
       expect(fake_chat).to have_received(:with_tool).twice
@@ -314,19 +329,28 @@ RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
 
   describe ".tools (hash form with aliases)" do
     it "stores the tool classes" do
-      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-81", version: 1
+        model "m"
+      end
       agent_class.tools(tool_a => "alpha", tool_b => "beta")
       expect(agent_class.tools).to eq([tool_a, tool_b])
     end
 
     it "stores the aliases" do
-      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-82", version: 1
+        model "m"
+      end
       agent_class.tools(tool_a => "alpha", tool_b => nil)
       expect(agent_class.tool_aliases).to eq({tool_a => "alpha"})
     end
 
     it "registers tools with aliased anonymous subclasses when an alias is given" do
-      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-83", version: 1
+        model "m"
+      end
       agent_class.tools(tool_a => "alpha", tool_b => nil)
       agent_class.new.invoke("hello")
       # Verify with_tool was called twice (once aliased, once plain)
@@ -341,7 +365,10 @@ RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
         tool_name "original_name"
         def execute = ""
       end
-      agent_class = Class.new(Phronomy::Agent::Base) { model "m" }
+      agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-84", version: 1
+        model "m"
+      end
       agent_class.tools(klass => nil)
       # No alias stored — tool_aliases is empty for this key
       expect(agent_class.tool_aliases[klass]).to be_nil
@@ -355,7 +382,7 @@ end
 # to fail silently for temperature(0). In Ruby, 0 and 0.0 are truthy, so this
 # code is actually correct. These specs document and lock in the correct behavior.
 RSpec.describe "Phronomy::Agent::Base temperature DSL zero value (Issue #30 / ID-12)" do
-  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0) }
+  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0, to_h: {"input" => 10, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
   let(:fake_message) { double("Message", content: "LLM response", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
   let(:fake_messages) { [fake_message] }
   let(:fake_chat) do
@@ -365,6 +392,7 @@ RSpec.describe "Phronomy::Agent::Base temperature DSL zero value (Issue #30 / ID
     allow(dbl).to receive(:with_temperature).and_return(dbl)
     allow(dbl).to receive(:cancellation_token=)
     allow(dbl).to receive(:on_tool_call)
+    allow(dbl).to receive(:before_tool_call)
     allow(dbl).to receive(:on_tool_result)
     allow(dbl).to receive(:ask).and_return(fake_message)
     allow(dbl).to receive(:messages).and_return(fake_messages)
@@ -378,6 +406,7 @@ RSpec.describe "Phronomy::Agent::Base temperature DSL zero value (Issue #30 / ID
 
   it "stores 0 correctly via the temperature DSL (0 is truthy in Ruby)" do
     klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-85", version: 1
       model "test-model"
       temperature 0
     end
@@ -386,6 +415,7 @@ RSpec.describe "Phronomy::Agent::Base temperature DSL zero value (Issue #30 / ID
 
   it "stores 0.0 correctly via the temperature DSL" do
     klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-86", version: 1
       model "test-model"
       temperature 0.0
     end
@@ -394,6 +424,7 @@ RSpec.describe "Phronomy::Agent::Base temperature DSL zero value (Issue #30 / ID
 
   it "calls with_temperature(0) on the chat object when temperature is 0" do
     klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-87", version: 1
       model "test-model"
       temperature 0
     end
@@ -413,6 +444,7 @@ RSpec.describe "Phronomy::Agent::Base tool_aliases inheritance (Issue #126)" do
 
   it "inherits parent aliases in a subclass" do
     parent = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-88", version: 1
       # tool_alias is registered via the hash form of .tools
     end
     parent.instance_variable_set(:@tool_aliases, {"ToolA" => "search"})
@@ -443,10 +475,11 @@ end
 
 RSpec.describe "Agent thread-local context cache cleanup (issue #128)" do
   class CacheCleanupAgent < Phronomy::Agent::Base
+    agent_definition id: "cache-cleanup-agent", version: 1
     model "test-model"
   end
 
-  let(:reply_tokens) { double("Tokens", input: 5, output: 5, cached: 0, cache_creation: 0) }
+  let(:reply_tokens) { double("Tokens", input: 5, output: 5, cached: 0, cache_creation: 0, to_h: {"input" => 5, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
   let(:reply_msg) do
     double("Msg", role: :assistant, content: "hi", tool_calls: nil, tokens: reply_tokens, tool_call?: false)
   end
@@ -456,6 +489,7 @@ RSpec.describe "Agent thread-local context cache cleanup (issue #128)" do
     allow(dbl).to receive(:with_tool).and_return(dbl)
     allow(dbl).to receive(:cancellation_token=)
     allow(dbl).to receive(:on_tool_call)
+    allow(dbl).to receive(:before_tool_call)
     allow(dbl).to receive(:on_tool_result)
     allow(dbl).to receive(:messages).and_return([reply_msg])
     allow(dbl).to receive(:ask).and_return(reply_msg)
@@ -498,7 +532,7 @@ RSpec.describe "Agent static_knowledge caching (issue #127)" do
     end
   end
 
-  let(:reply_tokens) { double("Tokens", input: 5, output: 5, cached: 0, cache_creation: 0) }
+  let(:reply_tokens) { double("Tokens", input: 5, output: 5, cached: 0, cache_creation: 0, to_h: {"input" => 5, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
   let(:reply_msg) do
     double("Msg", role: :assistant, content: "answer", tool_calls: nil, tokens: reply_tokens, tool_call?: false)
   end
@@ -508,6 +542,7 @@ RSpec.describe "Agent static_knowledge caching (issue #127)" do
     allow(dbl).to receive(:with_tool).and_return(dbl)
     allow(dbl).to receive(:cancellation_token=)
     allow(dbl).to receive(:on_tool_call)
+    allow(dbl).to receive(:before_tool_call)
     allow(dbl).to receive(:on_tool_result)
     allow(dbl).to receive(:messages).and_return([reply_msg])
     allow(dbl).to receive(:ask).and_return(reply_msg)
@@ -520,6 +555,7 @@ RSpec.describe "Agent static_knowledge caching (issue #127)" do
     ks = CountingKnowledgeSource.new("policy text")
 
     agent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-90", version: 1
       model "test-model"
     end
     agent_class.static_knowledge(ks)
@@ -536,6 +572,7 @@ RSpec.describe "Agent static_knowledge caching (issue #127)" do
     ks = CountingKnowledgeSource.new("v1 text")
 
     agent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-91", version: 1
       model "test-model"
     end
     agent_class.static_knowledge(ks)
@@ -553,6 +590,7 @@ RSpec.describe "Agent static_knowledge caching (issue #127)" do
     ks = CountingKnowledgeSource.new("refreshable text")
 
     agent_class = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-92", version: 1
       model "test-model"
     end
     agent_class.static_knowledge(ks)

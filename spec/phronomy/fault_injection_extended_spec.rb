@@ -119,6 +119,7 @@ RSpec.describe "Fault injection (Issue #230 — extended)" do
 
     it "prepare_tool_class no longer wraps with an approval callback (authorization is now ToolInvocation's responsibility)" do
       agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-103", version: 1
         model "test-model"
       end
       agent = agent_class.new
@@ -134,6 +135,7 @@ RSpec.describe "Fault injection (Issue #230 — extended)" do
 
     it "prepare_tool_class with tool_approval_policy :allow still executes the tool" do
       agent_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-104", version: 1
         model "test-model"
       end
       agent = agent_class.new

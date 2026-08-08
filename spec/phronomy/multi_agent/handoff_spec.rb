@@ -5,6 +5,7 @@ require "spec_helper"
 RSpec.describe Phronomy::MultiAgent::Handoff do
   let(:target_klass) do
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-117", version: 1
       def self.name
         "Phronomy::Agent::BillingAgent"
       end
@@ -78,9 +79,11 @@ RSpec.describe Phronomy::MultiAgent::Handoff do
       # Simulate Accounts::BillingAgent vs Payments::BillingAgent — both
       # have the same last segment "BillingAgent".
       klass_accounts = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-118", version: 1
         def self.name = "Accounts::BillingAgent"
       end
       klass_payments = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-119", version: 1
         def self.name = "Payments::BillingAgent"
       end
 
@@ -95,6 +98,7 @@ end
 RSpec.describe Phronomy::Agent::Runner do
   let(:entry_klass) do
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-120", version: 1
       model "stub-model"
       provider :openai
       instructions "Entry agent."
@@ -103,6 +107,7 @@ RSpec.describe Phronomy::Agent::Runner do
 
   let(:target_klass) do
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-121", version: 1
       model "stub-model"
       provider :openai
       instructions "Target agent."
@@ -191,6 +196,7 @@ end
 RSpec.describe "Phronomy::MultiAgent::Handoff sentinel uniqueness" do
   let(:target) do
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-122", version: 1
       model "stub-model"
       provider :openai
     end.new
@@ -211,6 +217,7 @@ end
 RSpec.describe "Phronomy::Agent::Base#_add_handoff_tool" do
   let(:klass) do
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-123", version: 1
       model "stub-model"
       provider :openai
     end

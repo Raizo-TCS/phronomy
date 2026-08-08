@@ -55,6 +55,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
   describe "TC-001: agent_llm — Agent LLM call routes through BlockingAdapterPool" do
     let(:agent_class) do
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-2", version: 1
         model "openai/gpt-oss-20b"
         provider :openai
         instructions "You are a test assistant."
@@ -80,6 +81,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
     let(:agent_class) do
       tool = IntegrationFactors::BbBlockingTool
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-3", version: 1
         model "openai/gpt-oss-20b"
         provider :openai
         instructions "Call the tool with input 'hello'."
@@ -138,6 +140,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
     let(:agent_class) do
       tool = IntegrationFactors::BbCooperativeTool
       Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "test-agent-4", version: 1
         model "openai/gpt-oss-20b"
         provider :openai
         instructions "Call the cooperative tool with input 'test'."

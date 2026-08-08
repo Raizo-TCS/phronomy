@@ -42,6 +42,7 @@ module Phronomy
     # @example Fan-out (same agent, multiple inputs)
     #   results = fan_out(agent: TranslationAgent, inputs: ["Hello", "World"])
     class Orchestrator < Agent::Base
+      agent_definition id: "orchestrator", version: 1
       # Declares a named subagent and registers it as a tool accessible to the
       # LLM during an +invoke+ call.
       #

@@ -20,7 +20,7 @@ RSpec.describe Phronomy::TokenUsage do
     end
 
     it "builds a TokenUsage from a RubyLLM::Tokens-like object" do
-      tokens = double("Tokens", input: 100, output: 50, cached: 20, cache_creation: 5)
+      tokens = double("Tokens", input: 100, output: 50, cached: 20, cache_creation: 5, to_h: {"input" => 100, "output" => 50, "cached" => 20, "cache_creation" => 5})
       usage = described_class.from_tokens(tokens)
       expect(usage.input).to eq(100)
       expect(usage.output).to eq(50)

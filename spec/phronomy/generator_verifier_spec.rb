@@ -13,6 +13,7 @@ RSpec.describe Phronomy::GeneratorVerifier do
   def stub_agent(output_json, delay: 0, observed: nil)
     output = output_json
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-114", version: 1
       define_method(:invoke) do |_input, config: {}, **_keywords|
         {output: output, messages: []}
       end
@@ -44,6 +45,7 @@ RSpec.describe Phronomy::GeneratorVerifier do
 
   def failing_agent(message)
     Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "test-agent-115", version: 1
       define_method(:invoke_async) do |_input, on_event: nil, **_keywords|
         Phronomy::Runtime.instance.spawn(name: "generator-verifier-failure") do
           error = RuntimeError.new(message)

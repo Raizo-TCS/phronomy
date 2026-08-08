@@ -114,7 +114,6 @@ RSpec.describe "Group: Context Management", :integration do
       agent.invoke("Say 'first call'.")
 
       # Simulate stale cache by resetting it.
-      agent.context_version_cache&.reset
 
       result = agent.invoke("Say 'second call after stale reset'.")
       expect(result[:output]).to be_a(String)
@@ -134,10 +133,9 @@ RSpec.describe "Group: Context Management", :integration do
         trigger_label: "false"
       ).new
 
-      first = agent.invoke("Remember: my favourite color is red. Just say 'Got it.'")
+      agent.invoke("Remember: my favourite color is red. Just say 'Got it.'")
 
-      result = agent.invoke("Say 'still working'.",
-        messages: first[:messages])
+      result = agent.invoke("Say 'still working'.")
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end
@@ -155,9 +153,8 @@ RSpec.describe "Group: Context Management", :integration do
         compact_label: "summarise_range"
       ).new
 
-      first = agent.invoke("Say 'first message'.")
-      result = agent.invoke("Say 'after compaction'.",
-        messages: first[:messages])
+      agent.invoke("Say 'first message'.")
+      result = agent.invoke("Say 'after compaction'.")
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end
@@ -193,7 +190,6 @@ RSpec.describe "Group: Context Management", :integration do
         compact_label: "multi_range"
       ).new
       agent.invoke("Say 'hello'.")
-      agent.context_version_cache&.reset
       result = agent.invoke("Say 'after stale reset'.")
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
@@ -252,9 +248,8 @@ RSpec.describe "Group: Context Management", :integration do
         compact_label: "summarise_range"
       ).new
 
-      first = agent.invoke("Say 'hello'.")
-      result = agent.invoke("Say 'goodbye'.",
-        messages: first[:messages])
+      agent.invoke("Say 'hello'.")
+      result = agent.invoke("Say 'goodbye'.")
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end

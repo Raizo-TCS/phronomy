@@ -31,16 +31,18 @@ module Phronomy
         return super if tool_calls.size <= 1
 
         if @on[:tool_call_batch]
-          tool_calls.each { @on[:new_message]&.call }
+          tool_calls.each { run_callbacks(:before_message, :new_message) }
           @on[:tool_call_batch].call(tool_calls)
           return
         end
 
         # Direct ParallelToolChat fallback. Agent execution never reaches this
         # branch because AgentInvocation installs the batch interceptor first.
+        # RubyLLM >= 1.15 additive callbacks are dispatched together with their
+        # legacy equivalents, matching RubyLLM::Chat semantics.
         tool_calls.each do |tool_call|
-          @on[:new_message]&.call
-          @on[:tool_call]&.call(tool_call)
+          run_callbacks(:before_message, :new_message)
+          run_callbacks(:before_tool_call, :tool_call, tool_call)
         end
 
         cancellation_token = @cancellation_token
@@ -78,7 +80,7 @@ module Phronomy
         halt_result = nil
         tool_results.each do |item|
           result = item[:result]
-          @on[:tool_result]&.call(result)
+          run_callbacks(:after_tool_result, :tool_result, result)
           tool_payload = result.is_a?(RubyLLM::Tool::Halt) ? result.content : result
           content = content_like?(tool_payload) ? tool_payload : tool_payload.to_s
           message = add_message(
@@ -86,7 +88,7 @@ module Phronomy
             content: content,
             tool_call_id: item[:tool_call].id
           )
-          @on[:end_message]&.call(message)
+          run_callbacks(:after_message, :end_message, message)
           halt_result = result if result.is_a?(RubyLLM::Tool::Halt)
         end
 

@@ -6,18 +6,20 @@ require "spec_helper"
 # Test agents
 # ---------------------------------------------------------------------------
 class StreamingBasicAgent < Phronomy::Agent::Base
+  agent_definition id: "streaming-basic-agent", version: 1
   model "test-model"
   instructions "You are a helpful assistant."
 end
 
 class StreamingReactAgent < Phronomy::Agent::Base
+  agent_definition id: "streaming-react-agent", version: 1
   model "test-model"
   instructions "You are a helpful assistant."
 end
 
 # ---------------------------------------------------------------------------
 RSpec.describe "Agent streaming" do
-  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0) }
+  let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0, to_h: {"input" => 10, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
   let(:fake_response) { double("Response", role: :assistant, content: "Hello, world!", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
 
   # Build a chat double that supports streaming callbacks
@@ -29,6 +31,7 @@ RSpec.describe "Agent streaming" do
     allow(dbl).to receive(:cancellation_token=)
     allow(dbl).to receive(:messages).and_return([response])
     allow(dbl).to receive(:on_tool_call)
+    allow(dbl).to receive(:before_tool_call)
     allow(dbl).to receive(:on_tool_result)
     allow(dbl).to receive(:ask) do |_msg, &blk|
       blk&.call(double("Chunk", content: "Hello, world!"))
@@ -101,6 +104,7 @@ RSpec.describe "Agent streaming" do
         allow(bad_chat).to receive(:with_temperature).and_return(bad_chat)
         allow(bad_chat).to receive(:cancellation_token=)
         allow(bad_chat).to receive(:on_tool_call)
+        allow(bad_chat).to receive(:before_tool_call)
         allow(bad_chat).to receive(:on_tool_result)
         allow(bad_chat).to receive(:ask).and_raise(RuntimeError, "LLM exploded")
         allow(RubyLLM).to receive(:chat).and_return(bad_chat)

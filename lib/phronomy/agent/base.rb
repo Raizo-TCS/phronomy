@@ -2,7 +2,7 @@
 
 require "securerandom"
 require_relative "concerns/filterable"
-require_relative "concerns/before_completion"
+require_relative "concerns/before_llm_input"
 require_relative "concerns/error_translation"
 
 module Phronomy
@@ -31,7 +31,7 @@ module Phronomy
     class Base
       include Phronomy::Runnable
       include Concerns::Filterable
-      include Concerns::BeforeCompletion
+      include Concerns::BeforeLLMInput
       include Concerns::ErrorTranslation
 
       APPROVAL_CONFIGURATION_INIT_MUTEX = Mutex.new
@@ -298,8 +298,9 @@ module Phronomy
           end
         end
 
-        # Tokens reserved for the system prompt + tool definitions overhead.
-        # Subtract this from the context window before computing the memory budget.
+        # Tokens reserved for the system prompt + tool definitions in the legacy
+        # build_context path. Manifest-first assembly ignores this value because
+        # ContextAssembler estimates actual mandatory content for each LLM Call.
         #
         # @example
         #   class MyAgent < Phronomy::Agent::Base
@@ -314,37 +315,236 @@ module Phronomy
           end
         end
 
-        # Continues a suspended AgentInvocation.
-        # @param agent_invocation_id [String]
-        # @param approval_request_id [String]
-        # @param approved [Boolean]
-        # @param config [Hash]
-        # @api public
-        def approve(agent_invocation_id, approval_request_id:, approved: true, config: {})
-          new.approve(
-            agent_invocation_id,
-            approval_request_id: approval_request_id,
-            approved: approved,
-            config: config
-          )
+        # Defines or reads the stable Agent definition identity.
+        # Subclass with no explicit declaration inherits the parent's definition.
+        def agent_definition(id: nil, version: nil)
+          if id || version
+            raise ArgumentError, "agent_definition requires id: and version:" unless id && version
+            @agent_definition = {id: id.to_s.freeze, version: Integer(version)}.freeze
+          end
+          return @agent_definition if @agent_definition
+
+          # Walk ancestors to support anonymous runtime subclasses and abstract bases.
+          klass = superclass
+          while klass.respond_to?(:agent_definition, true) &&
+              klass < Phronomy::Agent::Base
+            defn = klass.instance_variable_get(:@agent_definition)
+            return defn if defn
+            klass = klass.superclass
+          end
+
+          raise Phronomy::ConfigurationError,
+            "#{name || self} must declare agent_definition id: ..., version: ..."
         end
 
-        # Continues a suspended AgentInvocation without blocking the caller.
-        # @param agent_invocation_id [String]
-        # @param approval_request_id [String]
-        # @param approved [Boolean]
-        # @param config [Hash]
-        # @return [Phronomy::Task]
-        # @api public
-        def approve_async(agent_invocation_id, approval_request_id:, approved: true, config: {})
-          new.approve_async(
-            agent_invocation_id,
+        def create(agent_id: SecureRandom.uuid, context: nil, persistence: nil, metadata: {})
+          new(agent_id: agent_id, context: context, persistence: persistence, metadata: metadata)
+        end
+
+        def load(agent_id, persistence:)
+          new(agent_id: agent_id, persistence: persistence, load_existing: true)
+        end
+
+        def approve(execution_id, approval_request_id:, persistence:, approved: true, config: {})
+          approve_async(
+            execution_id,
+            approval_request_id: approval_request_id,
+            approved: approved,
+            config: config,
+            persistence: persistence
+          ).wait_result
+        end
+
+        def approve_async(execution_id, approval_request_id:, persistence:, approved: true, config: {})
+          execution = persistence.executions.load(execution_id)
+          load(execution.agent_id, persistence: persistence).approve_async(
+            execution_id,
             approval_request_id: approval_request_id,
             approved: approved,
             config: config
           )
         end
       end
+
+      attr_reader :agent_id, :persistence
+
+      def initialize(
+        agent_id: SecureRandom.uuid,
+        context: nil,
+        persistence: nil,
+        metadata: {},
+        load_existing: false
+      )
+        @persistence = persistence || Phronomy::Persistence::InMemory.new
+        @agent_id = agent_id.to_s.freeze
+        @root = if load_existing
+          loaded = @persistence.agents.load(@agent_id)
+          definition = self.class.agent_definition
+          unless loaded.agent_definition_id == definition.fetch(:id) &&
+              loaded.definition_version == definition.fetch(:version)
+            raise Phronomy::ConfigurationError,
+              "Agent definition mismatch for #{@agent_id}: stored " \
+              "#{loaded.agent_definition_id}@#{loaded.definition_version}, runtime " \
+              "#{definition.fetch(:id)}@#{definition.fetch(:version)}"
+          end
+          loaded
+        else
+          create_agent_root!(context: context, metadata: metadata)
+        end
+      end
+
+      def agent_root
+        @root
+      end
+
+      def journal_projection
+        Agent::JournalProjection.new(persistence: persistence, agent_root: @root)
+      end
+
+      def transcript
+        journal_projection.transcript_records
+      end
+
+      def clear_transcript!
+        mutate_context!(:transcript_cleared) do |root|
+          root.with(
+            agent_revision: root.agent_revision + 1,
+            context_revision: root.context_revision + 1,
+            transcript_generation: root.transcript_generation + 1
+          )
+        end
+      end
+
+      def clear_memory!
+        mutate_context!(:memory_cleared) do |root|
+          root.with(
+            agent_revision: root.agent_revision + 1,
+            context_revision: root.context_revision + 1,
+            memory_generation: root.memory_generation + 1
+          )
+        end
+      end
+
+      def reset_context!
+        mutate_context!(:context_reset) do |root|
+          root.with(
+            agent_revision: root.agent_revision + 1,
+            context_revision: root.context_revision + 1,
+            transcript_generation: root.transcript_generation + 1,
+            memory_generation: root.memory_generation + 1
+          )
+        end
+      end
+
+      def close!
+        mutate_context!(:agent_closed, context_affecting: false) do |root|
+          root.with(
+            agent_revision: root.agent_revision + 1,
+            lifecycle_status: :closed
+          )
+        end
+      end
+
+      def purge!
+        persistence.transaction do |tx|
+          tx.executions.assert_idle!(agent_id)
+          tx.journals.delete(agent_id)
+          tx.executions.delete_for_agent(agent_id)
+          tx.agents.delete(agent_id)
+        end
+        @root = nil
+        true
+      end
+
+      # Internal hook used after a successful Persistence transaction.
+      def __replace_root(root)
+        @root = root
+      end
+
+      private
+
+      def create_agent_root!(context:, metadata:)
+        definition = self.class.agent_definition
+        root = Agent::AgentRoot.create(
+          agent_id: agent_id,
+          agent_definition_id: definition.fetch(:id),
+          definition_version: definition.fetch(:version),
+          metadata: metadata
+        )
+        persistence.transaction do |tx|
+          tx.agents.create(root)
+          if context
+            imported = context.respond_to?(:records) ? context :
+              Agent::ContextImporter.import_messages(context)
+            records = imported.records.map do |record|
+              content_ref = case record.content_format
+              when :text then tx.contents.put_text(record.content)
+              when :json then tx.contents.put_json(record.content)
+              else
+                raise ArgumentError,
+                  "unsupported imported content format: #{record.content_format.inspect}"
+              end
+              Agent::JournalRecord.new(
+                agent_id: agent_id,
+                kind: record.kind,
+                channel: record.channel,
+                role: record.role,
+                content_ref: content_ref,
+                context_generation: root.transcript_generation,
+                context_candidate: true,
+                metadata: record.metadata
+              )
+            end
+            appended = tx.journals.append(agent_id, expected_position: 0, records: records)
+            root = root.with(
+              agent_revision: 1,
+              context_revision: records.any? ? 1 : 0,
+              journal_position: appended.length
+            )
+            tx.agents.save(agent_id, expected_revision: 0, root: root)
+          end
+        end
+        root
+      end
+
+      def mutate_context!(kind, context_affecting: true)
+        next_root = nil
+        persistence.transaction do |tx|
+          tx.executions.assert_idle!(agent_id)
+          current = tx.agents.load(agent_id)
+          record = Agent::JournalRecord.new(
+            agent_id: agent_id,
+            kind: kind,
+            channel: :state,
+            context_generation: current.transcript_generation,
+            context_candidate: false
+          )
+          appended = tx.journals.append(
+            agent_id,
+            expected_position: current.journal_position,
+            records: [record]
+          )
+          proposed = yield(current)
+          next_root = proposed.with(
+            journal_position: current.journal_position + appended.length,
+            context_revision: context_affecting ?
+              yield_context_revision(current, proposed) : current.context_revision
+          )
+          tx.agents.save(agent_id, expected_revision: current.agent_revision, root: next_root)
+        end
+        @root = next_root
+      end
+
+      def yield_context_revision(current, proposed)
+        (proposed.context_revision == current.context_revision) ? current.context_revision + 1 : proposed.context_revision
+      end
+
+      def ensure_no_active_execution!
+        return if persistence.executions.list_active(agent_id).empty?
+        raise Phronomy::AgentBusyError, "agent has an active or suspended execution: #{agent_id}"
+      end
+
+      public
 
       # Registers an anonymous handoff tool class on this agent instance.
       # Called by Runner during construction when routes are configured.
@@ -384,13 +584,6 @@ module Phronomy
 
         _approval_configuration_mutex.synchronize { @tool_approval_listener = block }
         self
-      end
-
-      # @deprecated The context version cache has been removed. Returns nil.
-      #   Retained for backward compatibility with callers using safe navigation (+&.reset+).
-      # @api private
-      def context_version_cache
-        nil
       end
 
       private
@@ -433,151 +626,6 @@ module Phronomy
           Kernel.warn("[phronomy] WARNING: #{msg}")
         end
       end
-
-      # Assembles the LLM context (system prompt + conversation messages)
-      # for a single invocation. Subclasses may override this method to
-      # inject custom context editing logic without having to override
-      # the full #invoke_once pipeline.
-      #
-      # The keyword arguments +budget+, +instruction+, +tools+, and +knowledge+
-      # carry pre-computed values. Override them in a subclass call to +super+
-      # to inject custom context without recomputing the defaults.
-      #
-      # @param input       [String, Hash] the user's input for this turn
-      # @param messages    [Array<RubyLLM::Message>] raw conversation history
-      # @param thread_id   [String, nil] conversation thread identifier
-      # @param config      [Hash] the invocation config (see #invoke)
-      # @param budget      [LlmContextWindow::TokenBudget, nil] pre-computed token budget
-      # @param instruction [String, nil] pre-computed system instruction
-      # @param tools       [Array<Class>] tool classes to expose
-      # @param knowledge   [Array<Hash>] knowledge chunks ({ content:, type:, source: })
-      # @return [Hash] { system: String|nil, messages: Array, tool_classes: Array }
-      # @api public
-      def build_context(
-        input,
-        messages: [],
-        thread_id: nil,
-        config: {},
-        budget: build_token_budget,
-        instruction: build_instructions(input),
-        tools: self.class.tools + _handoff_tools,
-        knowledge: self.class.static_knowledge_chunks + instance_knowledge_chunks
-      )
-        assembler = LlmContextWindow::Assembler.new(budget: budget)
-        assembler.add_instruction(instruction) if instruction
-        assembler.add_capability(tools)
-        knowledge.each { |chunk| assembler.add_knowledge(chunk[:content], type: chunk[:type] || :static, trusted: true, source: chunk[:source]) }
-
-        msgs = Array(messages)
-
-        if budget && budget_exceeded?(msgs)
-          # Default strategy when the token budget is tight:
-          # 1. Compact: keep the most recent half of the messages verbatim and
-          #    replace the older half with a brief omission marker.
-          # 2. Trim: if the compacted history still exceeds the budget, call
-          #    trim_to_budget with the :safe strategy, which discards the oldest
-          #    message one at a time until the history fits.
-          # Subclasses can override build_context to apply a different strategy
-          # (e.g. LLM-based summarisation) before calling super.
-          keep = [msgs.size / 2, 2].max
-          msgs = compact_messages(msgs, keep_tail: keep) do |dropped|
-            "[#{dropped.size} earlier messages omitted]"
-          end
-          remaining = assembler.available_for_messages
-          msgs = trim_to_budget(msgs, remaining: remaining, strategy: :safe)
-        end
-
-        assembler.add_messages(msgs)
-        @last_context = assembler.build
-      end
-      protected :build_context
-
-      # Keeps the last +keep+ messages from +messages+, discarding older ones.
-      # Use this inside a +build_context+ override to trim conversation history.
-      #
-      # @param messages [Array<RubyLLM::Message>] conversation history
-      # @param keep     [Integer] number of messages to retain (from the tail)
-      # @return [Array<RubyLLM::Message>]
-      # @api public
-      def trim_messages(messages, keep:)
-        Array(messages).last(keep)
-      end
-      protected :trim_messages
-
-      # Removes the oldest messages one at a time until the count is within +limit+.
-      #
-      # @param messages [Array<RubyLLM::Message>] conversation history
-      # @param limit    [Integer] maximum number of messages to retain
-      # @return [Array<RubyLLM::Message>]
-      # @api public
-      def drop_messages_over(messages, limit:)
-        msgs = Array(messages).dup
-        msgs.shift while msgs.size > limit
-        msgs
-      end
-      protected :drop_messages_over
-
-      # Replaces all but the last +keep_tail+ messages with a single system summary.
-      # The block receives the dropped messages and must return a summary String.
-      #
-      # @param messages  [Array<RubyLLM::Message>] conversation history
-      # @param keep_tail [Integer] number of recent messages to preserve verbatim
-      # @yield  [Array<RubyLLM::Message>] the messages being summarised
-      # @yieldreturn [String] summary text
-      # @return [Array<RubyLLM::Message>]
-      # @api public
-      def compact_messages(messages, keep_tail:, &summariser)
-        msgs = Array(messages)
-        return msgs if msgs.size <= keep_tail
-        tail = msgs.last(keep_tail)
-        dropped = msgs.first(msgs.size - keep_tail)
-        summary_text = summariser.call(dropped)
-        [RubyLLM::Message.new(role: :system, content: summary_text)] + tail
-      end
-      protected :compact_messages
-
-      # Trims +messages+ to fit within +remaining+ tokens using the given
-      # +strategy+. Returns the trimmed message array without touching the
-      # assembler. The caller is responsible for passing the result to
-      # +assembler.add_messages+ and calling +assembler.build+.
-      #
-      # Supported strategies:
-      #   +:safe+ — discard the oldest message one at a time (default)
-      #
-      # @param messages  [Array<RubyLLM::Message>] conversation history
-      # @param remaining [Integer, nil] token allowance for messages; when +nil+
-      #   the messages are returned unchanged
-      # @param strategy  [Symbol] trim strategy (default +:safe+)
-      # @return [Array<RubyLLM::Message>]
-      # @api public
-      def trim_to_budget(messages, remaining:, strategy: :safe)
-        return Array(messages) unless remaining
-        msgs = Array(messages)
-        loop do
-          used = msgs.sum { |m| LlmContextWindow::TokenEstimator.estimate(m.content.to_s) }
-          return msgs if used <= remaining
-          break if msgs.empty?
-          msgs = trim_messages(msgs, keep: msgs.size - 1)
-        end
-        msgs
-      end
-      protected :trim_to_budget
-
-      # Returns +true+ when the estimated token usage of +messages+ exceeds
-      # +threshold+ times the available context budget.
-      # Always returns +false+ when no token budget is available.
-      #
-      # @param messages  [Array<RubyLLM::Message>] conversation history
-      # @param threshold [Float] fraction of the available budget (default 0.8)
-      # @return [Boolean]
-      # @api public
-      def budget_exceeded?(messages, threshold: 0.8)
-        return false unless (b = build_token_budget)
-        total = Array(messages).sum { |m| LlmContextWindow::TokenEstimator.estimate(m.content.to_s) }
-        limit = b.available(used: 0)
-        total > limit * threshold
-      end
-      protected :budget_exceeded?
 
       # Registers a per-instance knowledge source. Knowledge chunks from all
       # registered sources are included in every LLM call via +build_context+.
@@ -695,94 +743,6 @@ module Phronomy
         nil
       end
 
-      # Continues a suspended AgentInvocation. The parent session is registered
-      # asynchronously; this method is only the synchronous wrapper.
-      # @return [Hash]
-      # @api public
-      def approve(agent_invocation_id, approval_request_id:, approved: true, config: {})
-        _check_scheduler_reentrancy(:approve, :approve_async)
-        approve_async(
-          agent_invocation_id,
-          approval_request_id: approval_request_id,
-          approved: approved,
-          config: config
-        ).wait_result
-      end
-      public :approve
-
-      # Continues a suspended AgentInvocation without blocking the caller.
-      #
-      # This method is safe to call from an EventLoop stream callback. The
-      # returned Task completes when the resumed AgentInvocation finishes,
-      # suspends again, or fails.
-      # @return [Phronomy::Task]
-      # @api public
-      def approve_async(agent_invocation_id, approval_request_id:, approved: true, config: {})
-        result_task = Phronomy::Task.deferred(
-          name: "agent-approval-resume:#{agent_invocation_id}"
-        )
-
-        begin
-          entry = Agent::AgentInvocationRegistry.consume_approval(
-            agent_invocation_id, approval_request_id
-          )
-          unless entry
-            raise ArgumentError,
-              "No pending approval found for AgentInvocation #{agent_invocation_id}"
-          end
-
-          _start_approval_resume(
-            result_task,
-            entry.invocation,
-            approved: approved,
-            config: config
-          )
-        rescue => e
-          _fail_result_task(result_task, e)
-        end
-
-        result_task
-      end
-      public :approve_async
-
-      def _extract_invoke_result(invocation)
-        if invocation.phase == :suspended
-          request = invocation.approval_request
-          Agent::AgentInvocationRegistry.store_suspended(invocation, request)
-          _dispatch_tool_approval_notification(invocation, request)
-          {
-            suspended: true,
-            agent_invocation_id: invocation.id,
-            approval_request: request,
-            messages: invocation.messages
-          }
-        elsif invocation.input_blocked? || invocation.output_blocked?
-          raise invocation.block_error
-        elsif invocation.error
-          raise invocation.error
-        elsif invocation.rejected
-          {rejected: true, messages: invocation.messages}
-        else
-          {output: invocation.output, messages: invocation.messages, usage: invocation.usage}
-        end
-      end
-
-      def _dispatch_tool_approval_notification(invocation, request)
-        listener = invocation.approval_listener
-        return unless listener
-
-        Phronomy::Runtime.instance.blocking_io.submit(on_full: :raise) do
-          listener.call(request)
-        end
-      rescue => e
-        message = "[Phronomy] Tool approval notification failed: #{e.class}: #{e.message}"
-        if Phronomy.configuration.logger
-          Phronomy.configuration.logger.warn(message)
-        else
-          Kernel.warn(message)
-        end
-      end
-
       def _approval_configuration_mutex
         return @approval_configuration_mutex if @approval_configuration_mutex
 
@@ -812,9 +772,31 @@ module Phronomy
       end
 
       def _apply_context_to_chat(chat, context)
-        apply_instructions(chat, context[:system]) if context[:system]
+        model_config = context[:model_config] || {}
+        if context[:system]
+          apply_instructions(
+            chat,
+            context[:system],
+            cache: model_config["cache_instructions"],
+            provider: model_config["provider"]
+          )
+        end
         (context[:tool_classes] || []).each { |tc| chat.with_tool(prepare_tool_class(tc)) }
         context[:messages].each { |msg| chat.messages << msg }
+      end
+
+      def _replace_chat_messages(chat, projection)
+        chat.messages.clear
+        if projection.system
+          apply_instructions(
+            chat,
+            projection.system,
+            cache: projection.model_config["cache_instructions"],
+            provider: projection.model_config["provider"]
+          )
+        end
+        projection.messages.each { |message| chat.messages << message }
+        chat
       end
 
       # Builds a TokenBudget for this agent's model if possible.
@@ -833,9 +815,27 @@ module Phronomy
             overhead: self.class.context_overhead
           )
         else
+          ruby_llm_model = RubyLLM.models.find(model_name)
+          return nil unless ruby_llm_model
+
+          registry_context = ruby_llm_model.context_window.to_i
+          registry_max_output = ruby_llm_model.max_output_tokens.to_i
+
+          # Priority: agent explicit → framework default → registry (if < context_window)
+          output_reserve =
+            self.class.max_output_tokens ||
+            Phronomy.configuration.default_output_reserve ||
+            ((registry_max_output < registry_context) ? registry_max_output : nil)
+
+          if output_reserve.nil?
+            raise Phronomy::InvalidContextBudgetConfigurationError,
+              "Cannot determine output token reserve for model '#{model_name}'. " \
+              "Set max_output_tokens on the agent or Phronomy.configure { |c| c.default_output_reserve = N }."
+          end
+
           Phronomy::LlmContextWindow::TokenBudget.new(
-            model: model_name,
-            max_output_tokens: self.class.max_output_tokens,
+            context_window: registry_context,
+            max_output_tokens: output_reserve,
             overhead: self.class.context_overhead
           )
         end
@@ -852,23 +852,29 @@ module Phronomy
         Phronomy.configuration.parallel_tool_execution ? Phronomy::MultiAgent::ParallelToolChat : nil
       end
 
-      def build_chat
+      def build_chat(model_config: nil)
+        config = model_config || {
+          "model" => self.class.model,
+          "provider" => self.class.provider,
+          "temperature" => self.class.temperature,
+          "max_output_tokens" => self.class.max_output_tokens,
+          "parallel_tool_execution" => Phronomy.configuration.parallel_tool_execution
+        }
         opts = {}
-        m = self.class.model
-        opts[:model] = m if m
-        p = self.class.provider
-        if p
-          opts[:provider] = p
+        model = config["model"]
+        opts[:model] = model if model
+        provider = config["provider"]
+        if provider
+          opts[:provider] = provider.to_sym
           opts[:assume_model_exists] = true
         end
-        t = self.class.temperature
-        parallel_class = build_chat_class
-        chat = if parallel_class
-          parallel_class.new(**opts)
-        else
-          RubyLLM.chat(**opts)
+        parallel_class = config["parallel_tool_execution"] ?
+          Phronomy::MultiAgent::ParallelToolChat : nil
+        chat = parallel_class ? parallel_class.new(**opts) : RubyLLM.chat(**opts)
+        chat.with_temperature(config["temperature"]) if config["temperature"]
+        if config["max_output_tokens"] && chat.respond_to?(:with_max_output_tokens)
+          chat.with_max_output_tokens(config["max_output_tokens"])
         end
-        chat.with_temperature(t) if t
         chat
       end
 
@@ -888,8 +894,8 @@ module Phronomy
       # When cache_instructions is enabled and the provider is Anthropic,
       # attaches a cache_control marker so that the fixed system prompt is
       # eligible for prompt caching.
-      def apply_instructions(chat, text)
-        if self.class.cache_instructions && anthropic_provider?
+      def apply_instructions(chat, text, cache: false, provider: nil)
+        if cache && provider.to_s == "anthropic"
           content = RubyLLM::Providers::Anthropic::Content.new(text, cache: true)
           chat.with_instructions(content)
         else
@@ -922,7 +928,15 @@ module Phronomy
       # @api public
       def check_cancellation!(config, message = "invocation cancelled")
         ct = config[:cancellation_token]
-        raise Phronomy::CancellationError, message if ct&.cancelled?
+        return unless ct&.cancelled?
+
+        # Deadline expiry is a timeout; explicit cancel! is a cancellation.
+        if (ct.respond_to?(:deadline) && ct.deadline && Time.now >= ct.deadline) ||
+            (ct.respond_to?(:remaining_monotonic_seconds) &&
+             ct.remaining_monotonic_seconds == 0.0)
+          raise Phronomy::TimeoutError, message
+        end
+        raise Phronomy::CancellationError, message
       end
 
       # Builds the final Tool class to register with RubyLLM. Alias and Tool
