@@ -106,27 +106,7 @@
   
 </div>
 
-<h2>Overview</h2><div class="docstring">
-  <div class="discussion">
-    <p>Raised by <span class='object_link'><a href="GeneratorVerifier.html#invoke-instance_method" title="Phronomy::GeneratorVerifier#invoke (method)">GeneratorVerifier#invoke</a></span> when <code>raise_if_untrusted: true</code>
-and the pipeline's combined confidence score falls below the configured threshold.</p>
 
-  </div>
-</div>
-<div class="tags">
-  
-  <div class="examples">
-    <h4 class="tag_title">Examples:</h4>
-    
-      
-      <pre class="example code"><code>rescue Phronomy::LowConfidenceError =&gt; e
-  puts e.result.confidence   # =&gt; e.g. 0.45
-  puts e.result.output       # best-effort answer despite low confidence</code></pre>
-    
-  </div>
-
-
-</div>
 
 
 
@@ -136,7 +116,7 @@ and the pipeline's combined confidence score falls below the configured threshol
       <li class="public ">
   <span class="summary_signature">
     
-      <a href="#result-instance_method" title="#result (instance method)">#<strong>result</strong>  &#x21d2; Phronomy::GeneratorVerifier::Result </a>
+      <a href="#result-instance_method" title="#result (instance method)">#<strong>result</strong>  &#x21d2; Object </a>
     
 
     
@@ -155,7 +135,7 @@ and the pipeline's combined confidence score falls below the configured threshol
   
 
   
-    <span class="summary_desc"><div class='inline'><p>The untrusted result.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute result.</p></div></span>
   
 </li>
 
@@ -236,13 +216,13 @@ and the pipeline's combined confidence score falls below the configured threshol
       <pre class="lines">
 
 
-111
-112
-113
-114</pre>
+48
+49
+50
+51</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 111</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 48</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span>
   <span class='ivar'>@result</span> <span class='op'>=</span> <span class='id identifier rubyid_result'>result</span>
@@ -263,7 +243,7 @@ and the pipeline's combined confidence score falls below the configured threshol
       <div class="method_details first">
   <h3 class="signature first" id="result-instance_method">
   
-    #<strong>result</strong>  &#x21d2; <tt><span class='object_link'><a href="GeneratorVerifier/Result.html" title="Phronomy::GeneratorVerifier::Result (class)">Phronomy::GeneratorVerifier::Result</a></span></tt>  <span class="extras">(readonly)</span>
+    #<strong>result</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
   
 
   
@@ -271,28 +251,12 @@ and the pipeline's combined confidence score falls below the configured threshol
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the untrusted result.</p>
+    <p>Returns the value of attribute result.</p>
 
   </div>
 </div>
 <div class="tags">
   
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="GeneratorVerifier/Result.html" title="Phronomy::GeneratorVerifier::Result (class)">Phronomy::GeneratorVerifier::Result</a></span></tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>the untrusted result</p></div>
-      
-    </li>
-  
-</ul>
 
 </div><table class="source_code">
   <tr>
@@ -300,12 +264,12 @@ and the pipeline's combined confidence score falls below the configured threshol
       <pre class="lines">
 
 
-109
-110
-111</pre>
+46
+47
+48</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 109</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 46</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_result'>result</span>
   <span class='ivar'>@result</span>
@@ -321,7 +285,7 @@ and the pipeline's combined confidence score falls below the configured threshol
 </div>
 
       <div id="footer">
-  Generated on Sat Aug  8 12:53:02 2026 by
+  Generated on Sat Aug  8 18:26:51 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -102,21 +102,7 @@
   
 </div>
 
-<h2>Overview</h2><div class="docstring">
-  <div class="discussion">
-    <p>Thread-safe (serialised by sequential execution) knowledge store shared
-across all researcher agents within a single <span class='object_link'><a href="../SharedState.html#invoke-instance_method" title="Phronomy::Agent::SharedState#invoke (method)">#invoke</a></span> call.</p>
-<p>Each finding is stored as a Hash with the keys:</p>
-<pre class="code ruby"><code class="ruby">:agent   — Symbol derived from the researcher class name
-:content — String written by the researcher
-:cycle   — Integer cycle number in which the finding was recorded</code></pre>
 
-  </div>
-</div>
-<div class="tags">
-  
-
-</div>
 
 
 
@@ -158,7 +144,7 @@ across all researcher agents within a single <span class='object_link'><a href="
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#read_all-instance_method" title="#read_all (instance method)">#<strong>read_all</strong>  &#x21d2; Array&lt;Hash&gt; </a>
+      <a href="#read_all-instance_method" title="#read_all (instance method)">#<strong>read_all</strong>  &#x21d2; Object </a>
     
 
     
@@ -172,7 +158,7 @@ across all researcher agents within a single <span class='object_link'><a href="
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns a shallow copy of all findings in insertion order.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -180,7 +166,7 @@ across all researcher agents within a single <span class='object_link'><a href="
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#size-instance_method" title="#size (instance method)">#<strong>size</strong>  &#x21d2; Integer </a>
+      <a href="#size-instance_method" title="#size (instance method)">#<strong>size</strong>  &#x21d2; Object </a>
     
 
     
@@ -194,7 +180,7 @@ across all researcher agents within a single <span class='object_link'><a href="
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns the number of findings recorded so far.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -202,7 +188,7 @@ across all researcher agents within a single <span class='object_link'><a href="
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#write-instance_method" title="#write (instance method)">#<strong>write</strong>(agent:, content:, cycle:)  &#x21d2; nil </a>
+      <a href="#write-instance_method" title="#write (instance method)">#<strong>write</strong>(agent:, content:, cycle:)  &#x21d2; Object </a>
     
 
     
@@ -216,7 +202,7 @@ across all researcher agents within a single <span class='object_link'><a href="
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Appends a new finding to the store.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -252,12 +238,12 @@ across all researcher agents within a single <span class='object_link'><a href="
       <pre class="lines">
 
 
-54
-55
-56</pre>
+8
+9
+10</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 8</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@findings</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -277,7 +263,7 @@ across all researcher agents within a single <span class='object_link'><a href="
       <div class="method_details first">
   <h3 class="signature first" id="read_all-instance_method">
   
-    #<strong>read_all</strong>  &#x21d2; <tt>Array&lt;Hash&gt;</tt> 
+    #<strong>read_all</strong>  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -285,25 +271,12 @@ across all researcher agents within a single <span class='object_link'><a href="
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a shallow copy of all findings in insertion order.</p>
+    
 
   </div>
 </div>
 <div class="tags">
   
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Array&lt;Hash&gt;</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
 
 </div><table class="source_code">
   <tr>
@@ -311,12 +284,12 @@ across all researcher agents within a single <span class='object_link'><a href="
       <pre class="lines">
 
 
-61
-62
-63</pre>
+13
+14
+15</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 61</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 13</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_read_all'>read_all</span>
   <span class='ivar'>@findings</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
@@ -329,7 +302,7 @@ across all researcher agents within a single <span class='object_link'><a href="
       <div class="method_details ">
   <h3 class="signature " id="size-instance_method">
   
-    #<strong>size</strong>  &#x21d2; <tt>Integer</tt> 
+    #<strong>size</strong>  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -337,25 +310,12 @@ across all researcher agents within a single <span class='object_link'><a href="
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the number of findings recorded so far.</p>
+    
 
   </div>
 </div>
 <div class="tags">
   
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Integer</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
 
 </div><table class="source_code">
   <tr>
@@ -363,12 +323,12 @@ across all researcher agents within a single <span class='object_link'><a href="
       <pre class="lines">
 
 
-79
-80
-81</pre>
+24
+25
+26</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 79</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 24</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_size'>size</span>
   <span class='ivar'>@findings</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
@@ -381,7 +341,7 @@ across all researcher agents within a single <span class='object_link'><a href="
       <div class="method_details ">
   <h3 class="signature " id="write-instance_method">
   
-    #<strong>write</strong>(agent:, content:, cycle:)  &#x21d2; <tt>nil</tt> 
+    #<strong>write</strong>(agent:, content:, cycle:)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -389,71 +349,12 @@ across all researcher agents within a single <span class='object_link'><a href="
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Appends a new finding to the store.</p>
+    
 
   </div>
 </div>
 <div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>agent</span>
-      
-      
-        <span class='type'>(<tt>Symbol</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>researcher identifier</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>content</span>
-      
-      
-        <span class='type'>(<tt>String</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>the finding text</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>cycle</span>
-      
-      
-        <span class='type'>(<tt>Integer</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>the current cycle number</p></div>
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>nil</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
 
 </div><table class="source_code">
   <tr>
@@ -461,13 +362,13 @@ across all researcher agents within a single <span class='object_link'><a href="
       <pre class="lines">
 
 
-71
-72
-73
-74</pre>
+18
+19
+20
+21</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 71</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/shared_state.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_write'>write</span><span class='lparen'>(</span><span class='label'>agent:</span><span class='comma'>,</span> <span class='label'>content:</span><span class='comma'>,</span> <span class='label'>cycle:</span><span class='rparen'>)</span>
   <span class='ivar'>@findings</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span><span class='label'>agent:</span> <span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span> <span class='label'>content:</span> <span class='id identifier rubyid_content'>content</span><span class='comma'>,</span> <span class='label'>cycle:</span> <span class='id identifier rubyid_cycle'>cycle</span><span class='rbrace'>}</span>
@@ -483,7 +384,7 @@ across all researcher agents within a single <span class='object_link'><a href="
 </div>
 
       <div id="footer">
-  Generated on Sat Aug  8 12:53:04 2026 by
+  Generated on Sat Aug  8 18:26:52 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

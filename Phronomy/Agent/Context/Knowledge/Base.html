@@ -105,10 +105,6 @@
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
     <p>Abstract base class for all KnowledgeSource implementations.</p>
-<p>Subclasses must implement #fetch(query:) and return an Array of chunk Hashes.
-Each chunk Hash must contain:</p>
-<pre class="code ruby"><code class="ruby">:content [String]  the text to inject into the context
-:type    [Symbol]  semantic tag (e.g. :static, :rag, :entity)</code></pre>
 
   </div>
 </div>
@@ -137,7 +133,7 @@ Each chunk Hash must contain:</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#fetch-instance_method" title="#fetch (instance method)">#<strong>fetch</strong>(query: nil, cancellation_token: nil)  &#x21d2; Array&lt;Hash&gt; </a>
+      <a href="#fetch-instance_method" title="#fetch (instance method)">#<strong>fetch</strong>(query: nil, cancellation_token: nil)  &#x21d2; Object </a>
     
 
     
@@ -151,7 +147,7 @@ Each chunk Hash must contain:</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Retrieve knowledge chunks relevant to the given query.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -159,7 +155,7 @@ Each chunk Hash must contain:</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#fetch_async-instance_method" title="#fetch_async (instance method)">#<strong>fetch_async</strong>(query: nil, cancellation_token: nil, timeout: nil)  &#x21d2; BlockingAdapterPool::PendingOperation </a>
+      <a href="#fetch_async-instance_method" title="#fetch_async (instance method)">#<strong>fetch_async</strong>(query: nil, cancellation_token: nil, timeout: nil)  &#x21d2; Object </a>
     
 
     
@@ -173,7 +169,7 @@ Each chunk Hash must contain:</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Submits a <span class='object_link'><a href="#fetch-instance_method" title="Phronomy::Agent::Context::Knowledge::Base#fetch (method)">#fetch</a></span> call to BlockingAdapterPool and returns a BlockingAdapterPool::PendingOperation.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -195,7 +191,7 @@ Each chunk Hash must contain:</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns true when this source's content is considered static (i.e. does not change between agent invocations).</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns whether this source is logically static across invocations.</p></div></span>
   
 </li>
 
@@ -213,7 +209,7 @@ Each chunk Hash must contain:</p>
       <div class="method_details first">
   <h3 class="signature first" id="fetch-instance_method">
   
-    #<strong>fetch</strong>(query: nil, cancellation_token: nil)  &#x21d2; <tt>Array&lt;Hash&gt;</tt> 
+    #<strong>fetch</strong>(query: nil, cancellation_token: nil)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -221,64 +217,12 @@ Each chunk Hash must contain:</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Retrieve knowledge chunks relevant to the given query.</p>
+    
 
   </div>
 </div>
 <div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>query</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>the current user input used to select relevant chunks</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>cancellation_token</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../../../Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">Phronomy::Concurrency::CancellationToken</a></span></tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>optional token; raises CancellationError when cancelled</p></div>
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Array&lt;Hash&gt;</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>array of { content: String, type: Symbol }</p></div>
-      
-    </li>
-  
-</ul>
 <p class="tag_title">Raises:</p>
 <ul class="raise">
   
@@ -299,13 +243,13 @@ Each chunk Hash must contain:</p>
       <pre class="lines">
 
 
-20
-21
-22
-23</pre>
+10
+11
+12
+13</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/knowledge/base.rb', line 20</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/knowledge/base.rb', line 10</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='label'>query:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span>
@@ -319,7 +263,7 @@ Each chunk Hash must contain:</p>
       <div class="method_details ">
   <h3 class="signature " id="fetch_async-instance_method">
   
-    #<strong>fetch_async</strong>(query: nil, cancellation_token: nil, timeout: nil)  &#x21d2; <tt>BlockingAdapterPool::PendingOperation</tt> 
+    #<strong>fetch_async</strong>(query: nil, cancellation_token: nil, timeout: nil)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -327,73 +271,12 @@ Each chunk Hash must contain:</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Submits a <span class='object_link'><a href="#fetch-instance_method" title="Phronomy::Agent::Context::Knowledge::Base#fetch (method)">#fetch</a></span> call to BlockingAdapterPool and returns a
-BlockingAdapterPool::PendingOperation.
-Callers can fan out multiple fetches in parallel and await them all.</p>
+    
 
   </div>
 </div>
 <div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>query</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>cancellation_token</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../../../Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">Phronomy::Concurrency::CancellationToken</a></span></tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>timeout</span>
-      
-      
-        <span class='type'>(<tt>Numeric</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>seconds before the operation is abandoned</p></div>
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>BlockingAdapterPool::PendingOperation</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
 
 </div><table class="source_code">
   <tr>
@@ -401,17 +284,17 @@ Callers can fan out multiple fetches in parallel and await them all.</p>
       <pre class="lines">
 
 
-34
-35
-36
-37
-38
-39
-40
-41</pre>
+16
+17
+18
+19
+20
+21
+22
+23</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/knowledge/base.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/knowledge/base.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fetch_async'>fetch_async</span><span class='lparen'>(</span><span class='label'>query:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="../../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../../../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_blocking_io'>blocking_io</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
@@ -437,10 +320,7 @@ Callers can fan out multiple fetches in parallel and await them all.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns true when this source's content is considered static (i.e. does
-not change between agent invocations). Static sources are eligible for
-fingerprint-based caching in ContextVersionCache.</p>
-<p>Override in subclasses that return fixed content.</p>
+    <p>Returns whether this source is logically static across invocations.</p>
 
   </div>
 </div>
@@ -466,12 +346,12 @@ fingerprint-based caching in ContextVersionCache.</p>
       <pre class="lines">
 
 
-51
-52
-53</pre>
+27
+28
+29</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/knowledge/base.rb', line 51</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context/knowledge/base.rb', line 27</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_static?'>static?</span>
   <span class='kw'>false</span>
@@ -486,7 +366,7 @@ fingerprint-based caching in ContextVersionCache.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Aug  8 12:53:06 2026 by
+  Generated on Sat Aug  8 18:26:54 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

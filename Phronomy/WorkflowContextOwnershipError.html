@@ -108,11 +108,9 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Raised when a <span class='object_link'><a href="WorkflowContext.html" title="Phronomy::WorkflowContext (module)">WorkflowContext</a></span> field is mutated from a thread
-that does not own the context (i.e. not the EventLoop dispatch thread).
-Only raised in EventLoop mode.  Use <code>context.merge(...)</code> to produce a new
-context, or deliver updates as <code>:action_completed</code> event payloads
-via <span class='object_link'><a href="Agent/AsyncEventApi.html#invoke_async-instance_method" title="Phronomy::Agent::AsyncEventApi#invoke_async (method)">Agent::AsyncEventApi#invoke_async</a></span> + <span class='object_link'><a href="Task.html#map-instance_method" title="Phronomy::Task#map (method)">Task#map</a></span>.</p>
+    <p>Raised when a WorkflowContext field is mutated from a thread that does not
+own the context. Deliver asynchronous updates back to the Workflow as later
+events via Workflow#signal instead of mutating context from worker callbacks.</p>
 
   </div>
 </div>
@@ -139,7 +137,7 @@ via <span class='object_link'><a href="Agent/AsyncEventApi.html#invoke_async-ins
 </div>
 
       <div id="footer">
-  Generated on Sat Aug  8 12:53:02 2026 by
+  Generated on Sat Aug  8 18:26:51 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -64,7 +64,7 @@
       <div id="content"><h1>Class: Phronomy::Agent::ToolInvocation
   
   
-  <span class="private note title">Private</span>
+  
 </h1>
 <div class="box_info">
   
@@ -102,23 +102,7 @@
   
 </div>
 
-<h2>Overview</h2><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This class is part of a private API.</strong>
-  You should avoid using this class if possible, as it may be removed or be changed in the future.
-</p>
-<p>Mutable state for one concrete ToolCall.</p>
-<p>The object owns Tool-domain state. FSMSession owns transitions, while
-ToolInvocationSessionBuilder converts Task completion into explicit
-Tool-internal events.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><h2>Defined Under Namespace</h2>
+<h2>Defined Under Namespace</h2>
 <p class="children">
   
     
@@ -138,40 +122,14 @@ Tool-internal events.</p>
     <dl class="constants">
       
         <dt id="PREFLIGHT_SETTLED_STATES-constant" class="">PREFLIGHT_SETTLED_STATES =
-          <div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This constant is part of a private API.</strong>
-  You should avoid using this constant if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div>
+          
         </dt>
         <dd><pre class="code"><span class='qsymbols_beg'>%i[</span><span class='words_sep'>
 </span><span class='words_sep'>  </span><span class='tstring_content'>authorized</span><span class='words_sep'> </span><span class='tstring_content'>awaiting_approval</span><span class='words_sep'> </span><span class='tstring_content'>rejected</span><span class='words_sep'> </span><span class='tstring_content'>failed</span><span class='words_sep'> </span><span class='tstring_content'>cancelled</span><span class='words_sep'> </span><span class='tstring_content'>completed</span><span class='words_sep'>
 </span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
       
         <dt id="TERMINAL_STATES-constant" class="">TERMINAL_STATES =
-          <div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This constant is part of a private API.</strong>
-  You should avoid using this constant if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div>
+          
         </dt>
         <dd><pre class="code"><span class='qsymbols_beg'>%i[</span><span class='tstring_content'>completed</span><span class='words_sep'> </span><span class='tstring_content'>rejected</span><span class='words_sep'> </span><span class='tstring_content'>failed</span><span class='words_sep'> </span><span class='tstring_content'>cancelled</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
       
@@ -203,10 +161,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute agent.</p></div></span>
   
 </li>
 
@@ -230,10 +188,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute approval_context.</p></div></span>
   
 </li>
 
@@ -257,10 +215,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute approval_policy.</p></div></span>
   
 </li>
 
@@ -284,10 +242,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute arguments.</p></div></span>
   
 </li>
 
@@ -311,10 +269,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute authorization_reason.</p></div></span>
   
 </li>
 
@@ -338,10 +296,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute config.</p></div></span>
   
 </li>
 
@@ -365,10 +323,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute error.</p></div></span>
   
 </li>
 
@@ -392,10 +350,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute facts.</p></div></span>
   
 </li>
 
@@ -419,10 +377,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute final_decision.</p></div></span>
   
 </li>
 
@@ -446,10 +404,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute id.</p></div></span>
   
 </li>
 
@@ -473,10 +431,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute metadata.</p></div></span>
   
 </li>
 
@@ -500,10 +458,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute origin.</p></div></span>
   
 </li>
 
@@ -527,10 +485,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute parent_agent_invocation_id.</p></div></span>
   
 </li>
 
@@ -554,10 +512,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute phase.</p></div></span>
   
 </li>
 
@@ -581,10 +539,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute raw_arguments.</p></div></span>
   
 </li>
 
@@ -608,10 +566,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute result.</p></div></span>
   
 </li>
 
@@ -635,10 +593,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute session_id.</p></div></span>
   
 </li>
 
@@ -662,10 +620,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute status.</p></div></span>
   
 </li>
 
@@ -689,10 +647,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute tool.</p></div></span>
   
 </li>
 
@@ -716,10 +674,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute tool_call_id.</p></div></span>
   
 </li>
 
@@ -743,10 +701,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute tool_name.</p></div></span>
   
 </li>
 
@@ -778,7 +736,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -799,28 +757,6 @@ Tool-internal events.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#apply_fsm_action_result-instance_method" title="#apply_fsm_action_result (instance method)">#<strong>apply_fsm_action_result</strong>(outcome)  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  <span class="private note title">private</span>
-
-  
-    <span class="summary_desc"><div class='inline'><p>Deprecated internal compatibility hook.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#authorization_task-instance_method" title="#authorization_task (instance method)">#<strong>authorization_task</strong>(runtime: Phronomy::Runtime.instance)  &#x21d2; Object </a>
     
 
@@ -832,7 +768,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -854,7 +790,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -876,7 +812,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -898,7 +834,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -920,7 +856,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -942,7 +878,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -964,7 +900,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -986,7 +922,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -1008,7 +944,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -1030,7 +966,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -1052,10 +988,10 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
-    <span class="summary_desc"><div class='inline'><p>Applies Tool-internal asynchronous completion events on the EventLoop thread.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -1076,7 +1012,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of ToolInvocation.</p></div></span>
@@ -1098,7 +1034,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -1120,7 +1056,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -1142,7 +1078,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -1164,7 +1100,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -1186,7 +1122,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -1208,7 +1144,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -1230,7 +1166,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -1252,7 +1188,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -1274,7 +1210,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -1296,7 +1232,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -1318,7 +1254,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -1340,7 +1276,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -1362,7 +1298,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -1384,7 +1320,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -1406,7 +1342,7 @@ Tool-internal events.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -1432,11 +1368,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Returns a new instance of ToolInvocation.</p>
+    <p>Returns a new instance of ToolInvocation.</p>
 
   </div>
 </div>
@@ -1449,6 +1381,31 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
 73
 74
 75
@@ -1459,52 +1416,10 @@ Tool-internal events.</p>
 80
 81
 82
-83
-84
-85
-86
-87
-88
-89
-90
-91
-92
-93
-94
-95
-96
-97
-98
-99
-100
-101
-102
-103
-104
-105
-106
-107
-108
-109
-110
-111
-112
-113
-114
-115
-116
-117
-118
-119
-120
-121
-122
-123
-124
-125</pre>
+83</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 73</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 48</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>parent_agent_invocation_id:</span><span class='comma'>,</span>
@@ -1517,37 +1432,20 @@ Tool-internal events.</p>
   <span class='label'>id:</span> <span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_uuid'>uuid</span>
 <span class='rparen'>)</span>
   <span class='ivar'>@id</span> <span class='op'>=</span> <span class='id identifier rubyid_id'>id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
-  <span class='ivar'>@parent_agent_invocation_id</span> <span class='op'>=</span>
-    <span class='id identifier rubyid_parent_agent_invocation_id'>parent_agent_invocation_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
+  <span class='ivar'>@parent_agent_invocation_id</span> <span class='op'>=</span> <span class='id identifier rubyid_parent_agent_invocation_id'>parent_agent_invocation_id</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
   <span class='ivar'>@agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span>
   <span class='ivar'>@tool</span> <span class='op'>=</span> <span class='id identifier rubyid_tool'>tool</span>
   <span class='ivar'>@tool_name</span> <span class='op'>=</span> <span class='id identifier rubyid_tool_call'>tool_call</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
-  <span class='ivar'>@tool_call_id</span> <span class='op'>=</span>
-    <span class='id identifier rubyid_tool_call'>tool_call</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:id</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id identifier rubyid_tool_call'>tool_call</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span> <span class='op'>:</span> <span class='kw'>nil</span>
-  <span class='id identifier rubyid_raw_arguments'>raw_arguments</span> <span class='op'>=</span>
-    <span class='kw'>if</span> <span class='id identifier rubyid_tool_call'>tool_call</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:arguments</span><span class='rparen'>)</span>
-      <span class='id identifier rubyid_tool_call'>tool_call</span><span class='period'>.</span><span class='id identifier rubyid_arguments'>arguments</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
-    <span class='kw'>else</span>
-      <span class='lbrace'>{</span><span class='rbrace'>}</span>
-    <span class='kw'>end</span>
+  <span class='ivar'>@tool_call_id</span> <span class='op'>=</span> <span class='id identifier rubyid_tool_call'>tool_call</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:id</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id identifier rubyid_tool_call'>tool_call</span><span class='period'>.</span><span class='id identifier rubyid_id'>id</span> <span class='op'>:</span> <span class='kw'>nil</span>
+  <span class='id identifier rubyid_raw_arguments'>raw_arguments</span> <span class='op'>=</span> <span class='id identifier rubyid_tool_call'>tool_call</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:arguments</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='lparen'>(</span><span class='id identifier rubyid_tool_call'>tool_call</span><span class='period'>.</span><span class='id identifier rubyid_arguments'>arguments</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
   <span class='ivar'>@raw_arguments</span> <span class='op'>=</span> <span class='id identifier rubyid_immutable_copy'>immutable_copy</span><span class='lparen'>(</span><span class='id identifier rubyid_raw_arguments'>raw_arguments</span><span class='rparen'>)</span>
   <span class='ivar'>@config</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span>
   <span class='ivar'>@approval_policy</span> <span class='op'>=</span> <span class='id identifier rubyid_approval_policy'>approval_policy</span>
-  <span class='ivar'>@approval_context</span> <span class='op'>=</span>
-    <span class='id identifier rubyid_immutable_copy'>immutable_copy</span><span class='lparen'>(</span><span class='id identifier rubyid_approval_context'>approval_context</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='ivar'>@origin</span> <span class='op'>=</span>
-    <span class='kw'>if</span> <span class='id identifier rubyid_tool'>tool</span><span class='op'>&amp;.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:tool_origin</span><span class='rparen'>)</span>
-      <span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_tool_origin'>tool_origin</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span>
-    <span class='kw'>else</span>
-      <span class='symbol'>:local</span>
-    <span class='kw'>end</span>
-  <span class='ivar'>@metadata</span> <span class='op'>=</span>
-    <span class='id identifier rubyid_immutable_copy'>immutable_copy</span><span class='lparen'>(</span>
-      <span class='id identifier rubyid_tool'>tool</span><span class='op'>&amp;.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:approval_metadata</span><span class='rparen'>)</span> <span class='op'>?</span>
-        <span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_approval_metadata'>approval_metadata</span> <span class='op'>:</span>
-        <span class='lbrace'>{</span><span class='rbrace'>}</span>
-    <span class='rparen'>)</span>
-
+  <span class='ivar'>@approval_context</span> <span class='op'>=</span> <span class='id identifier rubyid_immutable_copy'>immutable_copy</span><span class='lparen'>(</span><span class='id identifier rubyid_approval_context'>approval_context</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+  <span class='ivar'>@origin</span> <span class='op'>=</span> <span class='id identifier rubyid_tool'>tool</span><span class='op'>&amp;.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:tool_origin</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_tool_origin'>tool_origin</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span> <span class='op'>:</span> <span class='symbol'>:local</span>
+  <span class='ivar'>@metadata</span> <span class='op'>=</span> <span class='id identifier rubyid_immutable_copy'>immutable_copy</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_tool'>tool</span><span class='op'>&amp;.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:approval_metadata</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id identifier rubyid_tool'>tool</span><span class='period'>.</span><span class='id identifier rubyid_approval_metadata'>approval_metadata</span> <span class='op'>:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+  <span class='rparen'>)</span>
   <span class='ivar'>@arguments</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@facts</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
   <span class='ivar'>@final_decision</span> <span class='op'>=</span> <span class='kw'>nil</span>
@@ -1582,11 +1480,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute agent.</p>
 
   </div>
 </div>
@@ -1599,12 +1493,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_agent'>agent</span>
   <span class='ivar'>@agent</span>
@@ -1627,11 +1521,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute approval_context.</p>
 
   </div>
 </div>
@@ -1644,12 +1534,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approval_context'>approval_context</span>
   <span class='ivar'>@approval_context</span>
@@ -1672,11 +1562,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute approval_policy.</p>
 
   </div>
 </div>
@@ -1689,12 +1575,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approval_policy'>approval_policy</span>
   <span class='ivar'>@approval_policy</span>
@@ -1717,11 +1603,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute arguments.</p>
 
   </div>
 </div>
@@ -1734,12 +1616,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_arguments'>arguments</span>
   <span class='ivar'>@arguments</span>
@@ -1762,11 +1644,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute authorization_reason.</p>
 
   </div>
 </div>
@@ -1779,12 +1657,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_authorization_reason'>authorization_reason</span>
   <span class='ivar'>@authorization_reason</span>
@@ -1807,11 +1685,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute config.</p>
 
   </div>
 </div>
@@ -1824,12 +1698,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_config'>config</span>
   <span class='ivar'>@config</span>
@@ -1852,11 +1726,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute error.</p>
 
   </div>
 </div>
@@ -1869,12 +1739,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_error'>error</span>
   <span class='ivar'>@error</span>
@@ -1897,11 +1767,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute facts.</p>
 
   </div>
 </div>
@@ -1914,12 +1780,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_facts'>facts</span>
   <span class='ivar'>@facts</span>
@@ -1942,11 +1808,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute final_decision.</p>
 
   </div>
 </div>
@@ -1959,12 +1821,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_final_decision'>final_decision</span>
   <span class='ivar'>@final_decision</span>
@@ -1987,11 +1849,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute id.</p>
 
   </div>
 </div>
@@ -2004,12 +1862,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_id'>id</span>
   <span class='ivar'>@id</span>
@@ -2032,11 +1890,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute metadata.</p>
 
   </div>
 </div>
@@ -2049,12 +1903,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_metadata'>metadata</span>
   <span class='ivar'>@metadata</span>
@@ -2077,11 +1931,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute origin.</p>
 
   </div>
 </div>
@@ -2094,12 +1944,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_origin'>origin</span>
   <span class='ivar'>@origin</span>
@@ -2122,11 +1972,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute parent_agent_invocation_id.</p>
 
   </div>
 </div>
@@ -2139,12 +1985,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_parent_agent_invocation_id'>parent_agent_invocation_id</span>
   <span class='ivar'>@parent_agent_invocation_id</span>
@@ -2167,11 +2013,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute phase.</p>
 
   </div>
 </div>
@@ -2184,12 +2026,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_phase'>phase</span>
   <span class='ivar'>@phase</span>
@@ -2212,11 +2054,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute raw_arguments.</p>
 
   </div>
 </div>
@@ -2229,12 +2067,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_raw_arguments'>raw_arguments</span>
   <span class='ivar'>@raw_arguments</span>
@@ -2257,11 +2095,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute result.</p>
 
   </div>
 </div>
@@ -2274,12 +2108,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_result'>result</span>
   <span class='ivar'>@result</span>
@@ -2302,11 +2136,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute session_id.</p>
 
   </div>
 </div>
@@ -2319,12 +2149,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_session_id'>session_id</span>
   <span class='ivar'>@session_id</span>
@@ -2347,11 +2177,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute status.</p>
 
   </div>
 </div>
@@ -2364,12 +2190,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_status'>status</span>
   <span class='ivar'>@status</span>
@@ -2392,11 +2218,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute tool.</p>
 
   </div>
 </div>
@@ -2409,12 +2231,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool'>tool</span>
   <span class='ivar'>@tool</span>
@@ -2437,11 +2259,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute tool_call_id.</p>
 
   </div>
 </div>
@@ -2454,12 +2272,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_call_id'>tool_call_id</span>
   <span class='ivar'>@tool_call_id</span>
@@ -2482,11 +2300,7 @@ Tool-internal events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    <p>Returns the value of attribute tool_name.</p>
 
   </div>
 </div>
@@ -2499,12 +2313,12 @@ Tool-internal events.</p>
       <pre class="lines">
 
 
-34
-35
-36</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_name'>tool_name</span>
   <span class='ivar'>@tool_name</span>
@@ -2530,60 +2344,33 @@ Tool-internal events.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-56
-57
-58
-59
-60
-61
-62
-63
-64
-65
-66
-67
-68
-69
-70
-71</pre>
+38
+39
+40
+41
+42
+43
+44
+45
+46</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 38</span>
 
-<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_missing'>missing</span><span class='lparen'>(</span>
-  <span class='label'>parent_agent_invocation_id:</span><span class='comma'>,</span>
-  <span class='label'>agent:</span><span class='comma'>,</span>
-  <span class='label'>tool_call:</span><span class='comma'>,</span>
-  <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
-<span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_missing'>missing</span><span class='lparen'>(</span><span class='label'>parent_agent_invocation_id:</span><span class='comma'>,</span> <span class='label'>agent:</span><span class='comma'>,</span> <span class='label'>tool_call:</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
     <span class='label'>parent_agent_invocation_id:</span> <span class='id identifier rubyid_parent_agent_invocation_id'>parent_agent_invocation_id</span><span class='comma'>,</span>
     <span class='label'>agent:</span> <span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span>
     <span class='label'>tool:</span> <span class='kw'>nil</span><span class='comma'>,</span>
     <span class='label'>tool_call:</span> <span class='id identifier rubyid_tool_call'>tool_call</span><span class='comma'>,</span>
     <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span>
-  <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_tap'>tap</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_invocation'>invocation</span><span class='op'>|</span>
-    <span class='id identifier rubyid_invocation'>invocation</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:complete_missing_tool!</span><span class='rparen'>)</span>
-  <span class='kw'>end</span>
+  <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_tap'>tap</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_invocation'>invocation</span><span class='op'>|</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:complete_missing_tool!</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -2597,34 +2384,38 @@ Tool-internal events.</p>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="apply_fsm_action_result-instance_method">
+  <h3 class="signature first" id="authorization_task-instance_method">
   
-    #<strong>apply_fsm_action_result</strong>(outcome)  &#x21d2; <tt>Object</tt> 
-  
-
+    #<strong>authorization_task</strong>(runtime: Phronomy::Runtime.instance)  &#x21d2; <tt>Object</tt> 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Deprecated internal compatibility hook. FSMSession no longer calls
-this method; asynchronous results enter through explicit events.</p>
 
-  </div>
-</div>
-<div class="tags">
   
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
 162
 163
 164
@@ -2633,118 +2424,10 @@ this method; asynchronous results enter through explicit events.</p>
 167
 168
 169
-170
-171
-172
-173
-174
-175
-176
-177
-178
-179
-180</pre>
+170</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 162</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_apply_fsm_action_result'>apply_fsm_action_result</span><span class='lparen'>(</span><span class='id identifier rubyid_outcome'>outcome</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_event_type'>event_type</span> <span class='op'>=</span>
-    <span class='kw'>case</span> <span class='id identifier rubyid_outcome'>outcome</span>
-    <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="ToolInvocation/AuthorizationOutcome.html" title="Phronomy::Agent::ToolInvocation::AuthorizationOutcome (class)">AuthorizationOutcome</a></span></span>
-      <span class='symbol'>:authorization_completed</span>
-    <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="ToolInvocation/ExecutionOutcome.html" title="Phronomy::Agent::ToolInvocation::ExecutionOutcome (class)">ExecutionOutcome</a></span></span>
-      <span class='symbol'>:execution_completed</span>
-    <span class='kw'>else</span>
-      <span class='kw'>return</span> <span class='kw'>self</span>
-    <span class='kw'>end</span>
-  <span class='id identifier rubyid_handle_fsm_event'>handle_fsm_event</span><span class='lparen'>(</span>
-    <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Event.html" title="Phronomy::Event (class)">Event</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
-      <span class='label'>type:</span> <span class='id identifier rubyid_event_type'>event_type</span><span class='comma'>,</span>
-      <span class='label'>target_id:</span> <span class='ivar'>@id</span><span class='comma'>,</span>
-      <span class='label'>payload:</span> <span class='id identifier rubyid_outcome'>outcome</span>
-    <span class='rparen'>)</span>
-  <span class='rparen'>)</span>
-  <span class='kw'>self</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="authorization_task-instance_method">
-  
-    #<strong>authorization_task</strong>(runtime: Phronomy::Runtime.instance)  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-215
-216
-217
-218
-219
-220
-221
-222
-223
-224
-225
-226
-227
-228
-229
-230
-231
-232
-233
-234
-235
-236
-237
-238
-239
-240
-241
-242
-243
-244
-245
-246
-247
-248
-249
-250
-251
-252
-253
-254
-255
-256</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 215</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 144</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_authorization_task'>authorization_task</span><span class='lparen'>(</span><span class='label'>runtime:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='rparen'>)</span>
   <span class='id identifier rubyid_pool'>pool</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_pool'>pool</span><span class='lparen'>(</span>
@@ -2752,37 +2435,22 @@ this method; asynchronous results enter through explicit events.</p>
     <span class='label'>size:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_authorization_pool_size'>authorization_pool_size</span><span class='comma'>,</span>
     <span class='label'>queue_size:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_authorization_queue_size'>authorization_queue_size</span>
   <span class='rparen'>)</span>
-  <span class='id identifier rubyid_timeout'>timeout</span> <span class='op'>=</span> <span class='ivar'>@config</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span>
-    <span class='symbol'>:authorization_timeout</span><span class='comma'>,</span>
-    <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_authorization_timeout'>authorization_timeout</span>
-  <span class='rparen'>)</span>
-  <span class='id identifier rubyid_cancellation_token'>cancellation_token</span> <span class='op'>=</span> <span class='ivar'>@config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span>
+  <span class='id identifier rubyid_timeout'>timeout</span> <span class='op'>=</span> <span class='ivar'>@config</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:authorization_timeout</span><span class='comma'>,</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_authorization_timeout'>authorization_timeout</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_pending'>pending</span> <span class='op'>=</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
     <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
-    <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
+    <span class='label'>cancellation_token:</span> <span class='ivar'>@config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span><span class='comma'>,</span>
     <span class='label'>on_full:</span> <span class='symbol'>:raise</span>
-  <span class='rparen'>)</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_evaluate_authorization'>evaluate_authorization</span>
-  <span class='kw'>end</span>
+  <span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_evaluate_authorization'>evaluate_authorization</span> <span class='rbrace'>}</span>
 
-  <span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="../Task.html#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span></span><span class='lparen'>(</span>
-    <span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool-authorization:</span><span class='embexpr_beg'>#{</span><span class='ivar'>@tool_name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
-  <span class='rparen'>)</span>
+  <span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="../Task.html#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool-authorization:</span><span class='embexpr_beg'>#{</span><span class='ivar'>@tool_name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
   <span class='id identifier rubyid_pending'>pending</span><span class='period'>.</span><span class='id identifier rubyid_on_complete'>on_complete</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_outcome'>outcome</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='op'>|</span>
-    <span class='id identifier rubyid_resolved'>resolved</span> <span class='op'>=</span>
-      <span class='kw'>if</span> <span class='id identifier rubyid_error'>error</span>
-        <span class='id identifier rubyid_authorization_failure_outcome'>authorization_failure_outcome</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
-      <span class='kw'>else</span>
-        <span class='id identifier rubyid_outcome'>outcome</span>
-      <span class='kw'>end</span>
+    <span class='id identifier rubyid_resolved'>resolved</span> <span class='op'>=</span> <span class='id identifier rubyid_error'>error</span> <span class='op'>?</span> <span class='id identifier rubyid_authorization_failure_outcome'>authorization_failure_outcome</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id identifier rubyid_outcome'>outcome</span>
     <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_backend'>backend</span><span class='period'>.</span><span class='id identifier rubyid_unblock'>unblock</span><span class='lparen'>(</span><span class='id identifier rubyid_resolved'>resolved</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_transition!'>transition!</span><span class='lparen'>(</span><span class='symbol'>:completed</span><span class='comma'>,</span> <span class='label'>value:</span> <span class='id identifier rubyid_resolved'>resolved</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_task'>task</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
-  <span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="../Task.html#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span></span><span class='lparen'>(</span>
-    <span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool-authorization:</span><span class='embexpr_beg'>#{</span><span class='ivar'>@tool_name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
-  <span class='rparen'>)</span>
+  <span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="../Task.html#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool-authorization:</span><span class='embexpr_beg'>#{</span><span class='ivar'>@tool_name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
   <span class='id identifier rubyid_outcome'>outcome</span> <span class='op'>=</span> <span class='id identifier rubyid_authorization_failure_outcome'>authorization_failure_outcome</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_backend'>backend</span><span class='period'>.</span><span class='id identifier rubyid_unblock'>unblock</span><span class='lparen'>(</span><span class='id identifier rubyid_outcome'>outcome</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_transition!'>transition!</span><span class='lparen'>(</span><span class='symbol'>:completed</span><span class='comma'>,</span> <span class='label'>value:</span> <span class='id identifier rubyid_outcome'>outcome</span><span class='rparen'>)</span>
@@ -2804,11 +2472,7 @@ this method; asynchronous results enter through explicit events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    
 
   </div>
 </div>
@@ -2834,16 +2498,12 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-360
-361
-362</pre>
+236</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 360</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 236</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_authorized?'>authorized?</span>
-  <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:authorized</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_authorized?'>authorized?</span> <span class='op'>=</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:authorized</span></pre>
     </td>
   </tr>
 </table>
@@ -2860,11 +2520,7 @@ this method; asynchronous results enter through explicit events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    
 
   </div>
 </div>
@@ -2890,16 +2546,12 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-356
-357
-358</pre>
+235</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 356</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 235</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_awaiting_approval?'>awaiting_approval?</span>
-  <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:awaiting_approval</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_awaiting_approval?'>awaiting_approval?</span> <span class='op'>=</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:awaiting_approval</span></pre>
     </td>
   </tr>
 </table>
@@ -2916,11 +2568,7 @@ this method; asynchronous results enter through explicit events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    
 
   </div>
 </div>
@@ -2946,16 +2594,12 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-348
-349
-350</pre>
+233</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 348</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 233</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_cancelled?'>cancelled?</span>
-  <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:cancelled</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_cancelled?'>cancelled?</span> <span class='op'>=</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:cancelled</span></pre>
     </td>
   </tr>
 </table>
@@ -2972,11 +2616,7 @@ this method; asynchronous results enter through explicit events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    
 
   </div>
 </div>
@@ -3002,19 +2642,15 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-376
-377
-378
-379
-380</pre>
+241
+242
+243</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 376</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 241</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_dispatchable?'>dispatchable?</span>
-  <span class='kw'>return</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:queued</span>
-
-  <span class='ivar'>@final_decision</span> <span class='op'>==</span> <span class='symbol'>:allow</span> <span class='op'>||</span> <span class='ivar'>@approval_consumed</span>
+  <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:queued</span> <span class='op'>&amp;&amp;</span> <span class='lparen'>(</span><span class='ivar'>@final_decision</span> <span class='op'>==</span> <span class='symbol'>:allow</span> <span class='op'>||</span> <span class='ivar'>@approval_consumed</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -3030,31 +2666,18 @@ this method; asynchronous results enter through explicit events.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-388
-389
-390</pre>
+249
+250
+251</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 388</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 249</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_display_arguments'>display_arguments</span>
   <span class='id identifier rubyid_redact_for_display'>redact_for_display</span><span class='lparen'>(</span><span class='ivar'>@arguments</span> <span class='op'>||</span> <span class='ivar'>@raw_arguments</span><span class='rparen'>)</span>
@@ -3073,36 +2696,21 @@ this method; asynchronous results enter through explicit events.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-392
-393
-394
-395</pre>
+253
+254
+255</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 392</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 253</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_display_facts'>display_facts</span>
-  <span class='id identifier rubyid_sensitive_values'>sensitive_values</span> <span class='op'>=</span> <span class='id identifier rubyid_sensitive_argument_values'>sensitive_argument_values</span>
-  <span class='id identifier rubyid_redact_value'>redact_value</span><span class='lparen'>(</span><span class='ivar'>@facts</span><span class='comma'>,</span> <span class='id identifier rubyid_sensitive_values'>sensitive_values</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_redact_value'>redact_value</span><span class='lparen'>(</span><span class='ivar'>@facts</span><span class='comma'>,</span> <span class='id identifier rubyid_sensitive_argument_values'>sensitive_argument_values</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -3120,11 +2728,7 @@ this method; asynchronous results enter through explicit events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    
 
   </div>
 </div>
@@ -3150,16 +2754,12 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-364
-365
-366</pre>
+237</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 364</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 237</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_execution_completed?'>execution_completed?</span>
-  <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:completed</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_execution_completed?'>execution_completed?</span> <span class='op'>=</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:completed</span></pre>
     </td>
   </tr>
 </table>
@@ -3174,99 +2774,70 @@ this method; asynchronous results enter through explicit events.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-258
-259
-260
-261
-262
-263
-264
-265
-266
-267
-268
-269
-270
-271
-272
-273
-274
-275
-276
-277
-278
-279
-280
-281
-282
-283
-284
-285
-286
-287
-288
-289
-290
-291
-292
-293
-294
-295
-296</pre>
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 258</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 172</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execution_task'>execution_task</span><span class='lparen'>(</span><span class='label'>runtime:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_pending'>pending</span> <span class='op'>=</span>
-    <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="ToolExecutor.html" title="Phronomy::Agent::ToolExecutor (module)">ToolExecutor</a></span></span><span class='period'>.</span><span class='id identifier rubyid_call_invocation_async'><span class='object_link'><a href="ToolExecutor.html#call_invocation_async-class_method" title="Phronomy::Agent::ToolExecutor.call_invocation_async (method)">call_invocation_async</a></span></span><span class='lparen'>(</span>
-      <span class='label'>tool_invocation:</span> <span class='kw'>self</span><span class='comma'>,</span>
-      <span class='label'>cancellation_token:</span> <span class='ivar'>@config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span><span class='comma'>,</span>
-      <span class='label'>config:</span> <span class='ivar'>@config</span><span class='comma'>,</span>
-      <span class='label'>runtime:</span> <span class='id identifier rubyid_runtime'>runtime</span>
-    <span class='rparen'>)</span>
-  <span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="../Task.html#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span></span><span class='lparen'>(</span>
-    <span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool-execution:</span><span class='embexpr_beg'>#{</span><span class='ivar'>@tool_name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_pending'>pending</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="ToolExecutor.html" title="Phronomy::Agent::ToolExecutor (module)">ToolExecutor</a></span></span><span class='period'>.</span><span class='id identifier rubyid_call_invocation_async'><span class='object_link'><a href="ToolExecutor.html#call_invocation_async-class_method" title="Phronomy::Agent::ToolExecutor.call_invocation_async (method)">call_invocation_async</a></span></span><span class='lparen'>(</span>
+    <span class='label'>tool_invocation:</span> <span class='kw'>self</span><span class='comma'>,</span>
+    <span class='label'>cancellation_token:</span> <span class='ivar'>@config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span><span class='comma'>,</span>
+    <span class='label'>config:</span> <span class='ivar'>@config</span><span class='comma'>,</span>
+    <span class='label'>runtime:</span> <span class='id identifier rubyid_runtime'>runtime</span>
   <span class='rparen'>)</span>
+  <span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="../Task.html#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool-execution:</span><span class='embexpr_beg'>#{</span><span class='ivar'>@tool_name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
   <span class='id identifier rubyid_pending'>pending</span><span class='period'>.</span><span class='id identifier rubyid_on_complete'>on_complete</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='op'>|</span>
-    <span class='id identifier rubyid_outcome'>outcome</span> <span class='op'>=</span>
-      <span class='kw'>if</span> <span class='id identifier rubyid_error'>error</span>
-        <span class='const'><span class='object_link'><a href="ToolInvocation/ExecutionOutcome.html" title="Phronomy::Agent::ToolInvocation::ExecutionOutcome (class)">ExecutionOutcome</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ToolInvocation#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-          <span class='label'>error:</span> <span class='id identifier rubyid_error'>error</span><span class='comma'>,</span>
-          <span class='label'>cancelled:</span> <span class='id identifier rubyid_error'>error</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span>
-            <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span>
-          <span class='rparen'>)</span>
-        <span class='rparen'>)</span>
-      <span class='kw'>else</span>
-        <span class='const'><span class='object_link'><a href="ToolInvocation/ExecutionOutcome.html" title="Phronomy::Agent::ToolInvocation::ExecutionOutcome (class)">ExecutionOutcome</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ToolInvocation#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>result:</span> <span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span>
-      <span class='kw'>end</span>
+    <span class='id identifier rubyid_outcome'>outcome</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_error'>error</span>
+      <span class='const'><span class='object_link'><a href="ToolInvocation/ExecutionOutcome.html" title="Phronomy::Agent::ToolInvocation::ExecutionOutcome (class)">ExecutionOutcome</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ToolInvocation#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+        <span class='label'>error:</span> <span class='id identifier rubyid_error'>error</span><span class='comma'>,</span>
+        <span class='label'>cancelled:</span> <span class='id identifier rubyid_error'>error</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='rparen'>)</span>
+      <span class='rparen'>)</span>
+    <span class='kw'>else</span>
+      <span class='const'><span class='object_link'><a href="ToolInvocation/ExecutionOutcome.html" title="Phronomy::Agent::ToolInvocation::ExecutionOutcome (class)">ExecutionOutcome</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ToolInvocation#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>result:</span> <span class='id identifier rubyid_result'>result</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
     <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_backend'>backend</span><span class='period'>.</span><span class='id identifier rubyid_unblock'>unblock</span><span class='lparen'>(</span><span class='id identifier rubyid_outcome'>outcome</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_transition!'>transition!</span><span class='lparen'>(</span><span class='symbol'>:completed</span><span class='comma'>,</span> <span class='label'>value:</span> <span class='id identifier rubyid_outcome'>outcome</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_task'>task</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
-  <span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="../Task.html#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span></span><span class='lparen'>(</span>
-    <span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool-execution:</span><span class='embexpr_beg'>#{</span><span class='ivar'>@tool_name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
-  <span class='rparen'>)</span>
+  <span class='id identifier rubyid_task'>task</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="../Task.html#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span></span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool-execution:</span><span class='embexpr_beg'>#{</span><span class='ivar'>@tool_name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
   <span class='id identifier rubyid_outcome'>outcome</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ToolInvocation/ExecutionOutcome.html" title="Phronomy::Agent::ToolInvocation::ExecutionOutcome (class)">ExecutionOutcome</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ToolInvocation#initialize (method)">new</a></span></span><span class='lparen'>(</span>
     <span class='label'>error:</span> <span class='id identifier rubyid_error'>error</span><span class='comma'>,</span>
     <span class='label'>cancelled:</span> <span class='id identifier rubyid_error'>error</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='rparen'>)</span>
@@ -3291,11 +2862,7 @@ this method; asynchronous results enter through explicit events.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    
 
   </div>
 </div>
@@ -3321,16 +2888,12 @@ this method; asynchronous results enter through explicit events.</p>
       <pre class="lines">
 
 
-344
-345
-346</pre>
+232</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 344</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 232</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_failed?'>failed?</span>
-  <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:failed</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_failed?'>failed?</span> <span class='op'>=</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:failed</span></pre>
     </td>
   </tr>
 </table>
@@ -3345,63 +2908,42 @@ this method; asynchronous results enter through explicit events.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-<p>Applies Tool-internal asynchronous completion events on the EventLoop
-thread. The return value tells FSMSession that the event was consumed by
-the context before its declared transition is evaluated.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-135
-136
-137
-138
-139
-140
-141
-142
-143
-144
-145
-146
-147
-148
-149
-150
-151
-152
-153
-154
-155
-156
-157
-158</pre>
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 135</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 90</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_handle_fsm_event'>handle_fsm_event</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='kw'>case</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span>
   <span class='kw'>when</span> <span class='symbol'>:authorization_completed</span>
     <span class='id identifier rubyid_outcome'>outcome</span> <span class='op'>=</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span>
-    <span class='kw'>if</span> <span class='id identifier rubyid_outcome'>outcome</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Exception</span><span class='rparen'>)</span>
-      <span class='id identifier rubyid_outcome'>outcome</span> <span class='op'>=</span>
-        <span class='const'><span class='object_link'><a href="ToolInvocation/AuthorizationOutcome.html" title="Phronomy::Agent::ToolInvocation::AuthorizationOutcome (class)">AuthorizationOutcome</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ToolInvocation#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>error:</span> <span class='id identifier rubyid_outcome'>outcome</span><span class='rparen'>)</span>
-    <span class='kw'>end</span>
+    <span class='id identifier rubyid_outcome'>outcome</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ToolInvocation/AuthorizationOutcome.html" title="Phronomy::Agent::ToolInvocation::AuthorizationOutcome (class)">AuthorizationOutcome</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ToolInvocation#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>error:</span> <span class='id identifier rubyid_outcome'>outcome</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_outcome'>outcome</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Exception</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_apply_authorization_outcome'>apply_authorization_outcome</span><span class='lparen'>(</span><span class='id identifier rubyid_outcome'>outcome</span><span class='rparen'>)</span>
     <span class='kw'>true</span>
   <span class='kw'>when</span> <span class='symbol'>:execution_completed</span>
@@ -3432,33 +2974,20 @@ the context before its declared transition is evaluated.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-303
-304
-305
-306
-307</pre>
+207
+208
+209
+210
+211</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 303</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 207</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_mark_authorized!'>mark_authorized!</span>
   <span class='ivar'>@approval_consumed</span> <span class='op'>=</span> <span class='kw'>true</span> <span class='kw'>if</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:awaiting_approval</span>
@@ -3479,37 +3008,20 @@ the context before its declared transition is evaluated.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-298
-299
-300
-301</pre>
+204
+205</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 298</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 204</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_mark_awaiting_approval!'>mark_awaiting_approval!</span>
-  <span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:awaiting_approval</span>
-  <span class='kw'>self</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_mark_awaiting_approval!'>mark_awaiting_approval!</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:awaiting_approval</span>
+<span class='kw'>self</span><span class='rparen'>)</span></pre>
     </td>
   </tr>
 </table>
@@ -3524,37 +3036,20 @@ the context before its declared transition is evaluated.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-325
-326
-327
-328</pre>
+223
+224</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 325</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 223</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_mark_cancelled!'>mark_cancelled!</span>
-  <span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:cancelled</span>
-  <span class='kw'>self</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_mark_cancelled!'>mark_cancelled!</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:cancelled</span>
+<span class='kw'>self</span><span class='rparen'>)</span></pre>
     </td>
   </tr>
 </table>
@@ -3569,39 +3064,22 @@ the context before its declared transition is evaluated.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-330
-331
-332
-333
-334</pre>
+226
+227
+228</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 330</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 226</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_mark_framework_failed!'>mark_framework_failed!</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
-  <span class='ivar'>@error</span> <span class='op'>=</span> <span class='id identifier rubyid_error'>error</span>
-  <span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:failed</span>
-  <span class='kw'>self</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_mark_framework_failed!'>mark_framework_failed!</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@error</span> <span class='op'>=</span> <span class='id identifier rubyid_error'>error</span>
+<span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:failed</span>
+<span class='kw'>self</span><span class='rparen'>)</span></pre>
     </td>
   </tr>
 </table>
@@ -3616,37 +3094,20 @@ the context before its declared transition is evaluated.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-309
-310
-311
-312</pre>
+213
+214</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 309</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 213</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_mark_queued!'>mark_queued!</span>
-  <span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:queued</span>
-  <span class='kw'>self</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_mark_queued!'>mark_queued!</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:queued</span>
+<span class='kw'>self</span><span class='rparen'>)</span></pre>
     </td>
   </tr>
 </table>
@@ -3661,39 +3122,22 @@ the context before its declared transition is evaluated.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-319
-320
-321
-322
-323</pre>
+219
+220
+221</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 319</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 219</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_mark_rejected!'>mark_rejected!</span>
-  <span class='ivar'>@final_decision</span> <span class='op'>=</span> <span class='symbol'>:reject</span>
-  <span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:rejected</span>
-  <span class='kw'>self</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_mark_rejected!'>mark_rejected!</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@final_decision</span> <span class='op'>=</span> <span class='symbol'>:reject</span>
+<span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:rejected</span>
+<span class='kw'>self</span><span class='rparen'>)</span></pre>
     </td>
   </tr>
 </table>
@@ -3708,37 +3152,20 @@ the context before its declared transition is evaluated.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-314
-315
-316
-317</pre>
+216
+217</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 314</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 216</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_mark_running!'>mark_running!</span>
-  <span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:running</span>
-  <span class='kw'>self</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_mark_running!'>mark_running!</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@status</span> <span class='op'>=</span> <span class='symbol'>:running</span>
+<span class='kw'>self</span><span class='rparen'>)</span></pre>
     </td>
   </tr>
 </table>
@@ -3755,11 +3182,7 @@ the context before its declared transition is evaluated.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    
 
   </div>
 </div>
@@ -3785,16 +3208,12 @@ the context before its declared transition is evaluated.</p>
       <pre class="lines">
 
 
-368
-369
-370</pre>
+238</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 368</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 238</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_preflight_settled?'>preflight_settled?</span>
-  <span class='const'><span class='object_link'><a href="#PREFLIGHT_SETTLED_STATES-constant" title="Phronomy::Agent::ToolInvocation::PREFLIGHT_SETTLED_STATES (constant)">PREFLIGHT_SETTLED_STATES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='ivar'>@status</span><span class='rparen'>)</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_preflight_settled?'>preflight_settled?</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="#PREFLIGHT_SETTLED_STATES-constant" title="Phronomy::Agent::ToolInvocation::PREFLIGHT_SETTLED_STATES (constant)">PREFLIGHT_SETTLED_STATES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='ivar'>@status</span><span class='rparen'>)</span></pre>
     </td>
   </tr>
 </table>
@@ -3811,11 +3230,7 @@ the context before its declared transition is evaluated.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    
 
   </div>
 </div>
@@ -3841,16 +3256,12 @@ the context before its declared transition is evaluated.</p>
       <pre class="lines">
 
 
-352
-353
-354</pre>
+234</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 352</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 234</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_rejected?'>rejected?</span>
-  <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:rejected</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_rejected?'>rejected?</span> <span class='op'>=</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:rejected</span></pre>
     </td>
   </tr>
 </table>
@@ -3865,32 +3276,19 @@ the context before its declared transition is evaluated.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-127
-128
-129
-130</pre>
+85
+86
+87
+88</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 127</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 85</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>phase:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@session_id</span> <span class='op'>=</span> <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='kw'>if</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
@@ -3912,11 +3310,7 @@ the context before its declared transition is evaluated.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    
 
   </div>
 </div>
@@ -3942,16 +3336,12 @@ the context before its declared transition is evaluated.</p>
       <pre class="lines">
 
 
-372
-373
-374</pre>
+239</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 372</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 239</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_terminal?'>terminal?</span>
-  <span class='const'><span class='object_link'><a href="#TERMINAL_STATES-constant" title="Phronomy::Agent::ToolInvocation::TERMINAL_STATES (constant)">TERMINAL_STATES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='ivar'>@status</span><span class='rparen'>)</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_terminal?'>terminal?</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="#TERMINAL_STATES-constant" title="Phronomy::Agent::ToolInvocation::TERMINAL_STATES (constant)">TERMINAL_STATES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='ivar'>@status</span><span class='rparen'>)</span></pre>
     </td>
   </tr>
 </table>
@@ -3966,38 +3356,21 @@ the context before its declared transition is evaluated.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-382
-383
-384
-385
-386</pre>
+245
+246
+247</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 382</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 245</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_schema'>tool_schema</span>
-  <span class='ivar'>@tool</span><span class='op'>&amp;.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:params_schema</span><span class='rparen'>)</span> <span class='op'>?</span>
-    <span class='ivar'>@tool</span><span class='period'>.</span><span class='id identifier rubyid_params_schema'>params_schema</span> <span class='op'>:</span>
-    <span class='lbrace'>{</span><span class='rbrace'>}</span>
+  <span class='ivar'>@tool</span><span class='op'>&amp;.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:params_schema</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='ivar'>@tool</span><span class='period'>.</span><span class='id identifier rubyid_params_schema'>params_schema</span> <span class='op'>:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -4013,70 +3386,55 @@ the context before its declared transition is evaluated.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-182
-183
-184
-185
-186
-187
-188
-189
-190
-191
-192
-193
-194
-195
-196
-197
-198
-199
-200
-201
-202
-203
-204
-205
-206
-207
-208
-209
-210
-211
-212
-213</pre>
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 182</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 112</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_validate!'>validate!</span>
   <span class='kw'>return</span> <span class='kw'>self</span> <span class='kw'>if</span> <span class='id identifier rubyid_terminal?'>terminal?</span>
 
-  <span class='id identifier rubyid_validated'>validated</span><span class='comma'>,</span> <span class='id identifier rubyid_schema_error'>schema_error</span> <span class='op'>=</span>
-    <span class='kw'>if</span> <span class='ivar'>@tool</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:validate_and_coerce</span><span class='comma'>,</span> <span class='kw'>true</span><span class='rparen'>)</span>
-      <span class='ivar'>@tool</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:validate_and_coerce</span><span class='comma'>,</span> <span class='ivar'>@raw_arguments</span><span class='rparen'>)</span>
-    <span class='kw'>else</span>
-      <span class='lbracket'>[</span><span class='ivar'>@raw_arguments</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='rbracket'>]</span>
-    <span class='kw'>end</span>
+  <span class='id identifier rubyid_validated'>validated</span><span class='comma'>,</span> <span class='id identifier rubyid_schema_error'>schema_error</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ivar'>@tool</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:validate_and_coerce</span><span class='comma'>,</span> <span class='kw'>true</span><span class='rparen'>)</span>
+    <span class='ivar'>@tool</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:validate_and_coerce</span><span class='comma'>,</span> <span class='ivar'>@raw_arguments</span><span class='rparen'>)</span>
+  <span class='kw'>else</span>
+    <span class='lbracket'>[</span><span class='ivar'>@raw_arguments</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='rbracket'>]</span>
+  <span class='kw'>end</span>
 
   <span class='kw'>if</span> <span class='id identifier rubyid_schema_error'>schema_error</span>
     <span class='kw'>if</span> <span class='ivar'>@tool</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:on_schema_error</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span>
@@ -4116,11 +3474,7 @@ the context before its declared transition is evaluated.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    
 
   </div>
 </div>
@@ -4146,16 +3500,12 @@ the context before its declared transition is evaluated.</p>
       <pre class="lines">
 
 
-340
-341
-342</pre>
+231</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 340</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 231</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_validation_completed?'>validation_completed?</span>
-  <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:completed</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_validation_completed?'>validation_completed?</span> <span class='op'>=</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:completed</span></pre>
     </td>
   </tr>
 </table>
@@ -4172,11 +3522,7 @@ the context before its declared transition is evaluated.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
+    
 
   </div>
 </div>
@@ -4202,16 +3548,12 @@ the context before its declared transition is evaluated.</p>
       <pre class="lines">
 
 
-336
-337
-338</pre>
+230</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 336</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/tool_invocation.rb', line 230</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_validation_passed?'>validation_passed?</span>
-  <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:valid</span>
-<span class='kw'>end</span></pre>
+<span class='kw'>def</span> <span class='id identifier rubyid_validation_passed?'>validation_passed?</span> <span class='op'>=</span> <span class='ivar'>@status</span> <span class='op'>==</span> <span class='symbol'>:valid</span></pre>
     </td>
   </tr>
 </table>
@@ -4222,7 +3564,7 @@ the context before its declared transition is evaluated.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Aug  8 12:53:04 2026 by
+  Generated on Sat Aug  8 18:26:53 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

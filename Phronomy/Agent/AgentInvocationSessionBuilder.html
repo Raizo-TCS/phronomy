@@ -110,7 +110,8 @@
 </p>
 <p>Builds FSMSession instances for AgentInvocation objects.</p>
 <p>Blocking/provider work returns through explicit Agent-internal events.
-Entry actions start operations and return synchronously.</p>
+Entry actions start operations and return synchronously.
+Every LLM Call is prepared from a canonical Manifest and RuntimeProjection.</p>
 
   </div>
 </div>
@@ -238,7 +239,7 @@ Entry actions start operations and return synchronously.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#build-class_method" title="build (class method)">.<strong>build</strong>(agent:, input:, messages:, config:, approval_policy: nil, approval_listener: nil, mode: :invoke, on_event: nil, runtime: Phronomy::Runtime.instance)  &#x21d2; Object </a>
+      <a href="#build-class_method" title="build (class method)">.<strong>build</strong>(agent:, input:, config:, approval_policy: nil, approval_listener: nil, mode: :invoke, on_event: nil, runtime: Phronomy::Runtime.instance)  &#x21d2; Object </a>
     
 
     
@@ -292,7 +293,7 @@ Entry actions start operations and return synchronously.</p>
       <div class="method_details first">
   <h3 class="signature first" id="build-class_method">
   
-    .<strong>build</strong>(agent:, input:, messages:, config:, approval_policy: nil, approval_listener: nil, mode: :invoke, on_event: nil, runtime: Phronomy::Runtime.instance)  &#x21d2; <tt>Object</tt> 
+    .<strong>build</strong>(agent:, input:, config:, approval_policy: nil, approval_listener: nil, mode: :invoke, on_event: nil, runtime: Phronomy::Runtime.instance)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -317,7 +318,6 @@ Entry actions start operations and return synchronously.</p>
       <pre class="lines">
 
 
-40
 41
 42
 43
@@ -342,16 +342,14 @@ Entry actions start operations and return synchronously.</p>
 62
 63
 64
-65
-66</pre>
+65</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation_session_builder.rb', line 40</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation_session_builder.rb', line 41</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_build'>build</span><span class='lparen'>(</span>
   <span class='label'>agent:</span><span class='comma'>,</span>
   <span class='label'>input:</span><span class='comma'>,</span>
-  <span class='label'>messages:</span><span class='comma'>,</span>
   <span class='label'>config:</span><span class='comma'>,</span>
   <span class='label'>approval_policy:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>approval_listener:</span> <span class='kw'>nil</span><span class='comma'>,</span>
@@ -362,7 +360,6 @@ Entry actions start operations and return synchronously.</p>
   <span class='id identifier rubyid_invocation'>invocation</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="AgentInvocation.html" title="Phronomy::Agent::AgentInvocation (class)">AgentInvocation</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="AgentInvocation.html#initialize-instance_method" title="Phronomy::Agent::AgentInvocation#initialize (method)">new</a></span></span><span class='lparen'>(</span>
     <span class='label'>agent:</span> <span class='id identifier rubyid_agent'>agent</span><span class='comma'>,</span>
     <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
-    <span class='label'>messages:</span> <span class='id identifier rubyid_messages'>messages</span><span class='comma'>,</span>
     <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
     <span class='label'>approval_policy:</span> <span class='id identifier rubyid_approval_policy'>approval_policy</span><span class='comma'>,</span>
     <span class='label'>approval_listener:</span> <span class='id identifier rubyid_approval_listener'>approval_listener</span><span class='comma'>,</span>
@@ -408,6 +405,7 @@ Entry actions start operations and return synchronously.</p>
       <pre class="lines">
 
 
+67
 68
 69
 70
@@ -420,11 +418,10 @@ Entry actions start operations and return synchronously.</p>
 77
 78
 79
-80
-81</pre>
+80</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation_session_builder.rb', line 68</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation_session_builder.rb', line 67</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_build_for_resume'>build_for_resume</span><span class='lparen'>(</span>
   <span class='label'>agent_invocation:</span><span class='comma'>,</span>
@@ -450,7 +447,7 @@ Entry actions start operations and return synchronously.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Aug  8 12:53:07 2026 by
+  Generated on Sat Aug  8 18:26:55 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

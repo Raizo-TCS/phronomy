@@ -106,32 +106,7 @@
   
 </div>
 
-<h2>Overview</h2><div class="docstring">
-  <div class="discussion">
-    <p>Raised when Agent#invoke (a synchronous, blocking call) is attempted from
-inside an active scheduler task and <code>strict_runtime_guards</code> is enabled.</p>
-<p>Calling a blocking invocation from within a scheduler task stalls the
-scheduler until the inner invocation completes, preventing other tasks from
-making progress (hidden deadlock risk).  Use Agent#invoke_async followed by
-<code>#await</code> inside scheduler tasks instead.</p>
-<p>This error is only raised when:</p>
-<pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="../Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span> <span class='op'>=</span> <span class='kw'>true</span> <span class='rbrace'>}</span>
-</code></pre>
-<p>By default a warning is logged and execution continues.</p>
 
-  </div>
-</div>
-<div class="tags">
-  
-
-  <p class="tag_title">See Also:</p>
-  <ul class="see">
-    
-      <li><span class='object_link'><a href="Runtime.html#in_scheduler_context%3F-class_method" title="Phronomy::Runtime.in_scheduler_context? (method)">Runtime.in_scheduler_context?</a></span></li>
-    
-  </ul>
-
-</div>
 
 
 
@@ -151,7 +126,7 @@ making progress (hidden deadlock risk).  Use Agent#invoke_async followed by
 </div>
 
       <div id="footer">
-  Generated on Sat Aug  8 12:53:02 2026 by
+  Generated on Sat Aug  8 18:26:51 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
