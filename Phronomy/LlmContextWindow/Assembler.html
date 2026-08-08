@@ -113,9 +113,10 @@ messages:, tool_classes: hash consumed by Agent::Base.</p>
 </span><span class='int'>4</span><span class='period'>.</span> <span class='const'>Conversation</span> <span class='id identifier rubyid_—'>—</span> <span class='id identifier rubyid_historical'>historical</span> <span class='id identifier rubyid_messages'>messages</span> <span class='id identifier rubyid_added'>added</span> <span class='id identifier rubyid_via'>via</span> <span class='comment'>#add_messages
 </span></code></pre>
 <p>Token budgeting:</p>
-<pre class="code ruby"><code class="ruby">When a budget is given, conversation messages are trimmed from oldest to
-newest until they fit. Capability token cost is estimated and deducted
-from the budget before conversation trimming so the reserve is accurate.
+<pre class="code ruby"><code class="ruby">When a budget is given, Assembler validates that the supplied conversation
+messages fit after instruction, knowledge, and capability costs are
+accounted for. It does not prune messages; Manifest-first Context Policy
+is responsible for context selection.
 Knowledge chunks are always included in full (they are assumed to be
 pre-screened by the caller). When no budget is given all messages are
 passed through unchanged.</code></pre>
@@ -383,7 +384,7 @@ passed through unchanged.</code></pre>
       
       
         &mdash;
-        <div class='inline'><p>when nil no token trimming is performed</p></div>
+        <div class='inline'><p>when nil no budget validation is performed</p></div>
       
     </li>
   
@@ -396,16 +397,16 @@ passed through unchanged.</code></pre>
       <pre class="lines">
 
 
-50
 51
 52
 53
 54
 55
-56</pre>
+56
+57</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 50</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 51</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>budget:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@budget</span> <span class='op'>=</span> <span class='id identifier rubyid_budget'>budget</span>
@@ -509,12 +510,12 @@ static knowledge XML tags independently of an Assembler instance.</p>
       <pre class="lines">
 
 
-42
 43
-44</pre>
+44
+45</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 42</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 43</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_xml_tag'>xml_tag</span><span class='lparen'>(</span><span class='id identifier rubyid_text'>text</span><span class='comma'>,</span> <span class='label'>type:</span><span class='comma'>,</span> <span class='label'>trusted:</span> <span class='kw'>false</span><span class='rparen'>)</span>
   <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>&lt;context type=\&quot;</span><span class='embexpr_beg'>#{</span><span class='const'>CGI</span><span class='period'>.</span><span class='id identifier rubyid_escapeHTML'>escapeHTML</span><span class='lparen'>(</span><span class='id identifier rubyid_type'>type</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span><span class='embexpr_end'>}</span><span class='tstring_content'>\&quot; trusted=\&quot;</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_trusted'>trusted</span><span class='embexpr_end'>}</span><span class='tstring_content'>\&quot;&gt;\n</span><span class='embexpr_beg'>#{</span><span class='const'>CGI</span><span class='period'>.</span><span class='id identifier rubyid_escapeHTML'>escapeHTML</span><span class='lparen'>(</span><span class='id identifier rubyid_text'>text</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span><span class='embexpr_end'>}</span><span class='tstring_content'>\n&lt;/context&gt;</span><span class='tstring_end'>&quot;</span></span>
@@ -547,7 +548,7 @@ static knowledge XML tags independently of an Assembler instance.</p>
 </p>
 <p>Register tool classes (Region 2).
 Estimates their token cost and deducts it from the budget so that
-conversation trimming accounts for tool definition overhead.</p>
+budget estimation accounts for tool definition overhead.</p>
 
   </div>
 </div>
@@ -591,13 +592,13 @@ conversation trimming accounts for tool definition overhead.</p>
       <pre class="lines">
 
 
-65
 66
 67
-68</pre>
+68
+69</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 65</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 66</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_capability'>add_capability</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_classes'>tool_classes</span><span class='rparen'>)</span>
   <span class='ivar'>@tool_classes</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_classes'>tool_classes</span><span class='rparen'>)</span>
@@ -666,13 +667,13 @@ Calling this multiple times replaces the previous value.</p>
       <pre class="lines">
 
 
-77
 78
 79
-80</pre>
+80
+81</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 77</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 78</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_instruction'>add_instruction</span><span class='lparen'>(</span><span class='id identifier rubyid_text'>text</span><span class='rparen'>)</span>
   <span class='ivar'>@instruction</span> <span class='op'>=</span> <span class='id identifier rubyid_text'>text</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span>
@@ -788,13 +789,13 @@ XML tag so the LLM can produce grounded citations. Omitted when nil.</p></div>
       <pre class="lines">
 
 
-93
 94
 95
-96</pre>
+96
+97</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 93</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 94</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_knowledge'>add_knowledge</span><span class='lparen'>(</span><span class='id identifier rubyid_text'>text</span><span class='comma'>,</span> <span class='label'>type:</span><span class='comma'>,</span> <span class='label'>trusted:</span> <span class='kw'>false</span><span class='comma'>,</span> <span class='label'>source:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@knowledge_chunks</span> <span class='op'>&lt;&lt;</span> <span class='lbrace'>{</span><span class='label'>text:</span> <span class='id identifier rubyid_text'>text</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='id identifier rubyid_type'>type</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span> <span class='label'>trusted:</span> <span class='id identifier rubyid_trusted'>trusted</span><span class='comma'>,</span> <span class='label'>source:</span> <span class='id identifier rubyid_source'>source</span><span class='rbrace'>}</span>
@@ -865,13 +866,13 @@ XML tag so the LLM can produce grounded citations. Omitted when nil.</p></div>
       <pre class="lines">
 
 
-104
 105
 106
-107</pre>
+107
+108</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 104</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 105</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_messages'>add_messages</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span>
   <span class='ivar'>@messages</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_messages'>messages</span><span class='rparen'>)</span>
@@ -925,17 +926,17 @@ Returns <code>nil</code> when no budget is configured.</p>
       <pre class="lines">
 
 
-115
 116
 117
 118
 119
 120
 121
-122</pre>
+122
+123</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 115</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 116</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_available_for_messages'>available_for_messages</span>
   <span class='kw'>return</span> <span class='kw'>nil</span> <span class='kw'>unless</span> <span class='ivar'>@budget</span>
@@ -1001,7 +1002,6 @@ before passing them to the Assembler.</p>
       <pre class="lines">
 
 
-137
 138
 139
 140
@@ -1024,10 +1024,11 @@ before passing them to the Assembler.</p>
 157
 158
 159
-160</pre>
+160
+161</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 137</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/llm_context_window/assembler.rb', line 138</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_build'>build</span>
   <span class='id identifier rubyid_knowledge_text'>knowledge_text</span> <span class='op'>=</span> <span class='ivar'>@knowledge_chunks</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_xml_context_tag'>xml_context_tag</span><span class='lparen'>(</span><span class='id identifier rubyid_c'>c</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>\n\n</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
@@ -1063,7 +1064,7 @@ before passing them to the Assembler.</p>
 </div>
 
       <div id="footer">
-  Generated on Sat Aug  8 07:32:49 2026 by
+  Generated on Sat Aug  8 07:49:58 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

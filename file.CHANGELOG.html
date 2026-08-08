@@ -210,6 +210,39 @@ behavior change is intended.</p>
 dependencies; both are transitive dependencies of <code>ruby_llm</code> and are
 not used directly by phronomy.</p>
 </li>
+<li>
+<p><code>Workflow#invoke</code>, <code>#invoke_async</code>, and <code>#stream</code> now share context
+preparation, StateStore load/save, EventLoop registration, and FSMSession
+execution.</p>
+</li>
+<li>
+<p>Workflow entry and transition action return values use the same
+<code>set_graph_metadata</code> context protocol as FSMSession, including duck-typed
+context replacements.</p>
+</li>
+<li>
+<p>Agent terminal outcomes are delivered to <code>on_event</code> before the returned Task
+is settled. <code>Task#on_complete</code>, <code>wait_result</code>, and cancellation remain active.</p>
+</li>
+<li>
+<p>Mapping Agent events to Workflow events, correlation, stale-event handling,
+result persistence, and external Task cancellation are application concerns.</p>
+</li>
+<li>
+<p>LLM transport timeout, transient-error retry, backoff, and jitter are delegated
+to RubyLLM or another configured LLM adapter. Phronomy only translates the
+adapter's final provider error.</p>
+</li>
+<li>
+<p>Agent execution now creates exactly one AgentInvocation session per call.</p>
+</li>
+<li>
+<p>Parallel Tool mode dispatches the complete authorized ToolCall batch; Runtime's
+bounded workers and queues remain the coarse process-protection boundary.</p>
+</li>
+<li>
+<p>Caller-provided deadline and cancellation-token propagation is unchanged.</p>
+</li>
 </ul>
 <h3 id="Removed">Removed</h3>
 <ul>
@@ -260,26 +293,6 @@ InvocationContext.</p>
 <p><code>Configuration#stream_queue_max_size</code>, which no longer affected the
 Runtime-owned EventLoop streaming path.</p>
 </li>
-</ul>
-<h3 id="Changed">Changed</h3>
-<ul>
-<li><code>Workflow#invoke</code>, <code>#invoke_async</code>, and <code>#stream</code> now share context
-preparation, StateStore load/save, EventLoop registration, and FSMSession
-execution.</li>
-<li>Workflow entry and transition action return values use the same
-<code>set_graph_metadata</code> context protocol as FSMSession, including duck-typed
-context replacements.</li>
-<li>Agent terminal outcomes are delivered to <code>on_event</code> before the returned Task
-is settled. <code>Task#on_complete</code>, <code>wait_result</code>, and cancellation remain active.</li>
-<li>Mapping Agent events to Workflow events, correlation, stale-event handling,
-result persistence, and external Task cancellation are application concerns.</li>
-<li>LLM transport timeout, transient-error retry, backoff, and jitter are delegated
-to RubyLLM or another configured LLM adapter. Phronomy only translates the
-adapter's final provider error.</li>
-<li>Agent execution now creates exactly one AgentInvocation session per call.</li>
-<li>Parallel Tool mode dispatches the complete authorized ToolCall batch; Runtime's
-bounded workers and queues remain the coarse process-protection boundary.</li>
-<li>Caller-provided deadline and cancellation-token propagation is unchanged.</li>
 </ul>
 <h3 id="Fixed">Fixed</h3>
 <ul>
@@ -1519,7 +1532,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sat Aug  8 07:32:45 2026 by
+  Generated on Sat Aug  8 07:49:53 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
