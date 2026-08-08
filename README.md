@@ -28,7 +28,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Filters, an
 |---|---|
 | **Workflow** — Stateful, branching workflows with wait_state/send_event | Stable |
 | **Agent** — Stateful ReAct-style tool-calling agents with stable `agent_id`, persistence-backed execution state, canonical execution history, guardrails, and conversation context | Stable |
-| **Before-Completion Hook** — Three-tier LLM parameter injection | Stable |
+| **Before-LLM-Input Hook** — Three-tier per-call LLM input customization via `before_llm_input` and `LLMInputPatch` | Stable |
 | **Context Management** — Canonical Journal + per-LLM-call Manifest architecture with token-budget-aware selection and protocol-safe Tool Call / Tool message dependencies. Context selection never deletes canonical execution history | Stable |
 | **Filters** — Input/output transformation and blocking via `Filter::Base`; call `block!(reason)` to reject and raise `FilterBlockError` | Beta |
 | **`PromptInjectionFilter`** — Built-in `Filter::Base` subclass that detects prompt-injection patterns; usable standalone or as part of a filter chain | Beta |
@@ -56,7 +56,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Filters, an
 | **`stream` / `stream_async`** — callbacks execute on the EventLoop thread and must return quickly; the block form remains a compatibility alias for `on_event:` | Beta |
 | **`stream_callback_error_policy`** — Backward-compatible setting shared by `invoke_async` and `stream_async` terminal `on_event:` callbacks: `:report` (default) preserves the Agent result, while `:fail_task` fails the returned Task with `Phronomy::StreamCallbackError`; Agent execution errors are never replaced by callback errors | Beta |
 | **`invoke_async` / `call_async`** — `Agent::Base#invoke_async` and `Workflow#invoke_async` return a `Task`; `Agent::Context::Capability::Base#call_async` similarly; compatible with EventLoop and standalone contexts | Stable |
-| **`Task#map`** — transforms a Task's completed value and propagates failure/cancellation; Workflow entry and transition actions do not await mapped Tasks | Stable |
+| **`Task#map`** — transforms a Task's completed value and propagates failure/cancellation. `Task#map` remains available for application-level Task composition, but Workflow entry and transition actions must not return a Task | Stable |
 | **CancellationToken** — Cooperative cancellation via `cancel!`/`cancelled?`/`raise_if_cancelled!`; `timeout_after(seconds)` for monotonic-clock deadlines; optional `deadline:` (wall-clock) for backward compatibility; passed as `config: { cancellation_token: token }` to agents and `dispatch_parallel`; injected into `tool.execute` when the method declares a `cancellation_token:` keyword; bridged to `MCP::Cancellation` in `Phronomy::Tools::Mcp#execute` | Experimental |
 | **`dispatch_parallel` / `fan_out` `force_kill:` option** — `force_kill: false` (default) leaves timed-out workers running and raises `TimeoutError` immediately; `force_kill: true` restores the old `Thread#kill` behaviour with a `logger.warn` | Beta |
 | **`execution_mode` DSL on `Agent::Context::Capability::Base`** — Declares how a tool's `execute` should be dispatched: `:cooperative` (same scheduler thread), `:blocking_io` (default; offloaded to `BlockingAdapterPool`), `:cpu_bound`, `:external_process`; Tool-specific timeout/retry belongs to the Tool implementation or its client | Experimental |
@@ -520,26 +520,106 @@ puts result[:output]           # final answer
 puts result[:agent].class      # => BillingAgent
 ```
 
-### Before-Completion Hook — Dynamic LLM parameter injection
+### Before-LLM-Input Hook — Per-call LLM input customization
+
+`before_llm_input` runs before every LLM call and allows an application to
+customize that call without mutating the Agent, RubyLLM chat, or canonical
+Journal state directly.
+
+Hooks can be configured at three levels:
+
+1. global — applies to every Agent
+2. class — applies to every instance of one Agent definition
+3. instance — applies only to one Agent instance
+
+They run in that order: global → class → instance.
+
+A hook receives an immutable `Phronomy::Agent::LLMInputBuildContext` containing
+metadata about the LLM call:
+
+- `agent_id`
+- `agent_definition_id`
+- `definition_version`
+- `config`
+- `call_sequence`
+
+The hook does not receive the mutable Agent instance, RubyLLM messages, or
+`RubyLLM::Chat`.
+
+Return either:
+
+- `nil` to leave the call unchanged, or
+- a `Phronomy::Agent::LLMInputPatch`
+
+### Class-level hook
 
 ```ruby
-# Class-level: applies to all instances
 class MyAgent < Phronomy::Agent::Base
+  agent_definition id: "my-agent", version: 1
+
   model "gpt-4o"
-  before_completion ->(ctx) { { temperature: ctx.config[:precise] ? 0.0 : 0.7 } }
-end
 
-# Instance-level: overrides class hook for this agent only
-agent = MyAgent.new
-agent.before_completion = ->(ctx) { { max_tokens: 512 } }
-
-# Global: applies to every agent across the app
-Phronomy.configure do |c|
-  c.before_completion = ->(ctx) { { temperature: 0.3 } }
+  before_llm_input ->(ctx) {
+    Phronomy::Agent::LLMInputPatch.new(
+      model_config_patch: {
+        temperature: ctx.config[:precise] ? 0.0 : 0.7
+      }
+    )
+  }
 end
 ```
 
-Hooks are called in order — global → class → instance — and shallow-merged (`Hash#merge`; last hook wins on key conflicts).
+### Instance-level hook
+
+```ruby
+agent = MyAgent.new
+
+agent.before_llm_input = ->(_ctx) {
+  Phronomy::Agent::LLMInputPatch.new(
+    model_config_patch: {
+      max_output_tokens: 512
+    }
+  )
+}
+```
+
+### Global hook
+
+```ruby
+Phronomy.configure do |config|
+  config.before_llm_input = ->(_ctx) {
+    Phronomy::Agent::LLMInputPatch.new(
+      model_config_patch: {
+        temperature: 0.3
+      }
+    )
+  }
+end
+```
+
+When multiple hooks provide `model_config_patch`, patches are merged in hook
+order and later values win on key conflicts.
+
+`LLMInputPatch` can also supply `segment_candidates` for additional per-call
+context. Those segments participate in Manifest-first input assembly. This is
+intended for logical context supplied by the application; applications should
+not mutate RubyLLM message history directly.
+
+```ruby
+Phronomy::Agent::LLMInputPatch.new(
+  segment_candidates: [
+    {
+      content: "The customer is on the enterprise plan.",
+      category: :knowledge,
+      role: :user
+    }
+  ]
+)
+```
+
+The Journal remains the canonical record of observed execution history.
+`before_llm_input` customizes the logical input assembled for a particular LLM
+call; it does not rewrite previously recorded Journal history.
 
 ### GeneratorVerifier — Generator-Verifier loop with custom prompt builders
 
@@ -816,7 +896,7 @@ Phronomy.configure do |c|
   c.default_model                   = "gpt-4o-mini"
   c.recursion_limit                 = 25
   c.tracer                          = Phronomy::Tracing::NullTracer.new
-  c.before_completion               = nil   # optional; global hook lambda
+  c.before_llm_input                 = nil   # optional global before_llm_input hook
   c.trace_pii                       = false # default; set to true only when trace data contains no PII
   c.logger                          = nil   # optional; any object responding to #warn (e.g. Rails.logger)
   c.event_loop_stop_grace_seconds   = 5     # seconds to wait for sessions to drain on shutdown
@@ -843,7 +923,7 @@ Understanding when to use each prevents scheduler stalls and hidden deadlocks.
 | Context | Recommended API |
 |---------|----------------|
 | Top-level application code, Rails controller, background job | `agent.invoke(input)` — blocks the calling thread until done |
-| Workflow action / EventLoop callback | `agent.invoke_async(input).map { |r| ctx.merge(output: r[:output]) }` — returns a Task and resumes by state transition |
+| Workflow action | Start `invoke_async` and use `Workflow#signal` in the `on_event:` callback to deliver the result as a later Workflow event |
 | Top-level code that wants explicit async | `agent.invoke_async(input).wait_result` — blocks the calling thread until the Task completes |
 | Streaming from top-level code | `agent.stream(input) { |event| ... }` — blocks until done; callbacks run on the EventLoop thread |
 | Streaming non-blocking | `task = agent.stream_async(input) { |event| ... }` — returns Task immediately; callbacks run on the EventLoop thread |
@@ -852,11 +932,21 @@ Understanding when to use each prevents scheduler stalls and hidden deadlocks.
 
 ### Why this matters
 
-`invoke` is a synchronous wrapper that calls `invoke_async` and then _blocks_ the calling
-thread until the task completes.  It is intended for top-level application threads such as
-Rails controller actions, CLI scripts, or background jobs.  Inside EventLoop-driven
-workflow actions, return a Task and let `Task#map` / `Task#on_complete` drive the next
-state transition instead of waiting inside the EventLoop thread.
+`invoke` is a synchronous wrapper around asynchronous Agent execution and blocks
+the calling thread until the Agent finishes. It is appropriate for top-level
+application code such as CLI commands, controller actions, or background jobs.
+
+Workflow entry and transition actions have a different contract: they are
+synchronous Run-to-Completion callbacks and must finish promptly.
+
+If a Workflow action needs an Agent or another asynchronous operation, start the
+operation asynchronously, register its completion listener, return the Workflow
+context, and use `Workflow#signal` to deliver completion as a later Workflow
+event.
+
+Do not call blocking `Agent#invoke` from an EventLoop callback, and do not return
+the `Task` from `Agent#invoke_async` as the result of a Workflow entry or
+transition action.
 
 ### Runtime guard
 
@@ -884,14 +974,92 @@ result = my_agent.invoke("Hello")
 
 # Explicit async from top-level code
 result = my_agent.invoke_async("Hello").wait_result
-
-# Workflow action / EventLoop-safe use
-NODE = ->(ctx) {
-  my_agent.invoke_async("Hello").map { |result|
-    ctx.merge(answer: result[:output])
-  }
-}
 ```
+
+### Async work inside a Workflow
+
+Workflow entry and transition actions are synchronous Run-to-Completion
+callbacks.
+
+They may start asynchronous work, but they must return the Workflow context (or
+`nil`). Returning a `Phronomy::Task` from an entry or transition action is an
+error.
+
+When an asynchronous Agent finishes, deliver its result back to the live
+Workflow as a later event with `Workflow#signal`.
+
+```ruby
+class AnswerContext
+  include Phronomy::WorkflowContext
+
+  field :question, type: :replace, default: ""
+  field :answer,   type: :replace, default: nil
+end
+
+workflow = nil
+
+workflow = Phronomy::Workflow.define(AnswerContext) do
+  initial :asking
+
+  state :asking
+  state :done
+
+  entry :asking, ->(ctx) {
+    thread_id = ctx.thread_id
+
+    my_agent.invoke_async(
+      ctx.question,
+      on_event: ->(event) {
+        next unless event.type == :done
+
+        workflow.signal(
+          thread_id: thread_id,
+          event: :answer_ready,
+          payload: { answer: event.payload[:output] }
+        )
+      }
+    )
+
+    ctx
+  }
+
+  transition(
+    from: :asking,
+    on: :answer_ready,
+    to: :done,
+    action: ->(ctx, event) {
+      ctx.merge(answer: event.payload[:answer])
+    }
+  )
+
+  transition from: :done, to: :__finish__
+end
+```
+
+The important separation is:
+
+```text
+Workflow action
+    │
+    ├─ starts asynchronous work
+    │
+    └─ returns context immediately
+             │
+             ▼
+       asynchronous Agent
+             │
+             ▼
+      on_event / callback
+             │
+             ▼
+       Workflow#signal
+             │
+             ▼
+      later Workflow event
+```
+
+`Task#map` remains a valid Task API for transforming Task results, but a mapped
+Task must not be returned from a Workflow entry or transition action.
 
 ### :immediate backend (synchronous / test mode)
 
@@ -980,7 +1148,7 @@ The current default Context Policy is framework-managed. Public custom Context P
 Pass a `CancellationToken` to any agent via `config: { cancellation_token: token }`.
 Cancellation is checked at multiple granular checkpoints: before the LLM call,
 after each streaming chunk, before each parallel
-tool-call batch, and after each `before_completion` hook. `CancellationError` is
+tool-call batch, and after each `before_llm_input` hook. `CancellationError` is
 raised immediately. Phronomy does not replay the complete Agent invocation. No threads are force-killed — `ensure`
 blocks always execute.
 
@@ -1093,7 +1261,6 @@ bundle exec ruby NN_example_name/run.rb
 | 12 | `12_prompt_template/` | Advanced prompt templates |
 | 13 | `13_mcp_http_tool/` | HTTP-based MCP tool server |
 | 14 | `14_code_review/` | Automated code review agent |
-| 16 | `16_before_completion_hook/` | Global/class/instance before_completion hooks |
 | 17 | `17_multi_agent_handoff/` | Hub-and-spoke agent routing via Runner |
 
 The following examples are **app-level demos** (Rails apps or advanced pipelines)
