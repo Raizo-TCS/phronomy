@@ -2,7 +2,46 @@
 
 ## Status
 
-Proposed — 2026-05-31
+Partially Superseded by ADR-012 — 2026-08-08
+
+Originally proposed — 2026-05-31.
+
+## Supersession Note
+
+ADR-012, **Canonical Complete Execution Log and Context Policy**, supersedes the architectural parts of this ADR that treat the legacy `build_context` / `LlmContextWindow::Assembler` path as the long-term single authority for LLM input.
+
+In particular, the following parts of this ADR are no longer normative for the stateful Agent architecture:
+
+* **D1 — `build_context` is the single authority for all LLM input**
+* **D2 — Assembler handles all four regions including Capability**
+* **D3 — `build_context` includes all tools**
+* **D5 — Previous context stored as an instance variable**
+
+The replacement authority model is:
+
+```text
+Canonical Journal
+      ↓
+Context Policy
+      ↓
+LLM Call Manifest
+      ↓
+Runtime Projection
+      ↓
+RubyLLM / Provider
+```
+
+Under ADR-012:
+
+* the **Journal** is authoritative for logical execution facts observed by Phronomy;
+* the **Manifest** is authoritative for the logical input fixed for one specific LLM Call;
+* Context Policy determines which canonical history is selected for that Manifest;
+* selection, pruning, and compaction do not delete or rewrite the canonical Journal;
+* Tool protocol dependencies are preserved independently from semantic Context-selection policy.
+
+The problem statements and historical analysis in this ADR remain useful as design history. Decisions or implementation notes that do not conflict with ADR-012 may still describe valid constraints, but ADR-012 is authoritative whenever the two documents differ.
+
+See: `012-canonical-execution-log-and-context-policy.md`
 
 ## Context
 

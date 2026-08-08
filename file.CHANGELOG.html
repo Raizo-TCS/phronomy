@@ -65,57 +65,201 @@
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Added">Added</h3>
+<ul>
+<li>
+<p>Stateful Agent identity and persistence:</p>
+<ul>
+<li>Every concrete Agent definition declares a stable <code>agent_definition id:, version:</code>.</li>
+<li>Every Agent instance has a stable <code>agent_id</code>.</li>
+<li><code>Agent::Base.create</code> creates a persistent Agent instance.</li>
+<li><code>Agent::Base.load</code> restores an Agent from a shared Persistence backend.</li>
+<li><code>Agent#agent_root</code>, <code>#transcript</code>, <code>#clear_transcript!</code>, <code>#clear_memory!</code>,
+<code>#reset_context!</code>, <code>#close!</code>, and <code>#purge!</code> provide explicit state lifecycle operations.</li>
+</ul>
+</li>
+<li>
+<p>Persistence-backed Agent execution state:</p>
+<ul>
+<li>Agent executions have stable <code>execution_id</code> values and are persisted separately from the owning Agent.</li>
+<li>Suspended approval executions remain represented in Persistence.</li>
+<li>Resuming after process loss still requires future durable activation rehydration support.</li>
+</ul>
+</li>
+<li>
+<p>Canonical Complete Execution Log:</p>
+<ul>
+<li>Phronomy records observed logical execution facts in an append-only Agent Journal.</li>
+<li>Provider assistant responses preserve assistant content and all Tool Calls as one logical assistant message.</li>
+<li>Raw Tool return values and the Tool-role messages sent back to the LLM are represented as separate execution facts.</li>
+</ul>
+</li>
+<li>
+<p>Per-LLM-call canonical Manifests:</p>
+<ul>
+<li>Each LLM Call is assembled from a canonical Manifest.</li>
+<li>The Manifest records the logical input selected for that specific LLM Call.</li>
+<li>Runtime RubyLLM messages are materialized from the Manifest rather than treated as the source of truth.</li>
+</ul>
+</li>
+<li>
+<p>Context Policy domain:</p>
+<ul>
+<li>Context candidates are selected from canonical history without deleting the underlying Journal.</li>
+<li>Tool Call / Tool message protocol dependencies are selected atomically.</li>
+<li>Required context is validated independently from optional historical context.</li>
+<li><code>ContextBudgetExceededError</code> is raised when required context cannot fit in the available model budget.</li>
+</ul>
+</li>
+<li>
+<p>Context import for stateful Agents:</p>
+<ul>
+<li>Existing user / assistant / Tool history can be supplied through Agent creation context.</li>
+<li>Imported assistant messages retain their original logical message boundary and Tool Calls.</li>
+<li>Invalid Tool protocol histories are rejected instead of being guessed or repaired.</li>
+</ul>
+</li>
+<li>
+<p><code>Workflow#signal(thread_id:, event:, payload:)</code> for FIFO delivery to a live
+Workflow FSMSession.</p>
+</li>
+<li>
+<p>Workflow transition <code>action:</code> callbacks, executed after source exit callbacks
+and before target entry callbacks. Actions may accept <code>(context)</code> or
+<code>(context, event)</code> and may return a replacement Workflow context.</p>
+</li>
+<li>
+<p><code>InvalidAsyncWorkflowActionError</code> and
+<code>InvalidAsyncTransitionActionError</code>. Transition actions may start async work,
+but returning a <code>Phronomy::Task</code> is rejected rather than implicitly awaited.</p>
+</li>
+<li>
+<p>Symmetric Agent <code>on_event:</code> support for <code>invoke_async</code> and <code>stream_async</code>;
+streaming differs only by adding <code>:token</code> events.</p>
+</li>
+<li>
+<p><code>Agent#approve_async</code> and <code>Agent::Base.approve_async</code> resume a suspended
+AgentInvocation without blocking the caller and return a <code>Phronomy::Task</code>.</p>
+</li>
+<li>
+<p>Streaming invocations resumed through <code>approve_async</code> continue to deliver
+terminal stream events on the Runtime-owned EventLoop thread.</p>
+</li>
+<li>
+<p><code>Phronomy::Metrics.snapshot</code> now reports <code>event_loop_queue_depth</code> and
+<code>event_loop_queue_max_depth</code>.</p>
+</li>
+<li>
+<p>EventLoop emits a rate-limited warning when its shared event queue reaches
+1,000 pending entries. Events are observed only; they are not dropped.</p>
+</li>
+</ul>
 <h3 id="Changed">Changed</h3>
 <ul>
-<li>Refactor: <code>Agent::AsyncEventApi</code> is now the single implementation of
+<li>
+<p>Agent instances are now always stateful and Persistence-backed.</p>
+</li>
+<li>
+<p>Conversation history ownership has moved from the caller to the Agent:
+callers no longer need to pass the previous <code>messages</code> array back on every invocation.
+Completed invocation results may still expose <code>result[:messages]</code> as a materialized
+transcript projection.</p>
+</li>
+<li>
+<p><code>agent_definition id:, version:</code> is required for concrete Agent definitions.
+Loading persisted Agent state validates the stored definition identity and version
+against the runtime Agent class.</p>
+</li>
+<li>
+<p>Context-window management is now Manifest-first:
+canonical Agent history is retained in the Journal while each LLM Call receives
+only the context selected for its Manifest.</p>
+</li>
+<li>
+<p>Context pruning no longer means deleting or mutating historical Agent messages.
+Context Policy omission affects only the current LLM Call input.</p>
+</li>
+<li>
+<p>Tool execution results and Tool protocol messages are no longer treated as the
+same value. The raw Tool return value is retained as an execution fact while the
+exact Tool-role message remains independently available for LLM context assembly.</p>
+</li>
+<li>
+<p><code>thread_id</code> is an execution/correlation identifier rather than the owner of
+conversation state. Persistent Agent identity is defined by <code>agent_id</code>.</p>
+</li>
+<li>
+<p><code>context_overhead</code> is retained only for the legacy <code>build_context</code> path.
+Manifest-first context assembly accounts for actual mandatory context instead of
+reserving this value as Tool/system-prompt overhead.</p>
+</li>
+<li>
+<p>Phronomy now requires <code>ruby_llm &gt;= 1.15, &lt; 2</code> so Provider assistant messages can
+be captured before Agent-owned Tool execution begins.</p>
+</li>
+<li>
+<p>Refactor: <code>Agent::AsyncEventApi</code> is now the single implementation of
 <code>invoke</code>, <code>invoke_async</code>, <code>stream</code>, <code>stream_async</code>, and their session
 lifecycle helpers (<code>_start_invocation</code>, <code>_handle_agent_completion</code>,
 <code>_register_tool_invocation_session</code>, <code>_start_approval_resume</code>). The
 duplicate definitions in <code>Agent::Base</code> have been removed. No public
-behavior change is intended.</li>
-<li>Remove <code>faraday</code> and <code>event_stream_parser</code> from gemspec declared
+behavior change is intended.</p>
+</li>
+<li>
+<p>Remove <code>faraday</code> and <code>event_stream_parser</code> from gemspec declared
 dependencies; both are transitive dependencies of <code>ruby_llm</code> and are
-not used directly by phronomy.</li>
-</ul>
-<h3 id="Added">Added</h3>
-<ul>
-<li><code>Workflow#signal(thread_id:, event:, payload:)</code> for FIFO delivery to a live
-Workflow FSMSession.</li>
-<li>Workflow transition <code>action:</code> callbacks, executed after source exit callbacks
-and before target entry callbacks. Actions may accept <code>(context)</code> or
-<code>(context, event)</code> and may return a replacement Workflow context.</li>
-<li><code>InvalidAsyncWorkflowActionError</code> and
-<code>InvalidAsyncTransitionActionError</code>. Transition actions may start async work,
-but returning a <code>Phronomy::Task</code> is rejected rather than implicitly awaited.</li>
-<li>Symmetric Agent <code>on_event:</code> support for <code>invoke_async</code> and <code>stream_async</code>;
-streaming differs only by adding <code>:token</code> events.</li>
-<li><code>Agent#approve_async</code> and <code>Agent::Base.approve_async</code> resume a suspended
-AgentInvocation without blocking the caller and return a <code>Phronomy::Task</code>.</li>
-<li>Streaming invocations resumed through <code>approve_async</code> continue to deliver
-terminal stream events on the Runtime-owned EventLoop thread.</li>
-<li><code>Phronomy::Metrics.snapshot</code> now reports <code>event_loop_queue_depth</code> and
-<code>event_loop_queue_max_depth</code>.</li>
-<li>EventLoop emits a rate-limited warning when its shared event queue reaches
-1,000 pending entries. Events are observed only; they are not dropped.</li>
+not used directly by phronomy.</p>
+</li>
 </ul>
 <h3 id="Removed">Removed</h3>
 <ul>
-<li>Implicit awaiting of Task-returning Workflow/Agent/Tool entry actions and the
-Workflow <code>action_timeout:</code> DSL. Entry actions are synchronous RTC callbacks.</li>
-<li>The duplicate caller-thread <code>WorkflowRunner#run_workflow</code> execution path.</li>
-<li>Agent-wide automatic replay: <code>Agent::Base.retry_policy</code> and the <code>Retryable</code>
-concern. A failed AgentInvocation is no longer started again by Phronomy.</li>
-<li>Agent-class <code>invoke_timeout</code>. Callers that need a root deadline should pass an
-<code>InvocationContext</code> with <code>deadline:</code> or <code>cancellation_token:</code>.</li>
-<li>Phronomy LLM operation timeout <code>config[:llm_timeout]</code>; configure RubyLLM's
-<code>request_timeout</code> instead.</li>
-<li>Generic Tool retry DSL (<code>retry_on</code>, <code>retry_policies</code>) and
-<code>config[:tool_timeout]</code>; Tool/client implementations own their transport policy.</li>
-<li><code>max_parallel_tools</code> from Agent, AgentInvocation, ParallelToolChat, and
-InvocationContext.</li>
-<li>Unused <code>InvocationContext#provider_limits</code>.</li>
-<li><code>Configuration#stream_queue_max_size</code>, which no longer affected the
-Runtime-owned EventLoop streaming path.</li>
+<li>
+<p>Caller-managed <code>messages:</code> continuation from the Agent invocation API.
+Stateful Agent history is now obtained from the Agent's persisted Journal.</p>
+</li>
+<li>
+<p><code>Agent::Base#trim_messages</code> and the legacy Agent-level message-trimming model.
+Context selection is performed by the Context Policy / Manifest assembly path.</p>
+</li>
+<li>
+<p>The assumption that <code>build_context</code> and the legacy <code>LlmContextWindow::Assembler</code>
+are the long-term single authority for LLM input. ADR-012 defines the replacement
+Journal / Context Policy / Manifest architecture.</p>
+</li>
+<li>
+<p>Implicit awaiting of Task-returning Workflow/Agent/Tool entry actions and the
+Workflow <code>action_timeout:</code> DSL. Entry actions are synchronous RTC callbacks.</p>
+</li>
+<li>
+<p>The duplicate caller-thread <code>WorkflowRunner#run_workflow</code> execution path.</p>
+</li>
+<li>
+<p>Agent-wide automatic replay: <code>Agent::Base.retry_policy</code> and the <code>Retryable</code>
+concern. A failed AgentInvocation is no longer started again by Phronomy.</p>
+</li>
+<li>
+<p>Agent-class <code>invoke_timeout</code>. Callers that need a root deadline should pass an
+<code>InvocationContext</code> with <code>deadline:</code> or <code>cancellation_token:</code>.</p>
+</li>
+<li>
+<p>Phronomy LLM operation timeout <code>config[:llm_timeout]</code>; configure RubyLLM's
+<code>request_timeout</code> instead.</p>
+</li>
+<li>
+<p>Generic Tool retry DSL (<code>retry_on</code>, <code>retry_policies</code>) and
+<code>config[:tool_timeout]</code>; Tool/client implementations own their transport policy.</p>
+</li>
+<li>
+<p><code>max_parallel_tools</code> from Agent, AgentInvocation, ParallelToolChat, and
+InvocationContext.</p>
+</li>
+<li>
+<p>Unused <code>InvocationContext#provider_limits</code>.</p>
+</li>
+<li>
+<p><code>Configuration#stream_queue_max_size</code>, which no longer affected the
+Runtime-owned EventLoop streaming path.</p>
+</li>
 </ul>
 <h3 id="Changed">Changed</h3>
 <ul>
@@ -1375,7 +1519,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sat Aug  8 06:58:59 2026 by
+  Generated on Sat Aug  8 07:32:45 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

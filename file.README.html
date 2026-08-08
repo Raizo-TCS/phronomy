@@ -97,7 +97,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Stable</td>
 </tr>
 <tr>
-<td><strong>Agent</strong> — ReAct-style tool-calling agents with guardrails and conversation history</td>
+<td><strong>Agent</strong> — Stateful ReAct-style tool-calling agents with stable <code>agent_id</code>, persistence-backed execution state, canonical execution history, guardrails, and conversation context</td>
 <td>Stable</td>
 </tr>
 <tr>
@@ -105,7 +105,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Stable</td>
 </tr>
 <tr>
-<td><strong>Context Management</strong> — Token budget calculation, estimation, and pruning; <code>Agent::Base</code> protected hooks: <code>build_context</code> (overridable), <code>trim_messages</code>, <code>trim_to_budget</code>, <code>compact_messages</code>, <code>budget_exceeded?</code>, <code>drop_messages_over</code></td>
+<td><strong>Context Management</strong> — Canonical Journal + per-LLM-call Manifest architecture with token-budget-aware selection and protocol-safe Tool Call / Tool message dependencies. Context selection never deletes canonical execution history</td>
 <td>Stable</td>
 </tr>
 <tr>
@@ -283,7 +283,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Experimental</td>
 </tr>
 <tr>
-<td><strong>Human-in-the-loop approval</strong> — <code>Agent::Base#invoke</code> returns <code>{ suspended: true, agent_invocation_id: String, approval_request: Phronomy::Agent::ToolApprovalRequest }</code> when a tool requiring approval is encountered; <code>Agent::Base#approve(id, approval_request_id:, approved:)</code> (synchronous) or <code>Agent::Base#approve_async(id, approval_request_id:, approved:)</code> (returns <code>Task</code>) resumes execution; approval state is in-process only — not persisted across process restarts or shared across pods</td>
+<td><strong>Human-in-the-loop approval</strong> — <code>Agent::Base#invoke</code> returns <code>{ suspended: true, execution_id: String, approval_request: Phronomy::Agent::ToolApprovalRequest }</code> when approval is required. <code>#approve</code> / <code>#approve_async</code> resume that execution. Suspended execution state is stored in Persistence, but durable activation rehydration after a process restart is not yet supported</td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -918,28 +918,55 @@ constructs, error semantics, and client lifecycle contracts, see
 child process (stdio transport) or release the HTTP connection:</p>
 <pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_search_tool'>search_tool</span><span class='period'>.</span><span class='id identifier rubyid_close'>close</span>
 </code></pre>
-<h3 id="Conversation_History___passing_prior_messages">Conversation History — passing prior messages</h3>
-<p>Phronomy does not manage conversation history internally. The application owns the
-message array and passes it in via the <code>messages:</code> keyword argument:</p>
-<pre class="code ruby"><code class="ruby"><span class='comment'># First turn
-</span><span class='id identifier rubyid_result1'>result1</span> <span class='op'>=</span> <span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello! I&#39;m Alice.</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>session-1</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
-<span class='id identifier rubyid_prior_messages'>prior_messages</span> <span class='op'>=</span> <span class='id identifier rubyid_result1'>result1</span><span class='lbracket'>[</span><span class='symbol'>:messages</span><span class='rbracket'>]</span>   <span class='comment'># Array&lt;RubyLLM::Message&gt;
-</span>
-<span class='comment'># Second turn — pass prior messages so the agent has context
-</span><span class='id identifier rubyid_result2'>result2</span> <span class='op'>=</span> <span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span>
-  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>What is my name?</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
-  <span class='label'>messages:</span> <span class='id identifier rubyid_prior_messages'>prior_messages</span><span class='comma'>,</span>
-  <span class='label'>thread_id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>session-1</span><span class='tstring_end'>&quot;</span></span>
+<h3 id="Agent_State_and_Conversation_History">Agent State and Conversation History</h3>
+<p>Phronomy Agents are stateful objects. Each Agent has a stable <code>agent_id</code>, a persistent Agent root, an append-only execution Journal, and zero or more Agent executions.</p>
+<p>Every concrete Agent definition must declare a stable definition identity:</p>
+<pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>ResearchAgent</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Base.html" title="Phronomy::Agent::Base (class)">Base</a></span></span>
+  <span class='id identifier rubyid_agent_definition'>agent_definition</span> <span class='label'>id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>research-agent</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>version:</span> <span class='int'>1</span>
+
+  <span class='id identifier rubyid_model'>model</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>gpt-4o</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_instructions'>instructions</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>You are a research assistant.</span><span class='tstring_end'>&quot;</span></span>
+<span class='kw'>end</span>
+</code></pre>
+<p>The definition ID identifies the application-level Agent definition. The version is checked when a previously persisted Agent is loaded so that persisted state is not silently interpreted by an incompatible Agent definition.</p>
+<p>Create and continue using the same Agent instance normally:</p>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_persistence'>persistence</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Persistence/InMemory.html" title="Phronomy::Persistence::InMemory (class)">InMemory</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Persistence/InMemory.html#initialize-instance_method" title="Phronomy::Persistence::InMemory#initialize (method)">new</a></span></span>
+
+<span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='const'>ResearchAgent</span><span class='period'>.</span><span class='id identifier rubyid_create'>create</span><span class='lparen'>(</span>
+  <span class='label'>agent_id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>research-session-42</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+  <span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span>
 <span class='rparen'>)</span>
-<span class='id identifier rubyid_puts'>puts</span> <span class='id identifier rubyid_result2'>result2</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span>   <span class='comment'># =&gt; &quot;Your name is Alice.&quot;
-</span></code></pre>
-<p><code>result[:messages]</code> contains the complete message history after each invocation.
-Persist it however suits your application (in-memory hash, Redis, ActiveRecord, etc.).</p>
-<blockquote>
-<p><strong>Note on <code>thread_id</code></strong>: <code>thread_id</code> is a correlation identifier used internally for
-EventLoop session routing and compaction context. It does <strong>not</strong> automatically persist or
-restore conversation history — you must pass <code>messages:</code> explicitly on each turn as shown above.</p>
-</blockquote>
+
+<span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>My name is Alice.</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+<span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>What is my name?</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+
+<span class='id identifier rubyid_puts'>puts</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span>
+</code></pre>
+<p>Conversation history does not need to be passed back through <code>messages:</code> on every invocation. The Agent's canonical history is retained in its Journal and selected automatically when later LLM Calls are assembled.</p>
+<p>A persisted Agent can be loaded again when the same Persistence backend is available:</p>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='const'>ResearchAgent</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span>
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>research-session-42</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+  <span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span>
+<span class='rparen'>)</span>
+
+<span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Continue our previous discussion.</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+</code></pre>
+<p><code>result[:messages]</code> remains available as a materialized transcript of the Agent's current conversation history. It is a projection of canonical Agent state, not the authoritative storage mechanism and does not need to be supplied to the next <code>invoke</code>.</p>
+<p>Existing external conversation history can be supplied when a new Agent is created:</p>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='const'>ResearchAgent</span><span class='period'>.</span><span class='id identifier rubyid_create'>create</span><span class='lparen'>(</span>
+  <span class='label'>context:</span> <span class='id identifier rubyid_existing_messages'>existing_messages</span><span class='comma'>,</span>
+  <span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span>
+<span class='rparen'>)</span>
+</code></pre>
+<p>Imported history must satisfy Phronomy's Import contract. User, assistant, and Tool messages are journaled without destroying their logical message boundaries. System instructions are Agent configuration and are not imported as ordinary conversation messages.</p>
+<p><code>thread_id</code> is an execution correlation identifier. It does not identify the persistent Agent and is not a substitute for <code>agent_id</code>.</p>
+<p>The current conversation or memory view can be advanced without deleting the canonical Journal:</p>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_clear_transcript!'>clear_transcript!</span>
+<span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_clear_memory!'>clear_memory!</span>
+<span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_reset_context!'>reset_context!</span>
+</code></pre>
+<p>These operations change which historical records belong to the active context generation. The underlying append-only Journal remains intact.</p>
+<p><code>purge!</code> is different: it permanently removes the Agent and its persisted execution history from the configured Persistence backend.</p>
 <h2 id="Configuration">Configuration</h2>
 <pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span>
   <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_default_model'>default_model</span>                   <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>gpt-4o-mini</span><span class='tstring_end'>&quot;</span></span>
@@ -1053,35 +1080,39 @@ To switch back to the default thread-per-task backend:</p>
 </span><span class='kw'>end</span>
 </code></pre>
 <h2 id="Context_Management">Context Management</h2>
-<p>Phronomy includes a context window management layer. When model metadata is
-available (either from the built-in registry or via an explicit <code>context_window:</code> setting),
-agents automatically stay within the configured token limit.</p>
-<h3 id="TokenBudget">TokenBudget</h3>
-<p>Derives the effective token budget from RubyLLM's model registry:</p>
-<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_budget'>budget</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/LlmContextWindow.html" title="Phronomy::LlmContextWindow (module)">LlmContextWindow</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/LlmContextWindow/TokenBudget.html" title="Phronomy::LlmContextWindow::TokenBudget (class)">TokenBudget</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/LlmContextWindow/TokenBudget.html#initialize-instance_method" title="Phronomy::LlmContextWindow::TokenBudget#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-  <span class='label'>model:</span>    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>claude-3-5-sonnet-20241022</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>  <span class='comment'># looks up context_window + max_output_tokens
-</span>  <span class='label'>overhead:</span> <span class='int'>500</span>                            <span class='comment'># extra reservation for tool definitions
-</span><span class='rparen'>)</span>
-<span class='id identifier rubyid_budget'>budget</span><span class='period'>.</span><span class='id identifier rubyid_context_window'>context_window</span>       <span class='comment'># =&gt; 200_000
-</span><span class='id identifier rubyid_budget'>budget</span><span class='period'>.</span><span class='id identifier rubyid_max_output_tokens'>max_output_tokens</span>    <span class='comment'># =&gt; 8_192
-</span><span class='id identifier rubyid_budget'>budget</span><span class='period'>.</span><span class='id identifier rubyid_effective_input_limit'>effective_input_limit</span> <span class='comment'># =&gt; 191_308
-</span></code></pre>
-<p>Or supply explicit values (useful for local / unregistered models):</p>
-<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_budget'>budget</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/LlmContextWindow.html" title="Phronomy::LlmContextWindow (module)">LlmContextWindow</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/LlmContextWindow/TokenBudget.html" title="Phronomy::LlmContextWindow::TokenBudget (class)">TokenBudget</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/LlmContextWindow/TokenBudget.html#initialize-instance_method" title="Phronomy::LlmContextWindow::TokenBudget#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-  <span class='label'>context_window:</span>    <span class='int'>32_768</span><span class='comma'>,</span>
-  <span class='label'>max_output_tokens:</span> <span class='int'>4_096</span>
-<span class='rparen'>)</span>
+<p>Phronomy uses a Manifest-first context architecture for stateful Agents.</p>
+<p>The main flow is:</p>
+<pre class="code text"><code class="text">Canonical Journal
+      ↓
+Context Policy
+      ↓
+LLM Call Manifest
+      ↓
+Runtime Projection
+      ↓
+RubyLLM / Provider
 </code></pre>
-<h3 id="Agent_DSL_extensions">Agent DSL extensions</h3>
-<pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>MyAgent</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Base.html" title="Phronomy::Agent::Base (class)">Base</a></span></span>
-  <span class='id identifier rubyid_model'>model</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>gpt-4o</span><span class='tstring_end'>&quot;</span></span>
-  <span class='id identifier rubyid_max_output_tokens'>max_output_tokens</span> <span class='int'>4096</span>   <span class='comment'># override max_output_tokens from registry
-</span>  <span class='id identifier rubyid_context_overhead'>context_overhead</span>  <span class='int'>600</span>    <span class='comment'># extra reservation for system prompt + tools
-</span>  <span class='comment'># LLM timeout/retry is configured on RubyLLM, not on the Agent class.
-</span><span class='kw'>end</span>
+<p>The <strong>Journal</strong> is the canonical append-only record of logical execution facts observed by Phronomy.</p>
+<p>The <strong>Manifest</strong> is the canonical logical input fixed for one particular LLM Call.</p>
+<p>Context-window management therefore does not trim or rewrite the Agent's canonical history. Instead, Phronomy selects the subset of available context needed for each LLM Call and records that selection in the Manifest.</p>
+<p>This distinction allows old history to remain available even when it does not fit in the current model's context window.</p>
+<p>Tool protocol dependencies are preserved during selection. For example, an assistant message containing Tool Calls and the corresponding Tool-role messages are selected as a protocol-safe unit rather than independently pruning messages in a way that would create an invalid LLM conversation.</p>
+<p>When the available budget is insufficient, optional historical context can be omitted from the current Manifest. Required context is never silently removed merely to satisfy the budget. If the required input cannot fit, Phronomy raises <code>ContextBudgetExceededError</code>.</p>
+<h3 id="Context_window_configuration">Context-window configuration</h3>
+<p>Phronomy derives the effective context budget from RubyLLM model metadata when available.</p>
+<p>For local or otherwise unregistered models, the context window can be declared explicitly:</p>
+<pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>LocalAgent</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Base.html" title="Phronomy::Agent::Base (class)">Base</a></span></span>
+  <span class='id identifier rubyid_agent_definition'>agent_definition</span> <span class='label'>id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>local-agent</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>version:</span> <span class='int'>1</span>
+
+  <span class='id identifier rubyid_model'>model</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>local-model</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_context_window'>context_window</span> <span class='int'>32_768</span>
+  <span class='id identifier rubyid_max_output_tokens'>max_output_tokens</span> <span class='int'>4_096</span>
+<span class='kw'>end</span>
 </code></pre>
-<p><code>Agent::Base#invoke</code> builds a <code>TokenBudget</code> automatically. When the model is not in the
-registry the budget is silently skipped.</p>
+<p><code>context_window</code> determines the model's total context capacity.</p>
+<p><code>max_output_tokens</code> reserves capacity for the model's output.</p>
+<p>The legacy <code>context_overhead</code> setting remains for compatibility with the legacy <code>build_context</code> path, but it is not the mechanism used to reserve system-prompt or Tool-definition space in Manifest-first context assembly. New Agent implementations should not rely on <code>context_overhead</code> for that purpose.</p>
+<p>The current default Context Policy is framework-managed. Public custom Context Policy APIs, deterministic persistent compaction, and other advanced policy extension points are still evolving and should not yet be treated as stable application APIs.</p>
 <blockquote>
 <p><strong>Note on CJK languages</strong>: The default <code>TokenEstimator</code> uses a character-ratio heuristic
 calibrated for ASCII/Latin text (4 chars/token). For Chinese, Japanese, and Korean text,
@@ -1345,7 +1376,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat Aug  8 06:58:59 2026 by
+  Generated on Sat Aug  8 07:32:45 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
