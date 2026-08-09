@@ -129,19 +129,24 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
   end
 
   describe "Agent::Base integration" do
-    # A bare agent class with no invoke override. Cancellation is checked
-    # before the AgentInvocation session is registered.
     let(:bare_agent_class) { Class.new(Phronomy::Agent::Base) { agent_definition id: "test-agent-203", version: 1 } }
 
-    # An agent that short-circuits invoke to avoid real LLM calls.
     let(:success_agent_class) do
       Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-93", version: 1
-        define_method(:invoke) do |_input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
+        define_method(:invoke) do |_input, thread_id: nil, config: {}, invocation_context: nil, on_event: nil|
           {output: "ok", messages: []}
         end
-        define_method(:invoke_async) do |input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
-          Phronomy::Task.spawn(name: "stub-async") { invoke(input, messages: messages, thread_id: thread_id, config: config) }
+        define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
+          Phronomy::Task.spawn(name: "stub-async") do
+            invoke(
+              input,
+              thread_id: thread_id,
+              config: config,
+              invocation_context: invocation_context,
+              on_event: on_event
+            )
+          end
         end
       end
     end
@@ -175,17 +180,24 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
     let(:orchestrator_class) { Class.new(Phronomy::MultiAgent::Orchestrator) }
     subject(:orchestrator) { orchestrator_class.new }
 
-    # Agent that records the cancellation token it received in its config.
     def token_capturing_agent
       received_tokens = []
       agent_class = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-94", version: 1
-        define_method(:invoke) do |_input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
+        define_method(:invoke) do |_input, thread_id: nil, config: {}, invocation_context: nil, on_event: nil|
           received_tokens << config[:cancellation_token]
           {output: "ok", messages: []}
         end
-        define_method(:invoke_async) do |input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
-          Phronomy::Task.spawn(name: "stub-async") { invoke(input, messages: messages, thread_id: thread_id, config: config) }
+        define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
+          Phronomy::Task.spawn(name: "stub-async") do
+            invoke(
+              input,
+              thread_id: thread_id,
+              config: config,
+              invocation_context: invocation_context,
+              on_event: on_event
+            )
+          end
         end
       end
       [agent_class, received_tokens]
@@ -211,12 +223,20 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
 
       agent_class = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-95", version: 1
-        define_method(:invoke) do |_input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
+        define_method(:invoke) do |_input, thread_id: nil, config: {}, invocation_context: nil, on_event: nil|
           received_tokens << config[:cancellation_token]
           {output: "ok", messages: []}
         end
-        define_method(:invoke_async) do |input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
-          Phronomy::Task.spawn(name: "stub-async") { invoke(input, messages: messages, thread_id: thread_id, config: config) }
+        define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
+          Phronomy::Task.spawn(name: "stub-async") do
+            invoke(
+              input,
+              thread_id: thread_id,
+              config: config,
+              invocation_context: invocation_context,
+              on_event: on_event
+            )
+          end
         end
       end
 
@@ -232,8 +252,6 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
       token = described_class.new
       token.cancel!
 
-      # Bare agent (no invoke override): _invoke_impl checks the token
-      # and raises CancellationError before any LLM call is attempted.
       bare_agent = Class.new(Phronomy::Agent::Base) { agent_definition id: "test-agent-bare-cancel", version: 1 }
 
       expect {
@@ -277,8 +295,6 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
       token = described_class.timeout_after(3600)
       called = false
       token.on_cancel { called = true }
-      # Simulate deadline expiry without explicit cancel!: cancelled? returns true
-      # but on_cancel callbacks must NOT fire.
       expect(token.cancelled?).to be false
       expect(called).to be false
     end

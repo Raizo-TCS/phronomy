@@ -5,9 +5,8 @@
 # Usage:
 #   ruby benchmark/bench_context_assembler.rb
 #
-# This replaces the legacy Phronomy::LlmContextWindow::Assembler benchmark.
-# It intentionally measures both:
-#   1. ContextPolicies::Default selection cost for growing candidate sets.
+# Measures:
+#   1. ContextPolicies::Default selection cost for growing canonical candidate sets.
 #   2. ContextAssembler#build_initial end-to-end Manifest construction.
 #
 # No provider call is performed.
@@ -19,11 +18,19 @@ module BenchContextAssembler
   module_function
 
   def candidate(index)
+    category, role = if (index % 10).zero?
+      [:knowledge, :user]
+    elsif index.even?
+      [:assistant_message, :assistant]
+    else
+      [:external_message, :user]
+    end
+
     Phronomy::Agent::ContextCandidate.new(
       candidate_id: "candidate-#{index}",
       source_kind: :journal,
-      category: :llm_message,
-      role: index.even? ? :assistant : :user,
+      category: category,
+      role: role,
       content_ref: "content-#{index}",
       record_id: "record-#{index}",
       agent_id: "bench-agent",
@@ -82,7 +89,10 @@ module BenchContextAssembler
       max_output_tokens 1_024
       instructions "Benchmark instruction"
     end
-    agent = agent_class.new(persistence: persistence)
+    agent = agent_class.new(
+      persistence: persistence,
+      knowledge: ["Persistent benchmark knowledge"]
+    )
     root = agent.agent_root
     input_ref = persistence.contents.put_text("benchmark input")
     input_record = Phronomy::Agent::JournalRecord.new(

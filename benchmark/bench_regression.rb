@@ -89,7 +89,7 @@ end
 # ---------------------------------------------------------------------------
 stub_agent_class = Class.new(Phronomy::Agent::Base) do
   agent_definition id: "bench-stub", version: 1
-  define_method(:invoke) do |_input, messages: [], thread_id: nil, config: {}|
+  define_method(:invoke) do |_input, thread_id: nil, config: {}|
     {output: "stub", messages: []}
   end
   define_method(:invoke_async) { |input, **_kw| Phronomy::Runtime.instance.spawn(name: "bench-stub") { invoke(input) } }

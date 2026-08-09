@@ -3,11 +3,11 @@
 # bench_agent_invoke.rb — Agent#invoke framework overhead benchmark.
 #
 # Measures the per-invoke cost of the Phronomy::Agent::Base framework path
-# (context assembly, guardrail checks, before_completion hooks, response
-# handling) with a fully stubbed LLM.  No network calls are made.
+# (context assembly, filter checks, before_llm_input hooks, response handling)
+# with a fully stubbed LLM. No network calls are made.
 #
 # Scenarios:
-#   1. Minimal agent (no tools, no knowledge) — baseline framework overhead.
+#   1. Minimal agent (no tools, no persistent Knowledge) — baseline framework overhead.
 #   2. Tool-aware agent with a registered stub Tool.
 #   3. Agent#stream setup latency (first-chunk time with stubbed stream).
 

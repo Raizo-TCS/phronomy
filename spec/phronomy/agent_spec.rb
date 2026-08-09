@@ -201,7 +201,6 @@ RSpec.describe Phronomy::Agent::Base do
     context "stateful conversation (Agent Journal)" do
       it "accumulates conversation in the Agent Journal after each invoke" do
         agent.invoke("Hello")
-        # The Journal should advance (input + response recorded).
         expect(agent.agent_root.journal_position).to be > 0
       end
 
@@ -219,11 +218,8 @@ RSpec.describe Phronomy::Agent::Base do
         allow(RubyLLM.models).to receive(:find).with("test-model").and_return(mock_model)
       end
 
-      let(:prev_msg) { double("PrevMessage", role: :user, content: "previous") }
-
-      it "records conversation in the Agent Journal (replaces messages: injection)" do
+      it "records conversation in the Agent Journal" do
         agent.invoke("Hello")
-        # Journal position advances: confirms input + response were recorded.
         expect(agent.agent_root.journal_position).to be > 0
       end
     end
@@ -287,9 +283,7 @@ RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
       end
       agent_class.tools(tool_a => "alpha", tool_b => nil)
       agent_class.new.invoke("hello")
-      # Verify with_tool was called twice (once aliased, once plain)
       expect(fake_chat).to have_received(:with_tool).twice
-      # Verify the aliased tool class exposes the correct name
       aliased = Class.new(tool_a) { tool_name "alpha" }
       expect(aliased.new.name).to eq("alpha")
     end
@@ -304,7 +298,6 @@ RSpec.describe "Phronomy::Agent::Base .tools with aliases" do
         model "m"
       end
       agent_class.tools(klass => nil)
-      # No alias stored — tool_aliases is empty for this key
       expect(agent_class.tool_aliases[klass]).to be_nil
       expect(klass.new.name).to eq("original_name")
     end
@@ -379,7 +372,6 @@ RSpec.describe "Phronomy::Agent::Base tool_aliases inheritance (Issue #126)" do
   it "inherits parent aliases in a subclass" do
     parent = Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-88", version: 1
-      # tool_alias is registered via the hash form of .tools
     end
     parent.instance_variable_set(:@tool_aliases, {"ToolA" => "search"})
 
@@ -404,137 +396,5 @@ RSpec.describe "Phronomy::Agent::Base tool_aliases inheritance (Issue #126)" do
     child.instance_variable_set(:@tool_aliases, {"ToolB" => "something"})
 
     expect(parent.tool_aliases.key?("ToolB")).to be false
-  end
-end
-
-RSpec.describe "Agent thread-local context cache cleanup (issue #128)" do
-  class CacheCleanupAgent < Phronomy::Agent::Base
-    agent_definition id: "cache-cleanup-agent", version: 1
-    model "test-model"
-  end
-
-  let(:reply_tokens) { double("Tokens", input: 5, output: 5, cached: 0, cache_creation: 0, to_h: {"input" => 5, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
-  let(:reply_msg) do
-    double("Msg", role: :assistant, content: "hi", tool_calls: nil, tokens: reply_tokens, tool_call?: false)
-  end
-  let(:chat) do
-    dbl = double("Chat")
-    allow(dbl).to receive(:with_instructions).and_return(dbl)
-    allow(dbl).to receive(:with_tool).and_return(dbl)
-    allow(dbl).to receive(:cancellation_token=)
-    allow(dbl).to receive(:on_tool_call)
-    allow(dbl).to receive(:before_tool_call)
-    allow(dbl).to receive(:on_tool_result)
-    allow(dbl).to receive(:messages).and_return([reply_msg])
-    allow(dbl).to receive(:ask).and_return(reply_msg)
-    dbl
-  end
-
-  before { allow(RubyLLM).to receive(:chat).and_return(chat) }
-
-  it "removes the cache entry after invoke completes" do
-    agent = CacheCleanupAgent.new
-    agent.invoke("hello")
-    cache = Thread.current[:phronomy_context_version_caches]
-    expect(cache).to be_nil.or(satisfy { |c| !c.key?(agent.object_id) })
-  end
-
-  it "does not accumulate entries across multiple sequential invocations" do
-    agent1 = CacheCleanupAgent.new
-    agent2 = CacheCleanupAgent.new
-    agent1.invoke("a")
-    agent2.invoke("b")
-    cache = Thread.current[:phronomy_context_version_caches] || {}
-    expect(cache.key?(agent1.object_id)).to be false
-    expect(cache.key?(agent2.object_id)).to be false
-  end
-end
-
-RSpec.describe "Agent static_knowledge caching (issue #127)" do
-  # A fake knowledge source that counts how many times it has been fetched.
-  class CountingKnowledgeSource
-    attr_reader :fetch_count
-
-    def initialize(text)
-      @text = text
-      @fetch_count = 0
-    end
-
-    def fetch(query: nil, cancellation_token: nil)
-      @fetch_count += 1
-      [{content: @text, metadata: {}}]
-    end
-  end
-
-  let(:reply_tokens) { double("Tokens", input: 5, output: 5, cached: 0, cache_creation: 0, to_h: {"input" => 5, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
-  let(:reply_msg) do
-    double("Msg", role: :assistant, content: "answer", tool_calls: nil, tokens: reply_tokens, tool_call?: false)
-  end
-  let(:chat) do
-    dbl = double("Chat")
-    allow(dbl).to receive(:with_instructions).and_return(dbl)
-    allow(dbl).to receive(:with_tool).and_return(dbl)
-    allow(dbl).to receive(:cancellation_token=)
-    allow(dbl).to receive(:on_tool_call)
-    allow(dbl).to receive(:before_tool_call)
-    allow(dbl).to receive(:on_tool_result)
-    allow(dbl).to receive(:messages).and_return([reply_msg])
-    allow(dbl).to receive(:ask).and_return(reply_msg)
-    dbl
-  end
-
-  before { allow(RubyLLM).to receive(:chat).and_return(chat) }
-
-  it "fetches each static knowledge source only once across multiple invocations" do
-    ks = CountingKnowledgeSource.new("policy text")
-
-    agent_class = Class.new(Phronomy::Agent::Base) do
-      agent_definition id: "test-agent-90", version: 1
-      model "test-model"
-    end
-    agent_class.static_knowledge(ks)
-
-    agent = agent_class.new
-    agent.invoke("question 1")
-    agent.invoke("question 2")
-    agent.invoke("question 3")
-
-    expect(ks.fetch_count).to eq(1)
-  end
-
-  it "re-fetches when static_knowledge DSL is called again (cache invalidated)" do
-    ks = CountingKnowledgeSource.new("v1 text")
-
-    agent_class = Class.new(Phronomy::Agent::Base) do
-      agent_definition id: "test-agent-91", version: 1
-      model "test-model"
-    end
-    agent_class.static_knowledge(ks)
-
-    agent_class.new.invoke("q1")
-    expect(ks.fetch_count).to eq(1)
-
-    # Re-declaring static_knowledge must invalidate the cache.
-    agent_class.static_knowledge(ks)
-    agent_class.new.invoke("q2")
-    expect(ks.fetch_count).to eq(2)
-  end
-
-  it "re-fetches after static_knowledge_refresh! is called (issue #164)" do
-    ks = CountingKnowledgeSource.new("refreshable text")
-
-    agent_class = Class.new(Phronomy::Agent::Base) do
-      agent_definition id: "test-agent-92", version: 1
-      model "test-model"
-    end
-    agent_class.static_knowledge(ks)
-
-    agent_class.new.invoke("q1")
-    expect(ks.fetch_count).to eq(1)
-
-    # Calling refresh! must invalidate the cache.
-    agent_class.static_knowledge_refresh!
-    agent_class.new.invoke("q2")
-    expect(ks.fetch_count).to eq(2)
   end
 end

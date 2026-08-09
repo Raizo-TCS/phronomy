@@ -10,7 +10,7 @@ module Phronomy
     # Base class for all Phronomy agents.
     #
     # Subclass this to create a conversational agent powered by an LLM.
-    # DSL class methods configure the model, instructions, tools, memory,
+    # DSL class methods configure the model, instructions, tools,
     # and execution hooks. Instance methods handle invocation.
     #
     # @example Minimal agent
@@ -184,48 +184,6 @@ module Phronomy
           end
         end
 
-        # Registers one or more static knowledge sources on the agent class.
-        # Static source content is fetched and memoized at the **class** level
-        # the first time +invoke+ is called. The cache persists for the lifetime
-        # of the process; call {.static_knowledge_refresh!} to force a reload.
-        #
-        # @param sources [Array<Phronomy::Agent::Context::Knowledge::Base>]
-        # @example
-        #   class PolicyAgent < Phronomy::Agent::Base
-        #     static_knowledge Phronomy::Agent::Context::Knowledge::StaticKnowledge.new(POLICY_TEXT)
-        #   end
-        # @api public
-        def static_knowledge(*sources)
-          @static_knowledge_sources = sources.flatten
-          @static_knowledge_chunks = nil
-        end
-
-        # Returns the registered static knowledge sources.
-        # @return [Array<Phronomy::Agent::Context::Knowledge::Base>]
-        # @api public
-        def static_knowledge_sources
-          @static_knowledge_sources || []
-        end
-
-        # Returns the fetched content from all static knowledge sources.
-        # Results are cached at the class level so that each source is fetched
-        # only once regardless of how many times the agent is invoked.
-        # @return [Array<Hash>]
-        # @api public
-        def static_knowledge_chunks
-          @static_knowledge_chunks ||= static_knowledge_sources.flat_map { |ks|
-            ks.fetch(query: nil)
-          }
-        end
-
-        # Clears the class-level knowledge cache so that the next +invoke+ call
-        # re-fetches content from all registered static knowledge sources.
-        # @return [nil]
-        # @api public
-        def static_knowledge_refresh!
-          @static_knowledge_chunks = nil
-        end
-
         # When enabled, attaches Anthropic prompt-cache markers to the system
         # message so that the fixed instructions are served from cache on
         # subsequent turns, reducing input-token costs.
@@ -280,8 +238,14 @@ module Phronomy
             "#{name || self} must declare agent_definition id: ..., version: ..."
         end
 
-        def create(agent_id: SecureRandom.uuid, context: nil, persistence: nil, metadata: {})
-          new(agent_id: agent_id, context: context, persistence: persistence, metadata: metadata)
+        def create(agent_id: SecureRandom.uuid, context: nil, knowledge: [], persistence: nil, metadata: {})
+          new(
+            agent_id: agent_id,
+            context: context,
+            knowledge: knowledge,
+            persistence: persistence,
+            metadata: metadata
+          )
         end
 
         def load(agent_id, persistence:)
@@ -314,6 +278,7 @@ module Phronomy
       def initialize(
         agent_id: SecureRandom.uuid,
         context: nil,
+        knowledge: [],
         persistence: nil,
         metadata: {},
         load_existing: false
@@ -332,7 +297,7 @@ module Phronomy
           end
           loaded
         else
-          create_agent_root!(context: context, metadata: metadata)
+          create_agent_root!(context: context, knowledge: knowledge, metadata: metadata)
         end
       end
 
@@ -358,14 +323,48 @@ module Phronomy
         end
       end
 
-      def clear_memory!
-        mutate_context!(:memory_cleared) do |root|
+      # Logically clears all persistent Knowledge registered before this point.
+      # Raw Journal records remain append-only and are not deleted.
+      def clear_knowledge!
+        mutate_context!(:knowledge_cleared) do |root|
           root.with(
             agent_revision: root.agent_revision + 1,
-            context_revision: root.context_revision + 1,
-            memory_generation: root.memory_generation + 1
+            context_revision: root.context_revision + 1
           )
         end
+      end
+
+      # Appends persistent Knowledge to the Agent Journal.
+      # Knowledge is an optional Context candidate; it is not part of #transcript.
+      def add_knowledge(content, metadata: {})
+        next_root = nil
+        persistence.transaction do |tx|
+          tx.executions.assert_idle!(agent_id)
+          current = tx.agents.load(agent_id)
+          record = build_knowledge_record(
+            tx: tx,
+            root: current,
+            content: content,
+            metadata: metadata
+          )
+          appended = tx.journals.append(
+            agent_id,
+            expected_position: current.journal_position,
+            records: [record]
+          )
+          next_root = current.with(
+            agent_revision: current.agent_revision + 1,
+            context_revision: current.context_revision + 1,
+            journal_position: current.journal_position + appended.length
+          )
+          tx.agents.save(
+            agent_id,
+            expected_revision: current.agent_revision,
+            root: next_root
+          )
+        end
+        @root = next_root
+        self
       end
 
       def reset_context!
@@ -373,8 +372,7 @@ module Phronomy
           root.with(
             agent_revision: root.agent_revision + 1,
             context_revision: root.context_revision + 1,
-            transcript_generation: root.transcript_generation + 1,
-            memory_generation: root.memory_generation + 1
+            transcript_generation: root.transcript_generation + 1
           )
         end
       end
@@ -406,7 +404,7 @@ module Phronomy
 
       private
 
-      def create_agent_root!(context:, metadata:)
+      def create_agent_root!(context:, knowledge:, metadata:)
         definition = self.class.agent_definition
         root = Agent::AgentRoot.create(
           agent_id: agent_id,
@@ -416,38 +414,69 @@ module Phronomy
         )
         persistence.transaction do |tx|
           tx.agents.create(root)
-          if context
-            imported = context.respond_to?(:records) ? context :
-              Agent::ContextImporter.import_messages(context)
-            records = imported.records.map do |record|
-              content_ref = case record.content_format
-              when :text then tx.contents.put_text(record.content)
-              when :json then tx.contents.put_json(record.content)
-              else
-                raise ArgumentError,
-                  "unsupported imported content format: #{record.content_format.inspect}"
-              end
-              Agent::JournalRecord.new(
-                agent_id: agent_id,
-                kind: record.kind,
-                channel: record.channel,
-                role: record.role,
-                content_ref: content_ref,
-                context_generation: root.transcript_generation,
-                context_candidate: true,
-                metadata: record.metadata
-              )
-            end
+          records = initial_context_records(tx: tx, root: root, context: context)
+          records.concat(initial_knowledge_records(tx: tx, root: root, knowledge: knowledge))
+          unless records.empty?
             appended = tx.journals.append(agent_id, expected_position: 0, records: records)
             root = root.with(
               agent_revision: 1,
-              context_revision: records.any? ? 1 : 0,
+              context_revision: 1,
               journal_position: appended.length
             )
             tx.agents.save(agent_id, expected_revision: 0, root: root)
           end
         end
         root
+      end
+
+      def initial_context_records(tx:, root:, context:)
+        return [] unless context
+
+        imported = context.respond_to?(:records) ? context :
+          Agent::ContextImporter.import_messages(context)
+        imported.records.map do |record|
+          content_ref = case record.content_format
+          when :text then tx.contents.put_text(record.content)
+          when :json then tx.contents.put_json(record.content)
+          else
+            raise ArgumentError,
+              "unsupported imported content format: #{record.content_format.inspect}"
+          end
+          Agent::JournalRecord.new(
+            agent_id: agent_id,
+            kind: record.kind,
+            channel: record.channel,
+            role: record.role,
+            content_ref: content_ref,
+            context_generation: root.transcript_generation,
+            context_candidate: true,
+            metadata: record.metadata
+          )
+        end
+      end
+
+      def initial_knowledge_records(tx:, root:, knowledge:)
+        Array(knowledge).map do |content|
+          build_knowledge_record(
+            tx: tx,
+            root: root,
+            content: content,
+            metadata: {}
+          )
+        end
+      end
+
+      def build_knowledge_record(tx:, root:, content:, metadata:)
+        Agent::JournalRecord.new(
+          agent_id: agent_id,
+          kind: :knowledge,
+          channel: :context,
+          role: :user,
+          content_ref: tx.contents.put_text(String(content)),
+          context_generation: root.transcript_generation,
+          context_candidate: true,
+          metadata: metadata || {}
+        )
       end
 
       def mutate_context!(kind, context_affecting: true)
@@ -544,18 +573,6 @@ module Phronomy
           Kernel.warn("[phronomy] WARNING: #{msg}")
         end
       end
-
-      def add_knowledge_source(source)
-        @instance_knowledge_sources ||= []
-        @instance_knowledge_sources << source
-      end
-      protected :add_knowledge_source
-
-      def instance_knowledge_chunks
-        return [] unless @instance_knowledge_sources
-        @instance_knowledge_sources.flat_map { |ks| ks.fetch(query: nil) }
-      end
-      protected :instance_knowledge_chunks
 
       def _complete_result_task(task, result)
         task.backend.unblock(result, nil)

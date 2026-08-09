@@ -5,9 +5,11 @@ require_relative "support/factors"
 require_relative "support/llm_stub"
 
 # Group 37: BlockingAdapterPool boundary
-# Factor: bb_subject (9 values, each = 1 test case)
 #
-# Feasible cases: 8 (TC-001..TC-008)
+# Knowledge acquisition is no longer represented by a KnowledgeSource hierarchy.
+# TC-004 therefore verifies the application-facing Embeddings async boundary,
+# while TC-005 verifies the VectorStore async boundary used by retrieval code.
+#
 # Infeasible:
 #   TC-009 (stream_callback): SKIP — depends on Issue #292 (streaming callback
 #     via AsyncQueue not yet implemented; callbacks still run on worker thread)
@@ -154,14 +156,6 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
     after { LLMStub.deactivate }
 
     it "does NOT submit the cooperative tool call to pool.submit" do
-      # Patch only the tool-call path: count pool submissions attributed to tool
-      # dispatch by measuring before and after the agent call excluding the LLM
-      # submissions (which always use the pool).
-      #
-      # Strategy: run without tool first to get baseline LLM submissions, then
-      # check that tool execution does not add extra pool submissions.
-      #
-      # Simpler approach: spy on pool.submit and record caller locations.
       calls_before_tool = []
       original = pool.method(:submit)
       pool.define_singleton_method(:submit) do |**kwargs, &blk|
@@ -183,25 +177,21 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
   end
 
   # -------------------------------------------------------------------------
-  # TC-004: rag_fetch — RAG fetch routes through pool
+  # TC-004: embeddings — Embeddings#embed_async routes through pool
   # -------------------------------------------------------------------------
-  describe "TC-004: rag_fetch — KnowledgeSource#fetch_async routes through pool" do
-    # Use a minimal custom KnowledgeSource to avoid requiring a real
-    # embeddings adapter. fetch_async is inherited from Base and always
-    # submits to pool.submit regardless of subclass.
-    let(:knowledge_source) do
-      Class.new(Phronomy::Agent::Context::Knowledge::Base) do
-        def fetch(query: nil, cancellation_token: nil)
-          [{content: "Test content.", type: :text, source: "test"}]
+  describe "TC-004: embeddings — Embeddings::Base#embed_async routes through pool" do
+    let(:embedder) do
+      Class.new(Phronomy::VectorStore::Embeddings::Base) do
+        def embed(text, _cancellation_token = nil)
+          [text.length.to_f, 1.0]
         end
       end.new
     end
 
-    it "routes KnowledgeSource#fetch_async through pool.submit" do
+    it "routes embed_async through pool.submit" do
       PoolSpy.instrument(pool) do |counts|
-        result = knowledge_source.fetch_async(query: "anything").wait_result
-        expect(result).to be_an(Array)
-        expect(result.first[:content]).to eq("Test content.")
+        result = embedder.embed_async("anything").wait_result
+        expect(result).to eq([8.0, 1.0])
         expect(counts.size).to eq(1)
       end
     end
@@ -230,7 +220,6 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
   # TC-006: queue_full — Pool queue full raises BackpressureError
   # -------------------------------------------------------------------------
   describe "TC-006: queue_full — pool queue full raises BackpressureError" do
-    # Use a tiny pool (1 worker, 1-deep queue) so saturation is easy.
     let(:tiny_pool) { Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 1) }
 
     after { tiny_pool.shutdown(drain_timeout: 3) }
@@ -284,7 +273,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
         release.pop
       end
 
-      started.pop   # ensure worker has started before the timer fires
+      started.pop
 
       expect {
         op.wait_result

@@ -4,9 +4,13 @@ module Phronomy
   module Agent
     StreamEvent = Data.define(:type, :payload)
 
-    def self.run_once(definition:, input:, context: nil, **invoke_options)
+    def self.run_once(definition:, input:, context: nil, knowledge: [], **invoke_options)
       persistence = Phronomy::Persistence::InMemory.new
-      agent = definition.create(context: context, persistence: persistence)
+      agent = definition.create(
+        context: context,
+        knowledge: knowledge,
+        persistence: persistence
+      )
       agent.invoke(input, **invoke_options)
     end
   end

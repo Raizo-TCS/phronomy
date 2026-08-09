@@ -6,29 +6,17 @@
 # Real-backend smoke tests (requiring Docker services) are deferred to the
 # integration suite and depend on CI infra work tracked in #274.
 #
+# External Knowledge acquisition is application / Tool responsibility. Backend
+# timeout coverage therefore belongs to concrete acquisition primitives such as
+# Embeddings and VectorStore rather than to an Agent KnowledgeSource abstraction.
+#
 # Scenarios covered here:
-#   - Network timeout during KnowledgeSource#fetch_async
+#   - Network timeout during Embeddings#embed_async
+#   - Network timeout during VectorStore#search_async
 #   - Cancellation during in-flight BlockingAdapterPool operation
-#   - Malformed / unexpected return value from blocking adapter
 #   - BlockingAdapterPool saturation — backpressure, not silent drop
 #   - Scheduler lag remains low while slow backend blocks pool workers
 RSpec.describe "Backend failure scenarios (Issue #274)" do
-  describe "KnowledgeSource network timeout" do
-    let(:ks) do
-      Class.new(Phronomy::Agent::Context::Knowledge::Base) do
-        def fetch(query:, cancellation_token: nil)
-          sleep(10) # simulates hanging backend
-          "never returned"
-        end
-      end.new
-    end
-
-    it "raises TimeoutError via fetch_async when backend hangs" do
-      op = ks.fetch_async(query: "test", cancellation_token: nil, timeout: 0.1)
-      expect { op.wait_result }.to raise_error(Phronomy::TimeoutError)
-    end
-  end
-
   describe "Embeddings network timeout" do
     let(:embedder) do
       Class.new(Phronomy::VectorStore::Embeddings::Base) do

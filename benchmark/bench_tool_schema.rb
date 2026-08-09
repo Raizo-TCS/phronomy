@@ -1,15 +1,11 @@
 # frozen_string_literal: true
 
-# Benchmark: Tool::Base params_schema generation and static_knowledge_chunks cache
+# Benchmark: Tool::Base params_schema generation.
 #
-# Tool schema generation happens once per tool class (lazily memoised).
-# static_knowledge_chunks is cached at the class level; cache-hit overhead
-# should be negligible compared to cache-miss (which calls the knowledge source).
+# Tool schema generation happens once per tool class and is lazily memoized.
 
 require "benchmark"
 require_relative "../lib/phronomy"
-
-# --- Tool schema ---
 
 class BenchTool10Params < Phronomy::Agent::Context::Capability::Base
   description "A tool with 10 parameters for benchmarking purposes"
@@ -29,7 +25,6 @@ class BenchTool10Params < Phronomy::Agent::Context::Capability::Base
   end
 end
 
-# Warm up memoisation
 BenchTool10Params.params_schema_definition
 
 BENCH_TOOL_ITERATIONS = 50_000
@@ -38,33 +33,5 @@ puts "=== bench_tool_schema ==="
 Benchmark.bm(35) do |x|
   x.report("params_schema_definition (memoised, 10p)") do
     BENCH_TOOL_ITERATIONS.times { BenchTool10Params.params_schema_definition }
-  end
-end
-
-# --- static_knowledge_chunks cache ---
-
-class BenchKnowledgeSource < Phronomy::Agent::Context::Knowledge::Base
-  def fetch(query: nil)
-    [{content: "Cached knowledge fact.", type: :static}]
-  end
-
-  def static?
-    true
-  end
-end
-
-class BenchAgentWithKnowledge < Phronomy::Agent::Base
-  agent_definition id: "bench-knowledge", version: 1
-  model "gpt-4o-mini"
-  static_knowledge BenchKnowledgeSource.new
-end
-
-# Warm up cache
-BenchAgentWithKnowledge.static_knowledge_chunks
-
-puts "\n=== bench_static_knowledge_cache ==="
-Benchmark.bm(35) do |x|
-  x.report("static_knowledge_chunks (hit)") do
-    BENCH_TOOL_ITERATIONS.times { BenchAgentWithKnowledge.static_knowledge_chunks }
   end
 end

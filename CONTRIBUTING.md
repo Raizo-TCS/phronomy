@@ -58,15 +58,20 @@ When adding, removing, or renaming a public method or class:
 
 Key design decisions are documented as ADRs in
 [docs/decisions/](docs/decisions/). Read these before making significant changes
-to the threading model, caching strategy, or public API shape.
+to the threading model, persistence/context authority, or public API shape.
+
+For Agent Context work, ADR-012 and ADR-013 define the current Journal,
+Manifest, Context Policy and persistent Knowledge model.
 
 ---
 
 ## Mutation Testing
 
-Phronomy uses [mutant](https://github.com/mbj/mutant) to verify that each test
-actually detects real code changes. Mutation tests are **not** part of the
-required CI gate (they are slow), but run nightly via `.github/workflows/nightly-mutation.yml`.
+Phronomy uses [mutant](https://github.com/mbj/mutant) to verify that tests detect
+real code changes. Mutation tests are not part of the required CI gate. The
+repository contains `.github/workflows/nightly-mutation.yml` for mutation-run
+automation; whether that workflow is enabled is an operational choice and is
+not a normal pull-request requirement.
 
 ### Run mutation tests locally
 
@@ -78,18 +83,25 @@ bash scripts/run_mutation.sh
 bash scripts/run_mutation.sh "Phronomy::WorkflowContext"
 ```
 
-### Coverage targets
+### Covered subjects
 
-| Subject | Baseline | Target |
-|---|---|---|
-| `Phronomy::WorkflowContext` | 84.85% | ≥ 80% |
-| `Phronomy::WorkflowRunner` | — | ≥ 80% |
-| `Phronomy::Tool::Base` | 55.74% | ≥ 80% |
-| `Phronomy::Context::TokenBudget` | — | ≥ 80% |
-| `Phronomy::VectorStore::InMemory` | — | ≥ 80% |
+The authoritative subject list is `.mutant.yml`. It currently includes:
 
-When you add or modify tests for a covered subject, run mutation tests to confirm
-the score does not regress.
+- `Phronomy::WorkflowContext`
+- `Phronomy::WorkflowRunner`
+- `Phronomy::Tool::Base`
+- `Phronomy::LlmContextWindow::TokenBudget`
+- `Phronomy::Agent::ContextAssembler`
+- `Phronomy::Agent::ContextPolicies::Default`
+- `Phronomy::Agent::ContextParts::UnitBuilders::DependencyAwareUnitBuilder`
+- `Phronomy::Agent::ContextParts::Requirements::RequiredContextResolver`
+- `Phronomy::Agent::ContextParts::Selectors::RecentFirstSelector`
+- `Phronomy::Agent::ContextParts::Budget::TokenBudgetPacker`
+- `Phronomy::Agent::ContextPlanValidator`
+- `Phronomy::VectorStore::InMemory`
+
+When you add or modify tests for a covered subject, run mutation tests locally
+when practical and investigate meaningful score regressions.
 
 ---
 

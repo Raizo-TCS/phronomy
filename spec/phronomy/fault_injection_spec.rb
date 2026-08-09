@@ -16,7 +16,6 @@ RSpec.describe "Fault injection (Issue #213)" do
   # 1. Error translation at retry boundary (Issue #204 regression guard)
   # -------------------------------------------------------------------------
   describe "Error translation at retry boundary" do
-    # Build a helper that exposes translate_and_reraise! publicly.
     let(:translator) do
       Class.new do
         include Phronomy::Agent::Concerns::ErrorTranslation
@@ -117,7 +116,7 @@ RSpec.describe "Fault injection (Issue #213)" do
       Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-107", version: 1
         define_method(:invoke) { |input, **| {output: "ok:#{input}", messages: []} }
-        define_method(:invoke_async) do |input, **kw|
+        define_method(:invoke_async) do |input, **_kw|
           Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
         end
       end
@@ -127,7 +126,7 @@ RSpec.describe "Fault injection (Issue #213)" do
       Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-108", version: 1
         define_method(:invoke) { |*| raise "simulated failure" }
-        define_method(:invoke_async) do |input, **kw|
+        define_method(:invoke_async) do |input, **_kw|
           Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
         end
       end
@@ -162,12 +161,20 @@ RSpec.describe "Fault injection (Issue #213)" do
 
       tracking_good = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-109", version: 1
-        define_method(:invoke) do |input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
+        define_method(:invoke) do |input, thread_id: nil, config: {}, invocation_context: nil, on_event: nil|
           mutex.synchronize { ran << input }
           {output: "ok", messages: []}
         end
-        define_method(:invoke_async) do |input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
-          Phronomy::Task.spawn(name: "stub-async") { invoke(input, messages: messages, thread_id: thread_id, config: config) }
+        define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
+          Phronomy::Task.spawn(name: "stub-async") do
+            invoke(
+              input,
+              thread_id: thread_id,
+              config: config,
+              invocation_context: invocation_context,
+              on_event: on_event
+            )
+          end
         end
       end
 
@@ -199,7 +206,7 @@ RSpec.describe "Fault injection (Issue #213)" do
 
       expect {
         loop.post(event)
-        sleep 0.05 # allow the EventLoop background thread to process it
+        sleep 0.05
       }.not_to raise_error
     end
 
@@ -217,14 +224,12 @@ RSpec.describe "Fault injection (Issue #213)" do
     it "continues processing subsequent events after an unknown target_id event" do
       loop = Phronomy::Runtime.instance.event_loop
 
-      # Post an unknown-target event (should be silently dropped)
       loop.post(Phronomy::Event.new(
         type: :tool_result,
         target_id: "ghost-target",
         payload: {}
       ))
 
-      # The loop task must still be alive after processing the bad event
       sleep 0.05
       task = loop.instance_variable_get(:@task)
       expect(task).to be_alive

@@ -19,4 +19,29 @@ RSpec.describe "ideal stateful Agent API" do
     agent = agent_class.create
     expect(agent.persistence).to be_a(Phronomy::Persistence::InMemory)
   end
+
+  it "allows Agent.run_once to register creation-time Knowledge" do
+    observed_knowledge = []
+    klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "ideal-run-once-knowledge-test", version: 1
+
+      define_method(:invoke) do |_input, **_options|
+        observed_knowledge.concat(
+          journal_projection.context_records
+            .select { |record| record.kind == :knowledge }
+            .map { |record| persistence.contents.fetch_text(record.content_ref) }
+        )
+        {output: "ok", messages: []}
+      end
+    end
+
+    result = Phronomy::Agent.run_once(
+      definition: klass,
+      input: "hello",
+      knowledge: ["Policy: be concise."]
+    )
+
+    expect(result[:output]).to eq("ok")
+    expect(observed_knowledge).to eq(["Policy: be concise."])
+  end
 end

@@ -184,7 +184,7 @@ RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
       it "re-raises worker exceptions by default (on_error: :raise)" do
         failing = Class.new(Phronomy::Agent::Base) do
           agent_definition id: "test-agent-145", version: 1
-          define_method(:invoke) { |_input, messages: [], thread_id: nil, config: {}| raise "worker exploded" }
+          define_method(:invoke) { |_input, thread_id: nil, config: {}| raise "worker exploded" }
         end
         klass = Class.new(described_class) { pool size: 1, agent: failing }
         team = klass.new
@@ -196,7 +196,7 @@ RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
       it "records failures and continues remaining tasks when on_error: :skip" do
         mixed = Class.new(Phronomy::Agent::Base) do
           agent_definition id: "test-agent-146", version: 1
-          define_method(:invoke) do |input, messages: [], thread_id: nil, config: {}|
+          define_method(:invoke) do |input, thread_id: nil, config: {}|
             raise "boom" if input == "T1"
             {output: "ok:#{input}", messages: []}
           end
@@ -239,7 +239,7 @@ RSpec.describe Phronomy::MultiAgent::TeamCoordinator do
     it "yields :task_failed events when on_error: :skip" do
       failing = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-147", version: 1
-        define_method(:invoke) { |_input, messages: [], thread_id: nil, config: {}| raise "fail" }
+        define_method(:invoke) { |_input, thread_id: nil, config: {}| raise "fail" }
       end
       klass = Class.new(described_class) { pool size: 1, agent: failing, on_error: :skip }
       team = klass.new

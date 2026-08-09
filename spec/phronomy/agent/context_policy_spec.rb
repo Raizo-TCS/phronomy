@@ -15,7 +15,8 @@ RSpec.describe "Context Policy selection" do
     tokens: 5
   )
     role = case category
-    when :tool_message, :tool_result then :tool
+    when :tool_message then :tool
+    when :knowledge then :user
     else :assistant
     end
     Phronomy::Agent::ContextCandidate.new(
@@ -134,6 +135,22 @@ RSpec.describe "Context Policy selection" do
     units = parts.fetch(:unit_builder).build(candidates)
     expect(units.length).to eq(1)
     expect(units.first.candidate_ids).to contain_exactly("assistant", "result")
+  end
+
+  it "treats Knowledge as an ordinary optional selection unit" do
+    candidates = [
+      candidate(id: "knowledge", category: :knowledge, sequence: 1, tokens: 100),
+      candidate(id: "recent", category: :assistant_message, sequence: 2, tokens: 5)
+    ]
+    context_request = request(candidates, context_window: 20, mandatory: 5)
+
+    plan = Phronomy::Agent::ContextPolicies::Default.new.call(context_request)
+    validated = Phronomy::Agent::ContextPlanValidator.new.validate!(
+      request: context_request,
+      plan: plan
+    )
+
+    expect(validated.selected_candidates.map(&:candidate_id)).to eq(["recent"])
   end
 
   it "requires only the latest current Tool exchange and may drop older working history" do

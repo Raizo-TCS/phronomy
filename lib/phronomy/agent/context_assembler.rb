@@ -1,13 +1,14 @@
 # frozen_string_literal: true
 
-require "cgi"
-
 module Phronomy
   module Agent
     class ContextAssembler
-      ASSEMBLY_POLICY_VERSION = 5
+      ASSEMBLY_POLICY_VERSION = 6
       SEGMENT_ORIGIN_METADATA_KEY = "phronomy_origin"
       BEFORE_LLM_INPUT_ORIGIN = "before_llm_input"
+      EARLY_CONTEXT_CATEGORIES = %i[
+        instruction structured_state knowledge memory summary
+      ].freeze
 
       def initialize(
         agent:,
@@ -47,14 +48,13 @@ module Phronomy
           model_config: model_cfg,
           tool_definitions: tool_set.definitions,
           tool_definitions_ref: nil,
-          prior_records: projection.transcript_records,
+          prior_records: projection.context_records,
           working_records: execution.working_records,
           excluded_record_ids: excluded,
           base_segments: base_segments,
           hook_candidates: hook_candidates,
           current_input_segment: segment(:current_input, :user, input_ref, :ask_argument),
-          mandatory_values: [system_text, current_input, tool_set.definitions] +
-            hook_candidates.map { |candidate| candidate.fetch(:content) }
+          mandatory_values: [system_text, current_input, tool_set.definitions]
         )
       end
 
@@ -83,14 +83,13 @@ module Phronomy
           model_config: model_cfg,
           tool_definitions: tool_definitions,
           tool_definitions_ref: base_manifest.tool_definitions_ref,
-          prior_records: projection.transcript_records,
+          prior_records: projection.context_records,
           working_records: execution.working_records,
           excluded_record_ids: [],
           base_segments: system_segments.map { |existing| segment_hash(existing) },
           hook_candidates: hook_candidates,
           current_input_segment: nil,
           mandatory_values: system_segments.map { |segment| fetch_content(segment.content_ref) } +
-            hook_candidates.map { |candidate| candidate.fetch(:content) } +
             [tool_definitions]
         )
       end
@@ -123,6 +122,14 @@ module Phronomy
           working_records: eligible_working,
           excluded_record_ids: excluded_record_ids
         )
+        candidates = merge_hook_candidates(
+          candidates,
+          hook_candidates,
+          agent_root: agent_root,
+          execution: execution,
+          call_sequence: call_sequence
+        )
+
         token_budget = TokenBudgetResolver.new(agent: @agent).resolve(model_config)
         mandatory_token_estimate = estimate_values(mandatory_values)
         parts = context_parts
@@ -146,12 +153,12 @@ module Phronomy
             "Derived Context persistence is not enabled in Context Policy phase 1-4"
         end
 
+        selected_candidates = validated.selected_candidates.sort_by do |candidate|
+          [candidate.sequence || 0, candidate.candidate_id]
+        end
         segments = Array(base_segments).dup
-        append_candidates(segments, hook_candidates, before_history: true)
-        validated.selected_candidates
-          .sort_by { |candidate| [candidate.sequence || 0, candidate.candidate_id] }
-          .each { |candidate| segments << segment_from_candidate(candidate) }
-        append_candidates(segments, hook_candidates, before_history: false)
+        append_selected_candidates(segments, selected_candidates, before_history: true)
+        append_selected_candidates(segments, selected_candidates, before_history: false)
         segments << current_input_segment if current_input_segment
 
         ContextParts::Validators::FinalBudgetValidator.new(
@@ -233,20 +240,55 @@ module Phronomy
           content = hash.fetch(:content) { hash.fetch("content") }
           category = (hash[:category] || hash["category"] || :knowledge).to_sym
           role = (hash[:role] || hash["role"] || default_role(category)).to_sym
-          {content: content.to_s, category: category, role: role}
+          metadata = hash[:metadata] || hash["metadata"] || {}
+          {
+            content: content.to_s,
+            category: category,
+            role: role,
+            metadata: metadata.to_h.transform_keys(&:to_s)
+          }
         end
       end
 
-      def append_candidates(segments, candidates, before_history:)
-        candidates.each do |candidate|
-          early = %i[instruction structured_state knowledge memory summary].include?(candidate[:category])
-          next unless early == before_history
-          segments << text_segment(
-            candidate[:category],
-            candidate[:role],
-            candidate[:content],
-            metadata: {SEGMENT_ORIGIN_METADATA_KEY => BEFORE_LLM_INPUT_ORIGIN}
+      def merge_hook_candidates(candidates, hooks, agent_root:, execution:, call_sequence:)
+        next_sequence = Array(candidates).filter_map(&:sequence).max.to_i
+        generated = hooks.each_with_index.map do |hook, index|
+          content_ref = @persistence.contents.put_text(hook.fetch(:content))
+          metadata = hook.fetch(:metadata).merge(
+            SEGMENT_ORIGIN_METADATA_KEY => BEFORE_LLM_INPUT_ORIGIN,
+            "estimated_tokens" => Phronomy::LlmContextWindow::TokenEstimator.estimate(
+              fetch_content(content_ref)
+            ),
+            "source_kind" => "hook"
           )
+          ContextCandidate.new(
+            candidate_id: "hook:#{execution.execution_id}:#{call_sequence}:#{index}",
+            source_kind: :hook,
+            category: hook.fetch(:category),
+            role: hook.fetch(:role),
+            content_ref: content_ref,
+            record_id: nil,
+            agent_id: agent_root.agent_id,
+            execution_id: execution.execution_id,
+            llm_call_id: nil,
+            tool_call_id: nil,
+            sequence: next_sequence + index + 1,
+            requirement: :optional,
+            priority: 0,
+            metadata: metadata
+          )
+        end
+        (Array(candidates) + generated)
+          .sort_by { |candidate| [candidate.sequence || 0, candidate.candidate_id] }
+          .freeze
+      end
+
+      def append_selected_candidates(segments, candidates, before_history:)
+        candidates.each do |candidate|
+          early = EARLY_CONTEXT_CATEGORIES.include?(candidate.category)
+          next unless early == before_history
+
+          segments << segment_from_candidate(candidate)
         end
       end
 
@@ -307,23 +349,8 @@ module Phronomy
         @persistence.contents.fetch(ref)
       end
 
-      def context_tag(text, type:, trusted:)
-        "<context type=\"#{CGI.escapeHTML(type.to_s)}\" trusted=\"#{trusted}\">\n" \
-          "#{CGI.escapeHTML(text.to_s)}\n</context>"
-      end
-
       def build_system_text(input)
-        instruction = @agent.send(:build_instructions, input)
-        knowledge = @agent.class.static_knowledge_chunks + @agent.send(:instance_knowledge_chunks)
-        parts = [instruction]
-        knowledge.each do |chunk|
-          parts << context_tag(
-            chunk[:content],
-            type: chunk[:type] || :static,
-            trusted: true
-          )
-        end
-        parts.compact.join("\n\n")
+        @agent.send(:build_instructions, input)
       end
     end
   end

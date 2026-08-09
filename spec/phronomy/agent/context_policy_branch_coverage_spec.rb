@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-# Branch coverage for new Context Policy domain files.
+# Branch coverage for Context Policy domain files.
 RSpec.describe "Context Policy branch coverage" do
   let(:cand_class) { Phronomy::Agent::ContextCandidate }
   let(:unit_class) { Phronomy::Agent::ContextSelectionUnit }
@@ -12,7 +12,7 @@ RSpec.describe "Context Policy branch coverage" do
 
   def make_candidate(id:, category:, sequence:, requirement: :optional, tool_call_id: nil,
     tool_call_ids: [], llm_call_id: nil, source_kind: :journal)
-    role = %i[tool_message tool_result].include?(category) ? :tool : :assistant
+    role = (category == :tool_message) ? :tool : :assistant
     cand_class.new(
       candidate_id: id, source_kind: source_kind, category: category, role: role,
       content_ref: "ref-#{id}", record_id: "rec-#{id}", agent_id: "ag-1",
@@ -50,8 +50,6 @@ RSpec.describe "Context Policy branch coverage" do
     )
   end
 
-  # ── ContextPlanValidator ──────────────────────────────────────────────
-
   describe "ContextPlanValidator" do
     it "raises when plan contains unknown unit IDs" do
       req = make_request([make_candidate(id: "a", category: :assistant_message, sequence: 1)])
@@ -84,7 +82,6 @@ RSpec.describe "Context Policy branch coverage" do
         make_candidate(id: "c", category: :tool_message, sequence: 3, tool_call_id: "tc1")
       ]
       req = make_request(candidates)
-      # build units so at least one is in the plan
       units = unit_builder.build(candidates)
       plan = plan_class.new(
         selected_unit_ids: units.map(&:unit_id),
@@ -118,10 +115,8 @@ RSpec.describe "Context Policy branch coverage" do
       ]
       req = make_request(candidates)
       units = unit_builder.build(candidates)
-      # select only the tool_message unit (orphan)
       tool_unit = units.find { |u| u.candidate_ids == ["b"] }
       unless tool_unit
-        # DependencyAwareUnitBuilder groups them; manually create orphan plan
         plan = plan_class.new(
           selected_unit_ids: [],
           derived_contents: [], selected_tool_ids: [],
@@ -176,11 +171,8 @@ RSpec.describe "Context Policy branch coverage" do
     end
   end
 
-  # ── ProviderCallOutcome ───────────────────────────────────────────────
-
   describe "ProviderCallOutcome.capture" do
     let(:outcome_class) { Phronomy::Agent::ProviderCallOutcome }
-    # Use Struct so respond_to? works naturally without stubbing
     let(:msg_struct) { Struct.new(:role, :content, :tool_calls, :tokens, :model_id) }
     let(:call_struct) { Struct.new(:id, :name, :arguments) }
     let(:tokens_struct) { Struct.new(:input, :output) }
@@ -198,8 +190,6 @@ RSpec.describe "Context Policy branch coverage" do
     end
 
     it "handles tokens without to_h" do
-      # Integer does not respond to :to_h in a useful way, but does respond_to?(:to_h)
-      # Use a custom object that has tokens but no to_h
       token_obj = Object.new
       def token_obj.to_s = "custom_tokens"
       message = msg_struct.new(:assistant, "hi", nil, token_obj, nil)
@@ -234,7 +224,6 @@ RSpec.describe "Context Policy branch coverage" do
     end
 
     it "handles tool_call without to_h by building hash from id/name/arguments" do
-      # call_struct has no to_h that returns canonical hash — use a plain object
       call = Object.new
       def call.id = "c1"
       def call.name = "tool"
@@ -244,8 +233,6 @@ RSpec.describe "Context Policy branch coverage" do
       expect(outcome.tool_calls.first["id"]).to eq("c1")
     end
   end
-
-  # ── DependencyAwareUnitBuilder extra paths ────────────────────────────
 
   describe "DependencyAwareUnitBuilder" do
     it "resolves canonical tool exchange when entry is a tool_message" do
@@ -260,7 +247,6 @@ RSpec.describe "Context Policy branch coverage" do
     end
 
     it "returns nil from canonical_tool_exchange for assistant with no tool_call_ids" do
-      # plain assistant with empty tool_call_ids → canonical_tool_exchange returns nil
       candidates = [make_candidate(id: "a", category: :assistant_message, sequence: 1)]
       units = unit_builder.build(candidates)
       expect(units.first.kind).to eq(:message)
@@ -301,30 +287,7 @@ RSpec.describe "Context Policy branch coverage" do
       exchange = units.find { |u| u.kind == :tool_exchange }
       expect(exchange).not_to be_nil
     end
-
-    it "handles legacy import: tool_call with no llm_call_id enters legacy import path" do
-      # :tool_call without llm_call_id → legacy_import path (line 109 :else + 110 :else)
-      candidates = [
-        make_candidate(id: "tc", category: :tool_call, sequence: 1, tool_call_id: "tc1")
-      ]
-      units = unit_builder.build(candidates)
-      expect(units.length).to eq(1)
-      expect(units.first.candidate_ids).to include("tc")
-    end
-
-    it "handles legacy import: llm_message without llm_call_id followed by non-tool_call returns message unit" do
-      candidates = [
-        make_candidate(id: "msg", category: :llm_message, sequence: 1),
-        make_candidate(id: "asst", category: :assistant_message, sequence: 2)
-      ]
-      units = unit_builder.build(candidates)
-      # llm_message → legacy_import → next is not tool_call → returns nil → becomes :message
-      msg_unit = units.find { |u| u.candidate_ids.include?("msg") }
-      expect(msg_unit.kind).to eq(:message)
-    end
   end
-
-  # ── ContextPolicies::Default ──────────────────────────────────────────
 
   describe "ContextPolicies::Default" do
     it "returns a custom descriptor when config is not empty" do
@@ -332,8 +295,6 @@ RSpec.describe "Context Policy branch coverage" do
       expect(policy.descriptor.config).to eq({"recency_limit" => 5})
     end
   end
-
-  # ── ContextPolicyDescriptor ───────────────────────────────────────────
 
   describe "ContextPolicyDescriptor" do
     let(:desc_class) { Phronomy::Agent::ContextPolicyDescriptor }
@@ -354,8 +315,6 @@ RSpec.describe "Context Policy branch coverage" do
       }.to raise_error(Phronomy::ConfigurationError, /digest mismatch/)
     end
   end
-
-  # ── ContextPolicyRegistry ─────────────────────────────────────────────
 
   describe "ContextPolicyRegistry" do
     let(:reg_class) { Phronomy::Agent::ContextPolicyRegistry }
@@ -389,8 +348,6 @@ RSpec.describe "Context Policy branch coverage" do
     end
   end
 
-  # ── ContextPlanValidator additional error paths ───────────────────────
-
   describe "ContextPlanValidator additional paths" do
     it "raises on duplicate assistant Tool Call id in candidates" do
       candidates = [
@@ -398,16 +355,13 @@ RSpec.describe "Context Policy branch coverage" do
         make_candidate(id: "b", category: :assistant_message, sequence: 2, tool_call_ids: ["tc1"])
       ]
       make_request(candidates)
-      # unit_builder.build raises before we get to validator
       expect { unit_builder.build(candidates) }
         .to raise_error(ArgumentError, /duplicate assistant Tool Call id/)
     end
 
     it "raises on split assistant/Tool message dependency when tool_message is not in plan" do
-      # Must use a parts override with a custom unit builder that separates assistant and tool_message
       custom_builder = Class.new do
         def build(candidates)
-          # Return individual units for each candidate (no grouping)
           candidates.map.with_index do |c, i|
             Phronomy::Agent::ContextSelectionUnit.new(
               unit_id: "unit-#{c.candidate_id}",
@@ -426,7 +380,6 @@ RSpec.describe "Context Policy branch coverage" do
       ]
       req = make_request(candidates, unit_builder: custom_builder)
       units = custom_builder.build(candidates)
-      # Select only the assistant unit (not the tool_message unit)
       asst_unit = units.find { |u| u.candidate_ids == ["a"] }
       plan = plan_class.new(
         selected_unit_ids: [asst_unit.unit_id],
@@ -456,7 +409,6 @@ RSpec.describe "Context Policy branch coverage" do
       ]
       req = make_request(candidates, unit_builder: custom_builder)
       units = custom_builder.build(candidates)
-      # Select only the tool_message unit (orphan)
       tool_unit = units.find { |u| u.candidate_ids == ["b"] }
       plan = plan_class.new(
         selected_unit_ids: [tool_unit.unit_id],
@@ -467,8 +419,6 @@ RSpec.describe "Context Policy branch coverage" do
         .to raise_error(ArgumentError, /orphan Tool message/)
     end
   end
-
-  # ── ContextRequest nil execution_id ──────────────────────────────────
 
   describe "ContextRequest with nil execution_id" do
     it "accepts nil execution_id (import records)" do
@@ -482,8 +432,6 @@ RSpec.describe "Context Policy branch coverage" do
     end
   end
 
-  # ── DerivedContentSpec nil role ───────────────────────────────────────
-
   describe "DerivedContentSpec" do
     it "accepts nil role" do
       spec = Phronomy::Agent::DerivedContentSpec.new(
@@ -496,8 +444,6 @@ RSpec.describe "Context Policy branch coverage" do
     end
   end
 
-  # ── ActivationRegistry duplicate raises ──────────────────────────────
-
   describe "ActivationRegistry" do
     it "raises on duplicate execution_id registration" do
       registry = Phronomy::Agent::ActivationRegistry.new
@@ -507,18 +453,6 @@ RSpec.describe "Context Policy branch coverage" do
         .to raise_error(ArgumentError, /already registered/)
     end
   end
-
-  # ── Context::Knowledge::Base cancellation_token nil ──────────────────
-
-  describe "Context::Knowledge::Base" do
-    it "raises NotImplementedError from fetch with nil cancellation_token" do
-      base = Class.new(Phronomy::Agent::Context::Knowledge::Base).new
-      expect { base.fetch(query: "test", cancellation_token: nil) }
-        .to raise_error(NotImplementedError)
-    end
-  end
-
-  # ── ContextSelectionUnit ──────────────────────────────────────────────
 
   describe "ContextSelectionUnit" do
     it "raises on unknown requirement" do
@@ -541,8 +475,6 @@ RSpec.describe "Context Policy branch coverage" do
       }.to raise_error(ArgumentError, /sequence_range must contain two integers/)
     end
   end
-
-  # ── TokenBudgetPacker ─────────────────────────────────────────────────
 
   describe "TokenBudgetPacker" do
     let(:packer) { Phronomy::Agent::ContextParts::Budget::TokenBudgetPacker.new }
@@ -570,8 +502,6 @@ RSpec.describe "Context Policy branch coverage" do
 
     it "raises when required context exceeds remaining budget" do
       unit = make_unit(id: "u1", candidate_ids: ["a"], requirement: :protocol_required)
-      # candidate token cost = 5, remaining = 10 - 0 = 10; but candidate_index lookup needed
-      # Use tiny window so 5 tokens doesn't fit after mandatory
       req = pack_request([unit], context_window: 3, mandatory: 0)
       expect { packer.pack(request: req, units: [unit]) }
         .to raise_error(Phronomy::ContextBudgetExceededError, /Required Context/)
@@ -584,8 +514,6 @@ RSpec.describe "Context Policy branch coverage" do
       expect(result).to be_empty
     end
   end
-
-  # ── FinalBudgetValidator ──────────────────────────────────────────────
 
   describe "FinalBudgetValidator" do
     it "raises when canonical segment content exceeds budget" do

@@ -34,17 +34,17 @@ RSpec.describe "Group: Context Management", :integration do
     expect(after_position).to be > middle_position
   end
 
-  it "keeps static knowledge on the Manifest-first input path" do
-    agent = IntegrationFactors.context_agent(
-      static_knowledge_label: "multi"
-    ).new
+  it "keeps persistent Knowledge on the Manifest-first Context Policy path" do
+    agent = IntegrationFactors.context_agent.new(
+      knowledge: IntegrationFactors.knowledge("multi")
+    )
 
     result = agent.invoke("Use the configured knowledge.")
     expect(result[:output]).to be_a(String)
     expect(result[:output]).not_to be_empty
   end
 
-  it "allows before_llm_input to add a logical Context candidate" do
+  it "allows before_llm_input to add a per-call logical Context candidate" do
     klass = IntegrationFactors.context_agent
     klass.before_llm_input ->(_ctx) {
       Phronomy::Agent::LLMInputPatch.new(

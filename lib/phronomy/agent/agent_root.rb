@@ -9,7 +9,7 @@ module Phronomy
 
       ATTRIBUTES = %i[
         agent_id agent_definition_id definition_version agent_revision
-        context_revision journal_position lifecycle_status transcript_generation memory_generation
+        context_revision journal_position lifecycle_status transcript_generation
         created_at updated_at metadata
       ].freeze
 
@@ -26,7 +26,6 @@ module Phronomy
           journal_position: 0,
           lifecycle_status: :idle,
           transcript_generation: 0,
-          memory_generation: 0,
           created_at: now,
           updated_at: now,
           metadata: metadata

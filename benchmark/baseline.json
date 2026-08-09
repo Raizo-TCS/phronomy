@@ -4,6 +4,5 @@
   "tool_params_schema_definition": 19534379.159046534,
   "dispatch_parallel_10": 886.0,
   "cancellation_token_cancelled": 4335060.97443425,
-  "cancellation_token_raise_if_cancelled_noop": 3566903.189098373,
-  "trim_messages_2000": 2896552.0
+  "cancellation_token_raise_if_cancelled_noop": 3566903.189098373
 }

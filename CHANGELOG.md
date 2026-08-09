@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Agent Context / Knowledge cleanup
+
+#### Added
+
+- Journal-backed persistent Agent Knowledge via creation-time `knowledge:` and
+  post-creation `Agent#add_knowledge`.
+- `Agent#clear_knowledge!` for logical Knowledge invalidation without deleting
+  append-only Journal history.
+- ADR-013, defining persistent Knowledge as optional Context candidates selected
+  through the Manifest-first Context Policy pipeline.
+
+#### Changed
+
+- Persistent Knowledge and `before_llm_input` segment candidates now participate
+  in Context Policy and token-budget selection instead of being injected as
+  mandatory system context.
+- `clear_transcript!`, `clear_knowledge!`, and `reset_context!` now have distinct
+  transcript/Knowledge lifecycle semantics.
+- Active Context tests, integration fixtures, benchmarks, mutation subjects,
+  design documents, and API snapshots now describe the canonical
+  Journal -> ContextCandidate -> Context Policy -> Manifest architecture.
+
+#### Removed
+
+- `Phronomy::KnowledgeSource`, `Knowledge::Base`, `StaticKnowledge`, and
+  `EntityKnowledge`.
+- `static_knowledge*`, `add_knowledge_source`, `instance_knowledge_chunks`,
+  `Knowledge#static?`, `StaticKnowledge#source`, and the class-level static
+  Knowledge cache/fetch abstraction.
+- `Agent#clear_memory!` and `AgentRoot#memory_generation`.
+- Remaining no-op ContextVersionCache tests, fake legacy-import Context tests,
+  obsolete Memory/context integration helpers, legacy `:llm_message` benchmark
+  categories, and stale Agent `messages:` test-double signatures.
+
 ### Phase 3 cleanup
 
 #### Changed

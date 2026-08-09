@@ -12,21 +12,16 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-96", version: 1
       define_method(:invoke) { |*| {output: out, messages: []} }
-      define_method(:invoke_async) do |input, **kw|
+      define_method(:invoke_async) do |input, **_kw|
         Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
       end
     end
   end
 
-  # -----------------------------------------------------------------------
-  # Orchestrator#dispatch_parallel — result ordering under real concurrency
-  # -----------------------------------------------------------------------
   describe "Orchestrator#dispatch_parallel result ordering under concurrency" do
     subject(:orchestrator) { Class.new(Phronomy::MultiAgent::Orchestrator).new }
 
     it "returns results in input order even when tasks complete in reverse order" do
-      # Tasks are staggered so they finish in reverse order (task 5 first, task 1 last).
-      # The implementation must still return results[0..4] in input order.
       agents = (1..5).map do |i|
         delay = (5 - i) * 0.01
         Class.new(Phronomy::Agent::Base) do
@@ -35,7 +30,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
             sleep delay
             {output: "task#{i}", messages: []}
           end
-          define_method(:invoke_async) do |input, **kw|
+          define_method(:invoke_async) do |input, **_kw|
             Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
           end
         end
@@ -48,8 +43,6 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
     end
 
     it "re-raises the first error in input order when a faster task also fails" do
-      # Task 2 fails immediately; task 0 fails after a delay.
-      # The re-raised error must be task 0's (input order takes precedence).
       error_0 = RuntimeError.new("error from task 0 (slow)")
       error_2 = RuntimeError.new("error from task 2 (fast)")
 
@@ -60,7 +53,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
           sleep 0.03
           raise e
         }
-        define_method(:invoke_async) do |input, **kw|
+        define_method(:invoke_async) do |input, **_kw|
           Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
         end
       end
@@ -68,7 +61,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
         agent_definition id: "test-agent-99", version: 1
         e = error_2
         define_method(:invoke) { |*| raise e }
-        define_method(:invoke_async) do |input, **kw|
+        define_method(:invoke_async) do |input, **_kw|
           Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
         end
       end
@@ -100,7 +93,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
           state_mutex.synchronize { active -= 1 }
           {output: "ok", messages: []}
         end
-        define_method(:invoke_async) do |input, **kw|
+        define_method(:invoke_async) do |input, **_kw|
           Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
         end
       end
@@ -112,39 +105,6 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
     end
   end
 
-  # -----------------------------------------------------------------------
-  # Orchestrator#invoke_once — instance-variable context is cleaned up after
-  # invoke completes (Issue #208, updated for #259: replaced Thread.current key
-  # with @_orchestrator_context instance variable)
-  # -----------------------------------------------------------------------
-  describe "Orchestrator#invoke_once context cleanup" do
-    it "resets @_orchestrator_context to nil after invoke" do
-      orchestrator_class = Class.new(Phronomy::MultiAgent::Orchestrator)
-      # Override to avoid any real LLM call; just return immediately.
-      orchestrator_class.define_method(:invoke) do |input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
-        {output: "done", messages: []}
-      end
-      orchestrator_class.define_method(:invoke_async) do |input, messages: [], thread_id: nil, config: {}, invocation_context: nil|
-        Phronomy::Task.spawn(name: "stub-async") { invoke(input, messages: messages, thread_id: thread_id, config: config) }
-      end
-
-      orchestrator = orchestrator_class.new
-      # Calling invoke may set @_orchestrator_context; the ensure block must restore nil.
-      begin
-        orchestrator.send(:invoke_once, "test", thread_id: "t1", config: {}, messages: [])
-      rescue
-        # Ignore invocation errors (no real LLM) — we only care about cleanup.
-      end
-
-      expect(orchestrator.instance_variable_get(:@_orchestrator_context)).to be_nil
-    end
-  end
-
-  # -----------------------------------------------------------------------
-  # VectorStore::InMemory — concurrent add / search isolation
-  # (already partially covered in in_memory_spec; this adds search-result
-  #  integrity assertions missing from that suite)
-  # -----------------------------------------------------------------------
   describe "VectorStore::InMemory concurrent add/search integrity" do
     subject(:store) { Phronomy::VectorStore::InMemory.new(dimension: 3) }
 

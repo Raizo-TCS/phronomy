@@ -7,6 +7,7 @@
       "_add_handoff_tool",
       "_handoff_tools",
       "add_input_filter",
+      "add_knowledge",
       "add_output_filter",
       "add_tool_result_filter",
       "agent_id",
@@ -16,7 +17,7 @@
       "batch",
       "before_llm_input",
       "before_llm_input=",
-      "clear_memory!",
+      "clear_knowledge!",
       "clear_transcript!",
       "close!",
       "invoke",
@@ -52,10 +53,6 @@
       "model",
       "output_filter",
       "provider",
-      "static_knowledge",
-      "static_knowledge_chunks",
-      "static_knowledge_refresh!",
-      "static_knowledge_sources",
       "temperature",
       "tool_aliases",
       "tool_result_filter",
@@ -163,6 +160,7 @@
       "_add_handoff_tool",
       "_handoff_tools",
       "add_input_filter",
+      "add_knowledge",
       "add_output_filter",
       "add_tool_result_filter",
       "agent_id",
@@ -172,7 +170,7 @@
       "batch",
       "before_llm_input",
       "before_llm_input=",
-      "clear_memory!",
+      "clear_knowledge!",
       "clear_transcript!",
       "close!",
       "dispatch_parallel",
@@ -213,10 +211,6 @@
       "output_filter",
       "provider",
       "registered_subagents",
-      "static_knowledge",
-      "static_knowledge_chunks",
-      "static_knowledge_refresh!",
-      "static_knowledge_sources",
       "subagent",
       "temperature",
       "tool_aliases",
@@ -302,26 +296,6 @@
     "public_instance_methods": [
       "embed",
       "embed_async"
-    ],
-    "public_class_methods": []
-  },
-  {
-    "name": "Phronomy::Agent::Context::Knowledge::Base",
-    "type": "class",
-    "public_instance_methods": [
-      "fetch",
-      "fetch_async",
-      "static?"
-    ],
-    "public_class_methods": []
-  },
-  {
-    "name": "Phronomy::Agent::Context::Knowledge::StaticKnowledge",
-    "type": "class",
-    "public_instance_methods": [
-      "fetch",
-      "fetch_async",
-      "static?"
     ],
     "public_class_methods": []
   },

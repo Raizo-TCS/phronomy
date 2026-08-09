@@ -8,8 +8,6 @@
 #   require_relative "support/factors"
 #
 #   agent_klass = IntegrationFactors.agent_class("base", tools: IntegrationFactors.tools("splat_single"))
-#   memory      = IntegrationFactors.memory("window")
-#   budget      = IntegrationFactors.token_budget("generous")
 #
 # Add methods for new factors as new spec groups are implemented.
 # Fixture classes are defined here as named constants so they can be
@@ -61,11 +59,8 @@ module IntegrationFactors
     end
   end
 
-  # Used for tool_param_enum tests.
-  # valid_value  = one of "Tokyo", "London", "Paris"
-  # invalid_value = any other string — execute raises, triggering ToolError
   class EnumCitySelectorTool < Phronomy::Agent::Context::Capability::Base
-    description "Returns a short fact about a supported city: Tokyo, London, or Paris"
+    description "Returns a short fact about a supported city: Tokyo, London, Paris"
     on_schema_error :raise
     param :city, type: :string,
       desc: "City to look up; must be one of: Tokyo, London, Paris",
@@ -86,7 +81,6 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
 
   class PassingInputFilter < Phronomy::Filter::Base
-    # no-op: always passes
     def call(value, **_ctx) = value
   end
 
@@ -97,7 +91,6 @@ module IntegrationFactors
   end
 
   class PassingOutputFilter < Phronomy::Filter::Base
-    # no-op: always passes
     def call(value, **_ctx) = value
   end
 
@@ -109,24 +102,17 @@ module IntegrationFactors
 
   # ---------------------------------------------------------------------------
   # Factor: agent_class
-  #
-  # Builds an anonymous agent subclass pre-configured with the given tools.
-  #
-  # @param label [String] "base"
-  # @param tools [Array, Hash] fixture input; arrays are normalized to the Hash-only Tool DSL
-  # @return [Class]
   # ---------------------------------------------------------------------------
   def self.agent_class(label, tools: [])
     base_klass = Phronomy::Agent::Base
     model_name = LM_STUDIO_MODEL
     tool_arg = tools
-    # Each call gets a unique definition id so agents don't collide in Persistence.
     defn_id = "integration-factor-#{SecureRandom.hex(4)}"
 
     Class.new(base_klass) do
       agent_definition id: defn_id, version: 1
       model model_name
-      provider :openai  # directs to openai_api_base (LM Studio); sets assume_model_exists: true
+      provider :openai
       instructions "You are a helpful assistant. Use tools when they are useful."
 
       case tool_arg
@@ -137,43 +123,7 @@ module IntegrationFactors
   end
 
   # ---------------------------------------------------------------------------
-  # Factor: memory_type
-  #
-  # @param label [String] "none" | "window" | "composite"
-  # @param opts  [Hash]   optional overrides
-  #   :k              – Retrieval::Recent k (default 10)
-  #   :sources        – Retrieval::Composite sources array
-  #                     each entry: { retrieval: <Retrieval::Base>, weight: Float }
-  # @return [Phronomy::Memory::ConversationManager, nil]
-  # ---------------------------------------------------------------------------
-  def self.memory(label, **opts)
-    case label
-    when "none"
-      nil
-    when "window"
-      Phronomy::Memory::ConversationManager.new(
-        storage: Phronomy::Memory::Storage::InMemory.new,
-        retrieval: Phronomy::Memory::Retrieval::Recent.new(k: opts.fetch(:k, 10))
-      )
-    when "composite"
-      sources = opts[:sources] || [
-        {retrieval: Phronomy::Memory::Retrieval::Recent.new(k: 5), weight: 1.0}
-      ]
-      Phronomy::Memory::ConversationManager.new(
-        storage: Phronomy::Memory::Storage::InMemory.new,
-        retrieval: Phronomy::Memory::Retrieval::Composite.new(sources: sources)
-      )
-    else
-      raise ArgumentError, "Unknown memory_type label: #{label}"
-    end
-  end
-
-  # ---------------------------------------------------------------------------
   # Factor: agent_tools
-  #
-  # @param label [String] "none" | "splat_single" | "splat_multi" | # legacy factor labels
-  #                       "hash_alias" | "hash_no_alias"
-  # @return [Array, Hash]  value suitable for passing to .agent_class(tools: ...)
   # ---------------------------------------------------------------------------
   def self.tools(label)
     case label
@@ -188,9 +138,6 @@ module IntegrationFactors
 
   # ---------------------------------------------------------------------------
   # Factor: thread_id
-  #
-  # @param label [String] "nil" | "present" | "different_threads"
-  # @return [nil, String, Array<String>]
   # ---------------------------------------------------------------------------
   def self.thread_id(label)
     case label
@@ -202,32 +149,7 @@ module IntegrationFactors
   end
 
   # ---------------------------------------------------------------------------
-  # Factor: memory_token_budget
-  #
-  # @param label [String] "nil" | "generous" | "tight"
-  # @return [Phronomy::LlmContextWindow::TokenBudget, nil]
-  # ---------------------------------------------------------------------------
-  def self.token_budget(label)
-    case label
-    when "nil"
-      nil
-    when "generous"
-      # 128k window, 4k output → ~124k for history; effectively unlimited
-      Phronomy::LlmContextWindow::TokenBudget.new(context_window: 131_072, max_output_tokens: 4096)
-    when "tight"
-      # Very small window to force message trimming
-      Phronomy::LlmContextWindow::TokenBudget.new(context_window: 256, max_output_tokens: 64)
-    else
-      raise ArgumentError, "Unknown memory_token_budget label: #{label}"
-    end
-  end
-
-  # ---------------------------------------------------------------------------
   # Factor: agent_guardrails (now: agent_filters)
-  #
-  # @param label [String] "none" | "input_only" | "output_only" | "both" |
-  #                       "blocking_input" | "blocking_output"
-  # @return [Array<Phronomy::Filter::Base>]
   # ---------------------------------------------------------------------------
   def self.guardrails(label)
     case label
@@ -241,12 +163,6 @@ module IntegrationFactors
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # Helper: attach a list of filter instances to an agent
-  #
-  # @param agent [Phronomy::Agent::Base] agent instance
-  # @param list  [Array<Phronomy::Filter::Base>] filters to attach
-  # ---------------------------------------------------------------------------
   def self.apply_guardrails(agent, list)
     list.each do |g|
       if g.is_a?(PassingInputFilter) || g.is_a?(BlockingInputFilter)
@@ -259,9 +175,6 @@ module IntegrationFactors
 
   # ---------------------------------------------------------------------------
   # Factor: prompt_template_type
-  #
-  # @param label [String] "human_only" | "with_system" | "multi_variable"
-  # @return [Phronomy::Agent::Context::Instruction::PromptTemplate]
   # ---------------------------------------------------------------------------
   def self.prompt_template(label)
     case label
@@ -284,13 +197,6 @@ module IntegrationFactors
 
   # ---------------------------------------------------------------------------
   # Factor: streaming_agent_class
-  #
-  # Builds an agent class pre-configured for streaming tests.
-  #
-  # @param label [String] "base"
-  # @param tools [Array, Hash] tool list (default [])
-  # @param instructions [String, Phronomy::Agent::Context::Instruction::PromptTemplate] instructions
-  # @return [Class]
   # ---------------------------------------------------------------------------
   def self.streaming_agent_class(label, tools: [], instructions: "You are a helpful assistant.")
     base_klass = Phronomy::Agent::Base
@@ -312,10 +218,6 @@ module IntegrationFactors
 
   # ---------------------------------------------------------------------------
   # Fixture: StubEmbeddings
-  #
-  # Deterministic embeddings adapter for use in tests that must not call an LLM.
-  # Returns a 3-D vector derived from the text's character-sum so that
-  # different texts produce different (but stable) vectors.
   # ---------------------------------------------------------------------------
   class StubEmbeddings < Phronomy::VectorStore::Embeddings::Base
     def embed(text, _cancellation_token = nil)
@@ -325,12 +227,6 @@ module IntegrationFactors
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # Factor: embeddings_adapter_type
-  #
-  # @param label [String] "ruby_llm_default" | "ruby_llm_explicit_model" | "stub"
-  # @return [Phronomy::VectorStore::Embeddings::Base]
-  # ---------------------------------------------------------------------------
   LM_STUDIO_EMBEDDING_MODEL = "text-embedding-nomic-embed-text-v1.5"
 
   def self.embeddings_adapter(label)
@@ -350,12 +246,6 @@ module IntegrationFactors
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # Factor: vector_store_backend
-  #
-  # @param label [String] "in_memory" | "pgvector" | "redis_search"
-  # @return [Phronomy::VectorStore::Base]
-  # ---------------------------------------------------------------------------
   def self.vector_store(label)
     case label
     when "in_memory"
@@ -369,13 +259,6 @@ module IntegrationFactors
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # Factor: loader_type
-  #
-  # @param label [String] "plain_text" | "markdown_with_headings" |
-  #                       "markdown_no_split" | "csv_with_headers"
-  # @return [Phronomy::VectorStore::Loader::Base]
-  # ---------------------------------------------------------------------------
   def self.loader(label)
     case label
     when "plain_text" then Phronomy::VectorStore::Loader::PlainTextLoader.new
@@ -386,12 +269,6 @@ module IntegrationFactors
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # Factor: splitter_type
-  #
-  # @param label [String] "none" | "fixed_size" | "recursive"
-  # @return [Phronomy::VectorStore::Splitter::Base, nil]
-  # ---------------------------------------------------------------------------
   def self.splitter(label)
     case label
     when "none" then nil
@@ -403,14 +280,6 @@ module IntegrationFactors
 
   # ---------------------------------------------------------------------------
   # Factor: tracer_type
-  #
-  # Returns a configured tracer instance for the given label.
-  # For :open_telemetry, the caller is responsible for setting up an OTel SDK
-  # with an InMemorySpanExporter before calling this helper.
-  #
-  # @param label [String] "null_tracer" | "open_telemetry" | "langfuse"
-  # @param exporter [Object, nil] InMemorySpanExporter for open_telemetry tests
-  # @return [Phronomy::Tracing::Base]
   # ---------------------------------------------------------------------------
   def self.tracer(label, exporter: nil)
     case label
@@ -435,13 +304,6 @@ module IntegrationFactors
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # Factor: eval_scorer_type
-  #
-  # @param label [String] "exact_match" | "includes_scorer" | "llm_judge"
-  # @param model [String] RubyLLM model identifier (only used for llm_judge)
-  # @return [Phronomy::Eval::Scorer::Base]
-  # ---------------------------------------------------------------------------
   def self.eval_scorer(label, model: LM_STUDIO_MODEL)
     case label
     when "exact_match" then Phronomy::Eval::Scorer::ExactMatch.new
@@ -451,15 +313,6 @@ module IntegrationFactors
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # Factor: eval_dataset_size
-  #
-  # Returns a Dataset with the requested number of pre-defined EvalCase entries.
-  # Each case tests simple arithmetic so responses are deterministic.
-  #
-  # @param label [String] "single" | "multi"
-  # @return [Phronomy::Eval::Dataset]
-  # ---------------------------------------------------------------------------
   def self.eval_dataset(label)
     all_pairs = [
       {input: "What is 2 + 2?", expected: "4"},
@@ -474,11 +327,6 @@ module IntegrationFactors
     Phronomy::Eval::Dataset.from_array(all_pairs.first(count))
   end
 
-  # ---------------------------------------------------------------------------
-  # Fixtures for Group 18: approval_spec
-  # ---------------------------------------------------------------------------
-
-  # A simple tool that does NOT require approval.
   class NoApprovalTool < Phronomy::Agent::Context::Capability::Base
     tool_name "no_approval_tool"
     description "A test tool that does not require approval"
@@ -489,7 +337,6 @@ module IntegrationFactors
     end
   end
 
-  # A simple tool that DOES require approval.
   class RequiresApprovalTool < Phronomy::Agent::Context::Capability::Base
     tool_name "requires_approval_tool"
     description "A test tool that requires approval"
@@ -501,12 +348,6 @@ module IntegrationFactors
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # Factor: approval_tool_type
-  #
-  # @param label [String] "no_approval" | "requires_approval"
-  # @return [Class] a Phronomy::Agent::Context::Capability::Base subclass
-  # ---------------------------------------------------------------------------
   def self.approval_tool_class(label)
     case label
     when "no_approval" then NoApprovalTool
@@ -515,15 +356,6 @@ module IntegrationFactors
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # Factor: approval_handler_type
-  #
-  # Returns a tool_approval_policy callable (or nil) for agent configuration.
-  # :allow and :reject are the two decisions; nil means no policy registered.
-  #
-  # @param label [String] "none" | "approves" | "denies"
-  # @return [Proc, nil]
-  # ---------------------------------------------------------------------------
   def self.approval_handler(label)
     case label
     when "none" then nil
@@ -533,13 +365,6 @@ module IntegrationFactors
     end
   end
 
-  # Builds an agent instance (Base) configured with the given
-  # tool class and approval policy.
-  #
-  # @param agent_label  [String]  "base"
-  # @param tool_class   [Class]   a Phronomy::Agent::Context::Capability::Base subclass
-  # @param handler      [Proc, nil] returned by .approval_handler (tool_approval_policy callable)
-  # @return [Phronomy::Agent::Base]
   def self.approval_agent(agent_label, tool_class:, handler:)
     base_class = Phronomy::Agent::Base
     defn_id = "integration-approval-#{SecureRandom.hex(4)}"
@@ -555,14 +380,6 @@ module IntegrationFactors
     agent
   end
 
-  # ── on_schema_error helpers ──────────────────────────────────────────────
-
-  # Builds an anonymous tool class that records its execute calls and supports
-  # the given on_schema_error policy.
-  #
-  # @param policy_label   [String]  "return_error" | "raise" | "coerce"
-  # @param execute_result [String]  value returned when execute runs normally
-  # @return [Class]  a Phronomy::Agent::Context::Capability::Base subclass
   def self.schema_error_tool(policy_label, execute_result: "ok")
     policy = policy_label.to_sym
     result = execute_result
@@ -580,82 +397,45 @@ module IntegrationFactors
     end
   end
 
-  # Builds a fake LLM response object that satisfies the interface expected by
-  # Agent invocation pipeline (response.content and response.tokens).
-  #
-  # @param content [String]
-  # @return [Object]
   def self.fake_llm_response(content: "ok")
     tokens_stub = Struct.new(:input, :output, :cached, :cache_creation).new(1, 1, 0, 0)
     Struct.new(:content, :tokens, :messages).new(content, tokens_stub, [])
   end
 
   # ---------------------------------------------------------------------------
-  # Context management factor helpers
+  # Context management helpers
   # ---------------------------------------------------------------------------
-
-  # Factor: ctx_static_knowledge
-  #
-  # Returns an Array of StaticKnowledge sources for the given label.
-  #
-  # @param label [String] "none" | "single" | "multi"
-  # @return [Array<Phronomy::Agent::Context::Knowledge::StaticKnowledge>]
-  def self.static_knowledge_sources(label)
+  def self.knowledge(label)
     case label
     when "none"
       []
     when "single"
-      [Phronomy::Agent::Context::Knowledge::StaticKnowledge.new("Policy: be concise and helpful.")]
+      ["Policy: be concise and helpful."]
     when "multi"
       [
-        Phronomy::Agent::Context::Knowledge::StaticKnowledge.new("Policy: be concise and helpful."),
-        Phronomy::Agent::Context::Knowledge::StaticKnowledge.new("Guide: always cite sources when possible.")
+        "Policy: be concise and helpful.",
+        "Guide: always cite sources when possible."
       ]
     else
-      raise ArgumentError, "Unknown ctx_static_knowledge label: #{label}"
+      raise ArgumentError, "Unknown ctx_knowledge label: #{label}"
     end
   end
 
-  # Builds an agent class configured with context management via build_context override.
-  #
-  # Trim and compact behaviour is implemented directly in an overridden
-  # +build_context+, using the protected utility helpers:
-  # +trim_messages+, +compact_messages+.
-  #
-  # @param static_knowledge_label [String] ctx_static_knowledge factor label
-  # @param trim_label             [String] ctx_trim factor ("none" | "remove_none" | "remove_some")
-  # @param trigger_label          [String] ctx_trigger factor ("none" | "false" | "true")
-  # @param compact_label          [String] ctx_compact factor ("none" | "summarise_range" | "multi_range")
-  # @return [Class] anonymous Agent::Base subclass
-  def self.context_agent(
-    static_knowledge_label: "none",
-    trim_label: "none",
-    trigger_label: "none",
-    compact_label: "none"
-  )
-    sources = static_knowledge_sources(static_knowledge_label)
-    # trim/trigger/compact_label were used by the old build_context API which is
-    # replaced by ContextAssembler in the new architecture. The labels are kept
-    # as parameters for pairwise compatibility but have no runtime effect.
-
+  def self.context_agent
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-18", version: 1
       model LM_STUDIO_MODEL
       provider :openai
       instructions "You are a helpful assistant."
-      static_knowledge(*sources) unless sources.empty?
     end
   end
 
   # ===========================================================================
-  # GROUP 25 — BEFORE_COMPLETION HOOK
+  # GROUP 25 — BEFORE_LLM_INPUT HOOK
   # ===========================================================================
 
   # Returns a hook callable for the given bc_hook_return factor label.
-  # The callable accepts a BeforeCompletionContext and returns a Hash (or nil).
-  #
-  # @param return_label [String] bc_hook_return factor label
-  # @return [Proc]
+  # The callable receives LLMInputBuildContext and returns LLMInputPatch or nil.
   def self.bc_hook_callable(return_label)
     case return_label
     when "nil"
@@ -679,10 +459,6 @@ module IntegrationFactors
     end
   end
 
-  # Returns a fresh agent class for the given bc_agent_class label.
-  #
-  # @param label [String] "base"
-  # @return [Class] anonymous subclass of Agent::Base
   def self.bc_agent_class(label)
     case label
     when "base"
@@ -697,14 +473,6 @@ module IntegrationFactors
     end
   end
 
-  # Builds an agent instance with the before_llm_input hook configured at
-  # the appropriate tier(s). Returns the agent instance.
-  # Callers are responsible for resetting global config after the test.
-  #
-  # @param tier_label   [String] bc_hook_tier factor label
-  # @param return_label [String] bc_hook_return factor label
-  # @param klass        [Class]  agent class (from bc_agent_class)
-  # @return [Phronomy::Agent::Base]
   def self.bc_build_agent(tier_label:, return_label:, klass:)
     callable = (tier_label == "none") ? nil : bc_hook_callable(return_label)
 
@@ -735,12 +503,8 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   # GROUP 26 — MULTI-AGENT HANDOFF helpers
   # ---------------------------------------------------------------------------
-
-  # Model identifier used in all Group 26 agents.
   LM_MODEL_26 = LM_STUDIO_MODEL
 
-  # Builds a pair of anonymous agent classes for linear handoff tests.
-  # Returns [entry_class, target_class].
   def self.handoff_linear_classes
     entry_klass = Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-20", version: 1
@@ -757,8 +521,6 @@ module IntegrationFactors
     [entry_klass, target_klass]
   end
 
-  # Builds a hub + spoke agent setup for hub_spoke topology tests.
-  # Returns [hub_instance, spoke1_instance, spoke2_instance].
   def self.handoff_hub_spoke_instances(spoke_count: 2)
     spoke_klasses = (1..spoke_count).map do |i|
       Class.new(Phronomy::Agent::Base) do
@@ -784,13 +546,8 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   # GROUP 27 — RAILS WEBSOCKET AGENT JOB helpers
   # ---------------------------------------------------------------------------
-
-  # Model identifier used in all Group 27 agents.
   LM_MODEL_27 = LM_STUDIO_MODEL
 
-  # Builds an anonymous Base class for AgentJob tests.
-  # @param label [String] "base" or "react"
-  # @return [Class<Phronomy::Agent::Base>]
   def self.job_agent_class(label)
     case label
     when "base", "react"
@@ -805,9 +562,6 @@ module IntegrationFactors
     end
   end
 
-  # Builds a config hash with the given style (symbol or string keys).
-  # @param label [String] "symbol_keys" or "string_keys"
-  # @return [Hash]
   def self.job_config(label)
     case label
     when "symbol_keys" then {thread_id: nil}
@@ -819,14 +573,6 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   # Helpers for Group 28: Workflow Wait State / Phase
   # ---------------------------------------------------------------------------
-
-  # Builds a Workflow (node_a -> wait_state(:awaiting_node_b) -> node_b -> finish)
-  # that halts at the wait state and resumes via the :resume event.
-  #
-  # The state class has a single :replace field `value` (String).
-  #
-  # @param state_class [Class] a class that includes Phronomy::WorkflowContext
-  # @return [Phronomy::WorkflowRunner]
   def self.wait_state_resume_graph(state_class)
     store = Phronomy::StateStore::InMemory.new
     Phronomy.configure { |c| c.default_state_store = store }
@@ -844,12 +590,6 @@ module IntegrationFactors
     end
   end
 
-  # Builds a Workflow (node_a -> wait_state(:awaiting_node_b) -> node_b -> finish)
-  # using a named resume event. The wait state halts between node_a and node_b.
-  #
-  # @param state_class [Class] a class that includes Phronomy::WorkflowContext
-  # @param resume_event [Symbol] event name for send_event (default :proceed)
-  # @return [Phronomy::WorkflowRunner]
   def self.wait_state_graph(state_class, resume_event: :proceed)
     store = Phronomy::StateStore::InMemory.new
     Phronomy.configure { |c| c.default_state_store = store }
@@ -867,7 +607,6 @@ module IntegrationFactors
     end
   end
 
-  # Resets the default state store to nil after a wait_state test.
   def self.reset_state_store
     Phronomy.configure { |c| c.default_state_store = nil }
   end
@@ -875,12 +614,6 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   # Group 29 — File State Store helpers
   # ---------------------------------------------------------------------------
-
-  # Returns a new Phronomy::StateStore::File instance.
-  #
-  # @param dir_type [String] "default" or "custom"
-  # @param custom_dir [String, nil] path used when dir_type == "custom"
-  # @return [Phronomy::StateStore::File]
   def self.file_store(dir_type, custom_dir: nil)
     case dir_type
     when "default"
@@ -893,11 +626,6 @@ module IntegrationFactors
     end
   end
 
-  # Returns a thread_id string for the given thread_id_type.
-  #
-  # @param thread_id_type [String] "simple" or "special_chars"
-  # @param base [String] base identifier (appended to make it unique per test)
-  # @return [String]
   def self.file_store_thread_id(thread_id_type, base: "t1")
     case thread_id_type
     when "simple"
@@ -909,12 +637,6 @@ module IntegrationFactors
     end
   end
 
-  # Builds a two-step Workflow with a wait_state, backed by the given store.
-  # node_a appends ":a" to value; node_b appends ":b".
-  #
-  # @param state_class [Class] includes Phronomy::WorkflowContext
-  # @param store [Phronomy::StateStore::Base]
-  # @return [Phronomy::WorkflowRunner]
   def self.file_store_workflow(state_class, store:)
     Phronomy::Workflow.define(state_class, state_store: store) do
       initial :node_a
@@ -932,16 +654,8 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   # GROUP 30 — APPROVAL RESUME helpers
   # ---------------------------------------------------------------------------
-
-  # Model identifier used in all Group 30 agents.
   LM_MODEL_30 = LM_STUDIO_MODEL
 
-  # Returns an anonymous approval-required tool class whose #execute returns a
-  # fixed string.  The tool is registered with requires_approval: true so that
-  # the suspension/resume path is exercised.
-  #
-  # @param result_value [String] value returned by the tool's execute method
-  # @return [Class]
   def self.approval_tool(result_value: "approval_tool_result")
     Class.new(Phronomy::Agent::Context::Capability::Base) do
       tool_name "approval_required_tool"
@@ -955,10 +669,6 @@ module IntegrationFactors
     end
   end
 
-  # Returns a second approval-required tool for multi-tool test scenarios.
-  #
-  # @param result_value [String] value returned by the tool's execute method
-  # @return [Class]
   def self.second_approval_tool(result_value: "second_approval_tool_result")
     Class.new(Phronomy::Agent::Context::Capability::Base) do
       tool_name "second_approval_required_tool"
@@ -972,11 +682,6 @@ module IntegrationFactors
     end
   end
 
-  # Builds an anonymous Agent::Base subclass pre-configured with the given
-  # approval-required tool(s) for the suspend/resume path.
-  #
-  # @param tool_classes [Array<Class>] tool classes to register (must all have requires_approval: true)
-  # @return [Class]
   def self.approval_resume_agent(*tool_classes)
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-25", version: 1
@@ -990,14 +695,8 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   # GROUP 31 — SHARED STATE helpers
   # ---------------------------------------------------------------------------
-
   LM_MODEL_31 = LM_STUDIO_MODEL
 
-  # Returns an anonymous Phronomy::Agent::Base subclass suitable for use as a
-  # SharedState researcher.  The class has no tools of its own; SharedState
-  # injects write_finding and read_store automatically.
-  #
-  # @return [Class]
   def self.ss_researcher_class
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-26", version: 1
@@ -1007,14 +706,6 @@ module IntegrationFactors
     end
   end
 
-  # Builds a SharedState team class configured according to the given factor
-  # labels.
-  #
-  # @param termination [Symbol] :max_cycles | :terminate_when | :timeout
-  # @param instruction [Symbol] :present | :absent
-  # @param coordination [Symbol] :custom | :default
-  # @param aggregate [Symbol] :with_block | :none
-  # @return [Class<Phronomy::Agent::SharedState>]
   def self.ss_team_class(termination:, instruction:, coordination:, aggregate:, researcher:)
     instr_text = (instruction == :present) ? "Focus only on security aspects." : nil
 
@@ -1049,15 +740,8 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   # GROUP 32 — TEAM COORDINATOR helpers
   # ---------------------------------------------------------------------------
-
   LM_MODEL_32 = LM_STUDIO_MODEL
 
-  # Returns an anonymous worker Agent::Base subclass for TeamCoordinator tests.
-  # The worker simply echoes back the task description as its output.
-  # To simulate a failure, pass failing: true.
-  #
-  # @param failing [Boolean] when true, invoke raises RuntimeError
-  # @return [Class]
   def self.tc_worker_class(failing: false)
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-27", version: 1
@@ -1074,14 +758,6 @@ module IntegrationFactors
     end
   end
 
-  # Builds a TeamCoordinator class configured according to the given factor
-  # labels.
-  #
-  # @param pool_size [Symbol] :single | :multi
-  # @param on_error [Symbol] :raise | :skip
-  # @param aggregate [Symbol] :with_block | :none
-  # @param worker [Class] worker agent class to use in the pool
-  # @return [Class<Phronomy::MultiAgent::TeamCoordinator>]
   def self.tc_team_class(pool_size:, on_error:, aggregate:, worker:)
     size = (pool_size == :single) ? 1 : 2
     err = on_error
@@ -1103,14 +779,8 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   # GROUP 33 — GENERATOR VERIFIER helpers
   # ---------------------------------------------------------------------------
-
   LM_MODEL_33 = LM_STUDIO_MODEL
 
-  # Returns an anonymous Agent::Base subclass whose LLM call is stubbed by
-  # WebMock; suitable for use as draft_agent or review_agent in GeneratorVerifier
-  # integration tests.
-  #
-  # @return [Class<Phronomy::Agent::Base>]
   def self.gv_agent_class
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-28", version: 1
@@ -1119,12 +789,6 @@ module IntegrationFactors
     end
   end
 
-  # Builds a GeneratorVerifier pipeline with the given factor labels.
-  #
-  # @param approval_outcome [Symbol] :approved | :rejected
-  # @param iteration_limit  [Symbol] :one | :three
-  # @param raise_policy     [Symbol] :raise | :no_raise
-  # @return [Phronomy::GeneratorVerifier]
   def self.gv_pipeline(approval_outcome:, iteration_limit:, raise_policy:)
     draft_agent = gv_agent_class
     review_agent = gv_agent_class
@@ -1145,9 +809,6 @@ module IntegrationFactors
     )
   end
 
-  # Returns a WebMock-compatible draft response JSON for a given confidence.
-  # @param confidence [Float]
-  # @return [String]
   def self.gv_draft_response(confidence: 0.9)
     JSON.generate(
       answer: "The answer is 42.",
@@ -1156,9 +817,6 @@ module IntegrationFactors
     )
   end
 
-  # Returns a WebMock-compatible review response JSON.
-  # @param approved [Boolean]
-  # @return [String]
   def self.gv_review_response(approved: true)
     score = approved ? 0.85 : 0.3
     feedback = approved ? "" : "Missing citation for claim X."
@@ -1168,13 +826,8 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   # GROUP 34 — ORCHESTRATOR helpers
   # ---------------------------------------------------------------------------
-
   LM_MODEL_34 = LM_STUDIO_MODEL
 
-  # Returns an anonymous Agent::Base subclass suitable as an Orchestrator
-  # subagent.  Its LLM response is provided via WebMock stubs.
-  #
-  # @return [Class<Phronomy::Agent::Base>]
   def self.orch_subagent_class
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-29", version: 1
@@ -1184,12 +837,6 @@ module IntegrationFactors
     end
   end
 
-  # Builds an Orchestrator class with the given factors.
-  # Only used for the :declarative delegation mode.
-  #
-  # @param subagent_count [Symbol] :single | :multiple
-  # @param on_error       [Symbol] :raise | :skip
-  # @return [Class<Phronomy::MultiAgent::Orchestrator>]
   def self.orch_declarative_class(subagent_count:, on_error:)
     sa1 = orch_subagent_class
     sa2 = orch_subagent_class
@@ -1208,11 +855,6 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   # GROUP 35 — VECTOR STORE DIMENSION VALIDATION helpers (#98)
   # ---------------------------------------------------------------------------
-
-  # Returns a fresh InMemory store with the given dimension initialisation.
-  #
-  # @param label [String] "explicit" | "inferred"
-  # @return [Phronomy::VectorStore::InMemory]
   def self.vs_store(label)
     case label
     when "explicit" then Phronomy::VectorStore::InMemory.new(dimension: 2)
@@ -1221,10 +863,6 @@ module IntegrationFactors
     end
   end
 
-  # Returns an embedding whose size matches or mismatches the reference dimension (2).
-  #
-  # @param label [String] "match" | "mismatch"
-  # @return [Array<Float>]
   def self.vs_embedding(label)
     case label
     when "match" then [0.6, 0.8]
@@ -1236,12 +874,6 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   # GROUP 36 — BOUNDED DISPATCH_PARALLEL helpers (#99)
   # ---------------------------------------------------------------------------
-
-  # Returns the max_concurrency value for the given label.
-  #
-  # @param label      [String]  "nil" | "one" | "gt_tasks"
-  # @param task_count [Integer] number of tasks (used for "gt_tasks")
-  # @return [Integer, nil]
   def self.bp_max_concurrency(label, task_count: 3)
     case label
     when "nil" then nil
@@ -1251,11 +883,6 @@ module IntegrationFactors
     end
   end
 
-  # Returns an array of task hashes for dispatch_parallel, mixed succeed/fail
-  # according to the given outcome label.
-  #
-  # @param label [String] "all_succeed" | "some_fail" | "all_fail"
-  # @return [Array<Hash>]
   def self.bp_tasks(label)
     good = Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-30", version: 1
@@ -1292,9 +919,6 @@ module IntegrationFactors
     end
   end
 
-  # Returns a minimal Orchestrator subclass for dispatch_parallel / fan_out tests.
-  #
-  # @return [Class<Phronomy::MultiAgent::Orchestrator>]
   def self.bp_orchestrator_class
     Class.new(Phronomy::MultiAgent::Orchestrator)
   end
@@ -1302,9 +926,6 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   # Group 37: BlockingAdapterPool boundary fixtures
   # ---------------------------------------------------------------------------
-
-  # A tool with execution_mode :blocking_io (default).
-  # Used to verify that blocking tools route through BlockingAdapterPool.
   class BbBlockingTool < Phronomy::Agent::Context::Capability::Base
     tool_name "bb_blocking_tool"
     description "A blocking_io tool used to verify pool routing"
@@ -1316,8 +937,6 @@ module IntegrationFactors
     end
   end
 
-  # A tool with execution_mode :cooperative.
-  # Used to verify that cooperative tools do NOT use BlockingAdapterPool.
   class BbCooperativeTool < Phronomy::Agent::Context::Capability::Base
     tool_name "bb_cooperative_tool"
     description "A cooperative tool used to verify it bypasses the pool"
@@ -1332,9 +951,6 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   # Group 38: :fiber backend cooperative runtime (Issue #339)
   # ---------------------------------------------------------------------------
-
-  # Maps fb_subject label to a symbol for use in fiber_backend_spec.rb.
-  # Each label corresponds to a distinct cooperative-runtime scenario.
   def self.fb_subject(label)
     case label
     when "spawn_await_value", "blocking_io_await", "async_queue_pop",
@@ -1347,8 +963,6 @@ module IntegrationFactors
     end
   end
 
-  # A tool with execution_mode :blocking_io used in upper-layer fiber backend tests.
-  # Routes through BlockingAdapterPool (ToolExecutor default).
   class FbBlockingTool < Phronomy::Agent::Context::Capability::Base
     tool_name "fb_blocking_tool"
     description "A blocking_io tool for fiber backend upper-layer tests"
@@ -1360,8 +974,6 @@ module IntegrationFactors
     end
   end
 
-  # A tool with execution_mode :cooperative used in upper-layer fiber backend tests.
-  # Routes through Runtime#spawn (no pool allocation).
   class FbCooperativeTool < Phronomy::Agent::Context::Capability::Base
     tool_name "fb_cooperative_tool"
     description "A cooperative tool for fiber backend upper-layer tests"

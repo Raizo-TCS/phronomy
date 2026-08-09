@@ -1,284 +1,111 @@
-# Phronomy — Knowledge Sources, Loaders & Splitters
+# Knowledge and RAG
 
-## 1. Overview
+## Scope
 
-The Knowledge subsystem provides structured knowledge injection into agent
-context windows. It is composed of three cooperating layers:
+Phronomy separates **information acquisition** from **Agent Context
+management**.
 
-```
-Document files
-      │
-  Loader (Markdown / CSV / PlainText)
-      │
-  Splitter (FixedSize / Recursive)
-      │
-  VectorStore (InMemory / pgvector / Redis)
-      │
-  KnowledgeSource (Static / RAG / Entity)
-      │
-  Context::Assembler  →  <context> XML tag
-      │
-  Agent LLM prompt
+```text
+Application / Tool / RAG pipeline
+        ↓ acquire / generate / extract
+plain logical Knowledge content
+        ↓
+Agent Journal or before_llm_input
+        ↓
+ContextCandidate
+        ↓
+Context Policy
+        ↓
+Manifest
 ```
 
-All three KnowledgeSource adapters produce `Array<Hash>` chunks of the form:
+## Knowledge model
+
+Phronomy has one Knowledge representation: a logical `:knowledge` Context
+candidate.
+
+There is no core hierarchy of StaticKnowledge, EntityKnowledge, RAGKnowledge or
+KnowledgeSource objects. How information was obtained is not a Context-selection
+type.
+
+Persistent Knowledge is registered on an Agent instance:
 
 ```ruby
-{ content: "...", type: :policy, source: "refund_policy.md" }
-```
+agent = ResearchAgent.new(
+  knowledge: [
+    "Account type: enterprise",
+    "Data residency: Japan"
+  ]
+)
 
-`type` is a semantic tag rendered as a context XML attribute.
-`source` is optional; when present it is rendered in the XML tag and
-exposed to the LLM for grounded citation.
-
----
-
-## 2. KnowledgeSource::Base
-
-`lib/phronomy/knowledge_source/base.rb`
-
-Abstract base class. Subclasses must implement:
-
-| Method | Signature | Notes |
-|--------|-----------|-------|
-| `fetch` | `(query: nil) → Array<Hash>` | Returns knowledge chunks |
-| `static?` | `→ Boolean` | `true` if content never changes per invocation |
-
----
-
-## 3. KnowledgeSource::StaticKnowledge
-
-`lib/phronomy/knowledge_source/static_knowledge.rb`
-
-Injects a fixed text document regardless of the query. Ideal for policy files,
-FAQs, product specifications, or any document that does not need retrieval.
-
-### Constructor
-
-```ruby
-Phronomy::KnowledgeSource::StaticKnowledge.new(
-  text,          # String — the knowledge content
-  type:   :static,  # Symbol — semantic tag (default :static)
-  source: nil       # String — source label for citations
+agent.add_knowledge(
+  "Customer locale: ja-JP",
+  metadata: {"origin" => "customer_profile"}
 )
 ```
 
-### Behaviour
+The content is stored in ContentStore and referenced by an append-only Journal
+record. Application metadata may carry provenance, but Phronomy does not give a
+special semantic meaning to a `source:` field or expose it through custom XML.
 
-- `fetch(query: nil)` → always returns the same single chunk
-- `static?` → `true`; the agent caches the assembled context and skips
-  reassembly unless the instruction fingerprint changes
+## Lifetime
 
-### Example
+Persistent Knowledge survives Agent reload because it is Journal-backed.
 
-```ruby
-ks = Phronomy::KnowledgeSource::StaticKnowledge.new(
-  File.read("refund_policy.md"),
-  type:   :policy,
-  source: "refund_policy.md"
-)
+`clear_knowledge!` logically invalidates earlier Knowledge for future Context
+selection while retaining raw Journal records. `clear_transcript!` does not
+clear Knowledge. `reset_context!` clears eligibility for both.
 
-class SupportAgent < Phronomy::Agent::Base
-  static_knowledge ks
-end
-```
+## Per-call Knowledge
 
----
-
-## 4. KnowledgeSource::RAGKnowledge
-
-`lib/phronomy/knowledge_source/rag_knowledge.rb`
-
-Retrieval-Augmented Generation: embeds the query and fetches the k nearest
-documents from a VectorStore.
-
-### Constructor
+Information needed only for one LLM call should not be persisted merely to make
+it available to Context assembly. Applications may return a Knowledge candidate
+from `before_llm_input`:
 
 ```ruby
-Phronomy::KnowledgeSource::RAGKnowledge.new(
-  store:      store,       # Phronomy::VectorStore::Base
-  embeddings: embeddings,  # Phronomy::Embeddings::Base
-  k:          5,           # Integer — number of chunks to retrieve
-  type:       :rag,        # Symbol — semantic tag
-  source:     nil          # String — default source label; falls back to doc metadata
-)
-```
-
-### Behaviour
-
-- `fetch(query:)` → embeds query → searches store → returns k chunks
-- Returns `[]` when query is nil or blank
-- `source` per chunk is `@source || doc[:metadata][:source]`
-- `static?` → `false` (result changes per query)
-
-### Full RAG Pipeline Example
-
-```ruby
-# 1. Load documents
-loader   = Phronomy::Loader::MarkdownLoader.new
-docs     = loader.load("guide.md")
-
-# 2. Split into chunks
-splitter = Phronomy::Splitter::RecursiveSplitter.new(chunk_size: 500, chunk_overlap: 50)
-chunks   = docs.flat_map { |doc| splitter.split(doc) }
-
-# 3. Embed and index
-store      = Phronomy::VectorStore::InMemory.new
-embeddings = Phronomy::Embeddings::RubyLLMEmbeddings.new(model: "text-embedding-3-small")
-chunks.each_with_index do |chunk, i|
-  store.add(
-    id:        i.to_s,
-    embedding: embeddings.embed(chunk[:text]),
-    metadata:  chunk[:metadata].merge(content: chunk[:text])
+agent.before_llm_input = ->(_ctx) {
+  Phronomy::Agent::LLMInputPatch.new(
+    segment_candidates: [
+      {
+        category: :knowledge,
+        role: :user,
+        content: "temporary retrieved context"
+      }
+    ]
   )
-end
-
-# 4. Attach to agent
-ks = Phronomy::KnowledgeSource::RAGKnowledge.new(
-  store:      store,
-  embeddings: embeddings,
-  k:          3,
-  source:     "guide.md"
-)
-
-agent.invoke("How do I reset my password?", config: { knowledge_sources: [ks] })
+}
 ```
 
----
+These candidates enter Context Policy but are not appended to the Journal.
 
-## 5. KnowledgeSource::EntityKnowledge
+## RAG responsibility
 
-`lib/phronomy/knowledge_source/entity_knowledge.rb`
+Vector stores, loaders, splitters, embeddings, ranking and external retrieval
+remain useful capabilities, but they are not themselves Agent Knowledge state.
 
-Stateful; accumulates named-entity facts extracted from user messages using
-regex heuristics (no LLM call required). Useful for personalised assistants
-that need to remember "my name is Alice" across turns.
+An application or Tool may:
 
-### Supported Patterns
+1. retrieve documents from a VectorStore;
+2. rank/filter them;
+3. turn the selected result into plain logical content;
+4. either persist it with `add_knowledge` or supply it per-call through
+   `before_llm_input`.
 
-| Pattern | Key | Example |
-|---------|-----|---------|
-| `my name is X` | `:name` | "my name is Alice" |
-| `I am X` | `:identity` | "I am a student" |
-| `I'm a/an X` | `:occupation` | "I'm a software engineer" |
-| `I work at/for X` | `:workplace` | "I work at Acme" |
-| `I live in X` | `:location` | "I live in Tokyo" |
-| `I'm from X` | `:location` | "I'm from Osaka" |
-| `I like/love X` | `:preference` | "I love Ruby" |
+This keeps retrieval strategy independent from durable Agent Context semantics.
 
-### Usage
+## Entity extraction responsibility
 
-```ruby
-ks = Phronomy::KnowledgeSource::EntityKnowledge.new
+Entity extraction follows the same rule. If an application derives
+`"Customer name: Alice"` from conversation or another data source, it decides
+whether that fact should be persisted as Knowledge. Phronomy does not maintain
+an EntityKnowledge parser or automatically mutate Knowledge from messages.
 
-# Call after each message save
-ks.update(messages: manager.load_messages(thread_id: "t1"))
+## Selection and budget
 
-agent.invoke("What is my name?", config: { knowledge_sources: [ks] })
-```
+Knowledge is optional by default. It is selected by the same Context Policy as
+other optional Context candidates and may be omitted when the input budget is
+insufficient.
 
----
-
-## 6. Loaders
-
-`lib/phronomy/loader/`
-
-Loaders read source files and return `Array<Hash>` documents:
-`[{ text: "...", metadata: { source: "file.md", ... } }]`
-
-### MarkdownLoader
-
-```ruby
-loader = Phronomy::Loader::MarkdownLoader.new(split_on_headings: true)
-docs   = loader.load("guide.md")
-# Each H1–H6 section becomes a separate document with metadata[:section]
-```
-
-Options:
-- `split_on_headings: true` (default) — splits on H1–H6 boundaries
-- `split_on_headings: false` — returns the entire file as one document
-
-### PlainTextLoader
-
-```ruby
-loader = Phronomy::Loader::PlainTextLoader.new
-docs   = loader.load("notes.txt")
-# Returns single document; metadata: { source: "notes.txt" }
-```
-
-### CsvLoader
-
-```ruby
-loader = Phronomy::Loader::CsvLoader.new(text_column: "body", metadata_columns: [:title, :url])
-docs   = loader.load("articles.csv")
-# Each row becomes one document; listed columns become metadata
-```
-
----
-
-## 7. Splitters
-
-`lib/phronomy/splitter/`
-
-Splitters accept a `Hash` document `{ text:, metadata: }` and return
-`Array<Hash>` chunks with `metadata[:chunk]` index appended.
-
-### FixedSizeSplitter
-
-Splits on character count with overlap. Fast and simple.
-
-```ruby
-splitter = Phronomy::Splitter::FixedSizeSplitter.new(
-  chunk_size:    1000,  # max characters per chunk
-  chunk_overlap: 200    # overlap characters between adjacent chunks
-)
-chunks = splitter.split(doc)
-```
-
-### RecursiveSplitter
-
-Tries separators in priority order (`"\n\n"`, `"\n"`, `". "`, `" "`, `""`),
-recursing to the next separator when a piece is still larger than `chunk_size`.
-
-```ruby
-splitter = Phronomy::Splitter::RecursiveSplitter.new(
-  chunk_size:    500,
-  chunk_overlap: 50,
-  separators:    ["\n\n", "\n", ". ", " ", ""]  # default
-)
-chunks = splitter.split(doc)
-```
-
----
-
-## 8. Context Assembly
-
-`KnowledgeSource#fetch` chunks are assembled into the agent's system prompt by
-`Context::Assembler#add_knowledge`. Each chunk is wrapped in a `<context>` XML
-tag:
-
-```xml
-<context type="policy" source="refund_policy.md" trusted="true">
-  Customers may request a full refund within 30 days...
-</context>
-```
-
-Attributes:
-- `type` — from `chunk[:type]`
-- `source` — from `chunk[:source]` (omitted when nil)
-- `trusted` — from the `trusted:` keyword arg (default false)
-
----
-
-## 9. Static vs Dynamic Knowledge
-
-| | StaticKnowledge | RAGKnowledge | EntityKnowledge |
-|-|-----------------|--------------|-----------------|
-| `static?` | `true` | `false` | `false` |
-| Query dependency | None | Required | None |
-| LLM call | None | For embedding | None |
-| State | Stateless | Stateless | Stateful (accumulates) |
-| Registration | `static_knowledge` DSL or `knowledge_sources:` config | `knowledge_sources:` config | `knowledge_sources:` config |
-
-Static knowledge is cached by `Agent::Base` using an instruction fingerprint;
-the assembled context is reused across invocations without re-fetching.
+Mandatory information belongs in instructions or another explicit required
+Context mechanism; Knowledge does not become mandatory merely because it was
+registered.

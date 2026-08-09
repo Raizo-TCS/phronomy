@@ -1,266 +1,108 @@
-# Phronomy — Architecture Overview
+# Architecture Overview
 
-## 1. Three-Layer Architecture
+> **Current architecture — Manifest-first stateful Agent model**
 
-Phronomy follows the "three-layer model" from the AI Agent Design Guide.
+Phronomy separates durable execution facts from the logical input selected for
+one provider call.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                       Application Layer                          │
-│   Agents, workflows, and Rails apps implemented by the user      │
-└─────────────────────────────┬───────────────────────────────────┘
-                              │ uses
-┌─────────────────────────────▼───────────────────────────────────┐
-│                   Framework Layer (Phronomy)                     │
-│                                                                  │
-│  ┌──────────┐ ┌─────────┐ ┌──────────┐ ┌─────────┐             │
-│  │ Workflow │ │  Agent  │ │  Memory  │ │  Tool   │             │
-│  └─────────┘ └─────────┘ └──────────┘ └─────────┘             │
-│  ┌──────────────┐ ┌──────────┐ ┌────────────┐ ┌─────────────┐  │
-│  │  StateStore  │ │Guardrail │ │   Tracer   │ │ OutputParser│  │
-│  └──────────────┘ └──────────┘ └────────────┘ └─────────────┘  │
-└─────────────────────────────┬───────────────────────────────────┘
-                              │ uses
-┌─────────────────────────────▼───────────────────────────────────┐
-│                   LLM Abstraction Layer (RubyLLM)                │
-│                                                                  │
-│  Chat / Tool / Agent / Embedding / Streaming / Rails integration │
-│  Providers: OpenAI / Anthropic / Gemini / Ollama / ...          │
-└─────────────────────────────────────────────────────────────────┘
+```text
+Application / Agent execution
+        ↓
+Canonical append-only Agent Journal
+        ↓
+ContextCandidateResolver
+        ↓
+Context Policy
+        ↓
+validated ContextPlan
+        ↓
+Canonical LLMInputManifest
+        ↓
+RubyLLMMaterializer
+        ↓
+RubyLLM / Provider
 ```
 
----
+## Authority boundaries
 
-## 2. Component Structure
+### Journal
 
-### 2.1 Core Components (Required)
+The Agent Journal is the canonical append-only record of logical facts observed
+or explicitly registered by Phronomy. Conversation messages, Tool protocol
+messages, Knowledge, lifecycle/context reset markers, and execution facts are
+recorded without rewriting old records.
 
-| Component | Role | LangGraph/LangChain Equivalent |
-|---|---|---|
-| `Workflow` | Define and execute agent workflows via Workflow DSL (`WorkflowRunner`) | LangGraph StateGraph |
-| `Agent` | Execution node with tools, instructions, and LLM config | LangGraph ToolNode + Agent |
-| `Tool` | Function definition callable from LLM | LangChain Tool |
-| `Memory` | Conversation history and context management | LangChain Memory + mem0 |
+### Context candidates
 
-### 2.2 Execution Infrastructure Components (Required)
+Not every Journal record is LLM input. `JournalProjection` exposes the records
+eligible for Context selection, and `ContextCandidateResolver` converts them to
+logical `ContextCandidate` values.
 
-| Component | Role | Equivalent |
-|---|---|---|
-| `Runtime` | Execution engine for Workflow | LangGraph Pregel |
-| `WorkflowContext` | State mixin (fields + metadata) for workflow execution | LangGraph State |
-| `StateStore` | Persistence, suspension, and resumption of execution state | LangGraph Checkpoint |
+Persistent Knowledge is represented by ordinary Journal records with
+`kind: :knowledge`. It is not a separate source-object hierarchy and it is not
+part of the public transcript.
 
-### 2.3 Extension Components (Optional gems)
+### Context Policy and ContextPlan
 
-| Component | Role | Gem Name |
-|---|---|---|
-| `Guardrail` | Input/output validation and constraints | `phronomy-guardrails` |
-| `Tracer` | Execution trace collection and output | `phronomy-tracing` |
-| `OutputParser` | Conversion to various output formats | Included in core |
-| `VectorStore` | In-process vector store for SemanticMemory | Included in core |
-| `StateStore` | Persistence and resumption of workflow execution state | LangGraph Checkpoint |
+A `ContextPolicy` receives candidates plus budget/protocol information and
+returns a `ContextPlan`. The default policy groups dependency-sensitive Tool
+exchanges, marks required units, orders optional units, and packs them into the
+available input budget.
 
-### 2.4 Context Management Components (Core)
+Policy selection never deletes or edits the Journal.
 
-| Component | Role |
-|---|---|
-| `Context::TokenEstimator` | Central token estimation (char/4 heuristic, pluggable) |
-| `Context::TokenBudget` | Derives effective input token limit from model metadata |
-| `Context::Builder` | Assembles context sections within a token budget |
-| `Memory::Pruner::Base` | Pluggable hook for selective message pruning |
-| `Memory::Pruner::ToolOutputPruner` | Truncates oversized tool-call result messages |
-| `Memory::SemanticMemory` | Embedding-based retrieval of relevant messages |
-| `Memory::CompositeMemory` | Merges multiple memory sources within a shared budget |
-| `VectorStore::InMemory` | Pure-Ruby cosine-similarity vector store |
+### LLMInputManifest
 
----
+`LLMInputManifest` fixes the logical input for one LLM call. It records the
+selected segments, model configuration, Tool definitions and policy identity.
+The runtime adapter must materialize exactly that Manifest.
 
-## 3. Directory Structure (Expected)
+### RubyLLMMaterializer
 
-```
-phronomy/
-├── lib/
-│   ├── phronomy.rb                    # gem entry point
-│   └── phronomy/
-│       ├── version.rb
-│       ├── configuration.rb             # global configuration
-│       │
-│       ├── workflow_context.rb          # WorkflowContext mixin (state fields + metadata)
-│       ├── workflow_runner.rb           # state-machine execution engine (WorkflowRunner)
-│       │
-│       ├── agent/                       # Agent component
-│       │   ├── base.rb                  # Agent base class
-│       │   ├── react_agent.rb           # ReAct pattern
-│       │   └── tool_calling_agent.rb    # Tool Calling pattern
-│       │
-│       ├── tool/                        # Tool component
-│       │   ├── base.rb                  # RubyLLM::Tool extension
-│       │   └── mcp_tool.rb              # MCP protocol support
-│       │
-│       ├── memory/                      # Memory component
-│       │   ├── base.rb                  # Memory interface
-│       │   ├── in_memory.rb             # in-memory implementation
-│       │   ├── window_memory.rb         # sliding window
-│       │   ├── summary_memory.rb        # summary compression
-│       │   └── active_record_memory.rb  # ActiveRecord persistence
-│       │
-│       ├── state_store/                 # StateStore component
-│       │   ├── base.rb                  # StateStore interface
-│       │   ├── in_memory.rb             # in-memory (for development)
-│       │   ├── active_record.rb         # ActiveRecord persistence
-│       │   └── redis.rb                 # Redis persistence (optional)
-│       │
-│       ├── output_parser/               # output parsers
-│       │   ├── base.rb
-│       │   ├── json_parser.rb
-│       │   └── structured_parser.rb
-│       │
-│       ├── guardrail/                   # Guardrail (optional)
-│       │   ├── base.rb
-│       │   ├── input_guardrail.rb
-│       │   └── output_guardrail.rb
-│       │
-│       ├── tracing/                     # Tracer (optional)
-│       │   ├── base.rb
-│       │   └── null_tracer.rb
-│       │
-│       ├── state_store/                 # workflow state persistence
-│       │   ├── base.rb
-│       │   ├── in_memory.rb
-│       │   ├── active_record.rb
-│       │   └── redis.rb
-│       │
-│       ├── active_record/               # Rails / ActiveRecord integration
-│       │   ├── acts_as.rb
-│       │   └── checkpoint_record.rb
-│       │
-│       └── railtie.rb                   # Rails integration
-│
-├── spec/                                # RSpec tests
-├── generators/                          # Rails generators
-├── phronomy.gemspec
-├── Gemfile
-└── Rakefile
-```
+`RubyLLMMaterializer` converts a validated Manifest into RubyLLM runtime
+objects. It is a projection layer, not another Context authority.
 
----
+## Instructions, Knowledge and conversation history
 
-## 4. Design Decisions and Approach
+These inputs intentionally have different semantics:
 
-Phronomy's approach to the 11 design topics from the AI Agent Design Guide.
+- **instructions** — framework/application-required system input;
+- **Knowledge** — optional Agent-held Context candidates selected by policy;
+- **conversation history** — canonical user/assistant/Tool messages selected by policy;
+- **current user input** — required input for the current ask call;
+- **Tool definitions** — required capability definition for the call.
 
-### 4.1 Information Structure Design (info-structure)
+Knowledge may be registered when an Agent is created or later through
+`add_knowledge`. `clear_knowledge!` logically invalidates prior Knowledge
+without deleting raw Journal records.
 
-**Corresponding components**: `Memory`
+Per-call Context supplied through `before_llm_input` is not persisted. Its
+`segment_candidates` enter the same Context Policy selection path as persistent
+Knowledge and history.
 
-- Instructions area: managed by the system prompt inside Workflow nodes
-- Capability area: managed by `Agent`'s `tools` list
-- Knowledge area: injected into nodes from `Memory` retrieval results
-- Conversation area: managed by `Memory::WindowMemory` / `SummaryMemory`
+## Persistence and lifecycle
 
-### 4.2 Instruction Composition Design (prompt-design)
+`AgentRoot` contains durable Agent identity, revision, Journal position,
+lifecycle state and transcript generation. Context mutations are serialized
+through Persistence transactions and are rejected while an AgentExecution is
+active or suspended where appropriate.
 
-**Corresponding component**: `Agent`, `Workflow`
+`clear_transcript!`, `clear_knowledge!` and `reset_context!` are logical reset
+operations. They preserve append-only Journal history while changing which
+records are eligible for future Context selection.
 
-- Define 5 sections (role instruction, task instruction, environment info, behavior policy, output policy) in Agent's `instructions` or as a node's system prompt
-- Support both static templates (YAML/ERB file-based) and dynamic composition (block-based)
-- Provider differences are delegated to RubyLLM's Provider layer
+## Removed architecture
 
-### 4.3 Tool Design and Permission Boundaries (tools)
+The following are not part of the current design:
 
-**Corresponding components**: `Tool`, `Guardrail`
+- mutable RubyLLM message history as Agent state;
+- `Agent#build_context` as an extension point;
+- `LlmContextWindow::Assembler`;
+- `ContextVersionCache`;
+- `Memory::ConversationManager` as Agent Context authority;
+- `StaticKnowledge` / `EntityKnowledge` / `KnowledgeSource` hierarchies;
+- class-level static-Knowledge caches;
+- Context pruning by deleting Journal history.
 
-- `Phronomy::Tool` extends `RubyLLM::Tool` to add permission scopes, execution policies, and HumanApproval hooks
-- Guardrail validates before/after dangerous tool executions
-
-### 4.4 Knowledge and Memory Strategy (knowledge-memory)
-
-**Corresponding components**: `Memory`, `VectorStore`
-
-- Short-term: `Memory::WindowMemory` — retain last N turns (count-based or token-budget-based)
-- Long-term: `Memory::ActiveRecordMemory` — DB persistence with optional `Pruner`
-- Semantic: `Memory::SemanticMemory` + `VectorStore::InMemory` — embedding-based retrieval
-- Composite: `Memory::CompositeMemory` — merge semantic and recent sources within a shared budget
-
-### 4.5 Context Management Implementation (context-management)
-
-**Corresponding components**: `Context`, `Memory`
-
-- **Token budget**: `Context::TokenBudget` derives effective input limit from
-  `model.context_window - model.max_output_tokens - overhead`.
-  `Agent::Base` builds a budget automatically and passes it to `memory.load_messages`.
-- **Token estimation**: `Context::TokenEstimator` centralises the char/4 heuristic;
-  future model-specific tokenizers swap this one location.
-- **Selective pruning**: `Memory::Pruner::ToolOutputPruner` truncates oversized
-  tool-result messages before they consume the window.
-- **Summary compression**: `Memory::SummaryMemory` summarizes old history with LLM
-  when the budget threshold is reached.
-- **Context assembly**: `Context::Builder` places instructions, knowledge, and
-  conversation into the window in priority order (low priority).
-- **Cache efficiency**: unchanging instructions are placed at the head of the
-  message list (prompt caching; takes effect when the provider offers this feature).
-
-### 4.6 Processing Cycle and Persistence (cycle-persistence)
-
-**Corresponding components**: `Workflow`, `StateStore`
-
-- State is persisted via `StateStore` after each workflow transition
-- Suspend/resume: identify and resume execution using `thread_id`
-- Fault recovery: re-execute from the last persisted state
-
-### 4.7 Agent Composition Selection (agent-composition)
-
-**Corresponding components**: `Workflow`, `Agent`
-
-- Single agent: Run `Agent` standalone
-- Workflow composition: Conditional branching and loops between nodes via `Workflow`
-- Multi-agent: Agent-as-Tool pattern — wrap sub-agents as `Tool::Base` subclasses and register them on an orchestrator `Agent`
-
-### 4.8 Response and Streaming UX (streaming-ux)
-
-**Corresponding components**: `Workflow`
-
-- Propagate RubyLLM streaming at the Workflow level
-- Integration with Rails ActionController::Live / ActionCable
-
-### 4.9 Human Intervention Design (human-in-loop)
-
-**Corresponding components**: `Workflow`, `Tool::HumanApproval`
-
-- Workflow halts at `wait_state`: state is persisted to `StateStore` and execution pauses
-- Resume: continue with `app.send_event(:event_name, config: { thread_id: })`
-
-### 4.10 External Integration and Protocols (external-integration)
-
-**Corresponding component**: `Tool::McpTool`
-
-- Connect to MCP (Model Context Protocol) servers
-- Use external tool ecosystem from Ruby via MCP
-- Webhook/event-triggered execution is the application layer's responsibility
-
-### 4.11 Validation, Observability, and Evaluation (validation)
-
-**Corresponding components**: `Tracer`, `Guardrail`
-
-- `Tracer::NullTracer` as default (no-op)
-- OpenTelemetry / Langfuse / LangSmith adapters (optional gems)
-- Guardrail for automatic output quality validation
-
----
-
-## 5. Dependency Diagram
-
-```
-Phronomy::Workflow
-  └─ Phronomy::WorkflowRunner  (execution engine)
-      └─ Phronomy::WorkflowContext
-          └─ Phronomy::Agent::Base
-              └─ RubyLLM::Agent  (or RubyLLM::Chat + Tool)
-      └─ Phronomy::StateStore::Base
-      └─ Phronomy::Memory::Base
-
-Phronomy::Tool
-  └─ RubyLLM::Tool  (inheritance or delegation)
-```
-
----
+See `07_context_management.md`, ADR-012 and ADR-013 for the normative Context
+and Knowledge decisions.

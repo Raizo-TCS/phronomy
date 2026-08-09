@@ -42,7 +42,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Filters, an
 
 | Feature | Stability |
 |---|---|
-| **Knowledge** — Static context injection with pluggable loaders, splitters, and vector stores; `static_knowledge_refresh!` for runtime cache invalidation | Beta |
+| **Knowledge** — Journal-backed persistent Agent context registered with `knowledge:` / `add_knowledge`; selected per LLM call by Context Policy; `clear_knowledge!` logically resets retained Knowledge without deleting Journal history | Beta |
 | **`VectorStore#size`** — Returns document count for all three backends (InMemory, RedisSearch, Pgvector) | Beta |
 | **`VectorStore::AsyncBackend` mixin** — Pluggable async interface for `VectorStore`; default pool-backed implementations for `search_async`, `add_async`, `remove_async`, `clear_async`; backends with native async drivers override individual methods to bypass `BlockingAdapterPool` entirely; all existing backends remain unchanged | Beta |
 | **MCP Tool** — `Phronomy::Tools::Mcp`: Model Context Protocol server integration via the official `mcp` gem; `Phronomy::Tools::Agent`: wraps an agent class as a callable tool via `from_agent` | Beta |
@@ -163,6 +163,9 @@ The following compatibility-only APIs have been removed from the active contract
 | `TaskGroup.new(runtime: nil)` | Runtime is required |
 | `tools ToolA, ToolB` | Use `tools(ToolA => nil, ToolB => nil)` |
 | `CancellationToken.new(deadline: Time...)` | Use `CancellationToken.timeout_after(seconds)` for token deadlines |
+| `StaticKnowledge` / `EntityKnowledge` / `Knowledge::Base` / `Phronomy::KnowledgeSource` | Register plain persistent Knowledge with `knowledge:` or `add_knowledge` |
+| `static_knowledge*` class APIs | Persistent Knowledge belongs to Agent instances and is Journal-backed |
+| `clear_memory!` | Use `clear_knowledge!`; conversation history is controlled independently with `clear_transcript!` |
 
 The legacy `build_context` / `LlmContextWindow::Assembler` extension path is no
 longer an active API. Stateful Agent input is assembled through the canonical
@@ -488,38 +491,55 @@ end
 > that logic must be implemented by the application. Reference implementations for
 > common patterns are available in `phronomy-examples` (example 06).
 
-### Knowledge — Static context injection
+### Knowledge — Persistent Agent context
+
+Knowledge is plain logical content retained by one Agent and considered by
+Context Policy for future LLM calls. It is not a separate source-object type and
+it is not automatically mandatory.
+
+Register initial Knowledge when creating the Agent:
 
 ```ruby
-# Static knowledge (policy files, reference docs)
-policy = Phronomy::Agent::Context::Knowledge::StaticKnowledge.new(
-  File.read("policy.md"),
-  type:   :policy,
-  source: "policy.md"   # exposed to LLM for citation
+policy_text = File.read("policy.md")
+
+agent = ResearchAgent.new(
+  knowledge: [
+    policy_text,
+    "Customer tier: enterprise"
+  ]
 )
-
-# Inject at invocation time via the agent DSL
-class MyAgent < Phronomy::Agent::Base
-  model "gpt-4o-mini"
-  knowledge policy
-end
 ```
 
-`static_knowledge_refresh!` invalidates the class-level cache of static knowledge sources.
-Call it when the underlying file or content has changed:
+Add durable Knowledge later:
 
 ```ruby
-# Static knowledge sources are cached at the class level after the first fetch.
-# Call refresh! when the underlying content changes (e.g. after reloading policy.md).
-MyAgent.static_knowledge_refresh!
+agent.add_knowledge(
+  "Customer locale: ja-JP",
+  metadata: {"origin" => "customer_profile"}
+)
 ```
 
-Load and split documents with built-in loaders:
+Persistent Knowledge is Journal-backed, survives `Agent.load`, and is excluded
+from the public conversation transcript. `clear_knowledge!` logically
+invalidates earlier Knowledge while keeping the append-only Journal intact.
+
+```ruby
+agent.clear_knowledge!
+```
+
+For request-scoped retrieval results that should not be persisted, use
+`before_llm_input` `segment_candidates` instead.
+
+Load and split documents with built-in loaders when the application needs an
+acquisition/RAG pipeline:
 
 ```ruby
 chunks = Phronomy::VectorStore::Loader::MarkdownLoader.new.load("docs/guide.md")
          .then { |docs| Phronomy::VectorStore::Splitter::RecursiveSplitter.new(chunk_size: 512).split(docs) }
 ```
+
+The application decides whether retrieved/extracted information becomes durable
+Agent Knowledge (`add_knowledge`) or per-call Context (`before_llm_input`).
 
 ### Multi-Agent Handoff — Hub-and-spoke routing
 
@@ -619,9 +639,9 @@ When multiple hooks provide `model_config_patch`, patches are merged in hook
 order and later values win on key conflicts.
 
 `LLMInputPatch` can also supply `segment_candidates` for additional per-call
-context. Those segments participate in Manifest-first input assembly. This is
-intended for logical context supplied by the application; applications should
-not mutate RubyLLM message history directly.
+context. Those candidates enter the same Context Policy selection path as
+persistent/history candidates and are not automatically mandatory. They are
+not persisted to the Journal.
 
 ```ruby
 Phronomy::Agent::LLMInputPatch.new(
@@ -635,9 +655,9 @@ Phronomy::Agent::LLMInputPatch.new(
 )
 ```
 
-The Journal remains the canonical record of observed execution history.
-`before_llm_input` customizes the logical input assembled for a particular LLM
-call; it does not rewrite previously recorded Journal history.
+The Journal remains the canonical record of observed execution history and
+persistent Knowledge. `before_llm_input` customizes only the logical candidate
+set for a particular LLM call.
 
 ### GeneratorVerifier — Generator-Verifier loop with custom prompt builders
 
@@ -689,8 +709,7 @@ end
 
 ### MultiAgent::Orchestrator — Parallel subagent dispatch
 
-> **Note:** `dispatch_parallel` and `fan_out` use plain Ruby threads. Use
-> `max_concurrency:` to cap the number of concurrent workers and `on_error:`
+> **Note:** Use `max_concurrency:` to cap concurrent workers and `on_error:`
 > to control failure handling (`:raise` re-raises the first error after all
 > tasks complete; `:skip` fills failed slots with `nil`). For very large
 > fan-outs consider additional rate-limiting at the application level.
@@ -716,7 +735,6 @@ class MyOrchestrator < Phronomy::MultiAgent::Orchestrator
   instructions "Orchestrate."
 
   def run(query)
-    # Heterogeneous agents in parallel (cap at 4 threads; skip failures; 30 s timeout)
     results = dispatch_parallel(
       {agent: SearchAgent,   input: "topic A"},
       {agent: AnalysisAgent, input: query},
@@ -725,7 +743,6 @@ class MyOrchestrator < Phronomy::MultiAgent::Orchestrator
       timeout: 30
     )
 
-    # Fan-out — same agent, multiple inputs
     translations = fan_out(
       agent: TranslationAgent,
       inputs: %w[Hello World],
@@ -754,14 +771,10 @@ end
 app = Phronomy::Workflow.define(EnrichContext) do
   initial :enrich
   state :enrich, action: ->(s) do
-    # Use Thread#value to collect results safely — avoids concurrent Hash writes
     threads = {
       summary: Thread.new { Summarizer.call(s) },
       tags:    Thread.new { Tagger.call(s) }
     }
-    # For bounded waits, use Thread#join(timeout_seconds); nil means timed out — handle explicitly.
-    # Do not use Timeout.timeout or Thread#kill — both inject async exceptions that bypass cleanup.
-    # Prefer CancellationToken for cooperative cancellation of Phronomy-managed tasks.
     threads.each_value(&:join)
     s.merge(summary: threads[:summary].value, tags: Array(threads[:tags].value))
   end
@@ -774,12 +787,10 @@ state = app.invoke({}, config: { thread_id: "t1" })
 ### Output Parser — Structured LLM responses
 
 ```ruby
-# Extract JSON from LLM output (handles Markdown code fences automatically)
 parser = Phronomy::OutputParser::JsonParser.new
 data   = parser.parse('```json\n{"name":"Alice","score":0.9}\n```')
 # => { name: "Alice", score: 0.9 }
 
-# Map JSON directly to a Struct
 PersonSchema = Struct.new(:name, :age, keyword_init: true)
 parser = Phronomy::OutputParser::StructuredParser.new(PersonSchema)
 person = parser.parse('{"name":"Alice","age":30}')
@@ -802,15 +813,15 @@ runner  = Phronomy::Eval::Runner.new(
 results = runner.run(dataset, ->(q) { agent.invoke(q) })
 metrics = Phronomy::Eval::Metrics.new(results)
 
-puts "Mean score: #{metrics.mean_score}"   # Float 0.0–1.0
-puts "Pass rate:  #{metrics.pass_rate}"    # fraction with score >= threshold
+puts "Mean score: #{metrics.mean_score}"
+puts "Pass rate:  #{metrics.pass_rate}"
 ```
 
 ### Tracing — Custom observability
 
 ```ruby
 Phronomy.configure do |c|
-  c.tracer = MyCustomTracer.new  # any Phronomy::Tracing::Base subclass
+  c.tracer = MyCustomTracer.new
 end
 ```
 
@@ -858,10 +869,12 @@ persistence = Phronomy::Persistence::InMemory.new
 
 agent = ResearchAgent.create(
   agent_id: "research-session-42",
+  knowledge: ["Customer tier: enterprise"],
   persistence: persistence
 )
 
 agent.invoke("My name is Alice.")
+agent.add_knowledge("Customer locale: ja-JP")
 result = agent.invoke("What is my name?")
 
 puts result[:output]
@@ -887,6 +900,7 @@ Existing external conversation history can be supplied when a new Agent is creat
 ```ruby
 agent = ResearchAgent.create(
   context: existing_messages,
+  knowledge: initial_knowledge,
   persistence: persistence
 )
 ```
@@ -895,15 +909,13 @@ Imported history must satisfy Phronomy's Import contract. User, assistant, and T
 
 `thread_id` is an execution correlation identifier. It does not identify the persistent Agent and is not a substitute for `agent_id`.
 
-The current conversation or memory view can be advanced without deleting the canonical Journal:
+The active conversation and Knowledge views can be advanced independently without deleting the canonical Journal:
 
 ```ruby
-agent.clear_transcript!
-agent.clear_memory!
-agent.reset_context!
+agent.clear_transcript!  # conversation only
+agent.clear_knowledge!   # persistent Knowledge only
+agent.reset_context!     # both
 ```
-
-These operations change which historical records belong to the active context generation. The underlying append-only Journal remains intact.
 
 `purge!` is different: it permanently removes the Agent and its persisted execution history from the configured Persistence backend.
 
@@ -914,7 +926,7 @@ Phronomy.configure do |c|
   c.default_model                   = "gpt-4o-mini"
   c.recursion_limit                 = 25
   c.tracer                          = Phronomy::Tracing::NullTracer.new
-  c.before_llm_input                 = nil   # optional global before_llm_input hook
+  c.before_llm_input                = nil   # optional global before_llm_input hook
   c.trace_pii                       = false # default; set to true only when trace data contains no PII
   c.logger                          = nil   # optional; any object responding to #warn (e.g. Rails.logger)
   c.event_loop_stop_grace_seconds   = 5     # seconds to wait for sessions to drain on shutdown
@@ -971,26 +983,20 @@ transition action.
 Phronomy detects this pattern automatically:
 
 ```ruby
-# Default (soft mode): logs a warning and continues
 Phronomy.configure { |c| c.strict_runtime_guards = false }
-
-# Strict mode: raises SchedulerReentrancyError immediately
 Phronomy.configure { |c| c.strict_runtime_guards = true }
 ```
 
 You can also query the current context directly:
 
 ```ruby
-Phronomy::Runtime.in_scheduler_context?  # => true if called from inside a task
+Phronomy::Runtime.in_scheduler_context?
 ```
 
 ### Migration: blocking wait → Task mapping
 
 ```ruby
-# Top-level synchronous use
 result = my_agent.invoke("Hello")
-
-# Explicit async from top-level code
 result = my_agent.invoke_async("Hello").wait_result
 ```
 
@@ -1082,7 +1088,7 @@ Task must not be returned from a Workflow entry or transition action.
 ### :immediate backend (synchronous / test mode)
 
 The `:immediate` backend runs tasks synchronously using `FakeScheduler`
-(backed by `Task::ImmediateBackend`).  Blocking I/O is isolated in `BlockingAdapterPool`.
+(backed by `Task::ImmediateBackend`). Blocking I/O is isolated in `BlockingAdapterPool`.
 To switch back to the default thread-per-task backend:
 
 ```ruby
@@ -1098,10 +1104,10 @@ end
 
 Phronomy uses a Manifest-first context architecture for stateful Agents.
 
-The main flow is:
-
 ```text
 Canonical Journal
+      ↓
+Context candidates
       ↓
 Context Policy
       ↓
@@ -1112,17 +1118,34 @@ Runtime Projection
 RubyLLM / Provider
 ```
 
-The **Journal** is the canonical append-only record of logical execution facts observed by Phronomy.
+The **Journal** is the canonical append-only record of logical execution facts
+observed by Phronomy and persistent Knowledge explicitly registered by the
+application.
 
-The **Manifest** is the canonical logical input fixed for one particular LLM Call.
+The **Manifest** is the canonical logical input fixed for one particular LLM
+Call.
 
-Context-window management therefore does not trim or rewrite the Agent's canonical history. Instead, Phronomy selects the subset of available context needed for each LLM Call and records that selection in the Manifest.
+Context-window management therefore does not trim or rewrite the Agent's
+canonical history. Phronomy selects the subset of available optional Context
+needed for each LLM Call and records that selection in the Manifest.
 
-This distinction allows old history to remain available even when it does not fit in the current model's context window.
+Persistent Knowledge is an ordinary `:knowledge` Context candidate. It is not
+concatenated into the mandatory system prompt. Conversation history and
+Knowledge share the same policy/budget selection path while remaining distinct
+in public transcript semantics.
 
-Tool protocol dependencies are preserved during selection. For example, an assistant message containing Tool Calls and the corresponding Tool-role messages are selected as a protocol-safe unit rather than independently pruning messages in a way that would create an invalid LLM conversation.
+Per-call `before_llm_input` segment candidates also pass through Context Policy
+and are not written to the Journal.
 
-When the available budget is insufficient, optional historical context can be omitted from the current Manifest. Required context is never silently removed merely to satisfy the budget. If the required input cannot fit, Phronomy raises `ContextBudgetExceededError`.
+Tool protocol dependencies are preserved during selection. An assistant message
+containing Tool Calls and the corresponding Tool-role messages are selected as
+a protocol-safe unit rather than independently pruning messages in a way that
+would create an invalid LLM conversation.
+
+When the available budget is insufficient, optional history or Knowledge can be
+omitted from the current Manifest. Required context is never silently removed
+merely to satisfy the budget. If required input cannot fit, Phronomy raises
+`ContextBudgetExceededError`.
 
 ### Context-window configuration
 
@@ -1144,9 +1167,14 @@ end
 
 `max_output_tokens` reserves capacity for the model's output.
 
-The legacy `context_overhead` setting remains for compatibility with the legacy `build_context` path, but it is not the mechanism used to reserve system-prompt or Tool-definition space in Manifest-first context assembly. New Agent implementations should not rely on `context_overhead` for that purpose.
+Mandatory instructions, current input and Tool definitions are budgeted from
+their actual canonical values. `context_overhead` is not part of the current
+contract.
 
-The current default Context Policy is framework-managed. Public custom Context Policy APIs, deterministic persistent compaction, and other advanced policy extension points are still evolving and should not yet be treated as stable application APIs.
+The current default Context Policy is framework-managed. Public custom Context
+Policy APIs, deterministic persistent compaction, and other advanced policy
+extension points are still evolving and should not yet be treated as stable
+application APIs.
 
 > **Note on CJK languages**: The default `TokenEstimator` uses a character-ratio heuristic
 > calibrated for ASCII/Latin text (4 chars/token). For Chinese, Japanese, and Korean text,
@@ -1160,15 +1188,14 @@ The current default Context Policy is framework-managed. Public custom Context P
 > Phronomy::LlmContextWindow::TokenEstimator.tokenizer = ->(text) { enc.encode(text).length }
 > ```
 
-
 ### CancellationToken — Cooperative cancellation
 
 Pass a `CancellationToken` to any agent via `config: { cancellation_token: token }`.
 Cancellation is checked at multiple granular checkpoints: before the LLM call,
-after each streaming chunk, before each parallel
-tool-call batch, and after each `before_llm_input` hook. `CancellationError` is
-raised immediately. Phronomy does not replay the complete Agent invocation. No threads are force-killed — `ensure`
-blocks always execute.
+after each streaming chunk, before each parallel tool-call batch, and after each
+`before_llm_input` hook. `CancellationError` is raised immediately. Phronomy
+does not replay the complete Agent invocation. No threads are force-killed —
+`ensure` blocks always execute.
 
 > **Cooperative cancellation — not preemptive**
 >
@@ -1176,19 +1203,14 @@ blocks always execute.
 > checkpoints listed above; it is **not** injected as a signal into a running
 > operation. This means the following are **not** interrupted mid-execution:
 >
-> - A single `KnowledgeSource#fetch` that is already blocking (e.g. HTTP call)
+> - An application retrieval/load operation that is already blocking
 > - A single `chat.ask` call that is not streaming
 > - A single `tool.execute` call that is already running
 > - Any external I/O (database query, vector search, HTTP request) inside those calls
 >
-> For deep in-flight safety, complement `CancellationToken` with per-source or
-> per-tool timeouts. Prefer library-native timeouts such as `Net::HTTP#read_timeout`,
-> database `statement_timeout`, or Redis client timeout — these signal the I/O layer
-> to abort cleanly. Avoid `Timeout.timeout` unless you understand its async-exception
-> risks: it injects `Timeout::Error` at an arbitrary execution point (the same
-> mechanism as `Thread#kill`), which Phronomy avoids by default due to resource
-> safety concerns. Ruby's GVL prevents fully preemptive cancellation without such
-> risky interruption.
+> For deep in-flight safety, complement `CancellationToken` with operation-native
+> timeouts. Prefer library-native timeouts such as `Net::HTTP#read_timeout`,
+> database `statement_timeout`, or Redis client timeout.
 
 > **`timeout_after` vs `CancellationScope.deadline_in`**
 >
@@ -1214,18 +1236,16 @@ blocks always execute.
 > Phronomy does not interpret `config[:llm_timeout]`, `config[:tool_timeout]`,
 > Agent `retry_policy`, or Tool `retry_on`. Configure LLM transport behavior on
 > RubyLLM (or another adapter) and configure Tool transport behavior on the Tool's
-> HTTP/DB/MCP client. This ensures the layer capable of safely aborting the I/O owns
-> the timeout and retry semantics.
+> HTTP/DB/MCP client.
 >
 > `InvocationContext#deadline` and `cancellation_token` remain available for a
 > caller-defined root-operation boundary. They provide cooperative cancellation
 > across the Phronomy execution tree; they do not replace provider-native socket,
 > request, statement, or session timeouts.
->
+
 ```ruby
 token = Phronomy::Concurrency::CancellationToken.new
 
-# Cancel from another thread after 5 s
 Thread.new { sleep 5; token.cancel! }
 
 begin
@@ -1234,11 +1254,9 @@ rescue Phronomy::CancellationError
   puts "cancelled"
 end
 
-# Hard deadline via monotonic clock (recommended — immune to NTP/DST changes)
 token = Phronomy::Concurrency::CancellationToken.timeout_after(30)
 result = MyAgent.new.invoke("...", config: { cancellation_token: token })
 
-# Propagate to all parallel workers via dispatch_parallel / fan_out
 token = Phronomy::Concurrency::CancellationToken.new
 Thread.new { sleep 10; token.cancel! }
 

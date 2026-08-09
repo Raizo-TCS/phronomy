@@ -2,18 +2,13 @@
 
 require "spec_helper"
 
-# ---------------------------------------------------------------------------
-# Fixture agent classes
-# ---------------------------------------------------------------------------
 class HookBaseAgent < Phronomy::Agent::Base
   agent_definition id: "hook-base-agent", version: 1
   model "test-model"
   instructions "You are a helpful assistant."
 end
 
-# ---------------------------------------------------------------------------
 RSpec.describe "before_llm_input hook" do
-  # Reset class-level hooks and global config between tests.
   before do
     HookBaseAgent.instance_variable_set(:@before_llm_input, nil)
     Phronomy.configuration.before_llm_input = nil
@@ -24,17 +19,17 @@ RSpec.describe "before_llm_input hook" do
     Phronomy.configuration.before_llm_input = nil
   end
 
-  # ---------------------------------------------------------------------------
-  # LLMInputBuildContext
-  # ---------------------------------------------------------------------------
   describe Phronomy::Agent::LLMInputBuildContext do
     let(:agent) { HookBaseAgent.new }
     let(:config) { {thread_id: "t1"} }
 
     it "exposes agent_id, config, and call_sequence" do
       ctx = described_class.new(
-        agent_id: agent.agent_id, agent_definition_id: "hook-base-agent",
-        definition_version: 1, config: config, call_sequence: 1
+        agent_id: agent.agent_id,
+        agent_definition_id: "hook-base-agent",
+        definition_version: 1,
+        config: config,
+        call_sequence: 1
       )
       expect(ctx.agent_id).to eq(agent.agent_id)
       expect(ctx.config).to eq(config)
@@ -43,16 +38,16 @@ RSpec.describe "before_llm_input hook" do
 
     it "is frozen (immutable)" do
       ctx = described_class.new(
-        agent_id: agent.agent_id, agent_definition_id: "hook-base-agent",
-        definition_version: 1, config: config, call_sequence: 2
+        agent_id: agent.agent_id,
+        agent_definition_id: "hook-base-agent",
+        definition_version: 1,
+        config: config,
+        call_sequence: 2
       )
       expect(ctx).to be_frozen
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # LLMInputPatch
-  # ---------------------------------------------------------------------------
   describe Phronomy::Agent::LLMInputPatch do
     it ".empty returns a patch with all nil fields" do
       patch = described_class.empty
@@ -66,9 +61,6 @@ RSpec.describe "before_llm_input hook" do
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # Class-level before_llm_input DSL
-  # ---------------------------------------------------------------------------
   describe ".before_llm_input" do
     it "stores and reads a callable" do
       callable = ->(_ctx) { Phronomy::Agent::LLMInputPatch.empty }
@@ -92,9 +84,6 @@ RSpec.describe "before_llm_input hook" do
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # Instance-level before_llm_input accessor
-  # ---------------------------------------------------------------------------
   describe "#before_llm_input=" do
     it "stores an instance-level callable independent of the class" do
       agent = HookBaseAgent.new
@@ -105,9 +94,6 @@ RSpec.describe "before_llm_input hook" do
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # run_before_llm_input_hooks
-  # ---------------------------------------------------------------------------
   describe "#run_before_llm_input_hooks" do
     let(:config) { {thread_id: "t1"} }
 
@@ -153,7 +139,7 @@ RSpec.describe "before_llm_input hook" do
       expect(called).to be true
     end
 
-    it "calls hooks in order: global \u2192 class \u2192 instance" do
+    it "calls hooks in order: global → class → instance" do
       call_order = []
       Phronomy.configuration.before_llm_input = ->(_ctx) {
         call_order << :global
