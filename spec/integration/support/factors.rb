@@ -434,9 +434,9 @@ module IntegrationFactors
   # GROUP 25 — BEFORE_LLM_INPUT HOOK
   # ===========================================================================
 
-  # Returns a hook callable for the given bc_hook_return factor label.
+  # Returns a hook callable for the given bli_hook_return factor label.
   # The callable receives LLMInputBuildContext and returns LLMInputPatch or nil.
-  def self.bc_hook_callable(return_label)
+  def self.bli_hook_callable(return_label)
     case return_label
     when "nil"
       ->(_ctx) {}
@@ -455,11 +455,11 @@ module IntegrationFactors
         )
       }
     else
-      raise ArgumentError, "Unknown bc_hook_return label: #{return_label}"
+      raise ArgumentError, "Unknown bli_hook_return label: #{return_label}"
     end
   end
 
-  def self.bc_agent_class(label)
+  def self.bli_agent_class(label)
     case label
     when "base"
       Class.new(Phronomy::Agent::Base) do
@@ -469,12 +469,12 @@ module IntegrationFactors
         instructions "You are a helpful assistant."
       end
     else
-      raise ArgumentError, "Unknown bc_agent_class label: #{label}"
+      raise ArgumentError, "Unknown bli_agent_class label: #{label}"
     end
   end
 
-  def self.bc_build_agent(tier_label:, return_label:, klass:)
-    callable = (tier_label == "none") ? nil : bc_hook_callable(return_label)
+  def self.bli_build_agent(tier_label:, return_label:, klass:)
+    callable = (tier_label == "none") ? nil : bli_hook_callable(return_label)
 
     case tier_label
     when "none"
@@ -496,7 +496,7 @@ module IntegrationFactors
       instance.before_llm_input = callable
       instance
     else
-      raise ArgumentError, "Unknown bc_hook_tier label: #{tier_label}"
+      raise ArgumentError, "Unknown bli_hook_tier label: #{tier_label}"
     end
   end
 

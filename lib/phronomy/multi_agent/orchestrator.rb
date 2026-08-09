@@ -50,7 +50,11 @@ module Phronomy
         @_subagent_tool_classes = (@_subagent_tool_classes || []) + [tool_class]
         @tools = (@tools || []) + [tool_class]
         @tool_aliases ||= {}
-        registered_subagents[name] = {agent_class: agent_class, on_error: on_error}
+        registered_subagents[name] = {
+          agent_class: agent_class,
+          on_error: on_error,
+          inherit_knowledge: inherit_knowledge
+        }
       end
 
       def self._subagent_tool_classes
@@ -86,8 +90,7 @@ module Phronomy
           timeout: timeout,
           cancellation_token: cancellation_token,
           invocation_context: invocation_context,
-          inherit_knowledge: inherit_knowledge,
-          knowledge_snapshot: active_knowledge_snapshot
+          inherit_knowledge: inherit_knowledge
         )
       end
 
@@ -147,9 +150,14 @@ module Phronomy
         prepared = super
         return prepared unless self.class._subagent_tool_classes.include?(tool_class)
 
-        captured_context = {
-          knowledge: active_knowledge_snapshot
-        }
+        subagent_name = tool_class.tool_name.delete_prefix("dispatch_to_")
+        registration = self.class.registered_subagents.find do |name, _|
+          name.to_s == subagent_name
+        end&.last
+        inherits_knowledge = registration ? registration.fetch(:inherit_knowledge, true) : true
+
+        captured_context = {}
+        captured_context[:knowledge] = active_knowledge_snapshot if inherits_knowledge
         if invocation
           captured_context.merge!(
             thread_id: invocation.thread_id,
@@ -183,12 +191,13 @@ module Phronomy
       def build_subagent(
         agent_class,
         inherit_knowledge: true,
-        knowledge_snapshot: active_knowledge_snapshot
+        knowledge_snapshot: nil
       )
         agent = agent_class.new
         return agent unless inherit_knowledge
 
-        knowledge_snapshot.each do |entry|
+        snapshot = knowledge_snapshot || active_knowledge_snapshot
+        snapshot.each do |entry|
           agent.add_knowledge(
             entry.fetch(:content),
             metadata: entry.fetch(:metadata, {})
@@ -201,13 +210,17 @@ module Phronomy
         tasks,
         max_concurrency:,
         on_error:,
-        knowledge_snapshot:,
         timeout: nil,
         cancellation_token: nil,
         invocation_context: nil,
         inherit_knowledge: true
       )
         return [] if tasks.empty?
+
+        inheritance_flags = tasks.map do |task|
+          task.fetch(:inherit_knowledge, inherit_knowledge)
+        end
+        knowledge_snapshot = active_knowledge_snapshot if inheritance_flags.any?
 
         results = Array.new(tasks.length)
         errors = Array.new(tasks.length)
@@ -231,10 +244,7 @@ module Phronomy
               task_config = task_config.merge(invocation_context: child_ic)
             end
 
-            task_inherits_knowledge = task.fetch(
-              :inherit_knowledge,
-              inherit_knowledge
-            )
+            task_inherits_knowledge = inheritance_flags[index]
             agent = build_subagent(
               task[:agent],
               inherit_knowledge: task_inherits_knowledge,

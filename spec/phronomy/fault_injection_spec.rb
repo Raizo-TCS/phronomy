@@ -7,7 +7,7 @@ require "spec_helper"
 #
 # Verifies that the system handles injected failures correctly:
 #   1. Error translation at the retry boundary (#204 regression guard)
-#   2. Before_completion hook exceptions propagate to the caller
+#   2. before_llm_input hook exceptions propagate to the caller
 #   3. dispatch_parallel with on_error: :skip returns nil for failing tasks
 #   4. EventLoop drops unknown-target events with a warning (no crash)
 # ---------------------------------------------------------------------------

@@ -4,8 +4,8 @@ module Phronomy
   module VectorStore
     # Pure-Ruby in-memory vector store using cosine similarity.
     #
-    # Intended for tests, short-lived agents, and Retrieval::Semantic scenarios where
-    # the message count is small enough that a linear scan is fast enough.
+    # Intended for tests, short-lived agents, and small retrieval workloads where
+    # the document count is small enough that a linear scan is fast enough.
     #
     # @example
     #   store = Phronomy::VectorStore::InMemory.new

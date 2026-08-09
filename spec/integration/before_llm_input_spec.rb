@@ -5,13 +5,13 @@ require_relative "support/factors"
 require_relative "support/llm_stub"
 
 # Group 25: before_llm_input Hook
-# Pairwise factors: bc_hook_tier × bc_hook_return × bc_agent_class × bc_invoke_method
+# Pairwise factors: bli_hook_tier × bli_hook_return × bli_agent_class × bli_invoke_method
 # Generated stubs: 20 cases
 #
 # Infeasible cases (SKIP):
-#   TC-002: bc_hook_tier=none × bc_hook_return=empty_hash — return value irrelevant when no hook
-#   TC-003: bc_hook_tier=none × bc_hook_return=param_merge — same reason
-#   TC-004: bc_hook_tier=none × bc_hook_return=model_override — same reason
+#   TC-002: bli_hook_tier=none × bli_hook_return=empty_hash — return value irrelevant when no hook
+#   TC-003: bli_hook_tier=none × bli_hook_return=param_merge — same reason
+#   TC-004: bli_hook_tier=none × bli_hook_return=model_override — same reason
 #
 # Stream-method cases (SKIP) — streaming stub not implemented; hooks are exercised via invoke:
 #   TC-008: global × model_override × react × stream
@@ -28,13 +28,13 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
   # Reset all class-level hooks and global config between tests.
   before do
     @llm = LLMStub.activate(responses: ["OK"])
-    @bc_klass = nil
+    @bli_klass = nil
   end
 
   after do
     LLMStub.deactivate
     Phronomy.configuration.before_llm_input = nil
-    @bc_klass&.instance_variable_set(:@before_llm_input, nil)
+    @bli_klass&.instance_variable_set(:@before_llm_input, nil)
   end
 
   # ---------------------------------------------------------------------------
@@ -43,16 +43,16 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-001: no hook; Base.invoke — baseline, no hook called" do
     it "invoke returns non-empty output without any hook" do
-      klass = IntegrationFactors.bc_agent_class("base")
-      @bc_klass = klass
-      agent = IntegrationFactors.bc_build_agent(tier_label: "none", return_label: "nil", klass: klass)
+      klass = IntegrationFactors.bli_agent_class("base")
+      @bli_klass = klass
+      agent = IntegrationFactors.bli_build_agent(tier_label: "none", return_label: "nil", klass: klass)
       result = agent.invoke("Say hello.")
       expect(result[:output]).to be_a(String)
       expect(result[:output]).not_to be_empty
     end
   end
 
-  # TC-002, TC-003, TC-004: SKIP — bc_hook_return irrelevant when bc_hook_tier=none
+  # TC-002, TC-003, TC-004: SKIP — bli_hook_return irrelevant when bli_hook_tier=none
 
   # ---------------------------------------------------------------------------
   # TC-005: global × nil × base × invoke
@@ -66,8 +66,8 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
         received_ctx = ctx
         nil
       }
-      klass = IntegrationFactors.bc_agent_class("base")
-      @bc_klass = klass
+      klass = IntegrationFactors.bli_agent_class("base")
+      @bli_klass = klass
       klass.new.invoke("Say hello.")
       expect(received_ctx).to be_a(Phronomy::Agent::LLMInputBuildContext)
     end
@@ -78,8 +78,8 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
         hook_returned = {}
         nil
       }
-      klass = IntegrationFactors.bc_agent_class("base")
-      @bc_klass = klass
+      klass = IntegrationFactors.bli_agent_class("base")
+      @bli_klass = klass
       klass.new.invoke("Say hello.")
       expect(hook_returned).to eq({})
     end
@@ -96,16 +96,16 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
         called = true
         nil
       }
-      klass = IntegrationFactors.bc_agent_class("base")
-      @bc_klass = klass
+      klass = IntegrationFactors.bli_agent_class("base")
+      @bli_klass = klass
       klass.new.invoke("Say hello.")
       expect(called).to be true
     end
 
     it "invoke succeeds after hook" do
       Phronomy.configuration.before_llm_input = ->(_ctx) {}
-      klass = IntegrationFactors.bc_agent_class("base")
-      @bc_klass = klass
+      klass = IntegrationFactors.bli_agent_class("base")
+      @bli_klass = klass
       result = klass.new.invoke("Say hello.")
       expect(result[:output]).not_to be_empty
     end
@@ -123,8 +123,8 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
           model_config_patch: {temperature: 0.1}
         )
       }
-      klass = IntegrationFactors.bc_agent_class("base")
-      @bc_klass = klass
+      klass = IntegrationFactors.bli_agent_class("base")
+      @bli_klass = klass
       klass.new.invoke("Say hello.")
       expect(@llm.calls.first).to include("temperature" => 0.1)
     end
@@ -151,8 +151,8 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
   describe "TC-010: class-level hook returning nil; Base.invoke — hook called" do
     it "calls the class-level hook" do
       called = false
-      klass = IntegrationFactors.bc_agent_class("base")
-      @bc_klass = klass
+      klass = IntegrationFactors.bli_agent_class("base")
+      @bli_klass = klass
       klass.before_llm_input ->(_ctx) {
         called = true
         nil
@@ -169,8 +169,8 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-011: class-level hook merging temperature; Base.invoke — temperature sent to LLM" do
     it "temperature from hook appears in LLM request" do
-      klass = IntegrationFactors.bc_agent_class("base")
-      @bc_klass = klass
+      klass = IntegrationFactors.bli_agent_class("base")
+      @bli_klass = klass
       klass.before_llm_input ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
       klass.new.invoke("Say hello.")
       expect(@llm.calls.first).to include("temperature" => 0.1)
@@ -184,8 +184,8 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
   describe "TC-012: class-level hook with model override; Base.invoke — hook fires" do
     it "hook is called" do
       hook_called = false
-      klass = IntegrationFactors.bc_agent_class("base")
-      @bc_klass = klass
+      klass = IntegrationFactors.bli_agent_class("base")
+      @bli_klass = klass
       klass.before_llm_input ->(_ctx) {
         hook_called = true
         Phronomy::Agent::LLMInputPatch.new(
@@ -204,8 +204,8 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
   describe "TC-013: instance-level hook returning nil; Base.invoke — hook called" do
     it "calls the instance-level hook" do
       called = false
-      klass = IntegrationFactors.bc_agent_class("base")
-      @bc_klass = klass
+      klass = IntegrationFactors.bli_agent_class("base")
+      @bli_klass = klass
       agent = klass.new
       agent.before_llm_input = ->(_ctx) {
         called = true
@@ -230,8 +230,8 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
   # ---------------------------------------------------------------------------
   describe "TC-015: instance-level hook merging temperature; Base.invoke — temperature sent to LLM" do
     it "temperature from instance hook appears in LLM request" do
-      klass = IntegrationFactors.bc_agent_class("base")
-      @bc_klass = klass
+      klass = IntegrationFactors.bli_agent_class("base")
+      @bli_klass = klass
       agent = klass.new
       agent.before_llm_input = ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
       agent.invoke("Say hello.")
@@ -246,8 +246,8 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
   describe "TC-016: instance-level hook with model override; Base.invoke — hook fires" do
     it "hook is called" do
       hook_called = false
-      klass = IntegrationFactors.bc_agent_class("base")
-      @bc_klass = klass
+      klass = IntegrationFactors.bli_agent_class("base")
+      @bli_klass = klass
       agent = klass.new
       agent.before_llm_input = ->(_ctx) {
         hook_called = true
@@ -271,8 +271,8 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
         call_order << :global
         nil
       }
-      klass = IntegrationFactors.bc_agent_class("base")
-      @bc_klass = klass
+      klass = IntegrationFactors.bli_agent_class("base")
+      @bli_klass = klass
       klass.before_llm_input ->(_ctx) {
         call_order << :class
         nil
@@ -302,8 +302,8 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
   describe "TC-019: all tiers return temperature; Base.invoke — temperature merged and sent" do
     it "temperature from merged hooks appears in LLM request" do
       Phronomy.configuration.before_llm_input = ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
-      klass = IntegrationFactors.bc_agent_class("base")
-      @bc_klass = klass
+      klass = IntegrationFactors.bli_agent_class("base")
+      @bli_klass = klass
       klass.before_llm_input ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
       agent = klass.new
       agent.before_llm_input = ->(_ctx) { Phronomy::Agent::LLMInputPatch.new(model_config_patch: {temperature: 0.1}) }
@@ -323,8 +323,8 @@ RSpec.describe "Group 25: before_llm_input Hook", :integration do
         call_order << :global
         nil
       }
-      klass = IntegrationFactors.bc_agent_class("base")
-      @bc_klass = klass
+      klass = IntegrationFactors.bli_agent_class("base")
+      @bli_klass = klass
       klass.before_llm_input ->(_ctx) {
         call_order << :class
         nil

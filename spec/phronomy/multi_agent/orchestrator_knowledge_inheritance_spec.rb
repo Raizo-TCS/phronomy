@@ -82,6 +82,22 @@ RSpec.describe "Orchestrator Knowledge inheritance" do
       )
     end
 
+    it "does not read parent Knowledge when inheritance is disabled" do
+      child_class, received = knowledge_capturing_agent
+      orchestrator = build_orchestrator
+      expect(orchestrator).not_to receive(:active_knowledge_snapshot)
+
+      orchestrator.subagent(
+        child_class,
+        "isolated task",
+        inherit_knowledge: false
+      )
+
+      expect(received).to eq(
+        [{input: "isolated task", knowledge: []}]
+      )
+    end
+
     it "inherits only currently active Knowledge" do
       child_class, received = knowledge_capturing_agent
       orchestrator = Class.new(Phronomy::MultiAgent::Orchestrator).new(
@@ -116,9 +132,10 @@ RSpec.describe "Orchestrator Knowledge inheritance" do
       expect(by_input.fetch("isolated")).to eq([])
     end
 
-    it "supports a call-wide Knowledge opt-out" do
+    it "supports a call-wide Knowledge opt-out without reading parent Knowledge" do
       child_class, received = knowledge_capturing_agent
       orchestrator = build_orchestrator
+      expect(orchestrator).not_to receive(:active_knowledge_snapshot)
 
       orchestrator.dispatch_parallel(
         {agent: child_class, input: "a"},
@@ -128,6 +145,36 @@ RSpec.describe "Orchestrator Knowledge inheritance" do
 
       expect(received.map { |entry| entry[:knowledge] })
         .to all(eq([]))
+    end
+
+    it "does not read parent Knowledge when every task opts out" do
+      child_class, received = knowledge_capturing_agent
+      orchestrator = build_orchestrator
+      expect(orchestrator).not_to receive(:active_knowledge_snapshot)
+
+      orchestrator.dispatch_parallel(
+        {agent: child_class, input: "a", inherit_knowledge: false},
+        {agent: child_class, input: "b", inherit_knowledge: false}
+      )
+
+      expect(received.map { |entry| entry[:knowledge] })
+        .to all(eq([]))
+    end
+
+    it "captures one snapshot when a task opts in against a call-wide opt-out" do
+      child_class, received = knowledge_capturing_agent
+      orchestrator = build_orchestrator
+      expect(orchestrator).to receive(:active_knowledge_snapshot).once.and_call_original
+
+      orchestrator.dispatch_parallel(
+        {agent: child_class, input: "isolated"},
+        {agent: child_class, input: "shared", inherit_knowledge: true},
+        inherit_knowledge: false
+      )
+
+      by_input = received.to_h { |entry| [entry[:input], entry[:knowledge]] }
+      expect(by_input.fetch("isolated")).to eq([])
+      expect(by_input.fetch("shared")).to eq(expected_knowledge)
     end
   end
 
@@ -144,6 +191,21 @@ RSpec.describe "Orchestrator Knowledge inheritance" do
       expect(received.length).to eq(2)
       expect(received.map { |entry| entry[:knowledge] })
         .to all(eq(expected_knowledge))
+    end
+
+    it "does not read parent Knowledge when inheritance is disabled" do
+      child_class, received = knowledge_capturing_agent
+      orchestrator = build_orchestrator
+      expect(orchestrator).not_to receive(:active_knowledge_snapshot)
+
+      orchestrator.fan_out(
+        agent: child_class,
+        inputs: %w[a b],
+        inherit_knowledge: false
+      )
+
+      expect(received.map { |entry| entry[:knowledge] })
+        .to all(eq([]))
     end
   end
 
@@ -172,6 +234,7 @@ RSpec.describe "Orchestrator Knowledge inheritance" do
       end
       orchestrator = build_orchestrator(orchestrator_class)
       tool_class = orchestrator_class.tools.first
+      expect(orchestrator).not_to receive(:active_knowledge_snapshot)
       prepared_tool = orchestrator.send(:prepare_tool_class, tool_class)
 
       prepared_tool.new.call({input: "dsl isolated"})
@@ -179,6 +242,19 @@ RSpec.describe "Orchestrator Knowledge inheritance" do
       expect(received).to eq(
         [{input: "dsl isolated", knowledge: []}]
       )
+    end
+
+    it "stores the Knowledge inheritance policy in registered_subagents" do
+      child_class, = knowledge_capturing_agent
+      orchestrator_class = Class.new(Phronomy::MultiAgent::Orchestrator) do
+        subagent :inheriting, child_class
+        subagent :isolated, child_class, inherit_knowledge: false
+      end
+
+      expect(orchestrator_class.registered_subagents.fetch(:inheriting))
+        .to include(inherit_knowledge: true)
+      expect(orchestrator_class.registered_subagents.fetch(:isolated))
+        .to include(inherit_knowledge: false)
     end
   end
 end

@@ -110,20 +110,32 @@ RSpec.describe "Group 14: Embeddings abstraction + VectorStore backends", :integ
 
   # ---------------------------------------------------------------------------
   # TC-008 (PASS) — stub + assume=false + embeddings_kw + in_memory   [NO LLM]
-  # Verifies the full Retrieval::Semantic workflow with a stub adapter and InMemory store.
+  # Verifies the current Embeddings -> VectorStore path directly.
   # ---------------------------------------------------------------------------
-  # TC-008 — Memory module removed in v0.3.0; tests are preserved as pending.
   describe "TC-008: stub adapter; assume=false; embeddings_kw; in_memory" do
-    it "save and load with query return the semantically closest message" do
-      skip "Memory::ConversationManager removed in v0.3.0"
-    end
+    it "stores and retrieves stub embeddings through the in-memory vector store" do
+      adapter = IntegrationFactors.embeddings_adapter("stub")
+      store = IntegrationFactors.vector_store("in_memory")
+      target_embedding = adapter.embed("a")
+      other_embedding = adapter.embed("zzzz")
 
-    it "load without query returns k most recent messages" do
-      skip "Memory::ConversationManager removed in v0.3.0"
-    end
+      store.add(
+        id: "target",
+        embedding: target_embedding,
+        metadata: {label: "target"}
+      )
+      store.add(
+        id: "other",
+        embedding: other_embedding,
+        metadata: {label: "other"}
+      )
 
-    it "clear removes messages for the given thread and keeps other threads intact" do
-      skip "Memory::ConversationManager removed in v0.3.0"
+      results = store.search(query_embedding: target_embedding, k: 1)
+
+      expect(results.length).to eq(1)
+      expect(results.first[:id]).to eq("target")
+      expect(results.first[:metadata]).to eq({label: "target"})
+      expect(results.first[:score]).to be_within(1e-12).of(1.0)
     end
   end
 
@@ -153,16 +165,10 @@ RSpec.describe "Group 14: Embeddings abstraction + VectorStore backends", :integ
   # Uses LLMStub to intercept embeddings HTTP calls without a real LM Studio server.
   # ---------------------------------------------------------------------------
   describe "TC-011: ruby_llm_explicit_model; assume=true; embeddings_kw; in_memory [LLM REQUIRED]" do
-    # Vectors chosen so that:
-    #   v_cat and v_feline are similar (high dot product),
-    #   v_cat and v_stock are dissimilar (low dot product).
     V_HELLO = [0.8, 0.4, 0.45].freeze      # embed("Hello, embeddings!")
     V_CAT1 = [0.9, 0.1, 0.1].freeze       # embed("The cat sat on the mat")
     V_CAT2 = [0.88, 0.12, 0.08].freeze    # embed("A cat rested on a rug")
     V_STOCK = [0.0, 0.95, 0.1].freeze      # embed("The stock market closed higher today")
-    V_CAT3 = [0.85, 0.1, 0.05].freeze     # embed("The cat climbed the tree")
-    V_STOCK2 = [0.05, 0.9, 0.1].freeze      # embed("Stock prices rose sharply")
-    V_FELINE = [0.87, 0.1, 0.09].freeze     # embed("feline climbing")
 
     let(:adapter) { IntegrationFactors.embeddings_adapter("ruby_llm_explicit_model") }
 
@@ -185,17 +191,9 @@ RSpec.describe "Group 14: Embeddings abstraction + VectorStore backends", :integ
     ensure
       LLMStub.deactivate
     end
-
-    it "Retrieval::Semantic retrieves the semantically relevant message via semantic search" do
-      skip "Memory::ConversationManager removed in v0.3.0"
-    end
   end
 
   private
-
-  def make_message(content)
-    RubyLLM::Message.new(role: :user, content: content)
-  end
 
   def cosine_similarity(a, b)
     dot = a.zip(b).sum { |x, y| x * y }
