@@ -33,7 +33,7 @@ module Phronomy
 
               @description = text
             end
-            alias desc description
+            alias_method :desc, :description
 
             # RubyLLM stores declared parameters in a class-instance variable.
             # Copy the parent's registry on first access so child classes inherit
