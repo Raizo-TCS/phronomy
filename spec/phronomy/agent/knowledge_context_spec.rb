@@ -119,6 +119,18 @@ RSpec.describe "Journal-backed Agent Knowledge" do
     expect(raw.length).to eq(2)
   end
 
+  it "preserves clear_knowledge! invalidation across reload" do
+    agent = agent_class.new(persistence: persistence, knowledge: ["old knowledge"])
+    agent.clear_knowledge!
+    agent.add_knowledge("new knowledge")
+
+    loaded = agent_class.load(agent.agent_id, persistence: persistence)
+    active = loaded.journal_projection.context_records.select { |record| record.kind == :knowledge }
+
+    expect(active.map { |record| persistence.contents.fetch_text(record.content_ref) })
+      .to eq(["new knowledge"])
+  end
+
   it "clear_transcript! preserves Knowledge" do
     agent = agent_class.new(
       persistence: persistence,
@@ -144,6 +156,20 @@ RSpec.describe "Journal-backed Agent Knowledge" do
 
     expect(agent.transcript).to be_empty
     expect(agent.journal_projection.context_records).to be_empty
+  end
+
+  it "preserves reset_context! invalidation across reload" do
+    agent = agent_class.new(
+      persistence: persistence,
+      context: [{role: :user, content: "old conversation"}],
+      knowledge: ["old knowledge"]
+    )
+    agent.reset_context!
+
+    loaded = agent_class.load(agent.agent_id, persistence: persistence)
+
+    expect(loaded.transcript).to be_empty
+    expect(loaded.journal_projection.context_records).to be_empty
   end
 
   it "selects persistent Knowledge through Context Policy and places it before history" do

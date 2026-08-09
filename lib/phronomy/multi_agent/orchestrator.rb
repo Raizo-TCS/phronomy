@@ -7,7 +7,7 @@ module Phronomy
       agent_definition id: "orchestrator", version: 1
 
       # @api public
-      def self.subagent(name, agent_class, on_error: :raise)
+      def self.subagent(name, agent_class, on_error: :raise, inherit_knowledge: true)
         tool_class = Class.new(Phronomy::Agent::Context::Capability::Base) do
           tool_name "dispatch_to_#{name}"
           description "Dispatch work to the #{name} subagent (#{agent_class.name})"
@@ -25,7 +25,17 @@ module Phronomy
               task_config = task_config.merge(invocation_context: child_ic)
             end
 
-            result = agent_class.new.invoke_async(
+            agent = agent_class.new
+            if inherit_knowledge
+              Array(ctx[:knowledge]).each do |entry|
+                agent.add_knowledge(
+                  entry.fetch(:content),
+                  metadata: entry.fetch(:metadata, {})
+                )
+              end
+            end
+
+            result = agent.invoke_async(
               input,
               thread_id: ctx[:thread_id] || parent_ic&.thread_id,
               config: task_config
@@ -59,7 +69,8 @@ module Phronomy
         on_error: :raise,
         timeout: nil,
         cancellation_token: nil,
-        invocation_context: nil
+        invocation_context: nil,
+        inherit_knowledge: true
       )
         unless %i[raise skip].include?(on_error)
           raise ArgumentError, "unknown on_error: #{on_error.inspect}"
@@ -74,7 +85,9 @@ module Phronomy
           on_error: on_error,
           timeout: timeout,
           cancellation_token: cancellation_token,
-          invocation_context: invocation_context
+          invocation_context: invocation_context,
+          inherit_knowledge: inherit_knowledge,
+          knowledge_snapshot: active_knowledge_snapshot
         )
       end
 
@@ -88,7 +101,8 @@ module Phronomy
         on_error: :raise,
         timeout: nil,
         cancellation_token: nil,
-        invocation_context: nil
+        invocation_context: nil,
+        inherit_knowledge: true
       )
         dispatch_parallel(
           *inputs.map do |input|
@@ -98,15 +112,27 @@ module Phronomy
           on_error: on_error,
           timeout: timeout,
           cancellation_token: cancellation_token,
-          invocation_context: invocation_context
+          invocation_context: invocation_context,
+          inherit_knowledge: inherit_knowledge
         )
       end
 
       # Programmatic single-subagent dispatch. Context propagation is explicit:
       # pass invocation_context in +config+ when this call must inherit a parent.
+      # Active parent Knowledge is inherited by default; pass
+      # +inherit_knowledge: false+ to create an isolated subagent.
       # @api public
-      def subagent(agent_class, input, config: nil, thread_id: nil)
-        agent_class.new.invoke_async(
+      def subagent(
+        agent_class,
+        input,
+        config: nil,
+        thread_id: nil,
+        inherit_knowledge: true
+      )
+        build_subagent(
+          agent_class,
+          inherit_knowledge: inherit_knowledge
+        ).invoke_async(
           input,
           config: config || {},
           thread_id: thread_id
@@ -121,15 +147,18 @@ module Phronomy
         prepared = super
         return prepared unless self.class._subagent_tool_classes.include?(tool_class)
 
-        captured_context = if invocation
-          {
+        captured_context = {
+          knowledge: active_knowledge_snapshot
+        }
+        if invocation
+          captured_context.merge!(
             thread_id: invocation.thread_id,
             config: invocation.config,
             invocation_context: invocation.config[:invocation_context]
-          }.freeze
-        else
-          {}.freeze
+          )
         end
+        captured_context.freeze
+
         effective_name = prepared.new.name
         Class.new(prepared) do
           tool_name effective_name
@@ -140,13 +169,43 @@ module Phronomy
         end
       end
 
+      def active_knowledge_snapshot
+        journal_projection.context_records.filter_map do |record|
+          next unless record.kind == :knowledge
+
+          {
+            content: persistence.contents.fetch_text(record.content_ref),
+            metadata: (record.metadata || {}).dup.freeze
+          }.freeze
+        end.freeze
+      end
+
+      def build_subagent(
+        agent_class,
+        inherit_knowledge: true,
+        knowledge_snapshot: active_knowledge_snapshot
+      )
+        agent = agent_class.new
+        return agent unless inherit_knowledge
+
+        knowledge_snapshot.each do |entry|
+          agent.add_knowledge(
+            entry.fetch(:content),
+            metadata: entry.fetch(:metadata, {})
+          )
+        end
+        agent
+      end
+
       def bounded_map(
         tasks,
         max_concurrency:,
         on_error:,
+        knowledge_snapshot:,
         timeout: nil,
         cancellation_token: nil,
-        invocation_context: nil
+        invocation_context: nil,
+        inherit_knowledge: true
       )
         return [] if tasks.empty?
 
@@ -172,7 +231,17 @@ module Phronomy
               task_config = task_config.merge(invocation_context: child_ic)
             end
 
-            results[index] = task[:agent].new.invoke_async(
+            task_inherits_knowledge = task.fetch(
+              :inherit_knowledge,
+              inherit_knowledge
+            )
+            agent = build_subagent(
+              task[:agent],
+              inherit_knowledge: task_inherits_knowledge,
+              knowledge_snapshot: knowledge_snapshot
+            )
+
+            results[index] = agent.invoke_async(
               task[:input],
               config: task_config,
               thread_id: task[:thread_id] || invocation_context&.thread_id
