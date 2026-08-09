@@ -81,7 +81,7 @@ end
 bench_tool_class = Class.new(Phronomy::Agent::Base) do
   agent_definition id: "bench-tool", version: 1
   model "stub-model"
-  tools BenchNullTool
+  tools(BenchNullTool => nil)
 
   define_method(:build_chat) { |*| BenchStubChat.new(BENCH_RESP) }
 end
