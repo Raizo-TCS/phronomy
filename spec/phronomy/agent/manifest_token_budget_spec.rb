@@ -4,6 +4,7 @@ require "spec_helper"
 
 RSpec.describe Phronomy::Agent::TokenBudgetResolver do
   let(:persistence) { Phronomy::Persistence::InMemory.new }
+
   let(:agent_class) do
     Class.new(Phronomy::Agent::Base) do
       agent_definition id: "manifest-token-budget-test", version: 1
@@ -13,15 +14,18 @@ RSpec.describe Phronomy::Agent::TokenBudgetResolver do
       instructions "Base instruction"
     end
   end
+
   let(:agent) { agent_class.new(persistence: persistence) }
 
-  it "does not include context_overhead in the Manifest-first budget" do
+  it "resolves the Manifest-first input budget without legacy context_overhead" do
     budget = described_class.new(agent: agent).resolve(
       "model" => "local-model",
       "context_window" => 1_000,
       "max_output_tokens" => 100
     )
 
+    expect(agent_class).not_to respond_to(:context_overhead)
+    expect(budget).not_to respond_to(:overhead)
     expect(budget.effective_input_limit).to eq(900)
   end
 
@@ -44,7 +48,10 @@ RSpec.describe Phronomy::Agent::TokenBudgetResolver do
         "current_input_ref" => input_ref,
         "current_input_record_id" => input_record.record_id
       }
-    ).with(execution_revision: 0, working_records: [input_record])
+    ).with(
+      execution_revision: 0,
+      working_records: [input_record]
+    )
 
     manifest, = Phronomy::Agent::ContextAssembler.new(
       agent: agent,
@@ -55,10 +62,15 @@ RSpec.describe Phronomy::Agent::TokenBudgetResolver do
       execution: execution
     )
 
-    expect(manifest.assembly_policy_version).to eq(5)
-    expect(manifest.segments.map(&:category)).to include(:instruction, :current_input)
-    expect(manifest.segments.count { |segment| segment.delivery == :ask_argument }).to eq(1)
+    expect(manifest.assembly_policy_version)
+      .to eq(Phronomy::Agent::ContextAssembler::ASSEMBLY_POLICY_VERSION)
+    expect(manifest.segments.map(&:category))
+      .to include(:instruction, :current_input)
+    expect(manifest.segments.count { |segment|
+      segment.delivery == :ask_argument
+    }).to eq(1)
   end
+
   it "does not charge Provider configuration metadata as prompt tokens" do
     root = agent.agent_root
     input_ref = persistence.contents.put_text("hello")
@@ -78,7 +90,10 @@ RSpec.describe Phronomy::Agent::TokenBudgetResolver do
         "current_input_ref" => input_ref,
         "current_input_record_id" => input_record.record_id
       }
-    ).with(execution_revision: 0, working_records: [input_record])
+    ).with(
+      execution_revision: 0,
+      working_records: [input_record]
+    )
 
     manifest, = Phronomy::Agent::ContextAssembler.new(
       agent: agent,

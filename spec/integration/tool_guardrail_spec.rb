@@ -32,7 +32,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   let(:enum_tool_class) { IntegrationFactors::EnumCitySelectorTool }
   let(:calc_tool_class) { IntegrationFactors::CalculatorTool }
   let(:weather_tool_class) { IntegrationFactors::WeatherTool }
-  let(:return_empty_tool) { IntegrationFactors::ReturnEmptyOnErrorTool }
+  let(:suppress_tool) { IntegrationFactors::SuppressOnErrorTool }
 
   # -------------------------------------------------------------------------
   # TC-001: base, no tools, raise, false, none, nil, none — minimal smoke test
@@ -50,10 +50,10 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   end
 
   # -------------------------------------------------------------------------
-  # TC-002: base, splat_single, return_empty, requires_approval=true,
+  # TC-002: base, splat_single, suppress, requires_approval=true,
   #         valid_enum, explicit_name, input_only
   # -------------------------------------------------------------------------
-  describe "TC-002: base; single tool (return_empty, requires_approval, explicit_name, valid_enum); input guardrail" do
+  describe "TC-002: base; single tool (suppress, requires_approval, explicit_name, valid_enum); input guardrail" do
     let(:tool_class) do
       Class.new(Phronomy::Agent::Context::Capability::Base) do
         tool_name "city_info"
@@ -182,12 +182,12 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   end
 
   # -------------------------------------------------------------------------
-  # TC-009: react, splat_multi, return_empty, false, none, explicit, output_only
+  # TC-009: react, splat_multi, suppress, false, none, explicit, output_only
   # -------------------------------------------------------------------------
-  describe "TC-009: react; multi tools (one return_empty); passing output guardrail" do
+  describe "TC-009: react; multi tools (one suppress); passing output guardrail" do
     let(:agent) do
       klass = IntegrationFactors.agent_class(
-        "react", tools: [return_empty_tool, weather_tool_class]
+        "react", tools: [suppress_tool, weather_tool_class]
       )
       a = klass.new
       IntegrationFactors.apply_guardrails(a, IntegrationFactors.guardrails("output_only"))
@@ -203,7 +203,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   end
 
   # -------------------------------------------------------------------------
-  # TC-010: react, hash_alias, return_empty, requires_approval=true, none,
+  # TC-010: react, hash_alias, suppress, requires_approval=true, none,
   #         nil, blocking_input — LLM never called
   # -------------------------------------------------------------------------
   describe "TC-010: react; hash-aliased tool (requires_approval=true); blocking_input" do
@@ -232,7 +232,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   end
 
   # -------------------------------------------------------------------------
-  # TC-011: react, hash_no_alias, return_empty, requires_approval=true,
+  # TC-011: react, hash_no_alias, suppress, requires_approval=true,
   #         valid_enum, nil, none
   # -------------------------------------------------------------------------
   describe "TC-011: react; hash_no_alias enum tool; requires_approval=true; no guardrails" do
@@ -259,7 +259,7 @@ RSpec.describe "Group 2: Tool / Guardrail", :integration do
   end
 
   # -------------------------------------------------------------------------
-  # TC-012: react, no tools, return_empty, requires_approval=true, none, nil, both
+  # TC-012: react, no tools, suppress, requires_approval=true, none, nil, both
   # -------------------------------------------------------------------------
   describe "TC-012: react; no tools; both (passing) guardrails" do
     let(:agent) do

@@ -2,8 +2,8 @@ name: Nightly — Mutation Testing
 
 on:
   schedule:
-    - cron: '0 3 * * *'   # daily at 03:00 UTC (after real-backend nightly at 02:00)
-  workflow_dispatch:        # allow manual trigger
+    - cron: '0 3 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -26,8 +26,20 @@ jobs:
             label: Tool::Base
           - subject: Phronomy::LlmContextWindow::TokenBudget
             label: LlmContextWindow::TokenBudget
-          - subject: Phronomy::LlmContextWindow::Assembler
-            label: LlmContextWindow::Assembler
+          - subject: Phronomy::Agent::ContextAssembler
+            label: Agent::ContextAssembler
+          - subject: Phronomy::Agent::ContextPolicies::Default
+            label: ContextPolicies::Default
+          - subject: Phronomy::Agent::ContextParts::UnitBuilders::DependencyAwareUnitBuilder
+            label: DependencyAwareUnitBuilder
+          - subject: Phronomy::Agent::ContextParts::Requirements::RequiredContextResolver
+            label: RequiredContextResolver
+          - subject: Phronomy::Agent::ContextParts::Selectors::RecentFirstSelector
+            label: RecentFirstSelector
+          - subject: Phronomy::Agent::ContextParts::Budget::TokenBudgetPacker
+            label: TokenBudgetPacker
+          - subject: Phronomy::Agent::ContextPlanValidator
+            label: ContextPlanValidator
           - subject: Phronomy::Agent::Context::Conversation::TrimContext
             label: Agent::Context::Conversation::TrimContext
           - subject: Phronomy::Agent::Context::Conversation::CompactionContext

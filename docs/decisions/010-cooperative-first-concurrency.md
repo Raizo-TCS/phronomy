@@ -5,6 +5,13 @@
 Accepted — updated 2026-05-25 to document current scheduler landscape and
 production-cooperative roadmap (Issues #331, #332, #334).
 
+> **Historical implementation note (2026-08-09):** The implementation-detail
+> inventory below is intentionally preserved as decision history. Compatibility
+> APIs subsequently removed from the active contract — including the
+> `runtime_backend :cooperative` alias and direct Runtime singleton replacement —
+> must not be read as current API guidance. The cooperative-first layering
+> principle remains the decision; use README/current source for current symbols.
+
 ## Context
 
 Phronomy provides its own concurrency primitives:

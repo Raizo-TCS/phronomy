@@ -50,7 +50,7 @@ module IntegrationFactors
     end
   end
 
-  class ReturnEmptyOnErrorTool < Phronomy::Agent::Context::Capability::Base
+  class SuppressOnErrorTool < Phronomy::Agent::Context::Capability::Base
     description "Always raises but suppresses the error"
     param :input, type: :string, desc: "Any string input"
 
@@ -113,7 +113,7 @@ module IntegrationFactors
   # Builds an anonymous agent subclass pre-configured with the given tools.
   #
   # @param label [String] "base"
-  # @param tools [Array, Hash] tool list in splat or hash form (default: [])
+  # @param tools [Array, Hash] fixture input; arrays are normalized to the Hash-only Tool DSL
   # @return [Class]
   # ---------------------------------------------------------------------------
   def self.agent_class(label, tools: [])
@@ -171,7 +171,7 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   # Factor: agent_tools
   #
-  # @param label [String] "none" | "splat_single" | "splat_multi" |
+  # @param label [String] "none" | "splat_single" | "splat_multi" | # legacy factor labels
   #                       "hash_alias" | "hash_no_alias"
   # @return [Array, Hash]  value suitable for passing to .agent_class(tools: ...)
   # ---------------------------------------------------------------------------

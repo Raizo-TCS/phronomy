@@ -2,13 +2,13 @@
 
 ## Status
 
-Partially Superseded by ADR-012 — 2026-08-08
+Superseded by ADR-012 — 2026-08-08
 
 Originally proposed — 2026-05-31.
 
 ## Supersession Note
 
-ADR-012, **Canonical Complete Execution Log and Context Policy**, supersedes the architectural parts of this ADR that treat the legacy `build_context` / `LlmContextWindow::Assembler` path as the long-term single authority for LLM input.
+ADR-012, **Canonical Complete Execution Log and Context Policy**, supersedes this ADR as an active architecture contract. This document is retained as historical design analysis; references below to `build_context`, `context_overhead`, and `LlmContextWindow::Assembler` are non-normative.
 
 In particular, the following parts of this ADR are no longer normative for the stateful Agent architecture:
 

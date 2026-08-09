@@ -1,22 +1,21 @@
 ---
-# Mutant configuration for Phronomy (opensource project)
-# See: https://github.com/mbj/mutant
-
 usage: opensource
-
 integration: rspec
-
 includes:
   - lib
-
 requires:
   - phronomy
-
 matcher:
   subjects:
     - Phronomy::WorkflowContext
     - Phronomy::WorkflowRunner
     - Phronomy::Tool::Base
-    - Phronomy::Context::TokenBudget
-    - Phronomy::Context::TokenEstimator
+    - Phronomy::LlmContextWindow::TokenBudget
+    - Phronomy::Agent::ContextAssembler
+    - Phronomy::Agent::ContextPolicies::Default
+    - Phronomy::Agent::ContextParts::UnitBuilders::DependencyAwareUnitBuilder
+    - Phronomy::Agent::ContextParts::Requirements::RequiredContextResolver
+    - Phronomy::Agent::ContextParts::Selectors::RecentFirstSelector
+    - Phronomy::Agent::ContextParts::Budget::TokenBudgetPacker
+    - Phronomy::Agent::ContextPlanValidator
     - Phronomy::VectorStore::InMemory

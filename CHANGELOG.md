@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Phase 3 cleanup
+
+#### Changed
+
+- Active documentation, compatibility snapshots, benchmarks, integration fixtures,
+  and mutation targets now describe the Manifest-first Context architecture.
+- The Context benchmark now measures `Agent::ContextAssembler` and
+  `ContextPolicies::Default` instead of the removed legacy Assembler.
+- ADR-011 is marked Superseded by ADR-012; its historical analysis is retained.
+
+#### Removed
+
+- Remaining active compatibility references to `context_overhead`,
+  `LlmContextWindow::Assembler`, `ContextVersionCache`, Tool
+  `on_error :return_empty`, `force_kill:`, `runtime_backend :cooperative`,
+  the `Runtime.instance=` setter, tools-splat registration, and wall-clock
+  `CancellationToken.new(deadline:)`.
+- Obsolete legacy Assembler / ContextVersionCache executable specs.
+
+
 ---
 
 ## [0.16.0] - 2026-08-08

@@ -210,42 +210,6 @@ RSpec.describe Phronomy::Agent::Base do
       end
     end
 
-    context "with max_output_tokens and context_overhead DSL" do
-      # An agent whose model IS in the RubyLLM registry (mocked).
-      let(:mock_model) do
-        double("RubyLLMModel", context_window: 32_768, max_output_tokens: 8_192)
-      end
-
-      before do
-        allow(RubyLLM.models).to receive(:find).with("test-model").and_return(mock_model)
-      end
-
-      let(:budget_agent_class) do
-        Class.new(Phronomy::Agent::Base) do
-          agent_definition id: "test-agent-77", version: 1
-          model "test-model"
-          max_output_tokens 2048
-        end
-      end
-
-      it "max_output_tokens DSL value overrides max_output_tokens from the registry" do
-        agent = budget_agent_class.new
-        budget = Phronomy::Agent::TokenBudgetResolver.new(agent: agent).resolve(
-          "model" => "test-model", "max_output_tokens" => budget_agent_class.max_output_tokens
-        )
-        expect(budget).not_to be_nil
-        expect(budget.max_output_tokens).to eq(2048)
-      end
-
-      it "effective_input_limit equals context_window minus max_output_tokens" do
-        agent = budget_agent_class.new
-        budget = Phronomy::Agent::TokenBudgetResolver.new(agent: agent).resolve(
-          "model" => "test-model", "max_output_tokens" => budget_agent_class.max_output_tokens
-        )
-        expect(budget.effective_input_limit).to eq(32_768 - 2048)
-      end
-    end
-
     context "when model is resolvable and a token budget is available" do
       let(:mock_model) do
         double("RubyLLMModel", context_window: 16_000, max_output_tokens: 2_000)

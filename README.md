@@ -57,8 +57,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Filters, an
 | **`stream_callback_error_policy`** — Backward-compatible setting shared by `invoke_async` and `stream_async` terminal `on_event:` callbacks: `:report` (default) preserves the Agent result, while `:fail_task` fails the returned Task with `Phronomy::StreamCallbackError`; Agent execution errors are never replaced by callback errors | Beta |
 | **`invoke_async` / `call_async`** — `Agent::Base#invoke_async` and `Workflow#invoke_async` return a `Task`; `Agent::Context::Capability::Base#call_async` similarly; compatible with EventLoop and standalone contexts | Stable |
 | **`Task#map`** — transforms a Task's completed value and propagates failure/cancellation. `Task#map` remains available for application-level Task composition, but Workflow entry and transition actions must not return a Task | Stable |
-| **CancellationToken** — Cooperative cancellation via `cancel!`/`cancelled?`/`raise_if_cancelled!`; `timeout_after(seconds)` for monotonic-clock deadlines; optional `deadline:` (wall-clock) for backward compatibility; passed as `config: { cancellation_token: token }` to agents and `dispatch_parallel`; injected into `tool.execute` when the method declares a `cancellation_token:` keyword; bridged to `MCP::Cancellation` in `Phronomy::Tools::Mcp#execute` | Experimental |
-| **`dispatch_parallel` / `fan_out` `force_kill:` option** — `force_kill: false` (default) leaves timed-out workers running and raises `TimeoutError` immediately; `force_kill: true` restores the old `Thread#kill` behaviour with a `logger.warn` | Beta |
+| **CancellationToken** — Cooperative cancellation via `cancel!`/`cancelled?`/`raise_if_cancelled!`; `timeout_after(seconds)` for monotonic-clock deadlines; passed as `config: { cancellation_token: token }` to agents and `dispatch_parallel`; injected into `tool.execute` when the method declares a `cancellation_token:` keyword; bridged to `MCP::Cancellation` in `Phronomy::Tools::Mcp#execute` | Experimental |
 | **`execution_mode` DSL on `Agent::Context::Capability::Base`** — Declares how a tool's `execute` should be dispatched: `:cooperative` (same scheduler thread), `:blocking_io` (default; offloaded to `BlockingAdapterPool`), `:cpu_bound`, `:external_process`; Tool-specific timeout/retry belongs to the Tool implementation or its client | Experimental |
 | **`blocking_io_pool_size` / `blocking_io_queue_size`** — Configure the default `BlockingAdapterPool` via `Phronomy.configure { \|c\| c.blocking_io_pool_size = 20; c.blocking_io_queue_size = 200 }`; all LLM calls, MCP tool calls, and other blocking I/O share this pool; defaults: `pool_size: 10`, `queue_size: 100` | Beta |
 | **`invocation_context:` keyword on `Agent#invoke` / `Workflow#invoke`** — Pass a `Phronomy::InvocationContext` directly; `thread_id`, `cancellation_token`, and `deadline`-based timeout are derived from it; `task_id` / `parent_task_id` appear in trace spans automatically; `config:` keys remain supported as backward-compat aliases | Beta |
@@ -99,7 +98,7 @@ The APIs listed below are intended for advanced use cases, framework internals, 
 |---|---|
 | **`Phronomy::Diagnostics`** — Snapshot of scheduler internals for debug/monitoring; `SchedulerReentrancyError` raised on invalid re-entrant scheduler use; `Runtime.in_scheduler_context?` returns `true` when called from inside a scheduler task | Experimental |
 | **`Phronomy::Testing::FakeClock` / `FakeScheduler` / `SchedulerHelpers`** — Test helpers for deterministic concurrency specs: `FakeClock#advance(seconds)` controls time; `FakeScheduler` runs tasks synchronously and records `event_log`; `FakeScheduler#assert_order` / `#assert_cancelled` for ordering assertions; `FakeClock#advance_to_next_timer` fires the next pending callback; `Testing::SchedulerHelpers#with_fake_scheduler` replaces the global Runtime for the duration of a block | Beta |
-| **`Configuration#runtime_backend`** — `:thread` (default, one OS thread per task), `:immediate` (tests — tasks run synchronously, no extra threads), `:fiber` (**EXPERIMENTAL** — experimental validation backend only: runs tasks as Ruby Fibers on a cooperative scheduler to verify that framework components are truly non-blocking; **not for production use** and not a planned production replacement for `:thread`; no preemptive scheduling will be added). `:cooperative` is a **deprecated alias** for `:immediate` — do not use in new code | Beta |
+| **`Configuration#runtime_backend`** — `:thread` (default, one OS thread per task), `:immediate` (tests — tasks run synchronously, no extra threads), `:fiber` (**EXPERIMENTAL** — validation backend only: runs tasks as Ruby Fibers on a cooperative scheduler to verify that framework components are truly non-blocking; **not for production use** and not a planned production replacement for `:thread`; no preemptive scheduling will be added) | Beta |
 | **`Configuration#strict_runtime_guards`** — When `true`, calling `Agent#invoke` from inside a scheduler task raises `SchedulerReentrancyError`; when `false` (default) a warning is logged instead | Beta |
 
 ## Installation
@@ -150,6 +149,25 @@ See the [RubyLLM documentation](https://rubyllm.com) for all supported providers
 | `InvocationContext#provider_limits` | Configure the provider client directly |
 | `stream_queue_max_size` | No replacement; the shared EventLoop queue is unbounded by design. Monitor `Metrics.snapshot[:event_loop_queue_depth]` instead |
 
+### 0.16 cleanup migration
+
+The following compatibility-only APIs have been removed from the active contract:
+
+| Removed API | Current contract |
+|---|---|
+| `context_overhead` | Manifest-first assembly budgets actual mandatory + selected content |
+| Tool `on_error :return_empty` | Use `:raise` or `:suppress` |
+| `dispatch_parallel(..., force_kill:)` / `fan_out(..., force_kill:)` | Cooperative cancellation; no force-kill switch |
+| `runtime_backend = :cooperative` | Use `:thread`, `:immediate`, or experimental `:fiber` explicitly |
+| `Runtime.instance = ...` | Runtime replacement is test/internal infrastructure, not a public setter |
+| `TaskGroup.new(runtime: nil)` | Runtime is required |
+| `tools ToolA, ToolB` | Use `tools(ToolA => nil, ToolB => nil)` |
+| `CancellationToken.new(deadline: Time...)` | Use `CancellationToken.timeout_after(seconds)` for token deadlines |
+
+The legacy `build_context` / `LlmContextWindow::Assembler` extension path is no
+longer an active API. Stateful Agent input is assembled through the canonical
+Journal → Context Policy → LLM Input Manifest pipeline.
+
 ### Optional dependencies
 
 Install additional gems only for the features you use:
@@ -179,7 +197,7 @@ class ResearchAgent < Phronomy::Agent::Base
   agent_definition id: "research-agent", version: 1
   model "gpt-4o"
   instructions "You are a research assistant. Use tools to answer questions."
-  tools WebSearch
+  tools(WebSearch => nil)
   max_iterations 5
 end
 
@@ -434,7 +452,7 @@ end
 class OrchestratorAgent < Phronomy::Agent::Base
   model "gpt-4o"
   instructions "Use the research tool first, then the write tool to produce a blog post."
-  tools ResearchTool, WriteTool
+  tools(ResearchTool => nil, WriteTool => nil)
 end
 
 result = OrchestratorAgent.new.invoke("Write a blog post about Ruby 3.4 features")
@@ -900,7 +918,7 @@ Phronomy.configure do |c|
   c.trace_pii                       = false # default; set to true only when trace data contains no PII
   c.logger                          = nil   # optional; any object responding to #warn (e.g. Rails.logger)
   c.event_loop_stop_grace_seconds   = 5     # seconds to wait for sessions to drain on shutdown
-  c.runtime_backend                 = :thread   # :thread (default); :immediate (tests, synchronous); :fiber (experimental validation only); :cooperative (deprecated alias for :immediate)
+  c.runtime_backend                 = :thread   # :thread (default); :immediate (tests, synchronous); :fiber (experimental validation only)
   c.strict_runtime_guards           = false     # when true, raises SchedulerReentrancyError on invoke-inside-task
   c.stream_callback_error_policy    = :report   # :report (default) preserves Agent result; :fail_task fails Task with StreamCallbackError
 end
@@ -1218,10 +1236,6 @@ end
 
 # Hard deadline via monotonic clock (recommended — immune to NTP/DST changes)
 token = Phronomy::Concurrency::CancellationToken.timeout_after(30)
-result = MyAgent.new.invoke("...", config: { cancellation_token: token })
-
-# Hard deadline via wall-clock (legacy — still supported)
-token = Phronomy::Concurrency::CancellationToken.new(deadline: Time.now + 30)
 result = MyAgent.new.invoke("...", config: { cancellation_token: token })
 
 # Propagate to all parallel workers via dispatch_parallel / fan_out
