@@ -9,28 +9,101 @@ module Phronomy
           class << self
             # @api public
             def tool_name(value = nil)
-              return @tool_name if value.nil?
+              if value.nil?
+                return @tool_name if instance_variable_defined?(:@tool_name)
+                return superclass.tool_name if superclass.respond_to?(:tool_name)
+
+                return nil
+              end
+
               @tool_name = value.to_s
+            end
+
+            # RubyLLM stores Tool descriptions in a class-instance variable.
+            # Preserve normal class inheritance semantics so Phronomy's anonymous
+            # decorator subclasses do not lose their parent's description.
+            # @api public
+            def description(text = nil)
+              unless text
+                return @description if instance_variable_defined?(:@description)
+                return superclass.description if superclass.respond_to?(:description)
+
+                return nil
+              end
+
+              @description = text
+            end
+            alias desc description
+
+            # RubyLLM stores declared parameters in a class-instance variable.
+            # Copy the parent's registry on first access so child classes inherit
+            # existing parameters while remaining free to add their own.
+            # @api public
+            def parameters
+              return @parameters if instance_variable_defined?(:@parameters)
+
+              parent = superclass.respond_to?(:parameters) ? superclass.parameters : {}
+              @parameters = parent.dup
+            end
+
+            # RubyLLM stores an explicit .params schema definition in a
+            # class-instance variable. Readers must fall back to the parent.
+            # @api public
+            def params_schema_definition
+              return @params_schema_definition if instance_variable_defined?(:@params_schema_definition)
+              return superclass.params_schema_definition if superclass.respond_to?(:params_schema_definition)
+
+              nil
+            end
+
+            # RubyLLM provider params are also class-instance state. Copy them on
+            # first access to preserve inheritance without sharing the top-level
+            # mutable Hash between parent and child.
+            # @api public
+            def provider_params
+              return @provider_params if instance_variable_defined?(:@provider_params)
+
+              parent = superclass.respond_to?(:provider_params) ? superclass.provider_params : {}
+              @provider_params = duplicate_configuration(parent)
             end
 
             # @api public
             def param(name, enum: nil, properties: nil, **options)
               super(name, **options)
-              param_enums[name] = enum if enum
+              param_enums[name] = duplicate_configuration(enum) if enum
               param_schemas[name] = normalize_nested_schema(properties) if properties
             end
 
             # @api public
             def param_enums
-              @param_enums ||= {}
+              return @param_enums if instance_variable_defined?(:@param_enums)
+
+              parent = superclass.respond_to?(:param_enums) ? superclass.param_enums : {}
+              @param_enums = duplicate_configuration(parent)
             end
 
             # @api public
             def param_schemas
-              @param_schemas ||= {}
+              return @param_schemas if instance_variable_defined?(:@param_schemas)
+
+              parent = superclass.respond_to?(:param_schemas) ? superclass.param_schemas : {}
+              @param_schemas = duplicate_configuration(parent)
             end
 
             private
+
+            def duplicate_configuration(value)
+              case value
+              when Hash
+                value.to_h do |key, child|
+                  [key, duplicate_configuration(child)]
+                end
+              when Array
+                value.map { |child| duplicate_configuration(child) }
+              else
+                value
+              end
+            end
 
             def normalize_nested_schema(props)
               props.transform_keys(&:to_sym).transform_values do |spec|
@@ -47,7 +120,12 @@ module Phronomy
 
             # @api public
             def execution_mode(value = nil)
-              return @execution_mode || :blocking_io if value.nil?
+              if value.nil?
+                return @execution_mode if instance_variable_defined?(:@execution_mode)
+                return superclass.execution_mode if superclass.respond_to?(:execution_mode)
+
+                return :blocking_io
+              end
 
               valid = %i[cooperative blocking_io cpu_bound external_process]
               unless valid.include?(value)
@@ -61,7 +139,12 @@ module Phronomy
             # and :suppress only.
             # @api public
             def on_error(behavior = nil)
-              return @on_error || :raise if behavior.nil?
+              if behavior.nil?
+                return @on_error if instance_variable_defined?(:@on_error)
+                return superclass.on_error if superclass.respond_to?(:on_error)
+
+                return :raise
+              end
 
               valid = %i[raise suppress]
               unless valid.include?(behavior)
@@ -73,7 +156,12 @@ module Phronomy
 
             # @api public
             def on_schema_error(behavior = nil)
-              return @on_schema_error || :return_error if behavior.nil?
+              if behavior.nil?
+                return @on_schema_error if instance_variable_defined?(:@on_schema_error)
+                return superclass.on_schema_error if superclass.respond_to?(:on_schema_error)
+
+                return :return_error
+              end
 
               @on_schema_error = behavior
             end
@@ -121,7 +209,13 @@ module Phronomy
 
             # @api public
             def max_result_size(value = :__unset__)
-              return @max_result_size if value == :__unset__
+              if value == :__unset__
+                return @max_result_size if instance_variable_defined?(:@max_result_size)
+                return superclass.max_result_size if superclass.respond_to?(:max_result_size)
+
+                return nil
+              end
+
               @max_result_size = value
             end
           end

@@ -771,10 +771,8 @@ module Phronomy
         return tool_class unless tool_class.is_a?(Class)
 
         resolved = if (alias_name = self.class.tool_aliases[tool_class])
-          parent_description = tool_class.description
           Class.new(tool_class) do
             tool_name alias_name
-            description parent_description if parent_description
           end
         else
           tool_class
