@@ -9,12 +9,7 @@ module Phronomy
           class << self
             # @api public
             def tool_name(value = nil)
-              if value.nil?
-                return @tool_name if instance_variable_defined?(:@tool_name)
-                return superclass.tool_name if superclass.respond_to?(:tool_name)
-
-                return nil
-              end
+              return @tool_name if value.nil?
 
               @tool_name = value.to_s
             end

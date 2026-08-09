@@ -49,11 +49,11 @@ RSpec.describe "Tool class configuration inheritance" do
   end
 
   describe "Capability::Base subclassing" do
-    it "inherits the complete class-level Tool configuration" do
+    it "inherits class-level Tool configuration except tool_name" do
       parent = configured_tool_class
       child = Class.new(parent)
 
-      expect(child.tool_name).to eq("configured_tool")
+      expect(child.tool_name).to be_nil
       expect(child.description).to eq("Configured tool")
       expect(child.desc).to eq("Configured tool")
 
