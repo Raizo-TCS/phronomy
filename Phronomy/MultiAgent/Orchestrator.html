@@ -378,12 +378,12 @@
       <pre class="lines">
 
 
-56
-57
-58</pre>
+60
+61
+62</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 60</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid__subagent_tool_classes'>_subagent_tool_classes</span>
   <span class='ivar'>@_subagent_tool_classes</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -417,12 +417,12 @@
       <pre class="lines">
 
 
-61
-62
-63</pre>
+65
+66
+67</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 61</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 65</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_registered_subagents'>registered_subagents</span>
   <span class='ivar'>@registered_subagents</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
@@ -500,7 +500,11 @@
 51
 52
 53
-54</pre>
+54
+55
+56
+57
+58</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 10</span>
@@ -548,7 +552,11 @@
   <span class='ivar'>@_subagent_tool_classes</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@_subagent_tool_classes</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='lbracket'>[</span><span class='id identifier rubyid_tool_class'>tool_class</span><span class='rbracket'>]</span>
   <span class='ivar'>@tools</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@tools</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='lbracket'>[</span><span class='id identifier rubyid_tool_class'>tool_class</span><span class='rbracket'>]</span>
   <span class='ivar'>@tool_aliases</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
-  <span class='id identifier rubyid_registered_subagents'>registered_subagents</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='label'>agent_class:</span> <span class='id identifier rubyid_agent_class'>agent_class</span><span class='comma'>,</span> <span class='label'>on_error:</span> <span class='id identifier rubyid_on_error'>on_error</span><span class='rbrace'>}</span>
+  <span class='id identifier rubyid_registered_subagents'>registered_subagents</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='lbrace'>{</span>
+    <span class='label'>agent_class:</span> <span class='id identifier rubyid_agent_class'>agent_class</span><span class='comma'>,</span>
+    <span class='label'>on_error:</span> <span class='id identifier rubyid_on_error'>on_error</span><span class='comma'>,</span>
+    <span class='label'>inherit_knowledge:</span> <span class='id identifier rubyid_inherit_knowledge'>inherit_knowledge</span>
+  <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -585,10 +593,6 @@
       <pre class="lines">
 
 
-66
-67
-68
-69
 70
 71
 72
@@ -611,10 +615,13 @@
 89
 90
 91
-92</pre>
+92
+93
+94
+95</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 66</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 70</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_dispatch_parallel'>dispatch_parallel</span><span class='lparen'>(</span>
   <span class='op'>*</span><span class='id identifier rubyid_tasks'>tasks</span><span class='comma'>,</span>
@@ -639,8 +646,7 @@
     <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
     <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
     <span class='label'>invocation_context:</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='comma'>,</span>
-    <span class='label'>inherit_knowledge:</span> <span class='id identifier rubyid_inherit_knowledge'>inherit_knowledge</span><span class='comma'>,</span>
-    <span class='label'>knowledge_snapshot:</span> <span class='id identifier rubyid_active_knowledge_snapshot'>active_knowledge_snapshot</span>
+    <span class='label'>inherit_knowledge:</span> <span class='id identifier rubyid_inherit_knowledge'>inherit_knowledge</span>
   <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -672,9 +678,6 @@
       <pre class="lines">
 
 
-95
-96
-97
 98
 99
 100
@@ -695,10 +698,13 @@
 115
 116
 117
-118</pre>
+118
+119
+120
+121</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 95</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 98</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fan_out'>fan_out</span><span class='lparen'>(</span>
   <span class='label'>agent:</span><span class='comma'>,</span>
@@ -756,9 +762,6 @@ Active parent Knowledge is inherited by default; pass
       <pre class="lines">
 
 
-125
-126
-127
 128
 129
 130
@@ -771,10 +774,13 @@ Active parent Knowledge is inherited by default; pass
 137
 138
 139
-140</pre>
+140
+141
+142
+143</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 125</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 128</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_subagent'>subagent</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_agent_class'>agent_class</span><span class='comma'>,</span>
@@ -802,7 +808,7 @@ Active parent Knowledge is inherited by default; pass
 </div>
 
       <div id="footer">
-  Generated on Sun Aug  9 09:30:00 2026 by
+  Generated on Sun Aug  9 10:35:50 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
