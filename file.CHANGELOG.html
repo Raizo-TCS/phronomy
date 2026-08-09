@@ -65,6 +65,39 @@
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Agent_Context___Knowledge_cleanup">Agent Context / Knowledge cleanup</h3>
+<h4 id="Added">Added</h4>
+<ul>
+<li>Journal-backed persistent Agent Knowledge via creation-time <code>knowledge:</code> and
+post-creation <code>Agent#add_knowledge</code>.</li>
+<li><code>Agent#clear_knowledge!</code> for logical Knowledge invalidation without deleting
+append-only Journal history.</li>
+<li>ADR-013, defining persistent Knowledge as optional Context candidates selected
+through the Manifest-first Context Policy pipeline.</li>
+</ul>
+<h4 id="Changed">Changed</h4>
+<ul>
+<li>Persistent Knowledge and <code>before_llm_input</code> segment candidates now participate
+in Context Policy and token-budget selection instead of being injected as
+mandatory system context.</li>
+<li><code>clear_transcript!</code>, <code>clear_knowledge!</code>, and <code>reset_context!</code> now have distinct
+transcript/Knowledge lifecycle semantics.</li>
+<li>Active Context tests, integration fixtures, benchmarks, mutation subjects,
+design documents, and API snapshots now describe the canonical
+Journal -&gt; ContextCandidate -&gt; Context Policy -&gt; Manifest architecture.</li>
+</ul>
+<h4 id="Removed">Removed</h4>
+<ul>
+<li><code>Phronomy::KnowledgeSource</code>, <code>Knowledge::Base</code>, <code>StaticKnowledge</code>, and
+<code>EntityKnowledge</code>.</li>
+<li><code>static_knowledge*</code>, <code>add_knowledge_source</code>, <code>instance_knowledge_chunks</code>,
+<code>Knowledge#static?</code>, <code>StaticKnowledge#source</code>, and the class-level static
+Knowledge cache/fetch abstraction.</li>
+<li><code>Agent#clear_memory!</code> and <code>AgentRoot#memory_generation</code>.</li>
+<li>Remaining no-op ContextVersionCache tests, fake legacy-import Context tests,
+obsolete Memory/context integration helpers, legacy <code>:llm_message</code> benchmark
+categories, and stale Agent <code>messages:</code> test-double signatures.</li>
+</ul>
 <h3 id="Phase_3_cleanup">Phase 3 cleanup</h3>
 <h4 id="Changed">Changed</h4>
 <ul>
@@ -1552,7 +1585,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sun Aug  9 03:01:27 2026 by
+  Generated on Sun Aug  9 08:25:54 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

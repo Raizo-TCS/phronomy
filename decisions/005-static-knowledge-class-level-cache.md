@@ -2,7 +2,12 @@
 
 ## Status
 
-Accepted
+Superseded by ADR-013.
+
+This ADR records the historical decision for the former KnowledgeSource-based
+architecture. `static_knowledge`, `KnowledgeSource`, `StaticKnowledge`,
+`EntityKnowledge` and the class-level Knowledge cache are no longer part of the
+active design.
 
 ## Context
 
@@ -43,3 +48,9 @@ re-fetched on each invocation because their content depends on runtime state.
   non-static knowledge source.
 - In tests, the cache must be cleared between examples. `Phronomy.reset_runtime!`
   handles this.
+
+## Supersession
+
+ADR-013 replaces the source-object/cache model with Journal-backed persistent
+Knowledge selected through Context Policy. The historical rationale above is
+retained only to explain the superseded architecture.

@@ -120,6 +120,11 @@
 </span><span class='words_sep'>  </span><span class='tstring_content'>tool_message</span><span class='words_sep'>
 </span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
       
+        <dt id="KNOWLEDGE_RESET_KINDS-constant" class="">KNOWLEDGE_RESET_KINDS =
+          
+        </dt>
+        <dd><pre class="code"><span class='qsymbols_beg'>%i[</span><span class='tstring_content'>knowledge_cleared</span><span class='words_sep'> </span><span class='tstring_content'>context_reset</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
+      
     </dl>
   
 
@@ -136,6 +141,28 @@
     </h2>
 
     <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#context_records-instance_method" title="#context_records (instance method)">#<strong>context_records</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns all persistent records eligible for Context selection.</p></div></span>
+  
+</li>
+
       
         <li class="public ">
   <span class="summary_signature">
@@ -258,13 +285,13 @@
       <pre class="lines">
 
 
-12
 13
 14
-15</pre>
+15
+16</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/journal_projection.rb', line 12</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/journal_projection.rb', line 13</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>persistence:</span><span class='comma'>,</span> <span class='label'>agent_root:</span><span class='rparen'>)</span>
   <span class='ivar'>@persistence</span> <span class='op'>=</span> <span class='id identifier rubyid_persistence'>persistence</span>
@@ -283,7 +310,53 @@
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="llm_call_records-instance_method">
+  <h3 class="signature first" id="context_records-instance_method">
+  
+    #<strong>context_records</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns all persistent records eligible for Context selection.
+Knowledge has an independent logical lifetime from the transcript:
+clear_transcript! does not remove Knowledge, while knowledge_cleared and
+context_reset invalidate earlier Knowledge records by Journal position.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+31
+32
+33
+34
+35</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/journal_projection.rb', line 31</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_context_records'>context_records</span>
+  <span class='lparen'>(</span><span class='id identifier rubyid_transcript_records'>transcript_records</span> <span class='op'>+</span> <span class='id identifier rubyid_active_knowledge_records'>active_knowledge_records</span><span class='rparen'>)</span>
+    <span class='period'>.</span><span class='id identifier rubyid_sort_by'>sort_by</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_record'>record</span><span class='op'>|</span> <span class='lbracket'>[</span><span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_sequence'>sequence</span> <span class='op'>||</span> <span class='int'>0</span><span class='comma'>,</span> <span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_record_id'>record_id</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
+    <span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="llm_call_records-instance_method">
   
     #<strong>llm_call_records</strong>  &#x21d2; <tt>Object</tt> 
   
@@ -297,12 +370,12 @@
       <pre class="lines">
 
 
-26
-27
-28</pre>
+37
+38
+39</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/journal_projection.rb', line 26</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/journal_projection.rb', line 37</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_llm_call_records'>llm_call_records</span>
   <span class='id identifier rubyid_records'>records</span><span class='period'>.</span><span class='id identifier rubyid_select'>select</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_record'>record</span><span class='op'>|</span> <span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_kind'>kind</span> <span class='op'>==</span> <span class='symbol'>:llm_call_recorded</span> <span class='rbrace'>}</span>
@@ -327,12 +400,12 @@
       <pre class="lines">
 
 
-30
-31
-32</pre>
+41
+42
+43</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/journal_projection.rb', line 30</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/journal_projection.rb', line 41</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_records'>records</span>
   <span class='ivar'>@records</span> <span class='op'>||=</span> <span class='ivar'>@persistence</span><span class='period'>.</span><span class='id identifier rubyid_journals'>journals</span><span class='period'>.</span><span class='id identifier rubyid_read'>read</span><span class='lparen'>(</span><span class='ivar'>@agent_root</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
@@ -357,17 +430,17 @@
       <pre class="lines">
 
 
-17
 18
 19
 20
 21
 22
 23
-24</pre>
+24
+25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/journal_projection.rb', line 17</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/journal_projection.rb', line 18</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_transcript_records'>transcript_records</span>
   <span class='id identifier rubyid_generation'>generation</span> <span class='op'>=</span> <span class='ivar'>@agent_root</span><span class='period'>.</span><span class='id identifier rubyid_transcript_generation'>transcript_generation</span>
@@ -387,7 +460,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sun Aug  9 03:01:30 2026 by
+  Generated on Sun Aug  9 08:25:57 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

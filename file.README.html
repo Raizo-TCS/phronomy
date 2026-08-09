@@ -148,7 +148,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 </thead>
 <tbody>
 <tr>
-<td><strong>Knowledge</strong> — Static context injection with pluggable loaders, splitters, and vector stores; <code>static_knowledge_refresh!</code> for runtime cache invalidation</td>
+<td><strong>Knowledge</strong> — Journal-backed persistent Agent context registered with <code>knowledge:</code> / <code>add_knowledge</code>; selected per LLM call by Context Policy; <code>clear_knowledge!</code> logically resets retained Knowledge without deleting Journal history</td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -440,6 +440,18 @@ Configure your provider credentials before using agents or chains:</p>
 <tr>
 <td><code>CancellationToken.new(deadline: Time...)</code></td>
 <td>Use <code>CancellationToken.timeout_after(seconds)</code> for token deadlines</td>
+</tr>
+<tr>
+<td><code>StaticKnowledge</code> / <code>EntityKnowledge</code> / <code>Knowledge::Base</code> / <code>Phronomy::KnowledgeSource</code></td>
+<td>Register plain persistent Knowledge with <code>knowledge:</code> or <code>add_knowledge</code></td>
+</tr>
+<tr>
+<td><code>static_knowledge*</code> class APIs</td>
+<td>Persistent Knowledge belongs to Agent instances and is Journal-backed</td>
+</tr>
+<tr>
+<td><code>clear_memory!</code></td>
+<td>Use <code>clear_knowledge!</code>; conversation history is controlled independently with <code>clear_transcript!</code></td>
 </tr>
 </tbody>
 </table>
@@ -743,30 +755,40 @@ PII scanning and content classification are <strong>not</strong> provided by the
 that logic must be implemented by the application. Reference implementations for
 common patterns are available in <code>phronomy-examples</code> (example 06).</p>
 </blockquote>
-<h3 id="Knowledge___Static_context_injection">Knowledge — Static context injection</h3>
-<pre class="code ruby"><code class="ruby"><span class='comment'># Static knowledge (policy files, reference docs)
-</span><span class='id identifier rubyid_policy'>policy</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Knowledge.html" title="Phronomy::Agent::Context::Knowledge (module)">Knowledge</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Knowledge/StaticKnowledge.html" title="Phronomy::Agent::Context::Knowledge::StaticKnowledge (class)">StaticKnowledge</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Agent/Context/Knowledge/StaticKnowledge.html#initialize-instance_method" title="Phronomy::Agent::Context::Knowledge::StaticKnowledge#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-  <span class='const'>File</span><span class='period'>.</span><span class='id identifier rubyid_read'>read</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>policy.md</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='comma'>,</span>
-  <span class='label'>type:</span>   <span class='symbol'>:policy</span><span class='comma'>,</span>
-  <span class='label'>source:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>policy.md</span><span class='tstring_end'>&quot;</span></span>   <span class='comment'># exposed to LLM for citation
-</span><span class='rparen'>)</span>
+<h3 id="Knowledge___Persistent_Agent_context">Knowledge — Persistent Agent context</h3>
+<p>Knowledge is plain logical content retained by one Agent and considered by
+Context Policy for future LLM calls. It is not a separate source-object type and
+it is not automatically mandatory.</p>
+<p>Register initial Knowledge when creating the Agent:</p>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_policy_text'>policy_text</span> <span class='op'>=</span> <span class='const'>File</span><span class='period'>.</span><span class='id identifier rubyid_read'>read</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>policy.md</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
 
-<span class='comment'># Inject at invocation time via the agent DSL
-</span><span class='kw'>class</span> <span class='const'>MyAgent</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Base.html" title="Phronomy::Agent::Base (class)">Base</a></span></span>
-  <span class='id identifier rubyid_model'>model</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>gpt-4o-mini</span><span class='tstring_end'>&quot;</span></span>
-  <span class='id identifier rubyid_knowledge'>knowledge</span> <span class='id identifier rubyid_policy'>policy</span>
-<span class='kw'>end</span>
+<span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='const'>ResearchAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
+  <span class='label'>knowledge:</span> <span class='lbracket'>[</span>
+    <span class='id identifier rubyid_policy_text'>policy_text</span><span class='comma'>,</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Customer tier: enterprise</span><span class='tstring_end'>&quot;</span></span>
+  <span class='rbracket'>]</span>
+<span class='rparen'>)</span>
 </code></pre>
-<p><code>static_knowledge_refresh!</code> invalidates the class-level cache of static knowledge sources.
-Call it when the underlying file or content has changed:</p>
-<pre class="code ruby"><code class="ruby"><span class='comment'># Static knowledge sources are cached at the class level after the first fetch.
-</span><span class='comment'># Call refresh! when the underlying content changes (e.g. after reloading policy.md).
-</span><span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_static_knowledge_refresh!'>static_knowledge_refresh!</span>
+<p>Add durable Knowledge later:</p>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_add_knowledge'>add_knowledge</span><span class='lparen'>(</span>
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Customer locale: ja-JP</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+  <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>origin</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>customer_profile</span><span class='tstring_end'>&quot;</span></span><span class='rbrace'>}</span>
+<span class='rparen'>)</span>
 </code></pre>
-<p>Load and split documents with built-in loaders:</p>
+<p>Persistent Knowledge is Journal-backed, survives <code>Agent.load</code>, and is excluded
+from the public conversation transcript. <code>clear_knowledge!</code> logically
+invalidates earlier Knowledge while keeping the append-only Journal intact.</p>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_clear_knowledge!'>clear_knowledge!</span>
+</code></pre>
+<p>For request-scoped retrieval results that should not be persisted, use
+<code>before_llm_input</code> <code>segment_candidates</code> instead.</p>
+<p>Load and split documents with built-in loaders when the application needs an
+acquisition/RAG pipeline:</p>
 <pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_chunks'>chunks</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/VectorStore.html" title="Phronomy::VectorStore (module)">VectorStore</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/VectorStore/Loader.html" title="Phronomy::VectorStore::Loader (module)">Loader</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/VectorStore/Loader/MarkdownLoader.html" title="Phronomy::VectorStore::Loader::MarkdownLoader (class)">MarkdownLoader</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/VectorStore/Loader/MarkdownLoader.html#initialize-instance_method" title="Phronomy::VectorStore::Loader::MarkdownLoader#initialize (method)">new</a></span></span><span class='period'>.</span><span class='id identifier rubyid_load'><span class='object_link'><a href="Phronomy/VectorStore/Loader/MarkdownLoader.html#load-instance_method" title="Phronomy::VectorStore::Loader::MarkdownLoader#load (method)">load</a></span></span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>docs/guide.md</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
          <span class='period'>.</span><span class='id identifier rubyid_then'>then</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_docs'>docs</span><span class='op'>|</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/VectorStore.html" title="Phronomy::VectorStore (module)">VectorStore</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/VectorStore/Splitter.html" title="Phronomy::VectorStore::Splitter (module)">Splitter</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/VectorStore/Splitter/RecursiveSplitter.html" title="Phronomy::VectorStore::Splitter::RecursiveSplitter (class)">RecursiveSplitter</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/VectorStore/Splitter/RecursiveSplitter.html#initialize-instance_method" title="Phronomy::VectorStore::Splitter::RecursiveSplitter#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>chunk_size:</span> <span class='int'>512</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_split'><span class='object_link'><a href="Phronomy/VectorStore/Splitter/RecursiveSplitter.html#split-instance_method" title="Phronomy::VectorStore::Splitter::RecursiveSplitter#split (method)">split</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_docs'>docs</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
 </code></pre>
+<p>The application decides whether retrieved/extracted information becomes durable
+Agent Knowledge (<code>add_knowledge</code>) or per-call Context (<code>before_llm_input</code>).</p>
 <h3 id="Multi_Agent_Handoff___Hub_and_spoke_routing">Multi-Agent Handoff — Hub-and-spoke routing</h3>
 <pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_triage'>triage</span>  <span class='op'>=</span> <span class='const'>TriageAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
 <span class='id identifier rubyid_billing'>billing</span> <span class='op'>=</span> <span class='const'>BillingAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
@@ -848,9 +870,9 @@ metadata about the LLM call:</p>
 <p>When multiple hooks provide <code>model_config_patch</code>, patches are merged in hook
 order and later values win on key conflicts.</p>
 <p><code>LLMInputPatch</code> can also supply <code>segment_candidates</code> for additional per-call
-context. Those segments participate in Manifest-first input assembly. This is
-intended for logical context supplied by the application; applications should
-not mutate RubyLLM message history directly.</p>
+context. Those candidates enter the same Context Policy selection path as
+persistent/history candidates and are not automatically mandatory. They are
+not persisted to the Journal.</p>
 <pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/LLMInputPatch.html" title="Phronomy::Agent::LLMInputPatch (class)">LLMInputPatch</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Agent/LLMInputPatch.html#initialize-instance_method" title="Phronomy::Agent::LLMInputPatch#initialize (method)">new</a></span></span><span class='lparen'>(</span>
   <span class='label'>segment_candidates:</span> <span class='lbracket'>[</span>
     <span class='lbrace'>{</span>
@@ -861,9 +883,9 @@ not mutate RubyLLM message history directly.</p>
   <span class='rbracket'>]</span>
 <span class='rparen'>)</span>
 </code></pre>
-<p>The Journal remains the canonical record of observed execution history.
-<code>before_llm_input</code> customizes the logical input assembled for a particular LLM
-call; it does not rewrite previously recorded Journal history.</p>
+<p>The Journal remains the canonical record of observed execution history and
+persistent Knowledge. <code>before_llm_input</code> customizes only the logical candidate
+set for a particular LLM call.</p>
 <h3 id="GeneratorVerifier___Generator_Verifier_loop_with_custom_prompt_builders">GeneratorVerifier — Generator-Verifier loop with custom prompt builders</h3>
 <pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_pipeline'>pipeline</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/GeneratorVerifier.html" title="Phronomy::GeneratorVerifier (class)">GeneratorVerifier</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/GeneratorVerifier.html#initialize-instance_method" title="Phronomy::GeneratorVerifier#initialize (method)">new</a></span></span><span class='lparen'>(</span>
   <span class='label'>draft_agent:</span>  <span class='const'>PolicyDraftAgent</span><span class='comma'>,</span>
@@ -905,8 +927,7 @@ call; it does not rewrite previously recorded Journal history.</p>
 </code></pre>
 <h3 id="MultiAgent__Orchestrator___Parallel_subagent_dispatch">MultiAgent::Orchestrator — Parallel subagent dispatch</h3>
 <blockquote>
-<p><strong>Note:</strong> <code>dispatch_parallel</code> and <code>fan_out</code> use plain Ruby threads. Use
-<code>max_concurrency:</code> to cap the number of concurrent workers and <code>on_error:</code>
+<p><strong>Note:</strong> Use <code>max_concurrency:</code> to cap concurrent workers and <code>on_error:</code>
 to control failure handling (<code>:raise</code> re-raises the first error after all
 tasks complete; <code>:skip</code> fills failed slots with <code>nil</code>). For very large
 fan-outs consider additional rate-limiting at the application level.</p>
@@ -928,8 +949,7 @@ fan-outs consider additional rate-limiting at the application level.</p>
   <span class='id identifier rubyid_instructions'>instructions</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Orchestrate.</span><span class='tstring_end'>&quot;</span></span>
 
   <span class='kw'>def</span> <span class='id identifier rubyid_run'>run</span><span class='lparen'>(</span><span class='id identifier rubyid_query'>query</span><span class='rparen'>)</span>
-    <span class='comment'># Heterogeneous agents in parallel (cap at 4 threads; skip failures; 30 s timeout)
-</span>    <span class='id identifier rubyid_results'>results</span> <span class='op'>=</span> <span class='id identifier rubyid_dispatch_parallel'>dispatch_parallel</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_results'>results</span> <span class='op'>=</span> <span class='id identifier rubyid_dispatch_parallel'>dispatch_parallel</span><span class='lparen'>(</span>
       <span class='lbrace'>{</span><span class='label'>agent:</span> <span class='const'>SearchAgent</span><span class='comma'>,</span>   <span class='label'>input:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>topic A</span><span class='tstring_end'>&quot;</span></span><span class='rbrace'>}</span><span class='comma'>,</span>
       <span class='lbrace'>{</span><span class='label'>agent:</span> <span class='const'>AnalysisAgent</span><span class='comma'>,</span> <span class='label'>input:</span> <span class='id identifier rubyid_query'>query</span><span class='rbrace'>}</span><span class='comma'>,</span>
       <span class='label'>max_concurrency:</span> <span class='int'>4</span><span class='comma'>,</span>
@@ -937,8 +957,7 @@ fan-outs consider additional rate-limiting at the application level.</p>
       <span class='label'>timeout:</span> <span class='int'>30</span>
     <span class='rparen'>)</span>
 
-    <span class='comment'># Fan-out — same agent, multiple inputs
-</span>    <span class='id identifier rubyid_translations'>translations</span> <span class='op'>=</span> <span class='id identifier rubyid_fan_out'>fan_out</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_translations'>translations</span> <span class='op'>=</span> <span class='id identifier rubyid_fan_out'>fan_out</span><span class='lparen'>(</span>
       <span class='label'>agent:</span> <span class='const'>TranslationAgent</span><span class='comma'>,</span>
       <span class='label'>inputs:</span> <span class='qwords_beg'>%w[</span><span class='tstring_content'>Hello</span><span class='words_sep'> </span><span class='tstring_content'>World</span><span class='tstring_end'>]</span></span><span class='comma'>,</span>
       <span class='label'>max_concurrency:</span> <span class='int'>2</span><span class='comma'>,</span>
@@ -962,15 +981,11 @@ a <code>state</code> action:</p>
 <span class='id identifier rubyid_app'>app</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Workflow.html" title="Phronomy::Workflow (class)">Workflow</a></span></span><span class='period'>.</span><span class='id identifier rubyid_define'><span class='object_link'><a href="Phronomy/Workflow.html#define-class_method" title="Phronomy::Workflow.define (method)">define</a></span></span><span class='lparen'>(</span><span class='const'>EnrichContext</span><span class='rparen'>)</span> <span class='kw'>do</span>
   <span class='id identifier rubyid_initial'>initial</span> <span class='symbol'>:enrich</span>
   <span class='id identifier rubyid_state'>state</span> <span class='symbol'>:enrich</span><span class='comma'>,</span> <span class='label'>action:</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_s'>s</span><span class='rparen'>)</span> <span class='kw'>do</span>
-    <span class='comment'># Use Thread#value to collect results safely — avoids concurrent Hash writes
-</span>    <span class='id identifier rubyid_threads'>threads</span> <span class='op'>=</span> <span class='lbrace'>{</span>
+    <span class='id identifier rubyid_threads'>threads</span> <span class='op'>=</span> <span class='lbrace'>{</span>
       <span class='label'>summary:</span> <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='lbrace'>{</span> <span class='const'>Summarizer</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_s'>s</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='comma'>,</span>
       <span class='label'>tags:</span>    <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='lbrace'>{</span> <span class='const'>Tagger</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_s'>s</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
     <span class='rbrace'>}</span>
-    <span class='comment'># For bounded waits, use Thread#join(timeout_seconds); nil means timed out — handle explicitly.
-</span>    <span class='comment'># Do not use Timeout.timeout or Thread#kill — both inject async exceptions that bypass cleanup.
-</span>    <span class='comment'># Prefer CancellationToken for cooperative cancellation of Phronomy-managed tasks.
-</span>    <span class='id identifier rubyid_threads'>threads</span><span class='period'>.</span><span class='id identifier rubyid_each_value'>each_value</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:join</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_threads'>threads</span><span class='period'>.</span><span class='id identifier rubyid_each_value'>each_value</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:join</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_s'>s</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>summary:</span> <span class='id identifier rubyid_threads'>threads</span><span class='lbracket'>[</span><span class='symbol'>:summary</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='label'>tags:</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_threads'>threads</span><span class='lbracket'>[</span><span class='symbol'>:tags</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_transition'>transition</span> <span class='label'>from:</span> <span class='symbol'>:enrich</span><span class='comma'>,</span> <span class='label'>to:</span> <span class='symbol'>:__finish__</span>
@@ -979,13 +994,11 @@ a <code>state</code> action:</p>
 <span class='id identifier rubyid_state'>state</span> <span class='op'>=</span> <span class='id identifier rubyid_app'>app</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span> <span class='label'>thread_id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>t1</span><span class='tstring_end'>&quot;</span></span> <span class='rbrace'>}</span><span class='rparen'>)</span>
 </code></pre>
 <h3 id="Output_Parser___Structured_LLM_responses">Output Parser — Structured LLM responses</h3>
-<pre class="code ruby"><code class="ruby"><span class='comment'># Extract JSON from LLM output (handles Markdown code fences automatically)
-</span><span class='id identifier rubyid_parser'>parser</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/OutputParser.html" title="Phronomy::OutputParser (module)">OutputParser</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/OutputParser/JsonParser.html" title="Phronomy::OutputParser::JsonParser (class)">JsonParser</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_parser'>parser</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/OutputParser.html" title="Phronomy::OutputParser (module)">OutputParser</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/OutputParser/JsonParser.html" title="Phronomy::OutputParser::JsonParser (class)">JsonParser</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
 <span class='id identifier rubyid_data'>data</span>   <span class='op'>=</span> <span class='id identifier rubyid_parser'>parser</span><span class='period'>.</span><span class='id identifier rubyid_parse'>parse</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>```json\n{&quot;name&quot;:&quot;Alice&quot;,&quot;score&quot;:0.9}\n```</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span>
 <span class='comment'># =&gt; { name: &quot;Alice&quot;, score: 0.9 }
 </span>
-<span class='comment'># Map JSON directly to a Struct
-</span><span class='const'>PersonSchema</span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='symbol'>:name</span><span class='comma'>,</span> <span class='symbol'>:age</span><span class='comma'>,</span> <span class='label'>keyword_init:</span> <span class='kw'>true</span><span class='rparen'>)</span>
+<span class='const'>PersonSchema</span> <span class='op'>=</span> <span class='const'>Struct</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='symbol'>:name</span><span class='comma'>,</span> <span class='symbol'>:age</span><span class='comma'>,</span> <span class='label'>keyword_init:</span> <span class='kw'>true</span><span class='rparen'>)</span>
 <span class='id identifier rubyid_parser'>parser</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/OutputParser.html" title="Phronomy::OutputParser (module)">OutputParser</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/OutputParser/StructuredParser.html" title="Phronomy::OutputParser::StructuredParser (class)">StructuredParser</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/OutputParser/StructuredParser.html#initialize-instance_method" title="Phronomy::OutputParser::StructuredParser#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='const'>PersonSchema</span><span class='rparen'>)</span>
 <span class='id identifier rubyid_person'>person</span> <span class='op'>=</span> <span class='id identifier rubyid_parser'>parser</span><span class='period'>.</span><span class='id identifier rubyid_parse'>parse</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&#39;</span><span class='tstring_content'>{&quot;name&quot;:&quot;Alice&quot;,&quot;age&quot;:30}</span><span class='tstring_end'>&#39;</span></span><span class='rparen'>)</span>
 <span class='comment'># =&gt; #&lt;struct PersonSchema name=&quot;Alice&quot;, age=30&gt;
@@ -1004,13 +1017,13 @@ a <code>state</code> action:</p>
 <span class='id identifier rubyid_results'>results</span> <span class='op'>=</span> <span class='id identifier rubyid_runner'>runner</span><span class='period'>.</span><span class='id identifier rubyid_run'>run</span><span class='lparen'>(</span><span class='id identifier rubyid_dataset'>dataset</span><span class='comma'>,</span> <span class='tlambda'>-&gt;</span><span class='lparen'>(</span><span class='id identifier rubyid_q'>q</span><span class='rparen'>)</span> <span class='tlambeg'>{</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_q'>q</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='rparen'>)</span>
 <span class='id identifier rubyid_metrics'>metrics</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Eval.html" title="Phronomy::Eval (module)">Eval</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Eval/Metrics.html" title="Phronomy::Eval::Metrics (class)">Metrics</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Eval/Metrics.html#initialize-instance_method" title="Phronomy::Eval::Metrics#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_results'>results</span><span class='rparen'>)</span>
 
-<span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Mean score: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_metrics'>metrics</span><span class='period'>.</span><span class='id identifier rubyid_mean_score'>mean_score</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>   <span class='comment'># Float 0.0–1.0
-</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Pass rate:  </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_metrics'>metrics</span><span class='period'>.</span><span class='id identifier rubyid_pass_rate'>pass_rate</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>    <span class='comment'># fraction with score &gt;= threshold
-</span></code></pre>
+<span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Mean score: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_metrics'>metrics</span><span class='period'>.</span><span class='id identifier rubyid_mean_score'>mean_score</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+<span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Pass rate:  </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_metrics'>metrics</span><span class='period'>.</span><span class='id identifier rubyid_pass_rate'>pass_rate</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+</code></pre>
 <h3 id="Tracing___Custom_observability">Tracing — Custom observability</h3>
 <pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span>
-  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_tracer'>tracer</span> <span class='op'>=</span> <span class='const'>MyCustomTracer</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>  <span class='comment'># any Phronomy::Tracing::Base subclass
-</span><span class='kw'>end</span>
+  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_tracer'>tracer</span> <span class='op'>=</span> <span class='const'>MyCustomTracer</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
+<span class='kw'>end</span>
 </code></pre>
 <h3 id="MCP_Tool___External_tool_servers">MCP Tool — External tool servers</h3>
 <blockquote>
@@ -1043,10 +1056,12 @@ child process (stdio transport) or release the HTTP connection:</p>
 
 <span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='const'>ResearchAgent</span><span class='period'>.</span><span class='id identifier rubyid_create'>create</span><span class='lparen'>(</span>
   <span class='label'>agent_id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>research-session-42</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+  <span class='label'>knowledge:</span> <span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Customer tier: enterprise</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='comma'>,</span>
   <span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span>
 <span class='rparen'>)</span>
 
 <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>My name is Alice.</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+<span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_add_knowledge'>add_knowledge</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Customer locale: ja-JP</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
 <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>What is my name?</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
 
 <span class='id identifier rubyid_puts'>puts</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span>
@@ -1064,24 +1079,24 @@ child process (stdio transport) or release the HTTP connection:</p>
 <p>Existing external conversation history can be supplied when a new Agent is created:</p>
 <pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='const'>ResearchAgent</span><span class='period'>.</span><span class='id identifier rubyid_create'>create</span><span class='lparen'>(</span>
   <span class='label'>context:</span> <span class='id identifier rubyid_existing_messages'>existing_messages</span><span class='comma'>,</span>
+  <span class='label'>knowledge:</span> <span class='id identifier rubyid_initial_knowledge'>initial_knowledge</span><span class='comma'>,</span>
   <span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span>
 <span class='rparen'>)</span>
 </code></pre>
 <p>Imported history must satisfy Phronomy's Import contract. User, assistant, and Tool messages are journaled without destroying their logical message boundaries. System instructions are Agent configuration and are not imported as ordinary conversation messages.</p>
 <p><code>thread_id</code> is an execution correlation identifier. It does not identify the persistent Agent and is not a substitute for <code>agent_id</code>.</p>
-<p>The current conversation or memory view can be advanced without deleting the canonical Journal:</p>
-<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_clear_transcript!'>clear_transcript!</span>
-<span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_clear_memory!'>clear_memory!</span>
-<span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_reset_context!'>reset_context!</span>
-</code></pre>
-<p>These operations change which historical records belong to the active context generation. The underlying append-only Journal remains intact.</p>
+<p>The active conversation and Knowledge views can be advanced independently without deleting the canonical Journal:</p>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_clear_transcript!'>clear_transcript!</span>  <span class='comment'># conversation only
+</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_clear_knowledge!'>clear_knowledge!</span>   <span class='comment'># persistent Knowledge only
+</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_reset_context!'>reset_context!</span>     <span class='comment'># both
+</span></code></pre>
 <p><code>purge!</code> is different: it permanently removes the Agent and its persisted execution history from the configured Persistence backend.</p>
 <h2 id="Configuration">Configuration</h2>
 <pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span>
   <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_default_model'>default_model</span>                   <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>gpt-4o-mini</span><span class='tstring_end'>&quot;</span></span>
   <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_recursion_limit'>recursion_limit</span>                 <span class='op'>=</span> <span class='int'>25</span>
   <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_tracer'>tracer</span>                          <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tracing.html" title="Phronomy::Tracing (module)">Tracing</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tracing/NullTracer.html" title="Phronomy::Tracing::NullTracer (class)">NullTracer</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
-  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_before_llm_input'>before_llm_input</span>                 <span class='op'>=</span> <span class='kw'>nil</span>   <span class='comment'># optional global before_llm_input hook
+  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_before_llm_input'>before_llm_input</span>                <span class='op'>=</span> <span class='kw'>nil</span>   <span class='comment'># optional global before_llm_input hook
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_trace_pii'>trace_pii</span>                       <span class='op'>=</span> <span class='kw'>false</span> <span class='comment'># default; set to true only when trace data contains no PII
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span>                          <span class='op'>=</span> <span class='kw'>nil</span>   <span class='comment'># optional; any object responding to #warn (e.g. Rails.logger)
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span>   <span class='op'>=</span> <span class='int'>5</span>     <span class='comment'># seconds to wait for sessions to drain on shutdown
@@ -1159,21 +1174,15 @@ the <code>Task</code> from <code>Agent#invoke_async</code> as the result of a Wo
 transition action.</p>
 <h3 id="Runtime_guard">Runtime guard</h3>
 <p>Phronomy detects this pattern automatically:</p>
-<pre class="code ruby"><code class="ruby"><span class='comment'># Default (soft mode): logs a warning and continues
-</span><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span> <span class='op'>=</span> <span class='kw'>false</span> <span class='rbrace'>}</span>
-
-<span class='comment'># Strict mode: raises SchedulerReentrancyError immediately
-</span><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span> <span class='op'>=</span> <span class='kw'>true</span> <span class='rbrace'>}</span>
+<pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span> <span class='op'>=</span> <span class='kw'>false</span> <span class='rbrace'>}</span>
+<span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span> <span class='op'>=</span> <span class='kw'>true</span> <span class='rbrace'>}</span>
 </code></pre>
 <p>You can also query the current context directly:</p>
-<pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_in_scheduler_context?'><span class='object_link'><a href="Phronomy/Runtime.html#in_scheduler_context%3F-class_method" title="Phronomy::Runtime.in_scheduler_context? (method)">in_scheduler_context?</a></span></span>  <span class='comment'># =&gt; true if called from inside a task
-</span></code></pre>
+<pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_in_scheduler_context?'><span class='object_link'><a href="Phronomy/Runtime.html#in_scheduler_context%3F-class_method" title="Phronomy::Runtime.in_scheduler_context? (method)">in_scheduler_context?</a></span></span>
+</code></pre>
 <h3 id="Migration__blocking_wait___Task_mapping">Migration: blocking wait → Task mapping</h3>
-<pre class="code ruby"><code class="ruby"><span class='comment'># Top-level synchronous use
-</span><span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_my_agent'>my_agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
-
-<span class='comment'># Explicit async from top-level code
-</span><span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_my_agent'>my_agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_my_agent'>my_agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+<span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_my_agent'>my_agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
 </code></pre>
 <h3 id="Async_work_inside_a_Workflow">Async work inside a Workflow</h3>
 <p>Workflow entry and transition actions are synchronous Run-to-Completion
@@ -1252,7 +1261,7 @@ Workflow as a later event with <code>Workflow#signal</code>.</p>
 Task must not be returned from a Workflow entry or transition action.</p>
 <h3 id="_immediate_backend__synchronous___test_mode_">:immediate backend (synchronous / test mode)</h3>
 <p>The <code>:immediate</code> backend runs tasks synchronously using <code>FakeScheduler</code>
-(backed by <code>Task::ImmediateBackend</code>).  Blocking I/O is isolated in <code>BlockingAdapterPool</code>.
+(backed by <code>Task::ImmediateBackend</code>). Blocking I/O is isolated in <code>BlockingAdapterPool</code>.
 To switch back to the default thread-per-task backend:</p>
 <pre class="code ruby"><code class="ruby"><span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configure'><span class='object_link'><a href="Phronomy.html#configure-class_method" title="Phronomy.configure (method)">configure</a></span></span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_c'>c</span><span class='op'>|</span> <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_runtime_backend'>runtime_backend</span> <span class='op'>=</span> <span class='symbol'>:thread</span> <span class='rbrace'>}</span>
 <span class='comment'># or per-example using SchedulerHelpers:
@@ -1263,8 +1272,9 @@ To switch back to the default thread-per-task backend:</p>
 </code></pre>
 <h2 id="Context_Management">Context Management</h2>
 <p>Phronomy uses a Manifest-first context architecture for stateful Agents.</p>
-<p>The main flow is:</p>
 <pre class="code text"><code class="text">Canonical Journal
+      ↓
+Context candidates
       ↓
 Context Policy
       ↓
@@ -1274,12 +1284,28 @@ Runtime Projection
       ↓
 RubyLLM / Provider
 </code></pre>
-<p>The <strong>Journal</strong> is the canonical append-only record of logical execution facts observed by Phronomy.</p>
-<p>The <strong>Manifest</strong> is the canonical logical input fixed for one particular LLM Call.</p>
-<p>Context-window management therefore does not trim or rewrite the Agent's canonical history. Instead, Phronomy selects the subset of available context needed for each LLM Call and records that selection in the Manifest.</p>
-<p>This distinction allows old history to remain available even when it does not fit in the current model's context window.</p>
-<p>Tool protocol dependencies are preserved during selection. For example, an assistant message containing Tool Calls and the corresponding Tool-role messages are selected as a protocol-safe unit rather than independently pruning messages in a way that would create an invalid LLM conversation.</p>
-<p>When the available budget is insufficient, optional historical context can be omitted from the current Manifest. Required context is never silently removed merely to satisfy the budget. If the required input cannot fit, Phronomy raises <code>ContextBudgetExceededError</code>.</p>
+<p>The <strong>Journal</strong> is the canonical append-only record of logical execution facts
+observed by Phronomy and persistent Knowledge explicitly registered by the
+application.</p>
+<p>The <strong>Manifest</strong> is the canonical logical input fixed for one particular LLM
+Call.</p>
+<p>Context-window management therefore does not trim or rewrite the Agent's
+canonical history. Phronomy selects the subset of available optional Context
+needed for each LLM Call and records that selection in the Manifest.</p>
+<p>Persistent Knowledge is an ordinary <code>:knowledge</code> Context candidate. It is not
+concatenated into the mandatory system prompt. Conversation history and
+Knowledge share the same policy/budget selection path while remaining distinct
+in public transcript semantics.</p>
+<p>Per-call <code>before_llm_input</code> segment candidates also pass through Context Policy
+and are not written to the Journal.</p>
+<p>Tool protocol dependencies are preserved during selection. An assistant message
+containing Tool Calls and the corresponding Tool-role messages are selected as
+a protocol-safe unit rather than independently pruning messages in a way that
+would create an invalid LLM conversation.</p>
+<p>When the available budget is insufficient, optional history or Knowledge can be
+omitted from the current Manifest. Required context is never silently removed
+merely to satisfy the budget. If required input cannot fit, Phronomy raises
+<code>ContextBudgetExceededError</code>.</p>
 <h3 id="Context_window_configuration">Context-window configuration</h3>
 <p>Phronomy derives the effective context budget from RubyLLM model metadata when available.</p>
 <p>For local or otherwise unregistered models, the context window can be declared explicitly:</p>
@@ -1293,8 +1319,13 @@ RubyLLM / Provider
 </code></pre>
 <p><code>context_window</code> determines the model's total context capacity.</p>
 <p><code>max_output_tokens</code> reserves capacity for the model's output.</p>
-<p>The legacy <code>context_overhead</code> setting remains for compatibility with the legacy <code>build_context</code> path, but it is not the mechanism used to reserve system-prompt or Tool-definition space in Manifest-first context assembly. New Agent implementations should not rely on <code>context_overhead</code> for that purpose.</p>
-<p>The current default Context Policy is framework-managed. Public custom Context Policy APIs, deterministic persistent compaction, and other advanced policy extension points are still evolving and should not yet be treated as stable application APIs.</p>
+<p>Mandatory instructions, current input and Tool definitions are budgeted from
+their actual canonical values. <code>context_overhead</code> is not part of the current
+contract.</p>
+<p>The current default Context Policy is framework-managed. Public custom Context
+Policy APIs, deterministic persistent compaction, and other advanced policy
+extension points are still evolving and should not yet be treated as stable
+application APIs.</p>
 <blockquote>
 <p><strong>Note on CJK languages</strong>: The default <code>TokenEstimator</code> uses a character-ratio heuristic
 calibrated for ASCII/Latin text (4 chars/token). For Chinese, Japanese, and Korean text,
@@ -1309,29 +1340,24 @@ tokenizer-backed callable:</p>
 <h3 id="CancellationToken___Cooperative_cancellation">CancellationToken — Cooperative cancellation</h3>
 <p>Pass a <code>CancellationToken</code> to any agent via <code>config: { cancellation_token: token }</code>.
 Cancellation is checked at multiple granular checkpoints: before the LLM call,
-after each streaming chunk, before each parallel
-tool-call batch, and after each <code>before_llm_input</code> hook. <code>CancellationError</code> is
-raised immediately. Phronomy does not replay the complete Agent invocation. No threads are force-killed — <code>ensure</code>
-blocks always execute.</p>
+after each streaming chunk, before each parallel tool-call batch, and after each
+<code>before_llm_input</code> hook. <code>CancellationError</code> is raised immediately. Phronomy
+does not replay the complete Agent invocation. No threads are force-killed —
+<code>ensure</code> blocks always execute.</p>
 <blockquote>
 <p><strong>Cooperative cancellation — not preemptive</strong></p>
 <p>Phronomy uses <em>cooperative boundary cancellation</em>. The token is polled at the
 checkpoints listed above; it is <strong>not</strong> injected as a signal into a running
 operation. This means the following are <strong>not</strong> interrupted mid-execution:</p>
 <ul>
-<li>A single <code>KnowledgeSource#fetch</code> that is already blocking (e.g. HTTP call)</li>
+<li>An application retrieval/load operation that is already blocking</li>
 <li>A single <code>chat.ask</code> call that is not streaming</li>
 <li>A single <code>tool.execute</code> call that is already running</li>
 <li>Any external I/O (database query, vector search, HTTP request) inside those calls</li>
 </ul>
-<p>For deep in-flight safety, complement <code>CancellationToken</code> with per-source or
-per-tool timeouts. Prefer library-native timeouts such as <code>Net::HTTP#read_timeout</code>,
-database <code>statement_timeout</code>, or Redis client timeout — these signal the I/O layer
-to abort cleanly. Avoid <code>Timeout.timeout</code> unless you understand its async-exception
-risks: it injects <code>Timeout::Error</code> at an arbitrary execution point (the same
-mechanism as <code>Thread#kill</code>), which Phronomy avoids by default due to resource
-safety concerns. Ruby's GVL prevents fully preemptive cancellation without such
-risky interruption.</p>
+<p>For deep in-flight safety, complement <code>CancellationToken</code> with operation-native
+timeouts. Prefer library-native timeouts such as <code>Net::HTTP#read_timeout</code>,
+database <code>statement_timeout</code>, or Redis client timeout.</p>
 </blockquote>
 <blockquote>
 <p><strong><code>timeout_after</code> vs <code>CancellationScope.deadline_in</code></strong></p>
@@ -1353,8 +1379,7 @@ the MCP bridge.</p>
 <p>Phronomy does not interpret <code>config[:llm_timeout]</code>, <code>config[:tool_timeout]</code>,
 Agent <code>retry_policy</code>, or Tool <code>retry_on</code>. Configure LLM transport behavior on
 RubyLLM (or another adapter) and configure Tool transport behavior on the Tool's
-HTTP/DB/MCP client. This ensures the layer capable of safely aborting the I/O owns
-the timeout and retry semantics.</p>
+HTTP/DB/MCP client.</p>
 <p><code>InvocationContext#deadline</code> and <code>cancellation_token</code> remain available for a
 caller-defined root-operation boundary. They provide cooperative cancellation
 across the Phronomy execution tree; they do not replace provider-native socket,
@@ -1362,8 +1387,7 @@ request, statement, or session timeouts.</p>
 </blockquote>
 <pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span>
 
-<span class='comment'># Cancel from another thread after 5 s
-</span><span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_sleep'>sleep</span> <span class='int'>5</span><span class='semicolon'>;</span> <span class='id identifier rubyid_token'>token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span> <span class='rbrace'>}</span>
+<span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_sleep'>sleep</span> <span class='int'>5</span><span class='semicolon'>;</span> <span class='id identifier rubyid_token'>token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span> <span class='rbrace'>}</span>
 
 <span class='kw'>begin</span>
   <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>...</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_token'>token</span> <span class='rbrace'>}</span><span class='rparen'>)</span>
@@ -1371,12 +1395,10 @@ request, statement, or session timeouts.</p>
   <span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cancelled</span><span class='tstring_end'>&quot;</span></span>
 <span class='kw'>end</span>
 
-<span class='comment'># Hard deadline via monotonic clock (recommended — immune to NTP/DST changes)
-</span><span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_timeout_after'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html#timeout_after-class_method" title="Phronomy::Concurrency::CancellationToken.timeout_after (method)">timeout_after</a></span></span><span class='lparen'>(</span><span class='int'>30</span><span class='rparen'>)</span>
+<span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_timeout_after'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html#timeout_after-class_method" title="Phronomy::Concurrency::CancellationToken.timeout_after (method)">timeout_after</a></span></span><span class='lparen'>(</span><span class='int'>30</span><span class='rparen'>)</span>
 <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>...</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_token'>token</span> <span class='rbrace'>}</span><span class='rparen'>)</span>
 
-<span class='comment'># Propagate to all parallel workers via dispatch_parallel / fan_out
-</span><span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span>
+<span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span>
 <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_sleep'>sleep</span> <span class='int'>10</span><span class='semicolon'>;</span> <span class='id identifier rubyid_token'>token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span> <span class='rbrace'>}</span>
 
 <span class='id identifier rubyid_orchestrator'>orchestrator</span><span class='period'>.</span><span class='id identifier rubyid_dispatch_parallel'>dispatch_parallel</span><span class='lparen'>(</span>
@@ -1549,7 +1571,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sun Aug  9 03:01:27 2026 by
+  Generated on Sun Aug  9 08:25:53 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

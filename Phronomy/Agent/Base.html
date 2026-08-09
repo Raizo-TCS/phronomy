@@ -111,7 +111,7 @@
   <div class="discussion">
     <p>Base class for all Phronomy agents.</p>
 <p>Subclass this to create a conversational agent powered by an LLM.
-DSL class methods configure the model, instructions, tools, memory,
+DSL class methods configure the model, instructions, tools,
 and execution hooks. Instance methods handle invocation.</p>
 
   </div>
@@ -342,7 +342,7 @@ and execution hooks. Instance methods handle invocation.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#create-class_method" title="create (class method)">.<strong>create</strong>(agent_id: SecureRandom.uuid, context: nil, persistence: nil, metadata: {})  &#x21d2; Object </a>
+      <a href="#create-class_method" title="create (class method)">.<strong>create</strong>(agent_id: SecureRandom.uuid, context: nil, knowledge: [], persistence: nil, metadata: {})  &#x21d2; Object </a>
     
 
     
@@ -496,94 +496,6 @@ and execution hooks. Instance methods handle invocation.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#static_knowledge-class_method" title="static_knowledge (class method)">.<strong>static_knowledge</strong>(*sources)  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Registers one or more static knowledge sources on the agent class.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#static_knowledge_chunks-class_method" title="static_knowledge_chunks (class method)">.<strong>static_knowledge_chunks</strong>  &#x21d2; Array&lt;Hash&gt; </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the fetched content from all static knowledge sources.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#static_knowledge_refresh!-class_method" title="static_knowledge_refresh! (class method)">.<strong>static_knowledge_refresh!</strong>  &#x21d2; nil </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Clears the class-level knowledge cache so that the next <code>invoke</code> call re-fetches content from all registered static knowledge sources.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#static_knowledge_sources-class_method" title="static_knowledge_sources (class method)">.<strong>static_knowledge_sources</strong>  &#x21d2; Array&lt;Phronomy::Agent::Context::Knowledge::Base&gt; </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the registered static knowledge sources.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#temperature-class_method" title="temperature (class method)">.<strong>temperature</strong>(val = nil)  &#x21d2; Float<sup>?</sup> </a>
     
 
@@ -726,6 +638,28 @@ and execution hooks. Instance methods handle invocation.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#add_knowledge-instance_method" title="#add_knowledge (instance method)">#<strong>add_knowledge</strong>(content, metadata: {})  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Appends persistent Knowledge to the Agent Journal.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#agent_root-instance_method" title="#agent_root (instance method)">#<strong>agent_root</strong>  &#x21d2; Object </a>
     
 
@@ -748,7 +682,7 @@ and execution hooks. Instance methods handle invocation.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#clear_memory!-instance_method" title="#clear_memory! (instance method)">#<strong>clear_memory!</strong>  &#x21d2; Object </a>
+      <a href="#clear_knowledge!-instance_method" title="#clear_knowledge! (instance method)">#<strong>clear_knowledge!</strong>  &#x21d2; Object </a>
     
 
     
@@ -762,7 +696,7 @@ and execution hooks. Instance methods handle invocation.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Logically clears all persistent Knowledge registered before this point.</p></div></span>
   
 </li>
 
@@ -814,7 +748,7 @@ and execution hooks. Instance methods handle invocation.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(agent_id: SecureRandom.uuid, context: nil, persistence: nil, metadata: {}, load_existing: false)  &#x21d2; Base </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(agent_id: SecureRandom.uuid, context: nil, knowledge: [], persistence: nil, metadata: {}, load_existing: false)  &#x21d2; Base </a>
     
 
     
@@ -1032,7 +966,7 @@ and execution hooks. Instance methods handle invocation.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(agent_id: SecureRandom.uuid, context: nil, persistence: nil, metadata: {}, load_existing: false)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Agent::Base (class)">Base</a></span></tt> 
+    #<strong>initialize</strong>(agent_id: SecureRandom.uuid, context: nil, knowledge: [], persistence: nil, metadata: {}, load_existing: false)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Agent::Base (class)">Base</a></span></tt> 
   
 
   
@@ -1053,37 +987,39 @@ and execution hooks. Instance methods handle invocation.</p>
       <pre class="lines">
 
 
-314
-315
-316
-317
-318
-319
-320
-321
-322
-323
-324
-325
-326
-327
-328
-329
-330
-331
-332
-333
-334
-335
-336
-337</pre>
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 314</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 278</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>agent_id:</span> <span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_uuid'>uuid</span><span class='comma'>,</span>
   <span class='label'>context:</span> <span class='kw'>nil</span><span class='comma'>,</span>
+  <span class='label'>knowledge:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span>
   <span class='label'>persistence:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
   <span class='label'>load_existing:</span> <span class='kw'>false</span>
@@ -1102,7 +1038,7 @@ and execution hooks. Instance methods handle invocation.</p>
     <span class='kw'>end</span>
     <span class='id identifier rubyid_loaded'>loaded</span>
   <span class='kw'>else</span>
-    <span class='id identifier rubyid_create_agent_root!'>create_agent_root!</span><span class='lparen'>(</span><span class='label'>context:</span> <span class='id identifier rubyid_context'>context</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_create_agent_root!'>create_agent_root!</span><span class='lparen'>(</span><span class='label'>context:</span> <span class='id identifier rubyid_context'>context</span><span class='comma'>,</span> <span class='label'>knowledge:</span> <span class='id identifier rubyid_knowledge'>knowledge</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1141,12 +1077,12 @@ and execution hooks. Instance methods handle invocation.</p>
       <pre class="lines">
 
 
-312
-313
-314</pre>
+276
+277
+278</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 312</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 276</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_agent_id'>agent_id</span>
   <span class='ivar'>@agent_id</span>
@@ -1182,12 +1118,12 @@ and execution hooks. Instance methods handle invocation.</p>
       <pre class="lines">
 
 
-312
-313
-314</pre>
+276
+277
+278</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 312</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 276</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_persistence'>persistence</span>
   <span class='ivar'>@persistence</span>
@@ -1242,27 +1178,27 @@ Subclass with no explicit declaration inherits the parent's definition.</p>
       <pre class="lines">
 
 
-264
-265
-266
-267
-268
-269
-270
-271
-272
-273
-274
-275
-276
-277
-278
-279
-280
-281</pre>
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 264</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 222</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_agent_definition'>agent_definition</span><span class='lparen'>(</span><span class='label'>id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>version:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_id'>id</span> <span class='op'>||</span> <span class='id identifier rubyid_version'>version</span>
@@ -1302,18 +1238,18 @@ Subclass with no explicit declaration inherits the parent's definition.</p>
       <pre class="lines">
 
 
-291
-292
-293
-294
-295
-296
-297
-298
-299</pre>
+255
+256
+257
+258
+259
+260
+261
+262
+263</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 291</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 255</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approve'>approve</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span><span class='comma'>,</span> <span class='label'>persistence:</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_approve_async'>approve_async</span><span class='lparen'>(</span>
@@ -1344,18 +1280,18 @@ Subclass with no explicit declaration inherits the parent's definition.</p>
       <pre class="lines">
 
 
-301
-302
-303
-304
-305
-306
-307
-308
-309</pre>
+265
+266
+267
+268
+269
+270
+271
+272
+273</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 301</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 265</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approve_async'>approve_async</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span><span class='comma'>,</span> <span class='label'>persistence:</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
@@ -1397,16 +1333,16 @@ subsequent turns, reducing input-token costs.</p>
       <pre class="lines">
 
 
-233
-234
-235
-236
-237
-238
-239</pre>
+191
+192
+193
+194
+195
+196
+197</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 233</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 191</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cache_instructions'>cache_instructions</span><span class='lparen'>(</span><span class='id identifier rubyid_enabled'>enabled</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_enabled'>enabled</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1444,16 +1380,16 @@ subsequent turns, reducing input-token costs.</p>
       <pre class="lines">
 
 
-254
-255
-256
-257
-258
-259
-260</pre>
+212
+213
+214
+215
+216
+217
+218</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 254</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 212</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_context_window'>context_window</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1470,7 +1406,7 @@ subsequent turns, reducing input-token costs.</p>
       <div class="method_details ">
   <h3 class="signature " id="create-class_method">
   
-    .<strong>create</strong>(agent_id: SecureRandom.uuid, context: nil, persistence: nil, metadata: {})  &#x21d2; <tt>Object</tt> 
+    .<strong>create</strong>(agent_id: SecureRandom.uuid, context: nil, knowledge: [], persistence: nil, metadata: {})  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -1482,15 +1418,27 @@ subsequent turns, reducing input-token costs.</p>
       <pre class="lines">
 
 
-283
-284
-285</pre>
+241
+242
+243
+244
+245
+246
+247
+248
+249</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 283</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 241</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_create'>create</span><span class='lparen'>(</span><span class='label'>agent_id:</span> <span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_uuid'>uuid</span><span class='comma'>,</span> <span class='label'>context:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>persistence:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>agent_id:</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>context:</span> <span class='id identifier rubyid_context'>context</span><span class='comma'>,</span> <span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_create'>create</span><span class='lparen'>(</span><span class='label'>agent_id:</span> <span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_uuid'>uuid</span><span class='comma'>,</span> <span class='label'>context:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>knowledge:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='label'>persistence:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
+    <span class='label'>agent_id:</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span>
+    <span class='label'>context:</span> <span class='id identifier rubyid_context'>context</span><span class='comma'>,</span>
+    <span class='label'>knowledge:</span> <span class='id identifier rubyid_knowledge'>knowledge</span><span class='comma'>,</span>
+    <span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='comma'>,</span>
+    <span class='label'>metadata:</span> <span class='id identifier rubyid_metadata'>metadata</span>
+  <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1628,12 +1576,12 @@ When used as a reader (no argument, no block), returns the stored value.</p>
       <pre class="lines">
 
 
-287
-288
-289</pre>
+251
+252
+253</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 287</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 251</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>persistence:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>agent_id:</span> <span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='comma'>,</span> <span class='label'>load_existing:</span> <span class='kw'>true</span><span class='rparen'>)</span>
@@ -1756,16 +1704,16 @@ When nil, the model's max_output_tokens from the registry is used.</p>
       <pre class="lines">
 
 
-244
-245
-246
-247
-248
-249
-250</pre>
+202
+203
+204
+205
+206
+207
+208</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 244</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 202</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_max_output_tokens'>max_output_tokens</span><span class='lparen'>(</span><span class='id identifier rubyid_val'>val</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='id identifier rubyid_val'>val</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1963,238 +1911,6 @@ Required when using a model not registered in RubyLLM's model registry
     <span class='kw'>return</span> <span class='ivar'>@provider</span> <span class='kw'>if</span> <span class='id identifier rubyid_instance_variable_defined?'>instance_variable_defined?</span><span class='lparen'>(</span><span class='symbol'>:@provider</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_superclass'>superclass</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:provider</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id identifier rubyid_superclass'>superclass</span><span class='period'>.</span><span class='id identifier rubyid_provider'>provider</span> <span class='op'>:</span> <span class='kw'>nil</span>
   <span class='kw'>end</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="static_knowledge-class_method">
-  
-    .<strong>static_knowledge</strong>(*sources)  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Registers one or more static knowledge sources on the agent class.
-Static source content is fetched and memoized at the <strong>class</strong> level
-the first time <code>invoke</code> is called. The cache persists for the lifetime
-of the process; call <span class='object_link'><a href="#static_knowledge_refresh!-class_method" title="Phronomy::Agent::Base.static_knowledge_refresh! (method)">static_knowledge_refresh!</a></span> to force a reload.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-  <div class="examples">
-    <h4 class="tag_title">Examples:</h4>
-    
-      
-      <pre class="example code"><code><span class='kw'>class</span> <span class='const'>PolicyAgent</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="" title="Phronomy::Agent::Base (class)">Base</a></span></span>
-  <span class='id identifier rubyid_static_knowledge'>static_knowledge</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Context/Knowledge.html" title="Phronomy::Agent::Context::Knowledge (module)">Knowledge</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Context/Knowledge/StaticKnowledge.html" title="Phronomy::Agent::Context::Knowledge::StaticKnowledge (class)">StaticKnowledge</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Context/Knowledge/StaticKnowledge.html#initialize-instance_method" title="Phronomy::Agent::Context::Knowledge::StaticKnowledge#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='const'>POLICY_TEXT</span><span class='rparen'>)</span>
-<span class='kw'>end</span></code></pre>
-    
-  </div>
-<p class="tag_title">Parameters:</p>
-<ul class="param">
-  
-    <li>
-      
-        <span class='name'>sources</span>
-      
-      
-        <span class='type'>(<tt>Array&lt;<span class='object_link'><a href="Context/Knowledge/Base.html" title="Phronomy::Agent::Context::Knowledge::Base (class)">Phronomy::Agent::Context::Knowledge::Base</a></span>&gt;</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-198
-199
-200
-201</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 198</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_static_knowledge'>static_knowledge</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_sources'>sources</span><span class='rparen'>)</span>
-  <span class='ivar'>@static_knowledge_sources</span> <span class='op'>=</span> <span class='id identifier rubyid_sources'>sources</span><span class='period'>.</span><span class='id identifier rubyid_flatten'>flatten</span>
-  <span class='ivar'>@static_knowledge_chunks</span> <span class='op'>=</span> <span class='kw'>nil</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="static_knowledge_chunks-class_method">
-  
-    .<strong>static_knowledge_chunks</strong>  &#x21d2; <tt>Array&lt;Hash&gt;</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the fetched content from all static knowledge sources.
-Results are cached at the class level so that each source is fetched
-only once regardless of how many times the agent is invoked.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Array&lt;Hash&gt;</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-215
-216
-217
-218
-219</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 215</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_static_knowledge_chunks'>static_knowledge_chunks</span>
-  <span class='ivar'>@static_knowledge_chunks</span> <span class='op'>||=</span> <span class='id identifier rubyid_static_knowledge_sources'>static_knowledge_sources</span><span class='period'>.</span><span class='id identifier rubyid_flat_map'>flat_map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_ks'>ks</span><span class='op'>|</span>
-    <span class='id identifier rubyid_ks'>ks</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='label'>query:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='rbrace'>}</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="static_knowledge_refresh!-class_method">
-  
-    .<strong>static_knowledge_refresh!</strong>  &#x21d2; <tt>nil</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Clears the class-level knowledge cache so that the next <code>invoke</code> call
-re-fetches content from all registered static knowledge sources.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>nil</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-225
-226
-227</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 225</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_static_knowledge_refresh!'>static_knowledge_refresh!</span>
-  <span class='ivar'>@static_knowledge_chunks</span> <span class='op'>=</span> <span class='kw'>nil</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="static_knowledge_sources-class_method">
-  
-    .<strong>static_knowledge_sources</strong>  &#x21d2; <tt>Array&lt;<span class='object_link'><a href="Context/Knowledge/Base.html" title="Phronomy::Agent::Context::Knowledge::Base (class)">Phronomy::Agent::Context::Knowledge::Base</a></span>&gt;</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the registered static knowledge sources.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Array&lt;<span class='object_link'><a href="Context/Knowledge/Base.html" title="Phronomy::Agent::Context::Knowledge::Base (class)">Phronomy::Agent::Context::Knowledge::Base</a></span>&gt;</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-206
-207
-208</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 206</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_static_knowledge_sources'>static_knowledge_sources</span>
-  <span class='ivar'>@static_knowledge_sources</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -2464,12 +2180,12 @@ argument returns the registered Tool classes.</p>
       <pre class="lines">
 
 
-403
-404
-405</pre>
+401
+402
+403</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 403</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 401</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___replace_root'>__replace_root</span><span class='lparen'>(</span><span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='rparen'>)</span>
   <span class='ivar'>@root</span> <span class='op'>=</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span>
@@ -2494,14 +2210,14 @@ argument returns the registered Tool classes.</p>
       <pre class="lines">
 
 
-487
-488
-489
-490
-491</pre>
+516
+517
+518
+519
+520</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 487</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 516</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__add_handoff_tool'>_add_handoff_tool</span><span class='lparen'>(</span><span class='id identifier rubyid_tool_class'>tool_class</span><span class='rparen'>)</span>
   <span class='ivar'>@_handoff_tools</span> <span class='op'>||=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -2528,15 +2244,109 @@ argument returns the registered Tool classes.</p>
       <pre class="lines">
 
 
-493
-494
-495</pre>
+522
+523
+524</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 493</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 522</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid__handoff_tools'>_handoff_tools</span>
   <span class='ivar'>@_handoff_tools</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="add_knowledge-instance_method">
+  
+    #<strong>add_knowledge</strong>(content, metadata: {})  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Appends persistent Knowledge to the Agent Journal.
+Knowledge is an optional Context candidate; it is not part of #transcript.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 339</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_add_knowledge'>add_knowledge</span><span class='lparen'>(</span><span class='id identifier rubyid_content'>content</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_next_root'>next_root</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_transaction'>transaction</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_tx'>tx</span><span class='op'>|</span>
+    <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_assert_idle!'>assert_idle!</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_agents'>agents</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_record'>record</span> <span class='op'>=</span> <span class='id identifier rubyid_build_knowledge_record'>build_knowledge_record</span><span class='lparen'>(</span>
+      <span class='label'>tx:</span> <span class='id identifier rubyid_tx'>tx</span><span class='comma'>,</span>
+      <span class='label'>root:</span> <span class='id identifier rubyid_current'>current</span><span class='comma'>,</span>
+      <span class='label'>content:</span> <span class='id identifier rubyid_content'>content</span><span class='comma'>,</span>
+      <span class='label'>metadata:</span> <span class='id identifier rubyid_metadata'>metadata</span>
+    <span class='rparen'>)</span>
+    <span class='id identifier rubyid_appended'>appended</span> <span class='op'>=</span> <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_journals'>journals</span><span class='period'>.</span><span class='id identifier rubyid_append'>append</span><span class='lparen'>(</span>
+      <span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span>
+      <span class='label'>expected_position:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_journal_position'>journal_position</span><span class='comma'>,</span>
+      <span class='label'>records:</span> <span class='lbracket'>[</span><span class='id identifier rubyid_record'>record</span><span class='rbracket'>]</span>
+    <span class='rparen'>)</span>
+    <span class='id identifier rubyid_next_root'>next_root</span> <span class='op'>=</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span>
+      <span class='label'>agent_revision:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_agent_revision'>agent_revision</span> <span class='op'>+</span> <span class='int'>1</span><span class='comma'>,</span>
+      <span class='label'>context_revision:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_context_revision'>context_revision</span> <span class='op'>+</span> <span class='int'>1</span><span class='comma'>,</span>
+      <span class='label'>journal_position:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_journal_position'>journal_position</span> <span class='op'>+</span> <span class='id identifier rubyid_appended'>appended</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span>
+    <span class='rparen'>)</span>
+    <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_agents'>agents</span><span class='period'>.</span><span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span>
+      <span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span>
+      <span class='label'>expected_revision:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_agent_revision'>agent_revision</span><span class='comma'>,</span>
+      <span class='label'>root:</span> <span class='id identifier rubyid_next_root'>next_root</span>
+    <span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='ivar'>@root</span> <span class='op'>=</span> <span class='id identifier rubyid_next_root'>next_root</span>
+  <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -2558,12 +2368,12 @@ argument returns the registered Tool classes.</p>
       <pre class="lines">
 
 
-339
-340
-341</pre>
+304
+305
+306</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 339</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 304</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_agent_root'>agent_root</span>
   <span class='ivar'>@root</span>
@@ -2574,39 +2384,47 @@ argument returns the registered Tool classes.</p>
 </div>
     
       <div class="method_details ">
-  <h3 class="signature " id="clear_memory!-instance_method">
+  <h3 class="signature " id="clear_knowledge!-instance_method">
   
-    #<strong>clear_memory!</strong>  &#x21d2; <tt>Object</tt> 
-  
-
+    #<strong>clear_knowledge!</strong>  &#x21d2; <tt>Object</tt> 
   
 
   
-</h3><table class="source_code">
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Logically clears all persistent Knowledge registered before this point.
+Raw Journal records remain append-only and are not deleted.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-361
-362
-363
-364
-365
-366
-367
-368
-369</pre>
+328
+329
+330
+331
+332
+333
+334
+335</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 361</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 328</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_clear_memory!'>clear_memory!</span>
-  <span class='id identifier rubyid_mutate_context!'>mutate_context!</span><span class='lparen'>(</span><span class='symbol'>:memory_cleared</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='op'>|</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_clear_knowledge!'>clear_knowledge!</span>
+  <span class='id identifier rubyid_mutate_context!'>mutate_context!</span><span class='lparen'>(</span><span class='symbol'>:knowledge_cleared</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='op'>|</span>
     <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span>
       <span class='label'>agent_revision:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_agent_revision'>agent_revision</span> <span class='op'>+</span> <span class='int'>1</span><span class='comma'>,</span>
-      <span class='label'>context_revision:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_context_revision'>context_revision</span> <span class='op'>+</span> <span class='int'>1</span><span class='comma'>,</span>
-      <span class='label'>memory_generation:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_memory_generation'>memory_generation</span> <span class='op'>+</span> <span class='int'>1</span>
+      <span class='label'>context_revision:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_context_revision'>context_revision</span> <span class='op'>+</span> <span class='int'>1</span>
     <span class='rparen'>)</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
@@ -2630,18 +2448,18 @@ argument returns the registered Tool classes.</p>
       <pre class="lines">
 
 
-351
-352
-353
-354
-355
-356
-357
-358
-359</pre>
+316
+317
+318
+319
+320
+321
+322
+323
+324</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 351</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 316</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear_transcript!'>clear_transcript!</span>
   <span class='id identifier rubyid_mutate_context!'>mutate_context!</span><span class='lparen'>(</span><span class='symbol'>:transcript_cleared</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='op'>|</span>
@@ -2672,17 +2490,17 @@ argument returns the registered Tool classes.</p>
       <pre class="lines">
 
 
+380
+381
 382
 383
 384
 385
 386
-387
-388
-389</pre>
+387</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 382</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 380</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_close!'>close!</span>
   <span class='id identifier rubyid_mutate_context!'>mutate_context!</span><span class='lparen'>(</span><span class='symbol'>:agent_closed</span><span class='comma'>,</span> <span class='label'>context_affecting:</span> <span class='kw'>false</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='op'>|</span>
@@ -2712,12 +2530,12 @@ argument returns the registered Tool classes.</p>
       <pre class="lines">
 
 
-343
-344
-345</pre>
+308
+309
+310</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 343</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 308</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_journal_projection'>journal_projection</span>
   <span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="JournalProjection.html" title="Phronomy::Agent::JournalProjection (class)">JournalProjection</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="JournalProjection.html#initialize-instance_method" title="Phronomy::Agent::JournalProjection#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='comma'>,</span> <span class='label'>agent_root:</span> <span class='ivar'>@root</span><span class='rparen'>)</span>
@@ -2764,15 +2582,15 @@ argument returns the registered Tool classes.</p>
       <pre class="lines">
 
 
-504
-505
-506
-507
-508
-509</pre>
+533
+534
+535
+536
+537
+538</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 504</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 533</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_tool_approval_required'>on_tool_approval_required</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>on_tool_approval_required requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
@@ -2800,6 +2618,8 @@ argument returns the registered Tool classes.</p>
       <pre class="lines">
 
 
+389
+390
 391
 392
 393
@@ -2807,12 +2627,10 @@ argument returns the registered Tool classes.</p>
 395
 396
 397
-398
-399
-400</pre>
+398</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 391</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 389</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_purge!'>purge!</span>
   <span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_transaction'>transaction</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_tx'>tx</span><span class='op'>|</span>
@@ -2844,6 +2662,7 @@ argument returns the registered Tool classes.</p>
       <pre class="lines">
 
 
+370
 371
 372
 373
@@ -2851,20 +2670,17 @@ argument returns the registered Tool classes.</p>
 375
 376
 377
-378
-379
-380</pre>
+378</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 371</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 370</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_reset_context!'>reset_context!</span>
   <span class='id identifier rubyid_mutate_context!'>mutate_context!</span><span class='lparen'>(</span><span class='symbol'>:context_reset</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='op'>|</span>
     <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span>
       <span class='label'>agent_revision:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_agent_revision'>agent_revision</span> <span class='op'>+</span> <span class='int'>1</span><span class='comma'>,</span>
       <span class='label'>context_revision:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_context_revision'>context_revision</span> <span class='op'>+</span> <span class='int'>1</span><span class='comma'>,</span>
-      <span class='label'>transcript_generation:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_transcript_generation'>transcript_generation</span> <span class='op'>+</span> <span class='int'>1</span><span class='comma'>,</span>
-      <span class='label'>memory_generation:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_memory_generation'>memory_generation</span> <span class='op'>+</span> <span class='int'>1</span>
+      <span class='label'>transcript_generation:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_transcript_generation'>transcript_generation</span> <span class='op'>+</span> <span class='int'>1</span>
     <span class='rparen'>)</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
@@ -2910,15 +2726,15 @@ argument returns the registered Tool classes.</p>
       <pre class="lines">
 
 
-497
-498
-499
-500
-501
-502</pre>
+526
+527
+528
+529
+530
+531</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 497</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 526</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_tool_approval_policy'>tool_approval_policy</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>tool_approval_policy requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
@@ -2946,12 +2762,12 @@ argument returns the registered Tool classes.</p>
       <pre class="lines">
 
 
-347
-348
-349</pre>
+312
+313
+314</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 347</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 312</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_transcript'>transcript</span>
   <span class='id identifier rubyid_journal_projection'>journal_projection</span><span class='period'>.</span><span class='id identifier rubyid_transcript_records'>transcript_records</span>
@@ -2966,7 +2782,7 @@ argument returns the registered Tool classes.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug  9 03:01:28 2026 by
+  Generated on Sun Aug  9 08:25:55 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

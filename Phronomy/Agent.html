@@ -81,7 +81,7 @@
   <dl>
     <dt>Defined in:</dt>
     <dd>lib/phronomy/agent.rb<span class="defines">,<br>
-  lib/phronomy/agent/base.rb,<br> lib/phronomy/agent/runner.rb,<br> lib/phronomy/agent/immutable.rb,<br> lib/phronomy/agent/agent_root.rb,<br> lib/phronomy/agent/context_plan.rb,<br> lib/phronomy/agent/shared_state.rb,<br> lib/phronomy/agent/tool_executor.rb,<br> lib/phronomy/agent/context_policy.rb,<br> lib/phronomy/agent/journal_record.rb,<br> lib/phronomy/agent/agent_execution.rb,<br> lib/phronomy/agent/async_event_api.rb,<br> lib/phronomy/agent/context_request.rb,<br> lib/phronomy/agent/llm_call_record.rb,<br> lib/phronomy/agent/llm_input_patch.rb,<br> lib/phronomy/agent/tool_invocation.rb,<br> lib/phronomy/agent/agent_invocation.rb,<br> lib/phronomy/agent/context_importer.rb,<br> lib/phronomy/agent/context_assembler.rb,<br> lib/phronomy/agent/context_candidate.rb,<br> lib/phronomy/agent/journal_projection.rb,<br> lib/phronomy/agent/llm_input_manifest.rb,<br> lib/phronomy/agent/activation_registry.rb,<br> lib/phronomy/agent/concerns/filterable.rb,<br> lib/phronomy/agent/tool_definition_set.rb,<br> lib/phronomy/agent/derived_content_spec.rb,<br> lib/phronomy/agent/llm_operation_result.rb,<br> lib/phronomy/agent/execution_coordinator.rb,<br> lib/phronomy/agent/phase_machine_builder.rb,<br> lib/phronomy/agent/provider_call_outcome.rb,<br> lib/phronomy/agent/ruby_llm_materializer.rb,<br> lib/phronomy/agent/token_budget_resolver.rb,<br> lib/phronomy/agent/tool_approval_request.rb,<br> lib/phronomy/agent/tool_call_intercepted.rb,<br> lib/phronomy/agent/context/knowledge/base.rb,<br> lib/phronomy/agent/context_plan_validator.rb,<br> lib/phronomy/agent/context_selection_unit.rb,<br> lib/phronomy/agent/context/capability/base.rb,<br> lib/phronomy/agent/context_policy_registry.rb,<br> lib/phronomy/agent/llm_input_build_context.rb,<br> lib/phronomy/agent/context_policies/default.rb,<br> lib/phronomy/agent/concerns/before_llm_input.rb,<br> lib/phronomy/agent/context_policy_descriptor.rb,<br> lib/phronomy/agent/agent_execution_activation.rb,<br> lib/phronomy/agent/concerns/error_translation.rb,<br> lib/phronomy/agent/context_candidate_resolver.rb,<br> lib/phronomy/agent/approval_evaluation_request.rb,<br> lib/phronomy/agent/tool_invocation_session_builder.rb,<br> lib/phronomy/agent/agent_invocation_session_builder.rb,<br> lib/phronomy/agent/context/knowledge/entity_knowledge.rb,<br> lib/phronomy/agent/context/knowledge/static_knowledge.rb,<br> lib/phronomy/agent/context/instruction/prompt_template.rb,<br> lib/phronomy/agent/context_parts/budget/token_budget_packer.rb,<br> lib/phronomy/agent/context_parts/selectors/recent_first_selector.rb,<br> lib/phronomy/agent/context_parts/validators/final_budget_validator.rb,<br> lib/phronomy/agent/context_parts/requirements/required_context_resolver.rb,<br> lib/phronomy/agent/context_parts/unit_builders/dependency_aware_unit_builder.rb</span>
+  lib/phronomy/agent/base.rb,<br> lib/phronomy/agent/runner.rb,<br> lib/phronomy/agent/immutable.rb,<br> lib/phronomy/agent/agent_root.rb,<br> lib/phronomy/agent/context_plan.rb,<br> lib/phronomy/agent/shared_state.rb,<br> lib/phronomy/agent/tool_executor.rb,<br> lib/phronomy/agent/context_policy.rb,<br> lib/phronomy/agent/journal_record.rb,<br> lib/phronomy/agent/agent_execution.rb,<br> lib/phronomy/agent/async_event_api.rb,<br> lib/phronomy/agent/context_request.rb,<br> lib/phronomy/agent/llm_call_record.rb,<br> lib/phronomy/agent/llm_input_patch.rb,<br> lib/phronomy/agent/tool_invocation.rb,<br> lib/phronomy/agent/agent_invocation.rb,<br> lib/phronomy/agent/context_importer.rb,<br> lib/phronomy/agent/context_assembler.rb,<br> lib/phronomy/agent/context_candidate.rb,<br> lib/phronomy/agent/journal_projection.rb,<br> lib/phronomy/agent/llm_input_manifest.rb,<br> lib/phronomy/agent/activation_registry.rb,<br> lib/phronomy/agent/concerns/filterable.rb,<br> lib/phronomy/agent/tool_definition_set.rb,<br> lib/phronomy/agent/derived_content_spec.rb,<br> lib/phronomy/agent/llm_operation_result.rb,<br> lib/phronomy/agent/execution_coordinator.rb,<br> lib/phronomy/agent/phase_machine_builder.rb,<br> lib/phronomy/agent/provider_call_outcome.rb,<br> lib/phronomy/agent/ruby_llm_materializer.rb,<br> lib/phronomy/agent/token_budget_resolver.rb,<br> lib/phronomy/agent/tool_approval_request.rb,<br> lib/phronomy/agent/tool_call_intercepted.rb,<br> lib/phronomy/agent/context_plan_validator.rb,<br> lib/phronomy/agent/context_selection_unit.rb,<br> lib/phronomy/agent/context/capability/base.rb,<br> lib/phronomy/agent/context_policy_registry.rb,<br> lib/phronomy/agent/llm_input_build_context.rb,<br> lib/phronomy/agent/context_policies/default.rb,<br> lib/phronomy/agent/concerns/before_llm_input.rb,<br> lib/phronomy/agent/context_policy_descriptor.rb,<br> lib/phronomy/agent/agent_execution_activation.rb,<br> lib/phronomy/agent/concerns/error_translation.rb,<br> lib/phronomy/agent/context_candidate_resolver.rb,<br> lib/phronomy/agent/approval_evaluation_request.rb,<br> lib/phronomy/agent/tool_invocation_session_builder.rb,<br> lib/phronomy/agent/agent_invocation_session_builder.rb,<br> lib/phronomy/agent/context/instruction/prompt_template.rb,<br> lib/phronomy/agent/context_parts/budget/token_budget_packer.rb,<br> lib/phronomy/agent/context_parts/selectors/recent_first_selector.rb,<br> lib/phronomy/agent/context_parts/validators/final_budget_validator.rb,<br> lib/phronomy/agent/context_parts/requirements/required_context_resolver.rb,<br> lib/phronomy/agent/context_parts/unit_builders/dependency_aware_unit_builder.rb</span>
 
 </dd>
   </dl>
@@ -118,7 +118,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#run_once-class_method" title="run_once (class method)">.<strong>run_once</strong>(definition:, input:, context: nil, **invoke_options)  &#x21d2; Object </a>
+      <a href="#run_once-class_method" title="run_once (class method)">.<strong>run_once</strong>(definition:, input:, context: nil, knowledge: [], **invoke_options)  &#x21d2; Object </a>
     
 
     
@@ -150,7 +150,7 @@
       <div class="method_details first">
   <h3 class="signature first" id="run_once-class_method">
   
-    .<strong>run_once</strong>(definition:, input:, context: nil, **invoke_options)  &#x21d2; <tt>Object</tt> 
+    .<strong>run_once</strong>(definition:, input:, context: nil, knowledge: [], **invoke_options)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -166,14 +166,22 @@
 8
 9
 10
-11</pre>
+11
+12
+13
+14
+15</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent.rb', line 7</span>
 
-<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_run_once'>run_once</span><span class='lparen'>(</span><span class='label'>definition:</span><span class='comma'>,</span> <span class='label'>input:</span><span class='comma'>,</span> <span class='label'>context:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_invoke_options'>invoke_options</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_run_once'>run_once</span><span class='lparen'>(</span><span class='label'>definition:</span><span class='comma'>,</span> <span class='label'>input:</span><span class='comma'>,</span> <span class='label'>context:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>knowledge:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_invoke_options'>invoke_options</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_persistence'>persistence</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence.html" title="Phronomy::Persistence (class)">Persistence</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Persistence/InMemory.html" title="Phronomy::Persistence::InMemory (class)">InMemory</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Persistence/InMemory.html#initialize-instance_method" title="Phronomy::Persistence::InMemory#initialize (method)">new</a></span></span>
-  <span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='id identifier rubyid_definition'>definition</span><span class='period'>.</span><span class='id identifier rubyid_create'>create</span><span class='lparen'>(</span><span class='label'>context:</span> <span class='id identifier rubyid_context'>context</span><span class='comma'>,</span> <span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_agent'>agent</span> <span class='op'>=</span> <span class='id identifier rubyid_definition'>definition</span><span class='period'>.</span><span class='id identifier rubyid_create'>create</span><span class='lparen'>(</span>
+    <span class='label'>context:</span> <span class='id identifier rubyid_context'>context</span><span class='comma'>,</span>
+    <span class='label'>knowledge:</span> <span class='id identifier rubyid_knowledge'>knowledge</span><span class='comma'>,</span>
+    <span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span>
+  <span class='rparen'>)</span>
   <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='op'>**</span><span class='id identifier rubyid_invoke_options'>invoke_options</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -186,7 +194,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sun Aug  9 03:01:27 2026 by
+  Generated on Sun Aug  9 08:25:54 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -121,7 +121,7 @@
         </dt>
         <dd><pre class="code"><span class='qsymbols_beg'>%i[</span><span class='words_sep'>
 </span><span class='words_sep'>  </span><span class='tstring_content'>agent_id</span><span class='words_sep'> </span><span class='tstring_content'>agent_definition_id</span><span class='words_sep'> </span><span class='tstring_content'>definition_version</span><span class='words_sep'> </span><span class='tstring_content'>agent_revision</span><span class='words_sep'>
-</span><span class='words_sep'>  </span><span class='tstring_content'>context_revision</span><span class='words_sep'> </span><span class='tstring_content'>journal_position</span><span class='words_sep'> </span><span class='tstring_content'>lifecycle_status</span><span class='words_sep'> </span><span class='tstring_content'>transcript_generation</span><span class='words_sep'> </span><span class='tstring_content'>memory_generation</span><span class='words_sep'>
+</span><span class='words_sep'>  </span><span class='tstring_content'>context_revision</span><span class='words_sep'> </span><span class='tstring_content'>journal_position</span><span class='words_sep'> </span><span class='tstring_content'>lifecycle_status</span><span class='words_sep'> </span><span class='tstring_content'>transcript_generation</span><span class='words_sep'>
 </span><span class='words_sep'>  </span><span class='tstring_content'>created_at</span><span class='words_sep'> </span><span class='tstring_content'>updated_at</span><span class='words_sep'> </span><span class='tstring_content'>metadata</span><span class='words_sep'>
 </span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
       
@@ -308,6 +308,7 @@
       <pre class="lines">
 
 
+35
 36
 37
 38
@@ -321,11 +322,10 @@
 46
 47
 48
-49
-50</pre>
+49</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_root.rb', line 36</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_root.rb', line 35</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_attributes'>attributes</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="#ATTRIBUTES-constant" title="Phronomy::Agent::AgentRoot::ATTRIBUTES (constant)">ATTRIBUTES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='op'>|</span>
@@ -384,8 +384,7 @@
 30
 31
 32
-33
-34</pre>
+33</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_root.rb', line 18</span>
@@ -401,7 +400,6 @@
     <span class='label'>journal_position:</span> <span class='int'>0</span><span class='comma'>,</span>
     <span class='label'>lifecycle_status:</span> <span class='symbol'>:idle</span><span class='comma'>,</span>
     <span class='label'>transcript_generation:</span> <span class='int'>0</span><span class='comma'>,</span>
-    <span class='label'>memory_generation:</span> <span class='int'>0</span><span class='comma'>,</span>
     <span class='label'>created_at:</span> <span class='id identifier rubyid_now'>now</span><span class='comma'>,</span>
     <span class='label'>updated_at:</span> <span class='id identifier rubyid_now'>now</span><span class='comma'>,</span>
     <span class='label'>metadata:</span> <span class='id identifier rubyid_metadata'>metadata</span>
@@ -427,12 +425,12 @@
       <pre class="lines">
 
 
+61
 62
-63
-64</pre>
+63</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_root.rb', line 62</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_root.rb', line 61</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_from_h'>from_h</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='op'>**</span><span class='const'><span class='object_link'><a href="#ATTRIBUTES-constant" title="Phronomy::Agent::AgentRoot::ATTRIBUTES (constant)">ATTRIBUTES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_to_h'><span class='object_link'><a href="#to_h-instance_method" title="Phronomy::Agent::AgentRoot#to_h (method)">to_h</a></span></span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='op'>|</span> <span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_hash'>hash</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='rparen'>)</span><span class='rbracket'>]</span> <span class='rbrace'>}</span><span class='rparen'>)</span>
@@ -463,12 +461,12 @@
       <pre class="lines">
 
 
+57
 58
-59
-60</pre>
+59</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_root.rb', line 58</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_root.rb', line 57</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_to_h'>to_h</span>
   <span class='const'><span class='object_link'><a href="#ATTRIBUTES-constant" title="Phronomy::Agent::AgentRoot::ATTRIBUTES (constant)">ATTRIBUTES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='op'>|</span> <span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='comma'>,</span> <span class='id identifier rubyid_public_send'>public_send</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='rparen'>)</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
@@ -493,14 +491,14 @@
       <pre class="lines">
 
 
+51
 52
 53
 54
-55
-56</pre>
+55</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_root.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_root.rb', line 51</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_changes'>changes</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_values'>values</span> <span class='op'>=</span> <span class='id identifier rubyid_to_h'>to_h</span><span class='period'>.</span><span class='id identifier rubyid_transform_keys'>transform_keys</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:to_sym</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='id identifier rubyid_changes'>changes</span><span class='rparen'>)</span>
@@ -517,7 +515,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sun Aug  9 03:01:28 2026 by
+  Generated on Sun Aug  9 08:25:55 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
