@@ -206,12 +206,8 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Stable</td>
 </tr>
 <tr>
-<td><strong>CancellationToken</strong> — Cooperative cancellation via <code>cancel!</code>/<code>cancelled?</code>/<code>raise_if_cancelled!</code>; <code>timeout_after(seconds)</code> for monotonic-clock deadlines; optional <code>deadline:</code> (wall-clock) for backward compatibility; passed as <code>config: { cancellation_token: token }</code> to agents and <code>dispatch_parallel</code>; injected into <code>tool.execute</code> when the method declares a <code>cancellation_token:</code> keyword; bridged to <code>MCP::Cancellation</code> in <code>Phronomy::Tools::Mcp#execute</code></td>
+<td><strong>CancellationToken</strong> — Cooperative cancellation via <code>cancel!</code>/<code>cancelled?</code>/<code>raise_if_cancelled!</code>; <code>timeout_after(seconds)</code> for monotonic-clock deadlines; passed as <code>config: { cancellation_token: token }</code> to agents and <code>dispatch_parallel</code>; injected into <code>tool.execute</code> when the method declares a <code>cancellation_token:</code> keyword; bridged to <code>MCP::Cancellation</code> in <code>Phronomy::Tools::Mcp#execute</code></td>
 <td>Experimental</td>
-</tr>
-<tr>
-<td><strong><code>dispatch_parallel</code> / <code>fan_out</code> <code>force_kill:</code> option</strong> — <code>force_kill: false</code> (default) leaves timed-out workers running and raises <code>TimeoutError</code> immediately; <code>force_kill: true</code> restores the old <code>Thread#kill</code> behaviour with a <code>logger.warn</code></td>
-<td>Beta</td>
 </tr>
 <tr>
 <td><strong><code>execution_mode</code> DSL on <code>Agent::Context::Capability::Base</code></strong> — Declares how a tool's <code>execute</code> should be dispatched: <code>:cooperative</code> (same scheduler thread), <code>:blocking_io</code> (default; offloaded to <code>BlockingAdapterPool</code>), <code>:cpu_bound</code>, <code>:external_process</code>; Tool-specific timeout/retry belongs to the Tool implementation or its client</td>
@@ -326,7 +322,7 @@ depend on internal APIs in application code.</p>
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong><code>Configuration#runtime_backend</code></strong> — <code>:thread</code> (default, one OS thread per task), <code>:immediate</code> (tests — tasks run synchronously, no extra threads), <code>:fiber</code> (<strong>EXPERIMENTAL</strong> — experimental validation backend only: runs tasks as Ruby Fibers on a cooperative scheduler to verify that framework components are truly non-blocking; <strong>not for production use</strong> and not a planned production replacement for <code>:thread</code>; no preemptive scheduling will be added). <code>:cooperative</code> is a <strong>deprecated alias</strong> for <code>:immediate</code> — do not use in new code</td>
+<td><strong><code>Configuration#runtime_backend</code></strong> — <code>:thread</code> (default, one OS thread per task), <code>:immediate</code> (tests — tasks run synchronously, no extra threads), <code>:fiber</code> (<strong>EXPERIMENTAL</strong> — validation backend only: runs tasks as Ruby Fibers on a cooperative scheduler to verify that framework components are truly non-blocking; <strong>not for production use</strong> and not a planned production replacement for <code>:thread</code>; no preemptive scheduling will be added)</td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -403,6 +399,53 @@ Configure your provider credentials before using agents or chains:</p>
 </tr>
 </tbody>
 </table>
+<h3 id="0_16_cleanup_migration">0.16 cleanup migration</h3>
+<p>The following compatibility-only APIs have been removed from the active contract:</p>
+<table>
+<thead>
+<tr>
+<th>Removed API</th>
+<th>Current contract</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>context_overhead</code></td>
+<td>Manifest-first assembly budgets actual mandatory + selected content</td>
+</tr>
+<tr>
+<td>Tool <code>on_error :return_empty</code></td>
+<td>Use <code>:raise</code> or <code>:suppress</code></td>
+</tr>
+<tr>
+<td><code>dispatch_parallel(..., force_kill:)</code> / <code>fan_out(..., force_kill:)</code></td>
+<td>Cooperative cancellation; no force-kill switch</td>
+</tr>
+<tr>
+<td><code>runtime_backend = :cooperative</code></td>
+<td>Use <code>:thread</code>, <code>:immediate</code>, or experimental <code>:fiber</code> explicitly</td>
+</tr>
+<tr>
+<td><code>Runtime.instance = ...</code></td>
+<td>Runtime replacement is test/internal infrastructure, not a public setter</td>
+</tr>
+<tr>
+<td><code>TaskGroup.new(runtime: nil)</code></td>
+<td>Runtime is required</td>
+</tr>
+<tr>
+<td><code>tools ToolA, ToolB</code></td>
+<td>Use <code>tools(ToolA =&gt; nil, ToolB =&gt; nil)</code></td>
+</tr>
+<tr>
+<td><code>CancellationToken.new(deadline: Time...)</code></td>
+<td>Use <code>CancellationToken.timeout_after(seconds)</code> for token deadlines</td>
+</tr>
+</tbody>
+</table>
+<p>The legacy <code>build_context</code> / <code>LlmContextWindow::Assembler</code> extension path is no
+longer an active API. Stateful Agent input is assembled through the canonical
+Journal → Context Policy → LLM Input Manifest pipeline.</p>
 <h3 id="Optional_dependencies">Optional dependencies</h3>
 <p>Install additional gems only for the features you use:</p>
 <table>
@@ -443,7 +486,7 @@ Configure your provider credentials before using agents or chains:</p>
   <span class='id identifier rubyid_agent_definition'>agent_definition</span> <span class='label'>id:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>research-agent</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>version:</span> <span class='int'>1</span>
   <span class='id identifier rubyid_model'>model</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>gpt-4o</span><span class='tstring_end'>&quot;</span></span>
   <span class='id identifier rubyid_instructions'>instructions</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>You are a research assistant. Use tools to answer questions.</span><span class='tstring_end'>&quot;</span></span>
-  <span class='id identifier rubyid_tools'>tools</span> <span class='const'>WebSearch</span>
+  <span class='id identifier rubyid_tools'>tools</span><span class='lparen'>(</span><span class='const'>WebSearch</span> <span class='op'>=&gt;</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_max_iterations'>max_iterations</span> <span class='int'>5</span>
 <span class='kw'>end</span>
 
@@ -668,7 +711,7 @@ transition's action runs.</p>
 <span class='kw'>class</span> <span class='const'>OrchestratorAgent</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Base.html" title="Phronomy::Agent::Base (class)">Base</a></span></span>
   <span class='id identifier rubyid_model'>model</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>gpt-4o</span><span class='tstring_end'>&quot;</span></span>
   <span class='id identifier rubyid_instructions'>instructions</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Use the research tool first, then the write tool to produce a blog post.</span><span class='tstring_end'>&quot;</span></span>
-  <span class='id identifier rubyid_tools'>tools</span> <span class='const'>ResearchTool</span><span class='comma'>,</span> <span class='const'>WriteTool</span>
+  <span class='id identifier rubyid_tools'>tools</span><span class='lparen'>(</span><span class='const'>ResearchTool</span> <span class='op'>=&gt;</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='const'>WriteTool</span> <span class='op'>=&gt;</span> <span class='kw'>nil</span><span class='rparen'>)</span>
 <span class='kw'>end</span>
 
 <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'>OrchestratorAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Write a blog post about Ruby 3.4 features</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
@@ -1042,7 +1085,7 @@ child process (stdio transport) or release the HTTP connection:</p>
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_trace_pii'>trace_pii</span>                       <span class='op'>=</span> <span class='kw'>false</span> <span class='comment'># default; set to true only when trace data contains no PII
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span>                          <span class='op'>=</span> <span class='kw'>nil</span>   <span class='comment'># optional; any object responding to #warn (e.g. Rails.logger)
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span>   <span class='op'>=</span> <span class='int'>5</span>     <span class='comment'># seconds to wait for sessions to drain on shutdown
-</span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_runtime_backend'>runtime_backend</span>                 <span class='op'>=</span> <span class='symbol'>:thread</span>   <span class='comment'># :thread (default); :immediate (tests, synchronous); :fiber (experimental validation only); :cooperative (deprecated alias for :immediate)
+</span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_runtime_backend'>runtime_backend</span>                 <span class='op'>=</span> <span class='symbol'>:thread</span>   <span class='comment'># :thread (default); :immediate (tests, synchronous); :fiber (experimental validation only)
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_strict_runtime_guards'>strict_runtime_guards</span>           <span class='op'>=</span> <span class='kw'>false</span>     <span class='comment'># when true, raises SchedulerReentrancyError on invoke-inside-task
 </span>  <span class='id identifier rubyid_c'>c</span><span class='period'>.</span><span class='id identifier rubyid_stream_callback_error_policy'>stream_callback_error_policy</span>    <span class='op'>=</span> <span class='symbol'>:report</span>   <span class='comment'># :report (default) preserves Agent result; :fail_task fails Task with StreamCallbackError
 </span><span class='kw'>end</span>
@@ -1332,10 +1375,6 @@ request, statement, or session timeouts.</p>
 </span><span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_timeout_after'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html#timeout_after-class_method" title="Phronomy::Concurrency::CancellationToken.timeout_after (method)">timeout_after</a></span></span><span class='lparen'>(</span><span class='int'>30</span><span class='rparen'>)</span>
 <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>...</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_token'>token</span> <span class='rbrace'>}</span><span class='rparen'>)</span>
 
-<span class='comment'># Hard deadline via wall-clock (legacy — still supported)
-</span><span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>deadline:</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span> <span class='op'>+</span> <span class='int'>30</span><span class='rparen'>)</span>
-<span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'>MyAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>...</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_token'>token</span> <span class='rbrace'>}</span><span class='rparen'>)</span>
-
 <span class='comment'># Propagate to all parallel workers via dispatch_parallel / fan_out
 </span><span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Concurrency/CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span>
 <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_sleep'>sleep</span> <span class='int'>10</span><span class='semicolon'>;</span> <span class='id identifier rubyid_token'>token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span> <span class='rbrace'>}</span>
@@ -1510,7 +1549,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sat Aug  8 18:26:50 2026 by
+  Generated on Sun Aug  9 02:41:58 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

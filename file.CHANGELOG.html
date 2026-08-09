@@ -65,6 +65,24 @@
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Phase_3_cleanup">Phase 3 cleanup</h3>
+<h4 id="Changed">Changed</h4>
+<ul>
+<li>Active documentation, compatibility snapshots, benchmarks, integration fixtures,
+and mutation targets now describe the Manifest-first Context architecture.</li>
+<li>The Context benchmark now measures <code>Agent::ContextAssembler</code> and
+<code>ContextPolicies::Default</code> instead of the removed legacy Assembler.</li>
+<li>ADR-011 is marked Superseded by ADR-012; its historical analysis is retained.</li>
+</ul>
+<h4 id="Removed">Removed</h4>
+<ul>
+<li>Remaining active compatibility references to <code>context_overhead</code>,
+<code>LlmContextWindow::Assembler</code>, <code>ContextVersionCache</code>, Tool
+<code>on_error :return_empty</code>, <code>force_kill:</code>, <code>runtime_backend :cooperative</code>,
+the <code>Runtime.instance=</code> setter, tools-splat registration, and wall-clock
+<code>CancellationToken.new(deadline:)</code>.</li>
+<li>Obsolete legacy Assembler / ContextVersionCache executable specs.</li>
+</ul>
 <hr />
 <h2 id="_0_16_0____2026_08_08">[0.16.0] - 2026-08-08</h2>
 <h3 id="Added">Added</h3>
@@ -1534,7 +1552,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sat Aug  8 18:26:50 2026 by
+  Generated on Sun Aug  9 02:41:58 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
