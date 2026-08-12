@@ -1,12 +1,8 @@
 # frozen_string_literal: true
 
 module Phronomy
-  # Test helpers for deterministic, timer-independent testing.
-  #
-  # @example
-  #   require "phronomy/testing"
-  #   clock = Phronomy::Testing::FakeClock.new
-  #   scheduler = Phronomy::Testing::FakeScheduler.new
+  # Test-only helpers. Nothing under this namespace participates in the
+  # production Runtime control plane.
   module Testing
   end
 end

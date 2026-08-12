@@ -65,13 +65,17 @@ RSpec.describe "Agent::Base filter integration (Issue #389)" do
     # Stub ExecutionCoordinator#start to exercise the filter layer without a real LLM.
     allow_any_instance_of(Phronomy::Agent::ExecutionCoordinator).to receive(:start) do |coord, input, **_kwargs|
       ag = coord.instance_variable_get(:@agent)
-      Phronomy::Task.spawn(name: "filter-stub") do
+      t = Phronomy::Task.new(name: "filter-stub")
+      Thread.new do
         filtered = ag.send(:run_input_filters!, input)
         user_message = ag.send(:extract_message, filtered)
         raw_output = "result:#{user_message}"
         filtered_output = ag.send(:run_output_filters!, raw_output)
-        {output: filtered_output, messages: [], usage: nil}
+        t.complete({output: filtered_output, messages: [], usage: nil})
+      rescue => e
+        t.fail(e)
       end
+      t
     end
     klass
   end

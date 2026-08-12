@@ -258,12 +258,11 @@ RSpec.describe "Lifecycle invariants" do
       # Directly inject a waiting entry to simulate an orphaned caller.
       el.instance_variable_get(:@waiting)["lc-shutdown-orphan"] = cq
 
-      loop_task = el.instance_variable_get(:@task)
-      loop_backend_thread = loop_task.instance_variable_get(:@backend).instance_variable_get(:@thread)
+      loop_backend_thread = el.instance_variable_get(:@thread)
       sleep 0.001 while loop_backend_thread.status != "sleep"
       loop_backend_thread.raise(RuntimeError, "simulated loop crash")
       begin
-        loop_task.join(2)
+        loop_backend_thread.join(2)
       rescue RuntimeError
         nil
       end
@@ -388,10 +387,6 @@ RSpec.describe "Lifecycle invariants" do
       el.register(session)
       started_q.pop
 
-      # Stub cancel! so the dispatcher never receives the cancel signal.
-      task = el.instance_variable_get(:@task)
-      allow(task).to receive(:cancel!).and_return(nil)
-
       result = runtime.shutdown(timeout: 0.05, cancel_grace: 0.05)
 
       expect(result.event_loop_status).to eq(:cancel_timeout)
@@ -417,10 +412,7 @@ RSpec.describe "Lifecycle invariants" do
       el.register(session)
       started_q.pop
 
-      task = el.instance_variable_get(:@task)
-      allow(task).to receive(:cancel!).and_return(nil)
-
-      # With cancel! stubbed as no-op, cancel_grace wait will expire with task alive.
+      # The session blocks the EventLoop, so cancel_grace wait expires with thread alive.
       result = runtime.shutdown(timeout: 0.05, cancel_grace: 0.05)
 
       expect(result.event_loop_status).to eq(:cancel_timeout)

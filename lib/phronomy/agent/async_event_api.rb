@@ -9,7 +9,7 @@ module Phronomy
         if invocation_context
           thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
         end
-        _check_scheduler_reentrancy(:invoke, :invoke_async)
+        _check_event_loop_reentrancy(:invoke, :invoke_async)
         trace("agent.invoke", input: input, **_build_caller_meta(config)) do |_span|
           result = invoke_async(
             input,
@@ -58,7 +58,7 @@ module Phronomy
         if invocation_context
           thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
         end
-        _check_scheduler_reentrancy(:stream, :stream_async)
+        _check_event_loop_reentrancy(:stream, :stream_async)
         trace("agent.stream", input: input, **_build_caller_meta(config)) do |_span|
           result = stream_async(
             input,
@@ -98,7 +98,7 @@ module Phronomy
       end
 
       def approve(execution_id, approval_request_id:, approved: true, config: {})
-        _check_scheduler_reentrancy(:approve, :approve_async)
+        _check_event_loop_reentrancy(:approve, :approve_async)
         approve_async(
           execution_id,
           approval_request_id: approval_request_id,

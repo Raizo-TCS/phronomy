@@ -2,11 +2,9 @@
 
 module Phronomy
   # Holds global configuration for the entire framework.
-  # Configure via the Phronomy.configure block.
   class Configuration
     STREAM_CALLBACK_ERROR_POLICIES = %i[report fail_task].freeze
-    RUNTIME_BACKENDS = %i[thread immediate fiber].freeze
-    private_constant :STREAM_CALLBACK_ERROR_POLICIES, :RUNTIME_BACKENDS
+    private_constant :STREAM_CALLBACK_ERROR_POLICIES
 
     attr_accessor :default_model
     attr_accessor :default_embedding_model
@@ -23,17 +21,12 @@ module Phronomy
     attr_accessor :llm_adapter
     attr_accessor :event_loop_starvation_threshold_seconds
     attr_accessor :event_loop_dispatch_threshold_seconds
-    attr_accessor :scheduler_debug
-    attr_accessor :blocking_detect_threshold_ms
     attr_reader :stream_callback_error_policy
     attr_accessor :blocking_io_pool_size
     attr_accessor :blocking_io_queue_size
     attr_accessor :authorization_pool_size
     attr_accessor :authorization_queue_size
     attr_accessor :authorization_timeout
-    attr_accessor :starvation_threshold_ms
-    attr_reader :runtime_backend
-    attr_accessor :strict_runtime_guards
 
     def stream_callback_error_policy=(value)
       unless STREAM_CALLBACK_ERROR_POLICIES.include?(value)
@@ -45,18 +38,6 @@ module Phronomy
       @stream_callback_error_policy = value
     end
 
-    # Scheduler backend used for newly-created Runtime instances.
-    # Supported values are :thread, :immediate, and :fiber.
-    def runtime_backend=(value)
-      value = value.to_sym if value.respond_to?(:to_sym)
-      unless RUNTIME_BACKENDS.include?(value)
-        allowed = RUNTIME_BACKENDS.map(&:inspect).join(", ")
-        raise Phronomy::ConfigurationError,
-          "runtime_backend must be one of: #{allowed}"
-      end
-      @runtime_backend = value
-    end
-
     def initialize
       @recursion_limit = 25
       @tracer = Phronomy::Tracing::NullTracer.new
@@ -66,17 +47,12 @@ module Phronomy
       @llm_adapter = Phronomy::LLMAdapter::RubyLLM.new
       @event_loop_starvation_threshold_seconds = nil
       @event_loop_dispatch_threshold_seconds = nil
-      @scheduler_debug = false
-      @blocking_detect_threshold_ms = nil
       @stream_callback_error_policy = :report
       @blocking_io_pool_size = 10
       @blocking_io_queue_size = 100
       @authorization_pool_size = 4
       @authorization_queue_size = 100
       @authorization_timeout = 5
-      @starvation_threshold_ms = 50
-      @runtime_backend = :thread
-      @strict_runtime_guards = false
     end
   end
 end

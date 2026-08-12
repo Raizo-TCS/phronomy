@@ -11,15 +11,14 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
         {output: out, messages: []}
       end
       define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-        Phronomy::Task.spawn(name: "stub-async") do
-          invoke(
-            input,
-            thread_id: thread_id,
-            config: config,
-            invocation_context: invocation_context,
-            on_event: on_event
-          )
+        t = Phronomy::Task.new(name: "stub-async")
+        Thread.new do
+          t.complete(invoke(input, thread_id: thread_id, config: config,
+            invocation_context: invocation_context, on_event: on_event))
+        rescue => e
+          t.fail(e)
         end
+        t
       end
     end
   end
@@ -33,15 +32,14 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
         {output: "echo:#{input}", messages: []}
       end
       define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-        Phronomy::Task.spawn(name: "stub-async") do
-          invoke(
-            input,
-            thread_id: thread_id,
-            config: config,
-            invocation_context: invocation_context,
-            on_event: on_event
-          )
+        t = Phronomy::Task.new(name: "stub-async")
+        Thread.new do
+          t.complete(invoke(input, thread_id: thread_id, config: config,
+            invocation_context: invocation_context, on_event: on_event))
+        rescue => e
+          t.fail(e)
         end
+        t
       end
     end
     [agent_class, received]
@@ -80,15 +78,14 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          Phronomy::Task.spawn(name: "stub-async") do
-            invoke(
-              input,
-              thread_id: thread_id,
-              config: config,
-              invocation_context: invocation_context,
-              on_event: on_event
-            )
+          t = Phronomy::Task.new(name: "stub-async")
+          Thread.new do
+            t.complete(invoke(input, thread_id: thread_id, config: config,
+              invocation_context: invocation_context, on_event: on_event))
+          rescue => e
+            t.fail(e)
           end
+          t
         end
       end
 
@@ -108,15 +105,14 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          Phronomy::Task.spawn(name: "stub-async") do
-            invoke(
-              input,
-              thread_id: thread_id,
-              config: config,
-              invocation_context: invocation_context,
-              on_event: on_event
-            )
+          t = Phronomy::Task.new(name: "stub-async")
+          Thread.new do
+            t.complete(invoke(input, thread_id: thread_id, config: config,
+              invocation_context: invocation_context, on_event: on_event))
+          rescue => e
+            t.fail(e)
           end
+          t
         end
       end
 
@@ -130,7 +126,15 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
         agent_definition id: "test-agent-128", version: 1
         define_method(:invoke) { |*| raise "subagent exploded" }
         define_method(:invoke_async) do |input, **_kw|
-          Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
+          t = Phronomy::Task.new(name: "stub-async")
+          Thread.new {
+            begin
+              t.complete(invoke(input))
+            rescue
+              t.fail($!)
+            end
+          }
+          t
         end
       end
 
@@ -184,7 +188,15 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           agent_definition id: "test-agent-129", version: 1
           define_method(:invoke) { |*| raise "boom" }
           define_method(:invoke_async) do |input, **_kw|
-            Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
+            t = Phronomy::Task.new(name: "stub-async")
+            Thread.new {
+              begin
+                t.complete(invoke(input))
+              rescue
+                t.fail($!)
+              end
+            }
+            t
           end
         end
 
@@ -213,22 +225,29 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
             {output: "counted", messages: []}
           end
           define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-            Phronomy::Task.spawn(name: "stub-async") do
-              invoke(
-                input,
-                thread_id: thread_id,
-                config: config,
-                invocation_context: invocation_context,
-                on_event: on_event
-              )
+            t = Phronomy::Task.new(name: "stub-async")
+            Thread.new do
+              t.complete(invoke(input, thread_id: thread_id, config: config,
+                invocation_context: invocation_context, on_event: on_event))
+            rescue => e
+              t.fail(e)
             end
+            t
           end
         end
         failing_agent = Class.new(Phronomy::Agent::Base) do
           agent_definition id: "test-agent-131", version: 1
           define_method(:invoke) { |*| raise "task failed" }
           define_method(:invoke_async) do |input, **_kw|
-            Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
+            t = Phronomy::Task.new(name: "stub-async")
+            Thread.new {
+              begin
+                t.complete(invoke(input))
+              rescue
+                t.fail($!)
+              end
+            }
+            t
           end
         end
 
@@ -253,7 +272,15 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           error_0_ref = error_0
           define_method(:invoke) { |*| raise error_0_ref }
           define_method(:invoke_async) do |input, **_kw|
-            Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
+            t = Phronomy::Task.new(name: "stub-async")
+            Thread.new {
+              begin
+                t.complete(invoke(input))
+              rescue
+                t.fail($!)
+              end
+            }
+            t
           end
         end
         failing_third = Class.new(Phronomy::Agent::Base) do
@@ -261,7 +288,15 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           error_2_ref = error_2
           define_method(:invoke) { |*| raise error_2_ref }
           define_method(:invoke_async) do |input, **_kw|
-            Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
+            t = Phronomy::Task.new(name: "stub-async")
+            Thread.new {
+              begin
+                t.complete(invoke(input))
+              rescue
+                t.fail($!)
+              end
+            }
+            t
           end
         end
         good = stub_agent("ok")
@@ -330,15 +365,14 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          Phronomy::Task.spawn(name: "stub-async") do
-            invoke(
-              input,
-              thread_id: thread_id,
-              config: config,
-              invocation_context: invocation_context,
-              on_event: on_event
-            )
+          t = Phronomy::Task.new(name: "stub-async")
+          Thread.new do
+            t.complete(invoke(input, thread_id: thread_id, config: config,
+              invocation_context: invocation_context, on_event: on_event))
+          rescue => e
+            t.fail(e)
           end
+          t
         end
       end
 
@@ -361,7 +395,15 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
         agent_definition id: "test-agent-135", version: 1
         define_method(:invoke) { |*| raise "oops" }
         define_method(:invoke_async) do |input, **_kw|
-          Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
+          t = Phronomy::Task.new(name: "stub-async")
+          Thread.new {
+            begin
+              t.complete(invoke(input))
+            rescue
+              t.fail($!)
+            end
+          }
+          t
         end
       end
 
@@ -409,7 +451,15 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
         subagent :helper, Class.new(Phronomy::Agent::Base) {
           define_method(:invoke) { |*| {output: "help", messages: []} }
           define_method(:invoke_async) do |input, **_kw|
-            Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
+            t = Phronomy::Task.new(name: "stub-async")
+            Thread.new {
+              begin
+                t.complete(invoke(input))
+              rescue
+                t.fail($!)
+              end
+            }
+            t
           end
         }
       end
@@ -426,7 +476,15 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           agent_definition id: "test-agent-136", version: 1
           define_method(:invoke) { |*| raise "boom" }
           define_method(:invoke_async) do |input, **_kw|
-            Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
+            t = Phronomy::Task.new(name: "stub-async")
+            Thread.new {
+              begin
+                t.complete(invoke(input))
+              rescue
+                t.fail($!)
+              end
+            }
+            t
           end
         end
 
@@ -447,7 +505,15 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           agent_definition id: "test-agent-137", version: 1
           define_method(:invoke) { |*| raise "boom" }
           define_method(:invoke_async) do |input, **_kw|
-            Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
+            t = Phronomy::Task.new(name: "stub-async")
+            Thread.new {
+              begin
+                t.complete(invoke(input))
+              rescue
+                t.fail($!)
+              end
+            }
+            t
           end
         end
 
@@ -469,7 +535,15 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
         subagent :base_worker, Class.new(Phronomy::Agent::Base) {
           define_method(:invoke) { |*| {output: "base", messages: []} }
           define_method(:invoke_async) do |input, **_kw|
-            Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
+            t = Phronomy::Task.new(name: "stub-async")
+            Thread.new {
+              begin
+                t.complete(invoke(input))
+              rescue
+                t.fail($!)
+              end
+            }
+            t
           end
         }
       end
@@ -494,15 +568,14 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          Phronomy::Task.spawn(name: "stub-async") do
-            invoke(
-              input,
-              thread_id: thread_id,
-              config: config,
-              invocation_context: invocation_context,
-              on_event: on_event
-            )
+          t = Phronomy::Task.new(name: "stub-async")
+          Thread.new do
+            t.complete(invoke(input, thread_id: thread_id, config: config,
+              invocation_context: invocation_context, on_event: on_event))
+          rescue => e
+            t.fail(e)
           end
+          t
         end
       end
 
@@ -523,15 +596,14 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          Phronomy::Task.spawn(name: "stub-async") do
-            invoke(
-              input,
-              thread_id: thread_id,
-              config: config,
-              invocation_context: invocation_context,
-              on_event: on_event
-            )
+          t = Phronomy::Task.new(name: "stub-async")
+          Thread.new do
+            t.complete(invoke(input, thread_id: thread_id, config: config,
+              invocation_context: invocation_context, on_event: on_event))
+          rescue => e
+            t.fail(e)
           end
+          t
         end
       end
 
@@ -549,15 +621,14 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           {output: "sub", messages: []}
         end
         define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          Phronomy::Task.spawn(name: "stub-async") do
-            invoke(
-              input,
-              thread_id: thread_id,
-              config: config,
-              invocation_context: invocation_context,
-              on_event: on_event
-            )
+          t = Phronomy::Task.new(name: "stub-async")
+          Thread.new do
+            t.complete(invoke(input, thread_id: thread_id, config: config,
+              invocation_context: invocation_context, on_event: on_event))
+          rescue => e
+            t.fail(e)
           end
+          t
         end
       end
 
@@ -569,22 +640,14 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
 
   describe "#dispatch_parallel timeout: option (Issue #133)" do
     around do |example|
-      Phronomy.configure { |c| c.runtime_backend = :thread }
       Phronomy::Runtime.instance_variable_set(:@instance, nil)
       example.run
     ensure
-      runtime = Phronomy::Runtime.instance_variable_get(:@instance)
-      if runtime
-        registry = runtime.instance_variable_get(:@task_registry)
-        running = registry.instance_variable_get(:@mutex).synchronize do
-          registry.instance_variable_get(:@tasks).dup
-        end
-        running.each do |task|
-          task.cancel!
-        rescue
-          nil
-        end
-        sleep 0.05
+      begin
+        runtime = Phronomy::Runtime.instance_variable_get(:@instance)
+        runtime&.shutdown(timeout: 1)
+      rescue
+        nil
       end
       Phronomy.reset_configuration!
       Phronomy::Runtime.instance_variable_set(:@instance, nil)
@@ -601,15 +664,14 @@ RSpec.describe Phronomy::MultiAgent::Orchestrator do
           {output: "never", messages: []}
         end
         define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          Phronomy::Task.spawn(name: "stub-async") do
-            invoke(
-              input,
-              thread_id: thread_id,
-              config: config,
-              invocation_context: invocation_context,
-              on_event: on_event
-            )
+          t = Phronomy::Task.new(name: "stub-async")
+          Thread.new do
+            t.complete(invoke(input, thread_id: thread_id, config: config,
+              invocation_context: invocation_context, on_event: on_event))
+          rescue => e
+            t.fail(e)
           end
+          t
         end
       end
 

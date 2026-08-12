@@ -91,8 +91,7 @@ RSpec.describe Phronomy::EventLoop, "queue observability" do
         "depth=2",
         "threshold=2",
         "event=:queue_observability_probe",
-        "target_id=\"queue-observability-session\"",
-        "Events are not dropped"
+        "target_id=\"queue-observability-session\""
       )
     )
 

@@ -1164,10 +1164,18 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       end
     end
 
-    it "cooperative tool: call_async returns a Task that resolves correctly" do
-      task = cooperative_tool_class.new.call_async({"x" => "hi"})
-      expect(task).to be_a(Phronomy::Task)
-      expect(task.wait_result).to eq("coop:hi")
+    it "cooperative tool: call_async routes through BlockingAdapterPool" do
+      pool = Phronomy::Runtime.instance.blocking_io
+      called = false
+      allow(pool).to receive(:submit).and_wrap_original do |m, **kw, &blk|
+        called = true
+        m.call(**kw, &blk)
+      end
+
+      awaitable = cooperative_tool_class.new.call_async({"x" => "hi"})
+      expect(awaitable).to respond_to(:wait_result)
+      expect(awaitable.wait_result).to eq("coop:hi")
+      expect(called).to be(true)
     end
 
     it "blocking_io tool with pool: call_async routes through BlockingAdapterPool" do
@@ -1182,21 +1190,6 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       expect(awaitable).to respond_to(:blocking_wait)
       expect(awaitable.wait_result).to eq("block:io")
       expect(called).to be(true)
-    end
-
-    it "blocking_io tool without pool: call_async falls back to Runtime.instance.spawn" do
-      # Reset so no pool is present but Runtime itself still exists
-      runtime = instance_double(Phronomy::Runtime, blocking_io: nil)
-      allow(runtime).to receive(:spawn) do |name: nil, &blk|
-        t = double("Task-fallback")
-        allow(t).to receive(:wait_result).and_return(blk.call)
-        t
-      end
-      allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
-
-      task = blocking_tool_class.new.call_async({"x" => "fallback"})
-      expect(task).to be_a(Phronomy::Task).or respond_to(:wait_result)
-      expect(task.wait_result).to eq("block:fallback")
     end
   end
 

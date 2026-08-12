@@ -42,10 +42,10 @@ RSpec.describe "event-driven Workflow actions" do
 
       state :generating, action: ->(context) {
         entered << true
-        task = Phronomy::Runtime.instance.spawn { "generated answer" }
+        op = Phronomy::Runtime.instance.blocking_io.submit { "generated answer" }
         request_id = context.request_id
 
-        task.on_complete do |value, error|
+        op.on_complete do |value, error|
           workflow.signal(
             thread_id: context.thread_id,
             event: error ? :generation_failed : :generation_completed,
@@ -91,7 +91,9 @@ RSpec.describe "event-driven Workflow actions" do
       initial :invalid
 
       state :invalid, action: ->(_context) {
-        Phronomy::Runtime.instance.spawn { "not implicitly awaited" }
+        t = Phronomy::Task.new(name: "not-implicitly-awaited")
+        Thread.new { t.complete("not implicitly awaited") }
+        t
       }
 
       transition from: :invalid, to: :__finish__

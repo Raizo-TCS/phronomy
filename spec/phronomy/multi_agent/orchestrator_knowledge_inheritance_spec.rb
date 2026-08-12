@@ -22,15 +22,14 @@ RSpec.describe "Orchestrator Knowledge inheritance" do
       end
 
       define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-        Phronomy::Task.spawn(name: "knowledge-capture") do
-          invoke(
-            input,
-            thread_id: thread_id,
-            config: config,
-            invocation_context: invocation_context,
-            on_event: on_event
-          )
+        t = Phronomy::Task.new(name: "knowledge-capture")
+        Thread.new do
+          t.complete(invoke(input, thread_id: thread_id, config: config,
+            invocation_context: invocation_context, on_event: on_event))
+        rescue => e
+          t.fail(e)
         end
+        t
       end
     end
 

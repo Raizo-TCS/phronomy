@@ -5,18 +5,9 @@ require "state_machines"
 module Phronomy
   module Agent
     # Builds an FSMSession for one ToolInvocation.
-    #
-    # Authorization and execution Tasks are observed by ToolInvocation-specific
-    # callbacks that post explicit FSM events. The generated phase machine does
-    # not await Tasks.
-    #
-    # @api private
+    # Async completion is represented only by explicit FSM events.
     class ToolInvocationSessionBuilder
-      AUTO_STATE_SET = {
-        idle: true,
-        validating: true,
-        queued: true
-      }.freeze
+      AUTO_STATE_SET = {idle: true, validating: true, queued: true}.freeze
 
       DECLARED_STATES = %i[
         idle validating authorizing awaiting_approval authorized queued running
@@ -27,42 +18,20 @@ module Phronomy
 
       EXTERNAL_EVENTS = {
         authorization_completed: [
-          {from: :authorizing, to: :cancelled, guard: ->(ctx) {
-            ctx.cancelled?
-          }},
-          {from: :authorizing, to: :failed, guard: ->(ctx) {
-            ctx.failed?
-          }},
-          {from: :authorizing, to: :rejected, guard: ->(ctx) {
-            ctx.rejected?
-          }},
-          {from: :authorizing, to: :awaiting_approval, guard: ->(ctx) {
-            ctx.awaiting_approval?
-          }},
-          {from: :authorizing, to: :authorized, guard: ->(ctx) {
-            ctx.authorized?
-          }}
+          {from: :authorizing, to: :cancelled, guard: ->(ctx) { ctx.cancelled? }},
+          {from: :authorizing, to: :failed, guard: ->(ctx) { ctx.failed? }},
+          {from: :authorizing, to: :rejected, guard: ->(ctx) { ctx.rejected? }},
+          {from: :authorizing, to: :awaiting_approval, guard: ->(ctx) { ctx.awaiting_approval? }},
+          {from: :authorizing, to: :authorized, guard: ->(ctx) { ctx.authorized? }}
         ],
         execution_completed: [
-          {from: :running, to: :cancelled, guard: ->(ctx) {
-            ctx.cancelled?
-          }},
-          {from: :running, to: :failed, guard: ->(ctx) {
-            ctx.failed?
-          }},
-          {from: :running, to: :completed, guard: ->(ctx) {
-            ctx.execution_completed?
-          }}
+          {from: :running, to: :cancelled, guard: ->(ctx) { ctx.cancelled? }},
+          {from: :running, to: :failed, guard: ->(ctx) { ctx.failed? }},
+          {from: :running, to: :completed, guard: ->(ctx) { ctx.execution_completed? }}
         ],
-        approve: [
-          {from: :awaiting_approval, to: :authorized, guard: nil}
-        ],
-        reject: [
-          {from: :awaiting_approval, to: :rejected, guard: nil}
-        ],
-        dispatch: [
-          {from: :authorized, to: :queued, guard: nil}
-        ],
+        approve: [{from: :awaiting_approval, to: :authorized, guard: nil}],
+        reject: [{from: :awaiting_approval, to: :rejected, guard: nil}],
+        dispatch: [{from: :authorized, to: :queued, guard: nil}],
         cancel: [
           {from: :awaiting_approval, to: :cancelled, guard: nil},
           {from: :authorized, to: :cancelled, guard: nil},
@@ -71,14 +40,8 @@ module Phronomy
         ]
       }.freeze
 
-      def self.build(
-        tool_invocation:,
-        runtime: Phronomy::Runtime.instance
-      )
-        build_session(
-          tool_invocation: tool_invocation,
-          runtime: runtime
-        )
+      def self.build(tool_invocation:, runtime: Phronomy::Runtime.instance)
+        build_session(tool_invocation: tool_invocation, runtime: runtime)
       end
 
       def self.build_for_resume(
@@ -125,31 +88,15 @@ module Phronomy
       def self.build_entry_actions(runtime)
         {
           validating: [method(:validating_action)],
-          authorizing: [
-            method(:authorizing_action).curry.call(runtime)
-          ],
-          awaiting_approval: [
-            method(:awaiting_approval_action).curry.call(runtime)
-          ],
-          authorized: [
-            method(:authorized_action).curry.call(runtime)
-          ],
+          authorizing: [method(:authorizing_action).curry.call(runtime)],
+          awaiting_approval: [method(:awaiting_approval_action).curry.call(runtime)],
+          authorized: [method(:authorized_action).curry.call(runtime)],
           queued: [method(:queued_action)],
-          running: [
-            method(:running_action).curry.call(runtime)
-          ],
-          completed: [
-            method(:completed_action).curry.call(runtime)
-          ],
-          failed: [
-            method(:failed_action).curry.call(runtime)
-          ],
-          rejected: [
-            method(:rejected_action).curry.call(runtime)
-          ],
-          cancelled: [
-            method(:cancelled_action).curry.call(runtime)
-          ]
+          running: [method(:running_action).curry.call(runtime)],
+          completed: [method(:completed_action).curry.call(runtime)],
+          failed: [method(:failed_action).curry.call(runtime)],
+          rejected: [method(:rejected_action).curry.call(runtime)],
+          cancelled: [method(:cancelled_action).curry.call(runtime)]
         }
       end
       private_class_method :build_entry_actions
@@ -176,59 +123,29 @@ module Phronomy
 
             event :state_completed do
               transition idle: :validating
-
-              transition validating: :failed,
-                if: ->(machine) { machine.context&.failed? }
-              transition validating: :completed,
-                if: ->(machine) {
-                  machine.context&.validation_completed?
-                }
-              transition validating: :authorizing,
-                if: ->(machine) {
-                  machine.context&.validation_passed?
-                }
-
+              transition validating: :failed, if: ->(m) { m.context&.failed? }
+              transition validating: :completed, if: ->(m) { m.context&.validation_completed? }
+              transition validating: :authorizing, if: ->(m) { m.context&.validation_passed? }
               transition queued: :running
             end
 
             event :authorization_completed do
-              transition authorizing: :cancelled,
-                if: ->(machine) { machine.context&.cancelled? }
-              transition authorizing: :failed,
-                if: ->(machine) { machine.context&.failed? }
-              transition authorizing: :rejected,
-                if: ->(machine) { machine.context&.rejected? }
-              transition authorizing: :awaiting_approval,
-                if: ->(machine) {
-                  machine.context&.awaiting_approval?
-                }
-              transition authorizing: :authorized,
-                if: ->(machine) { machine.context&.authorized? }
+              transition authorizing: :cancelled, if: ->(m) { m.context&.cancelled? }
+              transition authorizing: :failed, if: ->(m) { m.context&.failed? }
+              transition authorizing: :rejected, if: ->(m) { m.context&.rejected? }
+              transition authorizing: :awaiting_approval, if: ->(m) { m.context&.awaiting_approval? }
+              transition authorizing: :authorized, if: ->(m) { m.context&.authorized? }
             end
 
             event :execution_completed do
-              transition running: :cancelled,
-                if: ->(machine) { machine.context&.cancelled? }
-              transition running: :failed,
-                if: ->(machine) { machine.context&.failed? }
-              transition running: :completed,
-                if: ->(machine) {
-                  machine.context&.execution_completed?
-                }
+              transition running: :cancelled, if: ->(m) { m.context&.cancelled? }
+              transition running: :failed, if: ->(m) { m.context&.failed? }
+              transition running: :completed, if: ->(m) { m.context&.execution_completed? }
             end
 
-            event :approve do
-              transition awaiting_approval: :authorized
-            end
-
-            event :reject do
-              transition awaiting_approval: :rejected
-            end
-
-            event :dispatch do
-              transition authorized: :queued
-            end
-
+            event(:approve) { transition awaiting_approval: :authorized }
+            event(:reject) { transition awaiting_approval: :rejected }
+            event(:dispatch) { transition authorized: :queued }
             event :cancel do
               transition awaiting_approval: :cancelled
               transition authorized: :cancelled
@@ -267,13 +184,9 @@ module Phronomy
       private_class_method :validating_action
 
       def self.authorizing_action(runtime, invocation)
-        task = invocation.authorization_task(runtime: runtime)
-        observe_task(
-          runtime,
-          invocation,
-          task,
-          event_type: :authorization_completed
-        )
+        invocation.start_authorization(runtime: runtime) do |outcome|
+          post_to_invocation(runtime, invocation.id, :authorization_completed, outcome)
+        end
         invocation
       end
       private_class_method :authorizing_action
@@ -298,44 +211,13 @@ module Phronomy
       private_class_method :queued_action
 
       def self.running_action(runtime, invocation)
-        # execution_task checks dispatchable? which requires :queued status;
-        # mark_running! is deferred until after the task is started.
-        task = invocation.execution_task(runtime: runtime)
+        invocation.start_execution(runtime: runtime) do |outcome|
+          post_to_invocation(runtime, invocation.id, :execution_completed, outcome)
+        end
         invocation.mark_running!
-        observe_task(
-          runtime,
-          invocation,
-          task,
-          event_type: :execution_completed
-        )
         invocation
       end
       private_class_method :running_action
-
-      def self.observe_task(
-        runtime,
-        invocation,
-        task,
-        event_type:
-      )
-        task.on_complete do |outcome, error|
-          payload = error || outcome
-          accepted = runtime.event_loop.post_to_session(
-            Phronomy::Event.new(
-              type: event_type,
-              target_id: invocation.id,
-              payload: payload
-            )
-          )
-          next if accepted
-
-          Phronomy.configuration.logger&.warn(
-            "[Phronomy] Dropped #{event_type.inspect} for " \
-            "ToolInvocation #{invocation.id}"
-          )
-        end
-      end
-      private_class_method :observe_task
 
       def self.completed_action(runtime, invocation)
         notify_parent(runtime, invocation, :tool_completed)
@@ -362,6 +244,18 @@ module Phronomy
         invocation
       end
       private_class_method :cancelled_action
+
+      def self.post_to_invocation(runtime, id, event_type, payload)
+        accepted = runtime.event_loop.post_to_session(
+          Phronomy::Event.new(type: event_type, target_id: id, payload: payload)
+        )
+        return if accepted
+
+        Phronomy.configuration.logger&.warn(
+          "[Phronomy] Dropped #{event_type.inspect} for ToolInvocation #{id}"
+        )
+      end
+      private_class_method :post_to_invocation
 
       def self.notify_parent(runtime, invocation, event_type)
         runtime.event_loop.post_to_session(

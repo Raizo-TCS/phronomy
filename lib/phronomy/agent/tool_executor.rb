@@ -2,24 +2,15 @@
 
 module Phronomy
   module Agent
-    # Centralises Tool execution routing based on execution_mode.
-    #
-    # Tool-specific timeout and retry belong to the Tool implementation or its
-    # underlying client. This executor only chooses the Phronomy execution
-    # resource and propagates cooperative cancellation.
-    # @api private
+    # Routes only genuinely blocking Tool work to BlockingAdapterPool.
+    # Agent lifecycle coordination itself is owned by ToolInvocationSessionBuilder.
     module ToolExecutor
-      WARNED_MODES = Set.new
-      WARNED_MODES_MUTEX = Mutex.new
-      private_constant :WARNED_MODES, :WARNED_MODES_MUTEX
-
-      # Agent-owned execution boundary. Only a ToolInvocation that has consumed
-      # authorization may enter this method.
       def self.call_invocation_async(
         tool_invocation:,
         cancellation_token: nil,
         config: {},
-        runtime: Phronomy::Runtime.instance
+        runtime: Phronomy::Runtime.instance,
+        on_full: :raise
       )
         unless tool_invocation.dispatchable?
           raise Phronomy::ToolError,
@@ -31,61 +22,42 @@ module Phronomy
           args: tool_invocation.arguments,
           cancellation_token: cancellation_token,
           config: config,
-          runtime: runtime
+          runtime: runtime,
+          on_full: on_full
         )
       end
 
-      # Low-level Tool API used by direct Tool#call_async callers. Agent execution
-      # must use .call_invocation_async so authorization cannot be bypassed.
-      #
-      # +config+ remains available for invocation metadata, but Phronomy does not
-      # interpret it as a Tool timeout or retry policy.
+      # Direct Tool#call_async remains asynchronous by using the one permitted
+      # blocking-I/O worker boundary. Agent-owned :cooperative tools do not use
+      # this method; they execute as short EventLoop actions.
       def self.call_async(
         tool:,
         args:,
         cancellation_token: nil,
         config: {},
-        runtime: Phronomy::Runtime.instance
+        runtime: Phronomy::Runtime.instance,
+        on_full: :wait
       )
-        ct = cancellation_token
         mode = tool.class.execution_mode
-
-        if mode == :cpu_bound || mode == :external_process
-          warn_key = [tool.class.name, mode]
-          newly_warned = WARNED_MODES_MUTEX.synchronize { WARNED_MODES.add?(warn_key) }
-          if newly_warned
-            message = if mode == :cpu_bound
-              "[Phronomy] Tool #{tool.class.name} declares execution_mode :cpu_bound, " \
-                "which has no dedicated executor. Falling back to blocking_io " \
-                "(BlockingAdapterPool). Use :blocking_io explicitly to suppress this warning."
-            else
-              "[Phronomy] Tool #{tool.class.name} declares execution_mode :external_process, " \
-                "which has no dedicated process manager. Falling back to blocking_io " \
-                "(BlockingAdapterPool)."
-            end
-            if Phronomy.configuration.logger
-              Phronomy.configuration.logger.warn(message)
-            else
-              warn message
-            end
-          end
-          mode = :blocking_io
-        end
-
-        pool = begin
-          runtime&.blocking_io
-        rescue
-          nil
-        end
-
-        if mode == :cooperative || pool.nil?
-          runtime.spawn(name: "tool-#{tool.class.name.to_s.split("::").last}") do
-            tool.call(args, cancellation_token: ct)
-          end
+        case mode
+        when :cpu_bound
+          raise Phronomy::ConfigurationError,
+            "Tool #{tool.class.name} declares :cpu_bound, but no CPU executor is configured"
+        when :external_process
+          raise Phronomy::ConfigurationError,
+            "Tool #{tool.class.name} declares :external_process, but no process executor is configured"
+        when :cooperative, :blocking_io
+          # For direct async calls, a worker boundary is required to return immediately.
         else
-          pool.submit(cancellation_token: ct) do
-            tool.call(args, cancellation_token: ct)
-          end
+          raise Phronomy::ConfigurationError,
+            "unknown Tool execution_mode: #{mode.inspect}"
+        end
+
+        runtime.blocking_io.submit(
+          cancellation_token: cancellation_token,
+          on_full: on_full
+        ) do
+          tool.call(args, cancellation_token: cancellation_token)
         end
       end
     end

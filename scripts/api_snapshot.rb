@@ -33,7 +33,7 @@ PUBLIC_API_ENTRIES = [
   Phronomy::VectorStore::Embeddings::Base,
   Phronomy::Tracing::Base,
   Phronomy::Tracing::NullTracer,
-  Phronomy::Eval::Runner,
+  Phronomy::Testing::Eval::Runner,
   Phronomy::Tools::Mcp,
   Phronomy::Tools::Agent,
   Phronomy::Tools::VectorSearch

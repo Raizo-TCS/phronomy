@@ -119,8 +119,7 @@ module Phronomy
         end
 
         if schema_error
-          if @tool.class.respond_to?(:on_schema_error) &&
-              @tool.class.on_schema_error == :raise
+          if @tool.class.respond_to?(:on_schema_error) && @tool.class.on_schema_error == :raise
             @error = Phronomy::ToolError.new(
               "#{@tool.class.name} schema error: #{schema_error}"
             )
@@ -141,64 +140,75 @@ module Phronomy
         self
       end
 
-      def authorization_task(runtime: Phronomy::Runtime.instance)
+      # Starts authorization and reports exactly one AuthorizationOutcome through
+      # the callback. No Task is created.
+      def start_authorization(runtime: Phronomy::Runtime.instance, &callback)
+        raise ArgumentError, "start_authorization requires a callback" unless callback
+
         pool = runtime.pool(
           :authorization,
           size: Phronomy.configuration.authorization_pool_size,
           queue_size: Phronomy.configuration.authorization_queue_size
         )
-        timeout = @config.fetch(:authorization_timeout, Phronomy.configuration.authorization_timeout)
-        pending = pool.submit(
+        timeout = @config.fetch(
+          :authorization_timeout,
+          Phronomy.configuration.authorization_timeout
+        )
+        operation = pool.submit(
           timeout: timeout,
           cancellation_token: @config[:cancellation_token],
           on_full: :raise
         ) { evaluate_authorization }
-
-        task = Phronomy::Task.deferred(name: "tool-authorization:#{@tool_name}")
-        pending.on_complete do |outcome, error|
-          resolved = error ? authorization_failure_outcome(error) : outcome
-          task.backend.unblock(resolved, nil)
-          task.transition!(:completed, value: resolved)
+        operation.on_complete do |outcome, error|
+          callback.call(error ? authorization_failure_outcome(error) : outcome)
         end
-        task
+        self
       rescue => error
-        task = Phronomy::Task.deferred(name: "tool-authorization:#{@tool_name}")
-        outcome = authorization_failure_outcome(error)
-        task.backend.unblock(outcome, nil)
-        task.transition!(:completed, value: outcome)
-        task
+        callback.call(authorization_failure_outcome(error))
+        self
       end
 
-      def execution_task(runtime: Phronomy::Runtime.instance)
-        pending = Phronomy::Agent::ToolExecutor.call_invocation_async(
-          tool_invocation: self,
-          cancellation_token: @config[:cancellation_token],
-          config: @config,
-          runtime: runtime
-        )
-        task = Phronomy::Task.deferred(name: "tool-execution:#{@tool_name}")
-        pending.on_complete do |result, error|
-          outcome = if error
-            ExecutionOutcome.new(
-              error: error,
-              cancelled: error.is_a?(Phronomy::CancellationError)
-            )
-          else
-            ExecutionOutcome.new(result: result)
-          end
-          task.backend.unblock(outcome, nil)
-          task.transition!(:completed, value: outcome)
+      # Starts Tool execution. :cooperative work executes synchronously as a short
+      # EventLoop action; :blocking_io work returns immediately and completes from
+      # BlockingAdapterPool. CPU/process modes require dedicated executors and are
+      # rejected until those executors exist.
+      def start_execution(runtime: Phronomy::Runtime.instance, &callback)
+        raise ArgumentError, "start_execution requires a callback" unless callback
+        unless dispatchable?
+          callback.call(ExecutionOutcome.new(error: Phronomy::ToolError.new(
+            "ToolInvocation #{@id} is not authorized for dispatch"
+          )))
+          return self
         end
-        task
+
+        case @tool.class.execution_mode
+        when :cooperative
+          callback.call(execute_cooperatively)
+        when :blocking_io
+          operation = Phronomy::Agent::ToolExecutor.call_invocation_async(
+            tool_invocation: self,
+            cancellation_token: @config[:cancellation_token],
+            config: @config,
+            runtime: runtime,
+            on_full: :raise
+          )
+          operation.on_complete do |result, error|
+            callback.call(execution_outcome(result, error))
+          end
+        when :cpu_bound, :external_process
+          callback.call(ExecutionOutcome.new(error: Phronomy::ConfigurationError.new(
+            "Tool #{@tool.class.name} execution_mode #{@tool.class.execution_mode.inspect} " \
+            "requires a dedicated executor"
+          )))
+        else
+          callback.call(ExecutionOutcome.new(error: Phronomy::ConfigurationError.new(
+            "unknown Tool execution_mode: #{@tool.class.execution_mode.inspect}"
+          )))
+        end
+        self
       rescue => error
-        task = Phronomy::Task.deferred(name: "tool-execution:#{@tool_name}")
-        outcome = ExecutionOutcome.new(
-          error: error,
-          cancelled: error.is_a?(Phronomy::CancellationError)
-        )
-        task.backend.unblock(outcome, nil)
-        task.transition!(:completed, value: outcome)
-        task
+        callback.call(execution_outcome(nil, error))
+        self
       end
 
       def mark_awaiting_approval! = (@status = :awaiting_approval
@@ -256,6 +266,27 @@ module Phronomy
 
       private
 
+      def execute_cooperatively
+        result = @tool.call(
+          @arguments,
+          cancellation_token: @config[:cancellation_token]
+        )
+        ExecutionOutcome.new(result: result)
+      rescue => error
+        execution_outcome(nil, error)
+      end
+
+      def execution_outcome(result, error)
+        if error
+          ExecutionOutcome.new(
+            error: error,
+            cancelled: error.is_a?(Phronomy::CancellationError)
+          )
+        else
+          ExecutionOutcome.new(result: result)
+        end
+      end
+
       def evaluate_authorization
         request = build_request(facts: {}, default_decision: nil)
         facts = evaluate_facts
@@ -272,9 +303,7 @@ module Phronomy
         end
 
         reason = if decision == :require_approval
-          (@origin == :mcp) ?
-            "MCP Tool execution requires approval" :
-            "Tool execution requires approval"
+          (@origin == :mcp) ? "MCP Tool execution requires approval" : "Tool execution requires approval"
         end
         AuthorizationOutcome.new(decision: decision, facts: facts, reason: reason)
       end

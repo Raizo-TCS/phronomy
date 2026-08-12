@@ -42,16 +42,20 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
     RubyLLM.configure { |c| c.openai_api_key = "test-api-key" }
   end
 
-  # Stub Runtime.instance.spawn synchronously and pool so multi-tool tests run
-  # without a live EventLoop. Cooperative tests use Runtime.instance.spawn;
-  # blocking_io tests use pool.submit. Both are stubbed to execute inline.
+  # Stub Runtime.instance and pool so multi-tool tests run without a live EventLoop.
+  # All tools now route through blocking_io.submit.
   def stub_task_and_pool(pool_double: nil)
-    runtime_dbl = instance_double(Phronomy::Runtime, blocking_io: pool_double)
-    allow(runtime_dbl).to receive(:spawn) do |name: nil, &blk|
-      t = double("Task-#{name}")
-      allow(t).to receive(:wait_result).and_return(blk.call)
-      t
+    pd = pool_double || begin
+      d = instance_double(Phronomy::Concurrency::BlockingAdapterPool)
+      allow(d).to receive(:submit) do |cancellation_token: nil, on_full: :wait, **_kw, &blk|
+        result = blk.call
+        op = double("PendingOperation")
+        allow(op).to receive(:wait_result).and_return(result)
+        op
+      end
+      d
     end
+    runtime_dbl = instance_double(Phronomy::Runtime, blocking_io: pd)
     allow(Phronomy::Runtime).to receive(:instance).and_return(runtime_dbl)
   end
 
@@ -223,13 +227,12 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
   end
 
   # ---------------------------------------------------------------------------
-  # Regression: issue #295 — eliminate double-Thread for :blocking_io tools
+  # Regression: issue #295 — direct pool dispatch for all tools
   # ---------------------------------------------------------------------------
-  context "issue #295 — direct pool dispatch, no TaskGroup wrapper", :issue_295 do
-    let(:task_spawned) { [] }
+  context "issue #295 — direct pool dispatch", :issue_295 do
     let(:pool_double) do
       pd = instance_double(Phronomy::Concurrency::BlockingAdapterPool)
-      allow(pd).to receive(:submit) do |cancellation_token: nil, &blk|
+      allow(pd).to receive(:submit) do |cancellation_token: nil, on_full: :wait, **_kw, &blk|
         result = blk.call
         op = double("PendingOperation")
         allow(op).to receive(:wait_result).and_return(result)
@@ -240,12 +243,6 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
 
     before do
       runtime = instance_double(Phronomy::Runtime, blocking_io: pool_double)
-      allow(runtime).to receive(:spawn) do |name: nil, &blk|
-        task_spawned << :spawned
-        t = double("Task#{task_spawned.size}")
-        allow(t).to receive(:wait_result).and_return(blk.call)
-        t
-      end
       allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
     end
 
@@ -283,23 +280,19 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
       chat
     end
 
-    it "dispatches :blocking_io tools via pool.submit without a TaskGroup" do
+    it "dispatches :blocking_io tools via pool.submit" do
       tool = blocking_tool_class.new
       chat = minimal_multi_chat({io_dispatch_tool: tool})
       tc1 = fake_tool_call("io_dispatch_tool", {"v" => "a"}, id: "tc1")
       tc2 = fake_tool_call("io_dispatch_tool", {"v" => "b"}, id: "tc2")
       resp = fake_response({"t1" => tc1, "t2" => tc2})
 
-      allow(Phronomy::TaskGroup).to receive(:new).and_call_original
-
       chat.send(:handle_tool_calls, resp)
 
       expect(pool_double).to have_received(:submit).exactly(2).times
-      expect(task_spawned).to be_empty
-      expect(Phronomy::TaskGroup).not_to have_received(:new)
     end
 
-    it "dispatches :cooperative tools via Runtime.instance.spawn without touching the pool" do
+    it "dispatches :cooperative tools via pool.submit" do
       tool = coop_tool_class.new
       chat = minimal_multi_chat({coop_dispatch_tool: tool})
       tc1 = fake_tool_call("coop_dispatch_tool", {"v" => "a"}, id: "tc1")
@@ -308,8 +301,7 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
 
       chat.send(:handle_tool_calls, resp)
 
-      expect(pool_double).not_to have_received(:submit)
-      expect(task_spawned.size).to eq(2)
+      expect(pool_double).to have_received(:submit).exactly(2).times
     end
   end
 end

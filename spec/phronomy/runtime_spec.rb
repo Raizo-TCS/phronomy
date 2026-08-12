@@ -23,109 +23,11 @@ RSpec.describe Phronomy::Runtime do
     end
   end
 
-  describe "#task_group" do
-    it "returns a TaskGroup" do
-      group = described_class.instance.task_group
-      expect(group).to be_a(Phronomy::TaskGroup)
-    end
-
-    it "passes the limit to the TaskGroup" do
-      group = described_class.instance.task_group(limit: 3)
-      expect(group.instance_variable_get(:@limit)).to eq(3)
-    end
-  end
-
-  describe "#spawn" do
-    it "returns a Task" do
-      task = described_class.instance.spawn { 7 }
-      expect(task).to be_a(Phronomy::Task)
-      expect(task.wait_result).to eq(7)
-    end
-
-    it "accepts an optional name" do
-      task = described_class.instance.spawn(name: "rt-task") { :ok }
-      expect(task.name).to eq("rt-task")
-      task.wait_result
-    end
-  end
-
-  # ---------------------------------------------------------------------------
-  # Scheduler injection (#282 acceptance criteria)
-  # ---------------------------------------------------------------------------
-
-  describe "scheduler injection" do
-    subject(:runtime) { described_class.new(scheduler: described_class::FakeScheduler.new) }
-
-    it "accepts a custom scheduler at construction time" do
-      expect(runtime).to be_a(described_class)
-    end
-
-    it "spawns tasks through the injected scheduler" do
-      task = runtime.spawn { 99 }
-      expect(task).to be_a(Phronomy::Task)
-      expect(task.wait_result).to eq(99)
-    end
-  end
-
-  # ---------------------------------------------------------------------------
-  # FakeScheduler: no thread increase (#282 acceptance criteria)
-  # ---------------------------------------------------------------------------
-
-  describe described_class::FakeScheduler do
-    subject(:runtime) { Phronomy::Runtime.new(scheduler: Phronomy::Runtime::FakeScheduler.new) }
-
-    it "does not increase Thread count when spawning a task" do
-      before = Thread.list.length
-      runtime.spawn { :noop }
-      after = Thread.list.length
-      expect(after).to eq(before)
-    end
-
-    it "executes the block synchronously before spawn returns" do
-      results = []
-      runtime.spawn { results << :done }
-      expect(results).to eq([:done])
-    end
-
-    it "returns a completed task immediately" do
-      task = runtime.spawn { 42 }
-      expect(task.status).to eq(:completed)
-    end
-
-    it "does not leak completed tasks in the registry (Issue #314)" do
-      runtime = Phronomy::Runtime.new(scheduler: Phronomy::Runtime::FakeScheduler.new)
-
-      # FakeScheduler runs synchronously — task is done before spawn returns.
-      # Before the fix, @tasks << task was added AFTER ensure fired, so the
-      # task was never removed and the registry kept growing.
-      3.times { runtime.spawn { :result } }
-
-      tasks = runtime.instance_variable_get(:@task_registry).instance_variable_get(:@tasks)
-      # All tasks completed synchronously; registry must be empty.
-      expect(tasks).to be_empty
-    end
-  end
-
   # ---------------------------------------------------------------------------
   # #shutdown (#282 acceptance criteria)
   # ---------------------------------------------------------------------------
 
   describe "#shutdown" do
-    it "waits for all registered tasks to complete" do
-      runtime = described_class.new
-      latch = Queue.new
-      task = runtime.spawn {
-        latch.pop
-        :done
-      }
-
-      thread = Thread.new { runtime.shutdown }
-      latch.push(:go)
-      thread.join(3)
-
-      expect(task.status).to eq(:completed)
-    end
-
     it "shuts down the blocking adapter pool when it was started" do
       runtime = described_class.new
       pool = runtime.blocking_io
@@ -140,128 +42,12 @@ RSpec.describe Phronomy::Runtime do
   end
 
   # ---------------------------------------------------------------------------
-  # Task auto-deregistration (Issue #289)
+  # Runtime.in_event_loop_context? (Issue #312)
   # ---------------------------------------------------------------------------
 
-  describe "#spawn task registry auto-deregistration (Issue #289)" do
-    subject(:runtime) { described_class.new }
-
-    it "removes a completed task from the registry" do
-      task = runtime.spawn { :done }
-      task.wait_result
-      tasks = runtime.instance_variable_get(:@task_registry).instance_variable_get(:@tasks)
-      expect(tasks).not_to include(task)
-    end
-
-    it "removes a failed task from the registry" do
-      task = runtime.spawn { raise ArgumentError, "boom" }
-      begin
-        task.wait_result
-      rescue
-        nil
-      end
-      tasks = runtime.instance_variable_get(:@task_registry).instance_variable_get(:@tasks)
-      expect(tasks).not_to include(task)
-    end
-
-    it "does not accumulate tasks across many spawns" do
-      20.times { runtime.spawn { :done }.wait_result }
-      tasks = runtime.instance_variable_get(:@task_registry).instance_variable_get(:@tasks)
-      expect(tasks.length).to eq(0)
-    end
-
-    it "still drains in-flight tasks on shutdown" do
-      latch = Queue.new
-      task = runtime.spawn {
-        latch.pop
-        :done
-      }
-      shutdown_thread = Thread.new { runtime.shutdown }
-      latch.push(:go)
-      shutdown_thread.join(3)
-      expect(task.status).to eq(:completed)
-    end
-  end
-
-  # ---------------------------------------------------------------------------
-  # Runtime.in_scheduler_context? (Issue #312)
-  # ---------------------------------------------------------------------------
-
-  describe ".in_scheduler_context?" do
+  describe ".in_event_loop_context?" do
     it "returns false when called outside any task" do
-      expect(described_class.in_scheduler_context?).to be(false)
-    end
-
-    it "returns true when called from inside a spawned task" do
-      result = nil
-      runtime = described_class.new(scheduler: described_class::FakeScheduler.new)
-      runtime.spawn { result = described_class.in_scheduler_context? }
-      expect(result).to be(true)
-    end
-  end
-
-  # ---------------------------------------------------------------------------
-  # Runtime.instance respects runtime_backend (Issue #313)
-  # ---------------------------------------------------------------------------
-
-  describe ".instance respects runtime_backend configuration" do
-    around do |ex|
-      Phronomy.reset_configuration!
-      original_instance = described_class.instance_variable_get(:@instance)
-      described_class.instance_variable_set(:@instance, nil)
-      ex.run
-    ensure
-      Phronomy.reset_configuration!
-      described_class.instance_variable_set(:@instance, original_instance)
-    end
-
-    it "uses ThreadScheduler by default (:thread backend)" do
-      Phronomy.configure { |c| c.runtime_backend = :thread }
-      expect(described_class.instance.scheduler).to be_a(Phronomy::Runtime::ThreadScheduler)
-    end
-
-    it "uses FakeScheduler for :immediate backend" do
-      Phronomy.configure { |c| c.runtime_backend = :immediate }
-      expect(described_class.instance.scheduler).to be_a(Phronomy::Runtime::FakeScheduler)
-    end
-
-    it "raises ConfigurationError for :cooperative backend (removed alias)" do
-      expect {
-        Phronomy.configure { |c| c.runtime_backend = :cooperative }
-      }.to raise_error(Phronomy::ConfigurationError)
-    end
-
-    it "uses ThreadScheduler for :thread backend" do
-      Phronomy.configure { |c| c.runtime_backend = :thread }
-      expect(described_class.instance.scheduler).to be_a(Phronomy::Runtime::ThreadScheduler)
-    end
-
-    it "uses DeterministicScheduler in autorun mode for :fiber backend (Issue #334)" do
-      Phronomy.configure { |c| c.runtime_backend = :fiber }
-      scheduler = described_class.instance.scheduler
-      expect(scheduler).to be_a(Phronomy::Runtime::DeterministicScheduler)
-      expect(scheduler).to be_autorun
-    end
-
-    it "emits an experimental warning when :fiber backend is used (Issue #334)" do
-      logger = instance_double("Logger", warn: nil, info: nil, debug: nil, error: nil)
-      Phronomy.configure do |c|
-        c.runtime_backend = :fiber
-        c.logger = logger
-      end
-      described_class.instance
-      expect(logger).to have_received(:warn).with(a_string_including("EXPERIMENTAL Fiber-based cooperative scheduler"))
-    end
-
-    it "runs tasks synchronously via Fibers with :fiber backend (Issue #334)" do
-      Phronomy.configure { |c| c.runtime_backend = :fiber }
-      results = []
-      task = described_class.instance.spawn do
-        results << :done
-        42
-      end
-      expect(results).to eq([:done])
-      expect(task.wait_result).to eq(42)
+      expect(described_class.in_event_loop_context?).to be(false)
     end
   end
 end

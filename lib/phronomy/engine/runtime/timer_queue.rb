@@ -2,104 +2,81 @@
 
 module Phronomy
   class Runtime
-    # A thread-safe timer queue backed by a single background thread.
-    #
-    # Replaces the pattern of spawning one +Thread.new { sleep(t); callback }+
-    # per deadline.  Any number of timers share a single background thread that
-    # sleeps until the earliest pending deadline.
-    #
-    # Use {#schedule} to register a one-shot callback; call {#shutdown} when the
-    # queue is no longer needed (e.g. on process exit) to stop the background
-    # thread cleanly.
+    # Threadless monotonic timer heap driven by EventLoop.
     class TimerQueue
-      # @param clock [#call] zero-argument callable that returns the current
-      #   monotonic time in seconds (defaults to +Process::CLOCK_MONOTONIC+).
-      #   Override in tests to inject a fake clock.
-      # @api private
       def initialize(clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) })
         @clock = clock
-        @heap = [] # [[fire_at, callback], ...]
+        @heap = []
         @mutex = Mutex.new
-        @cond = ConditionVariable.new
         @stopped = false
-        @thread = Thread.new { run_loop }
-        @thread.name = "phronomy-timer-queue"
+        @wake = nil
       end
 
-      # Schedule a one-shot callback to fire after +seconds+ from now.
-      #
-      # @param seconds [Numeric] delay before the callback fires
-      # @yield called (in the timer thread) when the deadline is reached
-      # @return [self]
-      # @api private
+      # Installs a lightweight wake callback used when a newly scheduled timer
+      # may change EventLoop's current wait deadline.
+      def wake_with(&block)
+        @mutex.synchronize { @wake = block }
+        self
+      end
+
       def schedule(seconds:, &callback)
+        raise ArgumentError, "schedule requires a block" unless callback
+
         fire_at = @clock.call + seconds.to_f
+        wake = nil
         @mutex.synchronize do
           raise Phronomy::PoolShutdownError, "TimerQueue has been shut down" if @stopped
-          insert_sorted(fire_at, callback)
-          @cond.signal
+
+          previous_first = @heap.first&.first
+          @heap << [fire_at, callback]
+          @heap.sort_by!(&:first)
+          wake = @wake if previous_first.nil? || fire_at < previous_first
         end
+        wake&.call
         self
       end
 
-      # Stop the background thread.  Pending (un-fired) callbacks are discarded.
-      #
-      # @return [self]
-      # @api private
-      def shutdown
+      # Seconds until the next timer is due, nil when no timers are pending.
+      def seconds_until_next
         @mutex.synchronize do
-          @stopped = true
-          @cond.signal
+          return nil if @stopped || @heap.empty?
+          [@heap.first.first - @clock.call, 0.0].max
         end
-        @thread.join
-        self
       end
 
-      # Number of pending (not yet fired) callbacks.  Primarily for testing.
-      # @return [Integer]
-      # @api private
+      # Executes all callbacks whose deadline is due. Must be called by EventLoop.
+      def fire_due
+        callbacks = @mutex.synchronize do
+          return 0 if @stopped
+
+          now = @clock.call
+          due_count = @heap.bsearch_index { |(fire_at, _)| fire_at > now } || @heap.length
+          @heap.shift(due_count).map(&:last)
+        end
+
+        callbacks.each do |callback|
+          callback.call
+        rescue => error
+          Phronomy.configuration.logger&.error do
+            "[TimerQueue] callback raised #{error.class}: #{error.message}"
+          end
+        end
+        callbacks.length
+      end
+
       def pending_count
         @mutex.synchronize { @heap.size }
       end
 
-      private
-
-      def insert_sorted(fire_at, callback)
-        @heap << [fire_at, callback]
-        @heap.sort_by! { |(t, _)| t }
-      end
-
-      def run_loop
-        loop do
-          callback = next_callback
-          break if callback == :stopped
-          begin
-            callback&.call
-          rescue => e
-            Phronomy.configuration.logger&.error { "[TimerQueue] callback raised #{e.class}: #{e.message}" }
-          end
+      def shutdown
+        wake = @mutex.synchronize do
+          return self if @stopped
+          @stopped = true
+          @heap.clear
+          @wake
         end
-      end
-
-      def next_callback
-        @mutex.synchronize do
-          loop do
-            return :stopped if @stopped
-
-            if @heap.empty?
-              @cond.wait(@mutex)
-            else
-              now = @clock.call
-              fire_at, = @heap.first
-              if fire_at <= now
-                return @heap.shift[1]
-              else
-                remaining = fire_at - now
-                @cond.wait(@mutex, remaining)
-              end
-            end
-          end
-        end
+        wake&.call
+        self
       end
     end
   end

@@ -16,7 +16,7 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
 
   let(:pool_double) do
     pd = instance_double(Phronomy::Concurrency::BlockingAdapterPool)
-    allow(pd).to receive(:submit) do |cancellation_token: nil, &blk|
+    allow(pd).to receive(:submit) do |cancellation_token: nil, on_full: :wait, **_kw, &blk|
       op = double("PendingOp")
       allow(op).to receive(:wait_result).and_return(blk.call)
       op
@@ -25,32 +25,16 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
   end
 
   let(:runtime_with_pool) do
-    r = instance_double(Phronomy::Runtime, blocking_io: pool_double)
-    allow(r).to receive(:spawn) do |name: nil, &blk|
-      t = double("Task-#{name}")
-      allow(t).to receive(:wait_result).and_return(blk.call)
-      t
-    end
-    r
-  end
-
-  let(:runtime_no_pool) do
-    r = instance_double(Phronomy::Runtime, blocking_io: nil)
-    allow(r).to receive(:spawn) do |name: nil, &blk|
-      t = double("Task-no-pool-#{name}")
-      allow(t).to receive(:wait_result).and_return(blk.call)
-      t
-    end
-    r
+    instance_double(Phronomy::Runtime, blocking_io: pool_double)
   end
 
   describe "cooperative routing" do
-    it "dispatches via Runtime#spawn and returns an awaitable" do
+    it "dispatches via pool.submit and returns an awaitable" do
       tool = make_tool(:cooperative)
       awaitable = described_class.call_async(tool: tool, args: {"x" => "hi"},
         runtime: runtime_with_pool)
       expect(awaitable.wait_result).to eq("cooperative:hi")
-      expect(pool_double).not_to have_received(:submit)
+      expect(pool_double).to have_received(:submit).once
     end
   end
 
@@ -60,66 +44,46 @@ RSpec.describe Phronomy::Agent::ToolExecutor do
       awaitable = described_class.call_async(tool: tool, args: {"x" => "io"},
         runtime: runtime_with_pool)
       expect(awaitable.wait_result).to eq("blocking_io:io")
-      expect(pool_double).to have_received(:submit).with(cancellation_token: nil).once
-    end
-
-    it "falls back to Runtime#spawn when no pool is present" do
-      tool = make_tool(:blocking_io)
-      awaitable = described_class.call_async(tool: tool, args: {"x" => "fallback"},
-        runtime: runtime_no_pool)
-      expect(awaitable.wait_result).to eq("blocking_io:fallback")
+      expect(pool_double).to have_received(:submit).with(cancellation_token: nil, on_full: anything).once
     end
   end
 
   describe "cpu_bound routing" do
-    it "emits a deprecation-style warning and falls back to blocking_io" do
+    it "raises ConfigurationError for :cpu_bound tools" do
       tool = make_tool(:cpu_bound)
       expect {
         described_class.call_async(tool: tool, args: {"x" => "cpu"},
           runtime: runtime_with_pool)
-      }
-        .to output(/execution_mode :cpu_bound.*no dedicated executor|declares execution_mode :cpu_bound/im).to_stderr
-    end
-
-    it "still returns a result after fallback" do
-      tool = make_tool(:cpu_bound)
-      suppress_output = double("Logger", warn: nil)
-      Phronomy.configuration.logger = suppress_output
-      awaitable = described_class.call_async(tool: tool, args: {"x" => "cpu"},
-        runtime: runtime_with_pool)
-      expect(awaitable.wait_result).to eq("cpu_bound:cpu")
-    ensure
-      Phronomy.configuration.logger = nil
+      }.to raise_error(Phronomy::ConfigurationError, /cpu_bound/)
     end
   end
 
   describe "external_process routing" do
-    it "emits a warning and falls back to blocking_io" do
+    it "raises ConfigurationError for :external_process tools" do
       tool = make_tool(:external_process)
       expect {
         described_class.call_async(tool: tool, args: {"x" => "ext"},
           runtime: runtime_with_pool)
-      }
-        .to output(/execution_mode :external_process|declares execution_mode :external_process/im).to_stderr
+      }.to raise_error(Phronomy::ConfigurationError, /external_process/)
     end
   end
 
   describe "cancellation_token propagation" do
-    it "passes the token to Tool#call for :cooperative tools" do
-      tool = make_tool(:cooperative)
+    it "passes cancellation_token to pool.submit" do
+      tool = make_tool(:blocking_io)
+      ct = Phronomy::Concurrency::CancellationToken.new
+      described_class.call_async(tool: tool, args: {"x" => "y"}, cancellation_token: ct,
+        runtime: runtime_with_pool)
+      expect(pool_double).to have_received(:submit).with(cancellation_token: ct, on_full: anything)
+    end
+
+    it "passes cancellation_token to Tool#call inside the worker" do
+      tool = make_tool(:blocking_io)
       ct = Phronomy::Concurrency::CancellationToken.new
       allow(tool).to receive(:call).and_call_original
       described_class.call_async(tool: tool, args: {"x" => "x"}, cancellation_token: ct,
         runtime: runtime_with_pool)
       expect(tool).to have_received(:call).with({"x" => "x"}, cancellation_token: ct)
-    end
-
-    it "passes only the cancellation token to pool.submit for :blocking_io tools" do
-      tool = make_tool(:blocking_io)
-      ct = Phronomy::Concurrency::CancellationToken.new
-      described_class.call_async(tool: tool, args: {"x" => "y"}, cancellation_token: ct,
-        runtime: runtime_with_pool)
-      expect(pool_double).to have_received(:submit).with(cancellation_token: ct)
     end
   end
 end

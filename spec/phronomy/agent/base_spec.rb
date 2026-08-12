@@ -52,7 +52,7 @@ RSpec.describe Phronomy::Agent::Base do
 
     it "returns a Task" do
       allow_any_instance_of(Phronomy::Agent::ExecutionCoordinator).to receive(:start) do
-        Phronomy::Task.spawn(name: "stub") { {output: "ok"} }
+        Phronomy::Task.new(name: "stub").tap { |t| t.complete({output: "ok"}) }
       end
       task = agent.invoke_async("hi")
       expect(task).to be_a(Phronomy::Task)
@@ -66,7 +66,7 @@ RSpec.describe Phronomy::Agent::Base do
         m.call(*a, **kw)
       end
       allow_any_instance_of(Phronomy::Agent::ExecutionCoordinator).to receive(:start) do
-        Phronomy::Task.spawn(name: "stub") { {output: "ok"} }
+        Phronomy::Task.new(name: "stub").tap { |t| t.complete({output: "ok"}) }
       end
       agent.invoke_async("hi").wait_result
       expect(invoke_called).to be(false)
@@ -74,66 +74,10 @@ RSpec.describe Phronomy::Agent::Base do
 
     it "registers the task with Runtime so shutdown can drain it" do
       allow_any_instance_of(Phronomy::Agent::ExecutionCoordinator).to receive(:start) do
-        Phronomy::Task.spawn(name: "stub") { {output: "ok"} }
+        Phronomy::Task.new(name: "stub").tap { |t| t.complete({output: "ok"}) }
       end
       task = agent.invoke_async("hi")
       expect(task.wait_result[:output]).to eq("ok")
-    end
-  end
-
-  describe "#invoke SchedulerReentrancyError guard (Issue #291)" do
-    let(:agent) do
-      Class.new(Phronomy::Agent::Base) do
-        agent_definition id: "test-agent-41", version: 1
-        instructions "test"
-        model "gpt-4o-mini"
-      end.new
-    end
-
-    around do |ex|
-      Phronomy.configure { |c| c.strict_runtime_guards = true }
-      ex.run
-    ensure
-      Phronomy.reset_configuration!
-    end
-
-    it "raises SchedulerReentrancyError when called from inside a Task" do
-      error = nil
-      Phronomy::Task.spawn do
-        agent.invoke("hi")
-      rescue Phronomy::SchedulerReentrancyError => e
-        error = e
-      end.wait_result
-      expect(error).to be_a(Phronomy::SchedulerReentrancyError)
-      expect(error.message).to include("invoke_async")
-    end
-
-    it "does not raise when called outside a Task" do
-      allow_any_instance_of(Phronomy::Agent::ExecutionCoordinator).to receive(:start) do
-        Phronomy::Task.spawn(name: "stub") { {output: "ok"} }
-      end
-      expect { agent.invoke("hi") }.not_to raise_error
-    end
-
-    context "when strict_runtime_guards is false (default)" do
-      around do |ex|
-        Phronomy.configure { |c| c.strict_runtime_guards = false }
-        ex.run
-      ensure
-        Phronomy.reset_configuration!
-      end
-
-      it "logs a warning instead of raising" do
-        logged = nil
-        fake_logger = double("logger")
-        allow(fake_logger).to receive(:warn) { |msg| logged = msg }
-        Phronomy.configure { |c| c.logger = fake_logger }
-        allow_any_instance_of(Phronomy::Agent::ExecutionCoordinator).to receive(:start) do
-          Phronomy::Task.spawn(name: "stub") { {output: "ok"} }
-        end
-        Phronomy::Task.spawn { agent.invoke("hi") }.wait_result
-        expect(logged).to include("invoke_async")
-      end
     end
   end
 
@@ -216,7 +160,7 @@ RSpec.describe "Agent::Base invocation_context: keyword argument (Issue #301)" d
     captured = {}
     allow_any_instance_of(Phronomy::Agent::ExecutionCoordinator).to receive(:start) do |_coord, _input, config: {}, **|
       captured = config
-      Phronomy::Task.spawn(name: "stub-ic") { {output: "ok"} }
+      Phronomy::Task.new(name: "stub-ic").tap { |t| t.complete({output: "ok"}) }
     end
     block.call
     captured

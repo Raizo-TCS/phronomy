@@ -73,7 +73,7 @@ RSpec.describe Phronomy::Agent::Base do
   let(:agent) { agent_class.new }
 
   describe "#approve EventLoop re-entry guard" do
-    it "raises SchedulerReentrancyError when called from the EventLoop thread" do
+    it "raises EventLoopReentrancyError when called from the EventLoop thread" do
       event_loop = double("event_loop", current?: true)
       runtime = double("runtime", event_loop: event_loop)
       allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
@@ -85,7 +85,7 @@ RSpec.describe Phronomy::Agent::Base do
           approved: true
         )
       end.to raise_error(
-        Phronomy::SchedulerReentrancyError,
+        Phronomy::EventLoopReentrancyError,
         /approve_async/
       )
     end
@@ -126,7 +126,7 @@ RSpec.describe Phronomy::Agent::Base do
       expect {
         task = agent.approve_async(execution_id, approval_request_id: request_id)
         expect(task).to be_a(Phronomy::Task)
-      }.not_to raise_error(Phronomy::SchedulerReentrancyError)
+      }.not_to raise_error(Phronomy::EventLoopReentrancyError)
     end
 
     it "returns a failed Task when execution_id is unknown" do

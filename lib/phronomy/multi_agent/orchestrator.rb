@@ -6,7 +6,6 @@ module Phronomy
     class Orchestrator < Agent::Base
       agent_definition id: "orchestrator", version: 1
 
-      # @api public
       def self.subagent(name, agent_class, on_error: :raise, inherit_knowledge: true)
         tool_class = Class.new(Phronomy::Agent::Context::Capability::Base) do
           tool_name "dispatch_to_#{name}"
@@ -61,12 +60,10 @@ module Phronomy
         @_subagent_tool_classes || []
       end
 
-      # @api public
       def self.registered_subagents
         @registered_subagents ||= {}
       end
 
-      # @api public
       def dispatch_parallel(
         *tasks,
         max_concurrency: nil,
@@ -76,25 +73,52 @@ module Phronomy
         invocation_context: nil,
         inherit_knowledge: true
       )
-        unless %i[raise skip].include?(on_error)
-          raise ArgumentError, "unknown on_error: #{on_error.inspect}"
+        if Phronomy::Runtime.in_event_loop_context?
+          raise Phronomy::EventLoopReentrancyError,
+            "dispatch_parallel cannot block the EventLoop; use dispatch_parallel_async"
         end
-        if max_concurrency && !(max_concurrency.is_a?(Integer) && max_concurrency.positive?)
-          raise ArgumentError, "max_concurrency must be a positive Integer"
-        end
-
-        bounded_map(
-          tasks,
+        dispatch_parallel_async(
+          *tasks,
           max_concurrency: max_concurrency,
           on_error: on_error,
           timeout: timeout,
           cancellation_token: cancellation_token,
           invocation_context: invocation_context,
           inherit_knowledge: inherit_knowledge
+        ).wait_result
+      end
+
+      def dispatch_parallel_async(
+        *tasks,
+        max_concurrency: nil,
+        on_error: :raise,
+        timeout: nil,
+        cancellation_token: nil,
+        invocation_context: nil,
+        inherit_knowledge: true
+      )
+        validate_parallel_options!(tasks, max_concurrency, on_error)
+        return Phronomy::Task.deferred(name: "fan-out-empty").tap { |task| task.complete([]) } if tasks.empty?
+
+        children = build_fan_out_children(
+          tasks,
+          cancellation_token: cancellation_token,
+          invocation_context: invocation_context,
+          inherit_knowledge: inherit_knowledge
+        )
+        invocation = FanOutInvocation.new(
+          children: children,
+          max_concurrency: max_concurrency || children.length,
+          on_error: on_error
+        )
+        effective_token = cancellation_token || invocation_context&.cancellation_token
+        FanOutSessionBuilder.start(
+          invocation: invocation,
+          timeout: timeout,
+          cancellation_token: effective_token
         )
       end
 
-      # @api public
       def fan_out(
         agent:,
         inputs:,
@@ -120,11 +144,31 @@ module Phronomy
         )
       end
 
-      # Programmatic single-subagent dispatch. Context propagation is explicit:
-      # pass invocation_context in +config+ when this call must inherit a parent.
-      # Active parent Knowledge is inherited by default; pass
-      # +inherit_knowledge: false+ to create an isolated subagent.
-      # @api public
+      def fan_out_async(
+        agent:,
+        inputs:,
+        config: {},
+        thread_id: nil,
+        max_concurrency: nil,
+        on_error: :raise,
+        timeout: nil,
+        cancellation_token: nil,
+        invocation_context: nil,
+        inherit_knowledge: true
+      )
+        dispatch_parallel_async(
+          *inputs.map do |input|
+            {agent: agent, input: input, config: config, thread_id: thread_id}
+          end,
+          max_concurrency: max_concurrency,
+          on_error: on_error,
+          timeout: timeout,
+          cancellation_token: cancellation_token,
+          invocation_context: invocation_context,
+          inherit_knowledge: inherit_knowledge
+        )
+      end
+
       def subagent(
         agent_class,
         input,
@@ -132,6 +176,10 @@ module Phronomy
         thread_id: nil,
         inherit_knowledge: true
       )
+        if Phronomy::Runtime.in_event_loop_context?
+          raise Phronomy::EventLoopReentrancyError,
+            "subagent cannot block the EventLoop; use the async Agent API"
+        end
         build_subagent(
           agent_class,
           inherit_knowledge: inherit_knowledge
@@ -144,8 +192,6 @@ module Phronomy
 
       private
 
-      # Capture the current invocation directly while materializing Tool classes.
-      # No legacy invoke_once/thread-local bridge is involved.
       def prepare_tool_class(tool_class, invocation: nil)
         prepared = super
         return prepared unless self.class._subagent_tool_classes.include?(tool_class)
@@ -188,11 +234,7 @@ module Phronomy
         end.freeze
       end
 
-      def build_subagent(
-        agent_class,
-        inherit_knowledge: true,
-        knowledge_snapshot: nil
-      )
+      def build_subagent(agent_class, inherit_knowledge: true, knowledge_snapshot: nil)
         agent = agent_class.new
         return agent unless inherit_knowledge
 
@@ -206,80 +248,54 @@ module Phronomy
         agent
       end
 
-      def bounded_map(
-        tasks,
-        max_concurrency:,
-        on_error:,
-        timeout: nil,
-        cancellation_token: nil,
-        invocation_context: nil,
-        inherit_knowledge: true
-      )
-        return [] if tasks.empty?
-
-        inheritance_flags = tasks.map do |task|
-          task.fetch(:inherit_knowledge, inherit_knowledge)
+      def validate_parallel_options!(tasks, max_concurrency, on_error)
+        unless %i[raise skip].include?(on_error)
+          raise ArgumentError, "unknown on_error: #{on_error.inspect}"
         end
+        if max_concurrency && !(max_concurrency.is_a?(Integer) && max_concurrency.positive?)
+          raise ArgumentError, "max_concurrency must be a positive Integer"
+        end
+        tasks.each do |task|
+          raise ArgumentError, "fan-out task must be a Hash" unless task.is_a?(Hash)
+          raise ArgumentError, "fan-out task requires :agent" unless task[:agent]
+          raise ArgumentError, "fan-out task requires :input" unless task.key?(:input)
+        end
+      end
+
+      def build_fan_out_children(
+        tasks,
+        cancellation_token:,
+        invocation_context:,
+        inherit_knowledge:
+      )
+        inheritance_flags = tasks.map { |task| task.fetch(:inherit_knowledge, inherit_knowledge) }
         knowledge_snapshot = active_knowledge_snapshot if inheritance_flags.any?
 
-        results = Array.new(tasks.length)
-        errors = Array.new(tasks.length)
-        group = Phronomy::Runtime.instance.task_group(
-          limit: max_concurrency || tasks.length
-        )
-        effective_ct = cancellation_token || invocation_context&.cancellation_token
-
-        spawned = tasks.each_with_index.map do |task, index|
-          group.spawn do
-            task_config = task.fetch(:config, {})
-
-            if effective_ct && !task_config[:cancellation_token]
-              task_config = task_config.merge(cancellation_token: effective_ct)
-            end
-
-            if invocation_context && !task_config[:invocation_context]
-              child_ic = invocation_context.merge(
-                parent_task_id: invocation_context.task_id
-              )
-              task_config = task_config.merge(invocation_context: child_ic)
-            end
-
-            task_inherits_knowledge = inheritance_flags[index]
-            agent = build_subagent(
-              task[:agent],
-              inherit_knowledge: task_inherits_knowledge,
-              knowledge_snapshot: knowledge_snapshot
+        tasks.each_with_index.map do |task, index|
+          task_config = task.fetch(:config, {}).dup
+          if cancellation_token && !task_config[:cancellation_token]
+            task_config[:cancellation_token] = cancellation_token
+          end
+          if invocation_context && !task_config[:invocation_context]
+            task_config[:invocation_context] = invocation_context.merge(
+              parent_task_id: invocation_context.task_id
             )
-
-            results[index] = agent.invoke_async(
-              task[:input],
-              config: task_config,
-              thread_id: task[:thread_id] || invocation_context&.thread_id
-            ).wait_result
-          rescue => error
-            errors[index] = error unless on_error == :skip
           end
+
+          child_agent = build_subagent(
+            task.fetch(:agent),
+            inherit_knowledge: inheritance_flags[index],
+            knowledge_snapshot: knowledge_snapshot
+          )
+
+          FanOutInvocation::Child.new(
+            index: index,
+            agent: child_agent,
+            input: task.fetch(:input),
+            config: task_config,
+            thread_id: task[:thread_id] || invocation_context&.thread_id
+          )
         end
-
-        if timeout
-          deadline = Phronomy::Concurrency::Deadline.in(timeout)
-          spawned.each { |task| task.join([deadline.remaining_seconds, 0].max) }
-
-          alive = spawned.select(&:alive?)
-          unless alive.empty?
-            group.cancel_all!
-            raise Phronomy::TimeoutError,
-              "dispatch_parallel timed out after #{timeout}s " \
-              "(#{alive.length} of #{spawned.length} tasks still running)"
-          end
-        else
-          spawned.each(&:wait_result)
-        end
-
-        first_error = errors.compact.first
-        raise first_error if first_error
-
-        results
       end
     end
   end

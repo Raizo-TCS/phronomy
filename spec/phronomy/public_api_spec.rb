@@ -150,9 +150,5 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
     it "exposes #blocking_io returning a BlockingAdapterPool" do
       expect(runtime.blocking_io).to be_a(Phronomy::Concurrency::BlockingAdapterPool)
     end
-
-    it "exposes #task_group returning a TaskGroup" do
-      expect(runtime.task_group).to be_a(Phronomy::TaskGroup)
-    end
   end
 end

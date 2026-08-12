@@ -117,7 +117,15 @@ RSpec.describe "Fault injection (Issue #213)" do
         agent_definition id: "test-agent-107", version: 1
         define_method(:invoke) { |input, **| {output: "ok:#{input}", messages: []} }
         define_method(:invoke_async) do |input, **_kw|
-          Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
+          t = Phronomy::Task.new(name: "stub-async")
+          Thread.new {
+            begin
+              t.complete(invoke(input))
+            rescue
+              t.fail($!)
+            end
+          }
+          t
         end
       end
     end
@@ -127,7 +135,15 @@ RSpec.describe "Fault injection (Issue #213)" do
         agent_definition id: "test-agent-108", version: 1
         define_method(:invoke) { |*| raise "simulated failure" }
         define_method(:invoke_async) do |input, **_kw|
-          Phronomy::Task.spawn(name: "stub-async") { invoke(input) }
+          t = Phronomy::Task.new(name: "stub-async")
+          Thread.new {
+            begin
+              t.complete(invoke(input))
+            rescue
+              t.fail($!)
+            end
+          }
+          t
         end
       end
     end
@@ -166,15 +182,14 @@ RSpec.describe "Fault injection (Issue #213)" do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          Phronomy::Task.spawn(name: "stub-async") do
-            invoke(
-              input,
-              thread_id: thread_id,
-              config: config,
-              invocation_context: invocation_context,
-              on_event: on_event
-            )
+          t = Phronomy::Task.new(name: "stub-async")
+          Thread.new do
+            t.complete(invoke(input, thread_id: thread_id, config: config,
+              invocation_context: invocation_context, on_event: on_event))
+          rescue => e
+            t.fail(e)
           end
+          t
         end
       end
 

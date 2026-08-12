@@ -553,35 +553,20 @@ module Phronomy
         [effective_thread_id, effective_config]
       end
 
-      def _check_scheduler_reentrancy(sync_method, async_method)
+      def _check_event_loop_reentrancy(sync_method, async_method)
         if Phronomy::Runtime.instance.event_loop.current?
-          raise Phronomy::SchedulerReentrancyError,
+          raise Phronomy::EventLoopReentrancyError,
             "#{self.class.name}##{sync_method} cannot run on the EventLoop thread. " \
             "Use #{async_method} and return immediately."
-        end
-
-        return unless Phronomy::Task.current
-
-        msg = "#{self.class.name}##{sync_method} called from inside a scheduler task. " \
-          "This blocks the scheduler until the inner invocation completes, preventing " \
-          "other tasks from making progress. Use #{async_method} + await instead."
-        if Phronomy.configuration.strict_runtime_guards
-          raise Phronomy::SchedulerReentrancyError, msg
-        elsif Phronomy.configuration.logger
-          Phronomy.configuration.logger.warn(msg)
-        else
-          Kernel.warn("[phronomy] WARNING: #{msg}")
         end
       end
 
       def _complete_result_task(task, result)
-        task.backend.unblock(result, nil)
-        task.transition!(:completed, value: result)
+        task.complete(result)
       end
 
       def _fail_result_task(task, error)
-        task.backend.unblock(nil, error)
-        task.transition!(:failed, error: error)
+        task.fail(error)
       end
 
       def _translated_error(error)

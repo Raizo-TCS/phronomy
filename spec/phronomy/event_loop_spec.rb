@@ -77,17 +77,17 @@ RSpec.describe Phronomy::EventLoop do
       expect(runtime.event_loop).to be(runtime.event_loop)
     end
 
-    it "starts the background dispatcher task on first access" do
+    it "starts the background dispatcher thread on first access" do
       el = runtime.event_loop
-      task = el.instance_variable_get(:@task)
-      expect(task).to be_alive
+      thread = el.instance_variable_get(:@thread)
+      expect(thread).to be_alive
     end
 
     it "dispatcher is terminated after Runtime#shutdown" do
       el = runtime.event_loop
-      task = el.instance_variable_get(:@task)
+      thread = el.instance_variable_get(:@thread)
       runtime.shutdown(timeout: 2)
-      expect(task).not_to be_alive
+      expect(thread).not_to be_alive
     end
 
     it "does not create an EventLoop when shutting down an unused Runtime" do
@@ -104,21 +104,15 @@ RSpec.describe Phronomy::EventLoop do
   describe "deadlock protection" do
     it "raises when register is called from within the EventLoop dispatch thread" do
       el = runtime.event_loop
-      task = el.instance_variable_get(:@task)
       error = nil
 
-      # current? checks Task.current.equal?(@task), so we must set the actual task.
-      t = Thread.new do
-        Thread.current[:phronomy_current_task] = task
-        begin
-          el.register(double("session", id: "fake"))
-        rescue Phronomy::Error => e
-          error = e
-        ensure
-          Thread.current[:phronomy_current_task] = nil
-        end
+      # Simulate being on the EventLoop thread by stubbing current?
+      allow(el).to receive(:current?).and_return(true)
+      begin
+        el.register(double("session", id: "fake"))
+      rescue Phronomy::Error => e
+        error = e
       end
-      t.join(2)
       expect(error).to be_a(Phronomy::Error)
       expect(error.message).to include("EventLoop")
     end
@@ -223,7 +217,7 @@ RSpec.describe Phronomy::EventLoop do
   describe "cooperative shutdown via Runtime#shutdown" do
     it "terminates the dispatcher cleanly when no events are in-flight" do
       el = runtime.event_loop
-      expect(el.instance_variable_get(:@task)).not_to be_nil
+      expect(el.instance_variable_get(:@thread)).not_to be_nil
 
       result = runtime.shutdown(timeout: 2)
 
@@ -240,38 +234,6 @@ RSpec.describe Phronomy::EventLoop do
       runtime.event_loop
       result = runtime.shutdown(timeout: 2)
       expect(result.clean?).to be(true)
-    end
-
-    it "completes abandoned Task waiters on the EventLoop thread" do
-      el = runtime.event_loop
-      started = Thread::Queue.new
-      release = Thread::Queue.new
-      session = double("session", id: "forced-shutdown-affinity")
-      completion = Phronomy::Task.deferred(name: "forced-shutdown-waiter")
-      callback_on_event_loop = nil
-      callback_error = nil
-
-      allow(session).to receive(:start) do
-        started.push(:started)
-        release.pop
-      end
-      allow(session).to receive(:handle)
-
-      completion.on_complete do |_value, error|
-        callback_on_event_loop = el.current?
-        callback_error = error
-      end
-
-      el.register(session, completion: completion)
-      started.pop
-
-      result = runtime.shutdown(timeout: 0.05, cancel_grace: 1)
-
-      expect(result.event_loop_status).to eq(:cancelled)
-      expect(callback_on_event_loop).to be(true)
-      expect(callback_error).to be_a(Phronomy::CancellationError)
-    ensure
-      release&.push(:release)
     end
   end
 end

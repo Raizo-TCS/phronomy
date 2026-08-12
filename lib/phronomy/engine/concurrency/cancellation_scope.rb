@@ -18,10 +18,9 @@ module Phronomy
     #
     # @example Explicit cancellation
     #   scope = Phronomy::Concurrency::CancellationScope.new
-    #   Phronomy::Runtime.instance.spawn(name: "worker") do
-    #     scope.token.raise_if_cancelled!
-    #     # ... do work ...
-    #   end
+    #   operation = Phronomy::Runtime.instance.blocking_io.submit(
+    #     cancellation_token: scope.token
+    #   ) { blocking_operation }
     #   scope.cancel! if some_condition
     class CancellationScope
       # @return [CancellationToken] the token owned by this scope

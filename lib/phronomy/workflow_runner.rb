@@ -311,13 +311,11 @@ module Phronomy
     end
 
     def complete_task(task, value)
-      task.backend.unblock(value, nil)
-      task.transition!(:completed, value: value)
+      task.complete(value)
     end
 
     def fail_task(task, error)
-      task.backend.unblock(nil, error)
-      task.transition!(:failed, error: error)
+      task.fail(error)
     end
 
     def failed_task(name, error)

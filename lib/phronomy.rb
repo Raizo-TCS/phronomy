@@ -38,7 +38,13 @@ module Phronomy
   class ContextLengthError < Error; end
   class CancellationError < Error; end
 
-  class SchedulerReentrancyError < Error; end
+  # Raised when a synchronous API would block the EventLoop control thread.
+  class EventLoopReentrancyError < Error; end
+
+  # Backward-compatible error class name for callers that still rescue the old
+  # scheduler-oriented exception. New code should use EventLoopReentrancyError.
+  class SchedulerReentrancyError < EventLoopReentrancyError; end
+
   class RuntimeShutdownError < Error; end
   class RuntimeShutdownReentrancyError < RuntimeShutdownError; end
 
@@ -63,9 +69,6 @@ module Phronomy
   class PoolShutdownError < Error; end
   class BackpressureError < Error; end
 
-  # Raised when a WorkflowContext field is mutated from a thread that does not
-  # own the context. Deliver asynchronous updates back to the Workflow as later
-  # events via Workflow#signal instead of mutating context from worker callbacks.
   class WorkflowContextOwnershipError < Error; end
 
   class << self

@@ -33,8 +33,7 @@ RSpec.describe "Workflow transition actions" do
 
   def completed_task(value)
     task = Phronomy::Task.deferred(name: "completed-transition-action")
-    task.backend.unblock(value, nil)
-    task.transition!(:completed, value: value)
+    task.complete(value)
     task
   end
 
@@ -296,8 +295,8 @@ RSpec.describe "Workflow transition actions" do
         to: :processing,
         action: ->(context) {
           thread_id = context.thread_id
-          task = Phronomy::Runtime.instance.spawn { "async-result" }
-          task.on_complete do |value, error|
+          op = Phronomy::Runtime.instance.blocking_io.submit { "async-result" }
+          op.on_complete do |value, error|
             workflow.signal(
               thread_id: thread_id,
               event: :work_completed,

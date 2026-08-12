@@ -12,7 +12,7 @@ module Phronomy
     # **must** route through this pool (or a named pool obtained via
     # {Runtime#pool}). Custom non-blocking HTTP/selector runtimes are intentionally
     # out of scope; the pool + cooperative scheduler combination satisfies all
-    # current concurrency requirements without that complexity. (See ADR-010.)
+    # current concurrency requirements together with EventLoop/FSMSession. (See ADR-010.)
     #
     # All blocking calls (LLM HTTP, MCP stdio, ActiveRecord, Redis, etc.) must be
     # submitted through this pool so that:
@@ -79,15 +79,7 @@ module Phronomy
         # If the token is cancelled while waiting, {Phronomy::CancellationError} is
         # raised without interrupting the worker.
         #
-        # **Cooperative path (`:fiber` / `DeterministicScheduler`):**
-        # When called from a Fiber managed by {DeterministicScheduler}, the calling
-        # Fiber suspends cooperatively via +Fiber.yield+ rather than blocking the OS
-        # thread. The Fiber is resumed through +on_complete+ when the operation
-        # settles. A waiter-local +timeout:+ is not enforced on this path; use the
-        # submit-time timeout for an operation-wide deadline.
-        #
         # @param timeout [Numeric, nil] maximum seconds this waiter will block
-        #   (thread path only; ignored on the cooperative/fiber path)
         # @param cancellation_token [CancellationToken, nil]
         # @return [Object]
         # @raise [Phronomy::TimeoutError]
@@ -98,30 +90,6 @@ module Phronomy
           effective_token = cancellation_token || @cancellation_token
 
           raise CancellationError, "blocking operation cancelled" if effective_token&.cancelled?
-
-          # Cooperative context: suspend the calling Fiber rather than blocking
-          # the OS thread so that DeterministicScheduler can continue dispatching
-          # other tasks while waiting for the blocking worker or submit-time timer.
-          scheduler = Thread.current.thread_variable_get(:phronomy_deterministic_scheduler)
-          in_managed_fiber = !Fiber.respond_to?(:main) || Fiber.current != Fiber.main
-          if scheduler && in_managed_fiber
-            unless done?
-              scheduler.track_blocking_await
-              waiting_fiber = Fiber.current
-              on_complete do |_result, _error|
-                scheduler.complete_blocking_await
-                scheduler.enqueue_fiber(-> { waiting_fiber.resume })
-              end
-              Fiber.yield(:cooperative_suspend)
-            end
-
-            raise CancellationError, "blocking operation cancelled" if effective_token&.cancelled?
-
-            value, error = @mutex.synchronize { [@value, @error] }
-            raise error if error
-
-            return value
-          end
 
           # Wake up the waiting thread whenever the token is cancelled so we can
           # propagate cancellation without sleeping until the operation completes.
@@ -158,7 +126,8 @@ module Phronomy
         #
         # If the operation has already settled, the callback is invoked immediately
         # on the calling thread. Otherwise it may be invoked on a pool worker thread
-        # or on the runtime timer thread. The execution thread is not guaranteed;
+        # or on the EventLoop thread when an operation timeout fires. The execution
+        # thread is not guaranteed;
         # callbacks must be thread-safe and should complete quickly.
         #
         # The callback receives +result+ and +error+ (one of them will be +nil+).

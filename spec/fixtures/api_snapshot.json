@@ -174,7 +174,9 @@
       "clear_transcript!",
       "close!",
       "dispatch_parallel",
+      "dispatch_parallel_async",
       "fan_out",
+      "fan_out_async",
       "invoke",
       "invoke_async",
       "journal_projection",
@@ -320,7 +322,7 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::Eval::Runner",
+    "name": "Phronomy::Testing::Eval::Runner",
     "type": "class",
     "public_instance_methods": [
       "run"

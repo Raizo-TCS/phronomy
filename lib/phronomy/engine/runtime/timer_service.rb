@@ -2,38 +2,30 @@
 
 module Phronomy
   class Runtime
-    # Lazy-initialised timer service for a {Runtime} instance.
-    #
-    # Returns a {SchedulerTimerAdapter} when the backing scheduler is a
-    # {DeterministicScheduler} (enabling virtual-time integration for the
-    # `:fiber` backend), or a standard {TimerQueue} (OS-thread backed) for all
-    # other schedulers.
-    # @api private
+    # Lazy owner of the Runtime's threadless timer queue.
     class TimerService
-      # @param scheduler [Scheduler]
-      # @api private
-      def initialize(scheduler)
-        @scheduler = scheduler
+      def initialize
         @mutex = Mutex.new
         @timer = nil
+        @waker = nil
       end
 
-      # Returns (or lazily creates) the timer queue for this runtime.
-      # @return [TimerQueue, SchedulerTimerAdapter]
-      # @api private
       def timer_queue
         @mutex.synchronize do
-          @timer ||= if @scheduler.is_a?(DeterministicScheduler)
-            SchedulerTimerAdapter.new(@scheduler)
-          else
-            TimerQueue.new
+          @timer ||= TimerQueue.new.tap do |timer|
+            timer.wake_with(&@waker) if @waker
           end
         end
       end
 
-      # Shuts down the timer queue if it was started.
-      # @return [void]
-      # @api private
+      def wake_with(&block)
+        @mutex.synchronize do
+          @waker = block
+          @timer&.wake_with(&block)
+        end
+        self
+      end
+
       def shutdown
         @mutex.synchronize { @timer&.shutdown }
       end

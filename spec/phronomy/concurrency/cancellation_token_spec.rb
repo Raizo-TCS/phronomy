@@ -138,15 +138,14 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          Phronomy::Task.spawn(name: "stub-async") do
-            invoke(
-              input,
-              thread_id: thread_id,
-              config: config,
-              invocation_context: invocation_context,
-              on_event: on_event
-            )
+          t = Phronomy::Task.new(name: "stub-async")
+          Thread.new do
+            t.complete(invoke(input, thread_id: thread_id, config: config,
+              invocation_context: invocation_context, on_event: on_event))
+          rescue => e
+            t.fail(e)
           end
+          t
         end
       end
     end
@@ -189,15 +188,14 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          Phronomy::Task.spawn(name: "stub-async") do
-            invoke(
-              input,
-              thread_id: thread_id,
-              config: config,
-              invocation_context: invocation_context,
-              on_event: on_event
-            )
+          t = Phronomy::Task.new(name: "stub-async")
+          Thread.new do
+            t.complete(invoke(input, thread_id: thread_id, config: config,
+              invocation_context: invocation_context, on_event: on_event))
+          rescue => e
+            t.fail(e)
           end
+          t
         end
       end
       [agent_class, received_tokens]
@@ -228,15 +226,14 @@ RSpec.describe Phronomy::Concurrency::CancellationToken do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, thread_id: nil, config: {}, invocation_context: nil, on_tool_approval_required: nil, on_event: nil|
-          Phronomy::Task.spawn(name: "stub-async") do
-            invoke(
-              input,
-              thread_id: thread_id,
-              config: config,
-              invocation_context: invocation_context,
-              on_event: on_event
-            )
+          t = Phronomy::Task.new(name: "stub-async")
+          Thread.new do
+            t.complete(invoke(input, thread_id: thread_id, config: config,
+              invocation_context: invocation_context, on_event: on_event))
+          rescue => e
+            t.fail(e)
           end
+          t
         end
       end
 

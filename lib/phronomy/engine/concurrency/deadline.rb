@@ -44,9 +44,8 @@ module Phronomy
       end
 
       # Attaches this deadline to a {CancellationToken} by cancelling the token
-      # when the deadline expires.  Uses the Runtime timer queue (a single
-      # background thread shared by all deadlines) instead of spawning one thread
-      # per deadline.
+      # when the deadline expires. The Runtime timer queue is driven by EventLoop;
+      # no timer-specific OS thread is created.
       #
       # @param token [CancellationToken]
       # @param timer_queue [Runtime::TimerQueue, nil] queue to register with;
