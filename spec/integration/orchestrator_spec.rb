@@ -28,7 +28,13 @@ RSpec.describe "Group 34: Orchestrator", :integration do
       end
       define_method(:invoke_async) do |input, **_kw|
         t = Phronomy::Task.new(name: "stub-async")
-        Thread.new { t.complete(invoke(input)) rescue t.fail($!) }
+        Thread.new {
+          begin
+            t.complete(invoke(input))
+          rescue
+            t.fail($!)
+          end
+        }
         t
       end
     end
@@ -43,7 +49,13 @@ RSpec.describe "Group 34: Orchestrator", :integration do
       end
       define_method(:invoke_async) do |input, **_kw|
         t = Phronomy::Task.new(name: "stub-async")
-        Thread.new { t.complete(invoke(input)) rescue t.fail($!) }
+        Thread.new {
+          begin
+            t.complete(invoke(input))
+          rescue
+            t.fail($!)
+          end
+        }
         t
       end
     end
@@ -150,10 +162,16 @@ RSpec.describe "Group 34: Orchestrator", :integration do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, **_kw|
-        t = Phronomy::Task.new(name: "stub-async")
-        Thread.new { t.complete(invoke(input)) rescue t.fail($!) }
-        t
-      end
+          t = Phronomy::Task.new(name: "stub-async")
+          Thread.new {
+            begin
+              t.complete(invoke(input))
+            rescue
+              t.fail($!)
+            end
+          }
+          t
+        end
       end
       orch.dispatch_parallel({agent: capture_class, input: "my_task"})
       expect(received).to eq(["my_task"])
@@ -228,10 +246,16 @@ RSpec.describe "Group 34: Orchestrator", :integration do
           {output: "echo:#{input}", messages: []}
         end
         define_method(:invoke_async) do |input, **_kw|
-        t = Phronomy::Task.new(name: "stub-async")
-        Thread.new { t.complete(invoke(input)) rescue t.fail($!) }
-        t
-      end
+          t = Phronomy::Task.new(name: "stub-async")
+          Thread.new {
+            begin
+              t.complete(invoke(input))
+            rescue
+              t.fail($!)
+            end
+          }
+          t
+        end
       end
 
       results = orch.fan_out(agent: capture_class, inputs: %w[alpha beta gamma])
@@ -251,10 +275,16 @@ RSpec.describe "Group 34: Orchestrator", :integration do
           {output: "ok", messages: []}
         end
         define_method(:invoke_async) do |input, config: {}, **_kw|
-        t = Phronomy::Task.new(name: "stub-async")
-        Thread.new { t.complete(invoke(input, config: config)) rescue t.fail($!) }
-        t
-      end
+          t = Phronomy::Task.new(name: "stub-async")
+          Thread.new {
+            begin
+              t.complete(invoke(input, config: config))
+            rescue
+              t.fail($!)
+            end
+          }
+          t
+        end
       end
 
       orch.fan_out(agent: agent, inputs: %w[x y], config: {thread_id: "t99"})
