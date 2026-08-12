@@ -8,7 +8,7 @@ module Phronomy
     class FanOutInvocation
       Child = Data.define(:index, :agent, :input, :config, :thread_id)
 
-      attr_reader :id, :phase, :results, :error
+      attr_reader :id, :phase, :results
 
       def initialize(children:, max_concurrency:, on_error:)
         @id = SecureRandom.uuid.to_s
@@ -19,7 +19,8 @@ module Phronomy
         @pending = children.dup
         @active = {}
         @results = Array.new(children.length)
-        @error = nil
+        @child_errors = Array.new(children.length)  # indexed by input order
+        @fatal_error = nil   # driver_failed / timeout / cancel
         @cancelled = false
         @timed_out = false
         @session_id = nil
@@ -39,25 +40,28 @@ module Phronomy
           child_error = payload[:error]
           if child_error
             if @on_error == :raise
-              @error ||= child_error
-              cancel_active_children!
+              @child_errors[index] = child_error
+              # Signal cancellation so other children can stop early, but continue
+              # waiting for all active children to respond so we can return the
+              # first error in INPUT ORDER (not arrival order).
+              cancel_active_children! unless @child_errors.any?(&:itself)
             end
           else
             @results[index] = payload[:result]
           end
           true
         when :driver_failed
-          @error ||= event.payload.fetch(:error)
+          @fatal_error ||= event.payload.fetch(:error)
           cancel_active_children!
           true
         when :timeout
           @timed_out = true
-          @error ||= Phronomy::TimeoutError.new(event.payload.fetch(:message))
+          @fatal_error ||= Phronomy::TimeoutError.new(event.payload.fetch(:message))
           cancel_active_children!
           true
         when :cancel
           @cancelled = true
-          @error ||= Phronomy::CancellationError.new("fan-out cancelled")
+          @fatal_error ||= Phronomy::CancellationError.new("fan-out cancelled")
           cancel_active_children!
           true
         else
@@ -66,7 +70,7 @@ module Phronomy
       end
 
       def start_available!(runtime)
-        return self if failed?
+        return self if @fatal_error
 
         while @active.length < @max_concurrency && (child = @pending.shift)
           child_config = build_child_config(child.config)
@@ -76,19 +80,23 @@ module Phronomy
             thread_id: child.thread_id
           )
           @active[child.index] = {handle: handle, token: child_config[:cancellation_token]}
-          handle.on_complete do |result, error|
-            runtime.event_loop.post_to_session(
-              Phronomy::Event.new(
-                type: :child_completed,
-                target_id: @id,
-                payload: {index: child.index, result: result, error: error}
+          # [child.index].each creates a block parameter with a unique binding
+          # per iteration, avoiding the while-loop variable capture problem.
+          [child.index].each do |captured_index|
+            handle.on_complete do |result, error|
+              runtime.event_loop.post_to_session(
+                Phronomy::Event.new(
+                  type: :child_completed,
+                  target_id: @id,
+                  payload: {index: captured_index, result: result, error: error}
+                )
               )
-            )
+            end
           end
         end
         self
       rescue => caught
-        @error ||= caught
+        @fatal_error ||= caught
         cancel_active_children!
         runtime.event_loop.post_to_session(
           Phronomy::Event.new(
@@ -105,7 +113,12 @@ module Phronomy
       end
 
       def failed?
-        !@error.nil?
+        return true if @fatal_error
+        @on_error == :raise && @pending.empty? && @active.empty? && @child_errors.any?(&:itself)
+      end
+
+      def error
+        @fatal_error || @child_errors.find(&:itself)
       end
 
       def timed_out?
@@ -119,12 +132,7 @@ module Phronomy
       private
 
       def build_child_config(config)
-        config = config.dup
-        upstream = config[:cancellation_token]
-        token = Phronomy::Concurrency::CancellationToken.new
-        upstream&.on_cancel { token.cancel! }
-        config[:cancellation_token] = token
-        config
+        config.dup
       end
 
       def cancel_active_children!

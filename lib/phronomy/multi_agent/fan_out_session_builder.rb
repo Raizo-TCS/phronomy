@@ -17,6 +17,12 @@ module Phronomy
         runtime: Phronomy::Runtime.instance
       )
         result = Phronomy::Task.deferred(name: "fan-out:#{invocation.id}")
+
+        if cancellation_token&.cancelled?
+          result.fail(Phronomy::CancellationError.new("fan-out cancelled"))
+          return result
+        end
+
         source = Phronomy::Task.deferred(name: "fan-out-source:#{invocation.id}")
         source.on_complete do |context, error|
           if error

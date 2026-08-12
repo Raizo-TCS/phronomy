@@ -155,21 +155,26 @@ module Phronomy
       @shutdown_mutex.synchronize do
         return @shutdown_result if @shutdown_result
 
-        deadline = monotonic_now + timeout
+        # Phase 1 — drain sessions with the full configured grace.
+        drain_deadline = monotonic_now + timeout
         loop_instance = @lifecycle_mutex.synchronize do
           @state = :draining unless @state == :failed
           @event_loop
         end
         loop_instance&.begin_draining
 
-        loop_idle = !loop_instance || loop_instance.wait_until_idle(deadline)
+        loop_idle = !loop_instance || loop_instance.wait_until_idle(drain_deadline)
 
         @lifecycle_mutex.synchronize do
           @state = :stopping unless @state == :failed
         end
 
+        # Phase 2 — stop the EventLoop thread with a short independent budget.
+        # An idle EventLoop processes STOP and exits in < 1ms normally; the 0.2s
+        # budget here is only a safety net for OS scheduling jitter.
+        stop_deadline = monotonic_now + [cancel_grace.to_f, 0.2].max
         event_loop_status = if loop_instance
-          loop_instance.shutdown(deadline: deadline, cancel_grace: cancel_grace)
+          loop_instance.stop_and_join(deadline: stop_deadline)
         else
           :not_started
         end

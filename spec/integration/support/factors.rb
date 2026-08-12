@@ -306,9 +306,9 @@ module IntegrationFactors
 
   def self.eval_scorer(label, model: LM_STUDIO_MODEL)
     case label
-    when "exact_match" then Phronomy::Eval::Scorer::ExactMatch.new
-    when "includes_scorer" then Phronomy::Eval::Scorer::IncludesScorer.new
-    when "llm_judge" then Phronomy::Eval::Scorer::LlmJudge.new(model: model)
+    when "exact_match" then Phronomy::Testing::Eval::Scorer::ExactMatch.new
+    when "includes_scorer" then Phronomy::Testing::Eval::Scorer::IncludesScorer.new
+    when "llm_judge" then Phronomy::Testing::Eval::Scorer::LlmJudge.new(model: model)
     else raise ArgumentError, "Unknown eval_scorer_type label: #{label}"
     end
   end
@@ -324,7 +324,7 @@ module IntegrationFactors
     when "multi" then 3
     else raise ArgumentError, "Unknown eval_dataset_size label: #{label}"
     end
-    Phronomy::Eval::Dataset.from_array(all_pairs.first(count))
+    Phronomy::Testing::Eval::Dataset.from_array(all_pairs.first(count))
   end
 
   class NoApprovalTool < Phronomy::Agent::Context::Capability::Base
@@ -887,12 +887,20 @@ module IntegrationFactors
     good = Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-30", version: 1
       define_method(:invoke) { |input, config: {}, thread_id: nil| {output: "ok:#{input}", messages: []} }
-      define_method(:invoke_async) { |input, **_kw| Phronomy::Runtime.instance.spawn(name: "stub-async") { invoke(input) } }
+      define_method(:invoke_async) do |input, **_kw|
+        t = Phronomy::Task.new(name: "stub-async")
+        Thread.new { t.complete(invoke(input)) rescue t.fail($!) }
+        t
+      end
     end
     bad = Class.new(Phronomy::Agent::Base) do
       agent_definition id: "test-agent-31", version: 1
       define_method(:invoke) { |*| raise "task_error" }
-      define_method(:invoke_async) { |input, **_kw| Phronomy::Runtime.instance.spawn(name: "stub-async") { invoke(input) } }
+      define_method(:invoke_async) do |input, **_kw|
+        t = Phronomy::Task.new(name: "stub-async")
+        Thread.new { t.complete(invoke(input)) rescue t.fail($!) }
+        t
+      end
     end
 
     case label

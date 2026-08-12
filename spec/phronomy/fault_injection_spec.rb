@@ -246,8 +246,7 @@ RSpec.describe "Fault injection (Issue #213)" do
       ))
 
       sleep 0.05
-      task = loop.instance_variable_get(:@task)
-      expect(task).to be_alive
+      expect(loop.thread_alive?).to be true
     end
   end
 end

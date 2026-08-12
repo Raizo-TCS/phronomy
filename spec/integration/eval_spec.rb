@@ -49,12 +49,12 @@ RSpec.describe "Evaluation framework", :integration do
   it "TC-001: runs a single-case dataset with ExactMatch scorer and returns an EvalResult", :tc_001 do
     scorer = IntegrationFactors.eval_scorer("exact_match")
     dataset = IntegrationFactors.eval_dataset("single")
-    runner = Phronomy::Eval::Runner.new(scorer: scorer)
+    runner = Phronomy::Testing::Eval::Runner.new(scorer: scorer)
 
     results = Timeout.timeout(90) { runner.run(dataset, perfect_callable) }
 
     expect(results.size).to eq(1)
-    expect(results.first).to be_a(Phronomy::Eval::EvalResult)
+    expect(results.first).to be_a(Phronomy::Testing::Eval::EvalResult)
     expect(results.first.score).to eq(1.0)
     expect(results.first).to be_pass
     expect(results.first.latency_ms).to be >= 0
@@ -66,10 +66,10 @@ RSpec.describe "Evaluation framework", :integration do
   it "TC-002: runs a multi-case dataset, scores with ExactMatch, and aggregates Metrics", :tc_002 do
     scorer = IntegrationFactors.eval_scorer("exact_match")
     dataset = IntegrationFactors.eval_dataset("multi")
-    runner = Phronomy::Eval::Runner.new(scorer: scorer)
+    runner = Phronomy::Testing::Eval::Runner.new(scorer: scorer)
 
     results = Timeout.timeout(90) { runner.run(dataset, perfect_callable) }
-    metrics = Phronomy::Eval::Metrics.new(results)
+    metrics = Phronomy::Testing::Eval::Metrics.new(results)
     summary = metrics.to_h
 
     expect(summary[:total]).to eq(3)
@@ -85,18 +85,18 @@ RSpec.describe "Evaluation framework", :integration do
   it "TC-003: compares two callables on a single-case dataset with ExactMatch scorer", :tc_003 do
     scorer = IntegrationFactors.eval_scorer("exact_match")
     dataset = IntegrationFactors.eval_dataset("single")
-    comparison = Phronomy::Eval::Comparison.new(scorer: scorer)
+    comparison = Phronomy::Testing::Eval::Comparison.new(scorer: scorer)
 
     pairs = Timeout.timeout(90) { comparison.compare(dataset, perfect_callable, wrong_callable) }
 
     expect(pairs.size).to eq(1)
     pair = pairs.first
-    expect(pair).to be_a(Phronomy::Eval::Comparison::ComparisonPair)
+    expect(pair).to be_a(Phronomy::Testing::Eval::Comparison::ComparisonPair)
     expect(pair.result_a.score).to eq(1.0)
     expect(pair.result_b.score).to eq(0.0)
 
-    metrics_a = Phronomy::Eval::Metrics.new(pairs.map(&:result_a))
-    metrics_b = Phronomy::Eval::Metrics.new(pairs.map(&:result_b))
+    metrics_a = Phronomy::Testing::Eval::Metrics.new(pairs.map(&:result_a))
+    metrics_b = Phronomy::Testing::Eval::Metrics.new(pairs.map(&:result_b))
     expect(metrics_a.pass_rate).to eq(1.0)
     expect(metrics_b.pass_rate).to eq(0.0)
   end
@@ -107,10 +107,10 @@ RSpec.describe "Evaluation framework", :integration do
   it "TC-004: runs a single-case dataset with IncludesScorer and verifies Metrics", :tc_004 do
     scorer = IntegrationFactors.eval_scorer("includes_scorer")
     dataset = IntegrationFactors.eval_dataset("single")
-    runner = Phronomy::Eval::Runner.new(scorer: scorer)
+    runner = Phronomy::Testing::Eval::Runner.new(scorer: scorer)
 
     results = Timeout.timeout(90) { runner.run(dataset, verbose_callable) }
-    metrics = Phronomy::Eval::Metrics.new(results)
+    metrics = Phronomy::Testing::Eval::Metrics.new(results)
     summary = metrics.to_h
 
     expect(summary[:total]).to eq(1)
@@ -124,7 +124,7 @@ RSpec.describe "Evaluation framework", :integration do
   it "TC-005: runs a multi-case dataset with IncludesScorer and returns correct EvalResults", :tc_005 do
     scorer = IntegrationFactors.eval_scorer("includes_scorer")
     dataset = IntegrationFactors.eval_dataset("multi")
-    runner = Phronomy::Eval::Runner.new(scorer: scorer)
+    runner = Phronomy::Testing::Eval::Runner.new(scorer: scorer)
 
     results = Timeout.timeout(90) { runner.run(dataset, verbose_callable) }
 
@@ -139,16 +139,16 @@ RSpec.describe "Evaluation framework", :integration do
   it "TC-006: compares two callables on a multi-case dataset with IncludesScorer", :tc_006 do
     scorer = IntegrationFactors.eval_scorer("includes_scorer")
     dataset = IntegrationFactors.eval_dataset("multi")
-    comparison = Phronomy::Eval::Comparison.new(scorer: scorer)
+    comparison = Phronomy::Testing::Eval::Comparison.new(scorer: scorer)
 
     pairs = Timeout.timeout(90) { comparison.compare(dataset, verbose_callable, wrong_callable) }
 
     expect(pairs.size).to eq(3)
     # verbose_callable: all 3 should pass (sentence includes the number)
-    metrics_a = Phronomy::Eval::Metrics.new(pairs.map(&:result_a))
+    metrics_a = Phronomy::Testing::Eval::Metrics.new(pairs.map(&:result_a))
     expect(metrics_a.pass_rate).to eq(1.0)
     # wrong_callable: 0 should pass ("wrong answer" does not include "4", "6", or "10")
-    metrics_b = Phronomy::Eval::Metrics.new(pairs.map(&:result_b))
+    metrics_b = Phronomy::Testing::Eval::Metrics.new(pairs.map(&:result_b))
     expect(metrics_b.pass_rate).to eq(0.0)
   end
 
@@ -159,7 +159,7 @@ RSpec.describe "Evaluation framework", :integration do
     LLMStub.activate(responses: ["score: 0.9\nreason: The answer 4 is correct."])
     scorer = IntegrationFactors.eval_scorer("llm_judge")
     dataset = IntegrationFactors.eval_dataset("single")
-    runner = Phronomy::Eval::Runner.new(scorer: scorer)
+    runner = Phronomy::Testing::Eval::Runner.new(scorer: scorer)
 
     results = Timeout.timeout(90) { runner.run(dataset, perfect_callable) }
 
@@ -178,10 +178,10 @@ RSpec.describe "Evaluation framework", :integration do
     LLMStub.activate(responses: ["score: 0.9\nreason: correct"])
     scorer = IntegrationFactors.eval_scorer("llm_judge")
     dataset = IntegrationFactors.eval_dataset("multi")
-    runner = Phronomy::Eval::Runner.new(scorer: scorer)
+    runner = Phronomy::Testing::Eval::Runner.new(scorer: scorer)
 
     results = Timeout.timeout(90) { runner.run(dataset, perfect_callable) }
-    metrics = Phronomy::Eval::Metrics.new(results)
+    metrics = Phronomy::Testing::Eval::Metrics.new(results)
     summary = metrics.to_h
 
     expect(summary[:total]).to eq(3)
@@ -198,7 +198,7 @@ RSpec.describe "Evaluation framework", :integration do
     LLMStub.activate(responses: ["score: 0.9\nreason: correct", "score: 0.1\nreason: wrong answer"])
     scorer = IntegrationFactors.eval_scorer("llm_judge")
     dataset = IntegrationFactors.eval_dataset("single")
-    comparison = Phronomy::Eval::Comparison.new(scorer: scorer)
+    comparison = Phronomy::Testing::Eval::Comparison.new(scorer: scorer)
 
     pairs = Timeout.timeout(90) { comparison.compare(dataset, perfect_callable, wrong_callable) }
 

@@ -194,7 +194,9 @@ module Phronomy
       end
     end
 
-    def shutdown(deadline:, cancel_grace:)
+    # Sends STOP to the queue and joins the EventLoop thread.
+    # Assumes sessions have already been drained before this call.
+    def stop_and_join(deadline:)
       @shutdown_mutex.synchronize do
         return @shutdown_status if @shutdown_status
 
@@ -204,11 +206,8 @@ module Phronomy
           return @shutdown_status
         end
 
-        begin_draining
-        if wait_until_idle(deadline)
-          begin_stopping_if_idle
-          join_until(deadline)
-        end
+        begin_stopping_if_idle
+        join_until(deadline)
 
         @shutdown_status = if thread_alive?
           @lifecycle_mutex.synchronize { @state = :failed }
@@ -219,6 +218,11 @@ module Phronomy
           finalize_terminated(:terminated)
         end
       end
+    end
+
+    # Legacy entry point kept for any callers that pass deadline:/cancel_grace:.
+    def shutdown(deadline:, cancel_grace: deadline)
+      stop_and_join(deadline: deadline)
     end
 
     def thread_alive?
@@ -283,8 +287,9 @@ module Phronomy
         session_id = event.payload.fetch(:session_id)
         session = @fsms.delete(session_id)
         waiter = @waiting.delete(session_id)
-        complete_waiter(waiter, event.payload.fetch(:result))
+        # decrement before waking caller so wait_until_idle sees zero immediately
         decrement_outstanding if session
+        complete_waiter(waiter, event.payload.fetch(:result))
       when :start
         session = event.payload.fetch(:session)
         waiter = event.payload[:completion]

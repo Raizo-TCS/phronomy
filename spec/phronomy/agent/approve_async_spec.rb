@@ -122,11 +122,15 @@ RSpec.describe Phronomy::Agent::Base do
       # approve_async must not raise SchedulerReentrancyError even when the EventLoop
       # reports current? == true (unlike approve which wraps with _check_scheduler_reentrancy).
       event_loop = Phronomy::Runtime.instance.event_loop
+      task = nil
       allow(event_loop).to receive(:current?).and_return(true)
       expect {
         task = agent.approve_async(execution_id, approval_request_id: request_id)
         expect(task).to be_a(Phronomy::Task)
       }.not_to raise_error(Phronomy::EventLoopReentrancyError)
+      # Restore current? so reset_runtime! can shut down cleanly, then drain the task.
+      allow(event_loop).to receive(:current?).and_call_original
+      task.wait_result
     end
 
     it "returns a failed Task when execution_id is unknown" do
