@@ -422,12 +422,12 @@
       <pre class="lines">
 
 
-59
-60
-61</pre>
+87
+88
+89</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 59</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 87</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid__subagent_tool_classes'>_subagent_tool_classes</span>
   <span class='ivar'>@_subagent_tool_classes</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
@@ -452,12 +452,12 @@
       <pre class="lines">
 
 
-63
-64
-65</pre>
+91
+92
+93</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 63</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 91</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_registered_subagents'>registered_subagents</span>
   <span class='ivar'>@registered_subagents</span> <span class='op'>||=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
@@ -530,23 +530,65 @@
 54
 55
 56
-57</pre>
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 9</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_subagent'>subagent</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='id identifier rubyid_agent_class'>agent_class</span><span class='comma'>,</span> <span class='label'>on_error:</span> <span class='symbol'>:raise</span><span class='comma'>,</span> <span class='label'>inherit_knowledge:</span> <span class='kw'>true</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_tool_class'>tool_class</span> <span class='op'>=</span> <span class='const'>Class</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/Context/Capability.html" title="Phronomy::Agent::Context::Capability (module)">Capability</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/Context/Capability/Base.html" title="Phronomy::Agent::Context::Capability::Base (class)">Base</a></span></span><span class='rparen'>)</span> <span class='kw'>do</span>
+  <span class='comment'># A subagent Tool is logically asynchronous: ToolInvocation starts the
+</span>  <span class='comment'># child Agent and resumes when its completion Task settles. It must not
+</span>  <span class='comment'># occupy a BlockingAdapterPool worker while waiting for the child.
+</span>  <span class='id identifier rubyid_tool_class'>tool_class</span> <span class='op'>=</span> <span class='const'>Class</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Tools.html" title="Phronomy::Tools (module)">Tools</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Tools/Agent.html" title="Phronomy::Tools::Agent (class)">Agent</a></span></span><span class='rparen'>)</span> <span class='kw'>do</span>
     <span class='id identifier rubyid_tool_name'>tool_name</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>dispatch_to_</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
     <span class='id identifier rubyid_description'>description</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Dispatch work to the </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'> subagent (</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_agent_class'>agent_class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'>)</span><span class='tstring_end'>&quot;</span></span>
-    <span class='id identifier rubyid_param'>param</span> <span class='symbol'>:input</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='symbol'>:string</span><span class='comma'>,</span> <span class='label'>desc:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>The task or question for the subagent</span><span class='tstring_end'>&quot;</span></span>
 
     <span class='id identifier rubyid_attr_writer'>attr_writer</span> <span class='symbol'>:_orchestrator_context</span>
 
-    <span class='id identifier rubyid_define_method'>define_method</span><span class='lparen'>(</span><span class='symbol'>:execute</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='label'>input:</span><span class='op'>|</span>
+    <span class='id identifier rubyid_define_method'>define_method</span><span class='lparen'>(</span><span class='symbol'>:execute</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='label'>input:</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='op'>|</span>
+      <span class='id identifier rubyid_execute_async'>execute_async</span><span class='lparen'>(</span>
+        <span class='label'>input:</span> <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
+        <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
+        <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+      <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
+    <span class='kw'>end</span>
+
+    <span class='id identifier rubyid_define_method'>define_method</span><span class='lparen'>(</span><span class='symbol'>:execute_async</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='label'>input:</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='op'>|</span>
       <span class='id identifier rubyid_ctx'>ctx</span> <span class='op'>=</span> <span class='ivar'>@_orchestrator_context</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
       <span class='id identifier rubyid_parent_ic'>parent_ic</span> <span class='op'>=</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='lbracket'>[</span><span class='symbol'>:invocation_context</span><span class='rbracket'>]</span>
-      <span class='id identifier rubyid_task_config'>task_config</span> <span class='op'>=</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='lbracket'>[</span><span class='symbol'>:config</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+      <span class='id identifier rubyid_task_config'>task_config</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='id identifier rubyid_ctx'>ctx</span><span class='lbracket'>[</span><span class='symbol'>:config</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+
+      <span class='kw'>if</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_task_config'>task_config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span>
+        <span class='id identifier rubyid_task_config'>task_config</span> <span class='op'>=</span> <span class='id identifier rubyid_task_config'>task_config</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
+      <span class='kw'>end</span>
 
       <span class='kw'>if</span> <span class='id identifier rubyid_parent_ic'>parent_ic</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_task_config'>task_config</span><span class='lbracket'>[</span><span class='symbol'>:invocation_context</span><span class='rbracket'>]</span>
         <span class='id identifier rubyid_child_ic'>child_ic</span> <span class='op'>=</span> <span class='id identifier rubyid_parent_ic'>parent_ic</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>parent_task_id:</span> <span class='id identifier rubyid_parent_ic'>parent_ic</span><span class='period'>.</span><span class='id identifier rubyid_task_id'>task_id</span><span class='rparen'>)</span>
@@ -563,16 +605,30 @@
         <span class='kw'>end</span>
       <span class='kw'>end</span>
 
-      <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span>
+      <span class='id identifier rubyid_source'>source</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span>
         <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
         <span class='label'>thread_id:</span> <span class='id identifier rubyid_ctx'>ctx</span><span class='lbracket'>[</span><span class='symbol'>:thread_id</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='id identifier rubyid_parent_ic'>parent_ic</span><span class='op'>&amp;.</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
         <span class='label'>config:</span> <span class='id identifier rubyid_task_config'>task_config</span>
-      <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>
-      <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span>
-    <span class='kw'>rescue</span>
-      <span class='id identifier rubyid_raise'>raise</span> <span class='kw'>if</span> <span class='id identifier rubyid_on_error'>on_error</span> <span class='op'>==</span> <span class='symbol'>:raise</span>
-      <span class='kw'>nil</span>
+      <span class='rparen'>)</span>
+      <span class='id identifier rubyid_result_task'>result_task</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="../Task.html#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span></span><span class='lparen'>(</span>
+        <span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>subagent-tool-</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+      <span class='rparen'>)</span>
+      <span class='id identifier rubyid_source'>source</span><span class='period'>.</span><span class='id identifier rubyid_on_complete'>on_complete</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='op'>|</span>
+        <span class='kw'>if</span> <span class='id identifier rubyid_error'>error</span>
+          <span class='lparen'>(</span><span class='id identifier rubyid_on_error'>on_error</span> <span class='op'>==</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id identifier rubyid_result_task'>result_task</span><span class='period'>.</span><span class='id identifier rubyid_fail'>fail</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id identifier rubyid_result_task'>result_task</span><span class='period'>.</span><span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='kw'>nil</span><span class='rparen'>)</span>
+        <span class='kw'>else</span>
+          <span class='id identifier rubyid_result_task'>result_task</span><span class='period'>.</span><span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+        <span class='kw'>end</span>
+      <span class='kw'>end</span>
+      <span class='id identifier rubyid_result_task'>result_task</span>
+    <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
+      <span class='id identifier rubyid_result_task'>result_task</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Task.html" title="Phronomy::Task (class)">Task</a></span></span><span class='period'>.</span><span class='id identifier rubyid_deferred'><span class='object_link'><a href="../Task.html#deferred-class_method" title="Phronomy::Task.deferred (method)">deferred</a></span></span><span class='lparen'>(</span>
+        <span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>subagent-tool-</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+      <span class='rparen'>)</span>
+      <span class='lparen'>(</span><span class='id identifier rubyid_on_error'>on_error</span> <span class='op'>==</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id identifier rubyid_result_task'>result_task</span><span class='period'>.</span><span class='id identifier rubyid_fail'>fail</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id identifier rubyid_result_task'>result_task</span><span class='period'>.</span><span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='kw'>nil</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_result_task'>result_task</span>
     <span class='kw'>end</span>
+    <span class='id identifier rubyid_private'>private</span> <span class='symbol'>:execute_async</span>
   <span class='kw'>end</span>
 
   <span class='ivar'>@_subagent_tool_classes</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='ivar'>@_subagent_tool_classes</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='lbracket'>[</span><span class='id identifier rubyid_tool_class'>tool_class</span><span class='rbracket'>]</span>
@@ -610,32 +666,32 @@
       <pre class="lines">
 
 
-67
-68
-69
-70
-71
-72
-73
-74
-75
-76
-77
-78
-79
-80
-81
-82
-83
-84
-85
-86
-87
-88
-89</pre>
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 67</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 95</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_dispatch_parallel'>dispatch_parallel</span><span class='lparen'>(</span>
   <span class='op'>*</span><span class='id identifier rubyid_tasks'>tasks</span><span class='comma'>,</span>
@@ -680,39 +736,39 @@
       <pre class="lines">
 
 
-91
-92
-93
-94
-95
-96
-97
-98
-99
-100
-101
-102
-103
-104
-105
-106
-107
-108
-109
-110
-111
-112
-113
-114
-115
-116
-117
-118
 119
-120</pre>
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 91</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 119</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_dispatch_parallel_async'>dispatch_parallel_async</span><span class='lparen'>(</span>
   <span class='op'>*</span><span class='id identifier rubyid_tasks'>tasks</span><span class='comma'>,</span>
@@ -764,33 +820,33 @@
       <pre class="lines">
 
 
-122
-123
-124
-125
-126
-127
-128
-129
-130
-131
-132
-133
-134
-135
-136
-137
-138
-139
-140
-141
-142
-143
-144
-145</pre>
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 122</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 150</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fan_out'>fan_out</span><span class='lparen'>(</span>
   <span class='label'>agent:</span><span class='comma'>,</span>
@@ -836,33 +892,33 @@
       <pre class="lines">
 
 
-147
-148
-149
-150
-151
-152
-153
-154
-155
-156
-157
-158
-159
-160
-161
-162
-163
-164
-165
-166
-167
-168
-169
-170</pre>
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 147</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 175</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fan_out_async'>fan_out_async</span><span class='lparen'>(</span>
   <span class='label'>agent:</span><span class='comma'>,</span>
@@ -908,29 +964,29 @@
       <pre class="lines">
 
 
-172
-173
-174
-175
-176
-177
-178
-179
-180
-181
-182
-183
-184
-185
-186
-187
-188
-189
-190
-191</pre>
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 172</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/orchestrator.rb', line 200</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_subagent'>subagent</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_agent_class'>agent_class</span><span class='comma'>,</span>
@@ -962,7 +1018,7 @@
 </div>
 
       <div id="footer">
-  Generated on Wed Aug 12 14:24:10 2026 by
+  Generated on Wed Aug 12 21:02:15 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

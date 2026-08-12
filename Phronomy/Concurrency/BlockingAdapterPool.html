@@ -111,8 +111,8 @@ for I/O. All third-party gem calls whose internal I/O Phronomy cannot control
 — including RubyLLM, ActiveRecord, Redis, Faraday, and MCP stdio transport —
 <strong>must</strong> route through this pool (or a named pool obtained via
 <span class='object_link'><a href="../Runtime.html#pool-instance_method" title="Phronomy::Runtime#pool (method)">Runtime#pool</a></span>). Custom non-blocking HTTP/selector runtimes are intentionally
-out of scope; the pool + cooperative scheduler combination satisfies all
-current concurrency requirements together with EventLoop/FSMSession. (See ADR-010.)</p>
+out of scope; EventLoop/FSMSession owns logical asynchronous coordination,
+while this pool is reserved for unavoidable blocking I/O. (See ADR-010.)</p>
 <p>All blocking calls (LLM HTTP, MCP stdio, ActiveRecord, Redis, etc.) must be
 submitted through this pool so that:</p>
 <ol>
@@ -620,12 +620,12 @@ object. Required when <code>submit(timeout:)</code> is used.</p></div>
       <pre class="lines">
 
 
-485
-486
-487</pre>
+487
+488
+489</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 485</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 487</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_name'>name</span>
   <span class='ivar'>@name</span>
@@ -677,12 +677,12 @@ object. Required when <code>submit(timeout:)</code> is used.</p></div>
       <pre class="lines">
 
 
-479
-480
-481</pre>
+481
+482
+483</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 479</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 481</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pool_size'>pool_size</span>
   <span class='ivar'>@pool_size</span>
@@ -734,12 +734,12 @@ object. Required when <code>submit(timeout:)</code> is used.</p></div>
       <pre class="lines">
 
 
-482
-483
-484</pre>
+484
+485
+486</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 482</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 484</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_queue_size'>queue_size</span>
   <span class='ivar'>@queue_size</span>
@@ -802,12 +802,12 @@ after worker execution had started</p></div>
       <pre class="lines">
 
 
-462
-463
-464</pre>
+464
+465
+466</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 462</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 464</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_abandoned_count'>abandoned_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@abandoned_count</span> <span class='rbrace'>}</span>
@@ -861,12 +861,12 @@ after worker execution had started</p></div>
       <pre class="lines">
 
 
-449
-450
-451</pre>
+451
+452
+453</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 449</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 451</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_active_count'>active_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@active_count</span> <span class='rbrace'>}</span>
@@ -918,16 +918,16 @@ queue waiting for a worker. Returns 0.0 when none have been processed yet.</p>
       <pre class="lines">
 
 
-470
-471
 472
 473
 474
 475
-476</pre>
+476
+477
+478</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 470</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 472</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_average_wait_seconds'>average_wait_seconds</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -985,12 +985,12 @@ queue waiting for a worker. Returns 0.0 when none have been processed yet.</p>
       <pre class="lines">
 
 
-455
-456
-457</pre>
+457
+458
+459</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 455</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 457</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_queue_depth'>queue_depth</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
@@ -1064,15 +1064,15 @@ remaining items, without blocking on a full-queue push.</p>
       <pre class="lines">
 
 
-438
-439
 440
 441
 442
-443</pre>
+443
+444
+445</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 438</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 440</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span><span class='label'>drain_timeout:</span> <span class='int'>30</span><span class='rparen'>)</span>
   <span class='ivar'>@shutdown</span> <span class='op'>=</span> <span class='kw'>true</span>
@@ -1102,7 +1102,9 @@ remaining items, without blocking on a full-queue push.</p>
 </p>
 <p>Submits a blocking operation to the pool.
 Returns a <span class='object_link'><a href="BlockingAdapterPool/PendingOperation.html" title="Phronomy::Concurrency::BlockingAdapterPool::PendingOperation (class)">PendingOperation</a></span> immediately after queue admission; the block runs
-on a worker thread.</p>
+on a worker thread. Do not submit logical waits (for example waiting for a
+child Agent Task) merely to make them asynchronous; those belong to
+FSMSession/EventLoop completion events.</p>
 <p>A submit-time <code>timeout</code> is an operation-wide deadline measured from the start
 of this method, including queue wait. The timer settles the PendingOperation
 and notifies <code>on_complete</code> without forcibly interrupting a running worker.
@@ -1270,8 +1272,6 @@ timer queue provider</p></div>
       <pre class="lines">
 
 
-359
-360
 361
 362
 363
@@ -1338,10 +1338,12 @@ timer queue provider</p></div>
 424
 425
 426
-427</pre>
+427
+428
+429</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 359</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 361</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on_full:</span> <span class='symbol'>:wait</span><span class='comma'>,</span> <span class='label'>full_timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../PoolShutdownError.html" title="Phronomy::PoolShutdownError (class)">PoolShutdownError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>pool has been shut down</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='ivar'>@shutdown</span>
@@ -1422,7 +1424,7 @@ timer queue provider</p></div>
 </div>
 
       <div id="footer">
-  Generated on Wed Aug 12 14:24:12 2026 by
+  Generated on Wed Aug 12 21:02:16 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

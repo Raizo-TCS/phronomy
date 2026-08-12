@@ -65,6 +65,45 @@
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="EventLoop_first_runtime_cleanup">EventLoop-first runtime cleanup</h3>
+<h4 id="Added">Added</h4>
+<ul>
+<li>Event-driven Agent-as-Tool completion: child Agents now run through their own
+Agent FSMSession and settle the parent ToolInvocation through a completion
+event without holding a BlockingAdapterPool worker while waiting.</li>
+<li>Architecture regression coverage for the production Thread/Fiber boundary,
+test-only API separation, current concurrency documentation, and Agent-as-Tool
+pool-starvation behavior.</li>
+</ul>
+<h4 id="Changed">Changed</h4>
+<ul>
+<li><code>FSMSession + EventLoop</code> is the single framework control plane for Agent,
+Workflow, ToolInvocation, and MultiAgent lifecycle coordination.</li>
+<li><code>Task</code> is a completion handle only; it does not execute work.</li>
+<li><code>execution_mode :cooperative</code> now means short EventLoop-safe synchronous work,
+or a specialized Tool that starts another Phronomy asynchronous lifecycle and
+returns a completion handle immediately.</li>
+<li><code>Tool#call_async</code> for ordinary cooperative Tools no longer consumes a
+BlockingAdapterPool worker. <code>:blocking_io</code> remains the worker-pool route.</li>
+<li>Framework-owned short in-memory Tools (handoff sentinels, TeamCoordinator
+queue controls, and SharedState store access) explicitly declare
+<code>execution_mode :cooperative</code> instead of using the blocking-I/O default.</li>
+<li>MultiAgent fan-out uses a FanOut FSMSession rather than per-child OS Threads.</li>
+<li><code>TimerQueue</code> is driven by EventLoop and owns no Thread.</li>
+<li>Eval support is test infrastructure under <code>Phronomy::Testing::Eval</code> and is no
+longer part of the product API compatibility snapshot or README feature set.</li>
+<li>The <code>dispatch_parallel</code> regression benchmark now uses thread-free fake child
+completion so it measures FanOut/EventLoop overhead rather than fake Thread
+creation. Its separate CancellationToken contention benchmark intentionally
+continues to use application Threads.</li>
+</ul>
+<h4 id="Removed">Removed</h4>
+<ul>
+<li>Active runtime-backend/scheduler documentation for the removed
+<code>Runtime#spawn</code>, TaskGroup, Thread/Fiber/Immediate Task backends, and
+configurable runtime backends.</li>
+<li>Product-facing Eval design documentation.</li>
+</ul>
 <h3 id="Agent_Context___Knowledge_cleanup">Agent Context / Knowledge cleanup</h3>
 <h4 id="Added">Added</h4>
 <ul>
@@ -1585,7 +1624,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Wed Aug 12 14:24:08 2026 by
+  Generated on Wed Aug 12 21:02:12 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
