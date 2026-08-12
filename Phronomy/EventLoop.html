@@ -445,7 +445,7 @@ lifecycle progression happens by short event dispatches on this thread.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#shutdown-instance_method" title="#shutdown (instance method)">#<strong>shutdown</strong>(deadline:, cancel_grace:)  &#x21d2; Object </a>
+      <a href="#shutdown-instance_method" title="#shutdown (instance method)">#<strong>shutdown</strong>(deadline:, cancel_grace: deadline)  &#x21d2; Object </a>
     
 
     
@@ -459,7 +459,7 @@ lifecycle progression happens by short event dispatches on this thread.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Legacy entry point kept for any callers that pass deadline:/cancel_grace:.</p></div></span>
   
 </li>
 
@@ -482,6 +482,28 @@ lifecycle progression happens by short event dispatches on this thread.</p>
 
   
     <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#stop_and_join-instance_method" title="#stop_and_join (instance method)">#<strong>stop_and_join</strong>(deadline:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Sends STOP to the queue and joins the EventLoop thread.</p></div></span>
   
 </li>
 
@@ -1238,73 +1260,36 @@ lifecycle progression happens by short event dispatches on this thread.</p>
       <div class="method_details ">
   <h3 class="signature " id="shutdown-instance_method">
   
-    #<strong>shutdown</strong>(deadline:, cancel_grace:)  &#x21d2; <tt>Object</tt> 
+    #<strong>shutdown</strong>(deadline:, cancel_grace: deadline)  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><table class="source_code">
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Legacy entry point kept for any callers that pass deadline:/cancel_grace:.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-197
-198
-199
-200
-201
-202
-203
-204
-205
-206
-207
-208
-209
-210
-211
-212
-213
-214
-215
-216
-217
-218
-219
-220
-221
-222</pre>
+224
+225
+226</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 197</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 224</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span><span class='label'>deadline:</span><span class='comma'>,</span> <span class='label'>cancel_grace:</span><span class='rparen'>)</span>
-  <span class='ivar'>@shutdown_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
-    <span class='kw'>return</span> <span class='ivar'>@shutdown_status</span> <span class='kw'>if</span> <span class='ivar'>@shutdown_status</span>
-
-    <span class='kw'>if</span> <span class='id identifier rubyid_state'>state</span> <span class='op'>==</span> <span class='symbol'>:failed</span>
-      <span class='id identifier rubyid_join_until'>join_until</span><span class='lparen'>(</span><span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
-      <span class='ivar'>@shutdown_status</span> <span class='op'>=</span> <span class='symbol'>:failed</span>
-      <span class='kw'>return</span> <span class='ivar'>@shutdown_status</span>
-    <span class='kw'>end</span>
-
-    <span class='id identifier rubyid_begin_draining'>begin_draining</span>
-    <span class='kw'>if</span> <span class='id identifier rubyid_wait_until_idle'>wait_until_idle</span><span class='lparen'>(</span><span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
-      <span class='id identifier rubyid_begin_stopping_if_idle'>begin_stopping_if_idle</span>
-      <span class='id identifier rubyid_join_until'>join_until</span><span class='lparen'>(</span><span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
-    <span class='kw'>end</span>
-
-    <span class='ivar'>@shutdown_status</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_thread_alive?'>thread_alive?</span>
-      <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@state</span> <span class='op'>=</span> <span class='symbol'>:failed</span> <span class='rbrace'>}</span>
-      <span class='symbol'>:cancel_timeout</span>
-    <span class='kw'>elsif</span> <span class='id identifier rubyid_state'>state</span> <span class='op'>==</span> <span class='symbol'>:failed</span>
-      <span class='symbol'>:failed</span>
-    <span class='kw'>else</span>
-      <span class='id identifier rubyid_finalize_terminated'>finalize_terminated</span><span class='lparen'>(</span><span class='symbol'>:terminated</span><span class='rparen'>)</span>
-    <span class='kw'>end</span>
-  <span class='kw'>end</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span><span class='label'>deadline:</span><span class='comma'>,</span> <span class='label'>cancel_grace:</span> <span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_stop_and_join'>stop_and_join</span><span class='lparen'>(</span><span class='label'>deadline:</span> <span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1335,6 +1320,86 @@ lifecycle progression happens by short event dispatches on this thread.</p>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_state'>state</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@state</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="stop_and_join-instance_method">
+  
+    #<strong>stop_and_join</strong>(deadline:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Sends STOP to the queue and joins the EventLoop thread.
+Assumes sessions have already been drained before this call.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 199</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_stop_and_join'>stop_and_join</span><span class='lparen'>(</span><span class='label'>deadline:</span><span class='rparen'>)</span>
+  <span class='ivar'>@shutdown_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='kw'>return</span> <span class='ivar'>@shutdown_status</span> <span class='kw'>if</span> <span class='ivar'>@shutdown_status</span>
+
+    <span class='kw'>if</span> <span class='id identifier rubyid_state'>state</span> <span class='op'>==</span> <span class='symbol'>:failed</span>
+      <span class='id identifier rubyid_join_until'>join_until</span><span class='lparen'>(</span><span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
+      <span class='ivar'>@shutdown_status</span> <span class='op'>=</span> <span class='symbol'>:failed</span>
+      <span class='kw'>return</span> <span class='ivar'>@shutdown_status</span>
+    <span class='kw'>end</span>
+
+    <span class='id identifier rubyid_begin_stopping_if_idle'>begin_stopping_if_idle</span>
+    <span class='id identifier rubyid_join_until'>join_until</span><span class='lparen'>(</span><span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
+
+    <span class='ivar'>@shutdown_status</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_thread_alive?'>thread_alive?</span>
+      <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@state</span> <span class='op'>=</span> <span class='symbol'>:failed</span> <span class='rbrace'>}</span>
+      <span class='symbol'>:cancel_timeout</span>
+    <span class='kw'>elsif</span> <span class='id identifier rubyid_state'>state</span> <span class='op'>==</span> <span class='symbol'>:failed</span>
+      <span class='symbol'>:failed</span>
+    <span class='kw'>else</span>
+      <span class='id identifier rubyid_finalize_terminated'>finalize_terminated</span><span class='lparen'>(</span><span class='symbol'>:terminated</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1382,12 +1447,12 @@ lifecycle progression happens by short event dispatches on this thread.</p>
       <pre class="lines">
 
 
-224
-225
-226</pre>
+228
+229
+230</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 224</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/event_loop.rb', line 228</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_thread_alive?'>thread_alive?</span>
   <span class='ivar'>@thread</span><span class='op'>&amp;.</span><span class='id identifier rubyid_alive?'>alive?</span> <span class='op'>||</span> <span class='kw'>false</span>
@@ -1491,7 +1556,7 @@ lifecycle progression happens by short event dispatches on this thread.</p>
 </div>
 
       <div id="footer">
-  Generated on Wed Aug 12 05:55:24 2026 by
+  Generated on Wed Aug 12 13:08:11 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

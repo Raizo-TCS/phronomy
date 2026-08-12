@@ -131,33 +131,6 @@
       <li class="public ">
   <span class="summary_signature">
     
-      <a href="#error-instance_method" title="#error (instance method)">#<strong>error</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-      <span class="note title readonly">readonly</span>
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute error.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#id-instance_method" title="#id (instance method)">#<strong>id</strong>  &#x21d2; Object </a>
     
 
@@ -275,6 +248,28 @@
   <span class="summary_signature">
     
       <a href="#completed%3F-instance_method" title="#completed? (instance method)">#<strong>completed?</strong>  &#x21d2; Boolean </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#error-instance_method" title="#error (instance method)">#<strong>error</strong>  &#x21d2; Object </a>
     
 
     
@@ -471,7 +466,8 @@
 23
 24
 25
-26</pre>
+26
+27</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/fan_out_invocation.rb', line 13</span>
@@ -485,8 +481,9 @@
   <span class='ivar'>@pending</span> <span class='op'>=</span> <span class='id identifier rubyid_children'>children</span><span class='period'>.</span><span class='id identifier rubyid_dup'>dup</span>
   <span class='ivar'>@active</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
   <span class='ivar'>@results</span> <span class='op'>=</span> <span class='const'>Array</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_children'>children</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span><span class='rparen'>)</span>
-  <span class='ivar'>@error</span> <span class='op'>=</span> <span class='kw'>nil</span>
-  <span class='ivar'>@cancelled</span> <span class='op'>=</span> <span class='kw'>false</span>
+  <span class='ivar'>@child_errors</span> <span class='op'>=</span> <span class='const'>Array</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_children'>children</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span><span class='rparen'>)</span>  <span class='comment'># indexed by input order
+</span>  <span class='ivar'>@fatal_error</span> <span class='op'>=</span> <span class='kw'>nil</span>   <span class='comment'># driver_failed / timeout / cancel
+</span>  <span class='ivar'>@cancelled</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@timed_out</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@session_id</span> <span class='op'>=</span> <span class='kw'>nil</span>
 <span class='kw'>end</span></pre>
@@ -503,48 +500,7 @@
       
       <span id=""></span>
       <div class="method_details first">
-  <h3 class="signature first" id="error-instance_method">
-  
-    #<strong>error</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the value of attribute error.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-11
-12
-13</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/fan_out_invocation.rb', line 11</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_error'>error</span>
-  <span class='ivar'>@error</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id=""></span>
-      <div class="method_details ">
-  <h3 class="signature " id="id-instance_method">
+  <h3 class="signature first" id="id-instance_method">
   
     #<strong>id</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
   
@@ -708,12 +664,12 @@
       <pre class="lines">
 
 
-115
-116
-117</pre>
+128
+129
+130</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/fan_out_invocation.rb', line 115</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/fan_out_invocation.rb', line 128</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancelled?'>cancelled?</span>
   <span class='ivar'>@cancelled</span>
@@ -760,15 +716,45 @@
       <pre class="lines">
 
 
-103
-104
-105</pre>
+111
+112
+113</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/fan_out_invocation.rb', line 103</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/fan_out_invocation.rb', line 111</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_completed?'>completed?</span>
   <span class='op'>!</span><span class='id identifier rubyid_failed?'>failed?</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@pending</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@active</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="error-instance_method">
+  
+    #<strong>error</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+120
+121
+122</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/fan_out_invocation.rb', line 120</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_error'>error</span>
+  <span class='ivar'>@fatal_error</span> <span class='op'>||</span> <span class='ivar'>@child_errors</span><span class='period'>.</span><span class='id identifier rubyid_find'>find</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:itself</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -812,15 +798,17 @@
       <pre class="lines">
 
 
-107
-108
-109</pre>
+115
+116
+117
+118</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/fan_out_invocation.rb', line 107</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/fan_out_invocation.rb', line 115</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_failed?'>failed?</span>
-  <span class='op'>!</span><span class='ivar'>@error</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
+  <span class='kw'>return</span> <span class='kw'>true</span> <span class='kw'>if</span> <span class='ivar'>@fatal_error</span>
+  <span class='ivar'>@on_error</span> <span class='op'>==</span> <span class='symbol'>:raise</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@pending</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@active</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@child_errors</span><span class='period'>.</span><span class='id identifier rubyid_any?'>any?</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:itself</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -842,7 +830,6 @@
       <pre class="lines">
 
 
-33
 34
 35
 36
@@ -875,10 +862,14 @@
 63
 64
 65
-66</pre>
+66
+67
+68
+69
+70</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/fan_out_invocation.rb', line 33</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/fan_out_invocation.rb', line 34</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_handle_fsm_event'>handle_fsm_event</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='kw'>case</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_type'>type</span>
@@ -889,25 +880,28 @@
     <span class='id identifier rubyid_child_error'>child_error</span> <span class='op'>=</span> <span class='id identifier rubyid_payload'>payload</span><span class='lbracket'>[</span><span class='symbol'>:error</span><span class='rbracket'>]</span>
     <span class='kw'>if</span> <span class='id identifier rubyid_child_error'>child_error</span>
       <span class='kw'>if</span> <span class='ivar'>@on_error</span> <span class='op'>==</span> <span class='symbol'>:raise</span>
-        <span class='ivar'>@error</span> <span class='op'>||=</span> <span class='id identifier rubyid_child_error'>child_error</span>
-        <span class='id identifier rubyid_cancel_active_children!'>cancel_active_children!</span>
+        <span class='ivar'>@child_errors</span><span class='lbracket'>[</span><span class='id identifier rubyid_index'>index</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_child_error'>child_error</span>
+        <span class='comment'># Signal cancellation so other children can stop early, but continue
+</span>        <span class='comment'># waiting for all active children to respond so we can return the
+</span>        <span class='comment'># first error in INPUT ORDER (not arrival order).
+</span>        <span class='id identifier rubyid_cancel_active_children!'>cancel_active_children!</span> <span class='kw'>unless</span> <span class='ivar'>@child_errors</span><span class='period'>.</span><span class='id identifier rubyid_any?'>any?</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:itself</span><span class='rparen'>)</span>
       <span class='kw'>end</span>
     <span class='kw'>else</span>
       <span class='ivar'>@results</span><span class='lbracket'>[</span><span class='id identifier rubyid_index'>index</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id identifier rubyid_payload'>payload</span><span class='lbracket'>[</span><span class='symbol'>:result</span><span class='rbracket'>]</span>
     <span class='kw'>end</span>
     <span class='kw'>true</span>
   <span class='kw'>when</span> <span class='symbol'>:driver_failed</span>
-    <span class='ivar'>@error</span> <span class='op'>||=</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:error</span><span class='rparen'>)</span>
+    <span class='ivar'>@fatal_error</span> <span class='op'>||=</span> <span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:error</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_cancel_active_children!'>cancel_active_children!</span>
     <span class='kw'>true</span>
   <span class='kw'>when</span> <span class='symbol'>:timeout</span>
     <span class='ivar'>@timed_out</span> <span class='op'>=</span> <span class='kw'>true</span>
-    <span class='ivar'>@error</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:message</span><span class='rparen'>)</span><span class='rparen'>)</span>
+    <span class='ivar'>@fatal_error</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='period'>.</span><span class='id identifier rubyid_payload'>payload</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:message</span><span class='rparen'>)</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_cancel_active_children!'>cancel_active_children!</span>
     <span class='kw'>true</span>
   <span class='kw'>when</span> <span class='symbol'>:cancel</span>
     <span class='ivar'>@cancelled</span> <span class='op'>=</span> <span class='kw'>true</span>
-    <span class='ivar'>@error</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>fan-out cancelled</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='ivar'>@fatal_error</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>fan-out cancelled</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
     <span class='id identifier rubyid_cancel_active_children!'>cancel_active_children!</span>
     <span class='kw'>true</span>
   <span class='kw'>else</span>
@@ -934,13 +928,13 @@
       <pre class="lines">
 
 
-28
 29
 30
-31</pre>
+31
+32</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/fan_out_invocation.rb', line 28</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/fan_out_invocation.rb', line 29</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_set_graph_metadata'>set_graph_metadata</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>phase:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@session_id</span> <span class='op'>=</span> <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='kw'>if</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
@@ -966,10 +960,6 @@
       <pre class="lines">
 
 
-68
-69
-70
-71
 72
 73
 74
@@ -999,13 +989,21 @@
 98
 99
 100
-101</pre>
+101
+102
+103
+104
+105
+106
+107
+108
+109</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/fan_out_invocation.rb', line 68</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/fan_out_invocation.rb', line 72</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start_available!'>start_available!</span><span class='lparen'>(</span><span class='id identifier rubyid_runtime'>runtime</span><span class='rparen'>)</span>
-  <span class='kw'>return</span> <span class='kw'>self</span> <span class='kw'>if</span> <span class='id identifier rubyid_failed?'>failed?</span>
+  <span class='kw'>return</span> <span class='kw'>self</span> <span class='kw'>if</span> <span class='ivar'>@fatal_error</span>
 
   <span class='kw'>while</span> <span class='ivar'>@active</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span> <span class='op'>&lt;</span> <span class='ivar'>@max_concurrency</span> <span class='op'>&amp;&amp;</span> <span class='lparen'>(</span><span class='id identifier rubyid_child'>child</span> <span class='op'>=</span> <span class='ivar'>@pending</span><span class='period'>.</span><span class='id identifier rubyid_shift'>shift</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_child_config'>child_config</span> <span class='op'>=</span> <span class='id identifier rubyid_build_child_config'>build_child_config</span><span class='lparen'>(</span><span class='id identifier rubyid_child'>child</span><span class='period'>.</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
@@ -1015,19 +1013,23 @@
       <span class='label'>thread_id:</span> <span class='id identifier rubyid_child'>child</span><span class='period'>.</span><span class='id identifier rubyid_thread_id'>thread_id</span>
     <span class='rparen'>)</span>
     <span class='ivar'>@active</span><span class='lbracket'>[</span><span class='id identifier rubyid_child'>child</span><span class='period'>.</span><span class='id identifier rubyid_index'>index</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='label'>handle:</span> <span class='id identifier rubyid_handle'>handle</span><span class='comma'>,</span> <span class='label'>token:</span> <span class='id identifier rubyid_child_config'>child_config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span><span class='rbrace'>}</span>
-    <span class='id identifier rubyid_handle'>handle</span><span class='period'>.</span><span class='id identifier rubyid_on_complete'>on_complete</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='op'>|</span>
-      <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_post_to_session'>post_to_session</span><span class='lparen'>(</span>
-        <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Event.html" title="Phronomy::Event (class)">Event</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
-          <span class='label'>type:</span> <span class='symbol'>:child_completed</span><span class='comma'>,</span>
-          <span class='label'>target_id:</span> <span class='ivar'>@id</span><span class='comma'>,</span>
-          <span class='label'>payload:</span> <span class='lbrace'>{</span><span class='label'>index:</span> <span class='id identifier rubyid_child'>child</span><span class='period'>.</span><span class='id identifier rubyid_index'>index</span><span class='comma'>,</span> <span class='label'>result:</span> <span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='id identifier rubyid_error'>error</span><span class='rbrace'>}</span>
+    <span class='comment'># [child.index].each creates a block parameter with a unique binding
+</span>    <span class='comment'># per iteration, avoiding the while-loop variable capture problem.
+</span>    <span class='lbracket'>[</span><span class='id identifier rubyid_child'>child</span><span class='period'>.</span><span class='id identifier rubyid_index'>index</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_captured_index'>captured_index</span><span class='op'>|</span>
+      <span class='id identifier rubyid_handle'>handle</span><span class='period'>.</span><span class='id identifier rubyid_on_complete'>on_complete</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='op'>|</span>
+        <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_post_to_session'>post_to_session</span><span class='lparen'>(</span>
+          <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Event.html" title="Phronomy::Event (class)">Event</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
+            <span class='label'>type:</span> <span class='symbol'>:child_completed</span><span class='comma'>,</span>
+            <span class='label'>target_id:</span> <span class='ivar'>@id</span><span class='comma'>,</span>
+            <span class='label'>payload:</span> <span class='lbrace'>{</span><span class='label'>index:</span> <span class='id identifier rubyid_captured_index'>captured_index</span><span class='comma'>,</span> <span class='label'>result:</span> <span class='id identifier rubyid_result'>result</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='id identifier rubyid_error'>error</span><span class='rbrace'>}</span>
+          <span class='rparen'>)</span>
         <span class='rparen'>)</span>
-      <span class='rparen'>)</span>
+      <span class='kw'>end</span>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
   <span class='kw'>self</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_caught'>caught</span>
-  <span class='ivar'>@error</span> <span class='op'>||=</span> <span class='id identifier rubyid_caught'>caught</span>
+  <span class='ivar'>@fatal_error</span> <span class='op'>||=</span> <span class='id identifier rubyid_caught'>caught</span>
   <span class='id identifier rubyid_cancel_active_children!'>cancel_active_children!</span>
   <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_post_to_session'>post_to_session</span><span class='lparen'>(</span>
     <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Event.html" title="Phronomy::Event (class)">Event</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
@@ -1080,12 +1082,12 @@
       <pre class="lines">
 
 
-111
-112
-113</pre>
+124
+125
+126</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/fan_out_invocation.rb', line 111</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/fan_out_invocation.rb', line 124</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_timed_out?'>timed_out?</span>
   <span class='ivar'>@timed_out</span>
@@ -1100,7 +1102,7 @@
 </div>
 
       <div id="footer">
-  Generated on Wed Aug 12 05:55:26 2026 by
+  Generated on Wed Aug 12 13:08:13 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

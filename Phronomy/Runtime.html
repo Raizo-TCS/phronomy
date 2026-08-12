@@ -1163,7 +1163,12 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
 201
 202
 203
-204</pre>
+204
+205
+206
+207
+208
+209</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 144</span>
@@ -1182,21 +1187,26 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
   <span class='ivar'>@shutdown_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='kw'>return</span> <span class='ivar'>@shutdown_result</span> <span class='kw'>if</span> <span class='ivar'>@shutdown_result</span>
 
-    <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>=</span> <span class='id identifier rubyid_monotonic_now'>monotonic_now</span> <span class='op'>+</span> <span class='id identifier rubyid_timeout'>timeout</span>
+    <span class='comment'># Phase 1 — drain sessions with the full configured grace.
+</span>    <span class='id identifier rubyid_drain_deadline'>drain_deadline</span> <span class='op'>=</span> <span class='id identifier rubyid_monotonic_now'>monotonic_now</span> <span class='op'>+</span> <span class='id identifier rubyid_timeout'>timeout</span>
     <span class='id identifier rubyid_loop_instance'>loop_instance</span> <span class='op'>=</span> <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
       <span class='ivar'>@state</span> <span class='op'>=</span> <span class='symbol'>:draining</span> <span class='kw'>unless</span> <span class='ivar'>@state</span> <span class='op'>==</span> <span class='symbol'>:failed</span>
       <span class='ivar'>@event_loop</span>
     <span class='kw'>end</span>
     <span class='id identifier rubyid_loop_instance'>loop_instance</span><span class='op'>&amp;.</span><span class='id identifier rubyid_begin_draining'>begin_draining</span>
 
-    <span class='id identifier rubyid_loop_idle'>loop_idle</span> <span class='op'>=</span> <span class='op'>!</span><span class='id identifier rubyid_loop_instance'>loop_instance</span> <span class='op'>||</span> <span class='id identifier rubyid_loop_instance'>loop_instance</span><span class='period'>.</span><span class='id identifier rubyid_wait_until_idle'>wait_until_idle</span><span class='lparen'>(</span><span class='id identifier rubyid_deadline'>deadline</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_loop_idle'>loop_idle</span> <span class='op'>=</span> <span class='op'>!</span><span class='id identifier rubyid_loop_instance'>loop_instance</span> <span class='op'>||</span> <span class='id identifier rubyid_loop_instance'>loop_instance</span><span class='period'>.</span><span class='id identifier rubyid_wait_until_idle'>wait_until_idle</span><span class='lparen'>(</span><span class='id identifier rubyid_drain_deadline'>drain_deadline</span><span class='rparen'>)</span>
 
     <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
       <span class='ivar'>@state</span> <span class='op'>=</span> <span class='symbol'>:stopping</span> <span class='kw'>unless</span> <span class='ivar'>@state</span> <span class='op'>==</span> <span class='symbol'>:failed</span>
     <span class='kw'>end</span>
 
+    <span class='comment'># Phase 2 — stop the EventLoop thread with a short independent budget.
+</span>    <span class='comment'># An idle EventLoop processes STOP and exits in &lt; 1ms normally; the 0.2s
+</span>    <span class='comment'># budget here is only a safety net for OS scheduling jitter.
+</span>    <span class='id identifier rubyid_stop_deadline'>stop_deadline</span> <span class='op'>=</span> <span class='id identifier rubyid_monotonic_now'>monotonic_now</span> <span class='op'>+</span> <span class='lbracket'>[</span><span class='id identifier rubyid_cancel_grace'>cancel_grace</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span><span class='comma'>,</span> <span class='float'>0.2</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_max'>max</span>
     <span class='id identifier rubyid_event_loop_status'>event_loop_status</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_loop_instance'>loop_instance</span>
-      <span class='id identifier rubyid_loop_instance'>loop_instance</span><span class='period'>.</span><span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span><span class='label'>deadline:</span> <span class='id identifier rubyid_deadline'>deadline</span><span class='comma'>,</span> <span class='label'>cancel_grace:</span> <span class='id identifier rubyid_cancel_grace'>cancel_grace</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_loop_instance'>loop_instance</span><span class='period'>.</span><span class='id identifier rubyid_stop_and_join'>stop_and_join</span><span class='lparen'>(</span><span class='label'>deadline:</span> <span class='id identifier rubyid_stop_deadline'>stop_deadline</span><span class='rparen'>)</span>
     <span class='kw'>else</span>
       <span class='symbol'>:not_started</span>
     <span class='kw'>end</span>
@@ -1314,7 +1324,7 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
 </div>
 
       <div id="footer">
-  Generated on Wed Aug 12 05:55:24 2026 by
+  Generated on Wed Aug 12 13:08:11 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
