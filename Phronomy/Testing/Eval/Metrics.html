@@ -4,25 +4,25 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-  Class: Phronomy::Eval::Metrics
+  Class: Phronomy::Testing::Eval::Metrics
   
     &mdash; Documentation by YARD 0.9.45
   
 </title>
 
-  <link rel="stylesheet" href="../../css/style.css" type="text/css">
+  <link rel="stylesheet" href="../../../css/style.css" type="text/css">
 
-  <link rel="stylesheet" href="../../css/common.css" type="text/css">
+  <link rel="stylesheet" href="../../../css/common.css" type="text/css">
 
 <script type="text/javascript">
-  pathId = "Phronomy::Eval::Metrics";
-  relpath = '../../';
+  pathId = "Phronomy::Testing::Eval::Metrics";
+  relpath = '../../../';
 </script>
 
 
-  <script type="text/javascript" charset="utf-8" src="../../js/jquery.js"></script>
+  <script type="text/javascript" charset="utf-8" src="../../../js/jquery.js"></script>
 
-  <script type="text/javascript" charset="utf-8" src="../../js/app.js"></script>
+  <script type="text/javascript" charset="utf-8" src="../../../js/app.js"></script>
 
 
   </head>
@@ -30,7 +30,7 @@
     <div id="main_progress" aria-hidden="true"></div>
 
     <div class="nav_wrap">
-      <iframe id="nav" src="../../class_list.html?1"></iframe>
+      <iframe id="nav" src="../../../class_list.html?1"></iframe>
       <div id="resizer"></div>
     </div>
 
@@ -38,8 +38,8 @@
       <div id="header">
         <div id="menu">
   
-    <a href="../../_index.html">Index (M)</a> &raquo;
-    <span class='title'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Eval.html" title="Phronomy::Eval (module)">Eval</a></span></span>
+    <a href="../../../_index.html">Index (M)</a> &raquo;
+    <span class='title'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../Testing.html" title="Phronomy::Testing (module)">Testing</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Eval.html" title="Phronomy::Testing::Eval (module)">Eval</a></span></span>
      &raquo; 
     <span class="title">Metrics</span>
   
@@ -48,7 +48,7 @@
         <div id="search">
   
     <a class="full_list_link" id="class_list_link"
-        href="../../class_list.html">
+        href="../../../class_list.html">
 
         <svg width="24" height="24">
           <rect x="0" y="4" width="24" height="4" rx="1" ry="1"></rect>
@@ -61,7 +61,7 @@
         <div class="clear"></div>
       </div>
 
-      <div id="content"><h1>Class: Phronomy::Eval::Metrics
+      <div id="content"><h1>Class: Phronomy::Testing::Eval::Metrics
   
   
   
@@ -76,7 +76,7 @@
         <ul class="fullTree">
           <li>Object</li>
           
-            <li class="next">Phronomy::Eval::Metrics</li>
+            <li class="next">Phronomy::Testing::Eval::Metrics</li>
           
         </ul>
         <a href="#" class="inheritanceTree">show all</a>
@@ -96,33 +96,13 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/eval/metrics.rb
+    <dd>lib/phronomy/testing/eval/metrics.rb
 </dd>
   </dl>
   
 </div>
 
-<h2>Overview</h2><div class="docstring">
-  <div class="discussion">
-    <p>Aggregates a collection of EvalResult objects into summary statistics.</p>
 
-  </div>
-</div>
-<div class="tags">
-  
-  <div class="examples">
-    <h4 class="tag_title">Examples:</h4>
-    
-      
-      <pre class="example code"><code><span class='id identifier rubyid_metrics'>metrics</span> <span class='op'>=</span> <span class='const'>Metrics</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Eval::Metrics#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_results'>results</span><span class='rparen'>)</span>
-<span class='id identifier rubyid_puts'>puts</span> <span class='id identifier rubyid_metrics'>metrics</span><span class='period'>.</span><span class='id identifier rubyid_pass_rate'>pass_rate</span>        <span class='comment'># =&gt; 0.8
-</span><span class='id identifier rubyid_puts'>puts</span> <span class='id identifier rubyid_metrics'>metrics</span><span class='period'>.</span><span class='id identifier rubyid_average_score'>average_score</span>    <span class='comment'># =&gt; 0.9
-</span><span class='id identifier rubyid_puts'>puts</span> <span class='id identifier rubyid_metrics'>metrics</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span></code></pre>
-    
-  </div>
-
-
-</div>
 
 
 
@@ -140,7 +120,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#average_latency_ms-instance_method" title="#average_latency_ms (instance method)">#<strong>average_latency_ms</strong>  &#x21d2; Float </a>
+      <a href="#average_latency_ms-instance_method" title="#average_latency_ms (instance method)">#<strong>average_latency_ms</strong>  &#x21d2; Object </a>
     
 
     
@@ -154,7 +134,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Arithmetic mean of latency_ms across all results.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -162,7 +142,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#average_score-instance_method" title="#average_score (instance method)">#<strong>average_score</strong>  &#x21d2; Float </a>
+      <a href="#average_score-instance_method" title="#average_score (instance method)">#<strong>average_score</strong>  &#x21d2; Object </a>
     
 
     
@@ -176,7 +156,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Arithmetic mean of all scores.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -208,7 +188,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#pass_rate-instance_method" title="#pass_rate (instance method)">#<strong>pass_rate</strong>  &#x21d2; Float </a>
+      <a href="#pass_rate-instance_method" title="#pass_rate (instance method)">#<strong>pass_rate</strong>  &#x21d2; Object </a>
     
 
     
@@ -222,7 +202,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Fraction of results that passed (score == 1.0).</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -230,7 +210,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#to_h-instance_method" title="#to_h (instance method)">#<strong>to_h</strong>  &#x21d2; Hash </a>
+      <a href="#to_h-instance_method" title="#to_h (instance method)">#<strong>to_h</strong>  &#x21d2; Object </a>
     
 
     
@@ -244,7 +224,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns a plain Hash summary suitable for logging or serialisation.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -252,7 +232,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#total_usage-instance_method" title="#total_usage (instance method)">#<strong>total_usage</strong>  &#x21d2; Phronomy::TokenUsage </a>
+      <a href="#total_usage-instance_method" title="#total_usage (instance method)">#<strong>total_usage</strong>  &#x21d2; Object </a>
     
 
     
@@ -266,7 +246,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Sum of all TokenUsage objects present in the results.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -281,7 +261,7 @@
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(results)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Eval::Metrics (class)">Metrics</a></span></tt> 
+    #<strong>initialize</strong>(results)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Testing::Eval::Metrics (class)">Metrics</a></span></tt> 
   
 
   
@@ -294,22 +274,7 @@
   </div>
 </div>
 <div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>results</span>
-      
-      
-        <span class='type'>(<tt>Array&lt;<span class='object_link'><a href="EvalResult.html" title="Phronomy::Eval::EvalResult (class)">EvalResult</a></span>&gt;</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
 
 </div><table class="source_code">
   <tr>
@@ -317,12 +282,12 @@
       <pre class="lines">
 
 
-15
-16
-17</pre>
+7
+8
+9</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/metrics.rb', line 15</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/eval/metrics.rb', line 7</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_results'>results</span><span class='rparen'>)</span>
   <span class='ivar'>@results</span> <span class='op'>=</span> <span class='id identifier rubyid_results'>results</span>
@@ -342,47 +307,25 @@
       <div class="method_details first">
   <h3 class="signature first" id="average_latency_ms-instance_method">
   
-    #<strong>average_latency_ms</strong>  &#x21d2; <tt>Float</tt> 
+    #<strong>average_latency_ms</strong>  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Arithmetic mean of latency_ms across all results.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Float</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-46
-47
-48
-49</pre>
+25
+26
+27
+28</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/metrics.rb', line 46</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/eval/metrics.rb', line 25</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_average_latency_ms'>average_latency_ms</span>
   <span class='kw'>return</span> <span class='float'>0.0</span> <span class='kw'>if</span> <span class='ivar'>@results</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
@@ -396,47 +339,25 @@
       <div class="method_details ">
   <h3 class="signature " id="average_score-instance_method">
   
-    #<strong>average_score</strong>  &#x21d2; <tt>Float</tt> 
+    #<strong>average_score</strong>  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Arithmetic mean of all scores.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Float</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-30
-31
-32
-33</pre>
+16
+17
+18
+19</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/metrics.rb', line 30</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/eval/metrics.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_average_score'>average_score</span>
   <span class='kw'>return</span> <span class='float'>0.0</span> <span class='kw'>if</span> <span class='ivar'>@results</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
@@ -450,50 +371,25 @@
       <div class="method_details ">
   <h3 class="signature " id="pass_rate-instance_method">
   
-    #<strong>pass_rate</strong>  &#x21d2; <tt>Float</tt> 
+    #<strong>pass_rate</strong>  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Fraction of results that passed (score == 1.0).</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Float</tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>in [0.0, 1.0]</p></div>
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-22
-23
-24
-25</pre>
+11
+12
+13
+14</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/metrics.rb', line 22</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/eval/metrics.rb', line 11</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pass_rate'>pass_rate</span>
   <span class='kw'>return</span> <span class='float'>0.0</span> <span class='kw'>if</span> <span class='ivar'>@results</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
@@ -507,53 +403,31 @@
       <div class="method_details ">
   <h3 class="signature " id="to_h-instance_method">
   
-    #<strong>to_h</strong>  &#x21d2; <tt>Hash</tt> 
+    #<strong>to_h</strong>  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns a plain Hash summary suitable for logging or serialisation.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-54
-55
-56
-57
-58
-59
-60
-61
-62
-63</pre>
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/metrics.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/eval/metrics.rb', line 30</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_to_h'>to_h</span>
   <span class='lbrace'>{</span>
@@ -573,50 +447,27 @@
       <div class="method_details ">
   <h3 class="signature " id="total_usage-instance_method">
   
-    #<strong>total_usage</strong>  &#x21d2; <tt><span class='object_link'><a href="../TokenUsage.html" title="Phronomy::TokenUsage (class)">Phronomy::TokenUsage</a></span></tt> 
+    #<strong>total_usage</strong>  &#x21d2; <tt>Object</tt> 
   
 
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Sum of all TokenUsage objects present in the results.
-Results without usage are skipped.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../TokenUsage.html" title="Phronomy::TokenUsage (class)">Phronomy::TokenUsage</a></span></tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-39
-40
-41</pre>
+21
+22
+23</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/eval/metrics.rb', line 39</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/testing/eval/metrics.rb', line 21</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_total_usage'>total_usage</span>
-  <span class='ivar'>@results</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:usage</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span><span class='period'>.</span><span class='id identifier rubyid_reduce'>reduce</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../TokenUsage.html" title="Phronomy::TokenUsage (class)">TokenUsage</a></span></span><span class='period'>.</span><span class='id identifier rubyid_zero'><span class='object_link'><a href="../TokenUsage.html#zero-class_method" title="Phronomy::TokenUsage.zero (method)">zero</a></span></span><span class='comma'>,</span> <span class='symbol'>:+</span><span class='rparen'>)</span>
+  <span class='ivar'>@results</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='symbol'>:usage</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span><span class='period'>.</span><span class='id identifier rubyid_reduce'>reduce</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../TokenUsage.html" title="Phronomy::TokenUsage (class)">TokenUsage</a></span></span><span class='period'>.</span><span class='id identifier rubyid_zero'><span class='object_link'><a href="../../TokenUsage.html#zero-class_method" title="Phronomy::TokenUsage.zero (method)">zero</a></span></span><span class='comma'>,</span> <span class='symbol'>:+</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -628,7 +479,7 @@ Results without usage are skipped.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug  9 14:02:40 2026 by
+  Generated on Wed Aug 12 05:55:24 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

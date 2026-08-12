@@ -71,7 +71,7 @@
   <dl>
     <dt>Inherits:</dt>
     <dd>
-      <span class="inheritName"><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></span>
+      <span class="inheritName"><span class='object_link'><a href="EventLoopReentrancyError.html" title="Phronomy::EventLoopReentrancyError (class)">EventLoopReentrancyError</a></span></span>
       
         <ul class="fullTree">
           <li>Object</li>
@@ -79,6 +79,8 @@
             <li class="next">StandardError</li>
           
             <li class="next"><span class='object_link'><a href="Error.html" title="Phronomy::Error (class)">Error</a></span></li>
+          
+            <li class="next"><span class='object_link'><a href="EventLoopReentrancyError.html" title="Phronomy::EventLoopReentrancyError (class)">EventLoopReentrancyError</a></span></li>
           
             <li class="next">Phronomy::SchedulerReentrancyError</li>
           
@@ -106,6 +108,17 @@
   
 </div>
 
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>Backward-compatible error class name for callers that still rescue the old
+scheduler-oriented exception. New code should use EventLoopReentrancyError.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
 
 
 
@@ -113,7 +126,13 @@
 
 
 
-
+  
+  
+  
+  
+  
+  
+  
   
   
   
@@ -126,7 +145,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sun Aug  9 14:02:40 2026 by
+  Generated on Wed Aug 12 05:55:23 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

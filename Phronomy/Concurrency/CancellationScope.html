@@ -130,10 +130,9 @@ token is cancelled and all child tasks that check it will stop.</p>
         <h5 class="example_title"><div class='inline'><p>Explicit cancellation</p></div></h5>
       
       <pre class="example code"><code><span class='id identifier rubyid_scope'>scope</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'>CancellationScope</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Concurrency::CancellationScope#initialize (method)">new</a></span></span>
-<span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_spawn'>spawn</span><span class='lparen'>(</span><span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>worker</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span>
-  <span class='id identifier rubyid_scope'>scope</span><span class='period'>.</span><span class='id identifier rubyid_token'>token</span><span class='period'>.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span>
-  <span class='comment'># ... do work ...
-</span><span class='kw'>end</span>
+<span class='id identifier rubyid_operation'>operation</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_blocking_io'>blocking_io</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
+  <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_scope'>scope</span><span class='period'>.</span><span class='id identifier rubyid_token'>token</span>
+<span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_blocking_operation'>blocking_operation</span> <span class='rbrace'>}</span>
 <span class='id identifier rubyid_scope'>scope</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span> <span class='kw'>if</span> <span class='id identifier rubyid_some_condition'>some_condition</span></code></pre>
     
   </div>
@@ -405,6 +404,7 @@ deadline expiry).  No polling thread is spawned.</p></div>
       <pre class="lines">
 
 
+37
 38
 39
 40
@@ -425,11 +425,10 @@ deadline expiry).  No polling thread is spawned.</p></div>
 55
 56
 57
-58
-59</pre>
+58</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_scope.rb', line 38</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_scope.rb', line 37</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>parent_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@token</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="CancellationToken.html#initialize-instance_method" title="Phronomy::Concurrency::CancellationToken#initialize (method)">new</a></span></span>
@@ -505,12 +504,12 @@ deadline expiry).  No polling thread is spawned.</p></div>
       <pre class="lines">
 
 
+30
 31
-32
-33</pre>
+32</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_scope.rb', line 31</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_scope.rb', line 30</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_deadline'>deadline</span>
   <span class='ivar'>@deadline</span>
@@ -562,12 +561,12 @@ deadline expiry).  No polling thread is spawned.</p></div>
       <pre class="lines">
 
 
+27
 28
-29
-30</pre>
+29</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_scope.rb', line 28</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_scope.rb', line 27</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_token'>token</span>
   <span class='ivar'>@token</span>
@@ -612,12 +611,12 @@ deadline expiry).  No polling thread is spawned.</p></div>
       <pre class="lines">
 
 
+74
 75
-76
-77</pre>
+76</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_scope.rb', line 75</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_scope.rb', line 74</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancel!'>cancel!</span>
   <span class='ivar'>@token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span>
@@ -668,12 +667,12 @@ deadline expiry).  No polling thread is spawned.</p></div>
       <pre class="lines">
 
 
+81
 82
-83
-84</pre>
+83</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_scope.rb', line 82</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_scope.rb', line 81</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancelled?'>cancelled?</span>
   <span class='ivar'>@token</span><span class='period'>.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
@@ -742,14 +741,14 @@ deadline expiry).  No polling thread is spawned.</p></div>
       <pre class="lines">
 
 
+65
 66
 67
 68
-69
-70</pre>
+69</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_scope.rb', line 66</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_scope.rb', line 65</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_deadline_in'>deadline_in</span><span class='lparen'>(</span><span class='id identifier rubyid_seconds'>seconds</span><span class='rparen'>)</span>
   <span class='ivar'>@deadline</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Deadline.html" title="Phronomy::Concurrency::Deadline (class)">Deadline</a></span></span><span class='period'>.</span><span class='id identifier rubyid_in'><span class='object_link'><a href="Deadline.html#in-class_method" title="Phronomy::Concurrency::Deadline.in (method)">in</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_seconds'>seconds</span><span class='rparen'>)</span>
@@ -873,6 +872,7 @@ the scope is cancelled and the block is called (or a <span class='object_link'><
       <pre class="lines">
 
 
+103
 104
 105
 106
@@ -890,11 +890,10 @@ the scope is cancelled and the block is called (or a <span class='object_link'><
 118
 119
 120
-121
-122</pre>
+121</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_scope.rb', line 104</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_scope.rb', line 103</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pop_queue'>pop_queue</span><span class='lparen'>(</span><span class='id identifier rubyid_queue'>queue</span><span class='comma'>,</span> <span class='label'>fallback_timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_timeout'>timeout</span> <span class='op'>=</span> <span class='ivar'>@deadline</span><span class='op'>&amp;.</span><span class='id identifier rubyid_remaining_seconds'>remaining_seconds</span> <span class='op'>||</span> <span class='id identifier rubyid_fallback_timeout'>fallback_timeout</span>
@@ -962,12 +961,12 @@ or <code>nil</code> when no deadline is set.</p>
       <pre class="lines">
 
 
+89
 90
-91
-92</pre>
+91</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_scope.rb', line 90</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/cancellation_scope.rb', line 89</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remaining_seconds'>remaining_seconds</span>
   <span class='ivar'>@deadline</span><span class='op'>&amp;.</span><span class='id identifier rubyid_remaining_seconds'>remaining_seconds</span>
@@ -982,7 +981,7 @@ or <code>nil</code> when no deadline is set.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug  9 14:02:43 2026 by
+  Generated on Wed Aug 12 05:55:27 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

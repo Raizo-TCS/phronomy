@@ -387,25 +387,25 @@ to wait for the result.</p>
       <pre class="lines">
 
 
-184
-185
-186
-187
-188
-189
-190
-191
-192
-193
-194
-195
-196
-197
-198
-199</pre>
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 184</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 153</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_block'>block</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on_abandoned:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>submitted_at:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@block</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -527,12 +527,6 @@ re-read here.</p>
 <p>An optional <code>cancellation_token</code> may be passed here (or at submit time).
 If the token is cancelled while waiting, <span class='object_link'><a href="../../CancellationError.html" title="Phronomy::CancellationError (class)">Phronomy::CancellationError</a></span> is
 raised without interrupting the worker.</p>
-<p><strong>Cooperative path (<code>:fiber</code> / <code>DeterministicScheduler</code>):</strong>
-When called from a Fiber managed by DeterministicScheduler, the calling
-Fiber suspends cooperatively via <code>Fiber.yield</code> rather than blocking the OS
-thread. The Fiber is resumed through <code>on_complete</code> when the operation
-settles. A waiter-local <code>timeout:</code> is not enforced on this path; use the
-submit-time timeout for an operation-wide deadline.</p>
 
   </div>
 </div>
@@ -552,8 +546,7 @@ submit-time timeout for an operation-wide deadline.</p>
       
       
         &mdash;
-        <div class='inline'><p>maximum seconds this waiter will block
-(thread path only; ignored on the cooperative/fiber path)</p></div>
+        <div class='inline'><p>maximum seconds this waiter will block</p></div>
       
     </li>
   
@@ -626,6 +619,14 @@ submit-time timeout for an operation-wide deadline.</p>
       <pre class="lines">
 
 
+89
+90
+91
+92
+93
+94
+95
+96
 97
 98
 99
@@ -649,71 +650,15 @@ submit-time timeout for an operation-wide deadline.</p>
 117
 118
 119
-120
-121
-122
-123
-124
-125
-126
-127
-128
-129
-130
-131
-132
-133
-134
-135
-136
-137
-138
-139
-140
-141
-142
-143
-144
-145
-146
-147
-148
-149
-150
-151
-152</pre>
+120</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 97</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 89</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_blocking_wait'>blocking_wait</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_effective_token'>effective_token</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span> <span class='op'>||</span> <span class='ivar'>@cancellation_token</span>
 
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>blocking operation cancelled</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_effective_token'>effective_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
-
-  <span class='comment'># Cooperative context: suspend the calling Fiber rather than blocking
-</span>  <span class='comment'># the OS thread so that DeterministicScheduler can continue dispatching
-</span>  <span class='comment'># other tasks while waiting for the blocking worker or submit-time timer.
-</span>  <span class='id identifier rubyid_scheduler'>scheduler</span> <span class='op'>=</span> <span class='const'>Thread</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_thread_variable_get'>thread_variable_get</span><span class='lparen'>(</span><span class='symbol'>:phronomy_deterministic_scheduler</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_in_managed_fiber'>in_managed_fiber</span> <span class='op'>=</span> <span class='op'>!</span><span class='const'>Fiber</span><span class='period'>.</span><span class='id identifier rubyid_respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:main</span><span class='rparen'>)</span> <span class='op'>||</span> <span class='const'>Fiber</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span> <span class='op'>!=</span> <span class='const'>Fiber</span><span class='period'>.</span><span class='id identifier rubyid_main'>main</span>
-  <span class='kw'>if</span> <span class='id identifier rubyid_scheduler'>scheduler</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_in_managed_fiber'>in_managed_fiber</span>
-    <span class='kw'>unless</span> <span class='id identifier rubyid_done?'>done?</span>
-      <span class='id identifier rubyid_scheduler'>scheduler</span><span class='period'>.</span><span class='id identifier rubyid_track_blocking_await'>track_blocking_await</span>
-      <span class='id identifier rubyid_waiting_fiber'>waiting_fiber</span> <span class='op'>=</span> <span class='const'>Fiber</span><span class='period'>.</span><span class='id identifier rubyid_current'>current</span>
-      <span class='id identifier rubyid_on_complete'>on_complete</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid__result'>_result</span><span class='comma'>,</span> <span class='id identifier rubyid__error'>_error</span><span class='op'>|</span>
-        <span class='id identifier rubyid_scheduler'>scheduler</span><span class='period'>.</span><span class='id identifier rubyid_complete_blocking_await'>complete_blocking_await</span>
-        <span class='id identifier rubyid_scheduler'>scheduler</span><span class='period'>.</span><span class='id identifier rubyid_enqueue_fiber'>enqueue_fiber</span><span class='lparen'>(</span><span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='id identifier rubyid_waiting_fiber'>waiting_fiber</span><span class='period'>.</span><span class='id identifier rubyid_resume'>resume</span> <span class='rbrace'>}</span><span class='rparen'>)</span>
-      <span class='kw'>end</span>
-      <span class='const'>Fiber</span><span class='period'>.</span><span class='id identifier rubyid_yield'>yield</span><span class='lparen'>(</span><span class='symbol'>:cooperative_suspend</span><span class='rparen'>)</span>
-    <span class='kw'>end</span>
-
-    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>blocking operation cancelled</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_effective_token'>effective_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
-
-    <span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='lbracket'>[</span><span class='ivar'>@value</span><span class='comma'>,</span> <span class='ivar'>@error</span><span class='rbracket'>]</span> <span class='rbrace'>}</span>
-    <span class='id identifier rubyid_raise'>raise</span> <span class='id identifier rubyid_error'>error</span> <span class='kw'>if</span> <span class='id identifier rubyid_error'>error</span>
-
-    <span class='kw'>return</span> <span class='id identifier rubyid_value'>value</span>
-  <span class='kw'>end</span>
 
   <span class='comment'># Wake up the waiting thread whenever the token is cancelled so we can
 </span>  <span class='comment'># propagate cancellation without sleeping until the operation completes.
@@ -836,6 +781,37 @@ submit-time timeout for an operation-wide deadline.</p>
       <pre class="lines">
 
 
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
 264
 265
 266
@@ -847,41 +823,10 @@ submit-time timeout for an operation-wide deadline.</p>
 272
 273
 274
-275
-276
-277
-278
-279
-280
-281
-282
-283
-284
-285
-286
-287
-288
-289
-290
-291
-292
-293
-294
-295
-296
-297
-298
-299
-300
-301
-302
-303
-304
-305
-306</pre>
+275</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 264</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 233</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execute!'>execute!</span>
   <span class='ivar'>@wait_time</span> <span class='op'>=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>-</span> <span class='ivar'>@submitted_at</span>
@@ -993,19 +938,19 @@ previously armed submit-time timer becomes a harmless no-op.</p>
       <pre class="lines">
 
 
-251
-252
-253
-254
-255
-256
-257
-258
-259
-260</pre>
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 251</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 220</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fail_submission!'>fail_submission!</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1069,44 +1014,44 @@ operation had already settled</p></div>
       <pre class="lines">
 
 
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
 209
 210
 211
-212
-213
-214
-215
-216
-217
-218
-219
-220
-221
-222
-223
-224
-225
-226
-227
-228
-229
-230
-231
-232
-233
-234
-235
-236
-237
-238
-239
-240
-241
-242
-243</pre>
+212</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 209</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 178</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fire_timeout!'>fire_timeout!</span>
   <span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
@@ -1166,7 +1111,8 @@ operation had already settled</p></div>
 <p>Registers a callback to be called when the operation settles.</p>
 <p>If the operation has already settled, the callback is invoked immediately
 on the calling thread. Otherwise it may be invoked on a pool worker thread
-or on the runtime timer thread. The execution thread is not guaranteed;
+or on the EventLoop thread when an operation timeout fires. The execution
+thread is not guaranteed;
 callbacks must be thread-safe and should complete quickly.</p>
 <p>The callback receives <code>result</code> and <code>error</code> (one of them will be <code>nil</code>).</p>
 
@@ -1207,22 +1153,22 @@ callbacks must be thread-safe and should complete quickly.</p>
       <pre class="lines">
 
 
-169
-170
-171
-172
-173
-174
-175
-176
-177
-178
-179
-180
-181</pre>
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 169</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 138</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_complete'>on_complete</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_fire_args'>fire_args</span> <span class='op'>=</span> <span class='kw'>nil</span>
@@ -1365,7 +1311,7 @@ callbacks must be thread-safe and should complete quickly.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug  9 14:02:44 2026 by
+  Generated on Wed Aug 12 05:55:27 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

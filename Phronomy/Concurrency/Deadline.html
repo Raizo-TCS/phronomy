@@ -434,9 +434,8 @@ skew from NTP adjustments or DST transitions.</p>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
 <p>Attaches this deadline to a <span class='object_link'><a href="CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span> by cancelling the token
-when the deadline expires.  Uses the Runtime timer queue (a single
-background thread shared by all deadlines) instead of spawning one thread
-per deadline.</p>
+when the deadline expires. The Runtime timer queue is driven by EventLoop;
+no timer-specific OS thread is created.</p>
 
   </div>
 </div>
@@ -494,16 +493,16 @@ defaults to <code>Phronomy::Runtime.instance.timer_queue</code></p></div>
       <pre class="lines">
 
 
+55
 56
 57
 58
 59
 60
-61
-62</pre>
+61</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/deadline.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/deadline.rb', line 55</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_attach_to'>attach_to</span><span class='lparen'>(</span><span class='id identifier rubyid_token'>token</span><span class='comma'>,</span> <span class='label'>timer_queue:</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_timer_queue'>timer_queue</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_seconds'>seconds</span> <span class='op'>=</span> <span class='id identifier rubyid_remaining_seconds'>remaining_seconds</span>
@@ -636,7 +635,7 @@ defaults to <code>Phronomy::Runtime.instance.timer_queue</code></p></div>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug  9 14:02:42 2026 by
+  Generated on Wed Aug 12 05:55:26 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
