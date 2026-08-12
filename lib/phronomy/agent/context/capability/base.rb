@@ -296,12 +296,18 @@ module Phronomy
           end
 
           # @api public
-          def call_async(args, cancellation_token: nil, config: {})
+          def call_async(
+            args,
+            cancellation_token: nil,
+            config: {},
+            runtime: nil
+          )
             Phronomy::Agent::ToolExecutor.call_async(
               tool: self,
               args: args,
               cancellation_token: cancellation_token,
-              config: config
+              config: config,
+              runtime: runtime
             )
           end
 

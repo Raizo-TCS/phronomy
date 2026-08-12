@@ -1164,7 +1164,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       end
     end
 
-    it "cooperative tool: call_async routes through BlockingAdapterPool" do
+    it "cooperative tool: call_async returns an already-settled Task without using BlockingAdapterPool" do
       pool = Phronomy::Runtime.instance.blocking_io
       called = false
       allow(pool).to receive(:submit).and_wrap_original do |m, **kw, &blk|
@@ -1175,7 +1175,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       awaitable = cooperative_tool_class.new.call_async({"x" => "hi"})
       expect(awaitable).to respond_to(:wait_result)
       expect(awaitable.wait_result).to eq("coop:hi")
-      expect(called).to be(true)
+      expect(called).to be(false)
     end
 
     it "blocking_io tool with pool: call_async routes through BlockingAdapterPool" do
@@ -1200,7 +1200,8 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
         tool: hello_tool,
         args: {},
         cancellation_token: ct,
-        config: {}
+        config: {},
+        runtime: nil
       )
       hello_tool.call_async({}, cancellation_token: ct)
     end
@@ -1210,7 +1211,8 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
         tool: hello_tool,
         args: {},
         cancellation_token: nil,
-        config: {}
+        config: {},
+        runtime: nil
       )
       hello_tool.call_async({})
     end

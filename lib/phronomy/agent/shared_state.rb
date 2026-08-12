@@ -144,6 +144,7 @@ module Phronomy
           tool_name "read_store"
           description "Read all current findings from the shared knowledge store. " \
             "Call this to see what other researchers have discovered."
+          execution_mode :cooperative
 
           define_method(:execute) { store.read_all.to_json }
         end
@@ -152,6 +153,7 @@ module Phronomy
           tool_name "write_finding"
           description "Record a new finding into the shared knowledge store so " \
             "that other researchers can build on your discovery."
+          execution_mode :cooperative
           param :content, type: :string, desc: "The finding to record"
 
           define_method(:execute) do |content:|

@@ -11,8 +11,8 @@ module Phronomy
     # — including RubyLLM, ActiveRecord, Redis, Faraday, and MCP stdio transport —
     # **must** route through this pool (or a named pool obtained via
     # {Runtime#pool}). Custom non-blocking HTTP/selector runtimes are intentionally
-    # out of scope; the pool + cooperative scheduler combination satisfies all
-    # current concurrency requirements together with EventLoop/FSMSession. (See ADR-010.)
+    # out of scope; EventLoop/FSMSession owns logical asynchronous coordination,
+    # while this pool is reserved for unavoidable blocking I/O. (See ADR-010.)
     #
     # All blocking calls (LLM HTTP, MCP stdio, ActiveRecord, Redis, etc.) must be
     # submitted through this pool so that:
@@ -332,7 +332,9 @@ module Phronomy
 
       # Submits a blocking operation to the pool.
       # Returns a {PendingOperation} immediately after queue admission; the block runs
-      # on a worker thread.
+      # on a worker thread. Do not submit logical waits (for example waiting for a
+      # child Agent Task) merely to make them asynchronous; those belong to
+      # FSMSession/EventLoop completion events.
       #
       # A submit-time +timeout+ is an operation-wide deadline measured from the start
       # of this method, including queue wait. The timer settles the PendingOperation

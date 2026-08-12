@@ -292,7 +292,7 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
       expect(pool_double).to have_received(:submit).exactly(2).times
     end
 
-    it "dispatches :cooperative tools via pool.submit" do
+    it "dispatches :cooperative tools inline without pool.submit" do
       tool = coop_tool_class.new
       chat = minimal_multi_chat({coop_dispatch_tool: tool})
       tc1 = fake_tool_call("coop_dispatch_tool", {"v" => "a"}, id: "tc1")
@@ -301,7 +301,7 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
 
       chat.send(:handle_tool_calls, resp)
 
-      expect(pool_double).to have_received(:submit).exactly(2).times
+      expect(pool_double).not_to have_received(:submit)
     end
   end
 end

@@ -2,12 +2,19 @@
 
 # bench_regression.rb — Targeted regression benchmarks.
 #
-# Measures the five minimum regression targets defined in Issue #232:
+# Measures the six minimum regression targets:
 #   1. WorkflowContext#merge throughput
 #   2. Workflow.define (graph build) time
 #   3. Tool::Base#params_schema generation (10 params)
 #   4. Orchestrator#dispatch_parallel overhead (10 stub agents, no LLM)
-#   5. CancellationToken#cancelled? throughput (shared token, 8 threads)
+#   5. CancellationToken#cancelled? throughput under deliberate Thread contention
+#   6. CancellationToken#raise_if_cancelled! hot path
+#
+# Target 4 deliberately uses thread-free completion handles so the benchmark
+# measures EventLoop/FanOut coordination rather than fake per-child Thread.new
+# overhead. Target 5 intentionally uses Threads because cross-thread token access
+# is the behavior being measured there; it is not a Phronomy runtime execution
+# path.
 #
 # Results are stored in a global REGRESSION_RESULTS hash (keyed by metric name,
 # value = iterations per second) for use by run_all.rb baseline comparison.
@@ -89,17 +96,19 @@ end
 # ---------------------------------------------------------------------------
 stub_agent_class = Class.new(Phronomy::Agent::Base) do
   agent_definition id: "bench-stub", version: 1
+
   define_method(:invoke) do |_input, thread_id: nil, config: {}|
     {output: "stub", messages: []}
   end
+
   define_method(:invoke_async) do |input, **_kw|
-    t = Phronomy::Task.new(name: "bench-stub")
-    Thread.new do
-      t.complete(invoke(input))
-    rescue => e
-      t.fail(e)
+    task = Phronomy::Task.deferred(name: "bench-stub")
+    begin
+      task.complete(invoke(input))
+    rescue => error
+      task.fail(error)
     end
-    t
+    task
   end
 end
 
@@ -116,8 +125,11 @@ t4 = Benchmark.measure("Orchestrator#dispatch_parallel (10 agents)") do
 end
 
 # ---------------------------------------------------------------------------
-# Target 5: CancellationToken#cancelled? throughput (8 threads)
+# Target 5: CancellationToken#cancelled? throughput (8 application Threads)
 # ---------------------------------------------------------------------------
+# Threads are intentional here: the benchmark specifically measures concurrent
+# access to one shared CancellationToken. They are not used to execute Phronomy
+# Agent/Workflow/Tool lifecycle work.
 CANCEL_TOKEN = Phronomy::Concurrency::CancellationToken.new
 CANCEL_ITERATIONS = 10_000
 
@@ -131,7 +143,7 @@ end
 # ---------------------------------------------------------------------------
 # Target 6: CancellationToken#raise_if_cancelled! hot path (no-op, single thread)
 # ---------------------------------------------------------------------------
-RAISE_TOKEN = Phronomy::Concurrency::CancellationToken.new  # not cancelled — no-op path
+RAISE_TOKEN = Phronomy::Concurrency::CancellationToken.new # not cancelled — no-op path
 RAISE_ITERATIONS = 200_000
 
 t6 = Benchmark.measure("CancellationToken#raise_if_cancelled! (no-op)") do

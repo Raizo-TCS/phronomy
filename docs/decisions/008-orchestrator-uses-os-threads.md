@@ -2,51 +2,49 @@
 
 ## Status
 
-Accepted
+**Superseded by ADR-010 on 2026-08-13.**
 
-## Context
+This file is retained as decision history. Its original implementation — one OS
+Thread per `dispatch_parallel` child — is no longer the active architecture.
 
-`Agent::Orchestrator#dispatch_parallel` runs multiple sub-agent invocations
-concurrently. The Ruby concurrency primitives available are:
+## Historical context
 
-1. **OS threads** (`Thread`): true OS-level threads, subject to Ruby's GVL for
-   CPU-bound work, but I/O-bound work (LLM API calls, tool HTTP requests)
-   releases the GVL and runs in parallel.
-2. **Ractors**: actor-model isolation, no shared mutable state between Ractors.
-   True parallel for CPU-bound work but requires strict object isolation.
-3. **Fibers / async**: cooperative concurrency via Fiber scheduler (e.g.,
-   `async` gem). Non-blocking I/O without multiple threads.
-4. **`concurrent-ruby` thread pool**: managed pool of OS threads.
+The original Orchestrator implementation needed concurrent subagent execution
+before Phronomy had a common EventLoop/FSMSession control model. It therefore
+used `Thread.new` per child Agent, optionally bounded by `max_concurrency`.
 
-LLM calls and tool invocations are overwhelmingly I/O-bound (HTTP requests).
-Under the GVL, OS threads are sufficient to achieve meaningful parallelism for
-these workloads. Ractors require that all objects passed between them are
-shareable, which is incompatible with RubyLLM's mutable chat objects and
-`WorkflowContext` instances without significant refactoring.
+That choice provided straightforward parallelism for I/O-heavy Agent calls but
+also tied logical child concurrency directly to OS-thread count.
 
-Fibers require an async-compatible HTTP library stack throughout (RubyLLM,
-Faraday, etc.), which is not guaranteed today.
+## Superseding decision
 
-## Decision
+Phronomy now models fan-out as a parent `FanOutInvocation` / FSMSession:
 
-`dispatch_parallel` spawns one OS thread per task using Ruby's `Thread.new`.
-A `max_concurrency:` cap (default: unlimited) uses a `Mutex`-guarded counter to
-limit the number of simultaneously active threads when specified.
+```text
+FanOut FSMSession
+    |
+    +-- start child Agent A asynchronously
+    +-- start child Agent B asynchronously
+    +-- start child Agent C asynchronously
+    |
+    +-- child completion events
+    |
+    +-- aggregate / fail / timeout / cancel
+```
 
-## Consequences
+`max_concurrency` limits how many child Agent invocations are active. It does
+not create a corresponding set of Threads.
 
-**Positive:**
-- Transparent parallelism for I/O-bound LLM/tool calls with no dependency
-  changes.
-- Compatible with all Ruby versions in the support matrix (3.2, 3.3, 3.4, head).
-- Simple to reason about: each task is an independent thread; results are
-  collected in input order.
+Each child Agent runs through the common Agent FSMSession/EventLoop lifecycle.
+When a child performs unavoidable blocking LLM/Tool I/O, only that external call
+is executed on the bounded `BlockingAdapterPool`.
 
-**Negative / Tradeoffs:**
-- CPU-bound work inside agents does not benefit from true parallelism due to
-  the GVL. (In practice, agents are almost always I/O-bound.)
-- Spawning many threads simultaneously (no `max_concurrency:`) can exhaust
-  system thread limits under high load. Users should set `max_concurrency:` for
-  large fan-outs.
-- Ractor-based isolation (if ever needed for security sandboxing) would require
-  significant API changes to `WorkflowContext` and RubyLLM integration.
+Therefore:
+
+- `dispatch_parallel` does not create raw Threads;
+- no `Runtime#spawn` or Task execution backend is involved;
+- child completion is delivered by EventLoop events;
+- result ordering, fail/skip policy, timeout, and cancellation belong to the
+  FanOut state machine.
+
+See ADR-010 for the current concurrency model and Thread boundary.

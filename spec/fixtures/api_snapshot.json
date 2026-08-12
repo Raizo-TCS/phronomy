@@ -322,14 +322,6 @@
     "public_class_methods": []
   },
   {
-    "name": "Phronomy::Testing::Eval::Runner",
-    "type": "class",
-    "public_instance_methods": [
-      "run"
-    ],
-    "public_class_methods": []
-  },
-  {
     "name": "Phronomy::Tools::Mcp",
     "type": "class",
     "public_instance_methods": [

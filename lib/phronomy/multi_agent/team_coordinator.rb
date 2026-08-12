@@ -177,6 +177,7 @@ module Phronomy
         Class.new(Phronomy::Agent::Context::Capability::Base) do
           tool_name "enqueue_task"
           description "Add a task to the worker queue."
+          execution_mode :cooperative
           param :description, type: :string, desc: "What the worker agent should do"
           param :metadata, type: :string, desc: "Optional metadata", required: false
 
@@ -197,6 +198,7 @@ module Phronomy
         Class.new(Phronomy::Agent::Context::Capability::Base) do
           tool_name "finalize"
           description "Signal that task generation is complete. Call this after all tasks have been enqueued."
+          execution_mode :cooperative
           param :summary, type: :string, desc: "Brief summary of what was enqueued", required: false
 
           define_method(:execute) do |summary: ""|

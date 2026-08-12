@@ -767,6 +767,10 @@ module Phronomy
         return resolved if result_filters.empty?
 
         effective_name = resolved.new.name
+        custom_async_call =
+          resolved.instance_method(:call_async).owner !=
+          Phronomy::Agent::Context::Capability::Base
+
         Class.new(resolved) do
           tool_name effective_name
           define_method(:call) do |args, **kwargs|
@@ -774,6 +778,33 @@ module Phronomy
             result_filters.inject(result) { |val, filter|
               filter.call(val, tool_name: name, args: args)
             }
+          end
+
+          # Base#call_async ultimately executes #call, so the synchronous wrapper
+          # above already applies filters for ordinary Tools. Agent-backed Tools
+          # override #call_async and bypass #call; only those custom async Tools
+          # need an asynchronous result-filter wrapper here.
+          if custom_async_call
+            define_method(:call_async) do |args, **kwargs|
+              source = super(args, **kwargs)
+              filtered = Phronomy::Task.deferred(name: "tool-filter-#{name}")
+              source.on_complete do |value, error|
+                if error
+                  filtered.fail(error)
+                  next
+                end
+
+                begin
+                  result = result_filters.inject(value) { |val, filter|
+                    filter.call(val, tool_name: name, args: args)
+                  }
+                  filtered.complete(result)
+                rescue => filter_error
+                  filtered.fail(filter_error)
+                end
+              end
+              filtered
+            end
           end
         end
       end

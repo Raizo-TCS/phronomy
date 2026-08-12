@@ -108,19 +108,30 @@ A record of design decisions and their rationale. Use this as a reference when r
 
 ---
 
-## Decision 7: Async execution is sync+Thread only in Phases 1–3
+## Decision 7: EventLoop/FSMSession owns framework async lifecycle
 
-**Situation**: Needed to choose between adopting async-rb (Fiber-based) or sticking with Thread isolation for Ruby's async execution.
+**Situation**: Phronomy needs many concurrently waiting Agent, Workflow, Tool,
+and MultiAgent lifecycles without allocating one OS Thread per logical task.
 
-**Choice**: Phases 1–3 use synchronous execution as the primary mode; background execution is delegated to Rails ActiveJob. Fiber/async is considered for Phase 4+.
+**Choice**: Framework lifecycle coordination uses one Runtime-owned EventLoop
+and explicit FSMSession state/events. `Phronomy::Task` is only a completion
+handle. Unavoidable blocking third-party I/O is isolated in the bounded
+BlockingAdapterPool.
 
 **Rationale**:
-- The async-rb ecosystem is still developing compared to Python's asyncio, and there are integration risks with RubyLLM
-- In the Rails ecosystem, running background execution via ActiveJob is the standard pattern
-- Streaming can be integrated with SSE using Ruby's Fiber/Enumerator without needing async
+- Waiting for another Agent, approval, timer, or event does not require an OS Thread.
+- Agent/Workflow/Tool/MultiAgent now share one explicit continuation model.
+- RubyLLM and other blocking client libraries still need bounded worker Threads
+  while their blocking calls are in flight.
+- A separate Fiber scheduler duplicates continuation state already represented
+  by FSMSession and is not part of the production architecture.
 
 **Trade-offs**:
-- For use cases requiring large numbers of parallel agent executions, the Thread count limit may become a constraint
+- FSM actions must return promptly and explicitly model later completion events.
+- Long CPU-bound work requires an application-owned or future dedicated CPU/process executor.
+- Synchronous public wrappers must not be called from the EventLoop thread.
+
+See ADR-010 for the authoritative current concurrency model.
 
 ---
 

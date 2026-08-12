@@ -3,9 +3,10 @@
 
 # scripts/api_snapshot.rb
 #
-# Dumps the public instance methods of all Stable/Beta public API classes to
-# JSON. The snapshot is stored in spec/fixtures/api_snapshot.json and is used
-# by spec/phronomy/api_compatibility_spec.rb to detect unintended API removals.
+# Dumps the public instance methods of all Stable/Beta product API classes to
+# JSON. Testing helpers are intentionally excluded from this compatibility gate.
+# The snapshot is stored in spec/fixtures/api_snapshot.json and is used by
+# spec/phronomy/api_compatibility_spec.rb to detect unintended API removals.
 #
 # Usage:
 #   ruby scripts/api_snapshot.rb --write
@@ -33,7 +34,6 @@ PUBLIC_API_ENTRIES = [
   Phronomy::VectorStore::Embeddings::Base,
   Phronomy::Tracing::Base,
   Phronomy::Tracing::NullTracer,
-  Phronomy::Testing::Eval::Runner,
   Phronomy::Tools::Mcp,
   Phronomy::Tools::Agent,
   Phronomy::Tools::VectorSearch

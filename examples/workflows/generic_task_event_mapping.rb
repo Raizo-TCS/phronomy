@@ -19,18 +19,25 @@ class ImportContext
   end
 end
 
+# Example application service for a genuinely blocking import operation.
+# The worker Thread belongs to Phronomy's bounded BlockingAdapterPool; the
+# Workflow itself never blocks EventLoop waiting for the operation.
+def start_blocking_import_async
+  Phronomy::Runtime.instance.blocking_io.submit do
+    # Replace with blocking file/DB/network import work.
+    100
+  end
+end
+
 workflow = nil
 
 workflow = Phronomy::Workflow.define(ImportContext) do
   initial :importing
 
   state :importing, action: ->(context) {
-    task = Phronomy::Runtime.instance.spawn do
-      # Replace with application-owned asynchronous work.
-      100
-    end
+    operation = start_blocking_import_async
 
-    task.on_complete do |record_count, error|
+    operation.on_complete do |record_count, error|
       workflow.signal(
         thread_id: context.thread_id,
         event: error ? :import_failed : :import_completed,
@@ -41,7 +48,8 @@ workflow = Phronomy::Workflow.define(ImportContext) do
       )
     end
 
-    # Do not return task. The state is active after this synchronous entry ends.
+    # Do not return the completion handle. The state remains active after this
+    # synchronous action returns, and later completion arrives as an FSM event.
     context
   }
 

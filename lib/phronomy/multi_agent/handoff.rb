@@ -42,6 +42,7 @@ module Phronomy
         Class.new(Phronomy::Agent::Context::Capability::Base) do
           tool_name tn
           description desc
+          execution_mode :cooperative
           define_method(:execute) { sentinel_value }
         end
       end

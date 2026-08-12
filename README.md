@@ -34,7 +34,6 @@ It provides composable building blocks — Workflows, Agents, Tools, Filters, an
 | **`PromptInjectionFilter`** — Built-in `Filter::Base` subclass that detects prompt-injection patterns; usable standalone or as part of a filter chain | Beta |
 | **`Agent::Context::Capability::Base.redact_params` / `.max_result_size`** — Class-level DSL: `redact_params` masks parameter values in log/trace output; `max_result_size` truncates oversized tool results before they reach the LLM | Beta |
 | **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses | Stable |
-| **Eval Framework** — Dataset-driven evaluation with multiple scorer types | Beta |
 | **Tracing** — Pluggable span-based observability | Stable |
 | **Error Taxonomy** — final RubyLLM/provider errors are translated to `RateLimitError`, `AuthenticationError`, `ContextLengthError`, and `TransportError` without replaying the Agent invocation | Beta |
 
@@ -58,11 +57,10 @@ It provides composable building blocks — Workflows, Agents, Tools, Filters, an
 | **`invoke_async` / `call_async`** — `Agent::Base#invoke_async` and `Workflow#invoke_async` return a `Task`; `Agent::Context::Capability::Base#call_async` similarly; compatible with EventLoop and standalone contexts | Stable |
 | **`Task#map`** — transforms a Task's completed value and propagates failure/cancellation. `Task#map` remains available for application-level Task composition, but Workflow entry and transition actions must not return a Task | Stable |
 | **CancellationToken** — Cooperative cancellation via `cancel!`/`cancelled?`/`raise_if_cancelled!`; `timeout_after(seconds)` for monotonic-clock deadlines; passed as `config: { cancellation_token: token }` to agents and `dispatch_parallel`; injected into `tool.execute` when the method declares a `cancellation_token:` keyword; bridged to `MCP::Cancellation` in `Phronomy::Tools::Mcp#execute` | Experimental |
-| **`execution_mode` DSL on `Agent::Context::Capability::Base`** — Declares how a tool's `execute` should be dispatched: `:cooperative` (same scheduler thread), `:blocking_io` (default; offloaded to `BlockingAdapterPool`), `:cpu_bound`, `:external_process`; Tool-specific timeout/retry belongs to the Tool implementation or its client | Experimental |
+| **`execution_mode` DSL on `Agent::Context::Capability::Base`** — `:cooperative` means EventLoop-safe work that returns quickly; a specialized cooperative Tool may start another Phronomy async lifecycle and return a completion `Task` immediately. `:blocking_io` (default) is offloaded to `BlockingAdapterPool`. `:cpu_bound` and `:external_process` require dedicated executors and currently raise `ConfigurationError` | Experimental |
 | **`blocking_io_pool_size` / `blocking_io_queue_size`** — Configure the default `BlockingAdapterPool` via `Phronomy.configure { \|c\| c.blocking_io_pool_size = 20; c.blocking_io_queue_size = 200 }`; all LLM calls, MCP tool calls, and other blocking I/O share this pool; defaults: `pool_size: 10`, `queue_size: 100` | Beta |
 | **`invocation_context:` keyword on `Agent#invoke` / `Workflow#invoke`** — Pass a `Phronomy::InvocationContext` directly; `thread_id`, `cancellation_token`, and `deadline`-based timeout are derived from it; `task_id` / `parent_task_id` appear in trace spans automatically; `config:` keys remain supported as backward-compat aliases | Beta |
-| **Cooperative scheduler yield points** — `Runtime#yield` (cooperative yield; yields the current task's time slice); `Runtime#yield_if_needed(every: N)` (thread-local counter, yields every N calls); CPU-bound detection when `blocking_detect_threshold_ms` is set (warns and increments `non_yield_threshold_violation_count` when a task runs longer than the threshold without yielding); `starvation_threshold_ms` configuration field (default: 50ms) | Beta |
-| **`Phronomy::Metrics`** — `Phronomy::Metrics.snapshot` returns task-tree, pool, EventLoop, and queue counters; task-centric keys: `active_agent_tasks`, `active_tool_tasks`, `active_workflow_tasks`, `active_llm_tasks`, `task_wait_time_p50_ms`, `task_wait_time_p95_ms`, `task_run_time_p50_ms`, `task_run_time_p95_ms`, `cancelled_tasks`, `failed_tasks`, `non_yield_threshold_violation_count`; EventLoop queue keys: `event_loop_queue_depth` (current pending entries), `event_loop_queue_max_depth` (peak since start); a rate-limited warning is emitted when depth reaches 1,000 — events are not dropped | Beta |
+| **`Phronomy::Metrics`** — `Phronomy::Metrics.snapshot` reports the two concurrency boundaries: `blocking_pool_active`, `blocking_pool_queue_length`, `blocking_pool_abandoned_total`, `blocking_pool_size`, plus `event_loop_queue_depth`, `event_loop_queue_max_depth`, `event_loop_lag_last_ms`, `event_loop_lag_max_ms`, and `event_loop_lag_average_ms` | Beta |
 | **`Phronomy.with_configuration` / `Phronomy.reset_runtime!`** — Scoped configuration override; `reset_runtime!` performs a full `Runtime#shutdown` (including EventLoop termination) then resets configuration; intended for test isolation | Beta |
 | **`Runtime#event_loop`** — Returns the Runtime-owned `EventLoop` instance; lazy-initialised on first access; EventLoop lifetime is tied to the owning Runtime | Beta |
 | **`Runtime#shutdown(timeout:, cancel_grace:)`** — Irreversible Runtime shutdown: drains active sessions, terminates the EventLoop dispatcher, then stops pools and timers; returns a `ShutdownResult` with `runtime_outcome` and `cleanup_status` fields | Beta |
@@ -71,7 +69,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Filters, an
 
 | Feature | Stability |
 |---|---|
-| **Workflow parallel pattern** — Concurrent branches via application-level threads (no built-in parallel primitive; see the Workflow section for the recommended pattern) | Beta |
+| **Workflow asynchronous pattern** — Entry/transition actions start async work, return immediately, then deliver completion through `Workflow#signal`; Phronomy does not provide a generic task-spawn primitive | Beta |
 | **Multi-agent** — Agent-as-Tool pattern and hub-and-spoke handoff routing | Beta |
 | **GeneratorVerifier** — Generator-Verifier loop with injectable prompt builders/parsers | Beta |
 | **`Phronomy::MultiAgent::Orchestrator`** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
@@ -96,10 +94,8 @@ The APIs listed below are intended for advanced use cases, framework internals, 
 
 | Feature | Stability |
 |---|---|
-| **`Phronomy::Diagnostics`** — Snapshot of scheduler internals for debug/monitoring; `SchedulerReentrancyError` raised on invalid re-entrant scheduler use; `Runtime.in_scheduler_context?` returns `true` when called from inside a scheduler task | Experimental |
-| **`Phronomy::Testing::FakeClock` / `FakeScheduler` / `SchedulerHelpers`** — Test helpers for deterministic concurrency specs: `FakeClock#advance(seconds)` controls time; `FakeScheduler` runs tasks synchronously and records `event_log`; `FakeScheduler#assert_order` / `#assert_cancelled` for ordering assertions; `FakeClock#advance_to_next_timer` fires the next pending callback; `Testing::SchedulerHelpers#with_fake_scheduler` replaces the global Runtime for the duration of a block | Beta |
-| **`Configuration#runtime_backend`** — `:thread` (default, one OS thread per task), `:immediate` (tests — tasks run synchronously, no extra threads), `:fiber` (**EXPERIMENTAL** — validation backend only: runs tasks as Ruby Fibers on a cooperative scheduler to verify that framework components are truly non-blocking; **not for production use** and not a planned production replacement for `:thread`; no preemptive scheduling will be added) | Beta |
-| **`Configuration#strict_runtime_guards`** — When `true`, calling `Agent#invoke` from inside a scheduler task raises `SchedulerReentrancyError`; when `false` (default) a warning is logged instead | Beta |
+| **`Phronomy::Diagnostics`** — Snapshot of EventLoop lag/queue state and BlockingAdapterPool activity; blocking synchronous APIs are rejected from EventLoop context with `EventLoopReentrancyError` | Experimental |
+| **`Phronomy::Testing::FakeClock`** — Test-only deterministic clock helper. It does not replace the production Runtime or EventLoop | Beta |
 
 ## Installation
 
@@ -158,9 +154,9 @@ The following compatibility-only APIs have been removed from the active contract
 | `context_overhead` | Manifest-first assembly budgets actual mandatory + selected content |
 | Tool `on_error :return_empty` | Use `:raise` or `:suppress` |
 | `dispatch_parallel(..., force_kill:)` / `fan_out(..., force_kill:)` | Cooperative cancellation; no force-kill switch |
-| `runtime_backend = :cooperative` | Use `:thread`, `:immediate`, or experimental `:fiber` explicitly |
+| `runtime_backend` | Removed. Phronomy has one execution model: EventLoop/FSMSession for lifecycle coordination and BlockingAdapterPool for unavoidable blocking I/O |
 | `Runtime.instance = ...` | Runtime replacement is test/internal infrastructure, not a public setter |
-| `TaskGroup.new(runtime: nil)` | Runtime is required |
+| `Runtime#spawn` / `TaskGroup` | Removed. Start framework async work through its domain async API (`invoke_async`, Workflow events, ToolInvocation, FanOut) |
 | `tools ToolA, ToolB` | Use `tools(ToolA => nil, ToolB => nil)` |
 | `CancellationToken.new(deadline: Time...)` | Use `CancellationToken.timeout_after(seconds)` for token deadlines |
 | `StaticKnowledge` / `EntityKnowledge` / `Knowledge::Base` / `Phronomy::KnowledgeSource` | Register plain persistent Knowledge with `knowledge:` or `add_knowledge` |
@@ -426,41 +422,34 @@ transition's action runs.
 
 ### Multi-Agent — Agent-as-Tool pattern
 
-Wrap sub-agents as `Agent::Context::Capability::Base` subclasses so the orchestrator LLM can call them on demand.
+Use `Phronomy::Tools::Agent.from_agent` (or `MultiAgent::Orchestrator.subagent`)
+rather than calling a synchronous child Agent from `Tool#execute`.
 
 ```ruby
-class ResearchTool < Phronomy::Agent::Context::Capability::Base
-  description "Research a topic and return key findings as bullet points."
-  param :topic, type: :string, desc: "The topic to research"
-
-  def execute(topic:)
-    ResearchAgent.new.invoke(topic)[:output]
-  end
-end
-
-class WriterAgent < Phronomy::Agent::Base
+class ResearchAgent < Phronomy::Agent::Base
+  agent_definition id: "research-agent", version: 1
   model "gpt-4o"
-  instructions "You are a professional technical writer."
+  instructions "Research the requested topic."
 end
 
-class WriteTool < Phronomy::Agent::Context::Capability::Base
-  description "Write a technical blog post given research notes and a writing brief."
-  param :instructions, type: :string, desc: "Writing brief including research notes"
-
-  def execute(instructions:)
-    WriterAgent.new.invoke(instructions)[:output]
-  end
-end
+ResearchTool = Phronomy::Tools::Agent.from_agent(
+  ResearchAgent,
+  tool_name: "research",
+  description: "Delegate research to the research Agent"
+)
 
 class OrchestratorAgent < Phronomy::Agent::Base
+  agent_definition id: "orchestrator-agent", version: 1
   model "gpt-4o"
-  instructions "Use the research tool first, then the write tool to produce a blog post."
-  tools(ResearchTool => nil, WriteTool => nil)
+  instructions "Use the research Tool when research is required."
+  tools(ResearchTool => nil)
 end
-
-result = OrchestratorAgent.new.invoke("Write a blog post about Ruby 3.4 features")
-puts result[:output]
 ```
+
+Agent-backed Tools are asynchronous internally. The parent ToolInvocation starts
+the child Agent and returns to EventLoop immediately; it does **not** occupy a
+BlockingAdapterPool worker while waiting for the child. The child Agent's actual
+blocking provider I/O still uses the bounded BlockingAdapterPool.
 
 ### Filters — Input/output transformation and blocking
 
@@ -755,34 +744,18 @@ class MyOrchestrator < Phronomy::MultiAgent::Orchestrator
 end
 ```
 
-### Workflow parallel pattern — Concurrent branches
+### Workflow asynchronous pattern
 
-Phronomy does not provide a dedicated parallel-node primitive. The recommended
-pattern for concurrent branches is to use application-level Ruby threads inside
-a `state` action:
+Workflow entry/transition actions are Run-to-Completion callbacks. Start
+asynchronous work, attach a completion listener, return the Workflow context
+immediately, and deliver the result as a later `Workflow#signal` event. Do not
+block a Workflow action waiting for a child Task.
 
-```ruby
-class EnrichContext
-  include Phronomy::WorkflowContext
-  field :summary, type: :replace
-  field :tags,    type: :append, default: -> { [] }
-end
-
-app = Phronomy::Workflow.define(EnrichContext) do
-  initial :enrich
-  state :enrich, action: ->(s) do
-    threads = {
-      summary: Thread.new { Summarizer.call(s) },
-      tags:    Thread.new { Tagger.call(s) }
-    }
-    threads.each_value(&:join)
-    s.merge(summary: threads[:summary].value, tags: Array(threads[:tags].value))
-  end
-  transition from: :enrich, to: :__finish__
-end
-
-state = app.invoke({}, config: { thread_id: "t1" })
-```
+For parallel child Agents, start each with `invoke_async`, count completions in
+application state, and signal the Workflow when the required completion
+condition is reached. For MultiAgent fan-out, prefer
+`MultiAgent::Orchestrator#dispatch_parallel_async`, whose FanOut FSMSession
+already implements bounded child concurrency.
 
 ### Output Parser — Structured LLM responses
 
@@ -795,26 +768,6 @@ PersonSchema = Struct.new(:name, :age, keyword_init: true)
 parser = Phronomy::OutputParser::StructuredParser.new(PersonSchema)
 person = parser.parse('{"name":"Alice","age":30}')
 # => #<struct PersonSchema name="Alice", age=30>
-```
-
-### Eval Framework — Dataset-driven quality evaluation
-
-```ruby
-dataset = Phronomy::Eval::Dataset.from_array([
-  { input: "Capital of France?", expected: "Paris" },
-  { input: "Capital of Japan?",  expected: "Tokyo" }
-])
-
-agent   = MyGeographyAgent.new
-runner  = Phronomy::Eval::Runner.new(
-  scorer: Phronomy::Eval::Scorer::LlmJudge.new(model: "gpt-4o-mini")
-)
-
-results = runner.run(dataset, ->(q) { agent.invoke(q) })
-metrics = Phronomy::Eval::Metrics.new(results)
-
-puts "Mean score: #{metrics.mean_score}"
-puts "Pass rate:  #{metrics.pass_rate}"
 ```
 
 ### Tracing — Custom observability
@@ -930,8 +883,6 @@ Phronomy.configure do |c|
   c.trace_pii                       = false # default; set to true only when trace data contains no PII
   c.logger                          = nil   # optional; any object responding to #warn (e.g. Rails.logger)
   c.event_loop_stop_grace_seconds   = 5     # seconds to wait for sessions to drain on shutdown
-  c.runtime_backend                 = :thread   # :thread (default); :immediate (tests, synchronous); :fiber (experimental validation only)
-  c.strict_runtime_guards           = false     # when true, raises SchedulerReentrancyError on invoke-inside-task
   c.stream_callback_error_policy    = :report   # :report (default) preserves Agent result; :fail_task fails Task with StreamCallbackError
 end
 ```
@@ -948,7 +899,7 @@ end
 ## Sync vs Async API
 
 Phronomy provides both synchronous and asynchronous invocation APIs.
-Understanding when to use each prevents scheduler stalls and hidden deadlocks.
+Understanding when to use each prevents EventLoop stalls and hidden deadlocks.
 
 | Context | Recommended API |
 |---------|----------------|
@@ -978,19 +929,16 @@ Do not call blocking `Agent#invoke` from an EventLoop callback, and do not retur
 the `Task` from `Agent#invoke_async` as the result of a Workflow entry or
 transition action.
 
-### Runtime guard
+### EventLoop re-entry guard
 
-Phronomy detects this pattern automatically:
+Blocking synchronous APIs automatically reject EventLoop re-entry with
+`Phronomy::EventLoopReentrancyError`. There is no runtime-backend or guard-mode
+configuration switch.
 
-```ruby
-Phronomy.configure { |c| c.strict_runtime_guards = false }
-Phronomy.configure { |c| c.strict_runtime_guards = true }
-```
-
-You can also query the current context directly:
+Internal/framework code can query the current context with:
 
 ```ruby
-Phronomy::Runtime.in_scheduler_context?
+Phronomy::Runtime.in_event_loop_context?
 ```
 
 ### Migration: blocking wait → Task mapping
@@ -1084,21 +1032,6 @@ Workflow action
 
 `Task#map` remains a valid Task API for transforming Task results, but a mapped
 Task must not be returned from a Workflow entry or transition action.
-
-### :immediate backend (synchronous / test mode)
-
-The `:immediate` backend runs tasks synchronously using `FakeScheduler`
-(backed by `Task::ImmediateBackend`). Blocking I/O is isolated in `BlockingAdapterPool`.
-To switch back to the default thread-per-task backend:
-
-```ruby
-Phronomy.configure { |c| c.runtime_backend = :thread }
-# or per-example using SchedulerHelpers:
-include Phronomy::Testing::SchedulerHelpers
-with_fake_scheduler do |sched|
-  # all spawns run synchronously; sched.event_log records every lifecycle event
-end
-```
 
 ## Context Management
 
@@ -1244,21 +1177,10 @@ does not replay the complete Agent invocation. No threads are force-killed —
 > request, statement, or session timeouts.
 
 ```ruby
-token = Phronomy::Concurrency::CancellationToken.new
-
-Thread.new { sleep 5; token.cancel! }
-
-begin
-  result = MyAgent.new.invoke("...", config: { cancellation_token: token })
-rescue Phronomy::CancellationError
-  puts "cancelled"
-end
-
 token = Phronomy::Concurrency::CancellationToken.timeout_after(30)
 result = MyAgent.new.invoke("...", config: { cancellation_token: token })
 
-token = Phronomy::Concurrency::CancellationToken.new
-Thread.new { sleep 10; token.cancel! }
+token = Phronomy::Concurrency::CancellationToken.timeout_after(10)
 
 orchestrator.dispatch_parallel(
   {agent: SearchAgent,   input: "topic A"},

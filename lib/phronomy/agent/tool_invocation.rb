@@ -168,10 +168,17 @@ module Phronomy
         self
       end
 
-      # Starts Tool execution. :cooperative work executes synchronously as a short
-      # EventLoop action; :blocking_io work returns immediately and completes from
-      # BlockingAdapterPool. CPU/process modes require dedicated executors and are
-      # rejected until those executors exist.
+      # Starts Tool execution and reports completion through the callback.
+      #
+      # Both core execution paths use Tool#call_async:
+      #
+      # - :cooperative returns a Task without consuming a blocking-I/O worker.
+      #   Ordinary cooperative Tools settle that Task inline; Agent-backed Tools
+      #   may start child EventLoop/FSM work and settle later.
+      # - :blocking_io returns a BlockingAdapterPool PendingOperation.
+      #
+      # In either case ToolInvocation remains in :running and resumes only from
+      # the explicit :execution_completed FSM event posted by the session builder.
       def start_execution(runtime: Phronomy::Runtime.instance, &callback)
         raise ArgumentError, "start_execution requires a callback" unless callback
         unless dispatchable?
@@ -182,16 +189,18 @@ module Phronomy
         end
 
         case @tool.class.execution_mode
-        when :cooperative
-          callback.call(execute_cooperatively)
-        when :blocking_io
-          operation = Phronomy::Agent::ToolExecutor.call_invocation_async(
-            tool_invocation: self,
+        when :cooperative, :blocking_io
+          operation = @tool.call_async(
+            @arguments,
             cancellation_token: @config[:cancellation_token],
             config: @config,
-            runtime: runtime,
-            on_full: :raise
+            runtime: runtime
           )
+          unless operation.respond_to?(:on_complete)
+            raise Phronomy::ToolError,
+              "Tool #{@tool.class.name}#call_async must return a completion handle"
+          end
+
           operation.on_complete do |result, error|
             callback.call(execution_outcome(result, error))
           end
@@ -265,16 +274,6 @@ module Phronomy
       end
 
       private
-
-      def execute_cooperatively
-        result = @tool.call(
-          @arguments,
-          cancellation_token: @config[:cancellation_token]
-        )
-        ExecutionOutcome.new(result: result)
-      rescue => error
-        execution_outcome(nil, error)
-      end
 
       def execution_outcome(result, error)
         if error

@@ -9,6 +9,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### EventLoop-first runtime cleanup
+
+#### Added
+
+- Event-driven Agent-as-Tool completion: child Agents now run through their own
+  Agent FSMSession and settle the parent ToolInvocation through a completion
+  event without holding a BlockingAdapterPool worker while waiting.
+- Architecture regression coverage for the production Thread/Fiber boundary,
+  test-only API separation, current concurrency documentation, and Agent-as-Tool
+  pool-starvation behavior.
+
+#### Changed
+
+- `FSMSession + EventLoop` is the single framework control plane for Agent,
+  Workflow, ToolInvocation, and MultiAgent lifecycle coordination.
+- `Task` is a completion handle only; it does not execute work.
+- `execution_mode :cooperative` now means short EventLoop-safe synchronous work,
+  or a specialized Tool that starts another Phronomy asynchronous lifecycle and
+  returns a completion handle immediately.
+- `Tool#call_async` for ordinary cooperative Tools no longer consumes a
+  BlockingAdapterPool worker. `:blocking_io` remains the worker-pool route.
+- Framework-owned short in-memory Tools (handoff sentinels, TeamCoordinator
+  queue controls, and SharedState store access) explicitly declare
+  `execution_mode :cooperative` instead of using the blocking-I/O default.
+- MultiAgent fan-out uses a FanOut FSMSession rather than per-child OS Threads.
+- `TimerQueue` is driven by EventLoop and owns no Thread.
+- Eval support is test infrastructure under `Phronomy::Testing::Eval` and is no
+  longer part of the product API compatibility snapshot or README feature set.
+- The `dispatch_parallel` regression benchmark now uses thread-free fake child
+  completion so it measures FanOut/EventLoop overhead rather than fake Thread
+  creation. Its separate CancellationToken contention benchmark intentionally
+  continues to use application Threads.
+
+#### Removed
+
+- Active runtime-backend/scheduler documentation for the removed
+  `Runtime#spawn`, TaskGroup, Thread/Fiber/Immediate Task backends, and
+  configurable runtime backends.
+- Product-facing Eval design documentation.
+
 ### Agent Context / Knowledge cleanup
 
 #### Added

@@ -7,17 +7,31 @@ module Phronomy
       agent_definition id: "orchestrator", version: 1
 
       def self.subagent(name, agent_class, on_error: :raise, inherit_knowledge: true)
-        tool_class = Class.new(Phronomy::Agent::Context::Capability::Base) do
+        # A subagent Tool is logically asynchronous: ToolInvocation starts the
+        # child Agent and resumes when its completion Task settles. It must not
+        # occupy a BlockingAdapterPool worker while waiting for the child.
+        tool_class = Class.new(Phronomy::Tools::Agent) do
           tool_name "dispatch_to_#{name}"
           description "Dispatch work to the #{name} subagent (#{agent_class.name})"
-          param :input, type: :string, desc: "The task or question for the subagent"
 
           attr_writer :_orchestrator_context
 
-          define_method(:execute) do |input:|
+          define_method(:execute) do |input:, cancellation_token: nil|
+            execute_async(
+              input: input,
+              cancellation_token: cancellation_token,
+              config: {}
+            ).wait_result
+          end
+
+          define_method(:execute_async) do |input:, cancellation_token: nil, config: {}|
             ctx = @_orchestrator_context || {}
             parent_ic = ctx[:invocation_context]
-            task_config = ctx[:config] || {}
+            task_config = (ctx[:config] || {}).merge(config || {})
+
+            if cancellation_token && !task_config[:cancellation_token]
+              task_config = task_config.merge(cancellation_token: cancellation_token)
+            end
 
             if parent_ic && !task_config[:invocation_context]
               child_ic = parent_ic.merge(parent_task_id: parent_ic.task_id)
@@ -34,16 +48,30 @@ module Phronomy
               end
             end
 
-            result = agent.invoke_async(
+            source = agent.invoke_async(
               input,
               thread_id: ctx[:thread_id] || parent_ic&.thread_id,
               config: task_config
-            ).wait_result
-            result[:output]
-          rescue
-            raise if on_error == :raise
-            nil
+            )
+            result_task = Phronomy::Task.deferred(
+              name: "subagent-tool-#{name}"
+            )
+            source.on_complete do |result, error|
+              if error
+                (on_error == :raise) ? result_task.fail(error) : result_task.complete(nil)
+              else
+                result_task.complete(result[:output])
+              end
+            end
+            result_task
+          rescue => error
+            result_task ||= Phronomy::Task.deferred(
+              name: "subagent-tool-#{name}"
+            )
+            (on_error == :raise) ? result_task.fail(error) : result_task.complete(nil)
+            result_task
           end
+          private :execute_async
         end
 
         @_subagent_tool_classes = (@_subagent_tool_classes || []) + [tool_class]
@@ -217,6 +245,10 @@ module Phronomy
         Class.new(prepared) do
           tool_name effective_name
           define_method(:call) do |args, **kwargs|
+            self._orchestrator_context = captured_context
+            super(args, **kwargs)
+          end
+          define_method(:call_async) do |args, **kwargs|
             self._orchestrator_context = captured_context
             super(args, **kwargs)
           end
