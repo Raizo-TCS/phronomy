@@ -23,7 +23,7 @@ gem "base64"   # removed from Ruby stdlib in Ruby 3.4+
 
 group :lint do
   gem "irb"
-  gem "standard", "~> 1.3"
+  gem "standard", "~> 1.56.0"
 end
 
 # OpenTelemetry SDK for tracer adapter tests (not required at runtime)
