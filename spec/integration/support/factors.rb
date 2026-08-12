@@ -889,13 +889,11 @@ module IntegrationFactors
       define_method(:invoke) { |input, config: {}, thread_id: nil| {output: "ok:#{input}", messages: []} }
       define_method(:invoke_async) do |input, **_kw|
         t = Phronomy::Task.new(name: "stub-async")
-        Thread.new {
-          begin
-            t.complete(invoke(input))
-          rescue
-            t.fail($!)
-          end
-        }
+        Thread.new do
+          t.complete(invoke(input))
+        rescue => e
+          t.fail(e)
+        end
         t
       end
     end
@@ -904,13 +902,11 @@ module IntegrationFactors
       define_method(:invoke) { |*| raise "task_error" }
       define_method(:invoke_async) do |input, **_kw|
         t = Phronomy::Task.new(name: "stub-async")
-        Thread.new {
-          begin
-            t.complete(invoke(input))
-          rescue
-            t.fail($!)
-          end
-        }
+        Thread.new do
+          t.complete(invoke(input))
+        rescue => e
+          t.fail(e)
+        end
         t
       end
     end

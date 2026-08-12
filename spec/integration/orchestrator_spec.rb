@@ -28,13 +28,11 @@ RSpec.describe "Group 34: Orchestrator", :integration do
       end
       define_method(:invoke_async) do |input, **_kw|
         t = Phronomy::Task.new(name: "stub-async")
-        Thread.new {
-          begin
-            t.complete(invoke(input))
-          rescue
-            t.fail($!)
-          end
-        }
+        Thread.new do
+          t.complete(invoke(input))
+        rescue => e
+          t.fail(e)
+        end
         t
       end
     end
@@ -49,13 +47,11 @@ RSpec.describe "Group 34: Orchestrator", :integration do
       end
       define_method(:invoke_async) do |input, **_kw|
         t = Phronomy::Task.new(name: "stub-async")
-        Thread.new {
-          begin
-            t.complete(invoke(input))
-          rescue
-            t.fail($!)
-          end
-        }
+        Thread.new do
+          t.complete(invoke(input))
+        rescue => e
+          t.fail(e)
+        end
         t
       end
     end
@@ -163,13 +159,11 @@ RSpec.describe "Group 34: Orchestrator", :integration do
         end
         define_method(:invoke_async) do |input, **_kw|
           t = Phronomy::Task.new(name: "stub-async")
-          Thread.new {
-            begin
-              t.complete(invoke(input))
-            rescue
-              t.fail($!)
-            end
-          }
+          Thread.new do
+            t.complete(invoke(input))
+          rescue => e
+            t.fail(e)
+          end
           t
         end
       end
@@ -247,13 +241,11 @@ RSpec.describe "Group 34: Orchestrator", :integration do
         end
         define_method(:invoke_async) do |input, **_kw|
           t = Phronomy::Task.new(name: "stub-async")
-          Thread.new {
-            begin
-              t.complete(invoke(input))
-            rescue
-              t.fail($!)
-            end
-          }
+          Thread.new do
+            t.complete(invoke(input))
+          rescue => e
+            t.fail(e)
+          end
           t
         end
       end
@@ -276,13 +268,11 @@ RSpec.describe "Group 34: Orchestrator", :integration do
         end
         define_method(:invoke_async) do |input, config: {}, **_kw|
           t = Phronomy::Task.new(name: "stub-async")
-          Thread.new {
-            begin
-              t.complete(invoke(input, config: config))
-            rescue
-              t.fail($!)
-            end
-          }
+          Thread.new do
+            t.complete(invoke(input, config: config))
+          rescue => e
+            t.fail(e)
+          end
           t
         end
       end
