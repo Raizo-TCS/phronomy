@@ -12,6 +12,7 @@ module Phronomy
       {
         offload_pool_active: pool.active_count,
         offload_pool_queue_length: pool.queue_depth,
+        offload_pool_abandoned_active: pool.abandoned_active_count,
         offload_pool_abandoned_total: pool.abandoned_count,
         offload_pool_size: pool.pool_size,
         event_loop_queue_depth: event_loop.queue_depth,

@@ -94,6 +94,10 @@ module Phronomy
       self
     end
 
+    # Registers an independent completion notification.
+    #
+    # A callback failure is logged and does not suppress delivery to other
+    # completion callbacks or change the Task's already-settled result.
     def on_complete(&callback)
       raise ArgumentError, "on_complete requires a block" unless callback
 
@@ -105,7 +109,7 @@ module Phronomy
           @on_complete_callbacks << callback
         end
       end
-      callback.call(*fire_args) if fire_args
+      deliver_completion_callback(callback, *fire_args) if fire_args
       self
     end
 
@@ -167,8 +171,20 @@ module Phronomy
         @cond.broadcast
         true
       end
-      callbacks&.each { |callback| callback.call(value, error) } if changed
+      if changed
+        callbacks.each do |callback|
+          deliver_completion_callback(callback, value, error)
+        end
+      end
       changed
+    end
+
+    def deliver_completion_callback(callback, value, error)
+      callback.call(value, error)
+    rescue => callback_error
+      Phronomy.configuration.logger&.error do
+        "[Task] on_complete callback raised #{callback_error.class}: #{callback_error.message}"
+      end
     end
 
     def monotonic_now

@@ -31,12 +31,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Monotonic deadlines carried by an OffloadPool submit cancellation token are
   promoted by the Runtime timer queue, so cancellation completion does not
   require a polling Thread.
-- `PendingOperation#blocking_wait(cancellation_token:)` cancellation remains
-  waiter-local: cancelling that waiter stops only that blocking wait and does
-  not settle the shared operation.
-- `offload_pool_abandoned_total` counts synchronous workers that continue after
-  either submit-time timeout or submit cancellation has already settled the
-  caller-facing operation.
+- Independent notification callbacks now isolate subscriber failures. An
+  `StandardError` from one `CancellationToken#on_cancel`, `Task#on_complete`, or
+  `PendingOperation#on_complete` callback is logged and does not suppress later
+  subscribers.
+- `PendingOperation#blocking_wait(timeout:)` remains a waiter-local synchronous
+  timeout only. It does not settle or cancel the operation; operation-wide
+  cancellation is represented only by `OffloadPool#submit(cancellation_token:)`.
+- `offload_pool_abandoned_total` is the cumulative number of operations whose
+  caller-facing submit timeout or cancellation settled after worker execution
+  started. `offload_pool_abandoned_active` is the current number of those
+  abandoned operations whose synchronous workers still occupy pool capacity.
 - Named Runtime pools remain available for application-managed resource
   isolation and capacity planning.
 
@@ -45,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tool execution modes `:blocking_io`, `:cpu_bound`, and `:external_process`.
 - `Runtime#blocking_io`, `blocking_io_pool_size`, and
   `blocking_io_queue_size`.
+- Waiter-local `cancellation_token:` from `PendingOperation#blocking_wait`.
+  The low-level synchronous bridge continues to support waiter-local `timeout:`.
 
 
 ### EventLoop-first runtime cleanup

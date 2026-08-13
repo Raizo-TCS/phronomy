@@ -12,6 +12,7 @@ RSpec.describe Phronomy::Metrics do
       expected_keys = %i[
         offload_pool_active
         offload_pool_queue_length
+        offload_pool_abandoned_active
         offload_pool_abandoned_total
         offload_pool_size
         event_loop_queue_depth

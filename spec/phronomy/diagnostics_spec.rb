@@ -24,6 +24,8 @@ RSpec.describe "Offload operation diagnostics" do
       snap = Phronomy::Diagnostics.snapshot
       expect(snap).to be_a(Hash)
       expect(snap).to have_key(:offload_pool_active)
+      expect(snap).to have_key(:offload_pool_abandoned_active)
+      expect(snap).to have_key(:offload_pool_abandoned_total)
     end
   end
 
@@ -35,6 +37,8 @@ RSpec.describe "Offload operation diagnostics" do
       expect(output).to include("OffloadPool")
       expect(output).to include("EventLoop")
       expect(output).to include("pool_size")
+      expect(output).to include("abandoned_active")
+      expect(output).to include("abandoned_total")
       expect(output).to include("last_lag_ms")
     end
 

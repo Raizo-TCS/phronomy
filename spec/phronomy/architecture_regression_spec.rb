@@ -48,7 +48,7 @@ RSpec.describe "EventLoop-first architecture regression guards" do
     expect(adr).not_to include("BlockingAdapterPool")
   end
 
-  it "documents cancellation as caller-facing settlement without Thread#raise" do
+  it "documents operation cancellation and waiter-local timeout without Thread#raise" do
     adr = File.read(
       File.expand_path("../../docs/decisions/010-cooperative-first-concurrency.md", __dir__)
     )
@@ -60,8 +60,21 @@ RSpec.describe "EventLoop-first architecture regression guards" do
 
     expect(cancellation).to include("settles the caller-facing PendingOperation")
     expect(cancellation).to include("worker may continue")
-    expect(cancellation).to include("waiter-local")
+    expect(cancellation).to include("`PendingOperation#blocking_wait(timeout:)`")
+    expect(cancellation).to include("does not settle the\nPendingOperation")
     expect(cancellation).to include("does not use `Thread#raise`")
+    expect(cancellation).not_to include("blocking_wait(cancellation_token:")
+  end
+
+  it "documents cumulative and active abandoned-worker metrics separately" do
+    adr = File.read(
+      File.expand_path("../../docs/decisions/010-cooperative-first-concurrency.md", __dir__)
+    )
+
+    expect(adr).to include("offload_pool_abandoned_total")
+    expect(adr).to include("offload_pool_abandoned_active")
+    expect(adr).to include("cumulative")
+    expect(adr).to include("current-state")
   end
 
   it "keeps ADR-008 historical text but uses current terminology in its superseding decision" do
@@ -95,6 +108,8 @@ RSpec.describe "EventLoop-first architecture regression guards" do
     expect(changed).to include("`OffloadPool`")
     expect(changed).to include("`Runtime#blocking_io`")
     expect(changed).to include("`Runtime#offload`")
+    expect(changed).to include("`offload_pool_abandoned_total`")
+    expect(changed).to include("`offload_pool_abandoned_active`")
     expect(changed).not_to include("Renamed `OffloadPool` to `OffloadPool`")
 
     expect(removed).to include("`:blocking_io`")
@@ -103,6 +118,8 @@ RSpec.describe "EventLoop-first architecture regression guards" do
     expect(removed).to include("`Runtime#blocking_io`")
     expect(removed).to include("`blocking_io_pool_size`")
     expect(removed).to include("`blocking_io_queue_size`")
+    expect(removed).to include("`PendingOperation#blocking_wait`")
+    expect(removed).to include("`cancellation_token:`")
     expect(removed).not_to include("`Runtime#offload`")
     expect(removed).not_to include("`offload_pool_size`")
     expect(removed).not_to include("`offload_queue_size`")

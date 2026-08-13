@@ -30,4 +30,30 @@ RSpec.describe Phronomy::Task do
     task.complete(:ok)
     expect(observed).to eq([[:ok, nil]])
   end
+
+  it "continues completion fan-out when one callback raises" do
+    task = described_class.deferred
+    observed = []
+
+    task.on_complete do
+      observed << :first
+      raise "boom"
+    end
+    task.on_complete { observed << :second }
+    task.on_complete { observed << :third }
+
+    expect { task.complete(:ok) }.not_to raise_error
+    expect(observed).to eq(%i[first second third])
+    expect(task.wait_result).to eq(:ok)
+  end
+
+  it "isolates an on_complete callback registered after settlement" do
+    task = described_class.deferred
+    task.complete(:ok)
+
+    expect {
+      task.on_complete { raise "late boom" }
+    }.not_to raise_error
+    expect(task.wait_result).to eq(:ok)
+  end
 end

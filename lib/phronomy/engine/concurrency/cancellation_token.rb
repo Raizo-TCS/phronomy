@@ -34,6 +34,9 @@ module Phronomy
       # callback delivery for a monotonic deadline must promote that deadline to
       # +cancel!+ through the Runtime timer queue.
       #
+      # Cancellation callbacks are independent notifications. Failure of one
+      # callback is logged and does not suppress delivery to other callbacks.
+      #
       # @return [self]
       # @api public
       def on_cancel(&block)
@@ -47,13 +50,16 @@ module Phronomy
             false
           end
         end
-        block.call if already_cancelled
+        deliver_cancel_callback(block) if already_cancelled
         self
       end
 
       # Explicitly cancels the token and invokes each currently registered callback
       # once. The callback registry is cleared before callbacks run so completed
       # registrations are not retained for the lifetime of a long-lived token.
+      #
+      # Cancellation callbacks are isolated from one another: a StandardError raised
+      # by one callback is logged and the remaining callbacks are still delivered.
       #
       # @return [self]
       # @api public
@@ -66,7 +72,7 @@ module Phronomy
           @cancel_callbacks = []
           callbacks
         end
-        callbacks.each(&:call)
+        callbacks.each { |callback| deliver_cancel_callback(callback) }
         self
       end
 
@@ -85,11 +91,19 @@ module Phronomy
 
       private
 
+      def deliver_cancel_callback(callback)
+        callback.call
+      rescue => error
+        Phronomy.configuration.logger&.error do
+          "[CancellationToken] on_cancel callback raised #{error.class}: #{error.message}"
+        end
+      end
+
       # Removes an explicit-cancellation callback that is no longer needed.
       #
-      # This exists so framework wait/operation registrations do not keep their
-      # captured state alive when the operation completes before the token is
-      # cancelled. It is intentionally not part of the public cancellation API.
+      # This exists so framework operation registrations do not keep their captured
+      # state alive when the operation completes before the token is cancelled. It is
+      # intentionally not part of the public cancellation API.
       #
       # A concurrent +cancel!+ may already have taken the callback for delivery;
       # callers must therefore make their callback idempotent.

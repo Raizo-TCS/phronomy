@@ -25,8 +25,8 @@ module Phronomy
     # 3. Per-operation timeouts and cancellation settle the caller-facing handle.
     # 4. Operations that settle after worker execution has started are tracked as
     #    abandoned until that worker returns.
-    # 5. Metrics (active count, queue depth, abandoned count, avg wait time) are
-    #    observable at runtime.
+    # 5. Metrics expose active work, queue depth, cumulative abandonment,
+    #    currently-active abandonment, and average queue wait time.
     #
     # OffloadPool does not provide CPU isolation, CPU parallelism guarantees, or
     # fairness between I/O and CPU-heavy work classes. Applications that need
@@ -43,7 +43,7 @@ module Phronomy
     class OffloadPool
       # Represents the pending result of submitted offloaded work.
       # Returned immediately by {OffloadPool#submit}; call {#blocking_wait}
-      # to wait for the result.
+      # to synchronously wait from a non-EventLoop caller such as a low-level test.
       class PendingOperation
         # @return [Boolean] true when the caller-facing result has settled
         #   (success, failure, cancellation, or submit-time timeout)
@@ -78,44 +78,28 @@ module Phronomy
           @wait_time || 0.0
         end
 
-        # Blocks until the operation completes and returns its value.
+        # Blocks the calling thread until the operation settles and returns its value.
         #
-        # A +timeout+ passed here is local to this waiter. When it expires,
+        # A +timeout+ passed here is local to this synchronous waiter. When it expires,
         # {Phronomy::TimeoutError} is raised to this caller, but the operation is not
         # settled, marked abandoned, or otherwise changed. The worker continues, and
         # another waiter or an +on_complete+ callback may receive the eventual result
         # unless the submit-time deadline or submit cancellation settles the operation
         # first.
         #
-        # A +cancellation_token+ passed here is also waiter-local. Cancelling it wakes
-        # only this waiter and raises {Phronomy::CancellationError}; it does not settle
-        # the PendingOperation or interrupt the worker.
-        #
-        # The cancellation token passed to {OffloadPool#submit} is different: it is
-        # operation-wide and settles this PendingOperation for every waiter/callback.
+        # Operation-wide cancellation belongs exclusively to the
+        # +cancellation_token:+ passed to {OffloadPool#submit}. PendingOperation does
+        # not define a separate waiter-local cancellation-token lifecycle.
         #
         # @param timeout [Numeric, nil] maximum seconds this waiter will block
-        # @param cancellation_token [CancellationToken, nil] waiter-local token
         # @return [Object]
         # @raise [Phronomy::TimeoutError]
-        # @raise [Phronomy::CancellationError]
-        # @raise [Exception] error raised inside the submitted block
+        # @raise [Exception] error that settled the submitted operation
         # @api private
-        def blocking_wait(timeout: nil, cancellation_token: nil)
-          # Wake only this waiter when a waiter-local token is cancelled. Submit
-          # cancellation settles the operation itself and broadcasts independently.
-          wake_callback = if cancellation_token
-            -> { @mutex.synchronize { @cond.broadcast } }
-          end
-          cancellation_token&.on_cancel(&wake_callback)
-
+        def blocking_wait(timeout: nil)
           deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout if timeout
           value, error = @mutex.synchronize do
             until @done
-              if cancellation_token&.cancelled?
-                raise CancellationError, "waiting for offloaded operation cancelled"
-              end
-
               if deadline
                 remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
                 if remaining <= 0
@@ -134,16 +118,12 @@ module Phronomy
           raise error if error
 
           value
-        ensure
-          if wake_callback
-            cancellation_token.send(:unregister_cancel_callback, wake_callback)
-          end
         end
 
         # Unified wait interface compatible with {Phronomy::Task#wait_result}.
         alias_method :wait_result, :blocking_wait
 
-        # Registers a callback to be called when the operation settles.
+        # Registers an independent callback to be called when the operation settles.
         #
         # If the operation has already settled, the callback is invoked immediately
         # on the calling thread. Otherwise it may be invoked on a pool worker thread,
@@ -151,12 +131,18 @@ module Phronomy
         # cancels the submit cancellation token. The execution thread is not
         # guaranteed; callbacks must be thread-safe and should complete quickly.
         #
+        # Completion callback failures are logged and isolated. One callback cannot
+        # suppress delivery to later callbacks or change the operation's settled
+        # result.
+        #
         # The callback receives +result+ and +error+ (one of them will be +nil+).
         #
         # @yield [result, error]
         # @return [self]
         # @api private
         def on_complete(&callback)
+          raise ArgumentError, "on_complete requires a block" unless callback
+
           fire_args = nil
           @mutex.synchronize do
             if @done
@@ -166,7 +152,7 @@ module Phronomy
               @callbacks << callback
             end
           end
-          callback.call(*fire_args) if fire_args
+          deliver_completion_callback(callback, *fire_args) if fire_args
           self
         end
 
@@ -258,7 +244,7 @@ module Phronomy
           end
 
           detach_submit_cancellation if changed
-          callbacks&.each { |callback| callback.call(nil, error) } if changed
+          deliver_completion_callbacks(callbacks, nil, error) if changed
           changed
         end
 
@@ -269,7 +255,7 @@ module Phronomy
 
           # A monotonic deadline can make cancelled? true before the timer callback
           # runs. Promote that state to explicit cancellation so callbacks and all
-          # waiters observe the same operation-wide settlement.
+          # observers see the same operation-wide settlement.
           if @cancellation_token&.cancelled?
             @cancellation_token.cancel!
           end
@@ -331,16 +317,16 @@ module Phronomy
 
           detach_submit_cancellation
           notify_abandoned if abandoned_now
-          callbacks&.each { |callback| callback.call(nil, error) }
+          deliver_completion_callbacks(callbacks, nil, error)
           true
         end
 
         def notify_abandoned
-          @on_abandoned&.call
-        rescue => e
-          Phronomy.configuration.logger&.error {
-            "OffloadPool abandoned callback failed: #{e.class}: #{e.message}"
-          }
+          @on_abandoned&.call(self)
+        rescue => error
+          Phronomy.configuration.logger&.error do
+            "OffloadPool abandoned callback failed: #{error.class}: #{error.message}"
+          end
         end
 
         def complete_with_value!(value)
@@ -356,7 +342,7 @@ module Phronomy
             true
           end
           detach_submit_cancellation if changed
-          callbacks&.each { |callback| callback.call(value, nil) } if changed
+          deliver_completion_callbacks(callbacks, value, nil) if changed
           changed
         end
 
@@ -373,8 +359,23 @@ module Phronomy
             true
           end
           detach_submit_cancellation if changed
-          callbacks&.each { |callback| callback.call(nil, error) } if changed
+          deliver_completion_callbacks(callbacks, nil, error) if changed
           changed
+        end
+
+        def deliver_completion_callbacks(callbacks, value, error)
+          callbacks&.each do |callback|
+            deliver_completion_callback(callback, value, error)
+          end
+        end
+
+        def deliver_completion_callback(callback, value, error)
+          callback.call(value, error)
+        rescue => callback_error
+          Phronomy.configuration.logger&.error do
+            "[OffloadPool::PendingOperation] on_complete callback raised " \
+              "#{callback_error.class}: #{callback_error.message}"
+          end
         end
 
         def detach_submit_cancellation
@@ -411,6 +412,8 @@ module Phronomy
         @queue = SizedQueue.new(queue_size)
         @active_count = 0
         @abandoned_count = 0
+        @running_operation_ids = {}
+        @abandoned_active_operation_ids = {}
         @total_wait_ns = 0
         @completed_count = 0
         @mutex = Mutex.new
@@ -484,7 +487,7 @@ module Phronomy
           timeout: timeout,
           cancellation_token: cancellation_token,
           submitted_at: submitted_at,
-          on_abandoned: -> { @mutex.synchronize { @abandoned_count += 1 } }
+          on_abandoned: method(:record_abandoned)
         )
 
         # on_cancel only reacts to explicit cancel!, whereas cancelled? also covers a
@@ -592,11 +595,18 @@ module Phronomy
         @queue.size
       end
 
-      # @return [Integer] number of operations whose caller-facing timeout or
-      #   cancellation settled after worker execution had started
+      # @return [Integer] cumulative number of operations whose caller-facing timeout
+      #   or cancellation settled after worker execution had started
       # @api private
       def abandoned_count
         @mutex.synchronize { @abandoned_count }
+      end
+
+      # @return [Integer] number of abandoned operations that still occupy worker
+      #   capacity at this instant
+      # @api private
+      def abandoned_active_count
+        @mutex.synchronize { @abandoned_active_operation_ids.size }
       end
 
       # Average time (in seconds) that completed or skipped operations spent in the
@@ -643,23 +653,41 @@ module Phronomy
         end
       end
 
+      def record_abandoned(operation)
+        operation_id = operation.object_id
+        @mutex.synchronize do
+          @abandoned_count += 1
+          if @running_operation_ids.key?(operation_id)
+            @abandoned_active_operation_ids[operation_id] = true
+          end
+        end
+      end
+
       def run_operation(op)
-        @mutex.synchronize { @active_count += 1 }
+        operation_id = op.object_id
+        @mutex.synchronize do
+          @active_count += 1
+          @running_operation_ids[operation_id] = true
+        end
 
         begin
           op.execute!
         ensure
+          abandoned = op.abandoned?
+          wait_ns = (op.wait_time * 1_000_000_000).to_i
+
           @mutex.synchronize do
             @active_count -= 1
-
-            if op.abandoned?
-              @logger&.warn {
-                "OffloadPool: worker finished after caller-facing timeout/cancellation settlement"
-              }
-            end
-
-            @total_wait_ns += (op.wait_time * 1_000_000_000).to_i
+            @running_operation_ids.delete(operation_id)
+            @abandoned_active_operation_ids.delete(operation_id)
+            @total_wait_ns += wait_ns
             @completed_count += 1
+          end
+
+          if abandoned
+            @logger&.warn do
+              "OffloadPool: worker finished after caller-facing timeout/cancellation settlement"
+            end
           end
         end
       end
