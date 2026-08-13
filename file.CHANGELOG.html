@@ -68,8 +68,9 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h3 id="OffloadPool_execution_model">OffloadPool execution model</h3>
 <h4 id="Changed">Changed</h4>
 <ul>
-<li>Renamed <code>OffloadPool</code> to <code>OffloadPool</code> and <code>Runtime#offload</code> to
-<code>Runtime#offload</code>; configuration and metrics now use <code>offload_*</code> names.</li>
+<li>Renamed <code>BlockingAdapterPool</code> to <code>OffloadPool</code> and <code>Runtime#blocking_io</code> to
+<code>Runtime#offload</code>; configuration keys now use <code>offload_pool_size</code> and
+<code>offload_queue_size</code>, and metrics now use <code>offload_pool_*</code> names.</li>
 <li>Simplified Tool execution modes to <code>:cooperative</code> and <code>:offloaded</code>.
 Workload classification (I/O-bound versus CPU-bound) is application-owned.</li>
 <li>CPU-bound synchronous Tools may execute through the bounded OffloadPool;
@@ -78,14 +79,27 @@ speedup for pure Ruby CPU work.</li>
 <li>Framework-owned EventLoop-origin offload submissions use non-blocking queue
 admission so a full worker queue raises backpressure instead of blocking
 the EventLoop control thread.</li>
+<li>Submit cancellation now settles the caller-facing <code>PendingOperation</code>
+immediately. Cancellation before worker start prevents execution;
+cancellation after worker start marks the operation abandoned while allowing
+the synchronous worker to finish without asynchronous <code>Thread#raise</code>.</li>
+<li>Monotonic deadlines carried by an OffloadPool submit cancellation token are
+promoted by the Runtime timer queue, so cancellation completion does not
+require a polling Thread.</li>
+<li><code>PendingOperation#blocking_wait(cancellation_token:)</code> cancellation remains
+waiter-local: cancelling that waiter stops only that blocking wait and does
+not settle the shared operation.</li>
+<li><code>offload_pool_abandoned_total</code> counts synchronous workers that continue after
+either submit-time timeout or submit cancellation has already settled the
+caller-facing operation.</li>
 <li>Named Runtime pools remain available for application-managed resource
 isolation and capacity planning.</li>
 </ul>
 <h4 id="Removed">Removed</h4>
 <ul>
-<li>Tool execution modes <code>:offloaded</code>, <code>:cpu_bound</code>, and <code>:external_process</code>.</li>
-<li><code>Runtime#offload</code>, <code>offload_pool_size</code>, and
-<code>offload_queue_size</code>.</li>
+<li>Tool execution modes <code>:blocking_io</code>, <code>:cpu_bound</code>, and <code>:external_process</code>.</li>
+<li><code>Runtime#blocking_io</code>, <code>blocking_io_pool_size</code>, and
+<code>blocking_io_queue_size</code>.</li>
 </ul>
 <h3 id="EventLoop_first_runtime_cleanup">EventLoop-first runtime cleanup</h3>
 <h4 id="Added">Added</h4>
@@ -1646,7 +1660,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Thu Aug 13 11:43:17 2026 by
+  Generated on Thu Aug 13 13:40:36 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

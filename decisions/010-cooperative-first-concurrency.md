@@ -67,9 +67,9 @@ Task = completion handle
 The default OffloadPool is a shared bounded resource. CPU-heavy work can occupy
 slots that would otherwise be available to I/O, and slow I/O can do the same in
 reverse. Phronomy guarantees bounded worker count, bounded queue depth,
-backpressure, timeout/cancellation settlement, metrics, and lifecycle shutdown.
-It does **not** guarantee work-class fairness, CPU isolation, core reservation,
-or CPU-bound speedup.
+backpressure, timeout/cancellation settlement, abandoned-worker accounting,
+metrics, and lifecycle shutdown. It does **not** guarantee work-class fairness,
+CPU isolation, core reservation, or CPU-bound speedup.
 
 Applications own capacity planning through `offload_pool_size` and
 `offload_queue_size`. Where isolation is required, applications may use
@@ -90,12 +90,33 @@ when blocking the caller is acceptable.
 
 An OffloadPool submit-time timeout settles the caller-facing PendingOperation.
 It does not asynchronously interrupt a running worker Thread. If execution has
-already started, the operation becomes abandoned and the worker may continue
-until the submitted synchronous call returns.
+already started, the operation becomes abandoned, the worker may continue until
+the submitted synchronous call returns, and that eventual worker result is
+discarded.
 
-Cancellation follows the same principle. Cancellation before execution can
-prevent work from starting. Cancellation after execution starts does not use
-`Thread#raise`; application code may cooperatively observe a CancellationToken.
+The cancellation token passed to `OffloadPool#submit` follows the same
+caller-facing settlement model:
+
+- cancellation before worker execution prevents the submitted block from
+  starting;
+- cancellation after worker execution starts settles the caller-facing
+  PendingOperation immediately, marks the operation abandoned, and allows the
+  worker to continue until the synchronous call returns;
+- cancellation does not use `Thread#raise`;
+- application code may observe the same CancellationToken and terminate its own
+  synchronous operation cooperatively.
+
+A submit token with a monotonic deadline is connected to the Runtime timer queue,
+so deadline expiry becomes explicit cancellation without a polling Thread.
+
+`PendingOperation#blocking_wait(cancellation_token:)` is intentionally different:
+that token is waiter-local. Cancelling it stops only that blocking waiter; it does
+not settle the shared PendingOperation and does not interrupt the worker.
+
+`abandoned_count` measures operations whose caller-facing submit timeout or
+submit cancellation settled after worker execution had already started. This
+metric therefore represents worker capacity that remains occupied after the
+logical caller has moved on.
 
 ## CPU-bound work
 

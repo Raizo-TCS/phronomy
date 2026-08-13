@@ -145,7 +145,7 @@ to wait for the result.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>True when a submit-time timeout occurred after worker execution had started.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>True when timeout/cancellation settled the caller-facing operation after worker execution had started.</p></div></span>
   
 </li>
 
@@ -170,6 +170,28 @@ to wait for the result.</p>
 
   
     <span class="summary_desc"><div class='inline'><p>Blocks until the operation completes and returns its value.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#cancelled%3F-instance_method" title="#cancelled? (instance method)">#<strong>cancelled?</strong>  &#x21d2; Boolean </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>True when submit cancellation settled the operation.</p></div></span>
   
 </li>
 
@@ -236,6 +258,28 @@ to wait for the result.</p>
 
   
     <span class="summary_desc"><div class='inline'><p>Marks an operation that could not be admitted to the pool as settled, so a previously armed submit-time timer becomes a harmless no-op.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#fire_cancellation!-instance_method" title="#fire_cancellation! (instance method)">#<strong>fire_cancellation!</strong>  &#x21d2; Boolean </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Settles the operation because its submit cancellation token was cancelled.</p></div></span>
   
 </li>
 
@@ -387,27 +431,48 @@ to wait for the result.</p>
       <pre class="lines">
 
 
-158
-159
-160
-161
-162
-163
-164
-165
-166
-167
-168
-169
-170
-171
-172
-173</pre>
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 158</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 174</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_block'>block</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on_abandoned:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>submitted_at:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
+  <span class='id identifier rubyid_block'>block</span><span class='comma'>,</span>
+  <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span>
+  <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span>
+  <span class='label'>on_abandoned:</span> <span class='kw'>nil</span><span class='comma'>,</span>
+  <span class='label'>submitted_at:</span> <span class='kw'>nil</span>
+<span class='rparen'>)</span>
   <span class='ivar'>@block</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
   <span class='ivar'>@timeout</span> <span class='op'>=</span> <span class='id identifier rubyid_timeout'>timeout</span>
   <span class='ivar'>@cancellation_token</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
@@ -416,12 +481,21 @@ to wait for the result.</p>
   <span class='ivar'>@error</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@done</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@timed_out</span> <span class='op'>=</span> <span class='kw'>false</span>
+  <span class='ivar'>@cancelled</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@started</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@abandoned</span> <span class='op'>=</span> <span class='kw'>false</span>
   <span class='ivar'>@wait_time</span> <span class='op'>=</span> <span class='kw'>nil</span>
-  <span class='ivar'>@submitted_at</span> <span class='op'>=</span> <span class='id identifier rubyid_submitted_at'>submitted_at</span> <span class='op'>||</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span>
+  <span class='ivar'>@submitted_at</span> <span class='op'>=</span> <span class='id identifier rubyid_submitted_at'>submitted_at</span> <span class='op'>||</span>
+    <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@cond</span> <span class='op'>=</span> <span class='const'>ConditionVariable</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
+
+  <span class='comment'># Explicit submit cancellation is operation-wide. Deadline-only tokens are
+</span>  <span class='comment'># promoted to cancel! by OffloadPool#submit using the Runtime timer queue.
+</span>  <span class='ivar'>@cancellation_callback</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ivar'>@cancellation_token</span>
+    <span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='id identifier rubyid_fire_cancellation!'>fire_cancellation!</span> <span class='rbrace'>}</span>
+  <span class='kw'>end</span>
+  <span class='ivar'>@cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_on_cancel'>on_cancel</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='ivar'>@cancellation_callback</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -450,8 +524,9 @@ to wait for the result.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Returns true when a submit-time timeout occurred after worker
-execution had started. The worker is not forcibly interrupted.</p>
+<p>Returns true when timeout/cancellation settled the caller-facing
+operation after worker execution had started. The worker is not forcibly
+interrupted and its eventual result is discarded.</p>
 
   </div>
 </div>
@@ -468,8 +543,9 @@ execution had started. The worker is not forcibly interrupted.</p>
       
       
         &mdash;
-        <div class='inline'><p>true when a submit-time timeout occurred after worker
-execution had started. The worker is not forcibly interrupted.</p></div>
+        <div class='inline'><p>true when timeout/cancellation settled the caller-facing
+operation after worker execution had started. The worker is not forcibly
+interrupted and its eventual result is discarded.</p></div>
       
     </li>
   
@@ -481,12 +557,12 @@ execution had started. The worker is not forcibly interrupted.</p></div>
       <pre class="lines">
 
 
-63
-64
-65</pre>
+71
+72
+73</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 63</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 71</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_abandoned?'>abandoned?</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@abandoned</span> <span class='rbrace'>}</span>
@@ -520,13 +596,13 @@ execution had started. The worker is not forcibly interrupted.</p></div>
 <span class='object_link'><a href="../../TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span> is raised to this caller, but the operation is not
 settled, marked abandoned, or otherwise changed. The worker continues, and
 another waiter or an <code>on_complete</code> callback may receive the eventual result
-unless the submit-time deadline or cancellation settles the operation first.</p>
-<p>A submit-time timeout passed to <span class='object_link'><a href="../OffloadPool.html#submit-instance_method" title="Phronomy::Concurrency::OffloadPool#submit (method)">Phronomy::Concurrency::OffloadPool#submit</a></span> is enforced by the
-runtime timer queue independently of this method and is therefore not
-re-read here.</p>
-<p>An optional <code>cancellation_token</code> may be passed here (or at submit time).
-If the token is cancelled while waiting, <span class='object_link'><a href="../../CancellationError.html" title="Phronomy::CancellationError (class)">Phronomy::CancellationError</a></span> is
-raised without interrupting the worker.</p>
+unless the submit-time deadline or submit cancellation settles the operation
+first.</p>
+<p>A <code>cancellation_token</code> passed here is also waiter-local. Cancelling it wakes
+only this waiter and raises <span class='object_link'><a href="../../CancellationError.html" title="Phronomy::CancellationError (class)">Phronomy::CancellationError</a></span>; it does not settle
+the PendingOperation or interrupt the worker.</p>
+<p>The cancellation token passed to <span class='object_link'><a href="../OffloadPool.html#submit-instance_method" title="Phronomy::Concurrency::OffloadPool#submit (method)">Phronomy::Concurrency::OffloadPool#submit</a></span> is different: it is
+operation-wide and settles this PendingOperation for every waiter/callback.</p>
 
   </div>
 </div>
@@ -560,6 +636,9 @@ raised without interrupting the worker.</p>
       
         <em class="default">(defaults to: <tt>nil</tt>)</em>
       
+      
+        &mdash;
+        <div class='inline'><p>waiter-local token</p></div>
       
     </li>
   
@@ -619,14 +698,6 @@ raised without interrupting the worker.</p>
       <pre class="lines">
 
 
-96
-97
-98
-99
-100
-101
-102
-103
 104
 105
 106
@@ -648,27 +719,47 @@ raised without interrupting the worker.</p>
 122
 123
 124
-125</pre>
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 96</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 104</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_blocking_wait'>blocking_wait</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_effective_token'>effective_token</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span> <span class='op'>||</span> <span class='ivar'>@cancellation_token</span>
-
-  <span class='comment'># Wake up the waiting thread whenever the token is cancelled so we can
-</span>  <span class='comment'># propagate cancellation without sleeping until the operation completes.
-</span>  <span class='id identifier rubyid_effective_token'>effective_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_on_cancel'>on_cancel</span> <span class='lbrace'>{</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@cond</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span>
+  <span class='comment'># Wake only this waiter when a waiter-local token is cancelled. Submit
+</span>  <span class='comment'># cancellation settles the operation itself and broadcasts independently.
+</span>  <span class='id identifier rubyid_wake_callback'>wake_callback</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
+    <span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@cond</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span>
+  <span class='kw'>end</span>
+  <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_on_cancel'>on_cancel</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_wake_callback'>wake_callback</span><span class='rparen'>)</span>
 
   <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='id identifier rubyid_timeout'>timeout</span> <span class='kw'>if</span> <span class='id identifier rubyid_timeout'>timeout</span>
   <span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='kw'>until</span> <span class='ivar'>@done</span>
-      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>offloaded operation cancelled</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_effective_token'>effective_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
+      <span class='kw'>if</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
+        <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>waiting for offloaded operation cancelled</span><span class='tstring_end'>&quot;</span></span>
+      <span class='kw'>end</span>
 
       <span class='kw'>if</span> <span class='id identifier rubyid_deadline'>deadline</span>
         <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>=</span> <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>-</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span>
         <span class='kw'>if</span> <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>&lt;=</span> <span class='int'>0</span>
-          <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>timed out waiting for offloaded operation after </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_timeout'>timeout</span><span class='embexpr_end'>}</span><span class='tstring_content'>s</span><span class='tstring_end'>&quot;</span></span>
+          <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span></span><span class='comma'>,</span>
+            <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>timed out waiting for offloaded operation after </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_timeout'>timeout</span><span class='embexpr_end'>}</span><span class='tstring_content'>s</span><span class='tstring_end'>&quot;</span></span>
         <span class='kw'>end</span>
         <span class='ivar'>@cond</span><span class='period'>.</span><span class='id identifier rubyid_wait'>wait</span><span class='lparen'>(</span><span class='ivar'>@mutex</span><span class='comma'>,</span> <span class='id identifier rubyid_remaining'>remaining</span><span class='rparen'>)</span>
       <span class='kw'>else</span>
@@ -682,6 +773,69 @@ raised without interrupting the worker.</p>
   <span class='id identifier rubyid_raise'>raise</span> <span class='id identifier rubyid_error'>error</span> <span class='kw'>if</span> <span class='id identifier rubyid_error'>error</span>
 
   <span class='id identifier rubyid_value'>value</span>
+<span class='kw'>ensure</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_wake_callback'>wake_callback</span>
+    <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:unregister_cancel_callback</span><span class='comma'>,</span> <span class='id identifier rubyid_wake_callback'>wake_callback</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="cancelled?-instance_method">
+  
+    #<strong>cancelled?</strong>  &#x21d2; <tt>Boolean</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns true when submit cancellation settled the operation.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>true when submit cancellation settled the operation</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+63
+64
+65</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 63</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_cancelled?'>cancelled?</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@cancelled</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -734,12 +888,12 @@ raised without interrupting the worker.</p>
       <pre class="lines">
 
 
-50
 51
-52</pre>
+52
+53</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 50</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 51</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_done?'>done?</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@done</span> <span class='rbrace'>}</span>
@@ -777,35 +931,6 @@ raised without interrupting the worker.</p>
       <pre class="lines">
 
 
-238
-239
-240
-241
-242
-243
-244
-245
-246
-247
-248
-249
-250
-251
-252
-253
-254
-255
-256
-257
-258
-259
-260
-261
-262
-263
-264
-265
-266
 267
 268
 269
@@ -820,40 +945,53 @@ raised without interrupting the worker.</p>
 278
 279
 280
-281</pre>
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 238</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 267</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execute!'>execute!</span>
   <span class='ivar'>@wait_time</span> <span class='op'>=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>-</span> <span class='ivar'>@submitted_at</span>
 
-  <span class='id identifier rubyid_cancellation_error'>cancellation_error</span> <span class='op'>=</span> <span class='kw'>nil</span>
-  <span class='id identifier rubyid_callbacks'>callbacks</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='comment'># A monotonic deadline can make cancelled? true before the timer callback
+</span>  <span class='comment'># runs. Promote that state to explicit cancellation so callbacks and all
+</span>  <span class='comment'># waiters observe the same operation-wide settlement.
+</span>  <span class='kw'>if</span> <span class='ivar'>@cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
+    <span class='ivar'>@cancellation_token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span>
+  <span class='kw'>end</span>
+
   <span class='id identifier rubyid_should_run'>should_run</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='kw'>if</span> <span class='ivar'>@done</span>
       <span class='kw'>false</span>
-    <span class='kw'>elsif</span> <span class='ivar'>@cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
-      <span class='id identifier rubyid_cancellation_error'>cancellation_error</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>operation cancelled before execution</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
-      <span class='ivar'>@done</span> <span class='op'>=</span> <span class='kw'>true</span>
-      <span class='ivar'>@error</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_error'>cancellation_error</span>
-      <span class='ivar'>@cond</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span>
-      <span class='id identifier rubyid_callbacks'>callbacks</span> <span class='op'>=</span> <span class='ivar'>@callbacks</span>
-      <span class='ivar'>@callbacks</span> <span class='op'>=</span> <span class='kw'>nil</span>
-      <span class='kw'>false</span>
     <span class='kw'>else</span>
-      <span class='comment'># Linearization point: after this assignment, a concurrent timeout is
-</span>      <span class='comment'># classified as an in-flight abandonment and the block will run.
+      <span class='comment'># Linearization point: after this assignment, a concurrent timeout or
+</span>      <span class='comment'># cancellation is classified as in-flight abandonment and the block
+</span>      <span class='comment'># itself is allowed to finish without Thread#raise.
 </span>      <span class='ivar'>@started</span> <span class='op'>=</span> <span class='kw'>true</span>
       <span class='kw'>true</span>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
-
-  <span class='kw'>if</span> <span class='id identifier rubyid_cancellation_error'>cancellation_error</span>
-    <span class='id identifier rubyid_callbacks'>callbacks</span><span class='op'>&amp;.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_callback'>callback</span><span class='op'>|</span> <span class='id identifier rubyid_callback'>callback</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='kw'>nil</span><span class='comma'>,</span> <span class='id identifier rubyid_cancellation_error'>cancellation_error</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
-    <span class='kw'>return</span>
-  <span class='kw'>end</span>
-
   <span class='kw'>return</span> <span class='kw'>unless</span> <span class='id identifier rubyid_should_run'>should_run</span>
 
   <span class='comment'># Do NOT use Timeout.timeout here — it delivers an async Thread#raise
@@ -936,29 +1074,119 @@ previously armed submit-time timer becomes a harmless no-op.</p>
       <pre class="lines">
 
 
-225
-226
-227
-228
-229
-230
-231
-232
-233
-234</pre>
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 225</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 247</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fail_submission!'>fail_submission!</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
-    <span class='kw'>return</span> <span class='kw'>false</span> <span class='kw'>if</span> <span class='ivar'>@done</span>
+  <span class='id identifier rubyid_callbacks'>callbacks</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='id identifier rubyid_changed'>changed</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='kw'>next</span> <span class='kw'>false</span> <span class='kw'>if</span> <span class='ivar'>@done</span>
 
     <span class='ivar'>@done</span> <span class='op'>=</span> <span class='kw'>true</span>
     <span class='ivar'>@error</span> <span class='op'>=</span> <span class='id identifier rubyid_error'>error</span> <span class='kw'>if</span> <span class='id identifier rubyid_error'>error</span>
     <span class='ivar'>@cond</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span>
+    <span class='id identifier rubyid_callbacks'>callbacks</span> <span class='op'>=</span> <span class='ivar'>@callbacks</span>
+    <span class='ivar'>@callbacks</span> <span class='op'>=</span> <span class='kw'>nil</span>
+    <span class='kw'>true</span>
   <span class='kw'>end</span>
-  <span class='kw'>true</span>
+
+  <span class='id identifier rubyid_detach_submit_cancellation'>detach_submit_cancellation</span> <span class='kw'>if</span> <span class='id identifier rubyid_changed'>changed</span>
+  <span class='id identifier rubyid_callbacks'>callbacks</span><span class='op'>&amp;.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_callback'>callback</span><span class='op'>|</span> <span class='id identifier rubyid_callback'>callback</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='kw'>nil</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span> <span class='rbrace'>}</span> <span class='kw'>if</span> <span class='id identifier rubyid_changed'>changed</span>
+  <span class='id identifier rubyid_changed'>changed</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="fire_cancellation!-instance_method">
+  
+    #<strong>fire_cancellation!</strong>  &#x21d2; <tt>Boolean</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Settles the operation because its submit cancellation token was cancelled.</p>
+<p>Cancellation is caller-facing settlement, not asynchronous worker
+interruption. If execution has already started, the operation is marked
+abandoned and the worker continues until the synchronous call returns.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>true when this call settled the operation</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 230</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_fire_cancellation!'>fire_cancellation!</span>
+  <span class='id identifier rubyid_settle_early!'>settle_early!</span><span class='lparen'>(</span><span class='label'>cancelled:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_started'>started</span><span class='op'>|</span>
+    <span class='id identifier rubyid_message'>message</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_started'>started</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>offloaded operation cancelled during execution</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>else</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>offloaded operation cancelled before execution</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='const'><span class='object_link'><a href="../../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_message'>message</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1012,79 +1240,23 @@ operation had already settled</p></div>
       <pre class="lines">
 
 
-183
-184
-185
-186
-187
-188
-189
-190
-191
-192
-193
-194
-195
-196
-197
-198
-199
-200
-201
-202
-203
-204
-205
-206
-207
-208
-209
-210
-211
-212
-213
 214
 215
 216
-217</pre>
+217
+218
+219
+220</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 183</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 214</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fire_timeout!'>fire_timeout!</span>
-  <span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
-    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>offloaded operation timed out after </span><span class='embexpr_beg'>#{</span><span class='ivar'>@timeout</span><span class='embexpr_end'>}</span><span class='tstring_content'>s</span><span class='tstring_end'>&quot;</span></span>
-  <span class='rparen'>)</span>
-  <span class='id identifier rubyid_callbacks'>callbacks</span> <span class='op'>=</span> <span class='kw'>nil</span>
-  <span class='id identifier rubyid_abandoned_now'>abandoned_now</span> <span class='op'>=</span> <span class='kw'>false</span>
-
-  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
-    <span class='kw'>return</span> <span class='kw'>false</span> <span class='kw'>if</span> <span class='ivar'>@done</span>
-
-    <span class='ivar'>@done</span> <span class='op'>=</span> <span class='kw'>true</span>
-    <span class='ivar'>@timed_out</span> <span class='op'>=</span> <span class='kw'>true</span>
-    <span class='ivar'>@error</span> <span class='op'>=</span> <span class='id identifier rubyid_error'>error</span>
-    <span class='ivar'>@abandoned</span> <span class='op'>=</span> <span class='ivar'>@started</span>
-    <span class='id identifier rubyid_abandoned_now'>abandoned_now</span> <span class='op'>=</span> <span class='ivar'>@abandoned</span>
-    <span class='ivar'>@cond</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span>
-    <span class='id identifier rubyid_callbacks'>callbacks</span> <span class='op'>=</span> <span class='ivar'>@callbacks</span>
-    <span class='ivar'>@callbacks</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='id identifier rubyid_settle_early!'>settle_early!</span><span class='lparen'>(</span><span class='label'>timed_out:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
+    <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>offloaded operation timed out after </span><span class='embexpr_beg'>#{</span><span class='ivar'>@timeout</span><span class='embexpr_end'>}</span><span class='tstring_content'>s</span><span class='tstring_end'>&quot;</span></span>
+    <span class='rparen'>)</span>
   <span class='kw'>end</span>
-
-  <span class='comment'># Internal bookkeeping is completed before user callbacks run. A metrics
-</span>  <span class='comment'># callback must never suppress delivery of TimeoutError to on_complete.
-</span>  <span class='kw'>if</span> <span class='id identifier rubyid_abandoned_now'>abandoned_now</span>
-    <span class='kw'>begin</span>
-      <span class='ivar'>@on_abandoned</span><span class='op'>&amp;.</span><span class='id identifier rubyid_call'>call</span>
-    <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
-      <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../../../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span><span class='op'>&amp;.</span><span class='id identifier rubyid_error'>error</span> <span class='lbrace'>{</span>
-        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>OffloadPool abandoned callback failed: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_e'>e</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_e'>e</span><span class='period'>.</span><span class='id identifier rubyid_message'>message</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
-      <span class='rbrace'>}</span>
-    <span class='kw'>end</span>
-  <span class='kw'>end</span>
-
-  <span class='id identifier rubyid_callbacks'>callbacks</span><span class='op'>&amp;.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_callback'>callback</span><span class='op'>|</span> <span class='id identifier rubyid_callback'>callback</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='kw'>nil</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
-  <span class='kw'>true</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1108,10 +1280,10 @@ operation had already settled</p></div>
 </p>
 <p>Registers a callback to be called when the operation settles.</p>
 <p>If the operation has already settled, the callback is invoked immediately
-on the calling thread. Otherwise it may be invoked on a pool worker thread
-or on the EventLoop thread when an operation timeout fires. The execution
-thread is not guaranteed; callbacks must be thread-safe and should complete
-quickly.</p>
+on the calling thread. Otherwise it may be invoked on a pool worker thread,
+on the EventLoop thread when a timer fires, or on the thread that explicitly
+cancels the submit cancellation token. The execution thread is not
+guaranteed; callbacks must be thread-safe and should complete quickly.</p>
 <p>The callback receives <code>result</code> and <code>error</code> (one of them will be <code>nil</code>).</p>
 
   </div>
@@ -1151,22 +1323,22 @@ quickly.</p>
       <pre class="lines">
 
 
-143
-144
-145
-146
-147
-148
-149
-150
-151
-152
-153
-154
-155</pre>
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 143</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 159</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_complete'>on_complete</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_fire_args'>fire_args</span> <span class='op'>=</span> <span class='kw'>nil</span>
@@ -1230,12 +1402,12 @@ quickly.</p>
       <pre class="lines">
 
 
-56
 57
-58</pre>
+58
+59</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 57</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_timed_out?'>timed_out?</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@timed_out</span> <span class='rbrace'>}</span>
@@ -1289,12 +1461,12 @@ quickly.</p>
       <pre class="lines">
 
 
-69
-70
-71</pre>
+77
+78
+79</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 69</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 77</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_wait_time'>wait_time</span>
   <span class='ivar'>@wait_time</span> <span class='op'>||</span> <span class='float'>0.0</span>
@@ -1309,7 +1481,7 @@ quickly.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu Aug 13 11:43:21 2026 by
+  Generated on Thu Aug 13 13:40:40 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

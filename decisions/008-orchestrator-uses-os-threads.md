@@ -36,8 +36,8 @@ FanOut FSMSession
 not create a corresponding set of Threads.
 
 Each child Agent runs through the common Agent FSMSession/EventLoop lifecycle.
-When a child performs unavoidable blocking LLM/Tool I/O, only that external call
-is executed on the bounded `BlockingAdapterPool`.
+When a child performs synchronous work that must not run on EventLoop, only that
+synchronous operation is executed on the bounded `OffloadPool`.
 
 Therefore:
 
