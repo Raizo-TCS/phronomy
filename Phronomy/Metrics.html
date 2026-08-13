@@ -174,7 +174,8 @@ EventLoop and OffloadPool.</p>
 20
 21
 22
-23</pre>
+23
+24</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/metrics.rb', line 7</span>
@@ -187,6 +188,7 @@ EventLoop and OffloadPool.</p>
   <span class='lbrace'>{</span>
     <span class='label'>offload_pool_active:</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_active_count'>active_count</span><span class='comma'>,</span>
     <span class='label'>offload_pool_queue_length:</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_queue_depth'>queue_depth</span><span class='comma'>,</span>
+    <span class='label'>offload_pool_abandoned_active:</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_abandoned_active_count'>abandoned_active_count</span><span class='comma'>,</span>
     <span class='label'>offload_pool_abandoned_total:</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_abandoned_count'>abandoned_count</span><span class='comma'>,</span>
     <span class='label'>offload_pool_size:</span> <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_pool_size'>pool_size</span><span class='comma'>,</span>
     <span class='label'>event_loop_queue_depth:</span> <span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_queue_depth'>queue_depth</span><span class='comma'>,</span>
@@ -206,7 +208,7 @@ EventLoop and OffloadPool.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu Aug 13 13:40:36 2026 by
+  Generated on Thu Aug 13 16:15:20 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

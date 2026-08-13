@@ -431,7 +431,7 @@ callbacks and a blocking wait for external callers.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Registers an independent completion notification.</p></div></span>
   
 </li>
 
@@ -741,17 +741,17 @@ callbacks and a blocking wait for external callers.</p>
       <pre class="lines">
 
 
-121
-122
-123
-124
 125
 126
 127
-128</pre>
+128
+129
+130
+131
+132</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 121</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 125</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancel!'>cancel!</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Task cancelled</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_changed'>changed</span> <span class='op'>=</span> <span class='id identifier rubyid_settle!'>settle!</span><span class='lparen'>(</span><span class='symbol'>:cancelled</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
@@ -781,12 +781,12 @@ callbacks and a blocking wait for external callers.</p>
       <pre class="lines">
 
 
-112
-113
-114</pre>
+116
+117
+118</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 112</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 116</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_settle!'>settle!</span><span class='lparen'>(</span><span class='symbol'>:completed</span><span class='comma'>,</span> <span class='label'>value:</span> <span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
@@ -885,13 +885,13 @@ callbacks and a blocking wait for external callers.</p>
       <pre class="lines">
 
 
-116
-117
-118
-119</pre>
+120
+121
+122
+123</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 116</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 120</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fail'>fail</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>error is required</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_error'>error</span>
@@ -1013,10 +1013,6 @@ Returns self when settled, nil on timeout.</p>
       <pre class="lines">
 
 
-130
-131
-132
-133
 134
 135
 136
@@ -1030,10 +1026,14 @@ Returns self when settled, nil on timeout.</p>
 144
 145
 146
-147</pre>
+147
+148
+149
+150
+151</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 130</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 134</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_map'>map</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>map requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
@@ -1069,7 +1069,9 @@ Returns self when settled, nil on timeout.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    
+    <p>Registers an independent completion notification.</p>
+<p>A callback failure is logged and does not suppress delivery to other
+completion callbacks or change the Task's already-settled result.</p>
 
   </div>
 </div>
@@ -1095,10 +1097,6 @@ Returns self when settled, nil on timeout.</p>
       <pre class="lines">
 
 
-97
-98
-99
-100
 101
 102
 103
@@ -1108,10 +1106,14 @@ Returns self when settled, nil on timeout.</p>
 107
 108
 109
-110</pre>
+110
+111
+112
+113
+114</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 97</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 101</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_complete'>on_complete</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>on_complete requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_callback'>callback</span>
@@ -1124,7 +1126,7 @@ Returns self when settled, nil on timeout.</p>
       <span class='ivar'>@on_complete_callbacks</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_callback'>callback</span>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
-  <span class='id identifier rubyid_callback'>callback</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_fire_args'>fire_args</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_fire_args'>fire_args</span>
+  <span class='id identifier rubyid_deliver_completion_callback'>deliver_completion_callback</span><span class='lparen'>(</span><span class='id identifier rubyid_callback'>callback</span><span class='comma'>,</span> <span class='op'>*</span><span class='id identifier rubyid_fire_args'>fire_args</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_fire_args'>fire_args</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1253,7 +1255,7 @@ wait for a Task; it must continue through explicit events instead.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu Aug 13 13:40:37 2026 by
+  Generated on Thu Aug 13 16:15:20 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

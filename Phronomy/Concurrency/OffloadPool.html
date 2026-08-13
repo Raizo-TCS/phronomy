@@ -123,8 +123,8 @@ See ADR-010.</p>
 <li>Per-operation timeouts and cancellation settle the caller-facing handle.</li>
 <li>Operations that settle after worker execution has started are tracked as
 abandoned until that worker returns.</li>
-<li>Metrics (active count, queue depth, abandoned count, avg wait time) are
-observable at runtime.</li>
+<li>Metrics expose active work, queue depth, cumulative abandonment,
+currently-active abandonment, and average queue wait time.</li>
 </ol>
 <p>OffloadPool does not provide CPU isolation, CPU parallelism guarantees, or
 fairness between I/O and CPU-heavy work classes. Applications that need
@@ -267,6 +267,28 @@ resource isolation may use named pools via <span class='object_link'><a href="..
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#abandoned_active_count-instance_method" title="#abandoned_active_count (instance method)">#<strong>abandoned_active_count</strong>  &#x21d2; Integer </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Number of abandoned operations that still occupy worker capacity at this instant.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#abandoned_count-instance_method" title="#abandoned_count (instance method)">#<strong>abandoned_count</strong>  &#x21d2; Integer </a>
     
 
@@ -281,7 +303,7 @@ resource isolation may use named pools via <span class='object_link'><a href="..
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Number of operations whose caller-facing timeout or cancellation settled after worker execution had started.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Cumulative number of operations whose caller-facing timeout or cancellation settled after worker execution had started.</p></div></span>
   
 </li>
 
@@ -541,7 +563,6 @@ cancellation token is used.</p></div>
       <pre class="lines">
 
 
-399
 400
 401
 402
@@ -561,10 +582,13 @@ cancellation token is used.</p></div>
 416
 417
 418
-419</pre>
+419
+420
+421
+422</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 399</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 400</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>pool_size:</span> <span class='int'>10</span><span class='comma'>,</span>
@@ -581,6 +605,8 @@ cancellation token is used.</p></div>
   <span class='ivar'>@queue</span> <span class='op'>=</span> <span class='const'>SizedQueue</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='id identifier rubyid_queue_size'>queue_size</span><span class='rparen'>)</span>
   <span class='ivar'>@active_count</span> <span class='op'>=</span> <span class='int'>0</span>
   <span class='ivar'>@abandoned_count</span> <span class='op'>=</span> <span class='int'>0</span>
+  <span class='ivar'>@running_operation_ids</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+  <span class='ivar'>@abandoned_active_operation_ids</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
   <span class='ivar'>@total_wait_ns</span> <span class='op'>=</span> <span class='int'>0</span>
   <span class='ivar'>@completed_count</span> <span class='op'>=</span> <span class='int'>0</span>
   <span class='ivar'>@mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
@@ -639,12 +665,12 @@ cancellation token is used.</p></div>
       <pre class="lines">
 
 
-621
-622
-623</pre>
+631
+632
+633</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 621</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 631</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_name'>name</span>
   <span class='ivar'>@name</span>
@@ -696,12 +722,12 @@ cancellation token is used.</p></div>
       <pre class="lines">
 
 
-615
-616
-617</pre>
+625
+626
+627</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 615</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 625</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pool_size'>pool_size</span>
   <span class='ivar'>@pool_size</span>
@@ -753,12 +779,12 @@ cancellation token is used.</p></div>
       <pre class="lines">
 
 
-618
-619
-620</pre>
+628
+629
+630</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 618</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 628</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_queue_size'>queue_size</span>
   <span class='ivar'>@queue_size</span>
@@ -776,9 +802,9 @@ cancellation token is used.</p></div>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="abandoned_count-instance_method">
+  <h3 class="signature first" id="abandoned_active_count-instance_method">
   
-    #<strong>abandoned_count</strong>  &#x21d2; <tt>Integer</tt> 
+    #<strong>abandoned_active_count</strong>  &#x21d2; <tt>Integer</tt> 
   
 
   
@@ -790,8 +816,8 @@ cancellation token is used.</p></div>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Returns number of operations whose caller-facing timeout or
-cancellation settled after worker execution had started.</p>
+<p>Returns number of abandoned operations that still occupy worker
+capacity at this instant.</p>
 
   </div>
 </div>
@@ -808,8 +834,8 @@ cancellation settled after worker execution had started.</p>
       
       
         &mdash;
-        <div class='inline'><p>number of operations whose caller-facing timeout or
-cancellation settled after worker execution had started</p></div>
+        <div class='inline'><p>number of abandoned operations that still occupy worker
+capacity at this instant</p></div>
       
     </li>
   
@@ -821,12 +847,73 @@ cancellation settled after worker execution had started</p></div>
       <pre class="lines">
 
 
-598
-599
-600</pre>
+608
+609
+610</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 598</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 608</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_abandoned_active_count'>abandoned_active_count</span>
+  <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@abandoned_active_operation_ids</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="abandoned_count-instance_method">
+  
+    #<strong>abandoned_count</strong>  &#x21d2; <tt>Integer</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns cumulative number of operations whose caller-facing timeout
+or cancellation settled after worker execution had started.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>cumulative number of operations whose caller-facing timeout
+or cancellation settled after worker execution had started</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+601
+602
+603</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 601</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_abandoned_count'>abandoned_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@abandoned_count</span> <span class='rbrace'>}</span>
@@ -880,12 +967,12 @@ cancellation settled after worker execution had started</p></div>
       <pre class="lines">
 
 
-585
-586
-587</pre>
+588
+589
+590</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 585</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 588</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_active_count'>active_count</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@active_count</span> <span class='rbrace'>}</span>
@@ -937,16 +1024,16 @@ queue waiting for a worker. Returns 0.0 when none have been processed yet.</p>
       <pre class="lines">
 
 
-606
-607
-608
-609
-610
-611
-612</pre>
+616
+617
+618
+619
+620
+621
+622</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 606</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 616</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_average_wait_seconds'>average_wait_seconds</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1004,12 +1091,12 @@ queue waiting for a worker. Returns 0.0 when none have been processed yet.</p>
       <pre class="lines">
 
 
-591
-592
-593</pre>
+594
+595
+596</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 591</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 594</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_queue_depth'>queue_depth</span>
   <span class='ivar'>@queue</span><span class='period'>.</span><span class='id identifier rubyid_size'>size</span>
@@ -1083,15 +1170,15 @@ remaining items, without blocking on a full-queue push.</p>
       <pre class="lines">
 
 
-574
-575
-576
 577
 578
-579</pre>
+579
+580
+581
+582</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 574</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 577</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span><span class='label'>drain_timeout:</span> <span class='int'>30</span><span class='rparen'>)</span>
   <span class='ivar'>@shutdown</span> <span class='op'>=</span> <span class='kw'>true</span>
@@ -1301,9 +1388,6 @@ timer queue provider is configured</p></div>
       <pre class="lines">
 
 
-457
-458
-459
 460
 461
 462
@@ -1407,10 +1491,13 @@ timer queue provider is configured</p></div>
 560
 561
 562
-563</pre>
+563
+564
+565
+566</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 457</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 460</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
   <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span>
@@ -1442,7 +1529,7 @@ timer queue provider is configured</p></div>
     <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
     <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
     <span class='label'>submitted_at:</span> <span class='id identifier rubyid_submitted_at'>submitted_at</span><span class='comma'>,</span>
-    <span class='label'>on_abandoned:</span> <span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@abandoned_count</span> <span class='op'>+=</span> <span class='int'>1</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span>
+    <span class='label'>on_abandoned:</span> <span class='id identifier rubyid_method'>method</span><span class='lparen'>(</span><span class='symbol'>:record_abandoned</span><span class='rparen'>)</span>
   <span class='rparen'>)</span>
 
   <span class='comment'># on_cancel only reacts to explicit cancel!, whereas cancelled? also covers a
@@ -1529,7 +1616,7 @@ timer queue provider is configured</p></div>
 </div>
 
       <div id="footer">
-  Generated on Thu Aug 13 13:40:40 2026 by
+  Generated on Thu Aug 13 16:15:23 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

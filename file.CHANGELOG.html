@@ -86,12 +86,17 @@ the synchronous worker to finish without asynchronous <code>Thread#raise</code>.
 <li>Monotonic deadlines carried by an OffloadPool submit cancellation token are
 promoted by the Runtime timer queue, so cancellation completion does not
 require a polling Thread.</li>
-<li><code>PendingOperation#blocking_wait(cancellation_token:)</code> cancellation remains
-waiter-local: cancelling that waiter stops only that blocking wait and does
-not settle the shared operation.</li>
-<li><code>offload_pool_abandoned_total</code> counts synchronous workers that continue after
-either submit-time timeout or submit cancellation has already settled the
-caller-facing operation.</li>
+<li>Independent notification callbacks now isolate subscriber failures. An
+<code>StandardError</code> from one <code>CancellationToken#on_cancel</code>, <code>Task#on_complete</code>, or
+<code>PendingOperation#on_complete</code> callback is logged and does not suppress later
+subscribers.</li>
+<li><code>PendingOperation#blocking_wait(timeout:)</code> remains a waiter-local synchronous
+timeout only. It does not settle or cancel the operation; operation-wide
+cancellation is represented only by <code>OffloadPool#submit(cancellation_token:)</code>.</li>
+<li><code>offload_pool_abandoned_total</code> is the cumulative number of operations whose
+caller-facing submit timeout or cancellation settled after worker execution
+started. <code>offload_pool_abandoned_active</code> is the current number of those
+abandoned operations whose synchronous workers still occupy pool capacity.</li>
 <li>Named Runtime pools remain available for application-managed resource
 isolation and capacity planning.</li>
 </ul>
@@ -100,6 +105,8 @@ isolation and capacity planning.</li>
 <li>Tool execution modes <code>:blocking_io</code>, <code>:cpu_bound</code>, and <code>:external_process</code>.</li>
 <li><code>Runtime#blocking_io</code>, <code>blocking_io_pool_size</code>, and
 <code>blocking_io_queue_size</code>.</li>
+<li>Waiter-local <code>cancellation_token:</code> from <code>PendingOperation#blocking_wait</code>.
+The low-level synchronous bridge continues to support waiter-local <code>timeout:</code>.</li>
 </ul>
 <h3 id="EventLoop_first_runtime_cleanup">EventLoop-first runtime cleanup</h3>
 <h4 id="Added">Added</h4>
@@ -1660,7 +1667,7 @@ automatically when reached (later superseded by <code>wait_state</code> DSL in <
 </ul></div></div>
 
       <div id="footer">
-  Generated on Thu Aug 13 13:40:36 2026 by
+  Generated on Thu Aug 13 16:15:20 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

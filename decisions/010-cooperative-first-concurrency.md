@@ -109,14 +109,27 @@ caller-facing settlement model:
 A submit token with a monotonic deadline is connected to the Runtime timer queue,
 so deadline expiry becomes explicit cancellation without a polling Thread.
 
-`PendingOperation#blocking_wait(cancellation_token:)` is intentionally different:
-that token is waiter-local. Cancelling it stops only that blocking waiter; it does
-not settle the shared PendingOperation and does not interrupt the worker.
+`PendingOperation#blocking_wait(timeout:)` is a low-level synchronous bridge for
+non-EventLoop callers such as tests and diagnostics. Its timeout is waiter-local:
+it raises `TimeoutError` only to that caller and does not settle the
+PendingOperation, cancel the submitted operation, or mark it abandoned.
+PendingOperation does not define a waiter-local cancellation token;
+operation-wide cancellation is represented only by the token passed to
+`OffloadPool#submit`.
 
-`abandoned_count` measures operations whose caller-facing submit timeout or
-submit cancellation settled after worker execution had already started. This
-metric therefore represents worker capacity that remains occupied after the
-logical caller has moved on.
+Independent notification callbacks are fault-isolated. A `StandardError` from one
+`CancellationToken#on_cancel`, `Task#on_complete`, or
+`PendingOperation#on_complete` subscriber is logged and does not suppress later
+subscribers. This rule applies to notification fan-out; continuation or
+transformation callbacks still report their own failures through the operation
+they construct.
+
+`abandoned_count` and the exported `offload_pool_abandoned_total` metric are
+cumulative: they count operations whose caller-facing submit timeout or submit
+cancellation settled after worker execution had already started.
+`abandoned_active_count` and `offload_pool_abandoned_active` are current-state
+values: they count only abandoned operations whose synchronous worker is still
+occupying OffloadPool capacity.
 
 ## CPU-bound work
 

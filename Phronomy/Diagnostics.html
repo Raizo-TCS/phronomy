@@ -223,15 +223,15 @@
       <pre class="lines">
 
 
-25
 26
 27
 28
 29
-30</pre>
+30
+31</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/diagnostics.rb', line 25</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/diagnostics.rb', line 26</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_assert_not_in_event_loop!'>assert_not_in_event_loop!</span>
   <span class='kw'>return</span> <span class='kw'>unless</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_in_event_loop_context?'><span class='object_link'><a href="Runtime.html#in_event_loop_context%3F-class_method" title="Phronomy::Runtime.in_event_loop_context? (method)">in_event_loop_context?</a></span></span>
@@ -272,7 +272,8 @@
 16
 17
 18
-19</pre>
+19
+20</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/diagnostics.rb', line 6</span>
@@ -282,14 +283,15 @@
 
   <span class='id identifier rubyid_out'>out</span><span class='period'>.</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[Phronomy::Diagnostics] Runtime state dump</span><span class='tstring_end'>&quot;</span></span>
   <span class='id identifier rubyid_out'>out</span><span class='period'>.</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>  OffloadPool:</span><span class='tstring_end'>&quot;</span></span>
-  <span class='id identifier rubyid_out'>out</span><span class='period'>.</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>    pool_size       : </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_snap'>snap</span><span class='lbracket'>[</span><span class='symbol'>:offload_pool_size</span><span class='rbracket'>]</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
-  <span class='id identifier rubyid_out'>out</span><span class='period'>.</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>    active_count    : </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_snap'>snap</span><span class='lbracket'>[</span><span class='symbol'>:offload_pool_active</span><span class='rbracket'>]</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
-  <span class='id identifier rubyid_out'>out</span><span class='period'>.</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>    queue_depth     : </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_snap'>snap</span><span class='lbracket'>[</span><span class='symbol'>:offload_pool_queue_length</span><span class='rbracket'>]</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
-  <span class='id identifier rubyid_out'>out</span><span class='period'>.</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>    abandoned_total : </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_snap'>snap</span><span class='lbracket'>[</span><span class='symbol'>:offload_pool_abandoned_total</span><span class='rbracket'>]</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_out'>out</span><span class='period'>.</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>    pool_size        : </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_snap'>snap</span><span class='lbracket'>[</span><span class='symbol'>:offload_pool_size</span><span class='rbracket'>]</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_out'>out</span><span class='period'>.</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>    active_count     : </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_snap'>snap</span><span class='lbracket'>[</span><span class='symbol'>:offload_pool_active</span><span class='rbracket'>]</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_out'>out</span><span class='period'>.</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>    queue_depth      : </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_snap'>snap</span><span class='lbracket'>[</span><span class='symbol'>:offload_pool_queue_length</span><span class='rbracket'>]</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_out'>out</span><span class='period'>.</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>    abandoned_active : </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_snap'>snap</span><span class='lbracket'>[</span><span class='symbol'>:offload_pool_abandoned_active</span><span class='rbracket'>]</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_out'>out</span><span class='period'>.</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>    abandoned_total  : </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_snap'>snap</span><span class='lbracket'>[</span><span class='symbol'>:offload_pool_abandoned_total</span><span class='rbracket'>]</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
   <span class='id identifier rubyid_out'>out</span><span class='period'>.</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>  EventLoop:</span><span class='tstring_end'>&quot;</span></span>
-  <span class='id identifier rubyid_out'>out</span><span class='period'>.</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>    last_lag_ms     : </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_snap'>snap</span><span class='lbracket'>[</span><span class='symbol'>:event_loop_lag_last_ms</span><span class='rbracket'>]</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
-  <span class='id identifier rubyid_out'>out</span><span class='period'>.</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>    max_lag_ms      : </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_snap'>snap</span><span class='lbracket'>[</span><span class='symbol'>:event_loop_lag_max_ms</span><span class='rbracket'>]</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
-  <span class='id identifier rubyid_out'>out</span><span class='period'>.</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>    average_lag_ms  : </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_snap'>snap</span><span class='lbracket'>[</span><span class='symbol'>:event_loop_lag_average_ms</span><span class='rbracket'>]</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_out'>out</span><span class='period'>.</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>    last_lag_ms      : </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_snap'>snap</span><span class='lbracket'>[</span><span class='symbol'>:event_loop_lag_last_ms</span><span class='rbracket'>]</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_out'>out</span><span class='period'>.</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>    max_lag_ms       : </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_snap'>snap</span><span class='lbracket'>[</span><span class='symbol'>:event_loop_lag_max_ms</span><span class='rbracket'>]</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id identifier rubyid_out'>out</span><span class='period'>.</span><span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>    average_lag_ms   : </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_snap'>snap</span><span class='lbracket'>[</span><span class='symbol'>:event_loop_lag_average_ms</span><span class='rbracket'>]</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -311,12 +313,12 @@
       <pre class="lines">
 
 
-21
 22
-23</pre>
+23
+24</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/diagnostics.rb', line 21</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/diagnostics.rb', line 22</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_snapshot'>snapshot</span>
   <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Metrics.html" title="Phronomy::Metrics (module)">Metrics</a></span></span><span class='period'>.</span><span class='id identifier rubyid_snapshot'><span class='object_link'><a href="Metrics.html#snapshot-class_method" title="Phronomy::Metrics.snapshot (method)">snapshot</a></span></span>
@@ -331,7 +333,7 @@
 </div>
 
       <div id="footer">
-  Generated on Thu Aug 13 13:40:36 2026 by
+  Generated on Thu Aug 13 16:15:20 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -106,7 +106,7 @@
   <div class="discussion">
     <p>Represents the pending result of submitted offloaded work.
 Returned immediately by <span class='object_link'><a href="../OffloadPool.html#submit-instance_method" title="Phronomy::Concurrency::OffloadPool#submit (method)">#submit</a></span>; call <span class='object_link'><a href="#blocking_wait-instance_method" title="Phronomy::Concurrency::OffloadPool::PendingOperation#blocking_wait (method)">#blocking_wait</a></span>
-to wait for the result.</p>
+to synchronously wait from a non-EventLoop caller such as a low-level test.</p>
 
   </div>
 </div>
@@ -153,7 +153,7 @@ to wait for the result.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#blocking_wait-instance_method" title="#blocking_wait (instance method)">#<strong>blocking_wait</strong>(timeout: nil, cancellation_token: nil)  &#x21d2; Object </a>
+      <a href="#blocking_wait-instance_method" title="#blocking_wait (instance method)">#<strong>blocking_wait</strong>(timeout: nil)  &#x21d2; Object </a>
     
 
     
@@ -169,7 +169,7 @@ to wait for the result.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Blocks until the operation completes and returns its value.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Blocks the calling thread until the operation settles and returns its value.</p></div></span>
   
 </li>
 
@@ -347,7 +347,7 @@ to wait for the result.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Registers a callback to be called when the operation settles.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Registers an independent callback to be called when the operation settles.</p></div></span>
   
 </li>
 
@@ -431,6 +431,20 @@ to wait for the result.</p>
       <pre class="lines">
 
 
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
 174
 175
 176
@@ -447,24 +461,10 @@ to wait for the result.</p>
 187
 188
 189
-190
-191
-192
-193
-194
-195
-196
-197
-198
-199
-200
-201
-202
-203
-204</pre>
+190</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 174</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 160</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_block'>block</span><span class='comma'>,</span>
@@ -575,7 +575,7 @@ interrupted and its eventual result is discarded.</p></div>
       <div class="method_details ">
   <h3 class="signature " id="blocking_wait-instance_method">
   
-    #<strong>blocking_wait</strong>(timeout: nil, cancellation_token: nil)  &#x21d2; <tt>Object</tt> 
+    #<strong>blocking_wait</strong>(timeout: nil)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -591,18 +591,16 @@ interrupted and its eventual result is discarded.</p></div>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Blocks until the operation completes and returns its value.</p>
-<p>A <code>timeout</code> passed here is local to this waiter. When it expires,
+<p>Blocks the calling thread until the operation settles and returns its value.</p>
+<p>A <code>timeout</code> passed here is local to this synchronous waiter. When it expires,
 <span class='object_link'><a href="../../TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span> is raised to this caller, but the operation is not
 settled, marked abandoned, or otherwise changed. The worker continues, and
 another waiter or an <code>on_complete</code> callback may receive the eventual result
 unless the submit-time deadline or submit cancellation settles the operation
 first.</p>
-<p>A <code>cancellation_token</code> passed here is also waiter-local. Cancelling it wakes
-only this waiter and raises <span class='object_link'><a href="../../CancellationError.html" title="Phronomy::CancellationError (class)">Phronomy::CancellationError</a></span>; it does not settle
-the PendingOperation or interrupt the worker.</p>
-<p>The cancellation token passed to <span class='object_link'><a href="../OffloadPool.html#submit-instance_method" title="Phronomy::Concurrency::OffloadPool#submit (method)">Phronomy::Concurrency::OffloadPool#submit</a></span> is different: it is
-operation-wide and settles this PendingOperation for every waiter/callback.</p>
+<p>Operation-wide cancellation belongs exclusively to the
+<code>cancellation_token:</code> passed to <span class='object_link'><a href="../OffloadPool.html#submit-instance_method" title="Phronomy::Concurrency::OffloadPool#submit (method)">Phronomy::Concurrency::OffloadPool#submit</a></span>. PendingOperation does
+not define a separate waiter-local cancellation-token lifecycle.</p>
 
   </div>
 </div>
@@ -623,22 +621,6 @@ operation-wide and settles this PendingOperation for every waiter/callback.</p>
       
         &mdash;
         <div class='inline'><p>maximum seconds this waiter will block</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>cancellation_token</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span></tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>waiter-local token</p></div>
       
     </li>
   
@@ -672,21 +654,12 @@ operation-wide and settles this PendingOperation for every waiter/callback.</p>
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="../../CancellationError.html" title="Phronomy::CancellationError (class)">Phronomy::CancellationError</a></span></tt>)</span>
-      
-      
-      
-    </li>
-  
-    <li>
-      
-      
         <span class='type'>(<tt>Exception</tt>)</span>
       
       
       
         &mdash;
-        <div class='inline'><p>error raised inside the submitted block</p></div>
+        <div class='inline'><p>error that settled the submitted operation</p></div>
       
     </li>
   
@@ -698,6 +671,11 @@ operation-wide and settles this PendingOperation for every waiter/callback.</p>
       <pre class="lines">
 
 
+99
+100
+101
+102
+103
 104
 105
 106
@@ -715,46 +693,15 @@ operation-wide and settles this PendingOperation for every waiter/callback.</p>
 118
 119
 120
-121
-122
-123
-124
-125
-126
-127
-128
-129
-130
-131
-132
-133
-134
-135
-136
-137
-138
-139
-140
-141</pre>
+121</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 104</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 99</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_blocking_wait'>blocking_wait</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='comment'># Wake only this waiter when a waiter-local token is cancelled. Submit
-</span>  <span class='comment'># cancellation settles the operation itself and broadcasts independently.
-</span>  <span class='id identifier rubyid_wake_callback'>wake_callback</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
-    <span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@cond</span><span class='period'>.</span><span class='id identifier rubyid_broadcast'>broadcast</span> <span class='rbrace'>}</span> <span class='rbrace'>}</span>
-  <span class='kw'>end</span>
-  <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_on_cancel'>on_cancel</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_wake_callback'>wake_callback</span><span class='rparen'>)</span>
-
+<span class='kw'>def</span> <span class='id identifier rubyid_blocking_wait'>blocking_wait</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='id identifier rubyid_timeout'>timeout</span> <span class='kw'>if</span> <span class='id identifier rubyid_timeout'>timeout</span>
   <span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='kw'>until</span> <span class='ivar'>@done</span>
-      <span class='kw'>if</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
-        <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>waiting for offloaded operation cancelled</span><span class='tstring_end'>&quot;</span></span>
-      <span class='kw'>end</span>
-
       <span class='kw'>if</span> <span class='id identifier rubyid_deadline'>deadline</span>
         <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>=</span> <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>-</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span>
         <span class='kw'>if</span> <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>&lt;=</span> <span class='int'>0</span>
@@ -773,10 +720,6 @@ operation-wide and settles this PendingOperation for every waiter/callback.</p>
   <span class='id identifier rubyid_raise'>raise</span> <span class='id identifier rubyid_error'>error</span> <span class='kw'>if</span> <span class='id identifier rubyid_error'>error</span>
 
   <span class='id identifier rubyid_value'>value</span>
-<span class='kw'>ensure</span>
-  <span class='kw'>if</span> <span class='id identifier rubyid_wake_callback'>wake_callback</span>
-    <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:unregister_cancel_callback</span><span class='comma'>,</span> <span class='id identifier rubyid_wake_callback'>wake_callback</span><span class='rparen'>)</span>
-  <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -931,6 +874,20 @@ operation-wide and settles this PendingOperation for every waiter/callback.</p>
       <pre class="lines">
 
 
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
 267
 268
 269
@@ -952,31 +909,17 @@ operation-wide and settles this PendingOperation for every waiter/callback.</p>
 285
 286
 287
-288
-289
-290
-291
-292
-293
-294
-295
-296
-297
-298
-299
-300
-301
-302</pre>
+288</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 267</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 253</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execute!'>execute!</span>
   <span class='ivar'>@wait_time</span> <span class='op'>=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>-</span> <span class='ivar'>@submitted_at</span>
 
   <span class='comment'># A monotonic deadline can make cancelled? true before the timer callback
 </span>  <span class='comment'># runs. Promote that state to explicit cancellation so callbacks and all
-</span>  <span class='comment'># waiters observe the same operation-wide settlement.
+</span>  <span class='comment'># observers see the same operation-wide settlement.
 </span>  <span class='kw'>if</span> <span class='ivar'>@cancellation_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
     <span class='ivar'>@cancellation_token</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span>
   <span class='kw'>end</span>
@@ -1074,26 +1017,26 @@ previously armed submit-time timer becomes a harmless no-op.</p>
       <pre class="lines">
 
 
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
 247
 248
-249
-250
-251
-252
-253
-254
-255
-256
-257
-258
-259
-260
-261
-262
-263</pre>
+249</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 247</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 233</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fail_submission!'>fail_submission!</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_callbacks'>callbacks</span> <span class='op'>=</span> <span class='kw'>nil</span>
@@ -1109,7 +1052,7 @@ previously armed submit-time timer becomes a harmless no-op.</p>
   <span class='kw'>end</span>
 
   <span class='id identifier rubyid_detach_submit_cancellation'>detach_submit_cancellation</span> <span class='kw'>if</span> <span class='id identifier rubyid_changed'>changed</span>
-  <span class='id identifier rubyid_callbacks'>callbacks</span><span class='op'>&amp;.</span><span class='id identifier rubyid_each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_callback'>callback</span><span class='op'>|</span> <span class='id identifier rubyid_callback'>callback</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='kw'>nil</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span> <span class='rbrace'>}</span> <span class='kw'>if</span> <span class='id identifier rubyid_changed'>changed</span>
+  <span class='id identifier rubyid_deliver_completion_callbacks'>deliver_completion_callbacks</span><span class='lparen'>(</span><span class='id identifier rubyid_callbacks'>callbacks</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_changed'>changed</span>
   <span class='id identifier rubyid_changed'>changed</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1164,19 +1107,19 @@ abandoned and the worker continues until the synchronous call returns.</p>
       <pre class="lines">
 
 
-230
-231
-232
-233
-234
-235
-236
-237
-238
-239</pre>
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 230</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 216</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fire_cancellation!'>fire_cancellation!</span>
   <span class='id identifier rubyid_settle_early!'>settle_early!</span><span class='lparen'>(</span><span class='label'>cancelled:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_started'>started</span><span class='op'>|</span>
@@ -1240,16 +1183,16 @@ operation had already settled</p></div>
       <pre class="lines">
 
 
-214
-215
-216
-217
-218
-219
-220</pre>
+200
+201
+202
+203
+204
+205
+206</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 214</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 200</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fire_timeout!'>fire_timeout!</span>
   <span class='id identifier rubyid_settle_early!'>settle_early!</span><span class='lparen'>(</span><span class='label'>timed_out:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
@@ -1278,12 +1221,15 @@ operation had already settled</p></div>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Registers a callback to be called when the operation settles.</p>
+<p>Registers an independent callback to be called when the operation settles.</p>
 <p>If the operation has already settled, the callback is invoked immediately
 on the calling thread. Otherwise it may be invoked on a pool worker thread,
 on the EventLoop thread when a timer fires, or on the thread that explicitly
 cancels the submit cancellation token. The execution thread is not
 guaranteed; callbacks must be thread-safe and should complete quickly.</p>
+<p>Completion callback failures are logged and isolated. One callback cannot
+suppress delivery to later callbacks or change the operation's settled
+result.</p>
 <p>The callback receives <code>result</code> and <code>error</code> (one of them will be <code>nil</code>).</p>
 
   </div>
@@ -1316,6 +1262,19 @@ guaranteed; callbacks must be thread-safe and should complete quickly.</p>
     </li>
   
 </ul>
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>ArgumentError</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
 
 </div><table class="source_code">
   <tr>
@@ -1323,24 +1282,28 @@ guaranteed; callbacks must be thread-safe and should complete quickly.</p>
       <pre class="lines">
 
 
-159
-160
-161
-162
-163
-164
-165
-166
-167
-168
-169
-170
-171</pre>
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 159</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 143</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_complete'>on_complete</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>on_complete requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_callback'>callback</span>
+
   <span class='id identifier rubyid_fire_args'>fire_args</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='kw'>if</span> <span class='ivar'>@done</span>
@@ -1350,7 +1313,7 @@ guaranteed; callbacks must be thread-safe and should complete quickly.</p>
       <span class='ivar'>@callbacks</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_callback'>callback</span>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
-  <span class='id identifier rubyid_callback'>callback</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='op'>*</span><span class='id identifier rubyid_fire_args'>fire_args</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_fire_args'>fire_args</span>
+  <span class='id identifier rubyid_deliver_completion_callback'>deliver_completion_callback</span><span class='lparen'>(</span><span class='id identifier rubyid_callback'>callback</span><span class='comma'>,</span> <span class='op'>*</span><span class='id identifier rubyid_fire_args'>fire_args</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_fire_args'>fire_args</span>
   <span class='kw'>self</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1481,7 +1444,7 @@ guaranteed; callbacks must be thread-safe and should complete quickly.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu Aug 13 13:40:40 2026 by
+  Generated on Thu Aug 13 16:15:24 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
