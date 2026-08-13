@@ -190,12 +190,7 @@ module Phronomy
 
         case @tool.class.execution_mode
         when :cooperative, :blocking_io
-          operation = @tool.call_async(
-            @arguments,
-            cancellation_token: @config[:cancellation_token],
-            config: @config,
-            runtime: runtime
-          )
+          operation = start_async_tool_operation(runtime)
           unless operation.respond_to?(:on_complete)
             raise Phronomy::ToolError,
               "Tool #{@tool.class.name}#call_async must return a completion handle"
@@ -274,6 +269,36 @@ module Phronomy
       end
 
       private
+
+      # Runtime is framework execution infrastructure, not part of the public
+      # Tool#call_async protocol.
+      #
+      # Tools using Capability::Base's default async implementation are routed
+      # directly through ToolExecutor so this ToolInvocation can supply its
+      # owning Runtime internally. Tools that override #call_async (for example
+      # Agent-backed Tools) receive only the public Tool async keywords.
+      def start_async_tool_operation(runtime)
+        if uses_default_call_async?
+          Phronomy::Agent::ToolExecutor.call_async(
+            tool: @tool,
+            args: @arguments,
+            cancellation_token: @config[:cancellation_token],
+            config: @config,
+            runtime: runtime
+          )
+        else
+          @tool.call_async(
+            @arguments,
+            cancellation_token: @config[:cancellation_token],
+            config: @config
+          )
+        end
+      end
+
+      def uses_default_call_async?
+        @tool.method(:call_async).owner ==
+          Phronomy::Agent::Context::Capability::Base
+      end
 
       def execution_outcome(result, error)
         if error

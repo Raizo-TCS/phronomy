@@ -1200,8 +1200,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
         tool: hello_tool,
         args: {},
         cancellation_token: ct,
-        config: {},
-        runtime: nil
+        config: {}
       )
       hello_tool.call_async({}, cancellation_token: ct)
     end
@@ -1211,8 +1210,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
         tool: hello_tool,
         args: {},
         cancellation_token: nil,
-        config: {},
-        runtime: nil
+        config: {}
       )
       hello_tool.call_async({})
     end

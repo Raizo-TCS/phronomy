@@ -87,8 +87,7 @@ module Phronomy
       def call_async(
         args,
         cancellation_token: nil,
-        config: {},
-        runtime: nil
+        config: {}
       )
         cancellation_token&.raise_if_cancelled!
         validated_args, schema_error = send(:validate_and_coerce, args)
