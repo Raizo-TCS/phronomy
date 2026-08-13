@@ -213,6 +213,21 @@ it asynchronously, return the Workflow context immediately, and deliver its
 completion later with `Workflow#signal`.
 
 ```ruby
+class AnswerContext
+  include Phronomy::WorkflowContext
+
+  field :question, type: :replace, default: ""
+  field :answer,   type: :replace, default: nil
+  field :thread_id, type: :replace, default: nil
+end
+
+class ResearchAgent < Phronomy::Agent::Base
+  agent_definition id: "research-agent", version: 1
+  model "gpt-4o-mini"
+  instructions "Research the question and return a concise answer."
+end
+
+my_agent = ResearchAgent.new
 workflow = nil
 
 workflow = Phronomy::Workflow.define(AnswerContext) do
