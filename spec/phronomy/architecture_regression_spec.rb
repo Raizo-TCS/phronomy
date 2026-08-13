@@ -7,6 +7,7 @@ RSpec.describe "EventLoop-first architecture regression guards" do
   it "keeps Testing helpers out of the general public API compatibility snapshot" do
     path = File.expand_path("../fixtures/api_snapshot.json", __dir__)
     names = JSON.parse(File.read(path)).map { |entry| entry.fetch("name") }
+
     expect(names.grep(/\APhronomy::Testing::/)).to be_empty
   end
 
@@ -45,6 +46,66 @@ RSpec.describe "EventLoop-first architecture regression guards" do
     expect(adr).to include("Production Fiber execution is not part of the architecture")
     expect(adr).not_to include("Runtime.instance.spawn(name:")
     expect(adr).not_to include("BlockingAdapterPool")
+  end
+
+  it "documents cancellation as caller-facing settlement without Thread#raise" do
+    adr = File.read(
+      File.expand_path("../../docs/decisions/010-cooperative-first-concurrency.md", __dir__)
+    )
+    cancellation = adr
+      .split("## Timeout and cancellation", 2)
+      .fetch(1)
+      .split("## CPU-bound work", 2)
+      .first
+
+    expect(cancellation).to include("settles the caller-facing PendingOperation")
+    expect(cancellation).to include("worker may continue")
+    expect(cancellation).to include("waiter-local")
+    expect(cancellation).to include("does not use `Thread#raise`")
+  end
+
+  it "keeps ADR-008 historical text but uses current terminology in its superseding decision" do
+    adr = File.read(
+      File.expand_path("../../docs/decisions/008-orchestrator-uses-os-threads.md", __dir__)
+    )
+    current_guidance = adr.split("## Superseding decision", 2).fetch(1)
+
+    expect(adr).to include("one OS\nThread per `dispatch_parallel` child")
+    expect(current_guidance).to include("OffloadPool")
+    expect(current_guidance).not_to include("BlockingAdapterPool")
+  end
+
+  it "keeps the Unreleased changelog migration direction correct" do
+    changelog = File.read(File.expand_path("../../CHANGELOG.md", __dir__))
+    unreleased = changelog
+      .split("## [Unreleased]", 2)
+      .fetch(1)
+      .split("\n---", 2)
+      .first
+    offload = unreleased
+      .split("### OffloadPool execution model", 2)
+      .fetch(1)
+      .split("### EventLoop-first runtime cleanup", 2)
+      .first
+
+    changed = offload.split("#### Changed", 2).fetch(1).split("#### Removed", 2).first
+    removed = offload.split("#### Removed", 2).fetch(1)
+
+    expect(changed).to include("`BlockingAdapterPool`")
+    expect(changed).to include("`OffloadPool`")
+    expect(changed).to include("`Runtime#blocking_io`")
+    expect(changed).to include("`Runtime#offload`")
+    expect(changed).not_to include("Renamed `OffloadPool` to `OffloadPool`")
+
+    expect(removed).to include("`:blocking_io`")
+    expect(removed).to include("`:cpu_bound`")
+    expect(removed).to include("`:external_process`")
+    expect(removed).to include("`Runtime#blocking_io`")
+    expect(removed).to include("`blocking_io_pool_size`")
+    expect(removed).to include("`blocking_io_queue_size`")
+    expect(removed).not_to include("`Runtime#offload`")
+    expect(removed).not_to include("`offload_pool_size`")
+    expect(removed).not_to include("`offload_queue_size`")
   end
 
   it "does not create per-child Threads in the dispatch_parallel benchmark" do

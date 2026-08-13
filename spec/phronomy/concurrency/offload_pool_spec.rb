@@ -35,11 +35,13 @@ RSpec.describe Phronomy::Concurrency::OffloadPool do
 
     it "supports CPU-bound synchronous work without a dedicated execution mode" do
       op = pool.submit { (1..10_000).sum }
+
       expect(op.blocking_wait).to eq(50_005_000)
     end
 
     it "re-raises errors from submitted work" do
       op = pool.submit { raise ArgumentError, "bad arg" }
+
       expect { op.blocking_wait }.to raise_error(ArgumentError, "bad arg")
     end
 
@@ -49,9 +51,25 @@ RSpec.describe Phronomy::Concurrency::OffloadPool do
         release.pop
         :done
       end
-      expect(op).to be_a(Phronomy::Concurrency::OffloadPool::PendingOperation)
+
+      expect(op).to be_a(described_class::PendingOperation)
+
       release << true
       expect(op.blocking_wait).to eq(:done)
+    end
+
+    it "exposes done? as caller-facing settlement state" do
+      release = Queue.new
+      op = pool.submit do
+        release.pop
+        :done
+      end
+
+      expect(op).not_to be_done
+
+      release << true
+      expect(op.blocking_wait).to eq(:done)
+      expect(op).to be_done
     end
 
     it "never creates more worker threads than pool_size" do
@@ -110,6 +128,7 @@ RSpec.describe Phronomy::Concurrency::OffloadPool do
 
       expect { op.blocking_wait }.to raise_error(Phronomy::TimeoutError)
       expect(op).to be_timed_out
+      expect(op).not_to be_cancelled
       expect(op).to be_abandoned
       expect(pool.abandoned_count).to eq(1)
 
@@ -135,9 +154,18 @@ RSpec.describe Phronomy::Concurrency::OffloadPool do
       2.times { release << true }
 
       expect { op.blocking_wait }.to raise_error(Phronomy::TimeoutError)
-      sleep 0.02
-      expect(executed).to be(false)
+      expect(op).to be_timed_out
+      expect(op).not_to be_cancelled
       expect(op).not_to be_abandoned
+
+      # Drain both workers through one marker per worker before checking whether
+      # the timed-out queued block was skipped.
+      markers = 2.times.map do
+        Queue.new.tap { |marker| pool.submit { marker << true } }
+      end
+      markers.each(&:pop)
+
+      expect(executed).to be(false)
     end
   end
 
@@ -157,32 +185,241 @@ RSpec.describe Phronomy::Concurrency::OffloadPool do
       release << true
       expect(op.blocking_wait).to eq(:done)
     end
+
+    it "returns normally when the operation completes before the waiter timeout" do
+      op = pool.submit { :done }
+
+      expect(op.blocking_wait(timeout: 1)).to eq(:done)
+      expect(op).to be_done
+    end
   end
 
-  describe "cancellation" do
-    it "skips work when the token was cancelled before execution" do
+  describe "submit cancellation" do
+    it "settles immediately and skips work when the token is already cancelled" do
       token = Phronomy::Concurrency::CancellationToken.new
       token.cancel!
-      op = pool.submit(cancellation_token: token) { :never_runs }
+      executed = false
+
+      op = pool.submit(cancellation_token: token) { executed = true }
+
+      expect(op).to be_done
+      expect(op).to be_cancelled
+      expect(op).not_to be_timed_out
+      expect(op).not_to be_abandoned
       expect { op.blocking_wait }.to raise_error(Phronomy::CancellationError)
+      expect(executed).to be(false)
     end
 
-    it "does not forcibly interrupt a worker after execution starts" do
+    it "settles a queued operation immediately and skips it when cancellation wins before start" do
+      tiny_pool = described_class.new(
+        pool_size: 1,
+        queue_size: 2,
+        timer_queue_provider: -> { timer }
+      )
+      blocker_started = Queue.new
+      blocker_release = Queue.new
+      token = Phronomy::Concurrency::CancellationToken.new
+      executed = false
+      events = Queue.new
+
+      tiny_pool.submit do
+        blocker_started << true
+        blocker_release.pop
+      end
+      blocker_started.pop
+
+      op = tiny_pool.submit(cancellation_token: token) { executed = true }
+      op.on_complete { |value, error| events << [value, error] }
+
+      token.cancel!
+
+      value, error = events.pop
+      expect(value).to be_nil
+      expect(error).to be_a(Phronomy::CancellationError)
+      expect(op).to be_done
+      expect(op).to be_cancelled
+      expect(op).not_to be_abandoned
+      expect(tiny_pool.abandoned_count).to eq(0)
+
+      marker = Queue.new
+      blocker_release << true
+      tiny_pool.submit { marker << true }
+      marker.pop
+
+      expect(executed).to be(false)
+    ensure
+      blocker_release << true if defined?(blocker_release) && blocker_release
+      tiny_pool&.shutdown(drain_timeout: 2)
+    end
+
+    it "settles on_complete immediately after start without forcibly interrupting the worker" do
+      tiny_pool = described_class.new(
+        pool_size: 1,
+        queue_size: 2,
+        timer_queue_provider: -> { timer }
+      )
       token = Phronomy::Concurrency::CancellationToken.new
       started = Queue.new
       release = Queue.new
-      completed = Queue.new
-      op = pool.submit(cancellation_token: token) do
+      worker_side_effect = Queue.new
+      events = Queue.new
+
+      op = tiny_pool.submit(cancellation_token: token) do
         started << true
         release.pop
-        completed << true
-        :done
+        worker_side_effect << :finished
+        :worker_result
       end
+      op.on_complete { |value, error| events << [value, error] }
 
       started.pop
       token.cancel!
+
+      value, error = events.pop
+      expect(value).to be_nil
+      expect(error).to be_a(Phronomy::CancellationError)
+      expect(op).to be_done
+      expect(op).to be_cancelled
+      expect(op).to be_abandoned
+      expect(tiny_pool.abandoned_count).to eq(1)
+      expect { op.blocking_wait }.to raise_error(Phronomy::CancellationError)
+
+      # Cancellation settles only the handle. The synchronous worker is allowed to
+      # finish, and its eventual value must not re-settle the operation.
       release << true
-      expect(completed.pop).to be(true)
+      expect(worker_side_effect.pop).to eq(:finished)
+
+      worker_drained = Queue.new
+      tiny_pool.submit { worker_drained << true }
+      worker_drained.pop
+
+      expect(events.size).to eq(0)
+      expect { op.blocking_wait }.to raise_error(Phronomy::CancellationError)
+    ensure
+      release << true if defined?(release) && release
+      tiny_pool&.shutdown(drain_timeout: 2)
+    end
+
+    it "promotes a monotonic cancellation deadline through the pool timer queue" do
+      token = Phronomy::Concurrency::CancellationToken.timeout_after(60)
+      started = Queue.new
+      release = Queue.new
+      events = Queue.new
+
+      op = pool.submit(cancellation_token: token) do
+        started << true
+        release.pop
+        :done
+      end
+      op.on_complete { |value, error| events << [value, error] }
+
+      started.pop
+      timer.advance(60)
+
+      value, error = events.pop
+      expect(value).to be_nil
+      expect(error).to be_a(Phronomy::CancellationError)
+      expect(token).to be_cancelled
+      expect(op).to be_cancelled
+      expect(op).to be_abandoned
+
+      release << true
+    end
+
+    it "requires a timer provider for a future monotonic cancellation deadline" do
+      no_timer_pool = described_class.new(pool_size: 1, queue_size: 1)
+      token = Phronomy::Concurrency::CancellationToken.timeout_after(60)
+
+      expect {
+        no_timer_pool.submit(cancellation_token: token) { :never_runs }
+      }.to raise_error(Phronomy::ConfigurationError, /timer_queue/)
+    ensure
+      no_timer_pool&.shutdown(drain_timeout: 1)
+    end
+
+    it "detaches the submit cancellation callback after normal completion" do
+      token = Phronomy::Concurrency::CancellationToken.new
+      op = pool.submit(cancellation_token: token) { :done }
+
+      expect(op.blocking_wait).to eq(:done)
+      expect(token.instance_variable_get(:@cancel_callbacks)).to be_empty
+    end
+
+    it "does not let late submit cancellation overwrite a completed result" do
+      token = Phronomy::Concurrency::CancellationToken.new
+      op = pool.submit(cancellation_token: token) { :done }
+
+      expect(op.blocking_wait).to eq(:done)
+
+      token.cancel!
+
+      expect(op).to be_done
+      expect(op).not_to be_cancelled
+      expect(op.blocking_wait).to eq(:done)
+    end
+  end
+
+  describe "waiter-local cancellation" do
+    it "wakes a blocked waiter without settling or interrupting the operation" do
+      release = Queue.new
+      op = pool.submit do
+        release.pop
+        :done
+      end
+
+      waiter_token = Phronomy::Concurrency::CancellationToken.new
+      waiter_started = Queue.new
+      waiter_result = Queue.new
+
+      waiter = Thread.new do
+        waiter_started << true
+        begin
+          waiter_result << op.blocking_wait(cancellation_token: waiter_token)
+        rescue => error
+          waiter_result << error
+        end
+      end
+
+      waiter_started.pop
+      waiter_token.cancel!
+
+      expect(waiter_result.pop).to be_a(Phronomy::CancellationError)
+      waiter.join(1)
+      expect(waiter).not_to be_alive
+      expect(op).not_to be_done
+      expect(op).not_to be_abandoned
+
+      release << true
+      expect(op.blocking_wait).to eq(:done)
+    ensure
+      release << true if defined?(release) && release
+      waiter&.join(1)
+    end
+
+    it "detaches the waiter-local cancellation callback when the wait finishes" do
+      waiter_token = Phronomy::Concurrency::CancellationToken.new
+      op = pool.submit { :done }
+
+      expect(op.blocking_wait(cancellation_token: waiter_token)).to eq(:done)
+      expect(waiter_token.instance_variable_get(:@cancel_callbacks)).to be_empty
+    end
+
+    it "raises immediately for an already-cancelled waiter token without changing the operation" do
+      release = Queue.new
+      op = pool.submit do
+        release.pop
+        :done
+      end
+      waiter_token = Phronomy::Concurrency::CancellationToken.new.cancel!
+
+      expect {
+        op.blocking_wait(cancellation_token: waiter_token)
+      }.to raise_error(Phronomy::CancellationError)
+
+      expect(op).not_to be_done
+      expect(op).not_to be_abandoned
+
+      release << true
       expect(op.blocking_wait).to eq(:done)
     end
   end
@@ -191,7 +428,9 @@ RSpec.describe Phronomy::Concurrency::OffloadPool do
     it "delivers success" do
       events = []
       op = pool.submit { 42 }
-      op.on_complete { |value, error| events << [value, error] }
+      returned = op.on_complete { |value, error| events << [value, error] }
+
+      expect(returned).to be(op)
       expect(op.blocking_wait).to eq(42)
       expect(events).to eq([[42, nil]])
     end
@@ -200,15 +439,28 @@ RSpec.describe Phronomy::Concurrency::OffloadPool do
       events = []
       op = pool.submit { raise "boom" }
       op.on_complete { |value, error| events << [value, error] }
+
       expect { op.blocking_wait }.to raise_error(RuntimeError, "boom")
       expect(events.first.first).to be_nil
       expect(events.first.last).to be_a(RuntimeError)
+    end
+
+    it "fires immediately and returns self when registered after settlement" do
+      op = pool.submit { 42 }
+      expect(op.blocking_wait).to eq(42)
+
+      events = []
+      returned = op.on_complete { |value, error| events << [value, error] }
+
+      expect(returned).to be(op)
+      expect(events).to eq([[42, nil]])
     end
   end
 
   describe "metrics" do
     it "exposes bounded-pool metrics" do
       pool.submit { 1 }.blocking_wait
+
       expect(pool.active_count).to eq(0)
       expect(pool.queue_depth).to be >= 0
       expect(pool.abandoned_count).to be >= 0
@@ -219,8 +471,13 @@ RSpec.describe Phronomy::Concurrency::OffloadPool do
   end
 
   describe "#shutdown" do
+    it "returns self" do
+      expect(pool.shutdown).to be(pool)
+    end
+
     it "rejects subsequent submissions" do
       pool.shutdown
+
       expect { pool.submit { 1 } }.to raise_error(Phronomy::PoolShutdownError)
     end
 
@@ -240,9 +497,10 @@ RSpec.describe Phronomy::Concurrency::OffloadPool do
         tiny_pool.shutdown(drain_timeout: 2)
         done = true
       end
-      sleep 0.02
+
       release << true
       shutdown_thread.join(3)
+
       expect(done).to be(true)
     ensure
       tiny_pool&.shutdown(drain_timeout: 1)
@@ -253,6 +511,7 @@ end
 RSpec.describe "Runtime#offload" do
   it "returns the same default OffloadPool on repeated calls" do
     runtime = Phronomy::Runtime.new
+
     expect(runtime.offload).to be(runtime.offload)
     expect(runtime.offload).to be_a(Phronomy::Concurrency::OffloadPool)
   ensure

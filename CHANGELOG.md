@@ -13,8 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Changed
 
-- Renamed `OffloadPool` to `OffloadPool` and `Runtime#offload` to
-  `Runtime#offload`; configuration and metrics now use `offload_*` names.
+- Renamed `BlockingAdapterPool` to `OffloadPool` and `Runtime#blocking_io` to
+  `Runtime#offload`; configuration keys now use `offload_pool_size` and
+  `offload_queue_size`, and metrics now use `offload_pool_*` names.
 - Simplified Tool execution modes to `:cooperative` and `:offloaded`.
   Workload classification (I/O-bound versus CPU-bound) is application-owned.
 - CPU-bound synchronous Tools may execute through the bounded OffloadPool;
@@ -23,14 +24,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Framework-owned EventLoop-origin offload submissions use non-blocking queue
   admission so a full worker queue raises backpressure instead of blocking
   the EventLoop control thread.
+- Submit cancellation now settles the caller-facing `PendingOperation`
+  immediately. Cancellation before worker start prevents execution;
+  cancellation after worker start marks the operation abandoned while allowing
+  the synchronous worker to finish without asynchronous `Thread#raise`.
+- Monotonic deadlines carried by an OffloadPool submit cancellation token are
+  promoted by the Runtime timer queue, so cancellation completion does not
+  require a polling Thread.
+- `PendingOperation#blocking_wait(cancellation_token:)` cancellation remains
+  waiter-local: cancelling that waiter stops only that blocking wait and does
+  not settle the shared operation.
+- `offload_pool_abandoned_total` counts synchronous workers that continue after
+  either submit-time timeout or submit cancellation has already settled the
+  caller-facing operation.
 - Named Runtime pools remain available for application-managed resource
   isolation and capacity planning.
 
 #### Removed
 
-- Tool execution modes `:offloaded`, `:cpu_bound`, and `:external_process`.
-- `Runtime#offload`, `offload_pool_size`, and
-  `offload_queue_size`.
+- Tool execution modes `:blocking_io`, `:cpu_bound`, and `:external_process`.
+- `Runtime#blocking_io`, `blocking_io_pool_size`, and
+  `blocking_io_queue_size`.
 
 
 ### EventLoop-first runtime cleanup
