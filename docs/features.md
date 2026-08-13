@@ -1,0 +1,87 @@
+# Features and API stability
+
+API means Application Programming Interface in this document.
+
+Phronomy is pre-1.0. Minor releases may include breaking changes even to APIs
+labelled Stable; patch releases should remain non-breaking. Consult
+[`CHANGELOG.md`](../CHANGELOG.md) when upgrading.
+
+- **Stable** — API is considered complete and suitable for production use.
+- **Beta** — functionality is complete and tested, but signatures or behaviour may evolve in a minor release.
+- **Experimental** — functionality may change without notice and is not recommended as a long-term compatibility boundary.
+
+The `main` branch contains unreleased development work. Pin a released gem version
+for production deployments.
+
+## Core building blocks
+
+| Feature | Stability |
+|---|---|
+| **Workflow** — Stateful, branching workflows with `wait_state` and explicit events | Stable |
+| **Agent** — Stateful ReAct-style agents with stable `agent_id`, persistence-backed execution state, canonical history, guardrails, and conversation context | Stable |
+| **Before-Large-Language-Model (LLM) Input Hook** — Three-tier per-call LLM input customization via `before_llm_input` and `LLMInputPatch` | Stable |
+| **Context Management** — Journal + Context Policy + per-LLM-call Manifest with token-budget-aware selection and protocol-safe Tool Call / Tool message dependencies | Stable |
+| **Filters** — Input/output transformation and blocking via `Filter::Base` | Beta |
+| **`PromptInjectionFilter`** — Built-in pattern-based prompt-injection filter | Beta |
+| **Capability redaction/result-size controls** — `redact_params` and `max_result_size` | Beta |
+| **Output Parser** — JSON and Struct-mapped parsers for structured LLM responses | Stable |
+| **Tracing** — Pluggable span-based observability | Stable |
+| **Error Taxonomy** — Provider errors translated to Phronomy transport/authentication/rate-limit/context errors | Beta |
+
+## Knowledge and integration
+
+| Feature | Stability |
+|---|---|
+| **Knowledge** — Journal-backed persistent Agent context registered with `knowledge:` / `add_knowledge`, selected per LLM call by Context Policy | Beta |
+| **`VectorStore#size`** — Document count for InMemory, RedisSearch, and Pgvector backends | Beta |
+| **`VectorStore::AsyncBackend`** — Pluggable async VectorStore interface with pool-backed defaults and native-async override points | Beta |
+| **Model Context Protocol (MCP) Tool** — `Phronomy::Tools::Mcp` integration through the official `mcp` gem | Beta |
+| **Agent Tool** — `Phronomy::Tools::Agent.from_agent` exposes a child Agent as a Tool without occupying a worker while waiting | Beta |
+| **Vector Search Tool** — `Phronomy::Tools::VectorSearch` wraps VectorStore and Embeddings adapters | Beta |
+
+## Execution and reliability
+
+| Feature | Stability |
+|---|---|
+| **EventLoop** — Runtime-owned event-driven execution core shared by Agent, ToolInvocation, Workflow, and MultiAgent sessions | Beta |
+| **`invoke` / `invoke_async`** — Blocking and non-blocking Agent/Workflow entry points | Stable |
+| **Agent async events** — `invoke_async(..., on_event:)` and `stream_async(..., on_event:)`; streaming additionally emits `:token` | Beta |
+| **`stream` / `stream_async`** — Event callbacks execute on EventLoop and must return quickly | Beta |
+| **`stream_callback_error_policy`** — Terminal event callback error policy (`:report` / `:fail_task`) | Beta |
+| **`Task#map`** — Application-level Task result transformation and error propagation | Stable |
+| **CancellationToken** — Cooperative cancellation with explicit `cancel!`, lazy monotonic deadlines, and callback registration | Experimental |
+| **Tool `execution_mode`** — `:cooperative` for short EventLoop-safe work; `:offloaded` for synchronous work that must stay off EventLoop | Experimental |
+| **OffloadPool sizing** — `offload_pool_size` / `offload_queue_size`; named pools available for application-owned isolation | Beta |
+| **InvocationContext** — Explicit correlation/cancellation/deadline context for Agent and Workflow invocations | Beta |
+| **Metrics** — OffloadPool active/queue/abandoned metrics plus EventLoop queue/lag metrics | Beta |
+| **Runtime lifecycle** — Runtime-owned EventLoop and terminal `Runtime#shutdown` | Beta |
+
+## Agent and workflow patterns
+
+| Feature | Stability |
+|---|---|
+| **Workflow asynchronous pattern** — Start async work, return immediately, and continue through `Workflow#signal` | Beta |
+| **Multi-agent** — Agent-as-Tool and hub-and-spoke handoff routing | Beta |
+| **GeneratorVerifier** — Generator-Verifier loop with injectable prompts/parsers | Beta |
+| **`Phronomy::MultiAgent::Orchestrator`** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
+| **`Phronomy::MultiAgent::TeamCoordinator`** — LLM coordinator with stateful worker Agents | Beta |
+| **SharedState** — Peer-agent shared-state coordination | Experimental |
+| **Human-in-the-loop approval** — Suspension and approval/resume of Tool requests | Beta |
+| **`tool_approval_policy`** — Application-defined allow/approve/reject policy | Beta |
+
+## Public API boundary
+
+The feature tables above describe the primary APIs intended for gem consumers.
+Source declarations marked `@api private`, including most EventLoop/FSMSession and
+OffloadPool internals, are implementation details and may change without the same
+compatibility guarantees.
+
+## Advanced and internal APIs
+
+| Feature | Stability |
+|---|---|
+| **`Phronomy::Diagnostics`** — Snapshot of EventLoop lag/queue state and OffloadPool activity | Experimental |
+| **`Phronomy::Testing::FakeClock`** — Test-only deterministic clock helper | Beta |
+
+For runtime ownership and the distinction between public lifecycle APIs and
+private execution machinery, see [Runtime and concurrency](runtime-and-concurrency.md).

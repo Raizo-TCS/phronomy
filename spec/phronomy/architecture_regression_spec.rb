@@ -125,6 +125,27 @@ RSpec.describe "EventLoop-first architecture regression guards" do
     expect(removed).not_to include("`offload_queue_size`")
   end
 
+  it "keeps long-form documentation and historical changelog out of the entry files" do
+    root = File.expand_path("../..", __dir__)
+    readme = File.read(File.join(root, "README.md"))
+    changelog = File.read(File.join(root, "CHANGELOG.md"))
+    archive = File.read(File.join(root, "docs/changelog/0.14-and-earlier.md"))
+
+    expect(readme).to include("docs/getting-started.md")
+    expect(readme).to include("docs/features.md")
+    expect(readme).to include("docs/runtime-and-concurrency.md")
+    expect(readme).to include("docs/migrations/0.15.md")
+    expect(readme).to include("docs/migrations/0.16.md")
+
+    expect(changelog).to include("docs/changelog/0.14-and-earlier.md")
+    expect(changelog).to include("## [Unreleased]")
+    expect(changelog).to include("## [0.16.0]")
+    expect(changelog).not_to include("## [0.14.0]")
+
+    expect(archive).to include("## [0.14.0]")
+    expect(archive).to include("## [0.2.0]")
+  end
+
   it "does not create per-child Threads in the dispatch_parallel benchmark" do
     benchmark = File.read(File.expand_path("../../benchmark/bench_regression.rb", __dir__))
     dispatch_section = benchmark

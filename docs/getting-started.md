@@ -1,0 +1,336 @@
+# Getting started
+
+This guide contains the setup and introductory examples that were previously
+embedded in the repository README. The README remains the project entry point;
+this document carries the longer operational examples.
+
+## Install
+
+Add Phronomy to your Gemfile:
+
+```ruby
+gem "phronomy"
+```
+
+Then run:
+
+```bash
+bundle install
+```
+
+Phronomy uses RubyLLM for Large Language Model (LLM) access. Configure provider credentials and the
+transport retry/timeout policy on RubyLLM itself:
+
+```ruby
+RubyLLM.configure do |c|
+  c.openai_api_key = ENV["OPENAI_API_KEY"]
+  # c.anthropic_api_key = ENV["ANTHROPIC_API_KEY"]
+
+  c.request_timeout = 120
+  c.max_retries = 3
+  c.retry_interval = 0.1
+  c.retry_backoff_factor = 2
+  c.retry_interval_randomness = 0.5
+end
+```
+
+Phronomy does not add a second LLM transport timeout/retry layer on top of the
+configured adapter.
+
+## Optional dependencies
+
+Install only the backend gems required by your application:
+
+| Gem | Required for |
+|---|---|
+| `pgvector` | `Phronomy::VectorStore::Pgvector` |
+| `redis` | `Phronomy::VectorStore::RedisSearch` |
+| `opentelemetry-api` | `Phronomy::Tracing::OpenTelemetryTracer` |
+
+## Define a Tool and Agent
+
+```ruby
+class WebSearch < Phronomy::Agent::Context::Capability::Base
+  description "Search the web"
+  param :query, type: :string, desc: "Search query"
+
+  def execute(query:)
+    "Mock search result for: #{query}"
+  end
+end
+
+class ResearchAgent < Phronomy::Agent::Base
+  agent_definition id: "research-agent", version: 1
+  model "gpt-4o"
+  instructions "You are a research assistant. Use tools to answer questions."
+  tools(WebSearch => nil)
+  max_iterations 5
+end
+
+result = ResearchAgent.new.invoke("Research Ruby AI frameworks")
+puts result[:output]
+```
+
+Every concrete stateful Agent definition declares a stable definition ID and
+version. The definition identity is checked when persisted Agent state is loaded.
+
+## Stateful Agent persistence
+
+Phronomy Agents own their conversation history and persistent Knowledge. The
+application does not need to pass the previous `messages` array back into every
+invocation.
+
+```ruby
+persistence = Phronomy::Persistence::InMemory.new
+
+agent = ResearchAgent.create(
+  agent_id: "research-session-42",
+  knowledge: ["Customer tier: enterprise"],
+  persistence: persistence
+)
+
+agent.invoke("My name is Alice.")
+agent.add_knowledge("Customer locale: ja-JP")
+result = agent.invoke("What is my name?")
+
+puts result[:output]
+```
+
+Load the same Agent again when the same Persistence backend is available:
+
+```ruby
+agent = ResearchAgent.load(
+  "research-session-42",
+  persistence: persistence
+)
+
+agent.invoke("Continue our previous discussion.")
+```
+
+The active transcript and Knowledge views can be advanced independently without
+deleting the append-only canonical Journal:
+
+```ruby
+agent.clear_transcript!
+agent.clear_knowledge!
+agent.reset_context!
+```
+
+`purge!` is different: it permanently removes the Agent and persisted execution
+history from the configured Persistence backend.
+
+## Sync and async Agent APIs
+
+Use synchronous APIs at an external/top-level application boundary and async
+APIs when the caller must remain non-blocking.
+
+```ruby
+result = agent.invoke("Hello")
+
+task = agent.invoke_async("Hello")
+result = task.wait_result
+```
+
+`Task#wait_result` is for an external caller. Do not block EventLoop waiting for
+a Task that can only complete through that same EventLoop.
+
+Streaming follows the same split:
+
+```ruby
+agent.stream("Explain the design") do |event|
+  puts event.payload if event.type == :token
+end
+```
+
+```ruby
+task = agent.stream_async(
+  "Explain the design",
+  on_event: ->(event) { puts event.payload if event.type == :token }
+)
+```
+
+Streaming callbacks execute on EventLoop and therefore should return quickly.
+
+## Human-in-the-loop approval
+
+A Tool requiring approval can suspend an Agent invocation. Resume it with the
+approval request identifier returned by the suspension result.
+
+At a top-level synchronous boundary:
+
+```ruby
+result = agent.invoke("Perform the requested protected action")
+
+if result[:suspended]
+  request = result[:approval_request]
+  result = agent.approve(
+    result[:execution_id],
+    approval_request_id: request.id,
+    approved: true
+  )
+end
+```
+
+From an EventLoop callback, use `approve_async` rather than blocking EventLoop.
+
+## Workflow basics
+
+A Workflow is state-machine-driven and can halt at an explicit wait state:
+
+```ruby
+class ReviewContext
+  include Phronomy::WorkflowContext
+  field :draft,    type: :replace
+  field :feedback, type: :replace
+  field :approved, type: :replace, default: false
+end
+
+write_draft  = ->(state) { state.merge(draft: "Draft content") }
+review_draft = ->(state) { state.merge(feedback: "Feedback on: #{state.draft}") }
+
+workflow = Phronomy::Workflow.define(ReviewContext) do
+  initial :write
+  state :write, action: write_draft
+  state :review, action: review_draft
+  wait_state :awaiting_approval
+  state :finalize, action: ->(s) { s.merge(approved: true) }
+
+  transition from: :write, to: :review
+  transition from: :review, to: :awaiting_approval
+  transition from: :awaiting_approval, on: :approve, to: :finalize
+  transition from: :awaiting_approval, on: :reject, to: :write
+  transition from: :finalize, to: :__finish__
+end
+
+state = workflow.invoke({draft: ""}, config: {thread_id: "doc-1"})
+final = workflow.send_event(state: state, event: :approve)
+puts final.approved
+```
+
+Workflow entry and transition actions are synchronous Run-to-Completion
+callbacks. If a Workflow needs an Agent or another asynchronous lifecycle, start
+it asynchronously, return the Workflow context immediately, and deliver its
+completion later with `Workflow#signal`.
+
+```ruby
+workflow = nil
+
+workflow = Phronomy::Workflow.define(AnswerContext) do
+  initial :asking
+  state :asking
+  state :done
+
+  entry :asking, ->(ctx) {
+    thread_id = ctx.thread_id
+
+    my_agent.invoke_async(
+      ctx.question,
+      on_event: ->(event) {
+        next unless event.type == :done
+
+        workflow.signal(
+          thread_id: thread_id,
+          event: :answer_ready,
+          payload: {answer: event.payload[:output]}
+        )
+      }
+    )
+
+    ctx
+  }
+
+  transition(
+    from: :asking,
+    on: :answer_ready,
+    to: :done,
+    action: ->(ctx, event) { ctx.merge(answer: event.payload[:answer]) }
+  )
+end
+```
+
+Returning a `Phronomy::Task` from a Workflow entry/transition action is not an
+implicit await mechanism and is rejected.
+
+## Agent as Tool
+
+Expose a child Agent using `Phronomy::Tools::Agent.from_agent` rather than calling
+a synchronous child Agent from a Tool worker:
+
+```ruby
+ResearchTool = Phronomy::Tools::Agent.from_agent(
+  ResearchAgent,
+  tool_name: "research",
+  description: "Delegate research to the research Agent"
+)
+
+class OrchestratorAgent < Phronomy::Agent::Base
+  agent_definition id: "orchestrator-agent", version: 1
+  model "gpt-4o"
+  instructions "Use the research Tool when research is required."
+  tools(ResearchTool => nil)
+end
+```
+
+Agent-backed Tools return control to EventLoop while the child lifecycle is
+waiting. They do not occupy an OffloadPool worker merely to wait for a child
+Agent result.
+
+## Filters
+
+Filters can transform or reject values at Agent boundaries:
+
+```ruby
+class NoCreditCardFilter < Phronomy::Filter::Base
+  def call(value, **_context)
+    block!("Credit card numbers are not allowed") if value.match?(/\d{4}-\d{4}-\d{4}-\d{4}/)
+    value
+  end
+end
+
+agent.add_input_filter(NoCreditCardFilter.new)
+```
+
+Phronomy includes `PromptInjectionFilter` as a baseline pattern filter. It is not
+a complete security policy for untrusted input.
+
+## Persistent Knowledge and per-call context
+
+Register durable Knowledge on the Agent:
+
+```ruby
+agent.add_knowledge(
+  "Customer locale: ja-JP",
+  metadata: {"origin" => "customer_profile"}
+)
+```
+
+Request-scoped context can instead be supplied through `before_llm_input` using
+`LLMInputPatch#segment_candidates`; those candidates enter Context Policy for the
+specific call and are not persisted to the Journal.
+
+## Model Context Protocol (MCP)
+
+Phronomy targets MCP 1.x through the official `mcp` gem:
+
+```ruby
+search_tool = Phronomy::Tools::Mcp.from_server(
+  "stdio://./mcp-server",
+  tool_name: "web_search"
+)
+
+begin
+  # use search_tool
+ensure
+  search_tool.close
+end
+```
+
+See [MCP client](mcp-client.md) for schema, error, cancellation, and lifecycle
+contracts.
+
+## Next steps
+
+- [Features and API stability](features.md)
+- [Runtime and concurrency](runtime-and-concurrency.md)
+- [Architecture decisions](decisions/)
+- [Migration guides](migrations/)
