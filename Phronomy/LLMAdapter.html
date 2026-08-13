@@ -95,8 +95,8 @@
 dependency on the RubyLLM blocking client. All LLM calls in
 <span class='object_link'><a href="Agent/Base.html" title="Phronomy::Agent::Base (class)">Agent::Base</a></span> are routed through the adapter so that:</p>
 <ul>
-<li>Blocking HTTP can be submitted to BlockingAdapterPool for bounded
-concurrency and per-operation timeouts.</li>
+<li>Synchronous provider work can be submitted to OffloadPool for bounded
+off-EventLoop execution.</li>
 <li>Alternative LLM clients can be swapped in without changing agent code.</li>
 </ul>
 
@@ -139,7 +139,7 @@ concurrency and per-operation timeouts.</li>
 </div>
 
       <div id="footer">
-  Generated on Thu Aug 13 02:17:30 2026 by
+  Generated on Thu Aug 13 11:43:18 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

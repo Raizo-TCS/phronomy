@@ -108,7 +108,7 @@
   <strong>This class is part of a private API.</strong>
   You should avoid using this class if possible, as it may be removed or be changed in the future.
 </p>
-<p>Registry and lifecycle manager for <span class='object_link'><a href="BlockingAdapterPool.html" title="Phronomy::Concurrency::BlockingAdapterPool (class)">BlockingAdapterPool</a></span> instances.</p>
+<p>Registry and lifecycle manager for <span class='object_link'><a href="OffloadPool.html" title="Phronomy::Concurrency::OffloadPool (class)">OffloadPool</a></span> instances.</p>
 <p>Maintains one unnamed &quot;default&quot; pool (accessed via <span class='object_link'><a href="#default_pool-instance_method" title="Phronomy::Concurrency::PoolRegistry#default_pool (method)">#default_pool</a></span>) and
 an arbitrary number of named pools (accessed via <span class='object_link'><a href="#named_pool-instance_method" title="Phronomy::Concurrency::PoolRegistry#named_pool (method)">#named_pool</a></span>).
 All pools are shut down together by <span class='object_link'><a href="#shutdown-instance_method" title="Phronomy::Concurrency::PoolRegistry#shutdown (method)">#shutdown</a></span>.</p>
@@ -136,7 +136,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#default_pool-instance_method" title="#default_pool (instance method)">#<strong>default_pool</strong>(pool_size: 10, queue_size: 100)  &#x21d2; BlockingAdapterPool </a>
+      <a href="#default_pool-instance_method" title="#default_pool (instance method)">#<strong>default_pool</strong>(pool_size: 10, queue_size: 100)  &#x21d2; OffloadPool </a>
     
 
     
@@ -182,7 +182,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#named_pool-instance_method" title="#named_pool (instance method)">#<strong>named_pool</strong>(name, size: 10, queue_size: 100)  &#x21d2; BlockingAdapterPool </a>
+      <a href="#named_pool-instance_method" title="#named_pool (instance method)">#<strong>named_pool</strong>(name, size: 10, queue_size: 100)  &#x21d2; OffloadPool </a>
     
 
     
@@ -309,7 +309,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
       <div class="method_details first">
   <h3 class="signature first" id="default_pool-instance_method">
   
-    #<strong>default_pool</strong>(pool_size: 10, queue_size: 100)  &#x21d2; <tt><span class='object_link'><a href="BlockingAdapterPool.html" title="Phronomy::Concurrency::BlockingAdapterPool (class)">BlockingAdapterPool</a></span></tt> 
+    #<strong>default_pool</strong>(pool_size: 10, queue_size: 100)  &#x21d2; <tt><span class='object_link'><a href="OffloadPool.html" title="Phronomy::Concurrency::OffloadPool (class)">OffloadPool</a></span></tt> 
   
 
   
@@ -363,7 +363,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="BlockingAdapterPool.html" title="Phronomy::Concurrency::BlockingAdapterPool (class)">BlockingAdapterPool</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="OffloadPool.html" title="Phronomy::Concurrency::OffloadPool (class)">OffloadPool</a></span></tt>)</span>
       
       
       
@@ -390,7 +390,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/pool_registry.rb', line 26</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_default_pool'>default_pool</span><span class='lparen'>(</span><span class='label'>pool_size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='rparen'>)</span>
-  <span class='ivar'>@default</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="BlockingAdapterPool.html" title="Phronomy::Concurrency::BlockingAdapterPool (class)">BlockingAdapterPool</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="BlockingAdapterPool.html#initialize-instance_method" title="Phronomy::Concurrency::BlockingAdapterPool#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+  <span class='ivar'>@default</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="OffloadPool.html" title="Phronomy::Concurrency::OffloadPool (class)">OffloadPool</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="OffloadPool.html#initialize-instance_method" title="Phronomy::Concurrency::OffloadPool#initialize (method)">new</a></span></span><span class='lparen'>(</span>
     <span class='label'>name:</span> <span class='symbol'>:default</span><span class='comma'>,</span>
     <span class='label'>pool_size:</span> <span class='id identifier rubyid_pool_size'>pool_size</span><span class='comma'>,</span>
     <span class='label'>queue_size:</span> <span class='id identifier rubyid_queue_size'>queue_size</span><span class='comma'>,</span>
@@ -405,7 +405,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
       <div class="method_details ">
   <h3 class="signature " id="named_pool-instance_method">
   
-    #<strong>named_pool</strong>(name, size: 10, queue_size: 100)  &#x21d2; <tt><span class='object_link'><a href="BlockingAdapterPool.html" title="Phronomy::Concurrency::BlockingAdapterPool (class)">BlockingAdapterPool</a></span></tt> 
+    #<strong>named_pool</strong>(name, size: 10, queue_size: 100)  &#x21d2; <tt><span class='object_link'><a href="OffloadPool.html" title="Phronomy::Concurrency::OffloadPool (class)">OffloadPool</a></span></tt> 
   
 
   
@@ -470,7 +470,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
     <li>
       
       
-        <span class='type'>(<tt><span class='object_link'><a href="BlockingAdapterPool.html" title="Phronomy::Concurrency::BlockingAdapterPool (class)">BlockingAdapterPool</a></span></tt>)</span>
+        <span class='type'>(<tt><span class='object_link'><a href="OffloadPool.html" title="Phronomy::Concurrency::OffloadPool (class)">OffloadPool</a></span></tt>)</span>
       
       
       
@@ -500,7 +500,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
 
 <span class='kw'>def</span> <span class='id identifier rubyid_named_pool'>named_pool</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
-    <span class='ivar'>@pools</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="BlockingAdapterPool.html" title="Phronomy::Concurrency::BlockingAdapterPool (class)">BlockingAdapterPool</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="BlockingAdapterPool.html#initialize-instance_method" title="Phronomy::Concurrency::BlockingAdapterPool#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+    <span class='ivar'>@pools</span><span class='lbracket'>[</span><span class='id identifier rubyid_name'>name</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="OffloadPool.html" title="Phronomy::Concurrency::OffloadPool (class)">OffloadPool</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="OffloadPool.html#initialize-instance_method" title="Phronomy::Concurrency::OffloadPool#initialize (method)">new</a></span></span><span class='lparen'>(</span>
       <span class='label'>name:</span> <span class='id identifier rubyid_name'>name</span><span class='comma'>,</span>
       <span class='label'>pool_size:</span> <span class='id identifier rubyid_size'>size</span><span class='comma'>,</span>
       <span class='label'>queue_size:</span> <span class='id identifier rubyid_queue_size'>queue_size</span><span class='comma'>,</span>
@@ -565,7 +565,7 @@ All pools are shut down together by <span class='object_link'><a href="#shutdown
 </div>
 
       <div id="footer">
-  Generated on Thu Aug 13 02:17:34 2026 by
+  Generated on Thu Aug 13 11:43:21 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

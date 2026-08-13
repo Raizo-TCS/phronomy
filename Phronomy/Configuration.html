@@ -221,56 +221,6 @@
       <li class="public ">
   <span class="summary_signature">
     
-      <a href="#blocking_io_pool_size-instance_method" title="#blocking_io_pool_size (instance method)">#<strong>blocking_io_pool_size</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute blocking_io_pool_size.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#blocking_io_queue_size-instance_method" title="#blocking_io_queue_size (instance method)">#<strong>blocking_io_queue_size</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute blocking_io_queue_size.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#default_embedding_model-instance_method" title="#default_embedding_model (instance method)">#<strong>default_embedding_model</strong>  &#x21d2; Object </a>
     
 
@@ -464,6 +414,56 @@
 
   
     <span class="summary_desc"><div class='inline'><p>Returns the value of attribute logger.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#offload_pool_size-instance_method" title="#offload_pool_size (instance method)">#<strong>offload_pool_size</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute offload_pool_size.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#offload_queue_size-instance_method" title="#offload_queue_size (instance method)">#<strong>offload_queue_size</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute offload_queue_size.</p></div></span>
   
 </li>
 
@@ -741,8 +741,8 @@
   <span class='ivar'>@event_loop_starvation_threshold_seconds</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@event_loop_dispatch_threshold_seconds</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='ivar'>@stream_callback_error_policy</span> <span class='op'>=</span> <span class='symbol'>:report</span>
-  <span class='ivar'>@blocking_io_pool_size</span> <span class='op'>=</span> <span class='int'>10</span>
-  <span class='ivar'>@blocking_io_queue_size</span> <span class='op'>=</span> <span class='int'>100</span>
+  <span class='ivar'>@offload_pool_size</span> <span class='op'>=</span> <span class='int'>10</span>
+  <span class='ivar'>@offload_queue_size</span> <span class='op'>=</span> <span class='int'>100</span>
   <span class='ivar'>@authorization_pool_size</span> <span class='op'>=</span> <span class='int'>4</span>
   <span class='ivar'>@authorization_queue_size</span> <span class='op'>=</span> <span class='int'>100</span>
   <span class='ivar'>@authorization_timeout</span> <span class='op'>=</span> <span class='int'>5</span>
@@ -915,88 +915,6 @@
 
 <span class='kw'>def</span> <span class='id identifier rubyid_before_llm_input'>before_llm_input</span>
   <span class='ivar'>@before_llm_input</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id="blocking_io_pool_size=-instance_method"></span>
-      <div class="method_details ">
-  <h3 class="signature " id="blocking_io_pool_size-instance_method">
-  
-    #<strong>blocking_io_pool_size</strong>  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the value of attribute blocking_io_pool_size.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-25
-26
-27</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 25</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_blocking_io_pool_size'>blocking_io_pool_size</span>
-  <span class='ivar'>@blocking_io_pool_size</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id="blocking_io_queue_size=-instance_method"></span>
-      <div class="method_details ">
-  <h3 class="signature " id="blocking_io_queue_size-instance_method">
-  
-    #<strong>blocking_io_queue_size</strong>  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the value of attribute blocking_io_queue_size.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-26
-27
-28</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 26</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_blocking_io_queue_size'>blocking_io_queue_size</span>
-  <span class='ivar'>@blocking_io_queue_size</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1332,6 +1250,88 @@
 </div>
     
       
+      <span id="offload_pool_size=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="offload_pool_size-instance_method">
+  
+    #<strong>offload_pool_size</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the value of attribute offload_pool_size.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+25
+26
+27</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 25</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_offload_pool_size'>offload_pool_size</span>
+  <span class='ivar'>@offload_pool_size</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="offload_queue_size=-instance_method"></span>
+      <div class="method_details ">
+  <h3 class="signature " id="offload_queue_size-instance_method">
+  
+    #<strong>offload_queue_size</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the value of attribute offload_queue_size.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+26
+27
+28</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/configuration.rb', line 26</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_offload_queue_size'>offload_queue_size</span>
+  <span class='ivar'>@offload_queue_size</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
       <span id="parallel_tool_execution=-instance_method"></span>
       <div class="method_details ">
   <h3 class="signature " id="parallel_tool_execution-instance_method">
@@ -1624,7 +1624,7 @@
 </div>
 
       <div id="footer">
-  Generated on Thu Aug 13 02:17:31 2026 by
+  Generated on Thu Aug 13 11:43:18 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

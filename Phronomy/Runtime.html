@@ -106,9 +106,10 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Owns the EventLoop, blocking adapters, timers and shutdown lifecycle.</p>
+    <p>Owns the EventLoop, offloaded synchronous work, timers and shutdown lifecycle.</p>
 <p>Runtime no longer schedules arbitrary Tasks. Framework control flow belongs
-to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
+to EventLoop/FSMSession; synchronous work that must not run on the EventLoop
+belongs to OffloadPool.</p>
 
   </div>
 </div>
@@ -329,28 +330,6 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#blocking_io-instance_method" title="#blocking_io (instance method)">#<strong>blocking_io</strong>(pool_size: Phronomy.configuration.blocking_io_pool_size, queue_size: Phronomy.configuration.blocking_io_queue_size)  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#event_loop-instance_method" title="#event_loop (instance method)">#<strong>event_loop</strong>  &#x21d2; Object </a>
     
 
@@ -412,6 +391,28 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of Runtime.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#offload-instance_method" title="#offload (instance method)">#<strong>offload</strong>(pool_size: Phronomy.configuration.offload_pool_size, queue_size: Phronomy.configuration.offload_queue_size)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -535,7 +536,6 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
       <pre class="lines">
 
 
-66
 67
 68
 69
@@ -546,10 +546,11 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
 74
 75
 76
-77</pre>
+77
+78</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 66</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 67</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@timer_service</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Runtime/TimerService.html" title="Phronomy::Runtime::TimerService (class)">TimerService</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Runtime/TimerService.html#initialize-instance_method" title="Phronomy::Runtime::TimerService#initialize (method)">new</a></span></span>
@@ -590,12 +591,12 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
       <pre class="lines">
 
 
-22
 23
-24</pre>
+24
+25</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 22</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 23</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_default_if_initialized_for_test'>default_if_initialized_for_test</span>
   <span class='id identifier rubyid_instance_mutex'>instance_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@instance</span> <span class='rbrace'>}</span>
@@ -642,13 +643,13 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
       <pre class="lines">
 
 
-54
 55
 56
-57</pre>
+57
+58</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 54</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 55</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_in_event_loop_context?'>in_event_loop_context?</span>
   <span class='id identifier rubyid_runtime'>runtime</span> <span class='op'>=</span> <span class='id identifier rubyid_instance_mutex'>instance_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@instance</span> <span class='rbrace'>}</span>
@@ -674,14 +675,14 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
       <pre class="lines">
 
 
-16
 17
 18
 19
-20</pre>
+20
+21</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 16</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 17</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_instance'>instance</span>
   <span class='id identifier rubyid_instance_mutex'>instance_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -708,16 +709,16 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
       <pre class="lines">
 
 
-26
 27
 28
 29
 30
 31
-32</pre>
+32
+33</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 26</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 27</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_replace_default_for_test'>replace_default_for_test</span><span class='lparen'>(</span><span class='id identifier rubyid_runtime'>runtime</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_instance_mutex'>instance_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -746,7 +747,6 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
       <pre class="lines">
 
 
-38
 39
 40
 41
@@ -760,10 +760,11 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
 49
 50
 51
-52</pre>
+52
+53</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 38</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 39</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_reset_default!'>reset_default!</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_runtime'>runtime</span> <span class='op'>=</span> <span class='id identifier rubyid_instance_mutex'>instance_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@instance</span> <span class='rbrace'>}</span>
@@ -800,12 +801,12 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
       <pre class="lines">
 
 
-34
 35
-36</pre>
+36
+37</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 34</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 35</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_restore_default_for_test'>restore_default_for_test</span><span class='lparen'>(</span><span class='id identifier rubyid_runtime'>runtime</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_instance_mutex'>instance_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@instance</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span> <span class='rbrace'>}</span>
@@ -836,17 +837,17 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
       <pre class="lines">
 
 
-135
 136
 137
 138
 139
 140
 141
-142</pre>
+142
+143</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 135</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 136</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___event_loop_failed'>__event_loop_failed</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -885,53 +886,15 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
       <pre class="lines">
 
 
-105
 106
-107</pre>
+107
+108</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 105</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 106</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___timer_queue'>__timer_queue</span>
   <span class='ivar'>@timer_service</span><span class='period'>.</span><span class='id identifier rubyid_timer_queue'>timer_queue</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="blocking_io-instance_method">
-  
-    #<strong>blocking_io</strong>(pool_size: Phronomy.configuration.blocking_io_pool_size, queue_size: Phronomy.configuration.blocking_io_queue_size)  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-83
-84
-85
-86
-87
-88
-89</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 83</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_blocking_io'>blocking_io</span><span class='lparen'>(</span>
-  <span class='label'>pool_size:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_blocking_io_pool_size'>blocking_io_pool_size</span><span class='comma'>,</span>
-  <span class='label'>queue_size:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_blocking_io_queue_size'>blocking_io_queue_size</span>
-<span class='rparen'>)</span>
-  <span class='id identifier rubyid_ensure_accepting_work!'>ensure_accepting_work!</span>
-  <span class='ivar'>@pool_registry</span><span class='period'>.</span><span class='id identifier rubyid_default_pool'>default_pool</span><span class='lparen'>(</span><span class='label'>pool_size:</span> <span class='id identifier rubyid_pool_size'>pool_size</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='id identifier rubyid_queue_size'>queue_size</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -953,7 +916,6 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
       <pre class="lines">
 
 
-109
 110
 111
 112
@@ -972,10 +934,11 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
 125
 126
 127
-128</pre>
+128
+129</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 109</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 110</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_loop'>event_loop</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1039,17 +1002,55 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
       <pre class="lines">
 
 
-130
 131
 132
-133</pre>
+133
+134</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 130</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 131</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_loop_current?'>event_loop_current?</span>
   <span class='id identifier rubyid_loop_instance'>loop_instance</span> <span class='op'>=</span> <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@event_loop</span> <span class='rbrace'>}</span>
   <span class='id identifier rubyid_loop_instance'>loop_instance</span><span class='op'>&amp;.</span><span class='id identifier rubyid_current?'>current?</span> <span class='op'>||</span> <span class='kw'>false</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="offload-instance_method">
+  
+    #<strong>offload</strong>(pool_size: Phronomy.configuration.offload_pool_size, queue_size: Phronomy.configuration.offload_queue_size)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+84
+85
+86
+87
+88
+89
+90</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 84</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_offload'>offload</span><span class='lparen'>(</span>
+  <span class='label'>pool_size:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload_pool_size'>offload_pool_size</span><span class='comma'>,</span>
+  <span class='label'>queue_size:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload_queue_size'>offload_queue_size</span>
+<span class='rparen'>)</span>
+  <span class='id identifier rubyid_ensure_accepting_work!'>ensure_accepting_work!</span>
+  <span class='ivar'>@pool_registry</span><span class='period'>.</span><span class='id identifier rubyid_default_pool'>default_pool</span><span class='lparen'>(</span><span class='label'>pool_size:</span> <span class='id identifier rubyid_pool_size'>pool_size</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='id identifier rubyid_queue_size'>queue_size</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -1071,13 +1072,13 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
       <pre class="lines">
 
 
-91
 92
 93
-94</pre>
+94
+95</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 91</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 92</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pool'>pool</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ensure_accepting_work!'>ensure_accepting_work!</span>
@@ -1103,7 +1104,6 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
       <pre class="lines">
 
 
-144
 145
 146
 147
@@ -1168,10 +1168,11 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
 206
 207
 208
-209</pre>
+209
+210</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 144</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 145</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span>
   <span class='label'>timeout:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span><span class='comma'>,</span>
@@ -1259,12 +1260,12 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
       <pre class="lines">
 
 
-79
 80
-81</pre>
+81
+82</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 79</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 80</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_state'>state</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@state</span> <span class='rbrace'>}</span>
@@ -1298,15 +1299,15 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
       <pre class="lines">
 
 
-97
 98
 99
 100
 101
-102</pre>
+102
+103</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 97</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 98</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_timer_queue'>timer_queue</span>
   <span class='id identifier rubyid_ensure_accepting_work!'>ensure_accepting_work!</span>
@@ -1324,7 +1325,7 @@ to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu Aug 13 02:17:31 2026 by
+  Generated on Thu Aug 13 11:43:18 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

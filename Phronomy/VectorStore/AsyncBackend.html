@@ -98,7 +98,7 @@
 <ol>
 <li>
 <p><strong>Do nothing</strong> — inherits default implementations from <span class='object_link'><a href="Base.html" title="Phronomy::VectorStore::Base (class)">Base</a></span>
-that route through BlockingAdapterPool (the previous behaviour).</p>
+that route through OffloadPool.</p>
 </li>
 <li>
 <p><strong>Override selectively</strong> — override only the async methods where the
@@ -151,7 +151,7 @@ allocation entirely.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#add_async-instance_method" title="#add_async (instance method)">#<strong>add_async</strong>(id:, embedding:, metadata: {}, cancellation_token: nil, timeout: nil)  &#x21d2; BlockingAdapterPool::PendingOperation </a>
+      <a href="#add_async-instance_method" title="#add_async (instance method)">#<strong>add_async</strong>(id:, embedding:, metadata: {}, cancellation_token: nil, timeout: nil)  &#x21d2; OffloadPool::PendingOperation </a>
     
 
     
@@ -173,7 +173,7 @@ allocation entirely.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#clear_async-instance_method" title="#clear_async (instance method)">#<strong>clear_async</strong>(cancellation_token: nil, timeout: nil)  &#x21d2; BlockingAdapterPool::PendingOperation </a>
+      <a href="#clear_async-instance_method" title="#clear_async (instance method)">#<strong>clear_async</strong>(cancellation_token: nil, timeout: nil)  &#x21d2; OffloadPool::PendingOperation </a>
     
 
     
@@ -195,7 +195,7 @@ allocation entirely.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#remove_async-instance_method" title="#remove_async (instance method)">#<strong>remove_async</strong>(id:, cancellation_token: nil, timeout: nil)  &#x21d2; BlockingAdapterPool::PendingOperation </a>
+      <a href="#remove_async-instance_method" title="#remove_async (instance method)">#<strong>remove_async</strong>(id:, cancellation_token: nil, timeout: nil)  &#x21d2; OffloadPool::PendingOperation </a>
     
 
     
@@ -217,7 +217,7 @@ allocation entirely.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#search_async-instance_method" title="#search_async (instance method)">#<strong>search_async</strong>(query_embedding:, k: 5, cancellation_token: nil, timeout: nil)  &#x21d2; BlockingAdapterPool::PendingOperation </a>
+      <a href="#search_async-instance_method" title="#search_async (instance method)">#<strong>search_async</strong>(query_embedding:, k: 5, cancellation_token: nil, timeout: nil)  &#x21d2; OffloadPool::PendingOperation </a>
     
 
     
@@ -249,7 +249,7 @@ allocation entirely.</p>
       <div class="method_details first">
   <h3 class="signature first" id="add_async-instance_method">
   
-    #<strong>add_async</strong>(id:, embedding:, metadata: {}, cancellation_token: nil, timeout: nil)  &#x21d2; <tt>BlockingAdapterPool::PendingOperation</tt> 
+    #<strong>add_async</strong>(id:, embedding:, metadata: {}, cancellation_token: nil, timeout: nil)  &#x21d2; <tt>OffloadPool::PendingOperation</tt> 
   
 
   
@@ -258,7 +258,7 @@ allocation entirely.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Async variant of <span class='object_link'><a href="Base.html#add-instance_method" title="Phronomy::VectorStore::Base#add (method)">Base#add</a></span>.</p>
-<p>Submits the add call to BlockingAdapterPool by default.
+<p>Submits the add call to OffloadPool by default.
 Override to use a native async driver.</p>
 
   </div>
@@ -336,7 +336,7 @@ Override to use a native async driver.</p>
     <li>
       
       
-        <span class='type'>(<tt>BlockingAdapterPool::PendingOperation</tt>)</span>
+        <span class='type'>(<tt>OffloadPool::PendingOperation</tt>)</span>
       
       
       
@@ -357,15 +357,17 @@ Override to use a native async driver.</p>
 47
 48
 49
-50</pre>
+50
+51</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async_backend.rb', line 43</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_add_async'>add_async</span><span class='lparen'>(</span><span class='label'>id:</span><span class='comma'>,</span> <span class='label'>embedding:</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_blocking_io'>blocking_io</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
     <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
-    <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
+    <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
+    <span class='label'>on_full:</span> <span class='symbol'>:raise</span>
   <span class='rparen'>)</span> <span class='kw'>do</span>
     <span class='id identifier rubyid_add'>add</span><span class='lparen'>(</span><span class='label'>id:</span> <span class='id identifier rubyid_id'>id</span><span class='comma'>,</span> <span class='label'>embedding:</span> <span class='id identifier rubyid_embedding'>embedding</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='id identifier rubyid_metadata'>metadata</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
@@ -378,7 +380,7 @@ Override to use a native async driver.</p>
       <div class="method_details ">
   <h3 class="signature " id="clear_async-instance_method">
   
-    #<strong>clear_async</strong>(cancellation_token: nil, timeout: nil)  &#x21d2; <tt>BlockingAdapterPool::PendingOperation</tt> 
+    #<strong>clear_async</strong>(cancellation_token: nil, timeout: nil)  &#x21d2; <tt>OffloadPool::PendingOperation</tt> 
   
 
   
@@ -387,7 +389,7 @@ Override to use a native async driver.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Async variant of <span class='object_link'><a href="Base.html#clear-instance_method" title="Phronomy::VectorStore::Base#clear (method)">Base#clear</a></span>.</p>
-<p>Submits the clear call to BlockingAdapterPool by default.
+<p>Submits the clear call to OffloadPool by default.
 Override to use a native async driver.</p>
 
   </div>
@@ -430,7 +432,7 @@ Override to use a native async driver.</p>
     <li>
       
       
-        <span class='type'>(<tt>BlockingAdapterPool::PendingOperation</tt>)</span>
+        <span class='type'>(<tt>OffloadPool::PendingOperation</tt>)</span>
       
       
       
@@ -444,22 +446,24 @@ Override to use a native async driver.</p>
       <pre class="lines">
 
 
-100
-101
-102
 103
 104
 105
 106
-107</pre>
+107
+108
+109
+110
+111</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async_backend.rb', line 100</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async_backend.rb', line 103</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_clear_async'>clear_async</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_blocking_io'>blocking_io</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
     <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
-    <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
+    <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
+    <span class='label'>on_full:</span> <span class='symbol'>:raise</span>
   <span class='rparen'>)</span> <span class='kw'>do</span>
     <span class='id identifier rubyid_clear'>clear</span>
   <span class='kw'>end</span>
@@ -472,7 +476,7 @@ Override to use a native async driver.</p>
       <div class="method_details ">
   <h3 class="signature " id="remove_async-instance_method">
   
-    #<strong>remove_async</strong>(id:, cancellation_token: nil, timeout: nil)  &#x21d2; <tt>BlockingAdapterPool::PendingOperation</tt> 
+    #<strong>remove_async</strong>(id:, cancellation_token: nil, timeout: nil)  &#x21d2; <tt>OffloadPool::PendingOperation</tt> 
   
 
   
@@ -481,7 +485,7 @@ Override to use a native async driver.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Async variant of <span class='object_link'><a href="Base.html#remove-instance_method" title="Phronomy::VectorStore::Base#remove (method)">Base#remove</a></span>.</p>
-<p>Submits the remove call to BlockingAdapterPool by default.
+<p>Submits the remove call to OffloadPool by default.
 Override to use a native async driver.</p>
 
   </div>
@@ -535,7 +539,7 @@ Override to use a native async driver.</p>
     <li>
       
       
-        <span class='type'>(<tt>BlockingAdapterPool::PendingOperation</tt>)</span>
+        <span class='type'>(<tt>OffloadPool::PendingOperation</tt>)</span>
       
       
       
@@ -549,22 +553,24 @@ Override to use a native async driver.</p>
       <pre class="lines">
 
 
-82
-83
 84
 85
 86
 87
 88
-89</pre>
+89
+90
+91
+92</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async_backend.rb', line 82</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async_backend.rb', line 84</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_remove_async'>remove_async</span><span class='lparen'>(</span><span class='label'>id:</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_blocking_io'>blocking_io</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
     <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
-    <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
+    <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
+    <span class='label'>on_full:</span> <span class='symbol'>:raise</span>
   <span class='rparen'>)</span> <span class='kw'>do</span>
     <span class='id identifier rubyid_remove'>remove</span><span class='lparen'>(</span><span class='label'>id:</span> <span class='id identifier rubyid_id'>id</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
@@ -577,7 +583,7 @@ Override to use a native async driver.</p>
       <div class="method_details ">
   <h3 class="signature " id="search_async-instance_method">
   
-    #<strong>search_async</strong>(query_embedding:, k: 5, cancellation_token: nil, timeout: nil)  &#x21d2; <tt>BlockingAdapterPool::PendingOperation</tt> 
+    #<strong>search_async</strong>(query_embedding:, k: 5, cancellation_token: nil, timeout: nil)  &#x21d2; <tt>OffloadPool::PendingOperation</tt> 
   
 
   
@@ -586,7 +592,7 @@ Override to use a native async driver.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Async variant of <span class='object_link'><a href="Base.html#search-instance_method" title="Phronomy::VectorStore::Base#search (method)">Base#search</a></span>.</p>
-<p>Submits the search call to BlockingAdapterPool by default.
+<p>Submits the search call to OffloadPool by default.
 Override to use a native async driver.</p>
 
   </div>
@@ -653,7 +659,7 @@ Override to use a native async driver.</p>
     <li>
       
       
-        <span class='type'>(<tt>BlockingAdapterPool::PendingOperation</tt>)</span>
+        <span class='type'>(<tt>OffloadPool::PendingOperation</tt>)</span>
       
       
       
@@ -667,22 +673,24 @@ Override to use a native async driver.</p>
       <pre class="lines">
 
 
-63
 64
 65
 66
 67
 68
 69
-70</pre>
+70
+71
+72</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async_backend.rb', line 63</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/vector_store/async_backend.rb', line 64</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_search_async'>search_async</span><span class='lparen'>(</span><span class='label'>query_embedding:</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='int'>5</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
-  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_blocking_io'>blocking_io</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
+  <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
     <span class='label'>timeout:</span> <span class='id identifier rubyid_timeout'>timeout</span><span class='comma'>,</span>
-    <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span>
+    <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='comma'>,</span>
+    <span class='label'>on_full:</span> <span class='symbol'>:raise</span>
   <span class='rparen'>)</span> <span class='kw'>do</span>
     <span class='id identifier rubyid_search'>search</span><span class='lparen'>(</span><span class='label'>query_embedding:</span> <span class='id identifier rubyid_query_embedding'>query_embedding</span><span class='comma'>,</span> <span class='label'>k:</span> <span class='id identifier rubyid_k'>k</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
@@ -697,7 +705,7 @@ Override to use a native async driver.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu Aug 13 02:17:30 2026 by
+  Generated on Thu Aug 13 11:43:18 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

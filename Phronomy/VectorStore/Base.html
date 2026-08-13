@@ -114,8 +114,8 @@
 support similarity search.</p>
 <p>Async methods (<code>search_async</code>, <code>add_async</code>, <code>remove_async</code>, <code>clear_async</code>)
 are provided by the <span class='object_link'><a href="AsyncBackend.html" title="Phronomy::VectorStore::AsyncBackend (module)">AsyncBackend</a></span> mixin which defaults to routing calls
-through BlockingAdapterPool.  Backends with native async drivers may
-override individual async methods without touching the pool at all.</p>
+through OffloadPool. Backends with native async drivers may override
+individual async methods without touching the pool at all.</p>
 
   </div>
 </div>
@@ -700,7 +700,7 @@ override individual async methods without touching the pool at all.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu Aug 13 02:17:31 2026 by
+  Generated on Thu Aug 13 11:43:19 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

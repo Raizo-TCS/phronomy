@@ -4,7 +4,7 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-  Class: Phronomy::Concurrency::BlockingAdapterPool::PendingOperation
+  Class: Phronomy::Concurrency::OffloadPool::PendingOperation
   
     &mdash; Documentation by YARD 0.9.45
   
@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="../../../css/common.css" type="text/css">
 
 <script type="text/javascript">
-  pathId = "Phronomy::Concurrency::BlockingAdapterPool::PendingOperation";
+  pathId = "Phronomy::Concurrency::OffloadPool::PendingOperation";
   relpath = '../../../';
 </script>
 
@@ -39,7 +39,7 @@
         <div id="menu">
   
     <a href="../../../_index.html">Index (P)</a> &raquo;
-    <span class='title'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../BlockingAdapterPool.html" title="Phronomy::Concurrency::BlockingAdapterPool (class)">BlockingAdapterPool</a></span></span>
+    <span class='title'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../../Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../OffloadPool.html" title="Phronomy::Concurrency::OffloadPool (class)">OffloadPool</a></span></span>
      &raquo; 
     <span class="title">PendingOperation</span>
   
@@ -61,7 +61,7 @@
         <div class="clear"></div>
       </div>
 
-      <div id="content"><h1>Class: Phronomy::Concurrency::BlockingAdapterPool::PendingOperation
+      <div id="content"><h1>Class: Phronomy::Concurrency::OffloadPool::PendingOperation
   
   
   
@@ -76,7 +76,7 @@
         <ul class="fullTree">
           <li>Object</li>
           
-            <li class="next">Phronomy::Concurrency::BlockingAdapterPool::PendingOperation</li>
+            <li class="next">Phronomy::Concurrency::OffloadPool::PendingOperation</li>
           
         </ul>
         <a href="#" class="inheritanceTree">show all</a>
@@ -96,7 +96,7 @@
   
   <dl>
     <dt>Defined in:</dt>
-    <dd>lib/phronomy/engine/concurrency/blocking_adapter_pool.rb
+    <dd>lib/phronomy/engine/concurrency/offload_pool.rb
 </dd>
   </dl>
   
@@ -104,8 +104,8 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Represents the pending result of a submitted blocking operation.
-Returned immediately by <span class='object_link'><a href="../BlockingAdapterPool.html#submit-instance_method" title="Phronomy::Concurrency::BlockingAdapterPool#submit (method)">#submit</a></span>; call <span class='object_link'><a href="#blocking_wait-instance_method" title="Phronomy::Concurrency::BlockingAdapterPool::PendingOperation#blocking_wait (method)">#blocking_wait</a></span>
+    <p>Represents the pending result of submitted offloaded work.
+Returned immediately by <span class='object_link'><a href="../OffloadPool.html#submit-instance_method" title="Phronomy::Concurrency::OffloadPool#submit (method)">#submit</a></span>; call <span class='object_link'><a href="#blocking_wait-instance_method" title="Phronomy::Concurrency::OffloadPool::PendingOperation#blocking_wait (method)">#blocking_wait</a></span>
 to wait for the result.</p>
 
   </div>
@@ -362,7 +362,7 @@ to wait for the result.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(block, timeout: nil, cancellation_token: nil, on_abandoned: nil, submitted_at: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Concurrency::BlockingAdapterPool::PendingOperation (class)">PendingOperation</a></span></tt> 
+    #<strong>initialize</strong>(block, timeout: nil, cancellation_token: nil, on_abandoned: nil, submitted_at: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Concurrency::OffloadPool::PendingOperation (class)">PendingOperation</a></span></tt> 
   
 
   
@@ -387,11 +387,6 @@ to wait for the result.</p>
       <pre class="lines">
 
 
-153
-154
-155
-156
-157
 158
 159
 160
@@ -402,10 +397,15 @@ to wait for the result.</p>
 165
 166
 167
-168</pre>
+168
+169
+170
+171
+172
+173</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 153</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 158</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='id identifier rubyid_block'>block</span><span class='comma'>,</span> <span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>on_abandoned:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>submitted_at:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@block</span> <span class='op'>=</span> <span class='id identifier rubyid_block'>block</span>
@@ -481,12 +481,12 @@ execution had started. The worker is not forcibly interrupted.</p></div>
       <pre class="lines">
 
 
-56
-57
-58</pre>
+63
+64
+65</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 56</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 63</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_abandoned?'>abandoned?</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@abandoned</span> <span class='rbrace'>}</span>
@@ -521,8 +521,8 @@ execution had started. The worker is not forcibly interrupted.</p></div>
 settled, marked abandoned, or otherwise changed. The worker continues, and
 another waiter or an <code>on_complete</code> callback may receive the eventual result
 unless the submit-time deadline or cancellation settles the operation first.</p>
-<p>A submit-time timeout passed to <span class='object_link'><a href="../BlockingAdapterPool.html#submit-instance_method" title="Phronomy::Concurrency::BlockingAdapterPool#submit (method)">Phronomy::Concurrency::BlockingAdapterPool#submit</a></span> is enforced by
-the runtime timer queue independently of this method and is therefore not
+<p>A submit-time timeout passed to <span class='object_link'><a href="../OffloadPool.html#submit-instance_method" title="Phronomy::Concurrency::OffloadPool#submit (method)">Phronomy::Concurrency::OffloadPool#submit</a></span> is enforced by the
+runtime timer queue independently of this method and is therefore not
 re-read here.</p>
 <p>An optional <code>cancellation_token</code> may be passed here (or at submit time).
 If the token is cancelled while waiting, <span class='object_link'><a href="../../CancellationError.html" title="Phronomy::CancellationError (class)">Phronomy::CancellationError</a></span> is
@@ -619,13 +619,6 @@ raised without interrupting the worker.</p>
       <pre class="lines">
 
 
-89
-90
-91
-92
-93
-94
-95
 96
 97
 98
@@ -650,15 +643,18 @@ raised without interrupting the worker.</p>
 117
 118
 119
-120</pre>
+120
+121
+122
+123
+124
+125</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 89</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 96</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_blocking_wait'>blocking_wait</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>cancellation_token:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_effective_token'>effective_token</span> <span class='op'>=</span> <span class='id identifier rubyid_cancellation_token'>cancellation_token</span> <span class='op'>||</span> <span class='ivar'>@cancellation_token</span>
-
-  <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>blocking operation cancelled</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_effective_token'>effective_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
 
   <span class='comment'># Wake up the waiting thread whenever the token is cancelled so we can
 </span>  <span class='comment'># propagate cancellation without sleeping until the operation completes.
@@ -667,12 +663,12 @@ raised without interrupting the worker.</p>
   <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='id identifier rubyid_timeout'>timeout</span> <span class='kw'>if</span> <span class='id identifier rubyid_timeout'>timeout</span>
   <span class='id identifier rubyid_value'>value</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='kw'>until</span> <span class='ivar'>@done</span>
-      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>blocking operation cancelled</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_effective_token'>effective_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
+      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>offloaded operation cancelled</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_effective_token'>effective_token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_cancelled?'>cancelled?</span>
 
       <span class='kw'>if</span> <span class='id identifier rubyid_deadline'>deadline</span>
         <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>=</span> <span class='id identifier rubyid_deadline'>deadline</span> <span class='op'>-</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span>
         <span class='kw'>if</span> <span class='id identifier rubyid_remaining'>remaining</span> <span class='op'>&lt;=</span> <span class='int'>0</span>
-          <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>timed out waiting for blocking operation after </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_timeout'>timeout</span><span class='embexpr_end'>}</span><span class='tstring_content'>s</span><span class='tstring_end'>&quot;</span></span>
+          <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>timed out waiting for offloaded operation after </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_timeout'>timeout</span><span class='embexpr_end'>}</span><span class='tstring_content'>s</span><span class='tstring_end'>&quot;</span></span>
         <span class='kw'>end</span>
         <span class='ivar'>@cond</span><span class='period'>.</span><span class='id identifier rubyid_wait'>wait</span><span class='lparen'>(</span><span class='ivar'>@mutex</span><span class='comma'>,</span> <span class='id identifier rubyid_remaining'>remaining</span><span class='rparen'>)</span>
       <span class='kw'>else</span>
@@ -738,12 +734,12 @@ raised without interrupting the worker.</p>
       <pre class="lines">
 
 
-43
-44
-45</pre>
+50
+51
+52</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 43</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 50</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_done?'>done?</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@done</span> <span class='rbrace'>}</span>
@@ -781,11 +777,6 @@ raised without interrupting the worker.</p>
       <pre class="lines">
 
 
-233
-234
-235
-236
-237
 238
 239
 240
@@ -823,10 +814,16 @@ raised without interrupting the worker.</p>
 272
 273
 274
-275</pre>
+275
+276
+277
+278
+279
+280
+281</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 233</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 238</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_execute!'>execute!</span>
   <span class='ivar'>@wait_time</span> <span class='op'>=</span> <span class='const'>Process</span><span class='period'>.</span><span class='id identifier rubyid_clock_gettime'>clock_gettime</span><span class='lparen'>(</span><span class='const'>Process</span><span class='op'>::</span><span class='const'>CLOCK_MONOTONIC</span><span class='rparen'>)</span> <span class='op'>-</span> <span class='ivar'>@submitted_at</span>
@@ -860,8 +857,9 @@ raised without interrupting the worker.</p>
   <span class='kw'>return</span> <span class='kw'>unless</span> <span class='id identifier rubyid_should_run'>should_run</span>
 
   <span class='comment'># Do NOT use Timeout.timeout here — it delivers an async Thread#raise
-</span>  <span class='comment'># that can corrupt external library state (mutexes, C extensions, etc.).
-</span>  <span class='comment'># Each blocking library should set its own native connection/read timeout.
+</span>  <span class='comment'># that can corrupt library/application state (mutexes, C extensions, etc.).
+</span>  <span class='comment'># I/O libraries should set native connection/read timeouts. CPU-heavy work
+</span>  <span class='comment'># that needs hard termination should use a future process-offload facility.
 </span>  <span class='kw'>begin</span>
     <span class='id identifier rubyid_complete_with_value!'>complete_with_value!</span><span class='lparen'>(</span><span class='ivar'>@block</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='rparen'>)</span>
   <span class='kw'>rescue</span> <span class='const'>Exception</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span> <span class='comment'># rubocop:disable Lint/RescueException
@@ -938,19 +936,19 @@ previously armed submit-time timer becomes a harmless no-op.</p>
       <pre class="lines">
 
 
-220
-221
-222
-223
-224
 225
 226
 227
 228
-229</pre>
+229
+230
+231
+232
+233
+234</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 220</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 225</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fail_submission!'>fail_submission!</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1014,11 +1012,6 @@ operation had already settled</p></div>
       <pre class="lines">
 
 
-178
-179
-180
-181
-182
 183
 184
 185
@@ -1048,14 +1041,19 @@ operation had already settled</p></div>
 209
 210
 211
-212</pre>
+212
+213
+214
+215
+216
+217</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 178</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 183</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fire_timeout!'>fire_timeout!</span>
   <span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../../TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
-    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>blocking operation timed out after </span><span class='embexpr_beg'>#{</span><span class='ivar'>@timeout</span><span class='embexpr_end'>}</span><span class='tstring_content'>s</span><span class='tstring_end'>&quot;</span></span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>offloaded operation timed out after </span><span class='embexpr_beg'>#{</span><span class='ivar'>@timeout</span><span class='embexpr_end'>}</span><span class='tstring_content'>s</span><span class='tstring_end'>&quot;</span></span>
   <span class='rparen'>)</span>
   <span class='id identifier rubyid_callbacks'>callbacks</span> <span class='op'>=</span> <span class='kw'>nil</span>
   <span class='id identifier rubyid_abandoned_now'>abandoned_now</span> <span class='op'>=</span> <span class='kw'>false</span>
@@ -1080,7 +1078,7 @@ operation had already settled</p></div>
       <span class='ivar'>@on_abandoned</span><span class='op'>&amp;.</span><span class='id identifier rubyid_call'>call</span>
     <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_e'>e</span>
       <span class='const'><span class='object_link'><a href="../../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../../../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_logger'>logger</span><span class='op'>&amp;.</span><span class='id identifier rubyid_error'>error</span> <span class='lbrace'>{</span>
-        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>BlockingAdapterPool abandoned callback failed: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_e'>e</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_e'>e</span><span class='period'>.</span><span class='id identifier rubyid_message'>message</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>OffloadPool abandoned callback failed: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_e'>e</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'>: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_e'>e</span><span class='period'>.</span><span class='id identifier rubyid_message'>message</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
       <span class='rbrace'>}</span>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
@@ -1112,8 +1110,8 @@ operation had already settled</p></div>
 <p>If the operation has already settled, the callback is invoked immediately
 on the calling thread. Otherwise it may be invoked on a pool worker thread
 or on the EventLoop thread when an operation timeout fires. The execution
-thread is not guaranteed;
-callbacks must be thread-safe and should complete quickly.</p>
+thread is not guaranteed; callbacks must be thread-safe and should complete
+quickly.</p>
 <p>The callback receives <code>result</code> and <code>error</code> (one of them will be <code>nil</code>).</p>
 
   </div>
@@ -1153,11 +1151,6 @@ callbacks must be thread-safe and should complete quickly.</p>
       <pre class="lines">
 
 
-138
-139
-140
-141
-142
 143
 144
 145
@@ -1165,10 +1158,15 @@ callbacks must be thread-safe and should complete quickly.</p>
 147
 148
 149
-150</pre>
+150
+151
+152
+153
+154
+155</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 138</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 143</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_complete'>on_complete</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_fire_args'>fire_args</span> <span class='op'>=</span> <span class='kw'>nil</span>
@@ -1232,12 +1230,12 @@ callbacks must be thread-safe and should complete quickly.</p>
       <pre class="lines">
 
 
-49
-50
-51</pre>
+56
+57
+58</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 49</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 56</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_timed_out?'>timed_out?</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@timed_out</span> <span class='rbrace'>}</span>
@@ -1291,12 +1289,12 @@ callbacks must be thread-safe and should complete quickly.</p>
       <pre class="lines">
 
 
-62
-63
-64</pre>
+69
+70
+71</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/blocking_adapter_pool.rb', line 62</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/concurrency/offload_pool.rb', line 69</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_wait_time'>wait_time</span>
   <span class='ivar'>@wait_time</span> <span class='op'>||</span> <span class='float'>0.0</span>
@@ -1311,7 +1309,7 @@ callbacks must be thread-safe and should complete quickly.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu Aug 13 02:17:34 2026 by
+  Generated on Thu Aug 13 11:43:21 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

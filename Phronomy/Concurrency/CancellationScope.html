@@ -107,7 +107,7 @@
     <p>Represents a bounded execution scope that owns a <span class='object_link'><a href="CancellationToken.html" title="Phronomy::Concurrency::CancellationToken (class)">CancellationToken</a></span> and
 optionally a <span class='object_link'><a href="Deadline.html" title="Phronomy::Concurrency::Deadline (class)">Deadline</a></span>.</p>
 <p><code>CancellationScope</code> replaces ad-hoc <code>Timeout.timeout</code> calls in agent and
-tool code.  All work performed within a scope should observe the scope's
+tool code. All work performed within a scope should observe the scope's
 token; when the scope is cancelled (explicitly or by deadline expiry) the
 token is cancelled and all child tasks that check it will stop.</p>
 
@@ -130,9 +130,9 @@ token is cancelled and all child tasks that check it will stop.</p>
         <h5 class="example_title"><div class='inline'><p>Explicit cancellation</p></div></h5>
       
       <pre class="example code"><code><span class='id identifier rubyid_scope'>scope</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'>CancellationScope</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Concurrency::CancellationScope#initialize (method)">new</a></span></span>
-<span class='id identifier rubyid_operation'>operation</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_blocking_io'>blocking_io</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
+<span class='id identifier rubyid_operation'>operation</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span>
   <span class='label'>cancellation_token:</span> <span class='id identifier rubyid_scope'>scope</span><span class='period'>.</span><span class='id identifier rubyid_token'>token</span>
-<span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_blocking_operation'>blocking_operation</span> <span class='rbrace'>}</span>
+<span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_synchronous_operation'>synchronous_operation</span> <span class='rbrace'>}</span>
 <span class='id identifier rubyid_scope'>scope</span><span class='period'>.</span><span class='id identifier rubyid_cancel!'>cancel!</span> <span class='kw'>if</span> <span class='id identifier rubyid_some_condition'>some_condition</span></code></pre>
     
   </div>
@@ -391,7 +391,7 @@ token is cancelled and all child tasks that check it will stop.</p>
         <div class='inline'><p>when provided, cancellation of
 the parent token is propagated to this scope's token via a callback
 (for explicit cancel) and/or the Runtime timer queue (for monotonic
-deadline expiry).  No polling thread is spawned.</p></div>
+deadline expiry). No polling thread is spawned.</p></div>
       
     </li>
   
@@ -776,7 +776,7 @@ deadline expiry).  No polling thread is spawned.</p></div>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
 <p>Pops from <code>queue</code> with a timeout derived from the attached deadline (or
-<code>fallback_timeout</code> seconds when no deadline is set).  If the pop times out,
+<code>fallback_timeout</code> seconds when no deadline is set). If the pop times out,
 the scope is cancelled and the block is called (or a <span class='object_link'><a href="../TimeoutError.html" title="Phronomy::TimeoutError (class)">TimeoutError</a></span> raised).</p>
 
   </div>
@@ -981,7 +981,7 @@ or <code>nil</code> when no deadline is set.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu Aug 13 02:17:34 2026 by
+  Generated on Thu Aug 13 11:43:21 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

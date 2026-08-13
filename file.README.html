@@ -152,7 +152,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong><code>VectorStore::AsyncBackend</code> mixin</strong> — Pluggable async interface for <code>VectorStore</code>; default pool-backed implementations for <code>search_async</code>, <code>add_async</code>, <code>remove_async</code>, <code>clear_async</code>; backends with native async drivers override individual methods to bypass <code>BlockingAdapterPool</code> entirely; all existing backends remain unchanged</td>
+<td><strong><code>VectorStore::AsyncBackend</code> mixin</strong> — Pluggable async interface for <code>VectorStore</code>; default pool-backed implementations for <code>search_async</code>, <code>add_async</code>, <code>remove_async</code>, <code>clear_async</code>; backends with native async drivers override individual methods to bypass <code>OffloadPool</code> entirely; all existing backends remain unchanged</td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -206,13 +206,13 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Experimental</td>
 </tr>
 <tr>
-<td><strong><code>execution_mode</code> DSL on <code>Agent::Context::Capability::Base</code></strong> — <code>:cooperative</code> means EventLoop-safe work that returns quickly; a specialized cooperative Tool may start another Phronomy async lifecycle and return a completion <code>Task</code> immediately. <code>:blocking_io</code> (default) is offloaded to <code>BlockingAdapterPool</code>. <code>:cpu_bound</code> and <code>:external_process</code> require dedicated executors and currently raise <code>ConfigurationError</code></td>
+<td><strong><code>execution_mode</code> DSL on <code>Agent::Context::Capability::Base</code></strong> — <code>:cooperative</code> means short EventLoop-safe work, or a specialized Tool that starts another Phronomy async lifecycle and returns a completion <code>Task</code> immediately. <code>:offloaded</code> (default) runs synchronous work on the bounded <code>OffloadPool</code>; blocking I/O, CPU-bound work, and other long synchronous calls use the same contract. Workload classification is application-owned</td>
 <td>Experimental</td>
 </tr>
 <tr>
-<td><strong><code>blocking_io_pool_size</code> / <code>blocking_io_queue_size</code></strong> — Configure the default <code>BlockingAdapterPool</code> via `Phronomy.configure { \</td>
-<td>c\</td>
-<td>c.blocking_io_pool_size = 20; c.blocking_io_queue_size = 200 }<code>; all LLM calls, MCP tool calls, and other blocking I/O share this pool; defaults: </code>pool_size: 10<code>, </code>queue_size: 100`</td>
+<td><strong><code>offload_pool_size</code> / <code>offload_queue_size</code></strong> — Configure the default <code>OffloadPool</code> via `Phronomy.configure {</td>
+<td>c</td>
+<td>c.offload_pool_size = 20; c.offload_queue_size = 200 }<code>; defaults: </code>pool_size: 10<code>, </code>queue_size: 100`. The pool is shared by offloaded work and does not guarantee CPU/I/O fairness; applications own capacity planning and may use named pools for isolation</td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -220,7 +220,7 @@ version (<code>gem &quot;phronomy&quot;, &quot;~&gt; 0.x&quot;</code>) for stabi
 <td>Beta</td>
 </tr>
 <tr>
-<td><strong><code>Phronomy::Metrics</code></strong> — <code>Phronomy::Metrics.snapshot</code> reports the two concurrency boundaries: <code>blocking_pool_active</code>, <code>blocking_pool_queue_length</code>, <code>blocking_pool_abandoned_total</code>, <code>blocking_pool_size</code>, plus <code>event_loop_queue_depth</code>, <code>event_loop_queue_max_depth</code>, <code>event_loop_lag_last_ms</code>, <code>event_loop_lag_max_ms</code>, and <code>event_loop_lag_average_ms</code></td>
+<td><strong><code>Phronomy::Metrics</code></strong> — <code>Phronomy::Metrics.snapshot</code> reports <code>offload_pool_active</code>, <code>offload_pool_queue_length</code>, <code>offload_pool_abandoned_total</code>, <code>offload_pool_size</code>, plus EventLoop queue/lag metrics</td>
 <td>Beta</td>
 </tr>
 <tr>
@@ -306,7 +306,7 @@ depend on internal APIs in application code.</p>
 </thead>
 <tbody>
 <tr>
-<td><strong><code>Phronomy::Diagnostics</code></strong> — Snapshot of EventLoop lag/queue state and BlockingAdapterPool activity; blocking synchronous APIs are rejected from EventLoop context with <code>EventLoopReentrancyError</code></td>
+<td><strong><code>Phronomy::Diagnostics</code></strong> — Snapshot of EventLoop lag/queue state and OffloadPool activity; blocking synchronous APIs are rejected from EventLoop context with <code>EventLoopReentrancyError</code></td>
 <td>Experimental</td>
 </tr>
 <tr>
@@ -407,7 +407,7 @@ Configure your provider credentials before using agents or chains:</p>
 </tr>
 <tr>
 <td><code>runtime_backend</code></td>
-<td>Removed. Phronomy has one execution model: EventLoop/FSMSession for lifecycle coordination and BlockingAdapterPool for unavoidable blocking I/O</td>
+<td>Removed. Phronomy has one control model: EventLoop/FSMSession for lifecycle coordination and OffloadPool for synchronous work that must stay off EventLoop</td>
 </tr>
 <tr>
 <td><code>Runtime.instance = ...</code></td>
@@ -703,8 +703,8 @@ rather than calling a synchronous child Agent from <code>Tool#execute</code>.</p
 </code></pre>
 <p>Agent-backed Tools are asynchronous internally. The parent ToolInvocation starts
 the child Agent and returns to EventLoop immediately; it does <strong>not</strong> occupy a
-BlockingAdapterPool worker while waiting for the child. The child Agent's actual
-blocking provider I/O still uses the bounded BlockingAdapterPool.</p>
+OffloadPool worker while waiting for the child. The child Agent's actual
+blocking provider I/O still uses the bounded OffloadPool.</p>
 <h3 id="Filters___Input_output_transformation_and_blocking">Filters — Input/output transformation and blocking</h3>
 <p>Filters sit between user input and the LLM (input filters) or between the LLM response and the caller (output filters).
 A filter may <strong>transform</strong> the value (return the modified value) or <strong>block</strong> it (call <code>block!(reason)</code>, which raises <code>Phronomy::FilterBlockError</code>).</p>
@@ -1490,7 +1490,7 @@ rather than opening a public issue.</p>
 <p>The gem is available as open source under the terms of the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Thu Aug 13 02:17:29 2026 by
+  Generated on Thu Aug 13 11:43:17 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -107,10 +107,10 @@
     <p>Abstract base class for LLM adapters.</p>
 <p>Subclasses must implement <span class='object_link'><a href="#complete-instance_method" title="Phronomy::LLMAdapter::Base#complete (method)">#complete</a></span> and <span class='object_link'><a href="#stream-instance_method" title="Phronomy::LLMAdapter::Base#stream (method)">#stream</a></span>. The adapter or the
 underlying provider client owns transport timeout, retry, backoff, and
-rate-limit behavior. Phronomy only supplies cooperative cancellation and
-isolates blocking calls in BlockingAdapterPool.</p>
+rate-limit behavior. Phronomy supplies cooperative cancellation and
+isolates synchronous provider calls in OffloadPool.</p>
 <p>The agent pipeline calls <span class='object_link'><a href="#complete_async-instance_method" title="Phronomy::LLMAdapter::Base#complete_async (method)">#complete_async</a></span> / <span class='object_link'><a href="#stream_async-instance_method" title="Phronomy::LLMAdapter::Base#stream_async (method)">#stream_async</a></span> which wrap
-those methods in a BlockingAdapterPool submission.</p>
+those methods in an OffloadPool submission.</p>
 
   </div>
 </div>
@@ -161,7 +161,7 @@ those methods in a BlockingAdapterPool submission.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#complete_async-instance_method" title="#complete_async (instance method)">#<strong>complete_async</strong>(chat, message, config: {}, pool: default_pool)  &#x21d2; BlockingAdapterPool::PendingOperation </a>
+      <a href="#complete_async-instance_method" title="#complete_async (instance method)">#<strong>complete_async</strong>(chat, message, config: {}, pool: default_pool)  &#x21d2; OffloadPool::PendingOperation </a>
     
 
     
@@ -175,7 +175,7 @@ those methods in a BlockingAdapterPool submission.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Submits a non-streaming LLM call to BlockingAdapterPool and returns a BlockingAdapterPool::PendingOperation.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Submits a non-streaming LLM call to OffloadPool and returns an OffloadPool::PendingOperation.</p></div></span>
   
 </li>
 
@@ -205,7 +205,7 @@ those methods in a BlockingAdapterPool submission.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#stream_async-instance_method" title="#stream_async (instance method)">#<strong>stream_async</strong>(chat, message, config: {}, pool: default_pool) {|chunk| ... } &#x21d2; BlockingAdapterPool::PendingOperation </a>
+      <a href="#stream_async-instance_method" title="#stream_async (instance method)">#<strong>stream_async</strong>(chat, message, config: {}, pool: default_pool) {|chunk| ... } &#x21d2; OffloadPool::PendingOperation </a>
     
 
     
@@ -219,7 +219,7 @@ those methods in a BlockingAdapterPool submission.</p>
   <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Submits a streaming LLM call to BlockingAdapterPool and returns a BlockingAdapterPool::PendingOperation.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Submits a streaming LLM call to OffloadPool and returns an OffloadPool::PendingOperation.</p></div></span>
   
 </li>
 
@@ -359,7 +359,7 @@ return the response object.</p>
       <div class="method_details ">
   <h3 class="signature " id="complete_async-instance_method">
   
-    #<strong>complete_async</strong>(chat, message, config: {}, pool: default_pool)  &#x21d2; <tt>BlockingAdapterPool::PendingOperation</tt> 
+    #<strong>complete_async</strong>(chat, message, config: {}, pool: default_pool)  &#x21d2; <tt>OffloadPool::PendingOperation</tt> 
   
 
   
@@ -371,8 +371,8 @@ return the response object.</p>
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Submits a non-streaming LLM call to BlockingAdapterPool and returns
-a BlockingAdapterPool::PendingOperation.</p>
+<p>Submits a non-streaming LLM call to OffloadPool and returns
+an OffloadPool::PendingOperation.</p>
 <p>Transport timeout and retry remain the responsibility of the adapter or
 provider client; Phronomy does not attach an additional operation timeout.</p>
 
@@ -431,7 +431,7 @@ provider client; Phronomy does not attach an additional operation timeout.</p>
         <span class='name'>pool</span>
       
       
-        <span class='type'>(<tt>BlockingAdapterPool</tt>)</span>
+        <span class='type'>(<tt>OffloadPool</tt>)</span>
       
       
         <em class="default">(defaults to: <tt>default_pool</tt>)</em>
@@ -450,7 +450,7 @@ provider client; Phronomy does not attach an additional operation timeout.</p>
     <li>
       
       
-        <span class='type'>(<tt>BlockingAdapterPool::PendingOperation</tt>)</span>
+        <span class='type'>(<tt>OffloadPool::PendingOperation</tt>)</span>
       
       
       
@@ -476,7 +476,7 @@ provider client; Phronomy does not attach an additional operation timeout.</p>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_complete_async'>complete_async</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>pool:</span> <span class='id identifier rubyid_default_pool'>default_pool</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span>
-  <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_token'>token</span><span class='rparen'>)</span> <span class='kw'>do</span>
+  <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_token'>token</span><span class='comma'>,</span> <span class='label'>on_full:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='kw'>do</span>
     <span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
@@ -626,7 +626,7 @@ Implementors must call <code>chat.ask(message) { |chunk| block.call(chunk) }</co
       <div class="method_details ">
   <h3 class="signature " id="stream_async-instance_method">
   
-    #<strong>stream_async</strong>(chat, message, config: {}, pool: default_pool) {|chunk| ... } &#x21d2; <tt>BlockingAdapterPool::PendingOperation</tt> 
+    #<strong>stream_async</strong>(chat, message, config: {}, pool: default_pool) {|chunk| ... } &#x21d2; <tt>OffloadPool::PendingOperation</tt> 
   
 
   
@@ -638,9 +638,9 @@ Implementors must call <code>chat.ask(message) { |chunk| block.call(chunk) }</co
   <strong>This method is part of a private API.</strong>
   You should avoid using this method if possible, as it may be removed or be changed in the future.
 </p>
-<p>Submits a streaming LLM call to BlockingAdapterPool and returns
-a BlockingAdapterPool::PendingOperation.</p>
-<p>The block is invoked on the blocking-pool worker thread. Agent code must
+<p>Submits a streaming LLM call to OffloadPool and returns
+an OffloadPool::PendingOperation.</p>
+<p>The block is invoked on an OffloadPool worker thread. Agent code must
 pass only a lightweight internal sink that posts a value to EventLoop;
 Application callbacks must never be passed directly to this method.</p>
 <p>Transport timeout and retry remain the responsibility of the adapter or
@@ -672,7 +672,7 @@ provider client; Phronomy does not attach an additional operation timeout.</p>
     <li>
       
       
-        <span class='type'>(<tt>BlockingAdapterPool::PendingOperation</tt>)</span>
+        <span class='type'>(<tt>OffloadPool::PendingOperation</tt>)</span>
       
       
       
@@ -718,7 +718,7 @@ provider client; Phronomy does not attach an additional operation timeout.</p>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>stream_async requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
 
   <span class='id identifier rubyid_token'>token</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:cancellation_token</span><span class='rbracket'>]</span>
-  <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_token'>token</span><span class='rparen'>)</span> <span class='kw'>do</span>
+  <span class='id identifier rubyid_pool'>pool</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>cancellation_token:</span> <span class='id identifier rubyid_token'>token</span><span class='comma'>,</span> <span class='label'>on_full:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='kw'>do</span>
     <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span><span class='id identifier rubyid_chat'>chat</span><span class='comma'>,</span> <span class='id identifier rubyid_message'>message</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_chunk'>chunk</span><span class='op'>|</span>
       <span class='id identifier rubyid_token'>token</span><span class='op'>&amp;.</span><span class='id identifier rubyid_raise_if_cancelled!'>raise_if_cancelled!</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>invocation cancelled during streaming</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
       <span class='id identifier rubyid_block'>block</span><span class='period'>.</span><span class='id identifier rubyid_call'>call</span><span class='lparen'>(</span><span class='id identifier rubyid_chunk'>chunk</span><span class='rparen'>)</span>
@@ -735,7 +735,7 @@ provider client; Phronomy does not attach an additional operation timeout.</p>
 </div>
 
       <div id="footer">
-  Generated on Thu Aug 13 02:17:31 2026 by
+  Generated on Thu Aug 13 11:43:19 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

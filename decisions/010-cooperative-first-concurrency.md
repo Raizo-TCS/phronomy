@@ -2,272 +2,140 @@
 
 ## Status
 
-Accepted — revised 2026-08-13.
-
-This revision supersedes the earlier scheduler-backend roadmap that described
-`Runtime#spawn`, `ThreadBackend`, `FiberBackend`, `FakeScheduler`,
-`DeterministicScheduler`, and configurable `runtime_backend` values. Those
-execution mechanisms have been removed from the active architecture.
-
-The architectural intent remains cooperative control: framework lifecycle work
-must never require one OS thread per logical task.
+Accepted — revised for the OffloadPool execution boundary.
 
 ## Context
 
-Phronomy coordinates long-lived Agent, Workflow, Tool, and MultiAgent lifecycles.
-Most of those lifecycles spend significant time waiting for something else:
+Phronomy must support many concurrently waiting Agent, Workflow, ToolInvocation,
+and MultiAgent lifecycles without allocating one OS Thread per logical task.
+At the same time, application and third-party code may contain synchronous work
+that must not execute on the single Runtime EventLoop thread.
 
-- an LLM HTTP response;
-- a Tool result;
-- a child Agent;
-- human approval;
-- a timer or cancellation deadline;
-- another application event.
-
-A waiting lifecycle does not itself require an execution thread. Its continuation
-can be represented explicitly by FSM state plus a later EventLoop event.
-
-There are, however, third-party calls whose implementation performs ordinary
-blocking I/O (RubyLLM/HTTP, database clients, Redis, MCP transports, etc.). Those
-calls cannot safely execute on the EventLoop thread and therefore require a
-bounded worker-thread boundary.
+Classifying arbitrary application work as I/O-bound, CPU-bound, or external
+process work is not a responsibility the framework can reliably infer. The
+architecturally relevant distinction for Phronomy is whether a unit of work can
+safely run to completion on EventLoop or must be moved off the control thread.
 
 ## Decision
 
-### 1. EventLoop is the control plane
+Framework lifecycle coordination uses one Runtime-owned EventLoop and explicit
+FSMSession state/events. **Task is a completion handle**, not an execution
+backend.
 
-Phronomy has one Runtime-owned `EventLoop`. It owns one dedicated OS thread and
-serially dispatches short events to `FSMSession` instances.
+Phronomy defines two Tool execution modes:
+
+- `:cooperative` — short, EventLoop-safe work, or a specialized asynchronous
+  implementation that starts another Phronomy lifecycle and immediately returns
+  a completion handle.
+- `:offloaded` — synchronous work that must not run on EventLoop. It executes in
+  the bounded `OffloadPool`.
+
+`OffloadPool` is the thread execution boundary for synchronous work that must be
+kept off EventLoop. It may contain blocking I/O, CPU-bound Ruby work, or other
+application-defined long-running synchronous calls.
+
+Workload classification such as I/O-bound versus CPU-bound is application-owned.
+Phronomy does not provide separate `:blocking_io`, `:cpu_bound`, or
+`:external_process` Tool execution modes.
+
+Logical waits are never offloaded merely to obtain concurrency. Waiting for an
+Agent, Workflow, ToolInvocation, approval, timer, or another Task is represented
+as FSMSession state plus a later EventLoop event.
+
+## Runtime model
 
 ```text
 Runtime
-  |
-  +-- EventLoop -------------------- one dedicated OS Thread
-  |     |
-  |     +-- Agent FSMSession
-  |     +-- Workflow FSMSession
-  |     +-- ToolInvocation FSMSession
-  |     +-- MultiAgent/FanOut FSMSession
-  |
-  +-- BlockingAdapterPool --------- bounded OS worker Threads
-  |
-  +-- TimerQueue ------------------ threadless; EventLoop-driven
+├─ EventLoop (one control-plane OS Thread)
+│  └─ FSMSession
+│     ├─ Agent
+│     ├─ Workflow
+│     ├─ ToolInvocation
+│     └─ MultiAgent fan-out
+├─ OffloadPool (bounded OS Threads)
+│  ├─ blocking I/O
+│  ├─ CPU-bound synchronous work
+│  └─ other long synchronous work
+├─ named OffloadPools
+└─ EventLoop-driven timers
+
+Task = completion handle
 ```
 
-FSM actions must return quickly. Waiting is represented by a state transition
-and later event, not by blocking the EventLoop thread.
+## Capacity and starvation
 
-### 2. Task is a completion handle, not an executor
+The default OffloadPool is a shared bounded resource. CPU-heavy work can occupy
+slots that would otherwise be available to I/O, and slow I/O can do the same in
+reverse. Phronomy guarantees bounded worker count, bounded queue depth,
+backpressure, timeout/cancellation settlement, metrics, and lifecycle shutdown.
+It does **not** guarantee work-class fairness, CPU isolation, core reservation,
+or CPU-bound speedup.
 
-`Phronomy::Task` represents asynchronous completion only:
+Applications own capacity planning through `offload_pool_size` and
+`offload_queue_size`. Where isolation is required, applications may use
+`Runtime#pool(name, size:, queue_size:)` to create independent named OffloadPool
+resource domains.
 
-- pending/completed/failed/cancelled state;
-- result/error;
-- `on_complete` callbacks;
-- cancellation propagation;
-- blocking `wait_result` for external callers;
-- result mapping.
+## EventLoop admission rule
 
-`Task` does not own a Thread, Fiber, Scheduler, execution block, or CPU time
-slice. `Task#wait_result` is forbidden while on the EventLoop thread unless the
-Task is already settled.
+An EventLoop action must not block while waiting for a free OffloadPool queue
+slot. Framework-owned EventLoop-origin submissions therefore use non-blocking
+admission (`on_full: :raise`) and propagate `BackpressureError` through the
+normal FSM/completion path.
 
-### 3. BlockingAdapterPool is only for unavoidable blocking I/O
+External management threads may deliberately choose other admission policies
+when blocking the caller is acceptable.
 
-Blocking I/O that Phronomy cannot make non-blocking is submitted to a bounded
-`BlockingAdapterPool`.
+## Timeout and cancellation
 
-Examples:
+An OffloadPool submit-time timeout settles the caller-facing PendingOperation.
+It does not asynchronously interrupt a running worker Thread. If execution has
+already started, the operation becomes abandoned and the worker may continue
+until the submitted synchronous call returns.
 
-- RubyLLM/provider HTTP requests;
-- database clients with blocking drivers;
-- Redis clients with blocking drivers;
-- MCP transports or other blocking third-party libraries;
-- application Tools explicitly declaring `execution_mode :blocking_io`.
+Cancellation follows the same principle. Cancellation before execution can
+prevent work from starting. Cancellation after execution starts does not use
+`Thread#raise`; application code may cooperatively observe a CancellationToken.
 
-A worker Thread must **not** be consumed merely to wait for another Phronomy
-Task, Agent, Workflow, timer, or FSM. Those are logical asynchronous waits and
-must return to EventLoop.
+## CPU-bound work
 
-### 4. Tool execution contract
+CPU-bound work is allowed through `:offloaded`. Thread offload protects the
+EventLoop from direct long synchronous execution but does not remove CRuby GVL
+contention or physical CPU contention. Those are explicitly outside the core
+OffloadPool guarantee.
 
-`Agent::Context::Capability::Base.execution_mode` has four values:
+A future subprocess capability may provide process isolation, hard process
+termination, stdout/stderr capture, and CPU-worker separation. That future
+implementation belongs to the offload subsystem and does not reintroduce a
+Tool-level `:external_process` execution class.
 
-#### `:cooperative`
-
-The Tool is EventLoop-safe: ordinary `execute` work must be short and must not
-perform blocking I/O or an unbounded CPU computation.
-
-For a normal cooperative Tool, `call_async` executes the short call inline and
-returns an already-settled `Task`.
-
-A specialized cooperative Tool may itself start framework-owned asynchronous
-work and return a completion handle immediately. Agent-as-Tool uses this form:
+## Prohibited pattern
 
 ```text
-parent ToolInvocation :running
-        |
-        +-- child_agent.invoke_async(...)
-        |       |
-        |       +-- child Agent FSMSession on EventLoop
-        |               |
-        |               +-- blocking provider I/O -> BlockingAdapterPool
-        |
-        +-- return immediately
-
-child completion Task
-        |
-        +-- ToolInvocation :execution_completed event
+OffloadPool worker
+  → child_agent.invoke_async
+  → wait_result
 ```
 
-No BlockingAdapterPool worker is held while waiting for the child Agent.
+and equivalently for Workflow/ToolInvocation/Task lifecycles.
 
-#### `:blocking_io`
-
-The Tool executes on `BlockingAdapterPool`. Its completion callback posts the
-result back to ToolInvocation's FSM.
-
-#### `:cpu_bound`
-
-Not executed by EventLoop and not silently redirected to BlockingAdapterPool.
-Phronomy currently has no CPU executor; declaring this mode raises a
-configuration error. A future process/Ractor/CPU executor requires a separate
-architecture decision.
-
-#### `:external_process`
-
-Not executed implicitly by the core runtime. A dedicated process executor is a
-future concern and requires a separate architecture decision.
-
-### 5. Agent-as-Tool is event-driven
-
-An Agent Tool can take a long time, but the elapsed time is predominantly a
-logical lifecycle composed of child FSM states and blocking provider calls.
-That makes it suitable for EventLoop/FSM coordination.
-
-The parent ToolInvocation starts `child_agent.invoke_async` and retains only a
-completion handle. When the child settles, the result is converted to an
-`:execution_completed` event for the parent ToolInvocation.
-
-The following implementation is prohibited:
+That pattern converts a logical wait into worker-slot occupancy and can create
+pool starvation. The correct model is:
 
 ```text
-BlockingAdapterPool worker
-    -> child_agent.invoke_async
-    -> wait_result                # prohibited logical wait on worker
+parent FSMSession
+  → start child lifecycle
+  → return completion handle immediately
+  → child settles
+  → post parent EventLoop event
 ```
-
-This prohibition prevents pool starvation where all workers wait for child
-Agents that themselves need the same pool for LLM or Tool I/O.
-
-### 6. MultiAgent fan-out is event-driven
-
-`dispatch_parallel` and `fan_out` coordinate child Agents with a FanOut
-FSMSession. `max_concurrency` limits the number of live child Agent invocations,
-not the number of OS threads.
-
-Child completion callbacks post parent events. No per-child `Thread.new`,
-`Runtime#spawn`, or Task execution backend is used.
-
-### 7. TimerQueue is threadless
-
-`TimerQueue` stores monotonic deadlines only. EventLoop computes the next timer
-wait, wakes when a new earlier timer is registered, and fires due callbacks.
-There is no timer Thread.
-
-Timer callbacks follow the same short-dispatch rule as other EventLoop actions.
-
-### 8. Production Thread/Fiber boundary
-
-Raw production OS Threads are permitted only in the following two locations:
-
-| Location | Reason |
-|---|---|
-| `EventLoop` | Framework-owned infinite dispatch loop |
-| `BlockingAdapterPool` | Bounded execution of unavoidable blocking I/O |
-
-Production Agent/Workflow/Tool/MultiAgent code must not create raw Threads.
-
-Production Fiber execution is not part of the architecture. There is no
-`FiberBackend`, Fiber scheduler, or runtime backend selector.
-
-Application code may of course create its own Threads for application-owned
-work, but that is outside Phronomy's lifecycle execution model.
-
-## Long-running work classification
-
-When introducing a long-running operation, classify it before choosing an
-execution mechanism:
-
-| Work | Correct mechanism |
-|---|---|
-| Waiting for child Agent/Workflow/approval/timer/event | FSM state + EventLoop event |
-| Blocking HTTP/DB/Redis/MCP/file/network library | BlockingAdapterPool |
-| Short pure computation | EventLoop action / ordinary method |
-| Long CPU-bound computation | Dedicated CPU/process executor (not currently provided) |
-| External process lifecycle | Dedicated process executor (not currently provided) |
-
-Elapsed wall-clock time alone is not a reason to use BlockingAdapterPool. The
-question is whether an OS thread is actually blocked executing an uncontrollable
-blocking call.
-
-## Shutdown
-
-Runtime shutdown has two distinct phases:
-
-1. drain admitted FSMSessions within the configured drain deadline;
-2. enqueue EventLoop STOP and join the dedicated EventLoop Thread with its own
-   short stop grace.
-
-Normal completion decrements outstanding session accounting before waking a
-blocking external caller. A healthy shutdown therefore does not consume the
-full configured grace period for every invocation or test.
 
 ## Consequences
 
-### Positive
-
-- Agent/Workflow/Tool/MultiAgent share one explicit continuation model.
-- Logical waits consume no OS worker Thread.
-- Blocking thread count and queue depth are bounded and observable.
-- Pool starvation caused by parent work waiting synchronously for child Agents
-  is avoided.
-- Runtime no longer maintains duplicate Thread/Fiber/Immediate scheduler
-  implementations.
-- Timers require no extra Thread.
-- Tests exercise the same EventLoop control model as production.
-
-### Tradeoffs
-
-- FSM/event-driven code must explicitly model asynchronous continuation.
-- A Tool incorrectly declared `:cooperative` can still stall EventLoop; dispatch
-  duration diagnostics are therefore important.
-- CPU-bound and external-process execution currently require application-owned
-  infrastructure or a future dedicated executor.
-- Synchronous public APIs remain blocking wrappers and must not be called from
-  EventLoop callbacks.
-
-## Derived review checklist
-
-1. Does this code wait for another Phronomy lifecycle? Use an FSM/event, not a
-   worker Thread.
-2. Does it call a genuinely blocking external library? Use
-   `BlockingAdapterPool`.
-3. Does a Tool declare `:cooperative`? Its synchronous work must return quickly,
-   or its `call_async` must start another framework lifecycle and return a
-   completion handle immediately.
-4. Does production code contain `Thread.new`? It must be EventLoop or
-   BlockingAdapterPool.
-5. Does production code contain Fiber execution or `Runtime#spawn`? Reject it.
-6. Does EventLoop code call `wait_result`, `join`, blocking I/O, or long CPU
-   work? Reject it.
-
-## Historical note
-
-Earlier revisions of ADR-010 described configurable `:thread`, `:immediate`, and
-`:fiber` runtime backends. Those were transitional mechanisms while the
-framework's event-driven lifecycle architecture was incomplete. They are no
-longer active APIs or implementation targets.
-
-ADR-008's per-subagent OS-thread dispatch decision is superseded by the FanOut
-FSMSession implementation.
+- There is one explicit framework continuation model: FSMSession + EventLoop.
+- `Task` stays thread-free and represents settlement only.
+- Tool execution classification becomes `:cooperative` / `:offloaded`.
+- CPU/I/O classification and resource sizing are application responsibilities.
+- Named pools remain available for application-managed resource isolation.
+- Production Fiber execution is not part of the architecture.
+- Raw production Threads remain confined to EventLoop and OffloadPool.
