@@ -466,7 +466,7 @@ RSpec.describe Phronomy::Tools::Mcp do
       allow(MCP::Client::Stdio).to receive(:new).and_return(live_transport, live_transport)
       allow(MCP::Client).to receive(:new).and_return(discovery_client, live_client)
       # Stub the cleanup pool so no real worker threads are started in unit tests
-      cleanup_pool = instance_double(Phronomy::Concurrency::BlockingAdapterPool)
+      cleanup_pool = instance_double(Phronomy::Concurrency::OffloadPool)
       allow(Phronomy::Runtime.instance)
         .to receive(:pool).with(:mcp_cleanup, size: 2, queue_size: 100)
         .and_return(cleanup_pool)
@@ -501,7 +501,7 @@ RSpec.describe Phronomy::Tools::Mcp do
         .and_return(discovery_client, cancelled_client, replacement_client)
       # Stub the cleanup pool — synchronous execution so cancelled_transport.close is
       # called inline, allowing the assertion below to work without race conditions.
-      cleanup_pool = instance_double(Phronomy::Concurrency::BlockingAdapterPool)
+      cleanup_pool = instance_double(Phronomy::Concurrency::OffloadPool)
       allow(Phronomy::Runtime.instance)
         .to receive(:pool).with(:mcp_cleanup, size: 2, queue_size: 100)
         .and_return(cleanup_pool)

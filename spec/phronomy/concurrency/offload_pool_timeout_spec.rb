@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Phronomy::Concurrency::BlockingAdapterPool, "submit-time timeout semantics" do
+RSpec.describe Phronomy::Concurrency::OffloadPool, "submit-time timeout semantics" do
   let(:timer) { Phronomy::Testing::FakeClock.new }
 
   subject(:pool) do

@@ -43,10 +43,10 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
   end
 
   # Stub Runtime.instance and pool so multi-tool tests run without a live EventLoop.
-  # All tools now route through blocking_io.submit.
+  # All tools now route through offload.submit.
   def stub_task_and_pool(pool_double: nil)
     pd = pool_double || begin
-      d = instance_double(Phronomy::Concurrency::BlockingAdapterPool)
+      d = instance_double(Phronomy::Concurrency::OffloadPool)
       allow(d).to receive(:submit) do |cancellation_token: nil, on_full: :wait, **_kw, &blk|
         result = blk.call
         op = double("PendingOperation")
@@ -55,7 +55,7 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
       end
       d
     end
-    runtime_dbl = instance_double(Phronomy::Runtime, blocking_io: pd)
+    runtime_dbl = instance_double(Phronomy::Runtime, offload: pd)
     allow(Phronomy::Runtime).to receive(:instance).and_return(runtime_dbl)
   end
 
@@ -231,7 +231,7 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
   # ---------------------------------------------------------------------------
   context "issue #295 — direct pool dispatch", :issue_295 do
     let(:pool_double) do
-      pd = instance_double(Phronomy::Concurrency::BlockingAdapterPool)
+      pd = instance_double(Phronomy::Concurrency::OffloadPool)
       allow(pd).to receive(:submit) do |cancellation_token: nil, on_full: :wait, **_kw, &blk|
         result = blk.call
         op = double("PendingOperation")
@@ -242,7 +242,7 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
     end
 
     before do
-      runtime = instance_double(Phronomy::Runtime, blocking_io: pool_double)
+      runtime = instance_double(Phronomy::Runtime, offload: pool_double)
       allow(Phronomy::Runtime).to receive(:instance).and_return(runtime)
     end
 
@@ -280,7 +280,7 @@ RSpec.describe Phronomy::MultiAgent::ParallelToolChat do
       chat
     end
 
-    it "dispatches :blocking_io tools via pool.submit" do
+    it "dispatches :offloaded tools via pool.submit" do
       tool = blocking_tool_class.new
       chat = minimal_multi_chat({io_dispatch_tool: tool})
       tc1 = fake_tool_call("io_dispatch_tool", {"v" => "a"}, id: "tc1")

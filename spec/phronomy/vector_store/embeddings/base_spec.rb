@@ -10,24 +10,22 @@ RSpec.describe Phronomy::VectorStore::Embeddings::Base do
       expect { adapter.embed("hello") }.to raise_error(NotImplementedError, /embed/)
     end
 
-    it "raises CancellationError immediately when a cancelled token is passed (#242)" do
+    it "raises CancellationError immediately when a cancelled token is passed" do
       token = Phronomy::Concurrency::CancellationToken.new
       token.cancel!
       expect { adapter.embed("hello", token) }.to raise_error(Phronomy::CancellationError)
     end
   end
 
-  describe "Embeddings::Base#embed_async" do
-    it "delegates to embed via BlockingAdapterPool" do
-      emb = Class.new(Phronomy::VectorStore::Embeddings::Base) do
-        def embed(text, _cancellation_token = nil)
+  describe "#embed_async" do
+    it "delegates synchronous embed work through OffloadPool" do
+      embeddings = Class.new(Phronomy::VectorStore::Embeddings::Base) do
+        def embed(_text, _cancellation_token = nil)
           [0.1, 0.2, 0.3]
         end
       end.new
 
-      op = emb.embed_async("hello")
-      result = op.wait_result
-      expect(result).to eq([0.1, 0.2, 0.3])
+      expect(embeddings.embed_async("hello").wait_result).to eq([0.1, 0.2, 0.3])
     end
   end
 end

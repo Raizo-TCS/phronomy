@@ -5,10 +5,11 @@ require_relative "runtime/shutdown_result"
 require_relative "runtime/timer_service"
 
 module Phronomy
-  # Owns the EventLoop, blocking adapters, timers and shutdown lifecycle.
+  # Owns the EventLoop, offloaded synchronous work, timers and shutdown lifecycle.
   #
   # Runtime no longer schedules arbitrary Tasks. Framework control flow belongs
-  # to EventLoop/FSMSession; blocking I/O belongs to BlockingAdapterPool.
+  # to EventLoop/FSMSession; synchronous work that must not run on the EventLoop
+  # belongs to OffloadPool.
   class Runtime
     @instance_mutex = Mutex.new
 
@@ -80,9 +81,9 @@ module Phronomy
       @lifecycle_mutex.synchronize { @state }
     end
 
-    def blocking_io(
-      pool_size: Phronomy.configuration.blocking_io_pool_size,
-      queue_size: Phronomy.configuration.blocking_io_queue_size
+    def offload(
+      pool_size: Phronomy.configuration.offload_pool_size,
+      queue_size: Phronomy.configuration.offload_queue_size
     )
       ensure_accepting_work!
       @pool_registry.default_pool(pool_size: pool_size, queue_size: queue_size)

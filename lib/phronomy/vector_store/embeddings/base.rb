@@ -19,18 +19,19 @@ module Phronomy
           raise NotImplementedError, "#{self.class}#embed is not implemented"
         end
 
-        # Submits an {#embed} call to {BlockingAdapterPool} and returns a
-        # {BlockingAdapterPool::PendingOperation}.
+        # Submits an {#embed} call to {OffloadPool} and returns an
+        # {OffloadPool::PendingOperation}.
         #
         # @param text               [String]
         # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
         # @param timeout            [Numeric, nil] seconds before the operation is abandoned
-        # @return [BlockingAdapterPool::PendingOperation]
+        # @return [OffloadPool::PendingOperation]
         # @api public
         def embed_async(text, cancellation_token = nil, timeout: nil)
-          Phronomy::Runtime.instance.blocking_io.submit(
+          Phronomy::Runtime.instance.offload.submit(
             timeout: timeout,
-            cancellation_token: cancellation_token
+            cancellation_token: cancellation_token,
+            on_full: :raise
           ) do
             embed(text, cancellation_token)
           end

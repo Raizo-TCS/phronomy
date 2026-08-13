@@ -1,14 +1,5 @@
 # frozen_string_literal: true
 
-# Public API compatibility snapshot (Issue #236).
-#
-# Verifies that every Stable-tagged constant listed in README.md exposes the
-# expected public methods. If any method is accidentally removed or renamed,
-# this spec will fail with a clear message before the change reaches CI.
-#
-# To add a new Stable API: append an expectation below and commit the diff as
-# part of the PR that promotes the API to Stable.
-
 RSpec.describe "Public API compatibility (Stable APIs)" do
   describe "Phronomy::Agent::Base" do
     subject { Phronomy::Agent::Base }
@@ -104,37 +95,33 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
     end
   end
 
-  # --- Cooperative / Blocking distinction (Issue #278) ---
-
   describe "Phronomy::Agent::Context::Capability::Base — execution_mode" do
-    it "defaults to :blocking_io when not declared" do
+    it "defaults to :offloaded when not declared" do
       klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
         description "no-op"
         def execute
         end
       end
-      expect(klass.execution_mode).to eq(:blocking_io)
+      expect(klass.execution_mode).to eq(:offloaded)
     end
 
-    it "accepts :cooperative as a valid execution_mode" do
-      klass = Class.new(Phronomy::Agent::Context::Capability::Base) do
-        description "no-op"
+    it "accepts :cooperative and :offloaded" do
+      cooperative = Class.new(Phronomy::Agent::Context::Capability::Base) do
         execution_mode :cooperative
-        def execute
-        end
       end
-      expect(klass.execution_mode).to eq(:cooperative)
+      offloaded = Class.new(Phronomy::Agent::Context::Capability::Base) do
+        execution_mode :offloaded
+      end
+      expect(cooperative.execution_mode).to eq(:cooperative)
+      expect(offloaded.execution_mode).to eq(:offloaded)
     end
 
-    it "raises ArgumentError for unknown execution_mode values" do
-      expect {
-        Class.new(Phronomy::Agent::Context::Capability::Base) do
-          description "no-op"
-          execution_mode :unknown_mode
-          def execute
-          end
-        end
-      }.to raise_error(ArgumentError, /execution_mode/)
+    it "rejects removed workload-specific execution modes" do
+      %i[blocking_io cpu_bound external_process].each do |mode|
+        expect {
+          Class.new(Phronomy::Agent::Context::Capability::Base) { execution_mode mode }
+        }.to raise_error(ArgumentError, /execution_mode/)
+      end
     end
   end
 
@@ -144,11 +131,15 @@ RSpec.describe "Public API compatibility (Stable APIs)" do
     end
   end
 
-  describe "Phronomy::Runtime — blocking/cooperative API" do
+  describe "Phronomy::Runtime — offload API" do
     let(:runtime) { Phronomy::Runtime.instance }
 
-    it "exposes #blocking_io returning a BlockingAdapterPool" do
-      expect(runtime.blocking_io).to be_a(Phronomy::Concurrency::BlockingAdapterPool)
+    it "exposes #offload returning an OffloadPool" do
+      expect(runtime.offload).to be_a(Phronomy::Concurrency::OffloadPool)
+    end
+
+    it "does not expose the removed #blocking_io API" do
+      expect(runtime).not_to respond_to(:blocking_io)
     end
   end
 end

@@ -6,7 +6,7 @@ module Phronomy
     # optionally a {Deadline}.
     #
     # +CancellationScope+ replaces ad-hoc +Timeout.timeout+ calls in agent and
-    # tool code.  All work performed within a scope should observe the scope's
+    # tool code. All work performed within a scope should observe the scope's
     # token; when the scope is cancelled (explicitly or by deadline expiry) the
     # token is cancelled and all child tasks that check it will stop.
     #
@@ -18,9 +18,9 @@ module Phronomy
     #
     # @example Explicit cancellation
     #   scope = Phronomy::Concurrency::CancellationScope.new
-    #   operation = Phronomy::Runtime.instance.blocking_io.submit(
+    #   operation = Phronomy::Runtime.instance.offload.submit(
     #     cancellation_token: scope.token
-    #   ) { blocking_operation }
+    #   ) { synchronous_operation }
     #   scope.cancel! if some_condition
     class CancellationScope
       # @return [CancellationToken] the token owned by this scope
@@ -32,7 +32,7 @@ module Phronomy
       # @param parent_token [CancellationToken, nil] when provided, cancellation of
       #   the parent token is propagated to this scope's token via a callback
       #   (for explicit cancel) and/or the Runtime timer queue (for monotonic
-      #   deadline expiry).  No polling thread is spawned.
+      #   deadline expiry). No polling thread is spawned.
       # @api private
       def initialize(parent_token: nil)
         @token = Phronomy::Concurrency::CancellationToken.new
@@ -91,7 +91,7 @@ module Phronomy
       end
 
       # Pops from +queue+ with a timeout derived from the attached deadline (or
-      # +fallback_timeout+ seconds when no deadline is set).  If the pop times out,
+      # +fallback_timeout+ seconds when no deadline is set). If the pop times out,
       # the scope is cancelled and the block is called (or a {TimeoutError} raised).
       #
       # @param queue [Phronomy::Concurrency::AsyncQueue] the queue to pop from

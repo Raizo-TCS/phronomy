@@ -40,11 +40,11 @@ RSpec.describe "Tool#call_async compatibility" do
     end
   end
 
-  it "keeps Runtime injection internal for the default call_async implementation" do
+  it "keeps Runtime injection and admission policy internal for the default call_async implementation" do
     tool_class = Class.new(Phronomy::Agent::Context::Capability::Base) do
-      tool_name "blocking_tool"
-      description "Blocking Tool"
-      execution_mode :blocking_io
+      tool_name "offloaded_tool"
+      description "Offloaded Tool"
+      execution_mode :offloaded
       param :value, type: :string, desc: "Value"
 
       def execute(value:)
@@ -52,12 +52,9 @@ RSpec.describe "Tool#call_async compatibility" do
       end
     end
     tool = tool_class.new
-    invocation = build_ready_invocation(
-      tool: tool,
-      arguments: {"value" => "ok"}
-    )
+    invocation = build_ready_invocation(tool: tool, arguments: {"value" => "ok"})
     runtime = instance_double(Phronomy::Runtime)
-    operation = Phronomy::Task.deferred(name: "blocking-tool")
+    operation = Phronomy::Task.deferred(name: "offloaded-tool")
     operation.complete("ok")
 
     expect(Phronomy::Agent::ToolExecutor).to receive(:call_async).with(
@@ -65,7 +62,8 @@ RSpec.describe "Tool#call_async compatibility" do
       args: {value: "ok"},
       cancellation_token: nil,
       config: {},
-      runtime: runtime
+      runtime: runtime,
+      on_full: :raise
     ).and_return(operation)
 
     outcome = nil
@@ -86,8 +84,6 @@ RSpec.describe "Tool#call_async compatibility" do
         value
       end
 
-      # Deliberately uses the pre-existing public signature with no runtime:
-      # keyword. ToolInvocation must remain compatible with this override.
       def call_async(args, cancellation_token: nil, config: {})
         task = Phronomy::Task.deferred(name: "custom-async-tool")
         task.complete("#{args.fetch(:value)}:#{config.fetch(:suffix, "done")}")

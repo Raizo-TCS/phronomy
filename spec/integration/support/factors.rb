@@ -940,13 +940,13 @@ module IntegrationFactors
   end
 
   # ---------------------------------------------------------------------------
-  # Group 37: BlockingAdapterPool boundary fixtures
+  # Group 37: OffloadPool boundary fixtures
   # ---------------------------------------------------------------------------
   class BbBlockingTool < Phronomy::Agent::Context::Capability::Base
     tool_name "bb_blocking_tool"
-    description "A blocking_io tool used to verify pool routing"
+    description "A offload tool used to verify pool routing"
     param :input, type: :string, desc: "Any string input"
-    execution_mode :blocking_io
+    execution_mode :offloaded
 
     def execute(input:)
       "blocking:#{input}"
@@ -969,7 +969,7 @@ module IntegrationFactors
   # ---------------------------------------------------------------------------
   def self.fb_subject(label)
     case label
-    when "spawn_await_value", "blocking_io_await", "async_queue_pop",
+    when "spawn_await_value", "offload_await", "async_queue_pop",
          "spawn_child", "error_propagation", "cancellation", "timer_real_clock",
          "agent_invoke_async", "llm_adapter_suspend", "mixed_tools",
          "rag_fetch", "stream_queue"
@@ -981,9 +981,9 @@ module IntegrationFactors
 
   class FbBlockingTool < Phronomy::Agent::Context::Capability::Base
     tool_name "fb_blocking_tool"
-    description "A blocking_io tool for fiber backend upper-layer tests"
+    description "A offload tool for fiber backend upper-layer tests"
     param :input, type: :string, desc: "Any string input"
-    execution_mode :blocking_io
+    execution_mode :offloaded
 
     def execute(input:)
       "blocking:#{input}"

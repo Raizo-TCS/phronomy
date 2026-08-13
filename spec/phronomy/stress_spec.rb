@@ -9,11 +9,11 @@
 # and run separately.
 RSpec.describe "Stress and resource leak tests (Issue #275)" do
   let(:timer) { Phronomy::Testing::FakeClock.new }
-  let(:pool) { Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 10, queue_size: 200, timer_queue_provider: -> { timer }) }
+  let(:pool) { Phronomy::Concurrency::OffloadPool.new(pool_size: 10, queue_size: 200, timer_queue_provider: -> { timer }) }
 
   after { pool.shutdown(drain_timeout: 10) }
 
-  describe "concurrent BlockingAdapterPool submissions" do
+  describe "concurrent OffloadPool submissions" do
     it "completes 50 concurrent submissions with correct results" do
       results = Array.new(50)
       threads = 50.times.map do |i|
@@ -72,7 +72,7 @@ RSpec.describe "Stress and resource leak tests (Issue #275)" do
 
   describe "backpressure under pool saturation" do
     it "raises BackpressureError when queue is full with on_full: :raise" do
-      sat_pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 2)
+      sat_pool = Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 2)
       latch = Mutex.new
       cond = ConditionVariable.new
       released = false
@@ -99,9 +99,9 @@ RSpec.describe "Stress and resource leak tests (Issue #275)" do
     end
   end
 
-  describe "BlockingAdapterPool graceful shutdown" do
+  describe "OffloadPool graceful shutdown" do
     it "drains in-flight operations before stopping" do
-      small_pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 2, queue_size: 10)
+      small_pool = Phronomy::Concurrency::OffloadPool.new(pool_size: 2, queue_size: 10)
       results = []
       mutex = Mutex.new
 

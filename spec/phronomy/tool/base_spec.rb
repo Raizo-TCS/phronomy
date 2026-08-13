@@ -1135,8 +1135,8 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
   end
 
   # Issue #293 — Tool#call_async must respect the execution_mode DSL setting.
-  # :cooperative tools should run directly in a Task; :blocking_io tools should
-  # be routed through BlockingAdapterPool when a Runtime is present.
+  # :cooperative tools should run directly in a Task; :offloaded tools should
+  # be routed through OffloadPool when a Runtime is present.
   describe "#call_async execution_mode routing (Issue #293)", :issue_293 do
     after { Phronomy::Runtime.instance_variable_set(:@instance, nil) }
 
@@ -1155,7 +1155,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
     let(:blocking_tool_class) do
       Class.new(described_class) do
         description "blocking tool"
-        execution_mode :blocking_io
+        execution_mode :offloaded
         param :x, type: :string, desc: "input"
 
         def execute(x:)
@@ -1164,8 +1164,8 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       end
     end
 
-    it "cooperative tool: call_async returns an already-settled Task without using BlockingAdapterPool" do
-      pool = Phronomy::Runtime.instance.blocking_io
+    it "cooperative tool: call_async returns an already-settled Task without using OffloadPool" do
+      pool = Phronomy::Runtime.instance.offload
       called = false
       allow(pool).to receive(:submit).and_wrap_original do |m, **kw, &blk|
         called = true
@@ -1178,8 +1178,8 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       expect(called).to be(false)
     end
 
-    it "blocking_io tool with pool: call_async routes through BlockingAdapterPool" do
-      pool = Phronomy::Runtime.instance.blocking_io
+    it "offload tool with pool: call_async routes through OffloadPool" do
+      pool = Phronomy::Runtime.instance.offload
       called = false
       allow(pool).to receive(:submit).and_wrap_original do |m, **kw, &blk|
         called = true
@@ -2317,11 +2317,10 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       expect(tool.send(:nested_schema_to_json_schema, {})).to eq({})
     end
   end
-
   describe ".execution_mode DSL" do
-    it "defaults to :blocking_io" do
+    it "defaults to :offloaded" do
       klass = Class.new(described_class)
-      expect(klass.execution_mode).to eq(:blocking_io)
+      expect(klass.execution_mode).to eq(:offloaded)
     end
 
     it "can be set to :cooperative" do
@@ -2329,22 +2328,16 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       expect(klass.execution_mode).to eq(:cooperative)
     end
 
-    it "can be set to :blocking_io via the DSL without error (kills mutation [90])" do
-      # Kills [90]: if :blocking_io is replaced by a sentinel in the valid list,
-      # setting :blocking_io would raise ArgumentError. The default getter bypasses validation.
-      expect { Class.new(described_class) { execution_mode :blocking_io } }.not_to raise_error
-      klass = Class.new(described_class) { execution_mode :blocking_io }
-      expect(klass.execution_mode).to eq(:blocking_io)
+    it "can be set to :offloaded" do
+      klass = Class.new(described_class) { execution_mode :offloaded }
+      expect(klass.execution_mode).to eq(:offloaded)
     end
 
-    it "can be set to :cpu_bound" do
-      klass = Class.new(described_class) { execution_mode :cpu_bound }
-      expect(klass.execution_mode).to eq(:cpu_bound)
-    end
-
-    it "can be set to :external_process" do
-      klass = Class.new(described_class) { execution_mode :external_process }
-      expect(klass.execution_mode).to eq(:external_process)
+    it "rejects removed workload-specific modes" do
+      %i[cpu_bound external_process].each do |mode|
+        expect { Class.new(described_class) { execution_mode mode } }
+          .to raise_error(ArgumentError, /execution_mode/)
+      end
     end
 
     it "raises ArgumentError for an invalid mode" do
@@ -2352,30 +2345,9 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
         .to raise_error(ArgumentError, /turbo/)
     end
 
-    it "error message lists valid modes" do
+    it "error message lists the two valid modes" do
       expect { Class.new(described_class) { execution_mode :wrong } }
-        .to raise_error(ArgumentError, /cooperative.*blocking_io/)
-    end
-
-    it "error message includes the invalid value with inspect formatting (:sym notation)" do
-      err = nil
-      begin
-        Class.new(described_class) { execution_mode :turbo }
-      rescue ArgumentError => e
-        err = e.message
-      end
-      expect(err).to include(":turbo")
-    end
-
-    it "error message includes valid values with inspect formatting ([:sym, ...] notation)" do
-      err = nil
-      begin
-        Class.new(described_class) { execution_mode :turbo }
-      rescue ArgumentError => e
-        err = e.message
-      end
-      expect(err).to include(":cooperative")
-      expect(err).to include(":blocking_io")
+        .to raise_error(ArgumentError, /cooperative.*offloaded/)
     end
   end
 

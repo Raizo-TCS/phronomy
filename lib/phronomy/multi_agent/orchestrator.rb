@@ -9,7 +9,7 @@ module Phronomy
       def self.subagent(name, agent_class, on_error: :raise, inherit_knowledge: true)
         # A subagent Tool is logically asynchronous: ToolInvocation starts the
         # child Agent and resumes when its completion Task settles. It must not
-        # occupy a BlockingAdapterPool worker while waiting for the child.
+        # occupy an OffloadPool worker while waiting for the child.
         tool_class = Class.new(Phronomy::Tools::Agent) do
           tool_name "dispatch_to_#{name}"
           description "Dispatch work to the #{name} subagent (#{agent_class.name})"

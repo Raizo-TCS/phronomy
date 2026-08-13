@@ -2,7 +2,7 @@
 
 module Phronomy
   module Concurrency
-    # Registry and lifecycle manager for {BlockingAdapterPool} instances.
+    # Registry and lifecycle manager for {OffloadPool} instances.
     #
     # Maintains one unnamed "default" pool (accessed via {#default_pool}) and
     # an arbitrary number of named pools (accessed via {#named_pool}).
@@ -21,10 +21,10 @@ module Phronomy
       # Returns (or lazily creates) the unnamed default pool.
       # @param pool_size  [Integer]
       # @param queue_size [Integer]
-      # @return [BlockingAdapterPool]
+      # @return [OffloadPool]
       # @api private
       def default_pool(pool_size: 10, queue_size: 100)
-        @default ||= BlockingAdapterPool.new(
+        @default ||= OffloadPool.new(
           name: :default,
           pool_size: pool_size,
           queue_size: queue_size,
@@ -36,11 +36,11 @@ module Phronomy
       # @param name      [Symbol, String]
       # @param size      [Integer]
       # @param queue_size [Integer]
-      # @return [BlockingAdapterPool]
+      # @return [OffloadPool]
       # @api private
       def named_pool(name, size: 10, queue_size: 100)
         @mutex.synchronize do
-          @pools[name.to_sym] ||= BlockingAdapterPool.new(
+          @pools[name.to_sym] ||= OffloadPool.new(
             name: name,
             pool_size: size,
             queue_size: queue_size,

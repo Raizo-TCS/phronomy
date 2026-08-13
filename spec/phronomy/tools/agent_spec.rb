@@ -127,7 +127,7 @@ RSpec.describe Phronomy::Tools::Agent do
         expect(result).to eq("echo: hello|filtered")
       end
 
-      it "starts the child Agent asynchronously without ToolExecutor/BlockingAdapterPool" do
+      it "starts the child Agent asynchronously without ToolExecutor/OffloadPool" do
         klass = described_class.from_agent(EchoAgent)
         allow(Phronomy::Agent::ToolExecutor).to receive(:call_async).and_call_original
 

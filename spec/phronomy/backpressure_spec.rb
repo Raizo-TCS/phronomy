@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
 RSpec.describe "Backpressure limits (Issue #268)" do
-  describe "BlockingAdapterPool#submit" do
+  describe "OffloadPool#submit" do
     context "on_full: :raise" do
       it "raises BackpressureError when queue is full" do
         # pool_size: 1, queue_size: 1
         # Worker picks up op1 immediately (queue goes 1->0).
         # op2 fills the queue (depth: 1).
         # op3 should raise BackpressureError.
-        pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 1)
+        pool = Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 1)
         latch = Mutex.new
         cond = ConditionVariable.new
         released = false
@@ -34,7 +34,7 @@ RSpec.describe "Backpressure limits (Issue #268)" do
 
     context "on_full: :timeout" do
       it "raises TimeoutError when queue is full and wait exceeds timeout" do
-        pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 1)
+        pool = Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 1)
         latch = Mutex.new
         cond = ConditionVariable.new
         released = false
@@ -57,7 +57,7 @@ RSpec.describe "Backpressure limits (Issue #268)" do
 
     context "on_full: :wait (default)" do
       it "blocks until a slot is available and returns successfully" do
-        pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 1)
+        pool = Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 1)
         barrier = Mutex.new
         cond = ConditionVariable.new
         released = false

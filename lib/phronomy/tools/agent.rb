@@ -4,10 +4,10 @@ module Phronomy
   module Tools
     # Wraps a Phronomy::Agent::Base subclass as a callable Tool.
     #
-    # Agent-backed Tools are logically asynchronous rather than blocking-I/O
-    # operations. Their ToolInvocation starts the child Agent and then returns to
-    # EventLoop immediately; the Tool completion handle settles when the child
-    # Agent FSMSession finishes. A BlockingAdapterPool worker is therefore never
+    # Agent-backed Tools are logically asynchronous rather than offloaded
+    # synchronous operations. Their ToolInvocation starts the child Agent and then
+    # returns to EventLoop immediately; the Tool completion handle settles when the
+    # child Agent FSMSession finishes. An OffloadPool worker is therefore never
     # consumed merely to wait for another Agent.
     class Agent < Phronomy::Agent::Context::Capability::Base
       execution_mode :cooperative
@@ -82,8 +82,8 @@ module Phronomy
       end
 
       # Agent-backed Tools have an asynchronous implementation that does not use
-      # ToolExecutor/BlockingAdapterPool. Validation and Tool error policy still
-      # match Capability::Base#call.
+      # ToolExecutor/OffloadPool. Validation and Tool error policy still match
+      # Capability::Base#call.
       def call_async(
         args,
         cancellation_token: nil,

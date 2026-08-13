@@ -4,10 +4,9 @@ module Phronomy
   module LLMAdapter
     # LLM adapter that delegates to the RubyLLM blocking client.
     #
-    # This is the default adapter used by Phronomy agents.  It wraps
-    # +chat.ask+ (and its streaming variant) so that the blocking HTTP
-    # call runs inside {BlockingAdapterPool} rather than on the EventLoop
-    # thread or the caller's thread directly.
+    # This is the default adapter used by Phronomy agents. It wraps
+    # +chat.ask+ (and its streaming variant) so that the synchronous provider
+    # call runs inside {OffloadPool} rather than on the EventLoop thread.
     #
     # @example Explicitly configuring this adapter
     #   Phronomy.configure do |c|

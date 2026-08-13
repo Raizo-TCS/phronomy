@@ -23,14 +23,10 @@ RSpec.describe Phronomy::Runtime do
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # #shutdown (#282 acceptance criteria)
-  # ---------------------------------------------------------------------------
-
   describe "#shutdown" do
-    it "shuts down the blocking adapter pool when it was started" do
+    it "shuts down the offload pool when it was started" do
       runtime = described_class.new
-      pool = runtime.blocking_io
+      pool = runtime.offload
       runtime.shutdown
       expect(pool.instance_variable_get(:@shutdown)).to be true
     end
@@ -41,9 +37,21 @@ RSpec.describe Phronomy::Runtime do
     end
   end
 
-  # ---------------------------------------------------------------------------
-  # Runtime.in_event_loop_context? (Issue #312)
-  # ---------------------------------------------------------------------------
+  describe "#offload" do
+    it "returns an OffloadPool" do
+      runtime = described_class.new
+      expect(runtime.offload).to be_a(Phronomy::Concurrency::OffloadPool)
+    ensure
+      runtime&.shutdown
+    end
+
+    it "does not expose the removed #blocking_io API" do
+      runtime = described_class.new
+      expect(runtime).not_to respond_to(:blocking_io)
+    ensure
+      runtime&.shutdown
+    end
+  end
 
   describe ".in_event_loop_context?" do
     it "returns false when called outside any task" do

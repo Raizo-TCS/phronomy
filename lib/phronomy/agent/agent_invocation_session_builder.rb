@@ -4,7 +4,7 @@ module Phronomy
   module Agent
     # Builds FSMSession instances for AgentInvocation objects.
     #
-    # Blocking/provider work returns through explicit Agent-internal events.
+    # Offloaded/provider work returns through explicit Agent-internal events.
     # Entry actions start operations and return synchronously.
     # Every LLM Call is prepared from a canonical Manifest and RuntimeProjection.
     #
@@ -272,7 +272,7 @@ module Phronomy
       def self.prepare_and_start_llm_call(agent, runtime, invocation, streaming:)
         activation = invocation.config.fetch(:phronomy_activation)
         if invocation.user_message_sent
-          preparation = runtime.blocking_io.submit do
+          preparation = runtime.offload.submit(on_full: :raise) do
             activation.coordinator.prepare_next_llm_call(activation)
           end
           preparation.on_complete do |projection, error|

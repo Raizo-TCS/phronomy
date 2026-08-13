@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-# Task-centric observability metrics (Issue #276, extended in #307).
 RSpec.describe Phronomy::Metrics do
   describe ".snapshot" do
     subject(:snap) { described_class.snapshot }
@@ -11,10 +10,10 @@ RSpec.describe Phronomy::Metrics do
 
     it "includes all expected metric keys" do
       expected_keys = %i[
-        blocking_pool_active
-        blocking_pool_queue_length
-        blocking_pool_abandoned_total
-        blocking_pool_size
+        offload_pool_active
+        offload_pool_queue_length
+        offload_pool_abandoned_total
+        offload_pool_size
         event_loop_queue_depth
         event_loop_queue_max_depth
         event_loop_lag_last_ms
@@ -25,15 +24,15 @@ RSpec.describe Phronomy::Metrics do
     end
 
     it "reports non-negative numeric values for all metrics" do
-      snap.each_value do |v|
-        expect(v).to be_a(Numeric)
-        expect(v).to be >= 0
+      snap.each_value do |value|
+        expect(value).to be_a(Numeric)
+        expect(value).to be >= 0
       end
     end
 
-    it "reports blocking_pool_size equal to the Runtime pool's pool_size" do
-      pool = Phronomy::Runtime.instance.blocking_io
-      expect(snap[:blocking_pool_size]).to eq(pool.pool_size)
+    it "reports offload_pool_size equal to the Runtime pool's pool_size" do
+      pool = Phronomy::Runtime.instance.offload
+      expect(snap[:offload_pool_size]).to eq(pool.pool_size)
     end
 
     it "reports event_loop_queue_max_depth >= event_loop_queue_depth" do

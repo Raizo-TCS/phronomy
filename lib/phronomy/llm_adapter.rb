@@ -7,8 +7,8 @@ module Phronomy
   # dependency on the RubyLLM blocking client. All LLM calls in
   # {Agent::Base} are routed through the adapter so that:
   #
-  # - Blocking HTTP can be submitted to {BlockingAdapterPool} for bounded
-  #   concurrency and per-operation timeouts.
+  # - Synchronous provider work can be submitted to {OffloadPool} for bounded
+  #   off-EventLoop execution.
   # - Alternative LLM clients can be swapped in without changing agent code.
   #
   # @example Configuring a custom adapter

@@ -43,7 +43,7 @@ It provides composable building blocks — Workflows, Agents, Tools, Filters, an
 |---|---|
 | **Knowledge** — Journal-backed persistent Agent context registered with `knowledge:` / `add_knowledge`; selected per LLM call by Context Policy; `clear_knowledge!` logically resets retained Knowledge without deleting Journal history | Beta |
 | **`VectorStore#size`** — Returns document count for all three backends (InMemory, RedisSearch, Pgvector) | Beta |
-| **`VectorStore::AsyncBackend` mixin** — Pluggable async interface for `VectorStore`; default pool-backed implementations for `search_async`, `add_async`, `remove_async`, `clear_async`; backends with native async drivers override individual methods to bypass `BlockingAdapterPool` entirely; all existing backends remain unchanged | Beta |
+| **`VectorStore::AsyncBackend` mixin** — Pluggable async interface for `VectorStore`; default pool-backed implementations for `search_async`, `add_async`, `remove_async`, `clear_async`; backends with native async drivers override individual methods to bypass `OffloadPool` entirely; all existing backends remain unchanged | Beta |
 | **MCP Tool** — `Phronomy::Tools::Mcp`: Model Context Protocol server integration via the official `mcp` gem; `Phronomy::Tools::Agent`: wraps an agent class as a callable tool via `from_agent` | Beta |
 | **Vector Search Tool** — `Phronomy::Tools::VectorSearch`: wraps a `VectorStore` and `Embeddings` adapter as a callable agent tool via `from_store` | Beta |
 
@@ -57,10 +57,10 @@ It provides composable building blocks — Workflows, Agents, Tools, Filters, an
 | **`invoke_async` / `call_async`** — `Agent::Base#invoke_async` and `Workflow#invoke_async` return a `Task`; `Agent::Context::Capability::Base#call_async` similarly; compatible with EventLoop and standalone contexts | Stable |
 | **`Task#map`** — transforms a Task's completed value and propagates failure/cancellation. `Task#map` remains available for application-level Task composition, but Workflow entry and transition actions must not return a Task | Stable |
 | **CancellationToken** — Cooperative cancellation via `cancel!`/`cancelled?`/`raise_if_cancelled!`; `timeout_after(seconds)` for monotonic-clock deadlines; passed as `config: { cancellation_token: token }` to agents and `dispatch_parallel`; injected into `tool.execute` when the method declares a `cancellation_token:` keyword; bridged to `MCP::Cancellation` in `Phronomy::Tools::Mcp#execute` | Experimental |
-| **`execution_mode` DSL on `Agent::Context::Capability::Base`** — `:cooperative` means EventLoop-safe work that returns quickly; a specialized cooperative Tool may start another Phronomy async lifecycle and return a completion `Task` immediately. `:blocking_io` (default) is offloaded to `BlockingAdapterPool`. `:cpu_bound` and `:external_process` require dedicated executors and currently raise `ConfigurationError` | Experimental |
-| **`blocking_io_pool_size` / `blocking_io_queue_size`** — Configure the default `BlockingAdapterPool` via `Phronomy.configure { \|c\| c.blocking_io_pool_size = 20; c.blocking_io_queue_size = 200 }`; all LLM calls, MCP tool calls, and other blocking I/O share this pool; defaults: `pool_size: 10`, `queue_size: 100` | Beta |
+| **`execution_mode` DSL on `Agent::Context::Capability::Base`** — `:cooperative` means short EventLoop-safe work, or a specialized Tool that starts another Phronomy async lifecycle and returns a completion `Task` immediately. `:offloaded` (default) runs synchronous work on the bounded `OffloadPool`; blocking I/O, CPU-bound work, and other long synchronous calls use the same contract. Workload classification is application-owned | Experimental |
+| **`offload_pool_size` / `offload_queue_size`** — Configure the default `OffloadPool` via `Phronomy.configure { |c| c.offload_pool_size = 20; c.offload_queue_size = 200 }`; defaults: `pool_size: 10`, `queue_size: 100`. The pool is shared by offloaded work and does not guarantee CPU/I/O fairness; applications own capacity planning and may use named pools for isolation | Beta |
 | **`invocation_context:` keyword on `Agent#invoke` / `Workflow#invoke`** — Pass a `Phronomy::InvocationContext` directly; `thread_id`, `cancellation_token`, and `deadline`-based timeout are derived from it; `task_id` / `parent_task_id` appear in trace spans automatically; `config:` keys remain supported as backward-compat aliases | Beta |
-| **`Phronomy::Metrics`** — `Phronomy::Metrics.snapshot` reports the two concurrency boundaries: `blocking_pool_active`, `blocking_pool_queue_length`, `blocking_pool_abandoned_total`, `blocking_pool_size`, plus `event_loop_queue_depth`, `event_loop_queue_max_depth`, `event_loop_lag_last_ms`, `event_loop_lag_max_ms`, and `event_loop_lag_average_ms` | Beta |
+| **`Phronomy::Metrics`** — `Phronomy::Metrics.snapshot` reports `offload_pool_active`, `offload_pool_queue_length`, `offload_pool_abandoned_total`, `offload_pool_size`, plus EventLoop queue/lag metrics | Beta |
 | **`Phronomy.with_configuration` / `Phronomy.reset_runtime!`** — Scoped configuration override; `reset_runtime!` performs a full `Runtime#shutdown` (including EventLoop termination) then resets configuration; intended for test isolation | Beta |
 | **`Runtime#event_loop`** — Returns the Runtime-owned `EventLoop` instance; lazy-initialised on first access; EventLoop lifetime is tied to the owning Runtime | Beta |
 | **`Runtime#shutdown(timeout:, cancel_grace:)`** — Irreversible Runtime shutdown: drains active sessions, terminates the EventLoop dispatcher, then stops pools and timers; returns a `ShutdownResult` with `runtime_outcome` and `cleanup_status` fields | Beta |
@@ -94,7 +94,7 @@ The APIs listed below are intended for advanced use cases, framework internals, 
 
 | Feature | Stability |
 |---|---|
-| **`Phronomy::Diagnostics`** — Snapshot of EventLoop lag/queue state and BlockingAdapterPool activity; blocking synchronous APIs are rejected from EventLoop context with `EventLoopReentrancyError` | Experimental |
+| **`Phronomy::Diagnostics`** — Snapshot of EventLoop lag/queue state and OffloadPool activity; blocking synchronous APIs are rejected from EventLoop context with `EventLoopReentrancyError` | Experimental |
 | **`Phronomy::Testing::FakeClock`** — Test-only deterministic clock helper. It does not replace the production Runtime or EventLoop | Beta |
 
 ## Installation
@@ -154,7 +154,7 @@ The following compatibility-only APIs have been removed from the active contract
 | `context_overhead` | Manifest-first assembly budgets actual mandatory + selected content |
 | Tool `on_error :return_empty` | Use `:raise` or `:suppress` |
 | `dispatch_parallel(..., force_kill:)` / `fan_out(..., force_kill:)` | Cooperative cancellation; no force-kill switch |
-| `runtime_backend` | Removed. Phronomy has one execution model: EventLoop/FSMSession for lifecycle coordination and BlockingAdapterPool for unavoidable blocking I/O |
+| `runtime_backend` | Removed. Phronomy has one control model: EventLoop/FSMSession for lifecycle coordination and OffloadPool for synchronous work that must stay off EventLoop |
 | `Runtime.instance = ...` | Runtime replacement is test/internal infrastructure, not a public setter |
 | `Runtime#spawn` / `TaskGroup` | Removed. Start framework async work through its domain async API (`invoke_async`, Workflow events, ToolInvocation, FanOut) |
 | `tools ToolA, ToolB` | Use `tools(ToolA => nil, ToolB => nil)` |
@@ -448,8 +448,8 @@ end
 
 Agent-backed Tools are asynchronous internally. The parent ToolInvocation starts
 the child Agent and returns to EventLoop immediately; it does **not** occupy a
-BlockingAdapterPool worker while waiting for the child. The child Agent's actual
-blocking provider I/O still uses the bounded BlockingAdapterPool.
+OffloadPool worker while waiting for the child. The child Agent's actual
+blocking provider I/O still uses the bounded OffloadPool.
 
 ### Filters — Input/output transformation and blocking
 

@@ -5,11 +5,12 @@ module Phronomy
     # Routes Tool work according to the Tool execution contract.
     #
     # :cooperative Tool calls execute inline and must return quickly. call_async
-    # wraps their result in an already-settled Task and never consumes a
-    # BlockingAdapterPool worker.
+    # wraps their result in an already-settled Task and never consumes an
+    # OffloadPool worker.
     #
-    # :blocking_io Tool calls are the only core Tool path routed through
-    # BlockingAdapterPool.
+    # :offloaded Tool calls route synchronous work through OffloadPool. Phronomy
+    # does not distinguish whether the reason is blocking I/O, CPU-bound work, or
+    # another long synchronous operation.
     module ToolExecutor
       def self.call_async(
         tool:,
@@ -17,7 +18,7 @@ module Phronomy
         cancellation_token: nil,
         config: {},
         runtime: nil,
-        on_full: :wait
+        on_full: :raise
       )
         mode = tool.class.execution_mode
 
@@ -32,20 +33,14 @@ module Phronomy
             task.fail(error)
           end
           task
-        when :blocking_io
+        when :offloaded
           runtime ||= Phronomy::Runtime.instance
-          runtime.blocking_io.submit(
+          runtime.offload.submit(
             cancellation_token: cancellation_token,
             on_full: on_full
           ) do
             tool.call(args, cancellation_token: cancellation_token)
           end
-        when :cpu_bound
-          raise Phronomy::ConfigurationError,
-            "Tool #{tool.class.name} declares :cpu_bound, but no CPU executor is configured"
-        when :external_process
-          raise Phronomy::ConfigurationError,
-            "Tool #{tool.class.name} declares :external_process, but no process executor is configured"
         else
           raise Phronomy::ConfigurationError,
             "unknown Tool execution_mode: #{mode.inspect}"

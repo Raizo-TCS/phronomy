@@ -9,8 +9,8 @@ module Phronomy
     #
     # Async methods (`search_async`, `add_async`, `remove_async`, `clear_async`)
     # are provided by the {AsyncBackend} mixin which defaults to routing calls
-    # through {BlockingAdapterPool}.  Backends with native async drivers may
-    # override individual async methods without touching the pool at all.
+    # through {OffloadPool}. Backends with native async drivers may override
+    # individual async methods without touching the pool at all.
     class Base
       include AsyncBackend
 

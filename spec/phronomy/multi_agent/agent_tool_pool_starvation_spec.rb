@@ -4,12 +4,12 @@ require "spec_helper"
 
 RSpec.describe "Agent-as-Tool blocking-pool independence" do
   it "does not consume the only blocking worker while waiting for a child Agent" do
-    pool = Phronomy::Concurrency::BlockingAdapterPool.new(
+    pool = Phronomy::Concurrency::OffloadPool.new(
       pool_size: 1,
       queue_size: 4,
       name: :agent_tool_starvation
     )
-    runtime_double = instance_double(Phronomy::Runtime, blocking_io: pool)
+    runtime_double = instance_double(Phronomy::Runtime, offload: pool)
     allow(Phronomy::Runtime).to receive(:instance).and_return(runtime_double)
 
     launch_thread_names = []

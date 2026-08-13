@@ -33,7 +33,7 @@ RSpec.describe "event-driven Workflow actions" do
     nil
   end
 
-  it "starts async work in entry and advances only from a later event" do
+  it "starts offloaded work in entry and advances only from a later event" do
     entered = Queue.new
     workflow = nil
 
@@ -42,7 +42,7 @@ RSpec.describe "event-driven Workflow actions" do
 
       state :generating, action: ->(context) {
         entered << true
-        op = Phronomy::Runtime.instance.blocking_io.submit { "generated answer" }
+        op = Phronomy::Runtime.instance.offload.submit(on_full: :raise) { "generated answer" }
         request_id = context.request_id
 
         op.on_complete do |value, error|
@@ -62,16 +62,8 @@ RSpec.describe "event-driven Workflow actions" do
 
       state :completed
 
-      transition(
-        from: :generating,
-        on: :generation_completed,
-        to: :completed
-      )
-      transition(
-        from: :generating,
-        on: :generation_failed,
-        to: :completed
-      )
+      transition(from: :generating, on: :generation_completed, to: :completed)
+      transition(from: :generating, on: :generation_failed, to: :completed)
       transition from: :completed, to: :__finish__
     end
 
@@ -91,25 +83,22 @@ RSpec.describe "event-driven Workflow actions" do
       initial :invalid
 
       state :invalid, action: ->(_context) {
-        t = Phronomy::Task.new(name: "not-implicitly-awaited")
-        Thread.new { t.complete("not implicitly awaited") }
-        t
+        task = Phronomy::Task.new(name: "not-implicitly-awaited")
+        Thread.new { task.complete("not implicitly awaited") }
+        task
       }
 
       transition from: :invalid, to: :__finish__
     end
 
-    expect {
-      workflow.invoke({})
-    }.to raise_error(Phronomy::InvalidAsyncEntryActionError)
+    expect { workflow.invoke({}) }
+      .to raise_error(Phronomy::InvalidAsyncEntryActionError)
   end
 
   it "lets application context consume a stale correlated event" do
     entered = Queue.new
     probe_ack = Queue.new
 
-    # Context that handles :probe events as a FIFO barrier: when probe is
-    # processed, all earlier events in the same EventLoop queue are done.
     stale_context = Class.new do
       include Phronomy::WorkflowContext
 
@@ -140,11 +129,7 @@ RSpec.describe "event-driven Workflow actions" do
       }
       state :completed
 
-      transition(
-        from: :generating,
-        on: :generation_completed,
-        to: :completed
-      )
+      transition(from: :generating, on: :generation_completed, to: :completed)
       transition from: :completed, to: :__finish__
     end
 
@@ -162,9 +147,6 @@ RSpec.describe "event-driven Workflow actions" do
       )
     ).to be(true)
 
-    # :probe is FIFO after the stale event; when probe is consumed by the
-    # context the stale event dispatch is guaranteed complete.
-    # post_to_session bypasses signal's event-name guard intentionally.
     Phronomy::Runtime.instance.event_loop.post_to_session(
       Phronomy::Event.new(
         type: :probe,

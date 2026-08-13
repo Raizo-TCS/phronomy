@@ -22,8 +22,8 @@ module Phronomy
     attr_accessor :event_loop_starvation_threshold_seconds
     attr_accessor :event_loop_dispatch_threshold_seconds
     attr_reader :stream_callback_error_policy
-    attr_accessor :blocking_io_pool_size
-    attr_accessor :blocking_io_queue_size
+    attr_accessor :offload_pool_size
+    attr_accessor :offload_queue_size
     attr_accessor :authorization_pool_size
     attr_accessor :authorization_queue_size
     attr_accessor :authorization_timeout
@@ -48,8 +48,8 @@ module Phronomy
       @event_loop_starvation_threshold_seconds = nil
       @event_loop_dispatch_threshold_seconds = nil
       @stream_callback_error_policy = :report
-      @blocking_io_pool_size = 10
-      @blocking_io_queue_size = 100
+      @offload_pool_size = 10
+      @offload_queue_size = 100
       @authorization_pool_size = 4
       @authorization_queue_size = 100
       @authorization_timeout = 5

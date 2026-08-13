@@ -4,7 +4,7 @@ require_relative "spec_helper"
 require_relative "support/factors"
 require_relative "support/llm_stub"
 
-# Group 37: BlockingAdapterPool boundary
+# Group 37: OffloadPool boundary
 #
 # Knowledge acquisition is no longer represented by a KnowledgeSource hierarchy.
 # TC-004 therefore verifies the application-facing Embeddings async boundary,
@@ -37,23 +37,23 @@ module PoolSpy
   end
 end
 
-RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
+RSpec.describe "Group 37: OffloadPool boundary", :integration do
   # Ensure a fresh Runtime pool for each example so spy state does not leak.
   around(:each) do |example|
     old_runtime = Phronomy::Runtime.replace_default_for_test(Phronomy::Runtime.new)
     example.run
   ensure
     # Shut down the per-example runtime pool gracefully.
-    Phronomy::Runtime.instance.blocking_io.shutdown(drain_timeout: 5)
+    Phronomy::Runtime.instance.offload.shutdown(drain_timeout: 5)
     Phronomy::Runtime.restore_default_for_test(old_runtime)
   end
 
-  let(:pool) { Phronomy::Runtime.instance.blocking_io }
+  let(:pool) { Phronomy::Runtime.instance.offload }
 
   # -------------------------------------------------------------------------
-  # TC-001: agent_llm — Agent LLM call routes through BlockingAdapterPool
+  # TC-001: agent_llm — Agent LLM call routes through OffloadPool
   # -------------------------------------------------------------------------
-  describe "TC-001: agent_llm — Agent LLM call routes through BlockingAdapterPool" do
+  describe "TC-001: agent_llm — Agent LLM call routes through OffloadPool" do
     let(:agent_class) do
       Class.new(Phronomy::Agent::Base) do
         agent_definition id: "test-agent-2", version: 1
@@ -76,9 +76,9 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
   end
 
   # -------------------------------------------------------------------------
-  # TC-002: blocking_io_tool — :blocking_io tool routes through pool
+  # TC-002: offload_tool — :offloaded tool routes through pool
   # -------------------------------------------------------------------------
-  describe "TC-002: blocking_io_tool — :blocking_io tool routes through pool" do
+  describe "TC-002: offload_tool — :offloaded tool routes through pool" do
     let(:agent_class) do
       tool = IntegrationFactors::BbBlockingTool
       Class.new(Phronomy::Agent::Base) do
@@ -92,7 +92,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
 
     before do
       # Enable parallel_tool_execution so ParallelToolChat is used as the chat class.
-      # This makes Phase 2 (pool.submit dispatch) active for :blocking_io tools.
+      # This makes Phase 2 (pool.submit dispatch) active for :offloaded tools.
       Phronomy.configure { |c| c.parallel_tool_execution = true }
 
       # Two tool calls in a single response trigger Phase 2 (parallel dispatch)
@@ -122,11 +122,11 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
       Phronomy.reset_configuration!
     end
 
-    it "routes the :blocking_io tool call through pool.submit" do
+    it "routes the :offloaded tool call through pool.submit" do
       PoolSpy.instrument(pool) do |counts|
         result = agent_class.new.invoke("run tools")
         expect(result[:output]).to be_a(String)
-        # Phase 2 submits each :blocking_io tool via pool.submit,
+        # Phase 2 submits each :offloaded tool via pool.submit,
         # plus the LLM call itself routes via pool.submit (complete_async).
         # With 2 tool calls: at minimum 1 (complete_async) + 2 (tool dispatch) = 3.
         expect(counts.size).to be >= 2
@@ -137,7 +137,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
   # -------------------------------------------------------------------------
   # TC-003: cooperative_tool — :cooperative tool does NOT use pool
   # -------------------------------------------------------------------------
-  describe "TC-003: cooperative_tool — :cooperative tool does NOT use BlockingAdapterPool" do
+  describe "TC-003: cooperative_tool — :cooperative tool does NOT use OffloadPool" do
     let(:agent_class) do
       tool = IntegrationFactors::BbCooperativeTool
       Class.new(Phronomy::Agent::Base) do
@@ -220,7 +220,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
   # TC-006: queue_full — Pool queue full raises BackpressureError
   # -------------------------------------------------------------------------
   describe "TC-006: queue_full — pool queue full raises BackpressureError" do
-    let(:tiny_pool) { Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 1) }
+    let(:tiny_pool) { Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 1) }
 
     after { tiny_pool.shutdown(drain_timeout: 3) }
 
@@ -250,7 +250,7 @@ RSpec.describe "Group 37: BlockingAdapterPool boundary", :integration do
   # TC-007: pool_shutdown — Submit after shutdown raises PoolShutdownError
   # -------------------------------------------------------------------------
   describe "TC-007: pool_shutdown — submit after shutdown raises PoolShutdownError" do
-    let(:fresh_pool) { Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 10) }
+    let(:fresh_pool) { Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 10) }
 
     it "raises PoolShutdownError when the pool has been shut down" do
       fresh_pool.shutdown(drain_timeout: 3)

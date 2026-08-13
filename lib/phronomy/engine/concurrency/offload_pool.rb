@@ -2,39 +2,46 @@
 
 module Phronomy
   module Concurrency
-    # A bounded, observable thread pool for blocking I/O operations.
+    # A bounded, observable thread pool for synchronous work that must not run on
+    # the Runtime EventLoop.
     #
     # ## Architectural boundary
     #
-    # `BlockingAdapterPool` is the *only* place in Phronomy that uses raw OS threads
-    # for I/O. All third-party gem calls whose internal I/O Phronomy cannot control
-    # — including RubyLLM, ActiveRecord, Redis, Faraday, and MCP stdio transport —
-    # **must** route through this pool (or a named pool obtained via
-    # {Runtime#pool}). Custom non-blocking HTTP/selector runtimes are intentionally
-    # out of scope; EventLoop/FSMSession owns logical asynchronous coordination,
-    # while this pool is reserved for unavoidable blocking I/O. (See ADR-010.)
+    # `OffloadPool` is the bounded OS-thread execution boundary for synchronous
+    # operations that would otherwise occupy the EventLoop for too long. The work
+    # may be blocking I/O, CPU-bound Ruby processing, or another application-defined
+    # synchronous call. Phronomy deliberately does not classify the workload by
+    # cause; the application decides whether a unit of work is EventLoop-safe.
     #
-    # All blocking calls (LLM HTTP, MCP stdio, ActiveRecord, Redis, etc.) must be
-    # submitted through this pool so that:
+    # Logical waits are different. Waiting for another Phronomy Task, Agent,
+    # Workflow, ToolInvocation, timer, or FSMSession must remain an explicit
+    # EventLoop/FSMSession continuation and must not consume an OffloadPool worker.
+    # See ADR-010.
     #
-    # 1. The total number of OS threads is capped.
+    # Submitted work is bounded so that:
+    #
+    # 1. The total number of worker OS threads is capped.
     # 2. Queue depth is bounded (backpressure when the pool is saturated).
     # 3. Per-operation timeouts are enforced consistently.
     # 4. Abandoned (timed-out) operations are tracked and logged.
     # 5. Metrics (active count, queue depth, abandoned count, avg wait time) are
     #    observable at runtime.
     #
-    # @example Submitting a blocking LLM call
-    #   op = runtime.blocking_io.submit(timeout: 30) { chat.ask(message) }
+    # OffloadPool does not provide CPU isolation, CPU parallelism guarantees, or
+    # fairness between I/O and CPU-heavy work classes. Applications that need
+    # resource isolation may use named pools via {Runtime#pool}.
+    #
+    # @example Submitting synchronous work
+    #   op = runtime.offload.submit(timeout: 30) { expensive_call }
     #   result = op.blocking_wait   # blocks the calling thread until done
     #
     # @example With cancellation
     #   token = Phronomy::Concurrency::CancellationToken.timeout_after(60)
     #   op = pool.submit(timeout: 30, cancellation_token: token) { expensive_call }
     #   result = op.blocking_wait
-    class BlockingAdapterPool
-      # Represents the pending result of a submitted blocking operation.
-      # Returned immediately by {BlockingAdapterPool#submit}; call {#blocking_wait}
+    class OffloadPool
+      # Represents the pending result of submitted offloaded work.
+      # Returned immediately by {OffloadPool#submit}; call {#blocking_wait}
       # to wait for the result.
       class PendingOperation
         # @return [Boolean] true when the caller-facing result has settled
@@ -71,8 +78,8 @@ module Phronomy
         # another waiter or an +on_complete+ callback may receive the eventual result
         # unless the submit-time deadline or cancellation settles the operation first.
         #
-        # A submit-time timeout passed to {BlockingAdapterPool#submit} is enforced by
-        # the runtime timer queue independently of this method and is therefore not
+        # A submit-time timeout passed to {OffloadPool#submit} is enforced by the
+        # runtime timer queue independently of this method and is therefore not
         # re-read here.
         #
         # An optional +cancellation_token+ may be passed here (or at submit time).
@@ -89,8 +96,6 @@ module Phronomy
         def blocking_wait(timeout: nil, cancellation_token: nil)
           effective_token = cancellation_token || @cancellation_token
 
-          raise CancellationError, "blocking operation cancelled" if effective_token&.cancelled?
-
           # Wake up the waiting thread whenever the token is cancelled so we can
           # propagate cancellation without sleeping until the operation completes.
           effective_token&.on_cancel { @mutex.synchronize { @cond.broadcast } }
@@ -98,12 +103,12 @@ module Phronomy
           deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout if timeout
           value, error = @mutex.synchronize do
             until @done
-              raise CancellationError, "blocking operation cancelled" if effective_token&.cancelled?
+              raise CancellationError, "offloaded operation cancelled" if effective_token&.cancelled?
 
               if deadline
                 remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
                 if remaining <= 0
-                  raise Phronomy::TimeoutError, "timed out waiting for blocking operation after #{timeout}s"
+                  raise Phronomy::TimeoutError, "timed out waiting for offloaded operation after #{timeout}s"
                 end
                 @cond.wait(@mutex, remaining)
               else
@@ -127,8 +132,8 @@ module Phronomy
         # If the operation has already settled, the callback is invoked immediately
         # on the calling thread. Otherwise it may be invoked on a pool worker thread
         # or on the EventLoop thread when an operation timeout fires. The execution
-        # thread is not guaranteed;
-        # callbacks must be thread-safe and should complete quickly.
+        # thread is not guaranteed; callbacks must be thread-safe and should complete
+        # quickly.
         #
         # The callback receives +result+ and +error+ (one of them will be +nil+).
         #
@@ -177,7 +182,7 @@ module Phronomy
         # @api private
         def fire_timeout!
           error = Phronomy::TimeoutError.new(
-            "blocking operation timed out after #{@timeout}s"
+            "offloaded operation timed out after #{@timeout}s"
           )
           callbacks = nil
           abandoned_now = false
@@ -202,7 +207,7 @@ module Phronomy
               @on_abandoned&.call
             rescue => e
               Phronomy.configuration.logger&.error {
-                "BlockingAdapterPool abandoned callback failed: #{e.class}: #{e.message}"
+                "OffloadPool abandoned callback failed: #{e.class}: #{e.message}"
               }
             end
           end
@@ -262,8 +267,9 @@ module Phronomy
           return unless should_run
 
           # Do NOT use Timeout.timeout here — it delivers an async Thread#raise
-          # that can corrupt external library state (mutexes, C extensions, etc.).
-          # Each blocking library should set its own native connection/read timeout.
+          # that can corrupt library/application state (mutexes, C extensions, etc.).
+          # I/O libraries should set native connection/read timeouts. CPU-heavy work
+          # that needs hard termination should use a future process-offload facility.
           begin
             complete_with_value!(@block.call)
           rescue Exception => e # rubocop:disable Lint/RescueException
@@ -330,7 +336,7 @@ module Phronomy
         @workers = Array.new(pool_size) { |i| spawn_worker(i) }
       end
 
-      # Submits a blocking operation to the pool.
+      # Submits synchronous off-EventLoop work to the pool.
       # Returns a {PendingOperation} immediately after queue admission; the block runs
       # on a worker thread. Do not submit logical waits (for example waiting for a
       # child Agent Task) merely to make them asynchronous; those belong to
@@ -343,14 +349,15 @@ module Phronomy
       # the operation is not counted as abandoned. If it fires after execution starts,
       # the operation is marked abandoned and the eventual worker result is discarded.
       #
-      # Synchronous queue admission may still delay return from this method when
-      # +on_full: :wait+ is used; resolving that requires interruptible admission.
+      # Synchronous queue admission may delay return from this method when
+      # +on_full: :wait+ is used. EventLoop-owned framework paths therefore submit
+      # with +on_full: :raise+ and handle backpressure asynchronously.
       #
       # @param timeout [Numeric, nil] operation-wide deadline in seconds
       # @param cancellation_token [CancellationToken, nil]
       # @param on_full [Symbol] +:wait+, +:raise+, or +:timeout+
       # @param full_timeout [Numeric, nil] queue-admission timeout for +on_full: :timeout+
-      # @yield block containing the blocking call
+      # @yield block containing synchronous work
       # @return [PendingOperation]
       # @raise [Phronomy::ConfigurationError] when +timeout+ is specified without a
       #   timer queue provider
@@ -399,7 +406,7 @@ module Phronomy
               @queue.push(op, true)
             rescue ThreadError
               raise Phronomy::BackpressureError,
-                "BlockingAdapterPool queue is full (depth: #{@queue_size})"
+                "OffloadPool queue is full (depth: #{@queue_size})"
             end
           when :timeout
             deadline = full_timeout ? (Process.clock_gettime(Process::CLOCK_MONOTONIC) + full_timeout) : nil
@@ -409,7 +416,7 @@ module Phronomy
             rescue ThreadError
               if deadline && Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
                 raise Phronomy::TimeoutError,
-                  "timed out waiting for a free slot in BlockingAdapterPool"
+                  "timed out waiting for a free slot in OffloadPool"
               end
               sleep(0.005)
             end
@@ -492,7 +499,7 @@ module Phronomy
       private_constant :SENTINEL
 
       def spawn_worker(index = nil)
-        label = ["phronomy", "blocking-pool", @name, index].compact.join("-")
+        label = ["phronomy", "offload-pool", @name, index].compact.join("-")
         Thread.new do
           Thread.current.name = label
           loop do
@@ -519,7 +526,7 @@ module Phronomy
             @active_count -= 1
 
             if op.abandoned?
-              @logger&.warn { "BlockingAdapterPool: worker finished operation after caller timed out" }
+              @logger&.warn { "OffloadPool: worker finished operation after caller timed out" }
             end
 
             @total_wait_ns += (op.wait_time * 1_000_000_000).to_i

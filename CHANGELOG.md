@@ -9,13 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### OffloadPool execution model
+
+#### Changed
+
+- Renamed `OffloadPool` to `OffloadPool` and `Runtime#offload` to
+  `Runtime#offload`; configuration and metrics now use `offload_*` names.
+- Simplified Tool execution modes to `:cooperative` and `:offloaded`.
+  Workload classification (I/O-bound versus CPU-bound) is application-owned.
+- CPU-bound synchronous Tools may execute through the bounded OffloadPool;
+  Phronomy does not guarantee CPU isolation, CPU/I/O fairness, or parallel
+  speedup for pure Ruby CPU work.
+- Framework-owned EventLoop-origin offload submissions use non-blocking queue
+  admission so a full worker queue raises backpressure instead of blocking
+  the EventLoop control thread.
+- Named Runtime pools remain available for application-managed resource
+  isolation and capacity planning.
+
+#### Removed
+
+- Tool execution modes `:offloaded`, `:cpu_bound`, and `:external_process`.
+- `Runtime#offload`, `offload_pool_size`, and
+  `offload_queue_size`.
+
+
 ### EventLoop-first runtime cleanup
 
 #### Added
 
 - Event-driven Agent-as-Tool completion: child Agents now run through their own
   Agent FSMSession and settle the parent ToolInvocation through a completion
-  event without holding a BlockingAdapterPool worker while waiting.
+  event without holding a OffloadPool worker while waiting.
 - Architecture regression coverage for the production Thread/Fiber boundary,
   test-only API separation, current concurrency documentation, and Agent-as-Tool
   pool-starvation behavior.
@@ -29,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or a specialized Tool that starts another Phronomy asynchronous lifecycle and
   returns a completion handle immediately.
 - `Tool#call_async` for ordinary cooperative Tools no longer consumes a
-  BlockingAdapterPool worker. `:blocking_io` remains the worker-pool route.
+  OffloadPool worker. `:offloaded` remains the worker-pool route.
 - Framework-owned short in-memory Tools (handoff sentinels, TeamCoordinator
   queue controls, and SharedState store access) explicitly declare
   `execution_mode :cooperative` instead of using the blocking-I/O default.

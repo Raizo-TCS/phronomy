@@ -3,10 +3,10 @@
 RSpec.describe "production thread confinement" do
   THREAD_NEW_ALLOWLIST = %w[
     lib/phronomy/engine/event_loop.rb
-    lib/phronomy/engine/concurrency/blocking_adapter_pool.rb
+    lib/phronomy/engine/concurrency/offload_pool.rb
   ].freeze
 
-  it "allows Thread.new only in EventLoop and BlockingAdapterPool" do
+  it "allows Thread.new only in EventLoop and OffloadPool" do
     lib_root = File.expand_path("../../lib", __dir__)
     project_root = File.expand_path("..", lib_root)
     violations = []
@@ -24,7 +24,7 @@ RSpec.describe "production thread confinement" do
     end
 
     expect(violations).to be_empty,
-      "Thread.new used outside EventLoop/BlockingAdapterPool:\n#{violations.join("\n")}"
+      "Thread.new used outside EventLoop/OffloadPool:\n#{violations.join("\n")}"
   end
 
   it "contains no production Fiber execution path" do
@@ -38,9 +38,7 @@ RSpec.describe "production thread confinement" do
 
       File.foreach(abs_path).each_with_index do |line, index|
         next if line.strip.start_with?("#")
-        if line.match?(/\bFiber(?:\.|::|\b)/)
-          violations << "#{rel_path}:#{index + 1}: #{line.strip}"
-        end
+        violations << "#{rel_path}:#{index + 1}: #{line.strip}" if line.match?(/\bFiber(?:\.|::|\b)/)
       end
     end
 

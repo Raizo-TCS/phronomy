@@ -113,16 +113,22 @@ module Phronomy
 
             public
 
+            # Declares whether Tool work is safe to run cooperatively on the EventLoop
+            # or must be offloaded to a bounded worker pool.
+            #
+            # Phronomy does not classify the reason for offloading. Blocking I/O,
+            # CPU-bound synchronous work, and other long synchronous calls all use
+            # +:offloaded+. The application owns that workload classification.
             # @api public
             def execution_mode(value = nil)
               if value.nil?
                 return @execution_mode if instance_variable_defined?(:@execution_mode)
                 return superclass.execution_mode if superclass.respond_to?(:execution_mode)
 
-                return :blocking_io
+                return :offloaded
               end
 
-              valid = %i[cooperative blocking_io cpu_bound external_process]
+              valid = %i[cooperative offloaded]
               unless valid.include?(value)
                 raise ArgumentError,
                   "execution_mode must be one of #{valid.inspect}, got #{value.inspect}"

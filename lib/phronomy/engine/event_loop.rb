@@ -500,7 +500,7 @@ module Phronomy
         "[Phronomy::EventLoop] Long dispatch: event #{event.type.inspect} " \
           "for target #{event.target_id.inspect} took " \
           "#{format("%.3f", elapsed_ns / 1_000_000_000.0)}s on the EventLoop thread " \
-          "(threshold: #{threshold}s). Move blocking I/O to BlockingAdapterPool."
+          "(threshold: #{threshold}s). Move blocking I/O to OffloadPool."
       end
     end
 

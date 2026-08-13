@@ -131,7 +131,7 @@ RSpec.describe "Tool class configuration inheritance" do
       child = Class.new(parent) do
         tool_name "child_tool"
         description "Child tool"
-        execution_mode :blocking_io
+        execution_mode :offloaded
         on_error :raise
         on_schema_error :return_error
         max_result_size 64
@@ -140,7 +140,7 @@ RSpec.describe "Tool class configuration inheritance" do
 
       expect(child.tool_name).to eq("child_tool")
       expect(child.description).to eq("Child tool")
-      expect(child.execution_mode).to eq(:blocking_io)
+      expect(child.execution_mode).to eq(:offloaded)
       expect(child.on_error).to eq(:raise)
       expect(child.on_schema_error).to eq(:return_error)
       expect(child.max_result_size).to eq(64)

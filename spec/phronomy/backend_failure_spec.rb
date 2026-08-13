@@ -13,8 +13,8 @@
 # Scenarios covered here:
 #   - Network timeout during Embeddings#embed_async
 #   - Network timeout during VectorStore#search_async
-#   - Cancellation during in-flight BlockingAdapterPool operation
-#   - BlockingAdapterPool saturation — backpressure, not silent drop
+#   - Cancellation during in-flight OffloadPool operation
+#   - OffloadPool saturation — backpressure, not silent drop
 #   - Scheduler lag remains low while slow backend blocks pool workers
 RSpec.describe "Backend failure scenarios (Issue #274)" do
   describe "Embeddings network timeout" do
@@ -50,7 +50,7 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
   end
 
   describe "Cancellation during in-flight operation" do
-    let(:pool) { Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 2, queue_size: 10) }
+    let(:pool) { Phronomy::Concurrency::OffloadPool.new(pool_size: 2, queue_size: 10) }
 
     after { pool.shutdown(drain_timeout: 5) }
 
@@ -63,9 +63,9 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
     end
   end
 
-  describe "BlockingAdapterPool saturation — no silent drop" do
+  describe "OffloadPool saturation — no silent drop" do
     it "raises BackpressureError (not silently drops) when queue is full" do
-      sat_pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 1)
+      sat_pool = Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 1)
       latch = Mutex.new
       cond = ConditionVariable.new
       released = false
@@ -94,7 +94,7 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
 
   describe "Scheduler lag under slow-backend load" do
     it "keeps EventLoop max_lag_seconds below 0.2s while pool workers are busy" do
-      pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 4, queue_size: 20)
+      pool = Phronomy::Concurrency::OffloadPool.new(pool_size: 4, queue_size: 20)
       runtime = Phronomy::Runtime.new
       el = runtime.event_loop
 

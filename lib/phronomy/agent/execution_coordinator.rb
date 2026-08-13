@@ -19,7 +19,7 @@ module Phronomy
       )
         result_task = Phronomy::Task.deferred(name: "agent-#{@agent.agent_id}-#{mode}")
         runtime = Phronomy::Runtime.instance
-        preparation = runtime.blocking_io.submit do
+        preparation = runtime.offload.submit(on_full: :raise) do
           prepare(input, thread_id: thread_id, config: config)
         end
         preparation.on_complete do |prepared, error|
@@ -52,7 +52,7 @@ module Phronomy
           name: "agent-approval-resume:#{execution_id}"
         )
         runtime = Phronomy::Runtime.instance
-        preparation = runtime.blocking_io.submit do
+        preparation = runtime.offload.submit(on_full: :raise) do
           execution = @agent.persistence.executions.load(execution_id)
           unless execution.agent_id == @agent.agent_id && execution.status == :suspended
             raise ArgumentError,
@@ -86,7 +86,7 @@ module Phronomy
               config: config
             )
           rescue => start_error
-            commit = runtime.blocking_io.submit do
+            commit = runtime.offload.submit(on_full: :raise) do
               commit_failed(activation, activation.invocation, start_error)
             end
             commit.on_complete do |terminal, commit_error|
@@ -107,7 +107,7 @@ module Phronomy
 
       # Persists all Runtime events from the previous call, fixes the next
       # Canonical LLM Input Manifest, and materializes the next Runtime Projection.
-      # This method is executed on the blocking adapter pool, never on EventLoop.
+      # This method is executed on an OffloadPool worker, never on EventLoop.
       def prepare_next_llm_call(activation)
         snapshot = activation.runtime_snapshot
         manifest = manifest_ref = updated = root = nil
@@ -397,7 +397,7 @@ module Phronomy
 
       def finish(activation, result_task, invocation, error)
         runtime = Phronomy::Runtime.instance
-        operation = runtime.blocking_io.submit do
+        operation = runtime.offload.submit(on_full: :raise) do
           compute_terminal(activation, invocation, error)
         end
         operation.on_complete do |outcome, commit_error|
@@ -1069,7 +1069,7 @@ module Phronomy
       def dispatch_approval_listener(invocation, request)
         listener = invocation.approval_listener
         return unless listener
-        Phronomy::Runtime.instance.blocking_io.submit { listener.call(request) }
+        Phronomy::Runtime.instance.offload.submit(on_full: :raise) { listener.call(request) }
       end
 
       def json_value(value)

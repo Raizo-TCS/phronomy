@@ -172,10 +172,11 @@ module Phronomy
       #
       # Both core execution paths use Tool#call_async:
       #
-      # - :cooperative returns a Task without consuming a blocking-I/O worker.
+      # - :cooperative returns a Task without consuming an OffloadPool worker.
       #   Ordinary cooperative Tools settle that Task inline; Agent-backed Tools
       #   may start child EventLoop/FSM work and settle later.
-      # - :blocking_io returns a BlockingAdapterPool PendingOperation.
+      # - :offloaded returns an OffloadPool PendingOperation for synchronous work
+      #   that must not occupy the EventLoop.
       #
       # In either case ToolInvocation remains in :running and resumes only from
       # the explicit :execution_completed FSM event posted by the session builder.
@@ -189,7 +190,7 @@ module Phronomy
         end
 
         case @tool.class.execution_mode
-        when :cooperative, :blocking_io
+        when :cooperative, :offloaded
           operation = start_async_tool_operation(runtime)
           unless operation.respond_to?(:on_complete)
             raise Phronomy::ToolError,
@@ -199,11 +200,6 @@ module Phronomy
           operation.on_complete do |result, error|
             callback.call(execution_outcome(result, error))
           end
-        when :cpu_bound, :external_process
-          callback.call(ExecutionOutcome.new(error: Phronomy::ConfigurationError.new(
-            "Tool #{@tool.class.name} execution_mode #{@tool.class.execution_mode.inspect} " \
-            "requires a dedicated executor"
-          )))
         else
           callback.call(ExecutionOutcome.new(error: Phronomy::ConfigurationError.new(
             "unknown Tool execution_mode: #{@tool.class.execution_mode.inspect}"
@@ -284,7 +280,8 @@ module Phronomy
             args: @arguments,
             cancellation_token: @config[:cancellation_token],
             config: @config,
-            runtime: runtime
+            runtime: runtime,
+            on_full: :raise
           )
         else
           @tool.call_async(

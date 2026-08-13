@@ -7,7 +7,7 @@ module Phronomy
     # Mixing this module into a VectorStore class provides three choices:
     #
     # 1. **Do nothing** — inherits default implementations from {VectorStore::Base}
-    #    that route through {BlockingAdapterPool} (the previous behaviour).
+    #    that route through {OffloadPool}.
     #
     # 2. **Override selectively** — override only the async methods where the
     #    backend has a native async driver, while the remaining methods fall back
@@ -30,7 +30,7 @@ module Phronomy
     module AsyncBackend
       # Async variant of {VectorStore::Base#add}.
       #
-      # Submits the add call to {BlockingAdapterPool} by default.
+      # Submits the add call to {OffloadPool} by default.
       # Override to use a native async driver.
       #
       # @param id                 [String]
@@ -38,12 +38,13 @@ module Phronomy
       # @param metadata           [Hash]
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil]
-      # @return [BlockingAdapterPool::PendingOperation]
+      # @return [OffloadPool::PendingOperation]
       # @api public
       def add_async(id:, embedding:, metadata: {}, cancellation_token: nil, timeout: nil)
-        Phronomy::Runtime.instance.blocking_io.submit(
+        Phronomy::Runtime.instance.offload.submit(
           timeout: timeout,
-          cancellation_token: cancellation_token
+          cancellation_token: cancellation_token,
+          on_full: :raise
         ) do
           add(id: id, embedding: embedding, metadata: metadata, cancellation_token: cancellation_token)
         end
@@ -51,19 +52,20 @@ module Phronomy
 
       # Async variant of {VectorStore::Base#search}.
       #
-      # Submits the search call to {BlockingAdapterPool} by default.
+      # Submits the search call to {OffloadPool} by default.
       # Override to use a native async driver.
       #
       # @param query_embedding    [Array<Float>]
       # @param k                  [Integer]
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil]
-      # @return [BlockingAdapterPool::PendingOperation]
+      # @return [OffloadPool::PendingOperation]
       # @api public
       def search_async(query_embedding:, k: 5, cancellation_token: nil, timeout: nil)
-        Phronomy::Runtime.instance.blocking_io.submit(
+        Phronomy::Runtime.instance.offload.submit(
           timeout: timeout,
-          cancellation_token: cancellation_token
+          cancellation_token: cancellation_token,
+          on_full: :raise
         ) do
           search(query_embedding: query_embedding, k: k, cancellation_token: cancellation_token)
         end
@@ -71,18 +73,19 @@ module Phronomy
 
       # Async variant of {VectorStore::Base#remove}.
       #
-      # Submits the remove call to {BlockingAdapterPool} by default.
+      # Submits the remove call to {OffloadPool} by default.
       # Override to use a native async driver.
       #
       # @param id                 [String]
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil]
-      # @return [BlockingAdapterPool::PendingOperation]
+      # @return [OffloadPool::PendingOperation]
       # @api public
       def remove_async(id:, cancellation_token: nil, timeout: nil)
-        Phronomy::Runtime.instance.blocking_io.submit(
+        Phronomy::Runtime.instance.offload.submit(
           timeout: timeout,
-          cancellation_token: cancellation_token
+          cancellation_token: cancellation_token,
+          on_full: :raise
         ) do
           remove(id: id)
         end
@@ -90,17 +93,18 @@ module Phronomy
 
       # Async variant of {VectorStore::Base#clear}.
       #
-      # Submits the clear call to {BlockingAdapterPool} by default.
+      # Submits the clear call to {OffloadPool} by default.
       # Override to use a native async driver.
       #
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil]
-      # @return [BlockingAdapterPool::PendingOperation]
+      # @return [OffloadPool::PendingOperation]
       # @api public
       def clear_async(cancellation_token: nil, timeout: nil)
-        Phronomy::Runtime.instance.blocking_io.submit(
+        Phronomy::Runtime.instance.offload.submit(
           timeout: timeout,
-          cancellation_token: cancellation_token
+          cancellation_token: cancellation_token,
+          on_full: :raise
         ) do
           clear
         end

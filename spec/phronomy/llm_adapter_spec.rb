@@ -19,10 +19,10 @@ RSpec.describe "LLMAdapter abstraction" do
     end
 
     describe "#complete_async" do
-      it "submits the blocking complete call to the provided pool and returns a PendingOperation" do
-        pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
+      it "submits the synchronous complete call to the provided OffloadPool" do
+        pool = Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 10)
         concrete = Class.new(described_class) do
-          def complete(chat, message, config: {})
+          def complete(_chat, message, config: {})
             "response:#{message}"
           end
         end.new
@@ -31,16 +31,16 @@ RSpec.describe "LLMAdapter abstraction" do
         expect(op).to respond_to(:blocking_wait)
         expect(op.wait_result).to eq("response:ping")
       ensure
-        pool.shutdown
+        pool&.shutdown
       end
     end
 
     describe "#stream_async" do
-      it "submits the blocking stream call to the provided pool and returns a PendingOperation" do
-        pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
+      it "submits the synchronous stream call to the provided OffloadPool" do
+        pool = Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 10)
         received_chunks = []
         concrete = Class.new(described_class) do
-          def stream(chat, message, config: {}, &block)
+          def stream(_chat, _message, config: {}, &block)
             block.call("chunk1")
             block.call("chunk2")
             "done"
@@ -50,24 +50,20 @@ RSpec.describe "LLMAdapter abstraction" do
         op = concrete.stream_async(double, "ping", config: {}, pool: pool) do |chunk|
           received_chunks << chunk
         end
-        result = op.wait_result
-
-        expect(result).to eq("done")
+        expect(op.wait_result).to eq("done")
         expect(received_chunks).to eq(%w[chunk1 chunk2])
       ensure
-        pool.shutdown
+        pool&.shutdown
       end
-    end
 
-    describe "#stream_async cancellation" do
-      it "checks the cancellation token before delivering each chunk" do
-        pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
+      it "checks cancellation before delivering each chunk" do
+        pool = Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 10)
         token = Phronomy::Concurrency::CancellationToken.new
         received = []
         concrete = Class.new(described_class) do
-          def stream(chat, message, config: {}, &blk)
-            blk.call("c1")
-            blk.call("c2")
+          def stream(_chat, _message, config: {}, &block)
+            block.call("c1")
+            block.call("c2")
             "done"
           end
         end.new
@@ -85,7 +81,7 @@ RSpec.describe "LLMAdapter abstraction" do
         expect { pending.wait_result }.to raise_error(Phronomy::CancellationError)
         expect(received).to eq(["c1"])
       ensure
-        pool.shutdown
+        pool&.shutdown
       end
     end
   end
@@ -106,11 +102,11 @@ RSpec.describe "LLMAdapter abstraction" do
     describe "#stream" do
       it "delegates to chat.ask(message) with a block" do
         chunks = []
-        expect(chat).to receive(:ask).with("ping") do |_msg, &blk|
-          blk&.call("token1")
+        expect(chat).to receive(:ask).with("ping") do |_msg, &block|
+          block&.call("token1")
           response
         end
-        result = adapter.stream(chat, "ping") { |c| chunks << c }
+        result = adapter.stream(chat, "ping") { |chunk| chunks << chunk }
         expect(result).to eq(response)
         expect(chunks).to eq(["token1"])
       end
@@ -125,10 +121,10 @@ RSpec.describe "LLMAdapter abstraction" do
 
     it "can be replaced with a custom adapter" do
       custom = Phronomy::LLMAdapter::Base.new
-      Phronomy.configure { |c| c.llm_adapter = custom }
+      Phronomy.configure { |config| config.llm_adapter = custom }
       expect(Phronomy.configuration.llm_adapter).to equal(custom)
     ensure
-      Phronomy.configure { |c| c.llm_adapter = Phronomy::LLMAdapter::RubyLLM.new }
+      Phronomy.configure { |config| config.llm_adapter = Phronomy::LLMAdapter::RubyLLM.new }
     end
   end
 
@@ -142,12 +138,19 @@ RSpec.describe "LLMAdapter abstraction" do
     end
 
     let(:fake_response) do
-      tokens = double("tokens", input: 10, output: 20, cached: 0, cache_creation: 0, to_h: {"input" => 10, "output" => 20, "cached" => 0, "cache_creation" => 0})
+      tokens = double(
+        "tokens",
+        input: 10,
+        output: 20,
+        cached: 0,
+        cache_creation: 0,
+        to_h: {"input" => 10, "output" => 20, "cached" => 0, "cache_creation" => 0}
+      )
       double("response", content: "adapter response", tokens: tokens)
     end
 
     let(:fake_adapter) do
-      pool = Phronomy::Concurrency::BlockingAdapterPool.new(pool_size: 1, queue_size: 10)
+      pool = Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 10)
       adapter = instance_double(Phronomy::LLMAdapter::RubyLLM)
       pending_op = pool.submit { fake_response }
       allow(adapter).to receive(:complete_async).and_return(pending_op)
@@ -156,18 +159,15 @@ RSpec.describe "LLMAdapter abstraction" do
 
     it "calls adapter.complete_async instead of chat.ask directly" do
       adapter, pool = fake_adapter
-      Phronomy.configure { |c| c.llm_adapter = adapter }
+      Phronomy.configure { |config| config.llm_adapter = adapter }
 
-      # Stub build_chat to avoid real RubyLLM setup
-      chat = double("chat",
-        messages: [],
-        on_tool_call: nil,
-        on_tool_result: nil)
+      chat = double("chat", messages: [], on_tool_call: nil, on_tool_result: nil)
       allow_any_instance_of(agent_class).to receive(:build_chat).and_return(chat)
       allow_any_instance_of(agent_class).to receive(:apply_instructions)
-      allow_any_instance_of(agent_class).to receive(:run_before_llm_input_hooks).and_return(Phronomy::Agent::LLMInputPatch.empty)
+      allow_any_instance_of(agent_class)
+        .to receive(:run_before_llm_input_hooks)
+        .and_return(Phronomy::Agent::LLMInputPatch.empty)
       allow_any_instance_of(agent_class).to receive(:check_cancellation!)
-      # before_tool_call must respond true (>= 1.15 guard); other optional methods return false
       allow(chat).to receive(:before_tool_call)
       allow(chat).to receive(:respond_to?) do |method_name, *|
         method_name.to_sym == :before_tool_call
@@ -177,8 +177,8 @@ RSpec.describe "LLMAdapter abstraction" do
       expect(result[:output]).to eq("adapter response")
       expect(adapter).to have_received(:complete_async)
     ensure
-      Phronomy.configure { |c| c.llm_adapter = Phronomy::LLMAdapter::RubyLLM.new }
-      pool.shutdown
+      Phronomy.configure { |config| config.llm_adapter = Phronomy::LLMAdapter::RubyLLM.new }
+      pool&.shutdown
     end
   end
 end

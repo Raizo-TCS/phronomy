@@ -295,7 +295,7 @@ RSpec.describe "Workflow transition actions" do
         to: :processing,
         action: ->(context) {
           thread_id = context.thread_id
-          op = Phronomy::Runtime.instance.blocking_io.submit { "async-result" }
+          op = Phronomy::Runtime.instance.offload.submit(on_full: :raise) { "async-result" }
           op.on_complete do |value, error|
             workflow.signal(
               thread_id: thread_id,

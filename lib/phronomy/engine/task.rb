@@ -4,7 +4,7 @@ module Phronomy
   # A thread-free asynchronous completion handle.
   #
   # Task no longer executes work. Execution belongs to EventLoop/FSMSession or
-  # BlockingAdapterPool. Task only represents completion, failure, cancellation,
+  # OffloadPool. Task only represents completion, failure, cancellation,
   # callbacks and a blocking wait for external callers.
   class Task
     STATES = %i[pending completed failed cancelled].freeze

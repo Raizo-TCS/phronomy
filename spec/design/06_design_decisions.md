@@ -11,15 +11,15 @@ A record of design decisions and their rationale. Use this as a reference when r
 **Choice**: Adopt RubyLLM.
 
 **Rationale**:
-- Provider support (13+) is already implemented, greatly reducing Phronomy's development cost
-- Rails/ActiveRecord integration, streaming, and model registry — all foundations Phronomy needs — are in place
-- Natural Ruby DSL code can be written, which aligns well with Phronomy's DSL
-- Alternatives (direct Faraday, OpenAI gem only) offer poor return on investment compared to focusing on implementing LangGraph-equivalent features
+- Provider support is already implemented, reducing Phronomy's development cost.
+- Rails/ActiveRecord integration, streaming, and model registry cover foundations Phronomy needs.
+- Natural Ruby DSL code aligns well with Phronomy's DSL.
+- Focusing on Agent/Workflow semantics provides better return than rebuilding provider clients.
 
 **Trade-offs**:
-- A cost arises from tracking RubyLLM API changes
-- Support for providers not covered by RubyLLM may lag
-- Mitigated by defining a `Phronomy::LLM::Base` interface to allow future replacements
+- RubyLLM API changes must be tracked.
+- Providers outside RubyLLM may lag.
+- `Phronomy::LLMAdapter::Base` keeps the provider boundary replaceable.
 
 ---
 
@@ -27,108 +27,106 @@ A record of design decisions and their rationale. Use this as a reference when r
 
 **Situation**: Needed to choose between mutable hashes and immutable objects for Workflow state management.
 
-**Choice**: Adopt a design where `State#merge` immutably returns a new object.
+**Choice**: `State#merge` immutably returns a new object.
 
 **Rationale**:
-- References LangGraph's State design. Makes checkpoint saving and comparison easier
-- Prevents bugs where state is unintentionally mutated between nodes
-- Makes history tracking and debugging easier
-- Easier to avoid race conditions in parallel node execution (future work)
+- Checkpoint saving and comparison are easier.
+- Accidental cross-node mutation is reduced.
+- History tracking and debugging are clearer.
+- Parallel logical execution has fewer shared-mutation hazards.
 
 **Trade-offs**:
-- Overhead of copying the state object on each update
-- Start with shallow merge rather than deep copy to keep initial implementation simple
+- State updates copy objects.
+- Initial implementation favors shallow immutable transitions over deep-copy complexity.
 
 ---
 
 ## Decision 3: Use `>>` operator for Chain composition (`|` as alias)
 
-**Situation**: Needed to choose a Ruby composition syntax inspired by LCEL's `|` operator.
+**Situation**: Needed a Ruby composition syntax inspired by LCEL.
 
-**Choice**: Provide `>>` as primary and `|` as alias.
+**Choice**: `>>` is primary and `|` remains an alias.
 
 **Rationale**:
-- In Ruby, `|` is used idiomatically as a Proc/block `or` operator in some contexts
-- `>>` is semantically consistent with Ruby's `Proc#>>` (function composition)
-- Provide `|` as an alias for users familiar with Python LangChain's `|`
-
-**Trade-offs**:
-- Feels slightly different from Python LangChain's syntax (mitigated by the alias)
+- `>>` is consistent with Ruby `Proc#>>` function composition.
+- `|` remains familiar to LangChain users.
 
 ---
 
-## Decision 4: Implement the Pregel runtime in-house (no existing gem dependency)
+## Decision 4: Implement the Workflow graph runtime in-house
 
-**Situation**: Needed to choose between using an existing Ruby graph gem (rgl, etc.) or implementing the graph execution engine in-house.
+**Situation**: General graph gems do not model stateful Agent execution, checkpoints, suspension, or events well.
 
-**Choice**: Implement a simple version in-house.
+**Choice**: Maintain the specialized Workflow/FSM execution engine in Phronomy.
 
 **Rationale**:
-- Existing Ruby graph libraries (rgl, graph) are specialized for general graph algorithms and do not fit the special requirements of LLM agent execution (stateful nodes, checkpoints, suspend/resume)
-- Accurately implementing Pregel concepts (node scheduling, channel-based value propagation) has lower learning and integration cost
-- Phase 1–2 implements sequential execution only; parallel execution is deferred to Phase 4+, keeping the initial implementation simple
+- Agent lifecycle semantics are more important than general graph algorithms.
+- Explicit state/event behavior integrates directly with persistence and suspension.
 
 **Trade-offs**:
-- Workflow bugs must be handled in-house
-- Complexity of future parallel execution implementation remains
+- Runtime correctness remains a framework responsibility.
 
 ---
 
 ## Decision 5: Unify memory scope by thread
 
-**Situation**: Needed to choose between mem0's multi-level memory (user, session, agent) and a simple thread_id-based approach.
+**Situation**: Needed a simple durable context scope before adding multi-level memory.
 
-**Choice**: Phase 3 implements only `thread_id`-scoped memory. Multi-level is considered for Phase 4+.
+**Choice**: Use `thread_id` as the primary conversation/session scope.
 
 **Rationale**:
-- For the vast majority of use cases, thread_id (= session ID or conversation ID) is sufficient
-- Multi-level memory is for use cases requiring long-term memory across users (personal assistant), which is out of scope initially
-- In Rails, using `user.id` as thread_id effectively achieves "user-scoped memory"
-
-**Trade-offs**:
-- If a mechanism for memory spanning multiple user sessions is needed, additional implementation will be required later
+- It covers the common conversation lifecycle.
+- Applications may map domain identities such as user IDs onto thread IDs.
 
 ---
 
 ## Decision 6: Security — Tool execution is no-sandbox by default
 
-**Situation**: Needed to decide whether to sandbox tool execution.
+**Situation**: Process sandboxing would add deployment-specific dependencies to the core framework.
 
-**Choice**: No sandbox by default. Use software-level controls combining `requires_approval: true` and Guardrails.
-
-**Rationale**:
-- Process sandboxing in Ruby becomes Docker/container-dependent, greatly complicating the framework's installation requirements
-- LangGraph and the OpenAI SDK also adopt software-level controls (guardrails + interrupt)
-- `requires_approval: true` is required for irreversible operations (delete, send) and must be documented clearly
+**Choice**: No sandbox by default. Use approval policy, guardrails, and application-owned deployment isolation.
 
 **Risk mitigation**:
-- Tools with `requires_approval: true` trigger a `wait_state` halt in the Workflow before execution
-- Shell-execution tools are not provided by the framework; users must implement them explicitly
-- Include the OWASP Top 10 checklist in the implementation guidelines
+- Irreversible operations should require approval.
+- Shell/process capabilities are application-defined rather than implicitly enabled.
 
 ---
 
-## Decision 7: EventLoop/FSMSession owns framework async lifecycle
+## Decision 7: EventLoop/FSMSession owns lifecycle; OffloadPool owns synchronous offload
 
 **Situation**: Phronomy needs many concurrently waiting Agent, Workflow, Tool,
-and MultiAgent lifecycles without allocating one OS Thread per logical task.
+and MultiAgent lifecycles without one OS Thread per logical task. It also needs a
+bounded place for synchronous work that must not block EventLoop.
 
-**Choice**: Framework lifecycle coordination uses one Runtime-owned EventLoop
-and explicit FSMSession state/events. `Phronomy::Task` is only a completion
-handle. Unavoidable blocking third-party I/O is isolated in the bounded
-BlockingAdapterPool.
+**Choice**: Framework lifecycle coordination uses one Runtime-owned EventLoop and
+explicit FSMSession state/events. `Phronomy::Task` is only a completion handle.
+Synchronous work that cannot safely run on EventLoop uses the bounded
+`OffloadPool`.
+
+Tool execution classification is deliberately limited to:
+
+```text
+:cooperative
+:offloaded
+```
+
+The application decides whether work is safe on EventLoop. The framework does
+not separately classify I/O-bound, CPU-bound, or process work. Blocking I/O,
+CPU-bound synchronous Ruby work, and other long synchronous calls may all use
+`:offloaded`.
 
 **Rationale**:
 - Waiting for another Agent, approval, timer, or event does not require an OS Thread.
-- Agent/Workflow/Tool/MultiAgent now share one explicit continuation model.
-- RubyLLM and other blocking client libraries still need bounded worker Threads
-  while their blocking calls are in flight.
-- A separate Fiber scheduler duplicates continuation state already represented
-  by FSMSession and is not part of the production architecture.
+- Agent/Workflow/Tool/MultiAgent share one explicit continuation model.
+- The distinction Phronomy must enforce is EventLoop-safe versus off-EventLoop, not I/O versus CPU.
+- A bounded shared OffloadPool provides backpressure without inventing a separate executor taxonomy prematurely.
+- Named pools allow applications to isolate workloads when shared capacity is insufficient.
 
 **Trade-offs**:
 - FSM actions must return promptly and explicitly model later completion events.
-- Long CPU-bound work requires an application-owned or future dedicated CPU/process executor.
+- Applications own `offload_pool_size`, queue sizing, and workload-mix capacity planning.
+- Thread offload does not provide CPU isolation, remove CRuby GVL contention, or guarantee I/O/CPU fairness.
+- A future subprocess offload facility may add stronger CPU/process isolation without changing the Tool execution-mode contract.
 - Synchronous public wrappers must not be called from the EventLoop thread.
 
 See ADR-010 for the authoritative current concurrency model.
