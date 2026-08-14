@@ -229,7 +229,7 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(id:, context:, entry_point:, entry_actions:, auto_state_set:, declared_states:, wait_state_names:, external_events:, phase_machine_class:, recursion_limit:, event_loop:, resume_event: nil, resume_phase: nil, stable_observer: nil)  &#x21d2; FSMSession </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(id:, context:, entry_point:, entry_actions:, auto_state_set:, declared_states:, wait_state_names:, external_events:, phase_machine_class:, recursion_limit:, event_loop:, resume_event: nil, resume_phase: nil, stable_observer: nil, graph_thread_id: nil)  &#x21d2; FSMSession </a>
     
 
     
@@ -282,7 +282,7 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(id:, context:, entry_point:, entry_actions:, auto_state_set:, declared_states:, wait_state_names:, external_events:, phase_machine_class:, recursion_limit:, event_loop:, resume_event: nil, resume_phase: nil, stable_observer: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::FSMSession (class)">FSMSession</a></span></tt> 
+    #<strong>initialize</strong>(id:, context:, entry_point:, entry_actions:, auto_state_set:, declared_states:, wait_state_names:, external_events:, phase_machine_class:, recursion_limit:, event_loop:, resume_event: nil, resume_phase: nil, stable_observer: nil, graph_thread_id: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::FSMSession (class)">FSMSession</a></span></tt> 
   
 
   
@@ -338,7 +338,9 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
 46
 47
 48
-49</pre>
+49
+50
+51</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 14</span>
@@ -357,9 +359,11 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
   <span class='label'>event_loop:</span><span class='comma'>,</span>
   <span class='label'>resume_event:</span> <span class='kw'>nil</span><span class='comma'>,</span>
   <span class='label'>resume_phase:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-  <span class='label'>stable_observer:</span> <span class='kw'>nil</span>
+  <span class='label'>stable_observer:</span> <span class='kw'>nil</span><span class='comma'>,</span>
+  <span class='label'>graph_thread_id:</span> <span class='kw'>nil</span>
 <span class='rparen'>)</span>
   <span class='ivar'>@id</span> <span class='op'>=</span> <span class='id identifier rubyid_id'>id</span>
+  <span class='ivar'>@graph_thread_id</span> <span class='op'>=</span> <span class='id identifier rubyid_graph_thread_id'>graph_thread_id</span> <span class='op'>||</span> <span class='id identifier rubyid_id'>id</span>
   <span class='ivar'>@ctx</span> <span class='op'>=</span> <span class='id identifier rubyid_context'>context</span>
   <span class='ivar'>@context</span> <span class='op'>=</span> <span class='id identifier rubyid_context'>context</span>
   <span class='ivar'>@entry_point</span> <span class='op'>=</span> <span class='id identifier rubyid_entry_point'>entry_point</span>
@@ -493,8 +497,6 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
       <pre class="lines">
 
 
-75
-76
 77
 78
 79
@@ -507,10 +509,12 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
 86
 87
 88
-89</pre>
+89
+90
+91</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 75</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 77</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_handle'>handle</span><span class='lparen'>(</span><span class='id identifier rubyid_event'>event</span><span class='rparen'>)</span>
   <span class='kw'>return</span> <span class='kw'>if</span> <span class='ivar'>@done</span>
@@ -547,8 +551,6 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
       <pre class="lines">
 
 
-51
-52
 53
 54
 55
@@ -569,10 +571,12 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
 70
 71
 72
-73</pre>
+73
+74
+75</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 51</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/fsm_session.rb', line 53</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_start'>start</span>
   <span class='kw'>if</span> <span class='ivar'>@resume_event</span>
@@ -607,7 +611,7 @@ activity tokens, callback correlation, or domain-specific stale-event policy.</p
 </div>
 
       <div id="footer">
-  Generated on Fri Aug 14 01:35:17 2026 by
+  Generated on Fri Aug 14 14:08:55 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

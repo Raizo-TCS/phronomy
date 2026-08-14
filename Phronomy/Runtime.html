@@ -286,6 +286,28 @@ belongs to OffloadPool.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#__agent_activations-instance_method" title="#__agent_activations (instance method)">#<strong>__agent_activations</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Process-local live Agent executions.</p></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#__event_loop_failed-instance_method" title="#__event_loop_failed (instance method)">#<strong>__event_loop_failed</strong>(error)  &#x21d2; Object </a>
     
 
@@ -547,7 +569,8 @@ belongs to OffloadPool.</p>
 75
 76
 77
-78</pre>
+78
+79</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 67</span>
@@ -557,6 +580,7 @@ belongs to OffloadPool.</p>
   <span class='ivar'>@pool_registry</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency.html" title="Phronomy::Concurrency (module)">Concurrency</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Concurrency/PoolRegistry.html" title="Phronomy::Concurrency::PoolRegistry (class)">PoolRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Concurrency/PoolRegistry.html#initialize-instance_method" title="Phronomy::Concurrency::PoolRegistry#initialize (method)">new</a></span></span><span class='lparen'>(</span>
     <span class='label'>timer_queue_provider:</span> <span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='id identifier rubyid_timer_queue'>timer_queue</span> <span class='rbrace'>}</span>
   <span class='rparen'>)</span>
+  <span class='ivar'>@agent_activations</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/ActivationRegistry.html" title="Phronomy::Agent::ActivationRegistry (class)">ActivationRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Agent/ActivationRegistry.html#initialize-instance_method" title="Phronomy::Agent::ActivationRegistry#initialize (method)">new</a></span></span>
   <span class='ivar'>@lifecycle_mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@shutdown_mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@state</span> <span class='op'>=</span> <span class='symbol'>:running</span>
@@ -823,7 +847,47 @@ belongs to OffloadPool.</p>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="__event_loop_failed-instance_method">
+  <h3 class="signature first" id="__agent_activations-instance_method">
+  
+    #<strong>__agent_activations</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Process-local live Agent executions. Activations are transient runtime
+state and deliberately do not belong to Persistence.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+113
+114
+115</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 113</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid___agent_activations'>__agent_activations</span>
+  <span class='ivar'>@agent_activations</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="__event_loop_failed-instance_method">
   
     #<strong>__event_loop_failed</strong>(error)  &#x21d2; <tt>Object</tt> 
   
@@ -837,17 +901,17 @@ belongs to OffloadPool.</p>
       <pre class="lines">
 
 
-136
-137
-138
-139
-140
-141
-142
-143</pre>
+143
+144
+145
+146
+147
+148
+149
+150</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 136</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 143</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___event_loop_failed'>__event_loop_failed</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -886,12 +950,12 @@ belongs to OffloadPool.</p>
       <pre class="lines">
 
 
-106
 107
-108</pre>
+108
+109</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 106</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 107</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___timer_queue'>__timer_queue</span>
   <span class='ivar'>@timer_service</span><span class='period'>.</span><span class='id identifier rubyid_timer_queue'>timer_queue</span>
@@ -916,13 +980,6 @@ belongs to OffloadPool.</p>
       <pre class="lines">
 
 
-110
-111
-112
-113
-114
-115
-116
 117
 118
 119
@@ -935,10 +992,17 @@ belongs to OffloadPool.</p>
 126
 127
 128
-129</pre>
+129
+130
+131
+132
+133
+134
+135
+136</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 110</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 117</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_loop'>event_loop</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1002,13 +1066,13 @@ belongs to OffloadPool.</p>
       <pre class="lines">
 
 
-131
-132
-133
-134</pre>
+138
+139
+140
+141</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 131</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 138</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_loop_current?'>event_loop_current?</span>
   <span class='id identifier rubyid_loop_instance'>loop_instance</span> <span class='op'>=</span> <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@event_loop</span> <span class='rbrace'>}</span>
@@ -1034,16 +1098,16 @@ belongs to OffloadPool.</p>
       <pre class="lines">
 
 
-84
 85
 86
 87
 88
 89
-90</pre>
+90
+91</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 84</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 85</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_offload'>offload</span><span class='lparen'>(</span>
   <span class='label'>pool_size:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload_pool_size'>offload_pool_size</span><span class='comma'>,</span>
@@ -1072,13 +1136,13 @@ belongs to OffloadPool.</p>
       <pre class="lines">
 
 
-92
 93
 94
-95</pre>
+95
+96</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 92</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 93</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pool'>pool</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ensure_accepting_work!'>ensure_accepting_work!</span>
@@ -1104,13 +1168,6 @@ belongs to OffloadPool.</p>
       <pre class="lines">
 
 
-145
-146
-147
-148
-149
-150
-151
 152
 153
 154
@@ -1169,10 +1226,17 @@ belongs to OffloadPool.</p>
 207
 208
 209
-210</pre>
+210
+211
+212
+213
+214
+215
+216
+217</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 145</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 152</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span>
   <span class='label'>timeout:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span><span class='comma'>,</span>
@@ -1260,12 +1324,12 @@ belongs to OffloadPool.</p>
       <pre class="lines">
 
 
-80
 81
-82</pre>
+82
+83</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 80</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 81</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_state'>state</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@state</span> <span class='rbrace'>}</span>
@@ -1299,15 +1363,15 @@ belongs to OffloadPool.</p>
       <pre class="lines">
 
 
-98
 99
 100
 101
 102
-103</pre>
+103
+104</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 98</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 99</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_timer_queue'>timer_queue</span>
   <span class='id identifier rubyid_ensure_accepting_work!'>ensure_accepting_work!</span>
@@ -1325,7 +1389,7 @@ belongs to OffloadPool.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri Aug 14 01:35:17 2026 by
+  Generated on Fri Aug 14 14:08:54 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

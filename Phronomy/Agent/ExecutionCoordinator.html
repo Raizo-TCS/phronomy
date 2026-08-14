@@ -278,7 +278,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Persists all Runtime events from the previous call, fixes the next Canonical LLM Input Manifest, and materializes the next Runtime Projection.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Persists facts from the previous Provider/Tool cycle and fixes the next Manifest from the current local Agent state.</p></div></span>
   
 </li>
 
@@ -411,124 +411,42 @@
   
 
   
-</h3><table class="source_code">
+</h3><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="../Error.html" title="Phronomy::Error (class)">Phronomy::Error</a></span></tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-254
-255
-256
-257
-258
-259
-260
-261
-262
-263
-264
-265
-266
-267
-268
-269
-270
-271
-272
-273
-274
-275
-276
-277
-278
-279
-280
-281
-282
-283
-284
-285
-286
-287
-288
-289
-290
 291
 292
 293
 294
 295
 296
-297</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 254</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_admit_execution'>admit_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_raw_message'>raw_message</span><span class='comma'>,</span> <span class='label'>thread_id:</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='kw'>nil</span>
-  <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span> <span class='op'>=</span> <span class='kw'>nil</span>
-  <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_transaction'>transaction</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_tx'>tx</span><span class='op'>|</span>
-    <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span> <span class='op'>=</span> <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_agents'>agents</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent is closed: </span><span class='embexpr_beg'>#{</span><span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_lifecycle_status'>lifecycle_status</span> <span class='op'>==</span> <span class='symbol'>:closed</span>
-    <span class='id identifier rubyid_input_ref'>input_ref</span> <span class='op'>=</span> <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_contents'>contents</span><span class='period'>.</span><span class='id identifier rubyid_put_text'>put_text</span><span class='lparen'>(</span><span class='id identifier rubyid_raw_message'>raw_message</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_input_record'>input_record</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="JournalRecord.html" title="Phronomy::Agent::JournalRecord (class)">JournalRecord</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="JournalRecord.html#initialize-instance_method" title="Phronomy::Agent::JournalRecord#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-      <span class='label'>agent_id:</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span>
-      <span class='label'>kind:</span> <span class='symbol'>:input_received</span><span class='comma'>,</span>
-      <span class='label'>channel:</span> <span class='symbol'>:external</span><span class='comma'>,</span>
-      <span class='label'>role:</span> <span class='symbol'>:user</span><span class='comma'>,</span>
-      <span class='label'>content_ref:</span> <span class='id identifier rubyid_input_ref'>input_ref</span><span class='comma'>,</span>
-      <span class='label'>correlation_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
-      <span class='label'>context_generation:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_transcript_generation'>transcript_generation</span><span class='comma'>,</span>
-      <span class='label'>context_candidate:</span> <span class='kw'>false</span>
-    <span class='rparen'>)</span>
-    <span class='id identifier rubyid_policy_descriptor'>policy_descriptor</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ContextPolicies.html" title="Phronomy::Agent::ContextPolicies (module)">ContextPolicies</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="ContextPolicies/Default.html" title="Phronomy::Agent::ContextPolicies::Default (class)">Default</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="ContextPolicies/Default.html#initialize-instance_method" title="Phronomy::Agent::ContextPolicies::Default#initialize (method)">new</a></span></span><span class='period'>.</span><span class='id identifier rubyid_descriptor'><span class='object_link'><a href="ContextPolicies/Default.html#descriptor-instance_method" title="Phronomy::Agent::ContextPolicies::Default#descriptor (method)">descriptor</a></span></span>
-    <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="AgentExecution.html" title="Phronomy::Agent::AgentExecution (class)">AgentExecution</a></span></span><span class='period'>.</span><span class='id identifier rubyid_start'><span class='object_link'><a href="AgentExecution.html#start-class_method" title="Phronomy::Agent::AgentExecution.start (method)">start</a></span></span><span class='lparen'>(</span>
-      <span class='label'>agent_root:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='comma'>,</span>
-      <span class='label'>input_record:</span> <span class='id identifier rubyid_input_record'>input_record</span><span class='comma'>,</span>
-      <span class='label'>metadata:</span> <span class='lbrace'>{</span>
-        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>thread_id</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
-        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>current_input_ref</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_input_ref'>input_ref</span><span class='comma'>,</span>
-        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>context_policy</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_policy_descriptor'>policy_descriptor</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span>
-      <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span>
-    <span class='rparen'>)</span>
-    <span class='id identifier rubyid_input_record'>input_record</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="JournalRecord.html" title="Phronomy::Agent::JournalRecord (class)">JournalRecord</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="JournalRecord.html#from_h-class_method" title="Phronomy::Agent::JournalRecord.from_h (method)">from_h</a></span></span><span class='lparen'>(</span>
-      <span class='id identifier rubyid_input_record'>input_record</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution_id</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
-    <span class='rparen'>)</span>
-    <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span>
-      <span class='label'>execution_revision:</span> <span class='int'>0</span><span class='comma'>,</span>
-      <span class='label'>working_records:</span> <span class='lbracket'>[</span><span class='id identifier rubyid_input_record'>input_record</span><span class='rbracket'>]</span>
-    <span class='rparen'>)</span>
-    <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_create_active'>create_active</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_next_root'>next_root</span> <span class='op'>=</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span>
-      <span class='label'>agent_revision:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_agent_revision'>agent_revision</span> <span class='op'>+</span> <span class='int'>1</span><span class='comma'>,</span>
-      <span class='label'>lifecycle_status:</span> <span class='symbol'>:active</span>
-    <span class='rparen'>)</span>
-    <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_agents'>agents</span><span class='period'>.</span><span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>expected_revision:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_agent_revision'>agent_revision</span><span class='comma'>,</span> <span class='label'>root:</span> <span class='id identifier rubyid_next_root'>next_root</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span> <span class='op'>=</span> <span class='id identifier rubyid_next_root'>next_root</span>
-  <span class='kw'>end</span>
-  <span class='lbracket'>[</span><span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='rbracket'>]</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="commit_preparation_failure-instance_method">
-  
-    #<strong>commit_preparation_failure</strong>(execution, error)  &#x21d2; <tt>Object</tt> 
-  
-
-  
-
-  
-</h3><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
+297
+298
 299
 300
 301
@@ -567,8 +485,78 @@
 334
 335
 336
-337
-338
+337</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 291</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_admit_execution'>admit_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_raw_message'>raw_message</span><span class='comma'>,</span> <span class='label'>thread_id:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span> <span class='op'>=</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_root'>agent_root</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Error.html" title="Phronomy::Error (class)">Error</a></span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent is closed: </span><span class='embexpr_beg'>#{</span><span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_lifecycle_status'>lifecycle_status</span> <span class='op'>==</span> <span class='symbol'>:closed</span>
+
+  <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='id identifier rubyid_next_root'>next_root</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_transaction'>transaction</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_tx'>tx</span><span class='op'>|</span>
+    <span class='id identifier rubyid_input_ref'>input_ref</span> <span class='op'>=</span> <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_contents'>contents</span><span class='period'>.</span><span class='id identifier rubyid_put_text'>put_text</span><span class='lparen'>(</span><span class='id identifier rubyid_raw_message'>raw_message</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_input_record'>input_record</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="JournalRecord.html" title="Phronomy::Agent::JournalRecord (class)">JournalRecord</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="JournalRecord.html#initialize-instance_method" title="Phronomy::Agent::JournalRecord#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+      <span class='label'>agent_id:</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span>
+      <span class='label'>kind:</span> <span class='symbol'>:input_received</span><span class='comma'>,</span>
+      <span class='label'>channel:</span> <span class='symbol'>:external</span><span class='comma'>,</span>
+      <span class='label'>role:</span> <span class='symbol'>:user</span><span class='comma'>,</span>
+      <span class='label'>content_ref:</span> <span class='id identifier rubyid_input_ref'>input_ref</span><span class='comma'>,</span>
+      <span class='label'>correlation_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
+      <span class='label'>context_generation:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_transcript_generation'>transcript_generation</span><span class='comma'>,</span>
+      <span class='label'>context_candidate:</span> <span class='kw'>false</span>
+    <span class='rparen'>)</span>
+    <span class='id identifier rubyid_policy_descriptor'>policy_descriptor</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ContextPolicies.html" title="Phronomy::Agent::ContextPolicies (module)">ContextPolicies</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="ContextPolicies/Default.html" title="Phronomy::Agent::ContextPolicies::Default (class)">Default</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="ContextPolicies/Default.html#initialize-instance_method" title="Phronomy::Agent::ContextPolicies::Default#initialize (method)">new</a></span></span><span class='period'>.</span><span class='id identifier rubyid_descriptor'><span class='object_link'><a href="ContextPolicies/Default.html#descriptor-instance_method" title="Phronomy::Agent::ContextPolicies::Default#descriptor (method)">descriptor</a></span></span>
+    <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="AgentExecution.html" title="Phronomy::Agent::AgentExecution (class)">AgentExecution</a></span></span><span class='period'>.</span><span class='id identifier rubyid_start'><span class='object_link'><a href="AgentExecution.html#start-class_method" title="Phronomy::Agent::AgentExecution.start (method)">start</a></span></span><span class='lparen'>(</span>
+      <span class='label'>agent_root:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='comma'>,</span>
+      <span class='label'>input_record:</span> <span class='id identifier rubyid_input_record'>input_record</span><span class='comma'>,</span>
+      <span class='label'>metadata:</span> <span class='lbrace'>{</span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>thread_id</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>current_input_ref</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_input_ref'>input_ref</span><span class='comma'>,</span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>context_policy</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_policy_descriptor'>policy_descriptor</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span>
+      <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span>
+    <span class='rparen'>)</span>
+    <span class='id identifier rubyid_input_record'>input_record</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="JournalRecord.html" title="Phronomy::Agent::JournalRecord (class)">JournalRecord</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="JournalRecord.html#from_h-class_method" title="Phronomy::Agent::JournalRecord.from_h (method)">from_h</a></span></span><span class='lparen'>(</span>
+      <span class='id identifier rubyid_input_record'>input_record</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution_id</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
+    <span class='rparen'>)</span>
+    <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span>
+      <span class='label'>execution_revision:</span> <span class='int'>0</span><span class='comma'>,</span>
+      <span class='label'>working_records:</span> <span class='lbracket'>[</span><span class='id identifier rubyid_input_record'>input_record</span><span class='rbracket'>]</span>
+    <span class='rparen'>)</span>
+    <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_create_active'>create_active</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_next_root'>next_root</span> <span class='op'>=</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span>
+      <span class='label'>agent_revision:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_agent_revision'>agent_revision</span> <span class='op'>+</span> <span class='int'>1</span><span class='comma'>,</span>
+      <span class='label'>lifecycle_status:</span> <span class='symbol'>:active</span>
+    <span class='rparen'>)</span>
+    <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_agents'>agents</span><span class='period'>.</span><span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span>
+      <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span>
+      <span class='label'>expected_revision:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_agent_revision'>agent_revision</span><span class='comma'>,</span>
+      <span class='label'>root:</span> <span class='id identifier rubyid_next_root'>next_root</span>
+    <span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='lbracket'>[</span><span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span> <span class='id identifier rubyid_next_root'>next_root</span><span class='rbracket'>]</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="commit_preparation_failure-instance_method">
+  
+    #<strong>commit_preparation_failure</strong>(execution, error)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
 339
 340
 341
@@ -578,28 +566,77 @@
 345
 346
 347
-348</pre>
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 299</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 339</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_commit_preparation_failure'>commit_preparation_failure</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_translated_error'>translated_error</span> <span class='op'>=</span> <span class='id identifier rubyid_translated'>translated</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span> <span class='op'>=</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_root'>agent_root</span>
+  <span class='id identifier rubyid_failed'>failed</span> <span class='op'>=</span> <span class='id identifier rubyid_next_root'>next_root</span> <span class='op'>=</span> <span class='id identifier rubyid_appended'>appended</span> <span class='op'>=</span> <span class='kw'>nil</span>
+
   <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_transaction'>transaction</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_tx'>tx</span><span class='op'>|</span>
-    <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span> <span class='op'>=</span> <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_agents'>agents</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_error_ref'>error_ref</span> <span class='op'>=</span> <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_contents'>contents</span><span class='period'>.</span><span class='id identifier rubyid_put_json'>put_json</span><span class='lparen'>(</span>
       <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>class</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_translated_error'>translated_error</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span>
       <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>message</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_translated_error'>translated_error</span><span class='period'>.</span><span class='id identifier rubyid_message'>message</span>
     <span class='rparen'>)</span>
-    <span class='id identifier rubyid_audit_records'>audit_records</span> <span class='op'>=</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_working_records'>working_records</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_record'>record</span><span class='op'>|</span>
-      <span class='const'><span class='object_link'><a href="JournalRecord.html" title="Phronomy::Agent::JournalRecord (class)">JournalRecord</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="JournalRecord.html#from_h-class_method" title="Phronomy::Agent::JournalRecord.from_h (method)">from_h</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>context_candidate</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='kw'>false</span><span class='rparen'>)</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_audit_records'>audit_records</span> <span class='op'>=</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_working_records'>working_records</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_record'>record</span><span class='op'>|</span>
+      <span class='const'><span class='object_link'><a href="JournalRecord.html" title="Phronomy::Agent::JournalRecord (class)">JournalRecord</a></span></span><span class='period'>.</span><span class='id identifier rubyid_from_h'><span class='object_link'><a href="JournalRecord.html#from_h-class_method" title="Phronomy::Agent::JournalRecord.from_h (method)">from_h</a></span></span><span class='lparen'>(</span>
+        <span class='id identifier rubyid_record'>record</span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>context_candidate</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='kw'>false</span><span class='rparen'>)</span>
+      <span class='rparen'>)</span>
     <span class='kw'>end</span>
     <span class='id identifier rubyid_terminal_status'>terminal_status</span> <span class='op'>=</span> <span class='id identifier rubyid_terminal_status_for'>terminal_status_for</span><span class='lparen'>(</span><span class='id identifier rubyid_translated_error'>translated_error</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_audit_records'>audit_records</span> <span class='op'>&lt;&lt;</span> <span class='const'><span class='object_link'><a href="JournalRecord.html" title="Phronomy::Agent::JournalRecord (class)">JournalRecord</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="JournalRecord.html#initialize-instance_method" title="Phronomy::Agent::JournalRecord#initialize (method)">new</a></span></span><span class='lparen'>(</span>
       <span class='label'>agent_id:</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span>
-      <span class='label'>execution_id:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
+      <span class='label'>execution_id:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
       <span class='label'>kind:</span> <span class='id identifier rubyid_execution_terminal_kind'>execution_terminal_kind</span><span class='lparen'>(</span><span class='id identifier rubyid_terminal_status'>terminal_status</span><span class='rparen'>)</span><span class='comma'>,</span>
       <span class='label'>channel:</span> <span class='symbol'>:audit</span><span class='comma'>,</span>
       <span class='label'>content_ref:</span> <span class='id identifier rubyid_error_ref'>error_ref</span><span class='comma'>,</span>
@@ -611,7 +648,7 @@
       <span class='label'>expected_position:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_journal_position'>journal_position</span><span class='comma'>,</span>
       <span class='label'>records:</span> <span class='id identifier rubyid_audit_records'>audit_records</span>
     <span class='rparen'>)</span>
-    <span class='id identifier rubyid_failed'>failed</span> <span class='op'>=</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_failed'>failed</span> <span class='op'>=</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span>
       <span class='label'>status:</span> <span class='id identifier rubyid_terminal_status'>terminal_status</span><span class='comma'>,</span>
       <span class='label'>phase:</span> <span class='id identifier rubyid_terminal_status'>terminal_status</span><span class='comma'>,</span>
       <span class='label'>working_records:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span>
@@ -619,8 +656,8 @@
       <span class='label'>terminal_reason:</span> <span class='id identifier rubyid_translated_error'>translated_error</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span>
     <span class='rparen'>)</span>
     <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span>
-      <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
-      <span class='label'>expected_revision:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_revision'>execution_revision</span><span class='comma'>,</span>
+      <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
+      <span class='label'>expected_revision:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_revision'>execution_revision</span><span class='comma'>,</span>
       <span class='label'>execution:</span> <span class='id identifier rubyid_failed'>failed</span>
     <span class='rparen'>)</span>
     <span class='id identifier rubyid_next_root'>next_root</span> <span class='op'>=</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span>
@@ -628,10 +665,15 @@
       <span class='label'>journal_position:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_journal_position'>journal_position</span> <span class='op'>+</span> <span class='id identifier rubyid_appended'>appended</span><span class='period'>.</span><span class='id identifier rubyid_length'>length</span><span class='comma'>,</span>
       <span class='label'>lifecycle_status:</span> <span class='symbol'>:idle</span>
     <span class='rparen'>)</span>
-    <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_agents'>agents</span><span class='period'>.</span><span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>expected_revision:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_agent_revision'>agent_revision</span><span class='comma'>,</span> <span class='label'>root:</span> <span class='id identifier rubyid_next_root'>next_root</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span> <span class='op'>=</span> <span class='id identifier rubyid_next_root'>next_root</span>
+    <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_agents'>agents</span><span class='period'>.</span><span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span>
+      <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span>
+      <span class='label'>expected_revision:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_agent_revision'>agent_revision</span><span class='comma'>,</span>
+      <span class='label'>root:</span> <span class='id identifier rubyid_next_root'>next_root</span>
+    <span class='rparen'>)</span>
   <span class='kw'>end</span>
-  <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid___replace_root'>__replace_root</span><span class='lparen'>(</span><span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='rparen'>)</span>
+  <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:_append_journal_records</span><span class='comma'>,</span> <span class='id identifier rubyid_appended'>appended</span><span class='rparen'>)</span>
+  <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid___replace_root'>__replace_root</span><span class='lparen'>(</span><span class='id identifier rubyid_next_root'>next_root</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_failed'>failed</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -653,30 +695,33 @@
       <pre class="lines">
 
 
-422
-423
-424
-425
-426
-427
-428
-429
-430
-431
-432
-433
-434
-435
-436
-437
-438
-439
-440
-441
-442</pre>
+475
+476
+477
+478
+479
+480
+481
+482
+483
+484
+485
+486
+487
+488
+489
+490
+491
+492
+493
+494
+495
+496
+497
+498</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 422</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 475</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_deliver_on_event_loop'>deliver_on_event_loop</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
   <span class='kw'>case</span> <span class='id identifier rubyid_command'>command</span>
@@ -690,8 +735,11 @@
       <span class='rparen'>)</span>
     <span class='rparen'>)</span>
     <span class='id identifier rubyid_settle_after_terminal'>settle_after_terminal</span><span class='lparen'>(</span>
-      <span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span> <span class='id identifier rubyid_callback_error'>callback_error</span><span class='comma'>,</span>
-      <span class='id identifier rubyid_terminal_event_type'>terminal_event_type</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_error'>error</span>
+      <span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span>
+      <span class='id identifier rubyid_callback_error'>callback_error</span><span class='comma'>,</span>
+      <span class='id identifier rubyid_terminal_event_type'>terminal_event_type</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span><span class='comma'>,</span>
+      <span class='kw'>nil</span><span class='comma'>,</span>
+      <span class='id identifier rubyid_command'>command</span><span class='period'>.</span><span class='id identifier rubyid_error'>error</span>
     <span class='rparen'>)</span>
   <span class='kw'>when</span> <span class='const'><span class='object_link'><a href="ExecutionCoordinator/AgentTerminalCommand.html" title="Phronomy::Agent::ExecutionCoordinator::AgentTerminalCommand (class)">AgentTerminalCommand</a></span></span>
     <span class='id identifier rubyid_deliver_execution_terminal'>deliver_execution_terminal</span><span class='lparen'>(</span><span class='id identifier rubyid_command'>command</span><span class='rparen'>)</span>
@@ -719,30 +767,34 @@
       <pre class="lines">
 
 
-398
-399
-400
-401
-402
-403
-404
-405
-406
-407
-408
-409
-410
-411
-412
-413
-414
-415
-416
-417
-418</pre>
+447
+448
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 398</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 447</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_finish'>finish</span><span class='lparen'>(</span><span class='id identifier rubyid_activation'>activation</span><span class='comma'>,</span> <span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_runtime'>runtime</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span>
@@ -760,7 +812,11 @@
         <span class='label'>payload:</span> <span class='lbrace'>{</span><span class='label'>command:</span> <span class='id identifier rubyid_command'>command</span><span class='rbrace'>}</span>
       <span class='rparen'>)</span>
     <span class='rparen'>)</span>
-    <span class='id identifier rubyid_settle_without_listener'>settle_without_listener</span><span class='lparen'>(</span><span class='id identifier rubyid_activation'>activation</span><span class='comma'>,</span> <span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span> <span class='id identifier rubyid_outcome'>outcome</span><span class='comma'>,</span> <span class='id identifier rubyid_commit_error'>commit_error</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id identifier rubyid_posted'>posted</span>
+    <span class='kw'>unless</span> <span class='id identifier rubyid_posted'>posted</span>
+      <span class='id identifier rubyid_settle_without_listener'>settle_without_listener</span><span class='lparen'>(</span>
+        <span class='id identifier rubyid_activation'>activation</span><span class='comma'>,</span> <span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span> <span class='id identifier rubyid_outcome'>outcome</span><span class='comma'>,</span> <span class='id identifier rubyid_commit_error'>commit_error</span>
+      <span class='rparen'>)</span>
+    <span class='kw'>end</span>
   <span class='kw'>end</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_caught'>caught</span>
   <span class='id identifier rubyid_fail_task'>fail_task</span><span class='lparen'>(</span><span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span> <span class='id identifier rubyid_translated'>translated</span><span class='lparen'>(</span><span class='id identifier rubyid_caught'>caught</span><span class='rparen'>)</span><span class='rparen'>)</span>
@@ -785,39 +841,6 @@
       <pre class="lines">
 
 
-161
-162
-163
-164
-165
-166
-167
-168
-169
-170
-171
-172
-173
-174
-175
-176
-177
-178
-179
-180
-181
-182
-183
-184
-185
-186
-187
-188
-189
-190
-191
-192
-193
 194
 195
 196
@@ -876,15 +899,56 @@
 249
 250
 251
-252</pre>
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 161</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 194</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_prepare'>prepare</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='comma'>,</span> <span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>config:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raw_message'>raw_message</span> <span class='op'>=</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:extract_message</span><span class='comma'>,</span> <span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span> <span class='id identifier rubyid_active_root'>active_root</span> <span class='op'>=</span> <span class='id identifier rubyid_admit_execution'>admit_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_raw_message'>raw_message</span><span class='comma'>,</span> <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span> <span class='id identifier rubyid_active_root'>active_root</span> <span class='op'>=</span> <span class='id identifier rubyid_admit_execution'>admit_execution</span><span class='lparen'>(</span>
+    <span class='id identifier rubyid_raw_message'>raw_message</span><span class='comma'>,</span>
+    <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span>
+  <span class='rparen'>)</span>
   <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid___replace_root'>__replace_root</span><span class='lparen'>(</span><span class='id identifier rubyid_active_root'>active_root</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_current_execution'>current_execution</span> <span class='op'>=</span> <span class='id identifier rubyid_execution'>execution</span>
 
   <span class='kw'>begin</span>
     <span class='id identifier rubyid_effective_config'>effective_config</span> <span class='op'>=</span> <span class='id identifier rubyid_thread_id'>thread_id</span> <span class='op'>?</span> <span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span><span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id identifier rubyid_config'>config</span>
@@ -900,29 +964,27 @@
       <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>invocation cancelled before context assembly</span><span class='tstring_end'>&quot;</span></span>
     <span class='rparen'>)</span>
     <span class='id identifier rubyid_filtered_message'>filtered_message</span> <span class='op'>=</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:extract_message</span><span class='comma'>,</span> <span class='id identifier rubyid_filtered_input'>filtered_input</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_manifest'>manifest</span> <span class='op'>=</span> <span class='kw'>nil</span>
-    <span class='id identifier rubyid_manifest_ref'>manifest_ref</span> <span class='op'>=</span> <span class='kw'>nil</span>
-    <span class='id identifier rubyid_active_execution'>active_execution</span> <span class='op'>=</span> <span class='kw'>nil</span>
+    <span class='id identifier rubyid_manifest'>manifest</span> <span class='op'>=</span> <span class='id identifier rubyid_manifest_ref'>manifest_ref</span> <span class='op'>=</span> <span class='id identifier rubyid_active_execution'>active_execution</span> <span class='op'>=</span> <span class='kw'>nil</span>
+    <span class='id identifier rubyid_local_journal'>local_journal</span> <span class='op'>=</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:_journal_records_snapshot</span><span class='rparen'>)</span>
 
     <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_transaction'>transaction</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_tx'>tx</span><span class='op'>|</span>
-      <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span> <span class='op'>=</span> <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_agents'>agents</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
-      <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
+      <span class='id identifier rubyid_assert_local_durable_base!'>assert_local_durable_base!</span><span class='lparen'>(</span><span class='id identifier rubyid_tx'>tx</span><span class='comma'>,</span> <span class='id identifier rubyid_active_root'>active_root</span><span class='rparen'>)</span>
       <span class='id identifier rubyid_filtered_ref'>filtered_ref</span> <span class='op'>=</span> <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_contents'>contents</span><span class='period'>.</span><span class='id identifier rubyid_put_text'>put_text</span><span class='lparen'>(</span><span class='id identifier rubyid_filtered_message'>filtered_message</span><span class='rparen'>)</span>
       <span class='id identifier rubyid_input_record'>input_record</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="JournalRecord.html" title="Phronomy::Agent::JournalRecord (class)">JournalRecord</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="JournalRecord.html#initialize-instance_method" title="Phronomy::Agent::JournalRecord#initialize (method)">new</a></span></span><span class='lparen'>(</span>
         <span class='label'>agent_id:</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span>
-        <span class='label'>execution_id:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
+        <span class='label'>execution_id:</span> <span class='id identifier rubyid_current_execution'>current_execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
         <span class='label'>kind:</span> <span class='symbol'>:external_message</span><span class='comma'>,</span>
         <span class='label'>channel:</span> <span class='symbol'>:external</span><span class='comma'>,</span>
         <span class='label'>role:</span> <span class='symbol'>:user</span><span class='comma'>,</span>
         <span class='label'>content_ref:</span> <span class='id identifier rubyid_filtered_ref'>filtered_ref</span><span class='comma'>,</span>
         <span class='label'>correlation_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
-        <span class='label'>context_generation:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='period'>.</span><span class='id identifier rubyid_transcript_generation'>transcript_generation</span><span class='comma'>,</span>
+        <span class='label'>context_generation:</span> <span class='id identifier rubyid_active_root'>active_root</span><span class='period'>.</span><span class='id identifier rubyid_transcript_generation'>transcript_generation</span><span class='comma'>,</span>
         <span class='label'>context_candidate:</span> <span class='kw'>true</span>
       <span class='rparen'>)</span>
-      <span class='id identifier rubyid_staged'>staged</span> <span class='op'>=</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span>
-        <span class='label'>execution_revision:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_revision'>execution_revision</span><span class='comma'>,</span>
-        <span class='label'>working_records:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_working_records'>working_records</span> <span class='op'>+</span> <span class='lbracket'>[</span><span class='id identifier rubyid_input_record'>input_record</span><span class='rbracket'>]</span><span class='comma'>,</span>
-        <span class='label'>metadata:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span>
+      <span class='id identifier rubyid_staged'>staged</span> <span class='op'>=</span> <span class='id identifier rubyid_current_execution'>current_execution</span><span class='period'>.</span><span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span>
+        <span class='label'>execution_revision:</span> <span class='id identifier rubyid_current_execution'>current_execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_revision'>execution_revision</span><span class='comma'>,</span>
+        <span class='label'>working_records:</span> <span class='id identifier rubyid_current_execution'>current_execution</span><span class='period'>.</span><span class='id identifier rubyid_working_records'>working_records</span> <span class='op'>+</span> <span class='lbracket'>[</span><span class='id identifier rubyid_input_record'>input_record</span><span class='rbracket'>]</span><span class='comma'>,</span>
+        <span class='label'>metadata:</span> <span class='id identifier rubyid_current_execution'>current_execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span>
           <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>current_input_ref</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_filtered_ref'>filtered_ref</span><span class='comma'>,</span>
           <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>current_input_record_id</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_input_record'>input_record</span><span class='period'>.</span><span class='id identifier rubyid_record_id'>record_id</span>
         <span class='rparen'>)</span>
@@ -930,10 +992,11 @@
       <span class='id identifier rubyid_manifest'>manifest</span><span class='comma'>,</span> <span class='id identifier rubyid_manifest_ref'>manifest_ref</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ContextAssembler.html" title="Phronomy::Agent::ContextAssembler (class)">ContextAssembler</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="ContextAssembler.html#initialize-instance_method" title="Phronomy::Agent::ContextAssembler#initialize (method)">new</a></span></span><span class='lparen'>(</span>
         <span class='label'>agent:</span> <span class='ivar'>@agent</span><span class='comma'>,</span>
         <span class='label'>persistence:</span> <span class='id identifier rubyid_tx'>tx</span><span class='comma'>,</span>
-        <span class='label'>policy:</span> <span class='id identifier rubyid_context_policy_for'>context_policy_for</span><span class='lparen'>(</span><span class='id identifier rubyid_staged'>staged</span><span class='rparen'>)</span>
+        <span class='label'>policy:</span> <span class='id identifier rubyid_context_policy_for'>context_policy_for</span><span class='lparen'>(</span><span class='id identifier rubyid_staged'>staged</span><span class='rparen'>)</span><span class='comma'>,</span>
+        <span class='label'>journal_records:</span> <span class='id identifier rubyid_local_journal'>local_journal</span>
       <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_build_initial'><span class='object_link'><a href="ContextAssembler.html#build_initial-instance_method" title="Phronomy::Agent::ContextAssembler#build_initial (method)">build_initial</a></span></span><span class='lparen'>(</span>
         <span class='label'>input:</span> <span class='id identifier rubyid_filtered_input'>filtered_input</span><span class='comma'>,</span>
-        <span class='label'>agent_root:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='comma'>,</span>
+        <span class='label'>agent_root:</span> <span class='id identifier rubyid_active_root'>active_root</span><span class='comma'>,</span>
         <span class='label'>execution:</span> <span class='id identifier rubyid_staged'>staged</span><span class='comma'>,</span>
         <span class='label'>config:</span> <span class='id identifier rubyid_effective_config'>effective_config</span><span class='comma'>,</span>
         <span class='label'>patch:</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span>
@@ -952,24 +1015,25 @@
         <span class='rparen'>)</span>
       <span class='rparen'>)</span>
       <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span>
-        <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
-        <span class='label'>expected_revision:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_revision'>execution_revision</span><span class='comma'>,</span>
+        <span class='id identifier rubyid_current_execution'>current_execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
+        <span class='label'>expected_revision:</span> <span class='id identifier rubyid_current_execution'>current_execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_revision'>execution_revision</span><span class='comma'>,</span>
         <span class='label'>execution:</span> <span class='id identifier rubyid_active_execution'>active_execution</span>
       <span class='rparen'>)</span>
     <span class='kw'>end</span>
+    <span class='id identifier rubyid_current_execution'>current_execution</span> <span class='op'>=</span> <span class='id identifier rubyid_active_execution'>active_execution</span>
 
     <span class='id identifier rubyid_projection'>projection</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="RubyLLMMaterializer.html" title="Phronomy::Agent::RubyLLMMaterializer (class)">RubyLLMMaterializer</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="RubyLLMMaterializer.html#initialize-instance_method" title="Phronomy::Agent::RubyLLMMaterializer#initialize (method)">new</a></span></span><span class='lparen'>(</span>
       <span class='label'>agent:</span> <span class='ivar'>@agent</span><span class='comma'>,</span>
       <span class='label'>persistence:</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_persistence'>persistence</span>
     <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_materialize'><span class='object_link'><a href="RubyLLMMaterializer.html#materialize-instance_method" title="Phronomy::Agent::RubyLLMMaterializer#materialize (method)">materialize</a></span></span><span class='lparen'>(</span><span class='label'>manifest:</span> <span class='id identifier rubyid_manifest'>manifest</span><span class='comma'>,</span> <span class='label'>manifest_ref:</span> <span class='id identifier rubyid_manifest_ref'>manifest_ref</span><span class='rparen'>)</span>
-    <span class='const'><span class='object_link'><a href="ExecutionCoordinator/Prepared.html" title="Phronomy::Agent::ExecutionCoordinator::Prepared (class)">Prepared</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ExecutionCoordinator#initialize (method)">new</a></span></span><span class='lparen'>(</span>
+    <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="" title="Phronomy::Agent::ExecutionCoordinator (class)">ExecutionCoordinator</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="ExecutionCoordinator/Prepared.html" title="Phronomy::Agent::ExecutionCoordinator::Prepared (class)">Prepared</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::Agent::ExecutionCoordinator#initialize (method)">new</a></span></span><span class='lparen'>(</span>
       <span class='label'>execution:</span> <span class='id identifier rubyid_active_execution'>active_execution</span><span class='comma'>,</span>
       <span class='label'>runtime_projection:</span> <span class='id identifier rubyid_projection'>projection</span><span class='comma'>,</span>
       <span class='label'>filtered_input:</span> <span class='id identifier rubyid_filtered_input'>filtered_input</span><span class='comma'>,</span>
       <span class='label'>config:</span> <span class='id identifier rubyid_effective_config'>effective_config</span>
     <span class='rparen'>)</span>
   <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
-    <span class='id identifier rubyid_commit_preparation_failure'>commit_preparation_failure</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_commit_preparation_failure'>commit_preparation_failure</span><span class='lparen'>(</span><span class='id identifier rubyid_current_execution'>current_execution</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_raise'>raise</span>
   <span class='kw'>end</span>
 <span class='kw'>end</span></pre>
@@ -989,9 +1053,8 @@
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Persists all Runtime events from the previous call, fixes the next
-Canonical LLM Input Manifest, and materializes the next Runtime Projection.
-This method is executed on an OffloadPool worker, never on EventLoop.</p>
+    <p>Persists facts from the previous Provider/Tool cycle and fixes the next
+Manifest from the current local Agent state. This runs on OffloadPool.</p>
 
   </div>
 </div>
@@ -1004,23 +1067,6 @@ This method is executed on an OffloadPool worker, never on EventLoop.</p>
       <pre class="lines">
 
 
-111
-112
-113
-114
-115
-116
-117
-118
-119
-120
-121
-122
-123
-124
-125
-126
-127
 128
 129
 130
@@ -1052,20 +1098,59 @@ This method is executed on an OffloadPool worker, never on EventLoop.</p>
 156
 157
 158
-159</pre>
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 111</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 128</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_prepare_next_llm_call'>prepare_next_llm_call</span><span class='lparen'>(</span><span class='id identifier rubyid_activation'>activation</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_snapshot'>snapshot</span> <span class='op'>=</span> <span class='id identifier rubyid_activation'>activation</span><span class='period'>.</span><span class='id identifier rubyid_runtime_snapshot'>runtime_snapshot</span>
-  <span class='id identifier rubyid_manifest'>manifest</span> <span class='op'>=</span> <span class='id identifier rubyid_manifest_ref'>manifest_ref</span> <span class='op'>=</span> <span class='id identifier rubyid_updated'>updated</span> <span class='op'>=</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span> <span class='op'>=</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_root'>agent_root</span>
+  <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='id identifier rubyid_activation'>activation</span><span class='period'>.</span><span class='id identifier rubyid_execution'>execution</span>
+  <span class='id identifier rubyid_journal_records'>journal_records</span> <span class='op'>=</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_send'>send</span><span class='lparen'>(</span><span class='symbol'>:_journal_records_snapshot</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_manifest'>manifest</span> <span class='op'>=</span> <span class='id identifier rubyid_manifest_ref'>manifest_ref</span> <span class='op'>=</span> <span class='id identifier rubyid_updated'>updated</span> <span class='op'>=</span> <span class='kw'>nil</span>
 
   <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_transaction'>transaction</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_tx'>tx</span><span class='op'>|</span>
-    <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span> <span class='op'>=</span> <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_agents'>agents</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='rparen'>)</span>
-    <span class='id identifier rubyid_current'>current</span> <span class='op'>=</span> <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_activation'>activation</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_assert_local_durable_base!'>assert_local_durable_base!</span><span class='lparen'>(</span><span class='id identifier rubyid_tx'>tx</span><span class='comma'>,</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='rparen'>)</span>
     <span class='id identifier rubyid_encoded_records'>encoded_records</span><span class='comma'>,</span> <span class='id identifier rubyid_call_records'>call_records</span> <span class='op'>=</span> <span class='id identifier rubyid_encode_runtime_records'>encode_runtime_records</span><span class='lparen'>(</span>
-      <span class='id identifier rubyid_activation'>activation</span><span class='comma'>,</span> <span class='label'>tx:</span> <span class='id identifier rubyid_tx'>tx</span><span class='comma'>,</span> <span class='label'>snapshot:</span> <span class='id identifier rubyid_snapshot'>snapshot</span><span class='comma'>,</span> <span class='label'>context_candidate:</span> <span class='kw'>true</span>
+      <span class='id identifier rubyid_activation'>activation</span><span class='comma'>,</span>
+      <span class='label'>tx:</span> <span class='id identifier rubyid_tx'>tx</span><span class='comma'>,</span>
+      <span class='label'>snapshot:</span> <span class='id identifier rubyid_snapshot'>snapshot</span><span class='comma'>,</span>
+      <span class='label'>context_candidate:</span> <span class='kw'>true</span><span class='comma'>,</span>
+      <span class='label'>agent_root:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span>
     <span class='rparen'>)</span>
     <span class='id identifier rubyid_staged'>staged</span> <span class='op'>=</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span>
       <span class='label'>execution_revision:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_revision'>execution_revision</span><span class='comma'>,</span>
@@ -1080,28 +1165,38 @@ This method is executed on an OffloadPool worker, never on EventLoop.</p>
       <span class='label'>config:</span> <span class='id identifier rubyid_invocation_config'>invocation_config</span>
     <span class='rparen'>)</span>
     <span class='id identifier rubyid_manifest'>manifest</span><span class='comma'>,</span> <span class='id identifier rubyid_manifest_ref'>manifest_ref</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ContextAssembler.html" title="Phronomy::Agent::ContextAssembler (class)">ContextAssembler</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="ContextAssembler.html#initialize-instance_method" title="Phronomy::Agent::ContextAssembler#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-      <span class='label'>agent:</span> <span class='ivar'>@agent</span><span class='comma'>,</span> <span class='label'>persistence:</span> <span class='id identifier rubyid_tx'>tx</span><span class='comma'>,</span> <span class='label'>policy:</span> <span class='id identifier rubyid_context_policy_for'>context_policy_for</span><span class='lparen'>(</span><span class='id identifier rubyid_staged'>staged</span><span class='rparen'>)</span>
+      <span class='label'>agent:</span> <span class='ivar'>@agent</span><span class='comma'>,</span>
+      <span class='label'>persistence:</span> <span class='id identifier rubyid_tx'>tx</span><span class='comma'>,</span>
+      <span class='label'>policy:</span> <span class='id identifier rubyid_context_policy_for'>context_policy_for</span><span class='lparen'>(</span><span class='id identifier rubyid_staged'>staged</span><span class='rparen'>)</span><span class='comma'>,</span>
+      <span class='label'>journal_records:</span> <span class='id identifier rubyid_journal_records'>journal_records</span>
     <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_build_followup'><span class='object_link'><a href="ContextAssembler.html#build_followup-instance_method" title="Phronomy::Agent::ContextAssembler#build_followup (method)">build_followup</a></span></span><span class='lparen'>(</span>
       <span class='label'>base_manifest:</span> <span class='id identifier rubyid_activation'>activation</span><span class='period'>.</span><span class='id identifier rubyid_base_manifest'>base_manifest</span><span class='comma'>,</span>
-      <span class='label'>agent_root:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='comma'>,</span> <span class='label'>execution:</span> <span class='id identifier rubyid_staged'>staged</span><span class='comma'>,</span>
-      <span class='label'>config:</span> <span class='id identifier rubyid_invocation_config'>invocation_config</span><span class='comma'>,</span> <span class='label'>patch:</span> <span class='id identifier rubyid_patch'>patch</span>
+      <span class='label'>agent_root:</span> <span class='id identifier rubyid_root'><span class='object_link'><a href="../../top-level-namespace.html" title="Top Level Namespace (root)">root</a></span></span><span class='comma'>,</span>
+      <span class='label'>execution:</span> <span class='id identifier rubyid_staged'>staged</span><span class='comma'>,</span>
+      <span class='label'>config:</span> <span class='id identifier rubyid_invocation_config'>invocation_config</span><span class='comma'>,</span>
+      <span class='label'>patch:</span> <span class='id identifier rubyid_patch'>patch</span>
     <span class='rparen'>)</span>
     <span class='id identifier rubyid_refs'>refs</span> <span class='op'>=</span> <span class='const'>Array</span><span class='lparen'>(</span><span class='id identifier rubyid_staged'>staged</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>manifest_refs</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='lbracket'>[</span><span class='id identifier rubyid_manifest_ref'>manifest_ref</span><span class='rbracket'>]</span>
     <span class='id identifier rubyid_updated'>updated</span> <span class='op'>=</span> <span class='id identifier rubyid_staged'>staged</span><span class='period'>.</span><span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span>
       <span class='label'>phase:</span> <span class='symbol'>:calling_llm</span><span class='comma'>,</span>
       <span class='label'>metadata:</span> <span class='id identifier rubyid_staged'>staged</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span>
-        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>manifest_ref</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_manifest_ref'>manifest_ref</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>manifest_refs</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_refs'>refs</span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>manifest_ref</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_manifest_ref'>manifest_ref</span><span class='comma'>,</span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>manifest_refs</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_refs'>refs</span>
       <span class='rparen'>)</span>
     <span class='rparen'>)</span>
-    <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span><span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
-      <span class='label'>expected_revision:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_revision'>execution_revision</span><span class='comma'>,</span> <span class='label'>execution:</span> <span class='id identifier rubyid_updated'>updated</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_tx'>tx</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_save'>save</span><span class='lparen'>(</span>
+      <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
+      <span class='label'>expected_revision:</span> <span class='id identifier rubyid_current'>current</span><span class='period'>.</span><span class='id identifier rubyid_execution_revision'>execution_revision</span><span class='comma'>,</span>
+      <span class='label'>execution:</span> <span class='id identifier rubyid_updated'>updated</span>
+    <span class='rparen'>)</span>
   <span class='kw'>end</span>
 
   <span class='id identifier rubyid_activation'>activation</span><span class='period'>.</span><span class='id identifier rubyid_replace_execution'>replace_execution</span><span class='lparen'>(</span><span class='id identifier rubyid_updated'>updated</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_activation'>activation</span><span class='period'>.</span><span class='id identifier rubyid_acknowledge_runtime_snapshot'>acknowledge_runtime_snapshot</span><span class='lparen'>(</span><span class='id identifier rubyid_snapshot'>snapshot</span><span class='rparen'>)</span>
 
   <span class='id identifier rubyid_projection'>projection</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="RubyLLMMaterializer.html" title="Phronomy::Agent::RubyLLMMaterializer (class)">RubyLLMMaterializer</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="RubyLLMMaterializer.html#initialize-instance_method" title="Phronomy::Agent::RubyLLMMaterializer#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-    <span class='label'>agent:</span> <span class='ivar'>@agent</span><span class='comma'>,</span> <span class='label'>persistence:</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_persistence'>persistence</span>
+    <span class='label'>agent:</span> <span class='ivar'>@agent</span><span class='comma'>,</span>
+    <span class='label'>persistence:</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_persistence'>persistence</span>
   <span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_materialize'><span class='object_link'><a href="RubyLLMMaterializer.html#materialize-instance_method" title="Phronomy::Agent::RubyLLMMaterializer#materialize (method)">materialize</a></span></span><span class='lparen'>(</span><span class='label'>manifest:</span> <span class='id identifier rubyid_manifest'>manifest</span><span class='comma'>,</span> <span class='label'>manifest_ref:</span> <span class='id identifier rubyid_manifest_ref'>manifest_ref</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_activation'>activation</span><span class='period'>.</span><span class='id identifier rubyid_replace_runtime_projection'>replace_runtime_projection</span><span class='lparen'>(</span><span class='id identifier rubyid_projection'>projection</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_projection'>projection</span>
@@ -1126,56 +1221,58 @@ This method is executed on an OffloadPool worker, never on EventLoop.</p>
       <pre class="lines">
 
 
-350
-351
-352
-353
-354
-355
-356
-357
-358
-359
-360
-361
-362
-363
-364
-365
-366
-367
-368
-369
-370
-371
-372
-373
-374
-375
-376
-377
-378
-379
-380
-381
-382
-383
-384
-385
-386
-387
-388
-389
-390
-391
-392
-393
-394
-395
-396</pre>
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444
+445</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 350</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 397</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_register'>register</span><span class='lparen'>(</span><span class='id identifier rubyid_prepared'>prepared</span><span class='comma'>,</span> <span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span> <span class='label'>mode:</span><span class='comma'>,</span> <span class='label'>approval_policy:</span><span class='comma'>,</span> <span class='label'>approval_listener:</span><span class='comma'>,</span> <span class='label'>on_event:</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_activation'>activation</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="AgentExecutionActivation.html" title="Phronomy::Agent::AgentExecutionActivation (class)">AgentExecutionActivation</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="AgentExecutionActivation.html#initialize-instance_method" title="Phronomy::Agent::AgentExecutionActivation#initialize (method)">new</a></span></span><span class='lparen'>(</span>
@@ -1185,8 +1282,8 @@ This method is executed on an OffloadPool worker, never on EventLoop.</p>
     <span class='label'>coordinator:</span> <span class='kw'>self</span><span class='comma'>,</span>
     <span class='label'>application_listener:</span> <span class='id identifier rubyid_on_event'>on_event</span>
   <span class='rparen'>)</span>
-  <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_activations'>activations</span><span class='period'>.</span><span class='id identifier rubyid_register'>register</span><span class='lparen'>(</span><span class='id identifier rubyid_activation'>activation</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_runtime'>runtime</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span>
+  <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid___agent_activations'>__agent_activations</span><span class='period'>.</span><span class='id identifier rubyid_register'>register</span><span class='lparen'>(</span><span class='id identifier rubyid_activation'>activation</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_event_loop'>event_loop</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_event_loop'>event_loop</span>
   <span class='id identifier rubyid_effective_config'>effective_config</span> <span class='op'>=</span> <span class='id identifier rubyid_prepared'>prepared</span><span class='period'>.</span><span class='id identifier rubyid_config'>config</span><span class='period'>.</span><span class='id identifier rubyid_merge'>merge</span><span class='lparen'>(</span>
     <span class='label'>phronomy_activation:</span> <span class='id identifier rubyid_activation'>activation</span><span class='comma'>,</span>
@@ -1218,8 +1315,10 @@ This method is executed on an OffloadPool worker, never on EventLoop.</p>
   <span class='id identifier rubyid_event_loop'>event_loop</span><span class='period'>.</span><span class='id identifier rubyid_register'>register</span><span class='lparen'>(</span><span class='id identifier rubyid_session'>session</span><span class='comma'>,</span> <span class='label'>completion:</span> <span class='id identifier rubyid_source_task'>source_task</span><span class='rparen'>)</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
   <span class='id identifier rubyid_activation'>activation</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="AgentExecutionActivation.html" title="Phronomy::Agent::AgentExecutionActivation (class)">AgentExecutionActivation</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="AgentExecutionActivation.html#initialize-instance_method" title="Phronomy::Agent::AgentExecutionActivation#initialize (method)">new</a></span></span><span class='lparen'>(</span>
-    <span class='label'>execution:</span> <span class='id identifier rubyid_prepared'>prepared</span><span class='period'>.</span><span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span> <span class='label'>agent:</span> <span class='ivar'>@agent</span><span class='comma'>,</span>
-    <span class='label'>runtime_projection:</span> <span class='id identifier rubyid_prepared'>prepared</span><span class='period'>.</span><span class='id identifier rubyid_runtime_projection'>runtime_projection</span><span class='comma'>,</span> <span class='label'>coordinator:</span> <span class='kw'>self</span><span class='comma'>,</span>
+    <span class='label'>execution:</span> <span class='id identifier rubyid_prepared'>prepared</span><span class='period'>.</span><span class='id identifier rubyid_execution'>execution</span><span class='comma'>,</span>
+    <span class='label'>agent:</span> <span class='ivar'>@agent</span><span class='comma'>,</span>
+    <span class='label'>runtime_projection:</span> <span class='id identifier rubyid_prepared'>prepared</span><span class='period'>.</span><span class='id identifier rubyid_runtime_projection'>runtime_projection</span><span class='comma'>,</span>
+    <span class='label'>coordinator:</span> <span class='kw'>self</span><span class='comma'>,</span>
     <span class='label'>application_listener:</span> <span class='id identifier rubyid_on_event'>on_event</span>
   <span class='rparen'>)</span>
   <span class='id identifier rubyid_finish'>finish</span><span class='lparen'>(</span><span class='id identifier rubyid_activation'>activation</span><span class='comma'>,</span> <span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span> <span class='id identifier rubyid_activation'>activation</span><span class='period'>.</span><span class='id identifier rubyid_invocation'>invocation</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
@@ -1244,10 +1343,6 @@ This method is executed on an OffloadPool worker, never on EventLoop.</p>
       <pre class="lines">
 
 
-45
-46
-47
-48
 49
 50
 51
@@ -1305,10 +1400,28 @@ This method is executed on an OffloadPool worker, never on EventLoop.</p>
 103
 104
 105
-106</pre>
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 45</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 49</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
@@ -1320,27 +1433,37 @@ This method is executed on an OffloadPool worker, never on EventLoop.</p>
     <span class='label'>name:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>agent-approval-resume:</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
   <span class='rparen'>)</span>
   <span class='id identifier rubyid_runtime'>runtime</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span>
-  <span class='id identifier rubyid_preparation'>preparation</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>on_full:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
-    <span class='kw'>unless</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span> <span class='op'>==</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_status'>status</span> <span class='op'>==</span> <span class='symbol'>:suspended</span>
-      <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span>
-        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution is not a suspended execution of this agent: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
-    <span class='kw'>end</span>
-
-    <span class='id identifier rubyid_activation'>activation</span> <span class='op'>=</span> <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_activations'>activations</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
-    <span class='kw'>unless</span> <span class='id identifier rubyid_activation'>activation</span>
-      <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ExecutionRehydrationRequiredError.html" title="Phronomy::ExecutionRehydrationRequiredError (class)">ExecutionRehydrationRequiredError</a></span></span><span class='comma'>,</span>
+  <span class='id identifier rubyid_activation'>activation</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid___agent_activations'>__agent_activations</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
+  <span class='kw'>unless</span> <span class='id identifier rubyid_activation'>activation</span>
+    <span class='id identifier rubyid_fail_task'>fail_task</span><span class='lparen'>(</span>
+      <span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span>
+      <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../ExecutionRehydrationRequiredError.html" title="Phronomy::ExecutionRehydrationRequiredError (class)">ExecutionRehydrationRequiredError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
         <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>no live activation for </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='embexpr_end'>}</span><span class='tstring_content'>; durable rehydration is required</span><span class='tstring_end'>&quot;</span></span>
-    <span class='kw'>end</span>
+      <span class='rparen'>)</span>
+    <span class='rparen'>)</span>
+    <span class='kw'>return</span> <span class='id identifier rubyid_result_task'>result_task</span>
+  <span class='kw'>end</span>
 
+  <span class='kw'>unless</span> <span class='id identifier rubyid_activation'>activation</span><span class='period'>.</span><span class='id identifier rubyid_agent'>agent</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='ivar'>@agent</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span>
+      <span class='id identifier rubyid_activation'>activation</span><span class='period'>.</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_status'>status</span> <span class='op'>==</span> <span class='symbol'>:suspended</span>
+    <span class='id identifier rubyid_fail_task'>fail_task</span><span class='lparen'>(</span>
+      <span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span>
+      <span class='const'>ArgumentError</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
+        <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>execution is not a suspended execution of this agent: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+      <span class='rparen'>)</span>
+    <span class='rparen'>)</span>
+    <span class='kw'>return</span> <span class='id identifier rubyid_result_task'>result_task</span>
+  <span class='kw'>end</span>
+
+  <span class='id identifier rubyid_preparation'>preparation</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>on_full:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='kw'>do</span>
     <span class='id identifier rubyid_mark_resuming!'>mark_resuming!</span><span class='lparen'>(</span>
-      <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
+      <span class='id identifier rubyid_activation'>activation</span><span class='comma'>,</span>
       <span class='label'>approval_request_id:</span> <span class='id identifier rubyid_approval_request_id'>approval_request_id</span><span class='comma'>,</span>
       <span class='label'>approved:</span> <span class='id identifier rubyid_approved'>approved</span>
     <span class='rparen'>)</span>
     <span class='id identifier rubyid_activation'>activation</span>
   <span class='kw'>end</span>
-  <span class='id identifier rubyid_preparation'>preparation</span><span class='period'>.</span><span class='id identifier rubyid_on_complete'>on_complete</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_activation'>activation</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='op'>|</span>
+  <span class='id identifier rubyid_preparation'>preparation</span><span class='period'>.</span><span class='id identifier rubyid_on_complete'>on_complete</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_prepared_activation'>prepared_activation</span><span class='comma'>,</span> <span class='id identifier rubyid_error'>error</span><span class='op'>|</span>
     <span class='kw'>if</span> <span class='id identifier rubyid_error'>error</span>
       <span class='id identifier rubyid_fail_task'>fail_task</span><span class='lparen'>(</span><span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span> <span class='id identifier rubyid_translated'>translated</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span><span class='rparen'>)</span>
       <span class='kw'>next</span>
@@ -1348,20 +1471,24 @@ This method is executed on an OffloadPool worker, never on EventLoop.</p>
 
     <span class='kw'>begin</span>
       <span class='id identifier rubyid_start_resume'>start_resume</span><span class='lparen'>(</span>
-        <span class='id identifier rubyid_activation'>activation</span><span class='comma'>,</span>
+        <span class='id identifier rubyid_prepared_activation'>prepared_activation</span><span class='comma'>,</span>
         <span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span>
         <span class='label'>approved:</span> <span class='id identifier rubyid_approved'>approved</span><span class='comma'>,</span>
         <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span>
       <span class='rparen'>)</span>
     <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_start_error'>start_error</span>
       <span class='id identifier rubyid_commit'>commit</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid_offload'>offload</span><span class='period'>.</span><span class='id identifier rubyid_submit'>submit</span><span class='lparen'>(</span><span class='label'>on_full:</span> <span class='symbol'>:raise</span><span class='rparen'>)</span> <span class='kw'>do</span>
-        <span class='id identifier rubyid_commit_failed'>commit_failed</span><span class='lparen'>(</span><span class='id identifier rubyid_activation'>activation</span><span class='comma'>,</span> <span class='id identifier rubyid_activation'>activation</span><span class='period'>.</span><span class='id identifier rubyid_invocation'>invocation</span><span class='comma'>,</span> <span class='id identifier rubyid_start_error'>start_error</span><span class='rparen'>)</span>
+        <span class='id identifier rubyid_commit_failed'>commit_failed</span><span class='lparen'>(</span>
+          <span class='id identifier rubyid_prepared_activation'>prepared_activation</span><span class='comma'>,</span>
+          <span class='id identifier rubyid_prepared_activation'>prepared_activation</span><span class='period'>.</span><span class='id identifier rubyid_invocation'>invocation</span><span class='comma'>,</span>
+          <span class='id identifier rubyid_start_error'>start_error</span>
+        <span class='rparen'>)</span>
       <span class='kw'>end</span>
       <span class='id identifier rubyid_commit'>commit</span><span class='period'>.</span><span class='id identifier rubyid_on_complete'>on_complete</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_terminal'>terminal</span><span class='comma'>,</span> <span class='id identifier rubyid_commit_error'>commit_error</span><span class='op'>|</span>
         <span class='kw'>if</span> <span class='id identifier rubyid_commit_error'>commit_error</span>
           <span class='id identifier rubyid_fail_task'>fail_task</span><span class='lparen'>(</span><span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span> <span class='id identifier rubyid_commit_error'>commit_error</span><span class='rparen'>)</span>
         <span class='kw'>else</span>
-          <span class='ivar'>@agent</span><span class='period'>.</span><span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_activations'>activations</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
+          <span class='id identifier rubyid_runtime'>runtime</span><span class='period'>.</span><span class='id identifier rubyid___agent_activations'>__agent_activations</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
           <span class='id identifier rubyid_fail_task'>fail_task</span><span class='lparen'>(</span><span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span> <span class='id identifier rubyid_terminal'>terminal</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:error</span><span class='rparen'>)</span><span class='rparen'>)</span>
         <span class='kw'>end</span>
       <span class='kw'>end</span>
@@ -1369,7 +1496,7 @@ This method is executed on an OffloadPool worker, never on EventLoop.</p>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_result_task'>result_task</span>
 <span class='kw'>rescue</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_error'>error</span>
-  <span class='id identifier rubyid_fail_task'>fail_task</span><span class='lparen'>(</span><span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span> <span class='id identifier rubyid_translated'>translated</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_fail_task'>fail_task</span><span class='lparen'>(</span><span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span> <span class='id identifier rubyid_translated'>translated</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id identifier rubyid_result_task'>result_task</span>
   <span class='id identifier rubyid_result_task'>result_task</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -1419,7 +1546,11 @@ This method is executed on an OffloadPool worker, never on EventLoop.</p>
 40
 41
 42
-43</pre>
+43
+44
+45
+46
+47</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/execution_coordinator.rb', line 16</span>
@@ -1437,10 +1568,14 @@ This method is executed on an OffloadPool worker, never on EventLoop.</p>
     <span class='kw'>if</span> <span class='id identifier rubyid_error'>error</span>
       <span class='id identifier rubyid_post_prep_failure'>post_prep_failure</span><span class='lparen'>(</span><span class='id identifier rubyid_runtime'>runtime</span><span class='comma'>,</span> <span class='id identifier rubyid_on_event'>on_event</span><span class='comma'>,</span> <span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span> <span class='id identifier rubyid_translated'>translated</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span><span class='rparen'>)</span>
     <span class='kw'>else</span>
-      <span class='id identifier rubyid_register'>register</span><span class='lparen'>(</span><span class='id identifier rubyid_prepared'>prepared</span><span class='comma'>,</span> <span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span> <span class='label'>mode:</span> <span class='id identifier rubyid_mode'>mode</span><span class='comma'>,</span>
+      <span class='id identifier rubyid_register'>register</span><span class='lparen'>(</span>
+        <span class='id identifier rubyid_prepared'>prepared</span><span class='comma'>,</span>
+        <span class='id identifier rubyid_result_task'>result_task</span><span class='comma'>,</span>
+        <span class='label'>mode:</span> <span class='id identifier rubyid_mode'>mode</span><span class='comma'>,</span>
         <span class='label'>approval_policy:</span> <span class='id identifier rubyid_approval_policy'>approval_policy</span><span class='comma'>,</span>
         <span class='label'>approval_listener:</span> <span class='id identifier rubyid_approval_listener'>approval_listener</span><span class='comma'>,</span>
-        <span class='label'>on_event:</span> <span class='id identifier rubyid_on_event'>on_event</span><span class='rparen'>)</span>
+        <span class='label'>on_event:</span> <span class='id identifier rubyid_on_event'>on_event</span>
+      <span class='rparen'>)</span>
     <span class='kw'>end</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_result_task'>result_task</span>
@@ -1462,7 +1597,7 @@ This method is executed on an OffloadPool worker, never on EventLoop.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri Aug 14 01:35:18 2026 by
+  Generated on Fri Aug 14 14:08:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

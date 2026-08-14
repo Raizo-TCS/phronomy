@@ -197,7 +197,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(agent:, persistence:, policy: ContextPolicies::Default.new, candidate_resolver: nil)  &#x21d2; ContextAssembler </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(agent:, persistence:, policy: ContextPolicies::Default.new, candidate_resolver: nil, journal_records: nil)  &#x21d2; ContextAssembler </a>
     
 
     
@@ -228,7 +228,7 @@
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(agent:, persistence:, policy: ContextPolicies::Default.new, candidate_resolver: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Agent::ContextAssembler (class)">ContextAssembler</a></span></tt> 
+    #<strong>initialize</strong>(agent:, persistence:, policy: ContextPolicies::Default.new, candidate_resolver: nil, journal_records: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Agent::ContextAssembler (class)">ContextAssembler</a></span></tt> 
   
 
   
@@ -261,7 +261,9 @@
 22
 23
 24
-25</pre>
+25
+26
+27</pre>
     </td>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembler.rb', line 13</span>
@@ -270,11 +272,13 @@
   <span class='label'>agent:</span><span class='comma'>,</span>
   <span class='label'>persistence:</span><span class='comma'>,</span>
   <span class='label'>policy:</span> <span class='const'><span class='object_link'><a href="ContextPolicies.html" title="Phronomy::Agent::ContextPolicies (module)">ContextPolicies</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="ContextPolicies/Default.html" title="Phronomy::Agent::ContextPolicies::Default (class)">Default</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="ContextPolicies/Default.html#initialize-instance_method" title="Phronomy::Agent::ContextPolicies::Default#initialize (method)">new</a></span></span><span class='comma'>,</span>
-  <span class='label'>candidate_resolver:</span> <span class='kw'>nil</span>
+  <span class='label'>candidate_resolver:</span> <span class='kw'>nil</span><span class='comma'>,</span>
+  <span class='label'>journal_records:</span> <span class='kw'>nil</span>
 <span class='rparen'>)</span>
   <span class='ivar'>@agent</span> <span class='op'>=</span> <span class='id identifier rubyid_agent'>agent</span>
   <span class='ivar'>@persistence</span> <span class='op'>=</span> <span class='id identifier rubyid_persistence'>persistence</span>
   <span class='ivar'>@policy</span> <span class='op'>=</span> <span class='id identifier rubyid_policy'>policy</span>
+  <span class='ivar'>@journal_records</span> <span class='op'>=</span> <span class='id identifier rubyid_journal_records'>journal_records</span>
   <span class='ivar'>@candidate_resolver</span> <span class='op'>=</span> <span class='id identifier rubyid_candidate_resolver'>candidate_resolver</span> <span class='op'>||</span> <span class='const'><span class='object_link'><a href="ContextCandidateResolver.html" title="Phronomy::Agent::ContextCandidateResolver (class)">ContextCandidateResolver</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="ContextCandidateResolver.html#initialize-instance_method" title="Phronomy::Agent::ContextCandidateResolver#initialize (method)">new</a></span></span><span class='lparen'>(</span>
     <span class='label'>content_loader:</span> <span class='id identifier rubyid_method'>method</span><span class='lparen'>(</span><span class='symbol'>:fetch_content</span><span class='rparen'>)</span>
   <span class='rparen'>)</span>
@@ -306,8 +310,6 @@
       <pre class="lines">
 
 
-61
-62
 63
 64
 65
@@ -340,10 +342,12 @@
 92
 93
 94
-95</pre>
+95
+96
+97</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembler.rb', line 61</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembler.rb', line 63</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_build_followup'>build_followup</span><span class='lparen'>(</span>
   <span class='label'>base_manifest:</span><span class='comma'>,</span>
@@ -352,7 +356,7 @@
   <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span>
   <span class='label'>patch:</span> <span class='const'><span class='object_link'><a href="LLMInputPatch.html" title="Phronomy::Agent::LLMInputPatch (class)">LLMInputPatch</a></span></span><span class='period'>.</span><span class='id identifier rubyid_empty'><span class='object_link'><a href="LLMInputPatch.html#empty-class_method" title="Phronomy::Agent::LLMInputPatch.empty (method)">empty</a></span></span>
 <span class='rparen'>)</span>
-  <span class='id identifier rubyid_projection'>projection</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="JournalProjection.html" title="Phronomy::Agent::JournalProjection (class)">JournalProjection</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="JournalProjection.html#initialize-instance_method" title="Phronomy::Agent::JournalProjection#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>persistence:</span> <span class='ivar'>@persistence</span><span class='comma'>,</span> <span class='label'>agent_root:</span> <span class='id identifier rubyid_agent_root'>agent_root</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_projection'>projection</span> <span class='op'>=</span> <span class='id identifier rubyid_journal_projection'>journal_projection</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_root'>agent_root</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_model_cfg'>model_cfg</span> <span class='op'>=</span> <span class='id identifier rubyid_effective_model_config'>effective_model_config</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='id identifier rubyid_patch'>patch</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_hook_candidates'>hook_candidates</span> <span class='op'>=</span> <span class='id identifier rubyid_normalize_candidates'>normalize_candidates</span><span class='lparen'>(</span><span class='id identifier rubyid_patch'>patch</span><span class='period'>.</span><span class='id identifier rubyid_segment_candidates'>segment_candidates</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_system_segments'>system_segments</span> <span class='op'>=</span> <span class='id identifier rubyid_base_manifest'>base_manifest</span><span class='period'>.</span><span class='id identifier rubyid_segments'>segments</span><span class='period'>.</span><span class='id identifier rubyid_select'>select</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_segment'>segment</span><span class='op'>|</span>
@@ -400,8 +404,6 @@
       <pre class="lines">
 
 
-27
-28
 29
 30
 31
@@ -432,13 +434,15 @@
 56
 57
 58
-59</pre>
+59
+60
+61</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembler.rb', line 27</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembler.rb', line 29</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_build_initial'>build_initial</span><span class='lparen'>(</span><span class='label'>input:</span><span class='comma'>,</span> <span class='label'>agent_root:</span><span class='comma'>,</span> <span class='label'>execution:</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>patch:</span> <span class='const'><span class='object_link'><a href="LLMInputPatch.html" title="Phronomy::Agent::LLMInputPatch (class)">LLMInputPatch</a></span></span><span class='period'>.</span><span class='id identifier rubyid_empty'><span class='object_link'><a href="LLMInputPatch.html#empty-class_method" title="Phronomy::Agent::LLMInputPatch.empty (method)">empty</a></span></span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_projection'>projection</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="JournalProjection.html" title="Phronomy::Agent::JournalProjection (class)">JournalProjection</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="JournalProjection.html#initialize-instance_method" title="Phronomy::Agent::JournalProjection#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>persistence:</span> <span class='ivar'>@persistence</span><span class='comma'>,</span> <span class='label'>agent_root:</span> <span class='id identifier rubyid_agent_root'>agent_root</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_projection'>projection</span> <span class='op'>=</span> <span class='id identifier rubyid_journal_projection'>journal_projection</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_root'>agent_root</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_model_cfg'>model_cfg</span> <span class='op'>=</span> <span class='id identifier rubyid_effective_model_config'>effective_model_config</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='id identifier rubyid_patch'>patch</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_tool_set'>tool_set</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ToolDefinitionSet.html" title="Phronomy::Agent::ToolDefinitionSet (class)">ToolDefinitionSet</a></span></span><span class='period'>.</span><span class='id identifier rubyid_build'><span class='object_link'><a href="ToolDefinitionSet.html#build-class_method" title="Phronomy::Agent::ToolDefinitionSet.build (method)">build</a></span></span><span class='lparen'>(</span><span class='ivar'>@agent</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_system_text'>system_text</span> <span class='op'>=</span> <span class='id identifier rubyid_build_system_text'>build_system_text</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
@@ -480,7 +484,7 @@
 </div>
 
       <div id="footer">
-  Generated on Fri Aug 14 01:35:18 2026 by
+  Generated on Fri Aug 14 14:08:56 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

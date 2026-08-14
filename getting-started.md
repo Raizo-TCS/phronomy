@@ -107,6 +107,13 @@ agent = ResearchAgent.load(
 agent.invoke("Continue our previous discussion.")
 ```
 
+`load` is the hydration boundary. While that Agent instance is live, the
+instance and its active `AgentExecutionActivation` own the current logical state.
+Phronomy persists snapshots at defined durability boundaries but does not reload
+mutable Agent/Execution/Journal state before every LLM or Tool step. A conflicting
+external durable write is surfaced as `Persistence::ConflictError` rather than
+silently merged into the live instance.
+
 The active transcript and Knowledge views can be advanced independently without
 deleting the append-only canonical Journal:
 
@@ -172,6 +179,8 @@ end
 ```
 
 From an EventLoop callback, use `approve_async` rather than blocking EventLoop.
+Approval resume continues the same live Agent instance, Activation, and
+AgentInvocation; it is not an Agent reload boundary.
 
 ## Workflow basics
 
@@ -188,7 +197,12 @@ end
 write_draft  = ->(state) { state.merge(draft: "Draft content") }
 review_draft = ->(state) { state.merge(feedback: "Feedback on: #{state.draft}") }
 
-workflow = Phronomy::Workflow.define(ReviewContext) do
+persistence = Phronomy::Persistence::InMemory.new
+
+workflow = Phronomy::Workflow.define(
+  ReviewContext,
+  persistence: persistence
+) do
   initial :write
   state :write, action: write_draft
   state :review, action: review_draft
@@ -206,6 +220,28 @@ state = workflow.invoke({draft: ""}, config: {thread_id: "doc-1"})
 final = workflow.send_event(state: state, event: :approve)
 puts final.approved
 ```
+
+`Persistence#workflow_states` is the durable Workflow repository. `thread_id`
+identifies the durable Workflow state and remains stable across resume. Each
+concrete Runtime execution receives a separate internal `fsm_session_id`; the
+application-level `session_id` remains ordinary caller/tracing metadata. Phronomy
+holds owner-aware admission for `thread_id` from durable load through terminal
+save so another local invocation cannot start from a stale snapshot while the
+current owner is still committing.
+
+A global Persistence backend can be configured when Agents and Workflows should
+share one durable backend:
+
+```ruby
+Phronomy.configure do |config|
+  config.persistence = persistence
+end
+```
+
+Agent `new`/`create` and Workflow definitions use the global backend when they do
+not inject an explicit `persistence:`. Workflow durability is fixed at the
+application/Workflow-definition boundary; there is no per-invocation backend
+switch.
 
 Workflow entry and transition actions are synchronous Run-to-Completion
 callbacks. If a Workflow needs an Agent or another asynchronous lifecycle, start

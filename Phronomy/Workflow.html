@@ -146,7 +146,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#define-class_method" title="define (class method)">.<strong>define</strong>(context_class, state_store: nil, &amp;block)  &#x21d2; Object </a>
+      <a href="#define-class_method" title="define (class method)">.<strong>define</strong>(context_class, persistence: nil, &amp;block)  &#x21d2; Object </a>
     
 
     
@@ -304,7 +304,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Sends an event to an active Workflow session without blocking.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Sends an event to an active Workflow execution without blocking.</p></div></span>
   
 </li>
 
@@ -399,7 +399,7 @@
       <div class="method_details first">
   <h3 class="signature first" id="define-class_method">
   
-    .<strong>define</strong>(context_class, state_store: nil, &amp;block)  &#x21d2; <tt>Object</tt> 
+    .<strong>define</strong>(context_class, persistence: nil, &amp;block)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -420,8 +420,8 @@
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 11</span>
 
-<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_define'>define</span><span class='lparen'>(</span><span class='id identifier rubyid_context_class'>context_class</span><span class='comma'>,</span> <span class='label'>state_store:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_builder'>builder</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Workflow/Builder.html" title="Phronomy::Workflow::Builder (class)">Builder</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Workflow/Builder.html#initialize-instance_method" title="Phronomy::Workflow::Builder#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_context_class'>context_class</span><span class='comma'>,</span> <span class='label'>state_store:</span> <span class='id identifier rubyid_state_store'>state_store</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_define'>define</span><span class='lparen'>(</span><span class='id identifier rubyid_context_class'>context_class</span><span class='comma'>,</span> <span class='label'>persistence:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_builder'>builder</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Workflow/Builder.html" title="Phronomy::Workflow::Builder (class)">Builder</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Workflow/Builder.html#initialize-instance_method" title="Phronomy::Workflow::Builder#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_context_class'>context_class</span><span class='comma'>,</span> <span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_builder'>builder</span><span class='period'>.</span><span class='id identifier rubyid_instance_eval'>instance_eval</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_builder'>builder</span><span class='period'>.</span><span class='id identifier rubyid_build'>build</span>
 <span class='kw'>end</span></pre>
@@ -571,9 +571,10 @@
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Sends an event to an active Workflow session without blocking.</p>
-<p>This method is safe to call from an Agent/Tool listener running on the
-EventLoop thread because it only enqueues a later dispatch.</p>
+    <p>Sends an event to an active Workflow execution without blocking.</p>
+<p><code>thread_id</code> is the logical/durable Workflow identity. EventLoop resolves it
+to the currently owning Runtime-only fsm_session_id. InvocationContext's
+application session_id is unrelated to this routing.</p>
 
   </div>
 </div>
@@ -590,7 +591,7 @@ EventLoop thread because it only enqueues a later dispatch.</p>
       
       
         &mdash;
-        <div class='inline'><p>true when admitted; false when the session is not live
+        <div class='inline'><p>true when admitted; false when the Workflow is not live
 or Runtime shutdown has begun</p></div>
       
     </li>
@@ -603,16 +604,16 @@ or Runtime shutdown has begun</p></div>
       <pre class="lines">
 
 
-52
 53
 54
 55
 56
 57
-58</pre>
+58
+59</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 52</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/workflow.rb', line 53</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_signal'>signal</span><span class='lparen'>(</span><span class='label'>thread_id:</span><span class='comma'>,</span> <span class='label'>event:</span><span class='comma'>,</span> <span class='label'>payload:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@runner</span><span class='period'>.</span><span class='id identifier rubyid_signal'>signal</span><span class='lparen'>(</span>
@@ -663,7 +664,7 @@ or Runtime shutdown has begun</p></div>
 </div>
 
       <div id="footer">
-  Generated on Fri Aug 14 01:35:16 2026 by
+  Generated on Fri Aug 14 14:08:54 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -19,6 +19,7 @@ for production deployments.
 |---|---|
 | **Workflow** — Stateful, branching workflows with `wait_state` and explicit events | Stable |
 | **Agent** — Stateful ReAct-style agents with stable `agent_id`, persistence-backed execution state, canonical history, guardrails, and conversation context | Stable |
+| **Unified Persistence** — One durable backend abstraction for Agent state and Workflow `workflow_states`; live Agent/Workflow state remains owned by the active instance/session between durable commits | Beta |
 | **Before-Large-Language-Model (LLM) Input Hook** — Three-tier per-call LLM input customization via `before_llm_input` and `LLMInputPatch` | Stable |
 | **Context Management** — Journal + Context Policy + per-LLM-call Manifest with token-budget-aware selection and protocol-safe Tool Call / Tool message dependencies | Stable |
 | **Filters** — Input/output transformation and blocking via `Filter::Base` | Beta |
@@ -44,6 +45,7 @@ for production deployments.
 | Feature | Stability |
 |---|---|
 | **EventLoop** — Runtime-owned event-driven execution core shared by Agent, ToolInvocation, Workflow, and MultiAgent sessions | Beta |
+| **Workflow durable admission** — Durable `thread_id` ownership is held by a Runtime-only `fsm_session_id` from load through terminal save | Beta |
 | **`invoke` / `invoke_async`** — Blocking and non-blocking Agent/Workflow entry points | Stable |
 | **Agent async events** — `invoke_async(..., on_event:)` and `stream_async(..., on_event:)`; streaming additionally emits `:token` | Beta |
 | **`stream` / `stream_async`** — Event callbacks execute on EventLoop and must return quickly | Beta |
@@ -66,7 +68,7 @@ for production deployments.
 | **`Phronomy::MultiAgent::Orchestrator`** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
 | **`Phronomy::MultiAgent::TeamCoordinator`** — LLM coordinator with stateful worker Agents | Beta |
 | **SharedState** — Peer-agent shared-state coordination | Experimental |
-| **Human-in-the-loop approval** — Suspension and approval/resume of Tool requests | Beta |
+| **Human-in-the-loop approval** — Suspension and approval/resume of Tool requests on the same live Agent/Activation owner | Beta |
 | **`tool_approval_policy`** — Application-defined allow/approve/reject policy | Beta |
 
 ## Public API boundary
@@ -75,6 +77,10 @@ The feature tables above describe the primary APIs intended for gem consumers.
 Source declarations marked `@api private`, including most EventLoop/FSMSession and
 OffloadPool internals, are implementation details and may change without the same
 compatibility guarantees.
+
+`Phronomy::StateStore` is no longer a public backend abstraction. Workflow
+durability is provided through `Phronomy::Persistence#workflow_states`; see the
+0.19 migration guide when upgrading code that used `state_store:`.
 
 ## Advanced and internal APIs
 

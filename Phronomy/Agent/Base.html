@@ -91,7 +91,7 @@
   
   <dl>
       <dt>Includes:</dt>
-      <dd><span class='object_link'><a href="AsyncEventApi.html" title="Phronomy::Agent::AsyncEventApi (module)">AsyncEventApi</a></span>, <span class='object_link'><a href="Concerns/BeforeLLMInput.html" title="Phronomy::Agent::Concerns::BeforeLLMInput (module)">Concerns::BeforeLLMInput</a></span>, <span class='object_link'><a href="Concerns/ErrorTranslation.html" title="Phronomy::Agent::Concerns::ErrorTranslation (module)">Concerns::ErrorTranslation</a></span>, <span class='object_link'><a href="Concerns/Filterable.html" title="Phronomy::Agent::Concerns::Filterable (module)">Concerns::Filterable</a></span>, <span class='object_link'><a href="../Runnable.html" title="Phronomy::Runnable (module)">Runnable</a></span></dd>
+      <dd><span class='object_link'><a href="AsyncEventApi.html" title="Phronomy::Agent::AsyncEventApi (module)">AsyncEventApi</a></span>, <span class='object_link'><a href="Concerns/BeforeLLMInput.html" title="Phronomy::Agent::Concerns::BeforeLLMInput (module)">Concerns::BeforeLLMInput</a></span>, <span class='object_link'><a href="Concerns/ErrorTranslation.html" title="Phronomy::Agent::Concerns::ErrorTranslation (module)">Concerns::ErrorTranslation</a></span>, <span class='object_link'><a href="Concerns/Filterable.html" title="Phronomy::Agent::Concerns::Filterable (module)">Concerns::Filterable</a></span>, <span class='object_link'><a href="PersistenceOwnership.html" title="Phronomy::Agent::PersistenceOwnership (module)">PersistenceOwnership</a></span>, <span class='object_link'><a href="../Runnable.html" title="Phronomy::Runnable (module)">Runnable</a></span></dd>
   </dl>
   
   
@@ -958,6 +958,13 @@ and execution hooks. Instance methods handle invocation.</p>
   
   
   
+  
+  
+  
+  
+  
+  
+  
   <h3 class="inherited">Methods included from <span class='object_link'><a href="AsyncEventApi.html" title="Phronomy::Agent::AsyncEventApi (module)">AsyncEventApi</a></span></h3>
   <p class="inherited"><span class='object_link'><a href="AsyncEventApi.html#approve-instance_method" title="Phronomy::Agent::AsyncEventApi#approve (method)">#approve</a></span>, <span class='object_link'><a href="AsyncEventApi.html#approve_async-instance_method" title="Phronomy::Agent::AsyncEventApi#approve_async (method)">#approve_async</a></span>, <span class='object_link'><a href="AsyncEventApi.html#invoke-instance_method" title="Phronomy::Agent::AsyncEventApi#invoke (method)">#invoke</a></span>, <span class='object_link'><a href="AsyncEventApi.html#invoke_async-instance_method" title="Phronomy::Agent::AsyncEventApi#invoke_async (method)">#invoke_async</a></span>, <span class='object_link'><a href="AsyncEventApi.html#stream-instance_method" title="Phronomy::Agent::AsyncEventApi#stream (method)">#stream</a></span>, <span class='object_link'><a href="AsyncEventApi.html#stream_async-instance_method" title="Phronomy::Agent::AsyncEventApi#stream_async (method)">#stream_async</a></span></p>
 <div id="constructor_details" class="method_details_list">
@@ -1251,8 +1258,8 @@ Subclass with no explicit declaration inherits the parent's definition.</p>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 255</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_approve'>approve</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span><span class='comma'>,</span> <span class='label'>persistence:</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_approve_async'>approve_async</span><span class='lparen'>(</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_approve'><span class='object_link'><a href="PersistenceOwnership/ClassMethods.html#approve-instance_method" title="Phronomy::Agent::PersistenceOwnership::ClassMethods#approve (method)">approve</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span><span class='comma'>,</span> <span class='label'>persistence:</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_approve_async'><span class='object_link'><a href="PersistenceOwnership/ClassMethods.html#approve_async-instance_method" title="Phronomy::Agent::PersistenceOwnership::ClassMethods#approve_async (method)">approve_async</a></span></span><span class='lparen'>(</span>
     <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
     <span class='label'>approval_request_id:</span> <span class='id identifier rubyid_approval_request_id'>approval_request_id</span><span class='comma'>,</span>
     <span class='label'>approved:</span> <span class='id identifier rubyid_approved'>approved</span><span class='comma'>,</span>
@@ -1293,9 +1300,9 @@ Subclass with no explicit declaration inherits the parent's definition.</p>
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/agent/base.rb', line 265</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_approve_async'>approve_async</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span><span class='comma'>,</span> <span class='label'>persistence:</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_approve_async'><span class='object_link'><a href="PersistenceOwnership/ClassMethods.html#approve_async-instance_method" title="Phronomy::Agent::PersistenceOwnership::ClassMethods#approve_async (method)">approve_async</a></span></span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span><span class='comma'>,</span> <span class='label'>persistence:</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_execution'>execution</span> <span class='op'>=</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='period'>.</span><span class='id identifier rubyid_executions'>executions</span><span class='period'>.</span><span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_approve_async'>approve_async</span><span class='lparen'>(</span>
+  <span class='id identifier rubyid_load'>load</span><span class='lparen'>(</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span> <span class='label'>persistence:</span> <span class='id identifier rubyid_persistence'>persistence</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_approve_async'><span class='object_link'><a href="PersistenceOwnership/ClassMethods.html#approve_async-instance_method" title="Phronomy::Agent::PersistenceOwnership::ClassMethods#approve_async (method)">approve_async</a></span></span><span class='lparen'>(</span>
     <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
     <span class='label'>approval_request_id:</span> <span class='id identifier rubyid_approval_request_id'>approval_request_id</span><span class='comma'>,</span>
     <span class='label'>approved:</span> <span class='id identifier rubyid_approved'>approved</span><span class='comma'>,</span>
@@ -2782,7 +2789,7 @@ Raw Journal records remain append-only and are not deleted.</p>
 </div>
 
       <div id="footer">
-  Generated on Fri Aug 14 01:35:16 2026 by
+  Generated on Fri Aug 14 14:08:54 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

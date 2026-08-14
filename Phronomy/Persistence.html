@@ -124,33 +124,6 @@
       <li class="public ">
   <span class="summary_signature">
     
-      <a href="#activations-instance_method" title="#activations (instance method)">#<strong>activations</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-      <span class="note title readonly">readonly</span>
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute activations.</p></div></span>
-  
-</li>
-
-    
-      <li class="public ">
-  <span class="summary_signature">
-    
       <a href="#agents-instance_method" title="#agents (instance method)">#<strong>agents</strong>  &#x21d2; Object </a>
     
 
@@ -256,6 +229,33 @@
 </li>
 
     
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#workflow_states-instance_method" title="#workflow_states (instance method)">#<strong>workflow_states</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute workflow_states.</p></div></span>
+  
+</li>
+
+    
   </ul>
 
 
@@ -268,6 +268,28 @@
     </h2>
 
     <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#assert_agent_watermark!-instance_method" title="#assert_agent_watermark! (instance method)">#<strong>assert_agent_watermark!</strong>(agent_id:, agent_revision:, journal_position:)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'><p>Verifies that a live Agent still owns the durable base it hydrated.</p></div></span>
+  
+</li>
+
       
         <li class="public ">
   <span class="summary_signature">
@@ -294,7 +316,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(contents:, agents:, journals:, executions:, activations:)  &#x21d2; Persistence </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(contents:, agents:, journals:, executions:, workflow_states:)  &#x21d2; Persistence </a>
     
 
     
@@ -347,7 +369,7 @@
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(contents:, agents:, journals:, executions:, activations:)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Persistence (class)">Persistence</a></span></tt> 
+    #<strong>initialize</strong>(contents:, agents:, journals:, executions:, workflow_states:)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Persistence (class)">Persistence</a></span></tt> 
   
 
   
@@ -380,12 +402,12 @@
     <td>
       <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 11</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>contents:</span><span class='comma'>,</span> <span class='label'>agents:</span><span class='comma'>,</span> <span class='label'>journals:</span><span class='comma'>,</span> <span class='label'>executions:</span><span class='comma'>,</span> <span class='label'>activations:</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>contents:</span><span class='comma'>,</span> <span class='label'>agents:</span><span class='comma'>,</span> <span class='label'>journals:</span><span class='comma'>,</span> <span class='label'>executions:</span><span class='comma'>,</span> <span class='label'>workflow_states:</span><span class='rparen'>)</span>
   <span class='ivar'>@contents</span> <span class='op'>=</span> <span class='id identifier rubyid_contents'>contents</span>
   <span class='ivar'>@agents</span> <span class='op'>=</span> <span class='id identifier rubyid_agents'>agents</span>
   <span class='ivar'>@journals</span> <span class='op'>=</span> <span class='id identifier rubyid_journals'>journals</span>
   <span class='ivar'>@executions</span> <span class='op'>=</span> <span class='id identifier rubyid_executions'>executions</span>
-  <span class='ivar'>@activations</span> <span class='op'>=</span> <span class='id identifier rubyid_activations'>activations</span>
+  <span class='ivar'>@workflow_states</span> <span class='op'>=</span> <span class='id identifier rubyid_workflow_states'>workflow_states</span>
   <span class='id identifier rubyid_validate_capabilities!'>validate_capabilities!</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -401,48 +423,7 @@
       
       <span id=""></span>
       <div class="method_details first">
-  <h3 class="signature first" id="activations-instance_method">
-  
-    #<strong>activations</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the value of attribute activations.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-9
-10
-11</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 9</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_activations'>activations</span>
-  <span class='ivar'>@activations</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      
-      <span id=""></span>
-      <div class="method_details ">
-  <h3 class="signature " id="agents-instance_method">
+  <h3 class="signature first" id="agents-instance_method">
   
     #<strong>agents</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
   
@@ -603,6 +584,47 @@
 </table>
 </div>
     
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="workflow_states-instance_method">
+  
+    #<strong>workflow_states</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the value of attribute workflow_states.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+9
+10
+11</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 9</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_workflow_states'>workflow_states</span>
+  <span class='ivar'>@workflow_states</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
   </div>
 
 
@@ -611,7 +633,67 @@
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="capabilities-instance_method">
+  <h3 class="signature first" id="assert_agent_watermark!-instance_method">
+  
+    #<strong>assert_agent_watermark!</strong>(agent_id:, agent_revision:, journal_position:)  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Verifies that a live Agent still owns the durable base it hydrated.
+Backends should implement this as a revision/position precondition check,
+not as a state reload returned to the caller.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Persistence/UnsupportedBackendError.html" title="Phronomy::Persistence::UnsupportedBackendError (class)">UnsupportedBackendError</a></span></tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+32
+33
+34
+35</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/persistence.rb', line 32</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_assert_agent_watermark!'>assert_agent_watermark!</span><span class='lparen'>(</span><span class='label'>agent_id:</span><span class='comma'>,</span> <span class='label'>agent_revision:</span><span class='comma'>,</span> <span class='label'>journal_position:</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="Persistence/UnsupportedBackendError.html" title="Phronomy::Persistence::UnsupportedBackendError (class)">UnsupportedBackendError</a></span></span><span class='comma'>,</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='embexpr_end'>}</span><span class='tstring_content'> does not provide Agent durable-watermark checks</span><span class='tstring_end'>&quot;</span></span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="capabilities-instance_method">
   
     #<strong>capabilities</strong>  &#x21d2; <tt>Object</tt> 
   
@@ -697,7 +779,7 @@
 </div>
 
       <div id="footer">
-  Generated on Fri Aug 14 01:35:16 2026 by
+  Generated on Fri Aug 14 14:08:54 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
