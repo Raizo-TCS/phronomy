@@ -198,5 +198,39 @@ RSpec.describe Phronomy::Agent::Base do
       expect { task.wait_result }
         .to raise_error(Phronomy::ExecutionRehydrationRequiredError)
     end
+
+    it "fails with ArgumentError when the live activation belongs to a different agent class" do
+      result = agent.invoke("run tool")
+      execution_id = result[:execution_id]
+      request_id = result[:approval_request].id
+
+      other_class = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "other-class-agent", version: 1
+        model "test-model"
+        instructions "other"
+      end
+
+      task = other_class.approve_async(
+        execution_id,
+        approval_request_id: request_id,
+        persistence: persistence
+      )
+      expect { task.wait_result }.to raise_error(ArgumentError)
+    end
+
+    it "fails with ArgumentError when the persistence instance does not match the live agent" do
+      result = agent.invoke("run tool")
+      execution_id = result[:execution_id]
+      request_id = result[:approval_request].id
+
+      other_persistence = Phronomy::Persistence::InMemory.new
+
+      task = HITLAgentForApproveAsync.approve_async(
+        execution_id,
+        approval_request_id: request_id,
+        persistence: other_persistence
+      )
+      expect { task.wait_result }.to raise_error(ArgumentError)
+    end
   end
 end

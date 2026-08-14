@@ -287,4 +287,141 @@ RSpec.describe Phronomy::Workflow do
       expect(other.workflow_states.load("fixed")).to be_nil
     end
   end
+
+  describe "send_event / resume with Persistence" do
+    let(:wait_ctx) do
+      Class.new do
+        include Phronomy::WorkflowContext
+
+        field :value, default: ""
+      end
+    end
+
+    let(:persistence) { Phronomy::Persistence::InMemory.new }
+
+    let(:wait_app) do
+      Phronomy::Workflow.define(wait_ctx, persistence: persistence) do
+        initial :prepare
+        state :prepare, action: ->(s) { s.merge(value: "prepared") }
+        wait_state :waiting
+        state :finish_step, action: ->(s) { s.merge(value: "#{s.value}:done") }
+        transition from: :prepare, to: :waiting
+        transition from: :waiting, on: :approve, to: :finish_step
+        transition from: :finish_step, to: :__finish__
+      end
+    end
+
+    it "resumes a halted workflow using durable state and saves the final snapshot" do
+      halted = wait_app.invoke({}, config: {thread_id: "persist-resume"})
+      expect(halted.phase).to eq(:waiting)
+
+      final = wait_app.send_event(state: halted, event: :approve)
+      expect(final.phase).to eq(:__end__)
+      expect(final.value).to eq("prepared:done")
+
+      record = persistence.workflow_states.load("persist-resume")
+      expect(record[:snapshot][:phase]).to eq("__end__")
+    end
+
+    it "merges explicit input when resuming with persistence" do
+      halted = wait_app.invoke({}, config: {thread_id: "persist-input"})
+      final = wait_app.send_event(state: halted, event: :approve, input: {value: "override"})
+      expect(final.value).to eq("override:done")
+    end
+
+    it "supports the :resume event alias via Workflow#resume" do
+      resume_app = Phronomy::Workflow.define(wait_ctx, persistence: persistence) do
+        initial :prepare
+        state :prepare, action: ->(s) { s.merge(value: "ready") }
+        wait_state :waiting
+        state :done_step, action: ->(s) { s.merge(value: "#{s.value}:finished") }
+        transition from: :prepare, to: :waiting
+        transition from: :waiting, on: :resume, to: :done_step
+        transition from: :done_step, to: :__finish__
+      end
+
+      halted = resume_app.invoke({}, config: {thread_id: "resume-alias"})
+      final = resume_app.resume(state: halted)
+      expect(final.value).to eq("ready:finished")
+    end
+
+    it "resumes when no durable snapshot exists yet for the thread_id" do
+      no_persist = Phronomy::Workflow.define(wait_ctx) do
+        initial :prepare
+        state :prepare, action: ->(s) { s }
+        wait_state :waiting
+        state :finish_step, action: ->(s) { s }
+        transition from: :prepare, to: :waiting
+        transition from: :waiting, on: :approve, to: :finish_step
+        transition from: :finish_step, to: :__finish__
+      end
+
+      halted = no_persist.invoke({}, config: {thread_id: "no-prior-record"})
+      final = wait_app.send_event(state: halted, event: :approve)
+      expect(final.phase).to eq(:__end__)
+    end
+
+    it "normalizes array and symbol values when validating a resume snapshot" do
+      array_ctx = Class.new do
+        include Phronomy::WorkflowContext
+
+        field :items, type: :append, default: -> { [] }
+        field :status, type: :replace, default: :pending
+      end
+
+      array_app = Phronomy::Workflow.define(array_ctx, persistence: persistence) do
+        initial :prepare
+        state :prepare, action: ->(s) { s.merge(items: "ready", status: :active) }
+        wait_state :waiting
+        state :finish_step, action: ->(s) { s.merge(status: :done) }
+        transition from: :prepare, to: :waiting
+        transition from: :waiting, on: :approve, to: :finish_step
+        transition from: :finish_step, to: :__finish__
+      end
+
+      halted = array_app.invoke({}, config: {thread_id: "normalize-resume"})
+      final = array_app.send_event(state: halted, event: :approve)
+      expect(final.status).to eq(:done)
+    end
+
+    it "raises ArgumentError when no :resume event matches the current phase" do
+      no_resume_app = Phronomy::Workflow.define(wait_ctx) do
+        initial :prepare
+        state :prepare, action: ->(s) { s }
+        wait_state :stuck
+        transition from: :prepare, to: :stuck
+      end
+
+      halted = no_resume_app.invoke({})
+      expect { no_resume_app.resume(state: halted) }
+        .to raise_error(ArgumentError, /No external event registered/)
+    end
+  end
+
+  describe "invoke / stream API branches" do
+    let(:ctx) do
+      Class.new do
+        include Phronomy::WorkflowContext
+
+        field :v, default: 0
+      end
+    end
+
+    let(:app) do
+      Phronomy::Workflow.define(ctx) do
+        initial :step
+        state :step, action: ->(s) { s.merge(v: 1) }
+        transition from: :step, to: :__finish__
+      end
+    end
+
+    it "passes user_id and session_id metadata through config without raising" do
+      result = app.invoke({}, config: {user_id: "u1", session_id: "s1"})
+      expect(result.v).to eq(1)
+    end
+
+    it "raises ArgumentError when stream is called without a block" do
+      expect { app.stream({}) }.to raise_error(ArgumentError, /stream requires a block/)
+    end
+  end
 end

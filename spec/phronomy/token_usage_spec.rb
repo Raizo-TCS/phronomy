@@ -83,4 +83,14 @@ RSpec.describe Phronomy::TokenUsage do
       )
     end
   end
+
+  describe "#+ with nil fields" do
+    it "returns nil for each field when both operands have nil for that field" do
+      a = described_class.new(input: nil, output: nil, cached: nil, cache_creation: nil)
+      b = described_class.new(input: nil, output: nil, cached: nil, cache_creation: nil)
+      result = a + b
+      expect(result.input).to be_nil
+      expect(result.output).to be_nil
+    end
+  end
 end

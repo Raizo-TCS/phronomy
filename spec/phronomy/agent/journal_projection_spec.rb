@@ -103,4 +103,22 @@ RSpec.describe Phronomy::Agent::JournalProjection do
     expect(projection.transcript_records.map(&:kind))
       .to eq(%i[assistant_message tool_message])
   end
+
+  it "raises ArgumentError when neither persistence nor records is given" do
+    root = Phronomy::Agent::AgentRoot.new(
+      agent_id: "test-agent",
+      agent_definition_id: "test",
+      definition_version: 1,
+      agent_revision: 0,
+      context_revision: 0,
+      journal_position: 0,
+      lifecycle_status: :idle,
+      transcript_generation: 0,
+      created_at: Time.now.utc.iso8601(6),
+      updated_at: Time.now.utc.iso8601(6),
+      metadata: {}
+    )
+    expect { described_class.new(agent_root: root) }
+      .to raise_error(ArgumentError, /requires persistence.*or records/i)
+  end
 end
