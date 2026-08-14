@@ -2,8 +2,6 @@
 
 require "spec_helper"
 
-# Reuse HITL fixtures if already defined (e.g., when full suite runs).
-# Otherwise define locally for isolated runs.
 unless defined?(HITLTool)
   class HITLTool < Phronomy::Agent::Context::Capability::Base
     tool_name "hitl_tool"
@@ -35,8 +33,6 @@ def build_approve_async_chat(tool_instance:, final_response: "resumed")
     thought_signature: nil,
     to_h: {id: "call_001", name: "hitl_tool", arguments: {"value" => "hello"}}
   )
-  # Simulate RubyLLM >= 1.15: messages.last is the complete assistant message
-  # with tool_calls populated before before_tool_call fires.
   fake_assistant_msg = double(
     "AssistantMessage",
     role: :assistant,
@@ -71,6 +67,12 @@ RSpec.describe Phronomy::Agent::Base do
     end
   end
   let(:agent) { agent_class.new }
+
+  after do
+    Phronomy.reset_runtime!
+  rescue
+    nil
+  end
 
   describe "#approve EventLoop re-entry guard" do
     it "raises EventLoopReentrancyError when called from the EventLoop thread" do
@@ -113,14 +115,28 @@ RSpec.describe Phronomy::Agent::Base do
       expect(task.wait_result[:output]).to eq("resumed")
     end
 
-    it "is callable while the EventLoop is current (no SchedulerReentrancyError)" do
+    it "resumes the same live Agent and Activation that owned the suspension" do
+      result = invoke_and_suspend
+      execution_id = result[:execution_id]
+      request_id = result[:approval_request].id
+      activation = Phronomy::Runtime.instance.__agent_activations.fetch(execution_id)
+
+      expect(activation.agent).to be(agent)
+      expect(activation.invocation.agent).to be(agent)
+
+      allow(tool_instance).to receive(:call).and_return("done")
+      agent.approve_async(
+        execution_id,
+        approval_request_id: request_id
+      ).wait_result
+    end
+
+    it "is callable while the EventLoop is current" do
       result = invoke_and_suspend
       execution_id = result[:execution_id]
       request_id = result[:approval_request].id
       allow(tool_instance).to receive(:call).and_return("done")
 
-      # approve_async must not raise SchedulerReentrancyError even when the EventLoop
-      # reports current? == true (unlike approve which wraps with _check_scheduler_reentrancy).
       event_loop = Phronomy::Runtime.instance.event_loop
       task = nil
       allow(event_loop).to receive(:current?).and_return(true)
@@ -128,15 +144,59 @@ RSpec.describe Phronomy::Agent::Base do
         task = agent.approve_async(execution_id, approval_request_id: request_id)
         expect(task).to be_a(Phronomy::Task)
       }.not_to raise_error(Phronomy::EventLoopReentrancyError)
-      # Restore current? so reset_runtime! can shut down cleanly, then drain the task.
       allow(event_loop).to receive(:current?).and_call_original
       task.wait_result
     end
 
-    it "returns a failed Task when execution_id is unknown" do
+    it "returns a failed Task requiring durable rehydration when execution_id has no live Activation" do
       task = agent.approve_async("nonexistent-exec", approval_request_id: "none")
       expect(task).to be_a(Phronomy::Task)
-      expect { task.wait_result }.to raise_error(Phronomy::Persistence::NotFoundError)
+      expect { task.wait_result }
+        .to raise_error(Phronomy::ExecutionRehydrationRequiredError)
+    end
+  end
+
+  describe ".approve_async" do
+    let(:tool_instance) { HITLTool.new }
+    let(:persistence) { Phronomy::Persistence::InMemory.new }
+    let(:agent) do
+      HITLAgentForApproveAsync.new(persistence: persistence)
+    end
+    let(:chat) { build_approve_async_chat(tool_instance: tool_instance) }
+
+    before { allow(RubyLLM).to receive(:chat).and_return(chat) }
+
+    it "routes to the owner Agent without loading Execution or a new Agent" do
+      result = agent.invoke("run tool")
+      execution_id = result[:execution_id]
+      request_id = result[:approval_request].id
+      activation = Phronomy::Runtime.instance.__agent_activations.fetch(execution_id)
+      expect(activation.agent).to be(agent)
+
+      expect(persistence.executions).not_to receive(:load)
+      expect(persistence.agents).not_to receive(:load)
+      expect(HITLAgentForApproveAsync).not_to receive(:load)
+      allow(tool_instance).to receive(:call).and_return("done")
+
+      task = HITLAgentForApproveAsync.approve_async(
+        execution_id,
+        approval_request_id: request_id,
+        persistence: persistence
+      )
+      expect(task.wait_result[:output]).to eq("resumed")
+    end
+
+    it "fails with ExecutionRehydrationRequiredError when no live Activation exists" do
+      expect(persistence.executions).not_to receive(:load)
+      expect(persistence.agents).not_to receive(:load)
+
+      task = HITLAgentForApproveAsync.approve_async(
+        "missing-execution",
+        approval_request_id: "missing-request",
+        persistence: persistence
+      )
+      expect { task.wait_result }
+        .to raise_error(Phronomy::ExecutionRehydrationRequiredError)
     end
   end
 end

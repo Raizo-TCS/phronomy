@@ -12,6 +12,29 @@ Release history for 0.14.0 and earlier is archived in
 
 ## [Unreleased]
 
+### Unified Persistence and durable-state ownership
+
+#### Added
+
+- `Persistence#workflow_states` with optimistic revision checks for durable Workflow snapshots.
+- Runtime-local Agent Activation ownership; live `AgentExecutionActivation` values are no longer Persistence repositories.
+- Owner-aware Workflow admission keyed by durable `thread_id` and owned by a per-execution internal `fsm_session_id`.
+- ADR-014 and the 0.19 migration guide for the unified durable-state architecture.
+
+#### Changed
+
+- Live Agent instances now remain the authoritative logical-state owners after hydration. Context Policy and follow-up Manifest preparation use the Agent-local root, Journal view, and Activation state instead of reloading mutable Agent state for freshness.
+- `Phronomy.configuration.persistence` is the global durable backend for Workflows and for Agent `new`/`create` calls that do not explicitly inject another Persistence instance.
+- Agent durable writes use optimistic revision/Journal-position guardrails; conflicting external writes fail instead of being silently reloaded or merged.
+- Approval suspension/resume preserves the same live Agent/Activation/AgentInvocation. Class-level approval convenience routing resolves that live owner from Runtime instead of loading another Agent.
+- Workflow durable I/O runs outside EventLoop through OffloadPool, while `thread_id` admission remains owned until terminal/halted snapshot persistence completes.
+- Workflow `thread_id`, Runtime `fsm_session_id`, and application `session_id` now have distinct responsibilities.
+
+#### Removed
+
+- `Phronomy::StateStore`, `StateStore::InMemory`, `Workflow.define(..., state_store:)`, `Configuration#state_store`, and per-invocation `config[:state_store]`.
+- `Persistence#activations`; ActivationRegistry is transient Runtime state.
+
 ### OffloadPool execution model
 
 #### Changed

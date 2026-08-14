@@ -16,7 +16,7 @@ module Phronomy
     attr_accessor :trace_pii
     attr_accessor :logger
     attr_accessor :event_loop_stop_grace_seconds
-    attr_accessor :state_store
+    attr_accessor :persistence
     attr_accessor :tool_result_max_size
     attr_accessor :llm_adapter
     attr_accessor :event_loop_starvation_threshold_seconds
@@ -53,6 +53,7 @@ module Phronomy
       @authorization_pool_size = 4
       @authorization_queue_size = 100
       @authorization_timeout = 5
+      @persistence = nil
     end
   end
 end

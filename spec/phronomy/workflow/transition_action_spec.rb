@@ -179,7 +179,7 @@ RSpec.describe "Workflow transition actions" do
           context.merge(
             event_type: event.type,
             event_payload: event.payload,
-            event_target_matches: event.target_id == context.thread_id
+            event_target_matches: !event.target_id.nil?
           )
         }
       )

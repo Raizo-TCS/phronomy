@@ -14,18 +14,20 @@ module Phronomy
         agent:,
         persistence:,
         policy: ContextPolicies::Default.new,
-        candidate_resolver: nil
+        candidate_resolver: nil,
+        journal_records: nil
       )
         @agent = agent
         @persistence = persistence
         @policy = policy
+        @journal_records = journal_records
         @candidate_resolver = candidate_resolver || ContextCandidateResolver.new(
           content_loader: method(:fetch_content)
         )
       end
 
       def build_initial(input:, agent_root:, execution:, config: {}, patch: LLMInputPatch.empty)
-        projection = JournalProjection.new(persistence: @persistence, agent_root: agent_root)
+        projection = journal_projection(agent_root)
         model_cfg = effective_model_config(config, patch)
         tool_set = ToolDefinitionSet.build(@agent)
         system_text = build_system_text(input)
@@ -65,7 +67,7 @@ module Phronomy
         config: {},
         patch: LLMInputPatch.empty
       )
-        projection = JournalProjection.new(persistence: @persistence, agent_root: agent_root)
+        projection = journal_projection(agent_root)
         model_cfg = effective_model_config(config, patch)
         hook_candidates = normalize_candidates(patch.segment_candidates)
         system_segments = base_manifest.segments.select do |segment|
@@ -95,6 +97,14 @@ module Phronomy
       end
 
       private
+
+      def journal_projection(agent_root)
+        if @journal_records
+          JournalProjection.new(agent_root: agent_root, records: @journal_records)
+        else
+          JournalProjection.new(persistence: @persistence, agent_root: agent_root)
+        end
+      end
 
       def assemble(
         agent_root:,

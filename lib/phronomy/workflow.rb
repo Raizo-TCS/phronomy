@@ -8,8 +8,8 @@ module Phronomy
   class Workflow
     include Phronomy::Runnable
 
-    def self.define(context_class, state_store: nil, &block)
-      builder = Builder.new(context_class, state_store: state_store)
+    def self.define(context_class, persistence: nil, &block)
+      builder = Builder.new(context_class, persistence: persistence)
       builder.instance_eval(&block)
       builder.build
     end
@@ -41,12 +41,13 @@ module Phronomy
       @runner.send_event(state: state, event: event, input: input)
     end
 
-    # Sends an event to an active Workflow session without blocking.
+    # Sends an event to an active Workflow execution without blocking.
     #
-    # This method is safe to call from an Agent/Tool listener running on the
-    # EventLoop thread because it only enqueues a later dispatch.
+    # +thread_id+ is the logical/durable Workflow identity. EventLoop resolves it
+    # to the currently owning Runtime-only fsm_session_id. InvocationContext's
+    # application session_id is unrelated to this routing.
     #
-    # @return [Boolean] true when admitted; false when the session is not live
+    # @return [Boolean] true when admitted; false when the Workflow is not live
     #   or Runtime shutdown has begun
     # @api public
     def signal(thread_id:, event:, payload: nil)
@@ -76,9 +77,9 @@ module Phronomy
     class Builder
       FINISH = Phronomy::WorkflowRunner::FINISH
 
-      def initialize(context_class, state_store: nil)
+      def initialize(context_class, persistence: nil)
         @context_class = context_class
-        @state_store = state_store
+        @persistence = persistence
         @initial = nil
         @declared_states = []
         @entry_actions = {}
@@ -167,7 +168,7 @@ module Phronomy
           external_events: external_events,
           entry_point: @initial || @declared_states.first,
           wait_state_names: @wait_state_names.dup,
-          state_store: @state_store
+          persistence: @persistence
         )
         Workflow.new(runner)
       end

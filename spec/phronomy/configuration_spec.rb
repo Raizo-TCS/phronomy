@@ -28,6 +28,12 @@ RSpec.describe Phronomy::Configuration do
       expect(config.trace_pii).to be false
     end
 
+    it "defaults persistence to nil and no longer exposes state_store" do
+      expect(config.persistence).to be_nil
+      expect(config).not_to respond_to(:state_store)
+      expect(config).not_to respond_to(:state_store=)
+    end
+
     it "EventLoop is always active (no event_loop toggle)" do
       expect(config).not_to respond_to(:event_loop)
     end
@@ -44,6 +50,12 @@ RSpec.describe Phronomy::Configuration do
     it "changes recursion_limit" do
       config.recursion_limit = 50
       expect(config.recursion_limit).to eq(50)
+    end
+
+    it "sets the unified Persistence backend" do
+      persistence = Phronomy::Persistence::InMemory.new
+      config.persistence = persistence
+      expect(config.persistence).to be(persistence)
     end
   end
 end
@@ -71,6 +83,27 @@ RSpec.describe "Phronomy.configure" do
     Phronomy.configure { |c| c.default_model = "gpt-4o" }
     Phronomy.reset_configuration!
     expect(Phronomy.configuration.default_model).to be_nil
+  end
+
+  it "uses the global Persistence for Agents that do not inject another backend" do
+    persistence = Phronomy::Persistence::InMemory.new
+    klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "global-persistence-agent", version: 1
+    end
+    Phronomy.configure { |c| c.persistence = persistence }
+
+    expect(klass.new.persistence).to be(persistence)
+  end
+
+  it "keeps an explicitly injected Agent Persistence ahead of the global backend" do
+    global = Phronomy::Persistence::InMemory.new
+    explicit = Phronomy::Persistence::InMemory.new
+    klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: "explicit-persistence-agent", version: 1
+    end
+    Phronomy.configure { |c| c.persistence = global }
+
+    expect(klass.new(persistence: explicit).persistence).to be(explicit)
   end
 
   # Regression test for Issue #104: trace_pii defaults to true — PII is forwarded to tracers without explicit opt-in

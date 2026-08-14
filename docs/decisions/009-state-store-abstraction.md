@@ -1,6 +1,6 @@
 # ADR 009: StateStore Abstraction for Workflow Persistence
 
-**Status**: Accepted  
+**Status**: Superseded by ADR-014  
 **Date**: 2025-01  
 **Issue**: [#250](https://github.com/Raizo-TCS/phronomy/issues/250)
 

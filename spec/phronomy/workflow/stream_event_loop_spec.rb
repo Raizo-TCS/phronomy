@@ -51,11 +51,12 @@ RSpec.describe "Workflow stream EventLoop integration" do
     expect(result.value).to eq(2)
   end
 
-  it "loads and saves StateStore snapshots like invoke and invoke_async" do
-    store = Phronomy::StateStore::InMemory.new
-    store.save(
+  it "loads and saves Persistence workflow_states like invoke and invoke_async" do
+    persistence = Phronomy::Persistence::InMemory.new
+    persistence.workflow_states.save(
       "stream-state",
-      {
+      expected_revision: nil,
+      snapshot: {
         fields: {value: 10},
         phase: "__end__"
       }
@@ -63,7 +64,7 @@ RSpec.describe "Workflow stream EventLoop integration" do
 
     workflow = Phronomy::Workflow.define(
       context_class,
-      state_store: store
+      persistence: persistence
     ) do
       initial :increment
       state :increment, action: ->(context) {
@@ -78,7 +79,9 @@ RSpec.describe "Workflow stream EventLoop integration" do
     ) { |_event| }
 
     expect(result.value).to eq(11)
-    expect(store.load("stream-state")[:fields][:value]).to eq(11)
+    record = persistence.workflow_states.load("stream-state")
+    expect(record[:snapshot][:fields][:value]).to eq(11)
+    expect(record[:revision]).to eq(2)
   end
 
   it "propagates observer exceptions to the synchronous caller" do

@@ -31,8 +31,6 @@ def build_hitl_chat(tool_name: "hitl_tool", tool_args: {"value" => "hello"},
     thought_signature: nil,
     to_h: {id: tool_call_id, name: tool_name, arguments: tool_args}
   )
-  # Simulate RubyLLM >= 1.15: messages.last is the complete assistant message
-  # with tool_calls populated before before_tool_call fires.
   fake_assistant_msg = double(
     "AssistantMessage",
     role: :assistant,
@@ -60,7 +58,12 @@ end
 
 RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
   let(:tool_instance) { HITLTool.new }
-  after {}
+
+  after do
+    Phronomy.reset_runtime!
+  rescue
+    nil
+  end
 
   describe "#invoke with an approval-required tool (no policy override)" do
     let(:agent) { HITLAgent.new }
@@ -89,7 +92,11 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
 
     it "has a suspended execution in persistence" do
       agent.invoke("run tool")
-      expect(agent.persistence.executions.list_active(agent.agent_id).any? { |e| e.status == :suspended }).to be true
+      expect(
+        agent.persistence.executions.list_active(agent.agent_id).any? { |e|
+          e.status == :suspended
+        }
+      ).to be true
     end
 
     it "does NOT suspend when tool_approval_policy returns :allow" do
@@ -103,7 +110,12 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
 
   describe "#approve (instance method)" do
     let(:agent) { HITLAgent.new }
-    let(:chat_dbl) { build_hitl_chat(tools_hash: {hitl_tool: tool_instance}, final_response: "Tool ran.") }
+    let(:chat_dbl) do
+      build_hitl_chat(
+        tools_hash: {hitl_tool: tool_instance},
+        final_response: "Tool ran."
+      )
+    end
     before { allow(RubyLLM).to receive(:chat).and_return(chat_dbl) }
 
     def invoke_and_get_ids
@@ -114,7 +126,9 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
     it "returns final output after approval" do
       execution_id, request_id = invoke_and_get_ids
       allow(tool_instance).to receive(:call).and_return("executed: hello")
-      expect(agent.approve(execution_id, approval_request_id: request_id)[:output]).to eq("Tool ran.")
+      expect(
+        agent.approve(execution_id, approval_request_id: request_id)[:output]
+      ).to eq("Tool ran.")
     end
 
     it "execution is no longer active after approval" do
@@ -124,9 +138,10 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
       expect(agent.persistence.executions.list_active(agent.agent_id)).to be_empty
     end
 
-    it "raises Persistence::NotFoundError for unknown execution_id" do
-      expect { agent.approve("nonexistent-exec", approval_request_id: "none") }
-        .to raise_error(Phronomy::Persistence::NotFoundError)
+    it "raises ExecutionRehydrationRequiredError for an execution with no live Activation" do
+      expect {
+        agent.approve("nonexistent-exec", approval_request_id: "none")
+      }.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
     end
   end
 
@@ -142,13 +157,23 @@ RSpec.describe "Agent FSM HITL (human-in-the-loop approval)" do
 
     it "returns :rejected => true" do
       execution_id, request_id = invoke_and_get_ids
-      expect(agent.approve(execution_id, approval_request_id: request_id, approved: false)[:rejected]).to be true
+      expect(
+        agent.approve(
+          execution_id,
+          approval_request_id: request_id,
+          approved: false
+        )[:rejected]
+      ).to be true
     end
 
     it "does NOT call the tool when rejected" do
       execution_id, request_id = invoke_and_get_ids
       expect(tool_instance).not_to receive(:call)
-      agent.approve(execution_id, approval_request_id: request_id, approved: false)
+      agent.approve(
+        execution_id,
+        approval_request_id: request_id,
+        approved: false
+      )
     end
   end
 end

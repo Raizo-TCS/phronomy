@@ -16,7 +16,18 @@ module Phronomy
   end
 end
 
+require_relative "agent/persistence_ownership"
 require_relative "agent/async_event_api"
+
+unless Phronomy::Agent::Base < Phronomy::Agent::PersistenceOwnership
+  Phronomy::Agent::Base.prepend(Phronomy::Agent::PersistenceOwnership)
+end
+
+unless Phronomy::Agent::Base.singleton_class < Phronomy::Agent::PersistenceOwnership::ClassMethods
+  Phronomy::Agent::Base.singleton_class.prepend(
+    Phronomy::Agent::PersistenceOwnership::ClassMethods
+  )
+end
 
 unless Phronomy::Agent::Base < Phronomy::Agent::AsyncEventApi
   Phronomy::Agent::Base.prepend(Phronomy::Agent::AsyncEventApi)

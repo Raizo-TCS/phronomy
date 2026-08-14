@@ -8,6 +8,8 @@ handle, not an execution backend. Synchronous work that must stay off EventLoop 
 
 For the design rationale, see Architecture Decision Record (ADR)
 [ADR-010: EventLoop / FSMSession First Concurrency](decisions/010-cooperative-first-concurrency.md).
+Durable-state ownership is defined by
+[ADR-014: Unified Persistence and Durable-State Ownership](decisions/014-unified-persistence-durable-state.md).
 
 ## Runtime model
 
@@ -19,6 +21,7 @@ Runtime
 │     ├─ Workflow
 │     ├─ ToolInvocation
 │     └─ MultiAgent fan-out
+├─ process-local Agent ActivationRegistry
 ├─ OffloadPool (bounded operating-system Threads)
 │  ├─ blocking input/output (I/O)
 │  ├─ central-processing-unit (CPU)-bound synchronous work
@@ -31,6 +34,55 @@ Task = completion handle
 
 The framework does not allocate one operating-system Thread per logical Agent/Workflow/Tool
 lifecycle. Logical waits remain explicit states plus later EventLoop events.
+
+## Live state and durable state
+
+A live Agent or Workflow owns its current logical state. `Persistence` is the
+last committed durable representation and recovery source; it is not reloaded at
+every semantic boundary.
+
+For Agents, the live owner consists of the Agent instance plus its current
+`AgentRoot`, hydrated Journal view, and `AgentExecutionActivation`. Mutable
+Agent/Execution/Journal state is not automatically reloaded before every LLM or
+Tool step. Durable writes use optimistic revision/position guardrails; an
+external writer that advances the durable base causes `Persistence::ConflictError`
+rather than automatic reload or merge.
+
+For Workflows, the current `WorkflowContext` and FSMSession own the active
+logical state. A durable Workflow hydrates once at invocation/resume and saves
+at the halted/terminal boundary.
+
+Content-addressed `Persistence#contents` values are immutable. Fetching a known
+content reference is value materialization rather than mutable state refresh.
+
+## Workflow identities and durable admission
+
+Workflow execution keeps three identities separate:
+
+```text
+session_id
+  application session/correlation identity, for example a Rails session
+
+thread_id
+  durable Workflow identity and Persistence#workflow_states key
+
+fsm_session_id
+  one Runtime FSMSession execution identity; generated again for each
+  invoke/resume operation
+```
+
+The existing application `session_id` is tracing/caller metadata and is not used
+for durable Workflow ownership. EventLoop registers active FSMs by
+`fsm_session_id`; durable Workflow admission is a separate owner map:
+
+```text
+thread_id -> owner_fsm_session_id
+```
+
+The owner is acquired before `workflow_states.load(thread_id)` and remains held
+until the halted/terminal `workflow_states.save(...)` completes. Only the current
+owner may release the admission. `fsm_session_id` is Runtime-only metadata and is
+not stored in Workflow fields or durable snapshots.
 
 ## Tool execution modes
 
@@ -71,6 +123,24 @@ parent FSMSession
 
 This distinction prevents worker-slot starvation when many logical lifecycles are
 waiting at the same time.
+
+## Persistence I/O boundary
+
+`Persistence` repositories expose synchronous operations. Framework lifecycle
+code must not perform potentially blocking durable reads/writes on EventLoop.
+Agent preparation/commit and Workflow hydrate/save operations are submitted to
+`OffloadPool`; completion continues through completion callbacks or explicit
+EventLoop events.
+
+A durable barrier may pause one logical lifecycle without blocking EventLoop.
+The next Agent provider call does not start until the corresponding Manifest and
+logical execution snapshot commit succeeds. A persistence failure or optimistic
+conflict fails that step rather than continuing with stale state.
+
+Approval wait is not a hydration boundary. The same live Agent instance,
+Activation, and AgentInvocation remain the owner and are resumed after approval.
+Class-level approval convenience routing resolves that live Activation through
+the Runtime registry rather than loading another Agent.
 
 ## Sync versus async application APIs
 
@@ -246,6 +316,10 @@ Use these to distinguish worker saturation from EventLoop backlog/latency.
 `Runtime#shutdown` is terminal for that Runtime. It drains/terminates the
 Runtime-owned EventLoop, then closes pools and timers according to the Runtime
 shutdown contract.
+
+Workflow durable admission participates in EventLoop idleness: a Workflow whose
+FSMSession has ended but whose durable save is still in flight remains owned until
+that save completes and owner-aware admission is released.
 
 `Phronomy.reset_runtime!` exists primarily for test isolation and performs a real
 Runtime shutdown before resetting configuration.

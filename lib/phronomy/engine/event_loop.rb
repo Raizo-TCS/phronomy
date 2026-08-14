@@ -29,6 +29,7 @@ module Phronomy
       @fsms = {}
       @waiting = {}
       @admitted_session_ids = Set.new
+      @workflow_admissions = {}
 
       @lifecycle_mutex = Mutex.new
       @idle_cond = ConditionVariable.new
@@ -99,7 +100,7 @@ module Phronomy
         rescue
           @admitted_session_ids.delete(fsm_session.id)
           @outstanding_sessions -= 1
-          @idle_cond.broadcast if @outstanding_sessions.zero?
+          @idle_cond.broadcast if runtime_idle_locked?
           raise
         end
       end
@@ -152,6 +153,73 @@ module Phronomy
       true
     end
 
+    # Reserves one logical Workflow thread for one concrete FSMSession execution.
+    # thread_id is durable Workflow identity; owner_fsm_session_id is the
+    # Runtime-only identity of the invocation/resume that currently owns it.
+    def admit_workflow(thread_id, owner_fsm_session_id:)
+      key = thread_id.to_s
+      owner = owner_fsm_session_id.to_s
+      raise ArgumentError, "thread_id must not be empty" if key.empty?
+      raise ArgumentError, "owner_fsm_session_id must not be empty" if owner.empty?
+
+      @lifecycle_mutex.synchronize do
+        ensure_accepting_registrations!
+        current_owner = @workflow_admissions[key]
+        if current_owner
+          raise Phronomy::Error,
+            "Workflow thread #{key.inspect} is already owned by " \
+            "FSMSession #{current_owner.inspect}"
+        end
+        @workflow_admissions[key] = owner
+      end
+      true
+    end
+
+    # Releases a Workflow reservation only when the caller is its current owner.
+    # A failed competing admission can therefore never release another session's
+    # reservation during cleanup.
+    def release_workflow(thread_id, owner_fsm_session_id:)
+      key = thread_id.to_s
+      owner = owner_fsm_session_id.to_s
+      @lifecycle_mutex.synchronize do
+        next false unless @workflow_admissions[key] == owner
+
+        @workflow_admissions.delete(key)
+        @idle_cond.broadcast if runtime_idle_locked?
+        true
+      end
+    end
+
+    def workflow_admission_owner(thread_id)
+      @lifecycle_mutex.synchronize { @workflow_admissions[thread_id.to_s] }
+    end
+
+    # Resolves durable Workflow identity to the currently owning FSMSession and
+    # enqueues the event atomically with that ownership check.
+    def post_to_workflow(thread_id:, event:, payload: nil)
+      queued_depth = nil
+      posted_event = nil
+      accepted = @lifecycle_mutex.synchronize do
+        next false unless accepting_events?
+
+        owner = @workflow_admissions[thread_id.to_s]
+        next false unless owner
+        next false unless @admitted_session_ids.include?(owner)
+
+        posted_event = Phronomy::Event.new(
+          type: event.to_sym,
+          target_id: owner,
+          payload: payload
+        )
+        queued_depth = enqueue([posted_event, monotonic_nanoseconds])
+        true
+      end
+      return false unless accepted
+
+      check_queue_backlog(queued_depth, posted_event)
+      true
+    end
+
     # Interrupts the queue wait so EventLoop can recompute the next timer deadline.
     def wake
       @queue.push(WAKE)
@@ -180,12 +248,12 @@ module Phronomy
     end
 
     def idle?
-      @lifecycle_mutex.synchronize { @outstanding_sessions.zero? }
+      @lifecycle_mutex.synchronize { runtime_idle_locked? }
     end
 
     def wait_until_idle(deadline)
       @lifecycle_mutex.synchronize do
-        until @outstanding_sessions.zero?
+        until runtime_idle_locked?
           remaining = deadline - monotonic_now
           return false if remaining <= 0
           @idle_cond.wait(@lifecycle_mutex, remaining)
@@ -287,7 +355,9 @@ module Phronomy
         session_id = event.payload.fetch(:session_id)
         session = @fsms.delete(session_id)
         waiter = @waiting.delete(session_id)
-        # decrement before waking caller so wait_until_idle sees zero immediately
+        # decrement before waking caller so wait_until_idle sees the control-plane
+        # session count immediately; Workflow durable admission may intentionally
+        # keep Runtime non-idle until its terminal save completes.
         decrement_outstanding if session
         complete_waiter(waiter, event.payload.fetch(:result))
       when :start
@@ -297,10 +367,11 @@ module Phronomy
         @waiting[session.id] = waiter if waiter
         session.start
       when :agent_terminal_ready
-        # Existing Agent terminalisation is retained in this proposal. A separate
-        # follow-up may move it to an Agent-owned terminalising FSM state.
         cmd = event.payload.fetch(:command)
         cmd.coordinator.deliver_on_event_loop(cmd)
+      when :workflow_persistence_ready
+        cmd = event.payload.fetch(:command)
+        cmd.runner.deliver_persistence_on_event_loop(cmd)
       end
     end
 
@@ -314,7 +385,7 @@ module Phronomy
     def begin_stopping_if_idle
       @lifecycle_mutex.synchronize do
         return false unless @state == :draining
-        return false unless @outstanding_sessions.zero?
+        return false unless runtime_idle_locked?
 
         @state = :stopping
         @queue.push(STOP)
@@ -337,6 +408,7 @@ module Phronomy
       @fsms.clear
       @lifecycle_mutex.synchronize do
         @admitted_session_ids.clear
+        @workflow_admissions.clear
         @outstanding_sessions = 0
         @idle_cond.broadcast
       end
@@ -356,6 +428,7 @@ module Phronomy
       @lifecycle_mutex.synchronize do
         @state = :failed
         @admitted_session_ids.clear
+        @workflow_admissions.clear
         @idle_cond.broadcast
       end
       cleanup_abandoned_work(error)
@@ -375,8 +448,12 @@ module Phronomy
     def decrement_outstanding
       @lifecycle_mutex.synchronize do
         @outstanding_sessions -= 1 if @outstanding_sessions.positive?
-        @idle_cond.broadcast if @outstanding_sessions.zero?
+        @idle_cond.broadcast if runtime_idle_locked?
       end
+    end
+
+    def runtime_idle_locked?
+      @outstanding_sessions.zero? && @workflow_admissions.empty?
     end
 
     def join_until(deadline)
@@ -391,6 +468,7 @@ module Phronomy
       @lifecycle_mutex.synchronize do
         @state = :terminated
         @admitted_session_ids.clear
+        @workflow_admissions.clear
         @thread = nil unless @thread&.alive?
         @idle_cond.broadcast
       end

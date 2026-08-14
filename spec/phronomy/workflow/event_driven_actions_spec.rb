@@ -147,12 +147,10 @@ RSpec.describe "event-driven Workflow actions" do
       )
     ).to be(true)
 
-    Phronomy::Runtime.instance.event_loop.post_to_session(
-      Phronomy::Event.new(
-        type: :probe,
-        target_id: "workflow-stale",
-        payload: nil
-      )
+    Phronomy::Runtime.instance.event_loop.post_to_workflow(
+      thread_id: "workflow-stale",
+      event: :probe,
+      payload: nil
     )
     Timeout.timeout(1) { probe_ack.pop }
     expect(task).not_to be_done

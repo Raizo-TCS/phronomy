@@ -10,9 +10,13 @@ module Phronomy
       ].freeze
       KNOWLEDGE_RESET_KINDS = %i[knowledge_cleared context_reset].freeze
 
-      def initialize(persistence:, agent_root:)
+      def initialize(agent_root:, persistence: nil, records: nil)
         @persistence = persistence
         @agent_root = agent_root
+        @records = records&.dup&.freeze
+        if @records.nil? && @persistence.nil?
+          raise ArgumentError, "JournalProjection requires persistence: or records:"
+        end
       end
 
       def transcript_records

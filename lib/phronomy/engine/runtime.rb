@@ -69,6 +69,7 @@ module Phronomy
       @pool_registry = Phronomy::Concurrency::PoolRegistry.new(
         timer_queue_provider: -> { timer_queue }
       )
+      @agent_activations = Phronomy::Agent::ActivationRegistry.new
       @lifecycle_mutex = Mutex.new
       @shutdown_mutex = Mutex.new
       @state = :running
@@ -105,6 +106,12 @@ module Phronomy
     # Internal EventLoop access that does not recursively initialise EventLoop.
     def __timer_queue
       @timer_service.timer_queue
+    end
+
+    # Process-local live Agent executions. Activations are transient runtime
+    # state and deliberately do not belong to Persistence.
+    def __agent_activations
+      @agent_activations
     end
 
     def event_loop

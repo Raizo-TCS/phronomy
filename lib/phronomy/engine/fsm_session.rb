@@ -25,9 +25,11 @@ module Phronomy
       event_loop:,
       resume_event: nil,
       resume_phase: nil,
-      stable_observer: nil
+      stable_observer: nil,
+      graph_thread_id: nil
     )
       @id = id
+      @graph_thread_id = graph_thread_id || id
       @ctx = context
       @context = context
       @entry_point = entry_point
@@ -217,7 +219,7 @@ module Phronomy
       return if @done
 
       @done = true
-      @ctx.set_graph_metadata(thread_id: @id, phase: :__end__)
+      @ctx.set_graph_metadata(thread_id: @graph_thread_id, phase: :__end__)
       post_terminal_event(:finished, @ctx)
     end
 
@@ -225,7 +227,7 @@ module Phronomy
       return if @done
 
       @done = true
-      @ctx.set_graph_metadata(thread_id: @id, phase: @current_state)
+      @ctx.set_graph_metadata(thread_id: @graph_thread_id, phase: @current_state)
       post_terminal_event(:halted, @ctx)
     end
 
@@ -248,7 +250,7 @@ module Phronomy
 
       Phronomy.configuration.logger&.warn(
         "[Phronomy::FSMSession] EventLoop rejected terminal event " \
-        "#{type.inspect} for #{@id}"
+          "#{type.inspect} for #{@id}"
       )
     end
 

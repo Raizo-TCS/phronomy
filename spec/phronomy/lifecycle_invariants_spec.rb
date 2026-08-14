@@ -73,6 +73,24 @@ RSpec.describe "Lifecycle invariants" do
     workflow.instance_variable_get(:@runner)
   end
 
+  def build_test_execution(ctx, recursion_limit:)
+    Phronomy::WorkflowRunner::Execution.new(
+      context: ctx,
+      thread_id: "test-thread",
+      fsm_session_id: SecureRandom.uuid,
+      recursion_limit: recursion_limit,
+      repository: nil,
+      persist: false,
+      expected_revision: nil
+    )
+  end
+
+  def build_session(runner, ctx, fake_runtime, recursion_limit: 25, resume_event: nil, resume_phase: nil)
+    execution = build_test_execution(ctx, recursion_limit: recursion_limit)
+    runner.send(:build_session_for, execution: execution, runtime: fake_runtime,
+      resume_event: resume_event, resume_phase: resume_phase)
+  end
+
   # Drive a FSMSession forward using a FakeLoop until @done or no
   # :state_completed event is pending.
   def drain_session(session, fake, thread_id:, max_steps: 20)
@@ -111,7 +129,7 @@ RSpec.describe "Lifecycle invariants" do
       ctx.set_graph_metadata(thread_id: "lc-double-1")
 
       with_fake_loop do |fake, fake_runtime|
-        session = runner.send(:build_session_for, context: ctx, recursion_limit: 25, runtime: fake_runtime)
+        session = build_session(runner, ctx, fake_runtime)
         session.start
         drain_session(session, fake, thread_id: "lc-double-1")
 
@@ -139,7 +157,7 @@ RSpec.describe "Lifecycle invariants" do
       ctx.set_graph_metadata(thread_id: "lc-double-2")
 
       with_fake_loop do |fake, fake_runtime|
-        session = runner.send(:build_session_for, context: ctx, recursion_limit: 25, runtime: fake_runtime)
+        session = build_session(runner, ctx, fake_runtime)
         session.start
         drain_session(session, fake, thread_id: "lc-double-2")
 
@@ -175,8 +193,7 @@ RSpec.describe "Lifecycle invariants" do
       ctx.set_graph_metadata(thread_id: "lc-unknown-1", phase: :awaiting)
 
       with_fake_loop do |fake, fake_runtime|
-        session = runner.send(:build_session_for,
-          context: ctx, recursion_limit: 25, runtime: fake_runtime,
+        session = build_session(runner, ctx, fake_runtime,
           resume_event: :approve, resume_phase: :awaiting)
 
         session.instance_variable_set(:@done, false)
@@ -198,8 +215,7 @@ RSpec.describe "Lifecycle invariants" do
       ctx.set_graph_metadata(thread_id: "lc-unknown-2", phase: :awaiting)
 
       with_fake_loop do |fake, fake_runtime|
-        session = runner.send(:build_session_for,
-          context: ctx, recursion_limit: 25, runtime: fake_runtime,
+        session = build_session(runner, ctx, fake_runtime,
           resume_event: :approve, resume_phase: :awaiting)
 
         session.instance_variable_set(:@done, false)

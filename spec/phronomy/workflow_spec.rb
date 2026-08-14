@@ -3,11 +3,6 @@
 require "spec_helper"
 
 # Regression tests for Phronomy::Workflow public API.
-#
-# Finding 1 — send_event API mismatch in README (Issue #<tbd>):
-#   README example called `app.send_event(:approve, config: { thread_id: "..." })`
-#   but the actual public signature is `send_event(state:, event:, input: nil)`.
-#   These specs lock down the correct calling convention.
 RSpec.describe Phronomy::Workflow do
   class WorkflowApiTestContext
     include Phronomy::WorkflowContext
@@ -32,8 +27,6 @@ RSpec.describe Phronomy::Workflow do
     end
   end
 
-  # Regression for Finding 1:
-  # send_event must accept `state:` and `event:` as keyword arguments.
   describe "#send_event" do
     it "accepts state: and event: keyword arguments" do
       app = build_approval_workflow
@@ -42,8 +35,6 @@ RSpec.describe Phronomy::Workflow do
       expect { app.send_event(state: halted, event: :approve) }.not_to raise_error
     end
 
-    # Regression for Finding 1:
-    # send_event must NOT accept positional arguments as shown in the old README.
     it "raises ArgumentError when called with a positional argument instead of keywords" do
       app = build_approval_workflow
       app.invoke({value: "v"})
@@ -63,13 +54,16 @@ RSpec.describe Phronomy::Workflow do
     it "merges input hash into state when input: is supplied" do
       app = build_approval_workflow
       halted = app.invoke({value: "v"})
-      final = app.send_event(state: halted, event: :approve, input: {value: "overridden"})
+      final = app.send_event(
+        state: halted,
+        event: :approve,
+        input: {value: "overridden"}
+      )
 
       expect(final.value).to eq("overridden:executed")
     end
   end
 
-  # Regression test for Issue #101: Workflow action return value (WorkflowContext#merge result) is silently discarded
   describe "action return value is adopted as new context (Issue #101)" do
     let(:ctx_class) do
       Class.new do
@@ -110,7 +104,6 @@ RSpec.describe Phronomy::Workflow do
     end
   end
 
-  # Spec gap for Issue #102: README Workflow examples are not covered by executable specs
   describe "README Quick Start smoke test (Issue #102)" do
     it "produces correct field values using the merge-based pattern shown in the README" do
       pipeline_ctx = Class.new do
@@ -214,7 +207,7 @@ RSpec.describe Phronomy::Workflow do
     end
   end
 
-  describe "StateStore integration (Issue #250)" do
+  describe "Persistence workflow_states integration" do
     let(:simple_ctx) do
       Class.new do
         include Phronomy::WorkflowContext
@@ -224,12 +217,11 @@ RSpec.describe Phronomy::Workflow do
     end
 
     let(:increment_action) { ->(s) { s.merge(counter: s.counter + 1) } }
-
-    let(:store) { Phronomy::StateStore::InMemory.new }
+    let(:persistence) { Phronomy::Persistence::InMemory.new }
 
     let(:app) do
       action = increment_action
-      Phronomy::Workflow.define(simple_ctx, state_store: store) do
+      Phronomy::Workflow.define(simple_ctx, persistence: persistence) do
         initial :step
         state :step, action: action
         transition from: :step, to: :__finish__
@@ -238,36 +230,61 @@ RSpec.describe Phronomy::Workflow do
 
     it "saves the final context snapshot after invoke" do
       app.invoke({counter: 0}, config: {thread_id: "t1"})
-      snapshot = store.load("t1")
-      expect(snapshot).not_to be_nil
-      expect(snapshot[:phase]).to eq("__end__")
-      expect(snapshot[:fields][:counter]).to eq(1)
+      record = persistence.workflow_states.load("t1")
+
+      expect(record).not_to be_nil
+      expect(record[:snapshot][:phase]).to eq("__end__")
+      expect(record[:snapshot][:fields][:counter]).to eq(1)
+      expect(record[:revision]).to eq(1)
     end
 
     it "loads stored fields as the initial context on re-invocation" do
       app.invoke({counter: 0}, config: {thread_id: "t1"})
       app.invoke({}, config: {thread_id: "t1"})
-      snapshot = store.load("t1")
-      expect(snapshot[:fields][:counter]).to eq(2)
+      record = persistence.workflow_states.load("t1")
+
+      expect(record[:snapshot][:fields][:counter]).to eq(2)
+      expect(record[:revision]).to eq(2)
     end
 
     it "uses input to override stored fields on re-invocation" do
       app.invoke({counter: 10}, config: {thread_id: "t1"})
       app.invoke({counter: 0}, config: {thread_id: "t1"})
-      snapshot = store.load("t1")
-      expect(snapshot[:fields][:counter]).to eq(1)
+      record = persistence.workflow_states.load("t1")
+
+      expect(record[:snapshot][:fields][:counter]).to eq(1)
     end
 
-    it "does not save state when no thread_id is given" do
+    it "does not save state when no explicit thread_id is given" do
       app.invoke({counter: 0})
-      expect(store.load("t1")).to be_nil
+      expect(persistence.workflow_states.load("t1")).to be_nil
     end
 
-    it "config[:state_store] takes precedence over the workflow-level store" do
-      per_call_store = Phronomy::StateStore::InMemory.new
-      app.invoke({counter: 5}, config: {thread_id: "t1", state_store: per_call_store})
-      expect(per_call_store.load("t1")).not_to be_nil
-      expect(store.load("t1")).to be_nil
+    it "uses global configuration when the Workflow has no persistence" do
+      Phronomy.configure { |c| c.persistence = persistence }
+      action = increment_action
+      global_app = Phronomy::Workflow.define(simple_ctx) do
+        initial :step
+        state :step, action: action
+        transition from: :step, to: :__finish__
+      end
+
+      global_app.invoke({counter: 4}, config: {thread_id: "global"})
+      record = persistence.workflow_states.load("global")
+      expect(record[:snapshot][:fields][:counter]).to eq(5)
+    ensure
+      Phronomy.configure { |c| c.persistence = nil }
+    end
+
+    it "keeps Workflow-definition Persistence fixed instead of switching per invocation" do
+      other = Phronomy::Persistence::InMemory.new
+      app.invoke(
+        {counter: 5},
+        config: {thread_id: "fixed", persistence: other}
+      )
+
+      expect(persistence.workflow_states.load("fixed")).not_to be_nil
+      expect(other.workflow_states.load("fixed")).to be_nil
     end
   end
 end

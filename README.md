@@ -16,6 +16,7 @@ tracking `main` directly.
 ## Core concepts
 
 - **Agent** — stateful, persistence-backed LLM agent with canonical execution history.
+- **Persistence** — unified durable backend for Agent state and Workflow `workflow_states`.
 - **Workflow** — state-machine-driven application workflow with explicit events and wait states.
 - **Tool / Capability** — callable application capability exposed to an Agent.
 - **EventLoop + FSMSession** — the framework control plane for logical lifecycle coordination.
@@ -117,6 +118,7 @@ contracts, timeout/cancellation semantics, metrics, and callback rules.
 - [MCP client](docs/mcp-client.md) — Model Context Protocol (MCP) integration and supported schema subset.
 - [Migration from 0.15-era APIs](docs/migrations/0.15.md).
 - [0.16 cleanup migration](docs/migrations/0.16.md).
+- [0.19 unified Persistence migration](docs/migrations/0.19.md).
 - [Architecture Decision Records](docs/decisions/) — design rationale and superseding decisions.
 - [CHANGELOG](CHANGELOG.md) — current development and recent release history.
 - [Changelog archive: 0.14.0 and earlier](docs/changelog/0.14-and-earlier.md).

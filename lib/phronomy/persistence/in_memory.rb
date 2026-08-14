@@ -66,7 +66,7 @@ module Phronomy
 
         def save(agent_id, expected_revision:, root:)
           @owner.synchronize do
-            current = load(agent_id)
+            current = @owner.state[:agents].fetch(agent_id.to_s) { raise NotFoundError, "agent not found: #{agent_id}" }
             unless current.agent_revision == expected_revision
               raise ConflictError,
                 "agent revision conflict: expected #{expected_revision}, actual #{current.agent_revision}"
@@ -162,7 +162,7 @@ module Phronomy
 
         def save(execution_id, expected_revision:, execution:)
           @owner.synchronize do
-            current = load(execution_id)
+            current = @owner.state[:executions].fetch(execution_id.to_s) { raise NotFoundError, "execution not found: #{execution_id}" }
             unless current.execution_revision == expected_revision
               raise ConflictError,
                 "execution revision conflict: expected #{expected_revision}, actual #{current.execution_revision}"
@@ -209,31 +209,112 @@ module Phronomy
         end
       end
 
-      attr_reader :state
+      class WorkflowStates
+        def initialize(owner) = @owner = owner
+
+        def load(thread_id)
+          @owner.synchronize do
+            record = @owner.workflow_state_data[thread_id.to_s]
+            next nil unless record
+
+            {
+              snapshot: @owner.deep_dup_workflow_value(record.fetch(:snapshot)),
+              revision: record.fetch(:revision)
+            }.freeze
+          end
+        end
+
+        def save(thread_id, expected_revision:, snapshot:)
+          @owner.synchronize do
+            key = thread_id.to_s
+            current = @owner.workflow_state_data[key]
+            actual_revision = current&.fetch(:revision)
+            unless actual_revision == expected_revision
+              raise ConflictError,
+                "workflow state revision conflict for #{key}: " \
+                "expected #{expected_revision.inspect}, actual #{actual_revision.inspect}"
+            end
+
+            next_revision = actual_revision ? actual_revision + 1 : 1
+            @owner.workflow_state_data[key] = {
+              snapshot: @owner.deep_dup_workflow_value(snapshot),
+              revision: next_revision
+            }
+            next_revision
+          end
+        end
+
+        def delete(thread_id, expected_revision:)
+          @owner.synchronize do
+            key = thread_id.to_s
+            current = @owner.workflow_state_data[key]
+            actual_revision = current&.fetch(:revision)
+            unless actual_revision == expected_revision
+              raise ConflictError,
+                "workflow state revision conflict for #{key}: " \
+                "expected #{expected_revision.inspect}, actual #{actual_revision.inspect}"
+            end
+            @owner.workflow_state_data.delete(key)
+          end
+          nil
+        end
+      end
+
+      attr_reader :state, :workflow_state_data
 
       def initialize
         @monitor = Monitor.new
         @state = {contents: {}, agents: {}, journals: {}, executions: {}}
+        @workflow_state_data = {}
         @contents = Contents.new(self)
         @agents = Agents.new(self)
         @journals = Journals.new(self)
         @executions = Executions.new(self)
-        @activations = Phronomy::Agent::ActivationRegistry.new
-        super(contents: @contents, agents: @agents, journals: @journals,
-              executions: @executions, activations: @activations)
+        @workflow_states = WorkflowStates.new(self)
+        super(
+          contents: @contents,
+          agents: @agents,
+          journals: @journals,
+          executions: @executions,
+          workflow_states: @workflow_states
+        )
       end
 
       def capabilities
         {atomic_all: true, atomic_admission: true, optimistic_revision: true}.freeze
       end
 
+      def assert_agent_watermark!(agent_id:, agent_revision:, journal_position:)
+        synchronize do
+          stored = @state[:agents][agent_id.to_s]
+          unless stored
+            raise NotFoundError, "Agent not found: #{agent_id}"
+          end
+
+          if stored.agent_revision != agent_revision
+            raise ConflictError,
+              "agent revision conflict: expected #{agent_revision}, actual #{stored.agent_revision}"
+          end
+
+          actual_position = Array(@state[:journals][agent_id.to_s]).length
+          if actual_position != journal_position
+            raise ConflictError,
+              "journal position conflict: expected #{journal_position}, actual #{actual_position}"
+          end
+
+          true
+        end
+      end
+
       def transaction
         synchronize do
-          snapshot = Marshal.load(Marshal.dump(@state))
+          state_snapshot = Marshal.load(Marshal.dump(@state))
+          workflow_snapshot = deep_dup_workflow_value(@workflow_state_data)
           begin
             yield self
           rescue
-            @state = snapshot
+            @state.replace(state_snapshot)
+            @workflow_state_data.replace(workflow_snapshot)
             raise
           end
         end
@@ -241,6 +322,30 @@ module Phronomy
 
       def synchronize(&block)
         @monitor.synchronize(&block)
+      end
+
+      # Workflow fields historically accepted ordinary Ruby values in the
+      # in-memory store. Keep that contract without forcing the Agent durable
+      # state Marshal snapshot to serialize arbitrary Workflow values.
+      def deep_dup_workflow_value(value)
+        case value
+        when Hash
+          value.each_with_object({}) do |(key, child), result|
+            result[deep_dup_workflow_value(key)] = deep_dup_workflow_value(child)
+          end
+        when Array
+          value.map { |child| deep_dup_workflow_value(child) }
+        when NilClass, Symbol, Integer, Float, TrueClass, FalseClass
+          value
+        else
+          return value if value.frozen?
+
+          begin
+            value.dup
+          rescue TypeError
+            value
+          end
+        end
       end
     end
   end
