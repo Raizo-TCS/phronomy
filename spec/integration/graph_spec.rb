@@ -4,16 +4,14 @@ require_relative "spec_helper"
 
 # Group 7: Workflow (Phronomy::Workflow DSL)
 # All halt/resume tests use wait_state + send_event (interrupt_before/interrupt_after removed).
-# Infeasible cases: R-redis TC-003,005,009,013,015; R-resume TC-006,009
+# Legacy backend-only and structurally infeasible rows have been removed.
 
 RSpec.describe "Group 7: Workflow", :integration do
-  # StateStore was removed in v0.3.0. These helpers are kept as no-ops so that
-  # test bodies do not need to be restructured.
-  def with_in_memory_store
-    yield nil
+  def with_in_memory_persistence
+    yield Phronomy::Persistence::InMemory.new
   end
 
-  def with_nil_store
+  def without_persistence
     yield
   end
 
@@ -60,7 +58,7 @@ RSpec.describe "Group 7: Workflow", :integration do
   # TC-001: linear; no interrupt; replace-type; stateless
   describe "TC-001" do
     it "executes both states in order" do
-      with_nil_store do
+      without_persistence do
         app = Phronomy::Workflow.define(G7ReplaceState) do
           initial :node_a
           state :node_a
@@ -83,11 +81,11 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  # TC-002: linear; wait_state halt; resume without input; append-type; stream; in-memory
+  # TC-002: linear; wait_state halt; resume without input; append-type; stream; Persistence::InMemory
   describe "TC-002" do
     it "halts at wait state, then resumes and completes" do
-      with_in_memory_store do
-        app = Phronomy::Workflow.define(G7AppendState) do
+      with_in_memory_persistence do |persistence|
+        app = Phronomy::Workflow.define(G7AppendState, persistence: persistence) do
           initial :first
           state :first
           wait_state :pause_before_second
@@ -112,17 +110,11 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  describe "TC-003" do
-    it "skipped" do
-      skip "R-redis: state_store_type=redis requires a running Redis instance"
-    end
-  end
-
-  # TC-004: linear; wait_state halt; resume without input; replace-type; large recursion_limit; in-memory
+  # TC-004: linear; wait_state halt; resume without input; replace-type; large recursion_limit; Persistence::InMemory
   describe "TC-004" do
     it "halts at wait state, then resumes and completes" do
-      with_in_memory_store do
-        app = Phronomy::Workflow.define(G7ReplaceState) do
+      with_in_memory_persistence do |persistence|
+        app = Phronomy::Workflow.define(G7ReplaceState, persistence: persistence) do
           initial :start_node
           state :start_node
           wait_state :pause_after_start
@@ -150,23 +142,11 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  describe "TC-005" do
-    it "skipped" do
-      skip "R-redis: state_store_type=redis requires a running Redis instance"
-    end
-  end
-
-  describe "TC-006" do
-    it "skipped" do
-      skip "R-resume: graph_interrupt=none; no checkpoint to resume from"
-    end
-  end
-
-  # TC-007: branching; wait_state halt; not resumed; merge-type; in-memory
+  # TC-007: branching; wait_state halt; not resumed; merge-type; Persistence::InMemory
   describe "TC-007" do
     it "routes to correct branch and halts at wait state" do
-      with_in_memory_store do
-        app = Phronomy::Workflow.define(G7MergeState) do
+      with_in_memory_persistence do |persistence|
+        app = Phronomy::Workflow.define(G7MergeState, persistence: persistence) do
           initial :router
           state :router
           state :high
@@ -192,7 +172,7 @@ RSpec.describe "Group 7: Workflow", :integration do
   # TC-008: branching; wait_state halt; not resumed; append-type; stream; stateless
   describe "TC-008" do
     it "streams events and halts at wait state after routing to branch_a" do
-      with_nil_store do
+      without_persistence do
         app = Phronomy::Workflow.define(G7AppendState) do
           initial :entry
           state :entry
@@ -217,16 +197,10 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  describe "TC-009" do
-    it "skipped" do
-      skip "R-resume + R-redis: structurally infeasible"
-    end
-  end
-
   # TC-010: multi-state; recursion_limit=1 -> RecursionLimitError; stateless
   describe "TC-010" do
     it "raises RecursionLimitError" do
-      with_nil_store do
+      without_persistence do
         app = Phronomy::Workflow.define(G7AppendScalarState) do
           initial :step1
           state :step1
@@ -255,11 +229,11 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  # TC-011: multi-state; wait_state halt; resume with input; replace-type; proc default; in-memory; stream
+  # TC-011: multi-state; wait_state halt; resume with input; replace-type; proc default; Persistence::InMemory; stream
   describe "TC-011" do
     it "halts at wait state after n2, then resumes with new input" do
-      with_in_memory_store do
-        app = Phronomy::Workflow.define(G7ProcDefaultState) do
+      with_in_memory_persistence do |persistence|
+        app = Phronomy::Workflow.define(G7ProcDefaultState, persistence: persistence) do
           initial :n1
           state :n1
           state :n2
@@ -298,7 +272,7 @@ RSpec.describe "Group 7: Workflow", :integration do
   # TC-012: multi-state; wait_state halt; resume without input; replace-type; stateless
   describe "TC-012" do
     it "halts at wait state after p2 and resumes to completion" do
-      with_nil_store do
+      without_persistence do
         app = Phronomy::Workflow.define(G7ReplaceState) do
           initial :p1
           state :p1
@@ -332,16 +306,10 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  describe "TC-013" do
-    it "skipped" do
-      skip "R-redis: state_store_type=redis requires a running Redis instance"
-    end
-  end
-
   # TC-014: multi-state; no interrupt; proc-default; large recursion_limit; stateless
   describe "TC-014" do
     it "executes all three states" do
-      with_nil_store do
+      without_persistence do
         app = Phronomy::Workflow.define(G7ProcDefaultState) do
           initial :a
           state :a
@@ -371,17 +339,11 @@ RSpec.describe "Group 7: Workflow", :integration do
     end
   end
 
-  describe "TC-015" do
-    it "skipped" do
-      skip "R-redis: state_store_type=redis requires a running Redis instance"
-    end
-  end
-
-  # TC-016: linear; no interrupt; replace-type; workflow completes correctly
+  # TC-016: linear; no interrupt; replace-type; Persistence::InMemory final snapshot
   describe "TC-016" do
-    it "persists final state in the in-memory store" do
-      with_in_memory_store do |_store|
-        app = Phronomy::Workflow.define(G7ReplaceState) do
+    it "persists final state through Persistence#workflow_states" do
+      with_in_memory_persistence do |persistence|
+        app = Phronomy::Workflow.define(G7ReplaceState, persistence: persistence) do
           initial :first
           state :first
           state :second
@@ -399,6 +361,11 @@ RSpec.describe "Group 7: Workflow", :integration do
         state = app.invoke({}, config: {thread_id: "tc-016"})
         expect(state.value).to eq("second")
         expect(state.step).to eq(2)
+
+        record = persistence.workflow_states.load("tc-016")
+        expect(record[:snapshot][:phase]).to eq("__end__")
+        expect(record[:snapshot][:fields][:value]).to eq("second")
+        expect(record[:snapshot][:fields][:step]).to eq(2)
       end
     end
   end
@@ -406,7 +373,7 @@ RSpec.describe "Group 7: Workflow", :integration do
   # TC-017: linear; wait_state halt; not resumed; merge-type; large recursion_limit; stateless
   describe "TC-017" do
     it "halts at wait state and verifies only alpha ran" do
-      with_nil_store do
+      without_persistence do
         app = Phronomy::Workflow.define(G7MergeScalarState) do
           initial :alpha
           state :alpha
@@ -437,7 +404,7 @@ RSpec.describe "Group 7: Workflow", :integration do
   # TC-018: linear; wait_state halt; resume with input; append-type; stateless
   describe "TC-018" do
     it "halts at wait state after x and resumes with new input" do
-      with_nil_store do
+      without_persistence do
         app = Phronomy::Workflow.define(G7AppendState) do
           initial :x
           state :x
@@ -463,7 +430,7 @@ RSpec.describe "Group 7: Workflow", :integration do
   # TC-019: linear; wait_state halt; resume without input; replace-type; proc default; stateless
   describe "TC-019" do
     it "halts at wait state after start, then resumes" do
-      with_nil_store do
+      without_persistence do
         app = Phronomy::Workflow.define(G7ProcDefaultState) do
           initial :start
           state :start

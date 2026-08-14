@@ -434,8 +434,6 @@ module IntegrationFactors
   # GROUP 25 — BEFORE_LLM_INPUT HOOK
   # ===========================================================================
 
-  # Returns a hook callable for the given bli_hook_return factor label.
-  # The callable receives LLMInputBuildContext and returns LLMInputPatch or nil.
   def self.bli_hook_callable(return_label)
     case return_label
     when "nil"
@@ -567,87 +565,6 @@ module IntegrationFactors
     when "symbol_keys" then {thread_id: nil}
     when "string_keys" then {"thread_id" => nil}
     else raise ArgumentError, "Unknown job_config_style label: #{label}"
-    end
-  end
-
-  # ---------------------------------------------------------------------------
-  # Helpers for Group 28: Workflow Wait State / Phase
-  # ---------------------------------------------------------------------------
-  def self.wait_state_resume_graph(state_class)
-    store = Phronomy::StateStore::InMemory.new
-    Phronomy.configure { |c| c.default_state_store = store }
-
-    Phronomy::Workflow.define(state_class) do
-      initial :node_a
-      state :node_a
-      wait_state :awaiting_node_b
-      state :node_b
-      entry :node_a, ->(s) { s.value = "#{s.value}:a" }
-      entry :node_b, ->(s) { s.value = "#{s.value}:b" }
-      transition from: :node_a, to: :awaiting_node_b
-      transition from: :node_b, to: :__finish__
-      transition from: :awaiting_node_b, on: :resume, to: :node_b
-    end
-  end
-
-  def self.wait_state_graph(state_class, resume_event: :proceed)
-    store = Phronomy::StateStore::InMemory.new
-    Phronomy.configure { |c| c.default_state_store = store }
-
-    Phronomy::Workflow.define(state_class) do
-      initial :node_a
-      state :node_a
-      wait_state :awaiting_node_b
-      state :node_b
-      entry :node_a, ->(s) { s.value = "#{s.value}:a" }
-      entry :node_b, ->(s) { s.value = "#{s.value}:b" }
-      transition from: :node_a, to: :awaiting_node_b
-      transition from: :node_b, to: :__finish__
-      transition from: :awaiting_node_b, on: resume_event, to: :node_b
-    end
-  end
-
-  def self.reset_state_store
-    Phronomy.configure { |c| c.default_state_store = nil }
-  end
-
-  # ---------------------------------------------------------------------------
-  # Group 29 — File State Store helpers
-  # ---------------------------------------------------------------------------
-  def self.file_store(dir_type, custom_dir: nil)
-    case dir_type
-    when "default"
-      Phronomy::StateStore::File.new
-    when "custom"
-      raise ArgumentError, "custom_dir is required when dir_type is 'custom'" unless custom_dir
-      Phronomy::StateStore::File.new(dir: custom_dir)
-    else
-      raise ArgumentError, "Unknown file_store dir_type: #{dir_type}"
-    end
-  end
-
-  def self.file_store_thread_id(thread_id_type, base: "t1")
-    case thread_id_type
-    when "simple"
-      "thread-#{base}"
-    when "special_chars"
-      "user@host/#{base}"
-    else
-      raise ArgumentError, "Unknown file_store_thread_id_type: #{thread_id_type}"
-    end
-  end
-
-  def self.file_store_workflow(state_class, store:)
-    Phronomy::Workflow.define(state_class, state_store: store) do
-      initial :node_a
-      state :node_a
-      wait_state :awaiting_node_b
-      state :node_b
-      entry :node_a, ->(s) { s.value = "#{s.value}:a" }
-      entry :node_b, ->(s) { s.value = "#{s.value}:b" }
-      transition from: :node_a, to: :awaiting_node_b
-      transition from: :node_b, to: :__finish__
-      transition from: :awaiting_node_b, on: :resume, to: :node_b
     end
   end
 

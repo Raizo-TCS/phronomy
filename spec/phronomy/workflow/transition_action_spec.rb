@@ -14,6 +14,7 @@ RSpec.describe "Workflow transition actions" do
       field :one_arg_seen, default: false
       field :event_type
       field :event_payload
+      field :event_target_id
       field :event_target_matches, default: false
       field :answer
       field :count, default: 0
@@ -167,7 +168,7 @@ RSpec.describe "Workflow transition actions" do
     expect(evaluated).to eq(%i[first_guard second_guard])
   end
 
-  it "passes the synthetic state_completed event to auto-transition actions" do
+  it "targets synthetic state_completed events at the owning fsm_session_id" do
     workflow = Phronomy::Workflow.define(context_class) do
       initial :source
       state :source
@@ -176,10 +177,15 @@ RSpec.describe "Workflow transition actions" do
         from: :source,
         to: :__finish__,
         action: ->(context, event) {
+          owner_fsm_session_id = Phronomy::Runtime.instance.event_loop
+            .workflow_admission_owner(context.thread_id)
           context.merge(
             event_type: event.type,
             event_payload: event.payload,
-            event_target_matches: !event.target_id.nil?
+            event_target_id: event.target_id,
+            event_target_matches:
+              event.target_id == owner_fsm_session_id &&
+                event.target_id != context.thread_id
           )
         }
       )
@@ -193,6 +199,8 @@ RSpec.describe "Workflow transition actions" do
 
     expect(result.event_type).to eq(:state_completed)
     expect(result.event_payload).to be_nil
+    expect(result.event_target_id).to be_a(String)
+    expect(result.event_target_id).not_to eq("auto-transition-event")
     expect(result.event_target_matches).to be(true)
   end
 

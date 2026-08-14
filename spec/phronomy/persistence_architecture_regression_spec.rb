@@ -17,6 +17,20 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     expect(offenders).to be_empty
   end
 
+  it "keeps removed StateStore APIs out of active integration support" do
+    sources = Dir.glob(File.join(root, "spec/integration/**/*.rb")).map { |path|
+      [path, File.read(path)]
+    }
+
+    offenders = sources.select { |_path, source|
+      source.include?("Phronomy::StateStore") ||
+        source.include?("default_state_store") ||
+        source.match?(/\bstate_store:/)
+    }.map(&:first)
+
+    expect(offenders).to be_empty
+  end
+
   it "keeps transient ActivationRegistry out of the Persistence contract" do
     persistence = File.read(File.join(root, "lib/phronomy/persistence.rb"))
     in_memory = File.read(File.join(root, "lib/phronomy/persistence/in_memory.rb"))
@@ -26,6 +40,35 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     expect(persistence).not_to include("activations")
     expect(in_memory).not_to include("@activations")
     expect(runtime).to include("@agent_activations")
+  end
+
+  it "keeps Agent durable ownership semantics in Base without a shadowing concern" do
+    agent_entry = File.read(File.join(root, "lib/phronomy/agent.rb"))
+    base = File.read(File.join(root, "lib/phronomy/agent/base.rb"))
+    ownership_path = File.join(
+      root,
+      "lib/phronomy/agent/persistence_ownership.rb"
+    )
+
+    expect(File).not_to exist(ownership_path)
+    expect(agent_entry).not_to include("persistence_ownership")
+    expect(agent_entry).not_to include("PersistenceOwnership")
+    expect(base).to include("Phronomy::Runtime.instance.__agent_activations.fetch")
+    expect(base).not_to include("persistence.executions.load(execution_id)")
+    expect(base).to include("records: _journal_records_snapshot")
+
+    add_knowledge = base
+      .split("def add_knowledge", 2)
+      .fetch(1)
+      .split("def reset_context!", 2)
+      .first
+    mutate_context = base
+      .split("def mutate_context!", 2)
+      .fetch(1)
+      .split("def yield_context_revision", 2)
+      .first
+    expect(add_knowledge).not_to include("agents.load")
+    expect(mutate_context).not_to include("agents.load")
   end
 
   it "does not reload mutable Agent root or execution in ExecutionCoordinator" do

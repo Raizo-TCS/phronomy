@@ -252,24 +252,62 @@ module Phronomy
           new(agent_id: agent_id, persistence: persistence, load_existing: true)
         end
 
+        # Routes approval to the live Agent instance that owns the suspended
+        # Activation. Approval resume is not a durable rehydration boundary.
         def approve(execution_id, approval_request_id:, persistence:, approved: true, config: {})
           approve_async(
             execution_id,
             approval_request_id: approval_request_id,
+            persistence: persistence,
             approved: approved,
-            config: config,
-            persistence: persistence
+            config: config
           ).wait_result
         end
 
         def approve_async(execution_id, approval_request_id:, persistence:, approved: true, config: {})
-          execution = persistence.executions.load(execution_id)
-          load(execution.agent_id, persistence: persistence).approve_async(
+          activation = Phronomy::Runtime.instance.__agent_activations.fetch(execution_id)
+          unless activation
+            return failed_approval_task(
+              execution_id,
+              Phronomy::ExecutionRehydrationRequiredError.new(
+                "no live activation for #{execution_id}; durable rehydration is required"
+              )
+            )
+          end
+
+          agent = activation.agent
+          unless agent.is_a?(self)
+            return failed_approval_task(
+              execution_id,
+              ArgumentError.new(
+                "live activation #{execution_id} belongs to #{agent.class}, not #{self}"
+              )
+            )
+          end
+
+          unless agent.persistence.equal?(persistence)
+            return failed_approval_task(
+              execution_id,
+              ArgumentError.new(
+                "live activation #{execution_id} belongs to a different Persistence instance"
+              )
+            )
+          end
+
+          agent.approve_async(
             execution_id,
             approval_request_id: approval_request_id,
             approved: approved,
             config: config
           )
+        end
+
+        private
+
+        def failed_approval_task(execution_id, error)
+          task = Phronomy::Task.deferred(name: "agent-approval-route:#{execution_id}")
+          task.fail(error)
+          task
         end
       end
 
@@ -283,21 +321,33 @@ module Phronomy
         metadata: {},
         load_existing: false
       )
-        @persistence = persistence || Phronomy::Persistence::InMemory.new
+        @persistence = persistence ||
+          Phronomy.configuration.persistence ||
+          Phronomy::Persistence::InMemory.new
         @agent_id = agent_id.to_s.freeze
-        @root = if load_existing
-          loaded = @persistence.agents.load(@agent_id)
-          definition = self.class.agent_definition
-          unless loaded.agent_definition_id == definition.fetch(:id) &&
-              loaded.definition_version == definition.fetch(:version)
-            raise Phronomy::ConfigurationError,
-              "Agent definition mismatch for #{@agent_id}: stored " \
-              "#{loaded.agent_definition_id}@#{loaded.definition_version}, runtime " \
-              "#{definition.fetch(:id)}@#{definition.fetch(:version)}"
+
+        if load_existing
+          root = records = nil
+          @persistence.transaction do |tx|
+            root = tx.agents.load(@agent_id)
+            records = tx.journals.read(
+              @agent_id,
+              limit: root.journal_position
+            )
           end
-          loaded
+          validate_loaded_definition!(root)
+          @root = root
+          @_phronomy_journal_records = Array(records).dup.freeze
         else
-          create_agent_root!(context: context, knowledge: knowledge, metadata: metadata)
+          @root = create_agent_root!(
+            context: context,
+            knowledge: knowledge,
+            metadata: metadata
+          )
+          @_phronomy_journal_records = @persistence.journals.read(
+            @agent_id,
+            limit: @root.journal_position
+          ).dup.freeze
         end
       end
 
@@ -306,7 +356,10 @@ module Phronomy
       end
 
       def journal_projection
-        Agent::JournalProjection.new(persistence: persistence, agent_root: @root)
+        Agent::JournalProjection.new(
+          agent_root: @root,
+          records: _journal_records_snapshot
+        )
       end
 
       def transcript
@@ -334,13 +387,14 @@ module Phronomy
         end
       end
 
-      # Appends persistent Knowledge to the Agent Journal.
-      # Knowledge is an optional Context candidate; it is not part of #transcript.
+      # Appends persistent Knowledge to the Agent Journal. The live Agent owns the
+      # current logical root/Journal view; Persistence is advanced optimistically.
       def add_knowledge(content, metadata: {})
+        current = agent_root
         next_root = nil
+        appended = nil
         persistence.transaction do |tx|
           tx.executions.assert_idle!(agent_id)
-          current = tx.agents.load(agent_id)
           record = build_knowledge_record(
             tx: tx,
             root: current,
@@ -363,6 +417,7 @@ module Phronomy
             root: next_root
           )
         end
+        _append_journal_records(appended)
         @root = next_root
         self
       end
@@ -394,6 +449,7 @@ module Phronomy
           tx.agents.delete(agent_id)
         end
         @root = nil
+        @_phronomy_journal_records = [].freeze
         true
       end
 
@@ -403,6 +459,17 @@ module Phronomy
       end
 
       private
+
+      def validate_loaded_definition!(loaded)
+        definition = self.class.agent_definition
+        return if loaded.agent_definition_id == definition.fetch(:id) &&
+          loaded.definition_version == definition.fetch(:version)
+
+        raise Phronomy::ConfigurationError,
+          "Agent definition mismatch for #{@agent_id}: stored " \
+          "#{loaded.agent_definition_id}@#{loaded.definition_version}, runtime " \
+          "#{definition.fetch(:id)}@#{definition.fetch(:version)}"
+      end
 
       def create_agent_root!(context:, knowledge:, metadata:)
         definition = self.class.agent_definition
@@ -480,10 +547,11 @@ module Phronomy
       end
 
       def mutate_context!(kind, context_affecting: true)
+        current = agent_root
         next_root = nil
+        appended = nil
         persistence.transaction do |tx|
           tx.executions.assert_idle!(agent_id)
-          current = tx.agents.load(agent_id)
           record = Agent::JournalRecord.new(
             agent_id: agent_id,
             kind: kind,
@@ -502,13 +570,30 @@ module Phronomy
             context_revision: context_affecting ?
               yield_context_revision(current, proposed) : current.context_revision
           )
-          tx.agents.save(agent_id, expected_revision: current.agent_revision, root: next_root)
+          tx.agents.save(
+            agent_id,
+            expected_revision: current.agent_revision,
+            root: next_root
+          )
         end
+        _append_journal_records(appended)
         @root = next_root
       end
 
       def yield_context_revision(current, proposed)
         (proposed.context_revision == current.context_revision) ? current.context_revision + 1 : proposed.context_revision
+      end
+
+      def _journal_records_snapshot
+        @_phronomy_journal_records || [].freeze
+      end
+
+      def _append_journal_records(records)
+        incoming = Array(records)
+        return _journal_records_snapshot if incoming.empty?
+
+        @_phronomy_journal_records =
+          (_journal_records_snapshot + incoming).freeze
       end
 
       public
