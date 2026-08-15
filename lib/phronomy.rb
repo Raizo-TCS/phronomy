@@ -17,6 +17,7 @@ loader.inflector.inflect("llm_call_record" => "LLMCallRecord")
 loader.inflector.inflect("llm_input_manifest" => "LLMInputManifest")
 loader.inflector.inflect("llm_input_build_context" => "LLMInputBuildContext")
 loader.inflector.inflect("llm_input_patch" => "LLMInputPatch")
+loader.inflector.inflect("before_llm_input" => "BeforeLLMInput")
 loader.collapse("#{__dir__}/phronomy/engine")
 # Loaded via require_relative before loader.setup; ignore to avoid Zeitwerk constant-name mismatch.
 loader.ignore("#{__dir__}/phronomy/ruby_llm_patches.rb")
