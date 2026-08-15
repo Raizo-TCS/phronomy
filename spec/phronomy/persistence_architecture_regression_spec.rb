@@ -62,7 +62,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     lookup = class_api
       .split("def live_for_execution", 2)
       .fetch(1)
-      .split("\n        end\n", 2)
+      .split("\n        end\n      end\n", 2)  # def close + class<<self close
       .first
 
     expect(class_api).to include("def live_for_execution")
@@ -142,5 +142,10 @@ RSpec.describe "Unified Persistence architecture regression guards" do
 
     expect(in_memory.scan(/@monitor\s*=\s*Monitor\.new/).length).to eq(1)
     expect(in_memory).not_to match(/@(?:workflow|state_store).*mutex/i)
+  end
+
+  it "does not expose class-level approve or approve_async on Agent subclasses" do
+    expect(Phronomy::Agent::Base).not_to respond_to(:approve)
+    expect(Phronomy::Agent::Base).not_to respond_to(:approve_async)
   end
 end
