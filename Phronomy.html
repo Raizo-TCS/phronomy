@@ -266,12 +266,12 @@
       <pre class="lines">
 
 
-77
 78
-79</pre>
+79
+80</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 77</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 78</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_configuration'>configuration</span>
   <span class='ivar'>@configuration</span> <span class='op'>||=</span> <span class='const'><span class='object_link'><a href="Phronomy/Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Configuration.html#initialize-instance_method" title="Phronomy::Configuration#initialize (method)">new</a></span></span>
@@ -318,12 +318,12 @@
       <pre class="lines">
 
 
-81
 82
-83</pre>
+83
+84</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 81</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 82</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_configure'>configure</span>
   <span class='kw'>yield</span> <span class='id identifier rubyid_configuration'>configuration</span>
@@ -348,12 +348,12 @@
       <pre class="lines">
 
 
-85
 86
-87</pre>
+87
+88</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 85</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 86</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_reset_configuration!'>reset_configuration!</span>
   <span class='ivar'>@configuration</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Phronomy/Configuration.html" title="Phronomy::Configuration (class)">Configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Phronomy/Configuration.html#initialize-instance_method" title="Phronomy::Configuration#initialize (method)">new</a></span></span>
@@ -378,7 +378,6 @@
       <pre class="lines">
 
 
-96
 97
 98
 99
@@ -388,10 +387,11 @@
 103
 104
 105
-106</pre>
+106
+107</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 96</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 97</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_reset_runtime!'>reset_runtime!</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='id identifier rubyid_configuration'>configuration</span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_previous_grace'>previous_grace</span> <span class='op'>=</span> <span class='ivar'>@configuration</span><span class='op'>&amp;.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span>
@@ -424,15 +424,15 @@
       <pre class="lines">
 
 
-89
 90
 91
 92
 93
-94</pre>
+94
+95</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 89</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy.rb', line 90</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_with_configuration'>with_configuration</span>
   <span class='id identifier rubyid_original'>original</span> <span class='op'>=</span> <span class='ivar'>@configuration</span><span class='op'>&amp;.</span><span class='id identifier rubyid_dup'>dup</span>
@@ -450,7 +450,7 @@
 </div>
 
       <div id="footer">
-  Generated on Sat Aug 15 02:52:39 2026 by
+  Generated on Sat Aug 15 03:46:18 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
