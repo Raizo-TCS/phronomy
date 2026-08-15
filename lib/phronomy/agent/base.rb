@@ -748,8 +748,12 @@ module Phronomy
           Phronomy::MultiAgent::ParallelToolChat : nil
         chat = parallel_class ? parallel_class.new(**opts) : RubyLLM.chat(**opts)
         chat.with_temperature(config["temperature"]) if config["temperature"]
-        if config["max_output_tokens"] && chat.respond_to?(:with_max_output_tokens)
-          chat.with_max_output_tokens(config["max_output_tokens"])
+        if config["max_output_tokens"]
+          if chat.respond_to?(:with_max_output_tokens)
+            chat.with_max_output_tokens(config["max_output_tokens"])
+          else
+            chat.with_params(max_tokens: config["max_output_tokens"])
+          end
         end
         chat
       end
