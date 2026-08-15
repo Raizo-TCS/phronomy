@@ -18,6 +18,7 @@ Release history for 0.14.0 and earlier is archived in
 
 - `Persistence#workflow_states` with optimistic revision checks for durable Workflow snapshots.
 - Runtime-local Agent Activation ownership; live `AgentExecutionActivation` values are no longer Persistence repositories.
+- `Agent::Base.live_for_execution(execution_id)` for resolving the current process's live owner Agent without reloading Agent or Execution state from Persistence.
 - Owner-aware Workflow admission keyed by durable `thread_id` and owned by a per-execution internal `fsm_session_id`.
 - ADR-014 and the 0.19 migration guide for the unified durable-state architecture.
 
@@ -26,14 +27,15 @@ Release history for 0.14.0 and earlier is archived in
 - Live Agent instances now remain the authoritative logical-state owners after hydration. Context Policy and follow-up Manifest preparation use the Agent-local root, Journal view, and Activation state instead of reloading mutable Agent state for freshness.
 - `Phronomy.configuration.persistence` is the global durable backend for Workflows and for Agent `new`/`create` calls that do not explicitly inject another Persistence instance.
 - Agent durable writes use optimistic revision/Journal-position guardrails; conflicting external writes fail instead of being silently reloaded or merged.
-- Approval suspension/resume preserves the same live Agent/Activation/AgentInvocation. Class-level approval convenience routing resolves that live owner from Runtime instead of loading another Agent.
-- Workflow durable I/O runs outside EventLoop through OffloadPool, while `thread_id` admission remains owned until terminal/halted snapshot persistence completes.
+- Approval suspension/resume preserves the same live Agent/Activation/AgentInvocation. Approval remains an Agent-instance operation; callers with only an `execution_id` resolve the live owner with `Agent::Base.live_for_execution` (or the expected concrete Agent class) before calling `agent.approve` / `agent.approve_async`.
+- Workflow durable I/O runs outside EventLoop through OffloadPool, while `thread_id` admission remains owned until terminal/halted snapshot persistence completes inside the current Runtime. Workflow admission is process-local; optimistic revisions detect stale commits across processes but do not prevent duplicate execution or undo already-performed external side effects.
 - Workflow `thread_id`, Runtime `fsm_session_id`, and application `session_id` now have distinct responsibilities.
 
 #### Removed
 
 - `Phronomy::StateStore`, `StateStore::InMemory`, `Workflow.define(..., state_store:)`, `Configuration#state_store`, and per-invocation `config[:state_store]`.
 - `Persistence#activations`; ActivationRegistry is transient Runtime state.
+- Class-level `Agent::Base.approve` / `Agent::Base.approve_async` routing APIs and their caller-supplied `persistence:` argument; approval execution now goes through the resolved live Agent instance.
 
 ### OffloadPool execution model
 

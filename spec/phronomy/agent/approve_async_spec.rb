@@ -138,14 +138,13 @@ RSpec.describe Phronomy::Agent::Base do
       allow(tool_instance).to receive(:call).and_return("done")
 
       event_loop = Phronomy::Runtime.instance.event_loop
-      task = nil
       allow(event_loop).to receive(:current?).and_return(true)
-      expect {
-        task = agent.approve_async(execution_id, approval_request_id: request_id)
-        expect(task).to be_a(Phronomy::Task)
-      }.not_to raise_error(Phronomy::EventLoopReentrancyError)
+
+      task = agent.approve_async(execution_id, approval_request_id: request_id)
+      expect(task).to be_a(Phronomy::Task)
+
       allow(event_loop).to receive(:current?).and_call_original
-      task.wait_result
+      expect(task.wait_result[:output]).to eq("resumed")
     end
 
     it "returns a failed Task requiring durable rehydration when execution_id has no live Activation" do
@@ -156,7 +155,7 @@ RSpec.describe Phronomy::Agent::Base do
     end
   end
 
-  describe ".approve_async" do
+  describe ".live_for_execution" do
     let(:tool_instance) { HITLTool.new }
     let(:persistence) { Phronomy::Persistence::InMemory.new }
     let(:agent) do
@@ -166,43 +165,49 @@ RSpec.describe Phronomy::Agent::Base do
 
     before { allow(RubyLLM).to receive(:chat).and_return(chat) }
 
-    it "routes to the owner Agent without loading Execution or a new Agent" do
-      result = agent.invoke("run tool")
+    def invoke_and_suspend
+      agent.invoke("run tool")
+    end
+
+    it "returns the same live owner Agent through Agent::Base" do
+      result = invoke_and_suspend
       execution_id = result[:execution_id]
-      request_id = result[:approval_request].id
       activation = Phronomy::Runtime.instance.__agent_activations.fetch(execution_id)
-      expect(activation.agent).to be(agent)
 
-      expect(persistence.executions).not_to receive(:load)
-      expect(persistence.agents).not_to receive(:load)
-      expect(HITLAgentForApproveAsync).not_to receive(:load)
-      allow(tool_instance).to receive(:call).and_return("done")
+      resolved = Phronomy::Agent::Base.live_for_execution(execution_id)
 
-      task = HITLAgentForApproveAsync.approve_async(
-        execution_id,
-        approval_request_id: request_id,
-        persistence: persistence
-      )
-      expect(task.wait_result[:output]).to eq("resumed")
+      expect(resolved).to be(agent)
+      expect(resolved).to be(activation.agent)
     end
 
-    it "fails with ExecutionRehydrationRequiredError when no live Activation exists" do
-      expect(persistence.executions).not_to receive(:load)
-      expect(persistence.agents).not_to receive(:load)
-
-      task = HITLAgentForApproveAsync.approve_async(
-        "missing-execution",
-        approval_request_id: "missing-request",
-        persistence: persistence
-      )
-      expect { task.wait_result }
-        .to raise_error(Phronomy::ExecutionRehydrationRequiredError)
-    end
-
-    it "fails with ArgumentError when the live activation belongs to a different agent class" do
-      result = agent.invoke("run tool")
+    it "returns the same live owner Agent through its concrete Agent class" do
+      result = invoke_and_suspend
       execution_id = result[:execution_id]
-      request_id = result[:approval_request].id
+
+      resolved = HITLAgentForApproveAsync.live_for_execution(execution_id)
+
+      expect(resolved).to be(agent)
+    end
+
+    it "does not load Agent or Execution state from Persistence" do
+      result = invoke_and_suspend
+      execution_id = result[:execution_id]
+
+      expect(persistence.executions).not_to receive(:load)
+      expect(persistence.agents).not_to receive(:load)
+
+      expect(HITLAgentForApproveAsync.live_for_execution(execution_id)).to be(agent)
+    end
+
+    it "raises ExecutionRehydrationRequiredError when no live Activation exists" do
+      expect do
+        Phronomy::Agent::Base.live_for_execution("missing-execution")
+      end.to raise_error(Phronomy::ExecutionRehydrationRequiredError)
+    end
+
+    it "raises ArgumentError when the live owner is not an instance of the receiver class" do
+      result = invoke_and_suspend
+      execution_id = result[:execution_id]
 
       other_class = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "other-class-agent", version: 1
@@ -210,27 +215,12 @@ RSpec.describe Phronomy::Agent::Base do
         instructions "other"
       end
 
-      task = other_class.approve_async(
-        execution_id,
-        approval_request_id: request_id,
-        persistence: persistence
+      expect do
+        other_class.live_for_execution(execution_id)
+      end.to raise_error(
+        ArgumentError,
+        /belongs to HITLAgentForApproveAsync/
       )
-      expect { task.wait_result }.to raise_error(ArgumentError)
-    end
-
-    it "fails with ArgumentError when the persistence instance does not match the live agent" do
-      result = agent.invoke("run tool")
-      execution_id = result[:execution_id]
-      request_id = result[:approval_request].id
-
-      other_persistence = Phronomy::Persistence::InMemory.new
-
-      task = HITLAgentForApproveAsync.approve_async(
-        execution_id,
-        approval_request_id: request_id,
-        persistence: other_persistence
-      )
-      expect { task.wait_result }.to raise_error(ArgumentError)
     end
   end
 end

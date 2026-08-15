@@ -252,62 +252,22 @@ module Phronomy
           new(agent_id: agent_id, persistence: persistence, load_existing: true)
         end
 
-        # Routes approval to the live Agent instance that owns the suspended
-        # Activation. Approval resume is not a durable rehydration boundary.
-        def approve(execution_id, approval_request_id:, persistence:, approved: true, config: {})
-          approve_async(
-            execution_id,
-            approval_request_id: approval_request_id,
-            persistence: persistence,
-            approved: approved,
-            config: config
-          ).wait_result
-        end
-
-        def approve_async(execution_id, approval_request_id:, persistence:, approved: true, config: {})
+        # Resolves the live Agent instance that currently owns execution_id in
+        # this process. This is a Runtime-local lookup, not durable rehydration.
+        def live_for_execution(execution_id)
           activation = Phronomy::Runtime.instance.__agent_activations.fetch(execution_id)
           unless activation
-            return failed_approval_task(
-              execution_id,
-              Phronomy::ExecutionRehydrationRequiredError.new(
-                "no live activation for #{execution_id}; durable rehydration is required"
-              )
-            )
+            raise Phronomy::ExecutionRehydrationRequiredError,
+              "no live activation for #{execution_id}; durable rehydration is required"
           end
 
           agent = activation.agent
           unless agent.is_a?(self)
-            return failed_approval_task(
-              execution_id,
-              ArgumentError.new(
-                "live activation #{execution_id} belongs to #{agent.class}, not #{self}"
-              )
-            )
+            raise ArgumentError,
+              "live activation #{execution_id} belongs to #{agent.class}, not #{self}"
           end
 
-          unless agent.persistence.equal?(persistence)
-            return failed_approval_task(
-              execution_id,
-              ArgumentError.new(
-                "live activation #{execution_id} belongs to a different Persistence instance"
-              )
-            )
-          end
-
-          agent.approve_async(
-            execution_id,
-            approval_request_id: approval_request_id,
-            approved: approved,
-            config: config
-          )
-        end
-
-        private
-
-        def failed_approval_task(execution_id, error)
-          task = Phronomy::Task.deferred(name: "agent-approval-route:#{execution_id}")
-          task.fail(error)
-          task
+          agent
         end
       end
 

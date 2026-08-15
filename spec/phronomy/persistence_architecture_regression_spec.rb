@@ -42,7 +42,7 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     expect(runtime).to include("@agent_activations")
   end
 
-  it "keeps Agent durable ownership semantics in Base without a shadowing concern" do
+  it "keeps Agent durable ownership and live owner lookup semantics in Base" do
     agent_entry = File.read(File.join(root, "lib/phronomy/agent.rb"))
     base = File.read(File.join(root, "lib/phronomy/agent/base.rb"))
     ownership_path = File.join(
@@ -53,8 +53,23 @@ RSpec.describe "Unified Persistence architecture regression guards" do
     expect(File).not_to exist(ownership_path)
     expect(agent_entry).not_to include("persistence_ownership")
     expect(agent_entry).not_to include("PersistenceOwnership")
-    expect(base).to include("Phronomy::Runtime.instance.__agent_activations.fetch")
-    expect(base).not_to include("persistence.executions.load(execution_id)")
+
+    class_api = base
+      .split("class << self", 2)
+      .fetch(1)
+      .split("attr_reader :agent_id, :persistence", 2)
+      .first
+    lookup = class_api
+      .split("def live_for_execution", 2)
+      .fetch(1)
+      .split("\n        end\n", 2)
+      .first
+
+    expect(class_api).to include("def live_for_execution")
+    expect(class_api).not_to match(/\bdef approve(?:_async)?\b/)
+    expect(lookup).to include("Phronomy::Runtime.instance.__agent_activations.fetch")
+    expect(lookup).not_to include("persistence.executions.load")
+    expect(lookup).not_to include("persistence.agents.load")
     expect(base).to include("records: _journal_records_snapshot")
 
     add_knowledge = base

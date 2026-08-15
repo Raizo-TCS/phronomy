@@ -53,13 +53,31 @@ reference is therefore not a mutable-state reload.
 Approval suspension does not transfer ownership. The same Agent instance,
 Activation, and AgentInvocation remain live while approval is pending.
 
-Instance-level `agent.approve_async(...)` resumes that live Activation.
-Class-level approval convenience APIs resolve the same Activation through the
-Runtime registry and route the request to `activation.agent`; they do not load a
-new Agent from Persistence.
+Instance-level `agent.approve(...)` / `agent.approve_async(...)` resume that live
+Activation. If an application has only an `execution_id`, it first resolves the
+process-local live owner with:
+
+```ruby
+agent = Phronomy::Agent::Base.live_for_execution(execution_id)
+```
+
+or, when the expected Agent class is known:
+
+```ruby
+agent = MyAgent.live_for_execution(execution_id)
+```
+
+The lookup resolves `execution_id -> Runtime ActivationRegistry -> Activation ->
+activation.agent`. It does not load a new Agent or Execution from Persistence.
+Calling through a concrete Agent class additionally verifies the live owner is an
+instance of that class.
 
 If no live Activation exists, durable continuation reconstruction is not yet
 implemented and `ExecutionRehydrationRequiredError` is raised.
+
+`execution_id` is a routing identity, not an authorization token. Applications
+must separately authorize the caller to act on the resolved Agent / approval
+request.
 
 ## Workflow persistence repository
 
@@ -126,6 +144,13 @@ Only the current owner may release the admission. This prevents an unsuccessful
 competing invocation from releasing another invocation's reservation, and closes
 the stale-load window while the previous owner is still saving.
 
+This admission map belongs to one Runtime and is process-local. Separate Ruby
+processes, containers, or service replicas can each admit the same durable
+`thread_id`. Optimistic Workflow revisions detect stale terminal commits between
+those processes, but they do not prevent duplicate execution from starting and
+cannot undo external side effects already performed before a revision conflict is
+observed.
+
 ## EventLoop and Persistence
 
 Persistence remains a synchronous repository abstraction. Operations that may
@@ -154,9 +179,13 @@ The following are not persisted as Workflow or Agent durable state:
 
 - FSMSession objects and `fsm_session_id` values;
 - Runtime activation registry entries;
+- Runtime Workflow admission entries;
 - `Task` instances and callbacks;
 - EventLoop queue contents;
 - in-flight provider operations.
 
 Process-loss recovery of an in-flight Agent Activation requires an explicit
-future rehydration design rather than serializing Runtime objects.
+future rehydration design rather than serializing Runtime objects. Cross-process
+exclusive Workflow execution likewise requires a separate distributed
+lease/fencing design; optimistic revisions alone are commit-conflict detection,
+not distributed execution locking.
