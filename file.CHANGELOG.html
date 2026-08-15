@@ -72,6 +72,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <ul>
 <li><code>Persistence#workflow_states</code> with optimistic revision checks for durable Workflow snapshots.</li>
 <li>Runtime-local Agent Activation ownership; live <code>AgentExecutionActivation</code> values are no longer Persistence repositories.</li>
+<li><code>Agent::Base.live_for_execution(execution_id)</code> for resolving the current process's live owner Agent without reloading Agent or Execution state from Persistence.</li>
 <li>Owner-aware Workflow admission keyed by durable <code>thread_id</code> and owned by a per-execution internal <code>fsm_session_id</code>.</li>
 <li>ADR-014 and the 0.19 migration guide for the unified durable-state architecture.</li>
 </ul>
@@ -80,14 +81,15 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Live Agent instances now remain the authoritative logical-state owners after hydration. Context Policy and follow-up Manifest preparation use the Agent-local root, Journal view, and Activation state instead of reloading mutable Agent state for freshness.</li>
 <li><code>Phronomy.configuration.persistence</code> is the global durable backend for Workflows and for Agent <code>new</code>/<code>create</code> calls that do not explicitly inject another Persistence instance.</li>
 <li>Agent durable writes use optimistic revision/Journal-position guardrails; conflicting external writes fail instead of being silently reloaded or merged.</li>
-<li>Approval suspension/resume preserves the same live Agent/Activation/AgentInvocation. Class-level approval convenience routing resolves that live owner from Runtime instead of loading another Agent.</li>
-<li>Workflow durable I/O runs outside EventLoop through OffloadPool, while <code>thread_id</code> admission remains owned until terminal/halted snapshot persistence completes.</li>
+<li>Approval suspension/resume preserves the same live Agent/Activation/AgentInvocation. Approval remains an Agent-instance operation; callers with only an <code>execution_id</code> resolve the live owner with <code>Agent::Base.live_for_execution</code> (or the expected concrete Agent class) before calling <code>agent.approve</code> / <code>agent.approve_async</code>.</li>
+<li>Workflow durable I/O runs outside EventLoop through OffloadPool, while <code>thread_id</code> admission remains owned until terminal/halted snapshot persistence completes inside the current Runtime. Workflow admission is process-local; optimistic revisions detect stale commits across processes but do not prevent duplicate execution or undo already-performed external side effects.</li>
 <li>Workflow <code>thread_id</code>, Runtime <code>fsm_session_id</code>, and application <code>session_id</code> now have distinct responsibilities.</li>
 </ul>
 <h4 id="Removed">Removed</h4>
 <ul>
 <li><code>Phronomy::StateStore</code>, <code>StateStore::InMemory</code>, <code>Workflow.define(..., state_store:)</code>, <code>Configuration#state_store</code>, and per-invocation <code>config[:state_store]</code>.</li>
 <li><code>Persistence#activations</code>; ActivationRegistry is transient Runtime state.</li>
+<li>Class-level <code>Agent::Base.approve</code> / <code>Agent::Base.approve_async</code> routing APIs and their caller-supplied <code>persistence:</code> argument; approval execution now goes through the resolved live Agent instance.</li>
 </ul>
 <h3 id="OffloadPool_execution_model">OffloadPool execution model</h3>
 <h4 id="Changed">Changed</h4>
@@ -469,7 +471,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Fri Aug 14 15:59:03 2026 by
+  Generated on Sat Aug 15 00:28:41 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

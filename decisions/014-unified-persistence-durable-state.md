@@ -120,18 +120,31 @@ in the Activation and are eligible at the next semantic boundary.
 
 An approval suspension retains the original Agent instance,
 `AgentExecutionActivation` and `AgentInvocation`. Instance-level
-`agent.approve_async` resumes that live Activation.
+`agent.approve` / `agent.approve_async` resume that live Activation.
 
-The class-level convenience API, when used, is routing only:
+When an application has only an `execution_id`, it resolves the current process's
+live owner first:
 
 ```text
 execution_id
+  -> Agent::Base.live_for_execution(...)
   -> Runtime ActivationRegistry
   -> live Activation
-  -> activation.agent.approve_async(...)
+  -> activation.agent
 ```
 
-It does not load a new Agent from Persistence.
+A concrete Agent class may call `MyAgent.live_for_execution(execution_id)` to
+also verify that the live owner is an instance of that class. The lookup does not
+load Agent or Execution state from Persistence. If the live Activation no longer
+exists, `ExecutionRehydrationRequiredError` is raised rather than silently
+rehydrating another owner.
+
+Approval remains an Agent-instance operation after lookup:
+
+```ruby
+agent = MyAgent.live_for_execution(execution_id)
+agent.approve_async(execution_id, approval_request_id: request_id)
+```
 
 ### Workflow has three distinct identities
 
@@ -162,6 +175,18 @@ Admission is acquired before Persistence load and held through FSM execution and
 terminal snapshot save. Release succeeds only when the supplied
 `owner_fsm_session_id` is the current owner. A failed competing invocation can
 therefore never release another invocation's reservation.
+
+The admission table belongs to one Runtime and is process-local. It prevents
+competing execution of the same `thread_id` inside that Runtime, but it is not a
+distributed lease and is not shared by multiple Ruby processes, containers, or
+service replicas. Two processes may therefore execute the same durable
+`thread_id` concurrently if an application routes work that way.
+
+`workflow_states` optimistic revisions still detect stale/double commits between
+those processes. They do not prevent both executions from starting and cannot
+roll back external side effects already performed before one terminal save loses
+the revision race. CAS is therefore stale/double-commit protection, not
+distributed execution exclusion or duplicate-side-effect prevention.
 
 `fsm_session_id` is Runtime metadata. It is not an application Workflow field and
 is not stored in `workflow_states` snapshots.
@@ -196,10 +221,12 @@ Ruby object identity are not part of the public repository contract.
 - Process-local Activation state is no longer presented as durable Persistence.
 - Active Agent ownership is explicit; Context Policy freshness no longer depends
   on repeated mutable-state reloads.
+- Approval owner lookup and approval execution are separate: class-level lookup
+  resolves the existing live Agent, while approval remains an instance operation.
 - Revision conflicts are visible instead of being hidden by automatic merge.
 - Workflow durable identity is independent of one Runtime FSMSession execution.
 - Owner-aware Workflow admission closes the stale-load window during terminal
-  save.
+  save inside one Runtime.
 - InMemory and future SQL backends can share one contract test suite.
 
 ### Trade-offs
@@ -207,6 +234,11 @@ Ruby object identity are not part of the public repository contract.
 - Removing `StateStore` is a pre-1.0 breaking change.
 - A process restart cannot resume an approval until durable Activation/FSM
   rehydration is implemented separately.
+- Runtime Activation lookup and Workflow admission are process-local. Applications
+  requiring cross-process ownership or duplicate-execution prevention need a
+  separate routing/lease/fencing design.
+- Optimistic Workflow revisions can reject a stale commit but cannot undo
+  duplicate external side effects performed before that conflict is observed.
 - Applications that intentionally allow another process to edit the same live
   Agent or Workflow must handle `ConflictError` and explicitly reload/reconcile.
 - `Persistence` implementations must provide `workflow_states` and optimistic

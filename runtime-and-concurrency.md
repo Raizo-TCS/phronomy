@@ -84,6 +84,18 @@ until the halted/terminal `workflow_states.save(...)` completes. Only the curren
 owner may release the admission. `fsm_session_id` is Runtime-only metadata and is
 not stored in Workflow fields or durable snapshots.
 
+The admission map belongs to one Runtime and is process-local. It prevents two
+executions with the same durable `thread_id` from being admitted concurrently
+inside that Runtime, but it is not shared across Ruby processes, containers, or
+service replicas. Separate processes may therefore execute the same `thread_id`
+concurrently unless the application adds distributed coordination.
+
+`workflow_states` optimistic revisions detect stale terminal commits across those
+processes. They do not prevent duplicate execution from starting and cannot undo
+external side effects that both executions already performed before one save
+loses the revision race. CAS is stale/double-commit detection, not a distributed
+execution lock or duplicate-side-effect prevention mechanism.
+
 ## Tool execution modes
 
 Phronomy exposes two execution modes for capabilities:
@@ -139,8 +151,12 @@ conflict fails that step rather than continuing with stale state.
 
 Approval wait is not a hydration boundary. The same live Agent instance,
 Activation, and AgentInvocation remain the owner and are resumed after approval.
-Class-level approval convenience routing resolves that live Activation through
-the Runtime registry rather than loading another Agent.
+Approval itself remains an Agent-instance operation. An application that only has
+an `execution_id` first resolves the current process's owner with
+`Phronomy::Agent::Base.live_for_execution(execution_id)` or the expected concrete
+Agent class, then calls `agent.approve(...)` or `agent.approve_async(...)`.
+`live_for_execution` consults the Runtime-local ActivationRegistry and does not
+load a replacement Agent from Persistence.
 
 ## Sync versus async application APIs
 
@@ -152,11 +168,12 @@ the Runtime registry rather than loading another Agent.
 | EventLoop callback | Never block waiting for a Task that requires EventLoop progress |
 | Top-level streaming | `agent.stream(...)` |
 | Non-blocking streaming | `agent.stream_async(...)` |
-| Approval from EventLoop callback | `approve_async` |
+| Approval from EventLoop callback | Resolve with `live_for_execution`, call `agent.approve_async(...)`, and return immediately |
 
 Blocking synchronous APIs reject EventLoop re-entry with
 `Phronomy::EventLoopReentrancyError` when waiting would stall the same EventLoop
-needed for progress.
+needed for progress. `live_for_execution` itself only performs a Runtime-local
+registry lookup and does not wait for Task progress.
 
 ## Task
 
