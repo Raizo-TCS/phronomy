@@ -78,6 +78,15 @@ Source declarations marked `@api private`, including most EventLoop/FSMSession a
 OffloadPool internals, are implementation details and may change without the same
 compatibility guarantees.
 
+The YARD `@api` classification is independent from Ruby language visibility in
+both directions. `@api public` marks a compatibility contract, but the Ruby
+visibility still follows the intended calling model: ordinary APIs may be
+public, subclass extension helpers may be protected, and constructors use
+Ruby-private `initialize` behind `.new`. `@api private` means "internal/no
+compatibility promise" and does not require a Ruby `private` declaration; some
+internal methods remain Ruby-public because Phronomy components call them
+through explicit receivers.
+
 Persistence Backend SPI methods are a deliberate exception to the ordinary
 application-facing interpretation of `@api public`: they are public extension
 contracts for backend implementers, but application business logic should usually
@@ -94,6 +103,11 @@ durability is provided through `Phronomy::Persistence#workflow_states`; see the
 |---|---|
 | **`Phronomy::Diagnostics`** — Snapshot of EventLoop lag/queue state and OffloadPool activity | Experimental |
 | **`Phronomy::Testing::FakeClock`** — Test-only deterministic clock helper | Beta |
+| **`Phronomy::Testing::PersistenceContract`** — Explicitly loaded RSpec conformance suite for custom Persistence backends | Beta |
+
+`Phronomy::Testing::PersistenceContract` is available only after explicit
+`require "phronomy/testing/persistence_contract"`. Ordinary
+`require "phronomy"` and production eager-load do not load RSpec.
 
 For runtime ownership and the distinction between public lifecycle APIs and
 private execution machinery, see [Runtime and concurrency](runtime-and-concurrency.md).
