@@ -13,11 +13,40 @@ RSpec.describe "Persistence Backend SPI public contract" do
     )
   end
 
-  it "exposes the synchronous transaction and durable-watermark SPI" do
+  it "exposes the repository accessors and root synchronous SPI as Ruby-public" do
     expect(persistence_class.public_instance_methods).to include(
+      :contents,
+      :agents,
+      :journals,
+      :executions,
+      :workflow_states,
       :transaction,
       :assert_agent_watermark!
     )
+  end
+
+  it "constructs backend subclasses through the documented .new contract" do
+    repository = Object.new
+
+    backend_class = Class.new(Phronomy::Persistence) do
+      def capabilities
+        Phronomy::Persistence::REQUIRED_CAPABILITIES
+      end
+    end
+
+    backend = backend_class.new(
+      contents: repository,
+      agents: repository,
+      journals: repository,
+      executions: repository,
+      workflow_states: repository
+    )
+
+    expect(backend.contents).to equal(repository)
+    expect(backend.agents).to equal(repository)
+    expect(backend.journals).to equal(repository)
+    expect(backend.executions).to equal(repository)
+    expect(backend.workflow_states).to equal(repository)
   end
 
   it "rejects a backend that omits optimistic revision support" do

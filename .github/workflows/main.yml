@@ -128,17 +128,3 @@ jobs:
       - name: Check @api public/@api private annotation coverage
         run: ruby scripts/check_api_annotations.rb
 
-  private-enforcement:
-    runs-on: ubuntu-latest
-    name: Lint — @api private methods must not be public
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2'
-          bundler-cache: true
-      - name: Enforce @api private visibility
-        run: bundle exec ruby scripts/check_private_enforcement.rb

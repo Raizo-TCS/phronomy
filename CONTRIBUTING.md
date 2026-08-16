@@ -52,6 +52,36 @@ When adding, removing, or renaming a public method or class:
    bundle exec ruby scripts/api_snapshot.rb --write
    ```
 
+### `@api` classification vs Ruby visibility
+
+Phronomy's YARD `@api` annotation describes the compatibility boundary; it is
+not a synonym for Ruby's `public` / `protected` / `private` keywords.
+
+- `@api public` means consumers or extension implementers may rely on the
+  documented contract. Ruby visibility still follows the intended calling
+  model: ordinary methods may be public, subclass extension helpers may be
+  protected, and `initialize` remains Ruby-private while construction is
+  exposed through `.new`.
+- `@api private` means the method is internal and carries no public compatibility
+  promise. It may still be Ruby-public when Phronomy components need to call it
+  through an explicit receiver.
+- Ruby visibility is therefore not inferred from the `@api` annotation in
+  either direction.
+
+Run the annotation coverage guard when changing documented methods:
+
+```bash
+ruby scripts/check_api_annotations.rb
+```
+
+Ruby-public compatibility for the primary Stable/Beta product surface is
+protected by `scripts/api_snapshot.rb` and
+`spec/phronomy/api_compatibility_spec.rb`. Extension contracts whose calling
+model is protected/private should be protected by focused specs for that
+contract rather than by a repository-wide visibility inference rule.
+
+Do not change Ruby visibility merely to make it match an `@api` annotation.
+
 ---
 
 ## Architecture Decision Records

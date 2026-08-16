@@ -21,6 +21,12 @@ loader.inflector.inflect("before_llm_input" => "BeforeLLMInput")
 loader.collapse("#{__dir__}/phronomy/engine")
 # Loaded via require_relative before loader.setup; ignore to avoid Zeitwerk constant-name mismatch.
 loader.ignore("#{__dir__}/phronomy/ruby_llm_patches.rb")
+# Persistence backend conformance tests are explicit test support. Keep them out
+# of production eager-load so ordinary `require "phronomy"` never requires RSpec.
+loader.ignore(
+  "#{__dir__}/phronomy/testing/persistence_contract.rb",
+  "#{__dir__}/phronomy/testing/persistence_contract"
+)
 loader.setup
 
 require_relative "phronomy/version"

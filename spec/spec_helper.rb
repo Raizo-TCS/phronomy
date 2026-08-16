@@ -12,6 +12,7 @@ if ENV["COVERAGE"]
     enable_coverage :branch
     add_filter "/spec/"
     add_filter "/vendor/"
+    add_filter "/lib/phronomy/testing/persistence_contract"
     minimum_coverage line: 85, branch: 75
   end
 end

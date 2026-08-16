@@ -420,25 +420,57 @@ storage format internally.
 
 ## Conformance tests
 
-Phronomy's source test suite contains backend-independent shared examples under:
+Phronomy ships its backend-independent RSpec shared examples as explicit test
+support in the released gem. Backend projects opt in with:
 
-```text
-spec/support/shared_examples/
-  a_content_store.rb
-  an_agent_repository.rb
-  a_journal_repository.rb
-  an_execution_repository.rb
-  a_workflow_state_repository.rb
-  a_persistence_backend.rb
+```ruby
+require "phronomy/testing/persistence_contract"
 ```
 
-`Persistence::InMemory` is run through those contracts in normal Phronomy CI.
-They define behavior independently of the InMemory implementation.
+RSpec remains a **development/test dependency of the backend project**, not a
+Phronomy runtime dependency. Ordinary `require "phronomy"` does not load RSpec,
+and Phronomy's production Zeitwerk eager-load explicitly excludes the contract
+support paths.
 
-These RSpec helpers are currently source-level conformance tests and are not a
-runtime dependency or automatically loaded by `require "phronomy"`. A future
-external reference backend may package/reuse the contracts explicitly, but
-Phronomy will not make RSpec a runtime dependency merely to expose them.
+The entry point registers these shared examples:
+
+```text
+a persistence content store
+an Agent repository
+a Journal repository
+an Execution repository
+a workflow state repository
+a Persistence backend
+```
+
+A backend's RSpec suite can apply the complete contract as follows:
+
+```ruby
+require "phronomy"
+require "phronomy/testing/persistence_contract"
+
+RSpec.describe MyPersistenceBackend do
+  let(:persistence) { described_class.new(...) }
+
+  it_behaves_like "a persistence content store"
+  it_behaves_like "an Agent repository"
+  it_behaves_like "a Journal repository"
+  it_behaves_like "an Execution repository"
+  it_behaves_like "a workflow state repository"
+  it_behaves_like "a Persistence backend"
+end
+```
+
+`Persistence::InMemory` is run through the same shipped contract source in
+Phronomy CI. The files under `spec/support/shared_examples/` are compatibility
+require wrappers only; the authoritative shared-example implementations live
+under `lib/phronomy/testing/persistence_contract/` so the core suite and external
+backends cannot drift through copied definitions.
+
+The generic suite verifies repository behavior, CAS semantics, admission,
+mutation isolation, and whole-backend transaction behavior. Database-specific
+concurrency/locking mechanisms remain backend integration-test concerns; the SPI
+specifies outcomes rather than a particular SQL locking strategy.
 
 ## SQL implementation guidance
 
