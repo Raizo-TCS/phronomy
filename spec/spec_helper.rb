@@ -10,9 +10,9 @@ if ENV["COVERAGE"]
   ])
   SimpleCov.start do
     enable_coverage :branch
-    add_filter "/spec/"
-    add_filter "/vendor/"
-    add_filter "/lib/phronomy/testing/persistence_contract"
+    skip "/spec/"
+    skip "/vendor/"
+    skip "/lib/phronomy/testing/persistence_contract"
     minimum_coverage line: 85, branch: 75
   end
 end

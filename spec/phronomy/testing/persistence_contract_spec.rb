@@ -9,6 +9,7 @@ RSpec.describe "Persistence contract test support" do
 
   def run_isolated_ruby(project_root, source)
     Open3.capture3(
+      {"COVERAGE" => nil},
       RbConfig.ruby,
       "-rbundler/setup",
       "-I#{File.join(project_root, "lib")}",
