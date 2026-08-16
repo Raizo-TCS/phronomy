@@ -84,6 +84,11 @@ module Phronomy
         self.class.new(**values)
       end
 
+      # Returns the canonical durable representation of this execution.
+      # Nested JournalRecord and LLMCallRecord values are recursively encoded.
+      #
+      # @return [Hash{String => Object}]
+      # @api public
       def to_h
         ATTRIBUTES.to_h do |name|
           value = public_send(name)
@@ -91,6 +96,30 @@ module Phronomy
           value = value.map(&:to_h) if name == :llm_calls
           [name.to_s, value]
         end
+      end
+
+      # Restores an execution from its canonical durable representation.
+      # String and Symbol top-level keys are accepted. Nested working Journal
+      # records and LLM Call records are restored through their public codecs so
+      # storage backends do not need to know their constructor details.
+      #
+      # @param hash [Hash]
+      # @return [AgentExecution]
+      # @api public
+      def self.from_h(hash)
+        attributes = ATTRIBUTES.to_h do |name|
+          key = hash.key?(name.to_s) ? name.to_s : name
+          [name, hash.fetch(key)]
+        end
+
+        attributes[:working_records] = attributes.fetch(:working_records).map do |record|
+          record.is_a?(JournalRecord) ? record : JournalRecord.from_h(record)
+        end
+        attributes[:llm_calls] = attributes.fetch(:llm_calls).map do |call|
+          call.is_a?(LLMCallRecord) ? call : LLMCallRecord.from_h(call)
+        end
+
+        new(**attributes)
       end
     end
   end

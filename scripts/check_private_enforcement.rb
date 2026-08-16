@@ -10,6 +10,11 @@
 # visibility is managed separately on the singleton class and rarely causes
 # accidental public exposure to consumers.
 #
+# The check eager-loads Zeitwerk-managed code before examining visibility. It
+# matches methods by source file and line, not only by method name, so a public
+# method with the same name on another Phronomy class cannot create a false
+# positive.
+#
 # Usage (run from the phronomy/ repository root):
 #   bundle exec ruby scripts/check_private_enforcement.rb
 #
@@ -19,6 +24,12 @@
 
 require "bundler/setup"
 require_relative "../lib/phronomy"
+
+# `require "phronomy"` intentionally leaves most constants lazy. The old
+# checker therefore missed @api private methods on files that had not happened
+# to autoload. Eager loading is restricted to this CI/checker process and does
+# not change Phronomy's production autoload policy.
+Zeitwerk::Loader.eager_load_all
 
 lib_dir = File.expand_path("../lib", __dir__)
 
@@ -49,8 +60,13 @@ Dir.glob(File.join(lib_dir, "**", "*.rb")).sort.each do |file|
     m = lines[j].match(/^\s*(?:private\s+)?def\s+(\w+[!?=]?)/)
     next unless m
 
-    rel_path = file.sub("#{lib_dir}/../", "")
-    api_private_entries << {name: m[1].to_sym, file: rel_path, line: j + 1}
+    rel_path = "lib/#{file.delete_prefix("#{lib_dir}/")}"
+    api_private_entries << {
+      name: m[1].to_sym,
+      file: File.expand_path(file),
+      rel_path: rel_path,
+      line: j + 1
+    }
   end
 end
 
@@ -59,28 +75,38 @@ if api_private_entries.empty?
   exit 0
 end
 
-# Step 2: Build a map of publicly exposed instance methods across all
-# Phronomy-namespaced modules/classes (own methods only, no inheritance).
+# Step 2: Index public methods by their defining source location. Matching by
+# source location is important because unrelated classes may legitimately have
+# public and private methods with the same method name.
+public_exposure_map = Hash.new { |hash, key| hash[key] = [] }
 all_phronomy_modules = ObjectSpace.each_object(Module).select do |mod|
   mod.name&.start_with?("Phronomy")
 end
 
-public_exposure_map = {}
 all_phronomy_modules.each do |mod|
   mod.public_instance_methods(false).each do |meth|
-    (public_exposure_map[meth] ||= []) << mod.name
+    location = mod.instance_method(meth).source_location
+    next unless location
+
+    file, line = location
+    public_exposure_map[[File.expand_path(file), line]] << "#{mod.name}##{meth}"
+  rescue NameError
+    # A method may disappear while reflecting over generated modules. Such a
+    # method cannot be a stable public exposure for this check.
+    next
   end
 end
 
-# Step 3: Report violations — @api private methods that are still public.
+# Step 3: Report violations — an @api private declaration whose exact Ruby def
+# is visible as a public instance method.
 errors = []
 
 api_private_entries.each do |entry|
-  exposing_modules = public_exposure_map[entry[:name]]
-  next unless exposing_modules
+  exposures = public_exposure_map[[entry[:file], entry[:line]]]
+  next if exposures.empty?
 
-  errors << "#{entry[:file]}:#{entry[:line]}  def #{entry[:name]}" \
-            "  (annotated @api private but public in: #{exposing_modules.join(", ")})"
+  errors << "#{entry[:rel_path]}:#{entry[:line]}  def #{entry[:name]}" \
+            "  (annotated @api private but public in: #{exposures.join(", ")})"
 end
 
 if errors.empty?

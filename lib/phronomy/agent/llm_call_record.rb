@@ -39,12 +39,32 @@ module Phronomy
         freeze
       end
 
+      # Returns the canonical durable representation of this LLM Call record.
+      #
+      # @return [Hash{String => Object}]
+      # @api public
       def to_h
         ATTRIBUTES.to_h do |name|
           value = public_send(name)
           value = value.to_s if name == :status
           [name.to_s, value]
         end
+      end
+
+      # Restores an LLM Call record from its canonical durable representation.
+      # String and Symbol top-level keys are accepted so database adapters may
+      # pass either a parsed JSON object or a Ruby-native Hash.
+      #
+      # @param hash [Hash]
+      # @return [LLMCallRecord]
+      # @api public
+      def self.from_h(hash)
+        attributes = ATTRIBUTES.to_h do |name|
+          key = hash.key?(name.to_s) ? name.to_s : name
+          [name, hash.fetch(key)]
+        end
+        attributes[:status] = attributes.fetch(:status).to_sym
+        new(**attributes)
       end
     end
   end
