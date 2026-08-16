@@ -69,6 +69,11 @@ persistence.workflow_states.save(
 A stale expected revision raises `Phronomy::Persistence::ConflictError`. Upper
 layers do not automatically reload and merge after such a conflict.
 
+The normative contract for custom durable backends, including repository
+semantics, transaction requirements, capabilities, durable codecs, and the Agent
+watermark precondition, is documented in
+[`docs/persistence-backends.md`](../persistence-backends.md).
+
 ### Activation is transient Runtime state
 
 `AgentExecutionActivation` is not part of the Persistence contract. Live

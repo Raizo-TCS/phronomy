@@ -19,7 +19,7 @@ for production deployments.
 |---|---|
 | **Workflow** — Stateful, branching workflows with `wait_state` and explicit events | Stable |
 | **Agent** — Stateful ReAct-style agents with stable `agent_id`, persistence-backed execution state, canonical history, guardrails, and conversation context | Stable |
-| **Unified Persistence** — One durable backend abstraction for Agent state and Workflow `workflow_states`; live Agent/Workflow state remains owned by the active instance/session between durable commits | Beta |
+| **Unified Persistence** — One durable backend abstraction for Agent state and Workflow `workflow_states`; live Agent/Workflow state remains owned by the active instance/session between durable commits; custom backends implement the documented Backend SPI and repository/transaction semantics | Beta |
 | **Before-Large-Language-Model (LLM) Input Hook** — Three-tier per-call LLM input customization via `before_llm_input` and `LLMInputPatch` | Stable |
 | **Context Management** — Journal + Context Policy + per-LLM-call Manifest with token-budget-aware selection and protocol-safe Tool Call / Tool message dependencies | Stable |
 | **Filters** — Input/output transformation and blocking via `Filter::Base` | Beta |
@@ -77,6 +77,12 @@ The feature tables above describe the primary APIs intended for gem consumers.
 Source declarations marked `@api private`, including most EventLoop/FSMSession and
 OffloadPool internals, are implementation details and may change without the same
 compatibility guarantees.
+
+Persistence Backend SPI methods are a deliberate exception to the ordinary
+application-facing interpretation of `@api public`: they are public extension
+contracts for backend implementers, but application business logic should usually
+interact with Agents/Workflows instead of calling low-level repository operations.
+See [Persistence backend contract](persistence-backends.md).
 
 `Phronomy::StateStore` is no longer a public backend abstraction. Workflow
 durability is provided through `Phronomy::Persistence#workflow_states`; see the
