@@ -1,0 +1,43 @@
+module Phronomy
+  class Task[A]
+    attr_reader name: String?
+    attr_reader parent: Task[untyped]?
+
+    def status: () -> (:pending | :completed | :failed | :cancelled)
+    def done?: () -> bool
+    def alive?: () -> bool
+    def wait_result: (?timeout: Numeric?) -> A
+    def on_complete: () { (A?, Exception?) -> void } -> self
+    def map: [B] () { (A) -> B } -> Task[B]
+  end
+
+  module Concurrency
+    class CancellationToken
+      def self.timeout_after: (Numeric seconds) -> CancellationToken
+      def initialize: (?monotonic_deadline: Float?) -> void
+      def remaining_monotonic_seconds: () -> Float?
+      def on_cancel: () { () -> void } -> self
+      def cancel!: () -> self
+      def cancelled?: () -> bool
+      def raise_if_cancelled!: (?String message) -> nil
+    end
+  end
+end
+
+module Phronomy
+  class InvocationContext
+    attr_reader thread_id: String?
+    attr_reader session_id: String?
+    attr_reader user_id: String?
+    attr_reader cancellation_token: Concurrency::CancellationToken?
+    attr_reader deadline: untyped
+    attr_reader tracer_span: untyped
+    attr_reader token_budget: Integer?
+    attr_reader approval_policy: untyped
+    attr_reader redaction_policy: untyped
+    attr_reader task_id: String?
+    attr_reader parent_task_id: String?
+
+    def initialize: (?thread_id: String?, ?session_id: String?, ?user_id: String?, ?cancellation_token: Concurrency::CancellationToken?, ?deadline: untyped, ?tracer_span: untyped, ?token_budget: Integer?, ?approval_policy: untyped, ?redaction_policy: untyped, ?task_id: String?, ?parent_task_id: String?) -> void
+  end
+end

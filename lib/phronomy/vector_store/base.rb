@@ -2,24 +2,22 @@
 
 module Phronomy
   module VectorStore
-    # Abstract interface for vector stores.
+    # Public extension SPI for vector stores.
     #
-    # Implementations manage a collection of (embedding, metadata) pairs and
-    # support similarity search.
+    # Backends implement the synchronous add/search/remove/clear/size contract.
+    # Phronomy supplies async convenience methods through {AsyncBackend}; blocking
+    # backend work is offloaded through the framework-owned bounded OffloadPool.
     #
-    # Async methods (`search_async`, `add_async`, `remove_async`, `clear_async`)
-    # are provided by the {AsyncBackend} mixin which defaults to routing calls
-    # through {OffloadPool}. Backends with native async drivers may override
-    # individual async methods without touching the pool at all.
+    # @api public
     class Base
       include AsyncBackend
 
       # Add a document with its vector embedding.
       #
-      # @param id                 [String]                         unique document identifier
-      # @param embedding          [Array<Float>]                   vector embedding
-      # @param metadata           [Hash]                           arbitrary metadata (e.g. the original message object)
-      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil] optional; raises CancellationError when cancelled
+      # @param id                 [String] unique document identifier
+      # @param embedding          [Array<Float>] vector embedding
+      # @param metadata           [Hash] arbitrary metadata
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @api public
       def add(id:, embedding:, metadata: {}, cancellation_token: nil)
         cancellation_token&.raise_if_cancelled!
@@ -29,8 +27,8 @@ module Phronomy
       # Return the k most similar documents to the query embedding.
       #
       # @param query_embedding    [Array<Float>]
-      # @param k                  [Integer]                        number of results
-      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil] optional; raises CancellationError when cancelled
+      # @param k                  [Integer] number of results
+      # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @return [Array<Hash>] each element: { id:, score:, metadata: }
       # @api public
       def search(query_embedding:, k: 5, cancellation_token: nil)
@@ -47,6 +45,7 @@ module Phronomy
       end
 
       # Remove all documents.
+      # @api public
       def clear
         raise NotImplementedError, "#{self.class}#clear is not implemented"
       end

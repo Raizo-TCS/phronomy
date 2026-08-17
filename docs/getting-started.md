@@ -49,8 +49,12 @@ Install only the backend gems required by your application:
 
 ## Define a Tool and Agent
 
+Use `Phronomy::Tool::Base` as the application-facing authoring API. It is an
+exact alias of the existing `Phronomy::Agent::Context::Capability::Base`, so
+existing Tool definitions using the longer namespace remain compatible.
+
 ```ruby
-class WebSearch < Phronomy::Agent::Context::Capability::Base
+class WebSearch < Phronomy::Tool::Base
   description "Search the web"
   param :query, type: :string, desc: "Search query"
 
@@ -137,6 +141,11 @@ result = agent.invoke("Hello")
 task = agent.invoke_async("Hello")
 result = task.wait_result
 ```
+
+`Phronomy::Task` is the common caller-facing completion handle for asynchronous
+Phronomy work. Logical lifecycle progress is driven by EventLoop/FSMSession;
+synchronous work that must execute away from EventLoop is submitted to
+OffloadPool. Both paths expose completion as a `Task`.
 
 `Task#wait_result` is for an external caller. Do not block EventLoop waiting for
 a Task that can only complete through that same EventLoop.

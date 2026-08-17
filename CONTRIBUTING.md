@@ -43,14 +43,28 @@ ruby scripts/check_japanese.rb
 
 ## Public API Changes
 
-When adding, removing, or renaming a public method or class:
+When adding, removing, renaming, or changing the contract of a public API or
+extension SPI:
 
-1. Update the stability table in `README.md`.
-2. Add or update `@api private` YARD annotations for internal APIs.
-3. Regenerate the API compatibility snapshot:
+1. Update `docs/features.md` when the public feature/stability description changes.
+2. Add or update YARD `@api public` / `@api private` classification.
+3. Regenerate the API compatibility snapshot when the reflected compatibility
+   surface changes:
    ```bash
    bundle exec ruby scripts/api_snapshot.rb --write
    ```
+4. Update the corresponding hand-written `sig/**/*.rbs` signature when the
+   public type shape changes.
+5. Validate the RBS environment:
+   ```bash
+   rbs -I sig validate
+   ```
+6. Add or update a focused spec for the public API or extension contract.
+
+RBS is a typed representation of an API contract that has already been defined
+by source behavior, YARD classification, documentation, and focused tests. Do
+not make an internal method public, change runtime semantics, or invent a new
+extension guarantee merely to make an RBS signature easier to write.
 
 ### `@api` classification vs Ruby visibility
 
@@ -82,6 +96,22 @@ contract rather than by a repository-wide visibility inference rule.
 
 Do not change Ruby visibility merely to make it match an `@api` annotation.
 
+### Async completion boundary
+
+`Phronomy::Task` is the caller-facing completion handle. EventLoop/FSMSession and
+OffloadPool are execution/continuation mechanisms, not competing completion
+abstractions.
+
+Synchronous work that requires execution away from EventLoop must use an
+OffloadPool. Do not create production worker Threads in adapters, backends, or
+Tools to emulate asynchronous behavior. Logical waits between Phronomy
+lifecycles stay on EventLoop/FSMSession and settle a Task later.
+
+The framework owns Task settlement (`complete`, `fail`, and framework-driven
+cancellation). Application code should observe Tasks through `wait_result`,
+`on_complete`, `map`, and settlement state. Operation-wide cancellation of
+OffloadPool work is supplied through `CancellationToken`.
+
 ---
 
 ## Architecture Decision Records
@@ -91,7 +121,9 @@ Key design decisions are documented as ADRs in
 to the threading model, persistence/context authority, or public API shape.
 
 For Agent Context work, ADR-012 and ADR-013 define the current Journal,
-Manifest, Context Policy and persistent Knowledge model.
+Manifest, Context Policy and persistent Knowledge model. ADR-010 defines the
+EventLoop/FSMSession, Task, and OffloadPool execution boundary. ADR-015 defines
+the Tool public façade, extension-SPI boundary, and RBS ownership rules.
 
 ---
 
@@ -119,7 +151,7 @@ The authoritative subject list is `.mutant.yml`. It currently includes:
 
 - `Phronomy::WorkflowContext`
 - `Phronomy::WorkflowRunner`
-- `Phronomy::Tool::Base`
+- `Phronomy::Agent::Context::Capability::Base`
 - `Phronomy::LlmContextWindow::TokenBudget`
 - `Phronomy::Agent::ContextAssembler`
 - `Phronomy::Agent::ContextPolicies::Default`

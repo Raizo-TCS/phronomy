@@ -19,7 +19,7 @@ RSpec.describe "LLMAdapter abstraction" do
     end
 
     describe "#complete_async" do
-      it "submits the synchronous complete call to the provided OffloadPool" do
+      it "submits synchronous complete to OffloadPool and returns a Task" do
         pool = Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 10)
         concrete = Class.new(described_class) do
           def complete(_chat, message, config: {})
@@ -27,16 +27,16 @@ RSpec.describe "LLMAdapter abstraction" do
           end
         end.new
 
-        op = concrete.complete_async(double, "ping", config: {}, pool: pool)
-        expect(op).to respond_to(:blocking_wait)
-        expect(op.wait_result).to eq("response:ping")
+        task = concrete.complete_async(double, "ping", config: {}, pool: pool)
+        expect(task).to be_a(Phronomy::Task)
+        expect(task.wait_result).to eq("response:ping")
       ensure
         pool&.shutdown
       end
     end
 
     describe "#stream_async" do
-      it "submits the synchronous stream call to the provided OffloadPool" do
+      it "submits synchronous stream to OffloadPool and returns a Task" do
         pool = Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 10)
         received_chunks = []
         concrete = Class.new(described_class) do
@@ -47,10 +47,11 @@ RSpec.describe "LLMAdapter abstraction" do
           end
         end.new
 
-        op = concrete.stream_async(double, "ping", config: {}, pool: pool) do |chunk|
+        task = concrete.stream_async(double, "ping", config: {}, pool: pool) do |chunk|
           received_chunks << chunk
         end
-        expect(op.wait_result).to eq("done")
+        expect(task).to be_a(Phronomy::Task)
+        expect(task.wait_result).to eq("done")
         expect(received_chunks).to eq(%w[chunk1 chunk2])
       ensure
         pool&.shutdown
@@ -68,7 +69,7 @@ RSpec.describe "LLMAdapter abstraction" do
           end
         end.new
 
-        pending = concrete.stream_async(
+        task = concrete.stream_async(
           double,
           "ping",
           config: {cancellation_token: token},
@@ -78,7 +79,8 @@ RSpec.describe "LLMAdapter abstraction" do
           token.cancel! if chunk == "c1"
         end
 
-        expect { pending.wait_result }.to raise_error(Phronomy::CancellationError)
+        expect { task.wait_result }.to raise_error(Phronomy::CancellationError)
+        expect(task.status).to eq(:cancelled)
         expect(received).to eq(["c1"])
       ensure
         pool&.shutdown
@@ -97,6 +99,11 @@ RSpec.describe "LLMAdapter abstraction" do
         expect(chat).to receive(:ask).with("ping").and_return(response)
         expect(adapter.complete(chat, "ping")).to eq(response)
       end
+
+      it "delegates a nil continuation message to chat.complete" do
+        expect(chat).to receive(:complete).and_return(response)
+        expect(adapter.complete(chat, nil)).to eq(response)
+      end
     end
 
     describe "#stream" do
@@ -110,6 +117,17 @@ RSpec.describe "LLMAdapter abstraction" do
         expect(result).to eq(response)
         expect(chunks).to eq(["token1"])
       end
+
+      it "delegates a nil continuation message to chat.complete with the block" do
+        chunks = []
+        expect(chat).to receive(:complete) do |&block|
+          block&.call("token1")
+          response
+        end
+        result = adapter.stream(chat, nil) { |chunk| chunks << chunk }
+        expect(result).to eq(response)
+        expect(chunks).to eq(["token1"])
+      end
     end
   end
 
@@ -119,8 +137,12 @@ RSpec.describe "LLMAdapter abstraction" do
       expect(config.llm_adapter).to be_a(Phronomy::LLMAdapter::RubyLLM)
     end
 
-    it "can be replaced with a custom adapter" do
-      custom = Phronomy::LLMAdapter::Base.new
+    it "can be replaced with a custom Base implementation" do
+      custom = Class.new(Phronomy::LLMAdapter::Base) do
+        def complete(_chat, _message, config: {}) = :ok
+        def stream(_chat, _message, config: {}) = :ok
+      end.new
+
       Phronomy.configure { |config| config.llm_adapter = custom }
       expect(Phronomy.configuration.llm_adapter).to equal(custom)
     ensure
@@ -152,8 +174,8 @@ RSpec.describe "LLMAdapter abstraction" do
     let(:fake_adapter) do
       pool = Phronomy::Concurrency::OffloadPool.new(pool_size: 1, queue_size: 10)
       adapter = instance_double(Phronomy::LLMAdapter::RubyLLM)
-      pending_op = pool.submit { fake_response }
-      allow(adapter).to receive(:complete_async).and_return(pending_op)
+      task = pool.submit { fake_response }
+      allow(adapter).to receive(:complete_async).and_return(task)
       [adapter, pool]
     end
 

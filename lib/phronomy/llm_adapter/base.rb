@@ -2,56 +2,57 @@
 
 module Phronomy
   module LLMAdapter
-    # Abstract base class for LLM adapters.
+    # Beta extension SPI for LLM call adapters.
     #
-    # Subclasses must implement {#complete} and {#stream}. The adapter or the
+    # External adapters implement {#complete} and {#stream}. The adapter or the
     # underlying provider client owns transport timeout, retry, backoff, and
-    # rate-limit behavior. Phronomy supplies cooperative cancellation and
-    # isolates synchronous provider calls in {OffloadPool}.
+    # rate-limit behavior. Phronomy owns cooperative cancellation and isolates
+    # synchronous provider calls in {OffloadPool}.
     #
-    # The agent pipeline calls {#complete_async} / {#stream_async} which wrap
-    # those methods in an {OffloadPool} submission.
+    # The Agent pipeline calls the framework-owned {#complete_async} and
+    # {#stream_async} wrappers. Adapter implementers do not need to depend on
+    # EventLoop, FSMSession, OffloadPool, AgentInvocation, or ExecutionCoordinator.
+    #
+    # The current input to this SPI is the configured/materialized chat runtime
+    # object. Formalizing this SPI therefore does not imply a provider-neutral
+    # replacement for RubyLLMMaterializer.
+    #
+    # @api public
     class Base
       # Performs a blocking (non-streaming) LLM completion.
-      # Implementors must call +chat.ask(message)+ (or equivalent) and
-      # return the response object.
       #
-      # @param chat    [Object] the configured chat session object
-      # @param message [String] the user message
+      # Implementors call the configured chat/runtime client and return its
+      # response object. Transport/retry policy remains adapter-owned.
+      #
+      # @param chat    [Object] the configured/materialized chat runtime object
+      # @param message [String, nil] user message, or nil to continue without adding a new user turn
       # @param config  [Hash] invocation config (e.g. +:cancellation_token+)
       # @return [Object] LLM response object
       # @raise [NotImplementedError]
-      # @api private
+      # @api public
       def complete(chat, message, config: {})
         raise NotImplementedError, "#{self.class}#complete is not implemented"
       end
 
       # Performs a blocking streaming LLM completion.
-      # Implementors must call +chat.ask(message) { |chunk| block.call(chunk) }+
-      # (or equivalent) and return the response object.
       #
-      # @param chat    [Object] the configured chat session object
-      # @param message [String] the user message
+      # @param chat    [Object] the configured/materialized chat runtime object
+      # @param message [String, nil] user message, or nil to continue without adding a new user turn
       # @param config  [Hash] invocation config
       # @yield [chunk] streaming chunk from the LLM
       # @return [Object] LLM response object
       # @raise [NotImplementedError]
-      # @api private
+      # @api public
       def stream(chat, message, config: {}, &block)
         raise NotImplementedError, "#{self.class}#stream is not implemented"
       end
 
-      # Submits a non-streaming LLM call to {OffloadPool} and returns
-      # an {OffloadPool::PendingOperation}.
+      # Submits a non-streaming LLM call to {OffloadPool}.
       #
       # Transport timeout and retry remain the responsibility of the adapter or
       # provider client; Phronomy does not attach an additional operation timeout.
       #
-      # @param chat    [Object] configured chat session
-      # @param message [String] user message
-      # @param config  [Hash] invocation config
-      # @param pool    [OffloadPool] pool to submit to
-      # @return [OffloadPool::PendingOperation]
+      # @return [Phronomy::Task] caller-facing completion handle
       # @api private
       def complete_async(chat, message, config: {}, pool: default_pool)
         token = config[:cancellation_token]
@@ -60,18 +61,14 @@ module Phronomy
         end
       end
 
-      # Submits a streaming LLM call to {OffloadPool} and returns
-      # an {OffloadPool::PendingOperation}.
+      # Submits a streaming LLM call to {OffloadPool}.
       #
-      # The block is invoked on an OffloadPool worker thread. Agent code must
-      # pass only a lightweight internal sink that posts a value to EventLoop;
-      # Application callbacks must never be passed directly to this method.
-      #
-      # Transport timeout and retry remain the responsibility of the adapter or
-      # provider client; Phronomy does not attach an additional operation timeout.
+      # The block is invoked on an OffloadPool worker thread. Agent code must pass
+      # only a lightweight internal sink that posts a value to EventLoop;
+      # application callbacks must never be passed directly to this method.
       #
       # @yield [chunk] streaming chunk on the worker thread
-      # @return [OffloadPool::PendingOperation]
+      # @return [Phronomy::Task] caller-facing completion handle
       # @api private
       def stream_async(chat, message, config: {}, pool: default_pool, &block)
         raise ArgumentError, "stream_async requires a block" unless block

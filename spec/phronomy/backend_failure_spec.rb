@@ -103,7 +103,7 @@ RSpec.describe "Backend failure scenarios (Issue #274)" do
         ops = 4.times.map { pool.submit { sleep(0.1) } }
 
         # Wait for ops to finish
-        ops.each(&:blocking_wait)
+        ops.each(&:wait_result)
         sleep(0.05)
 
         expect(el.max_lag_seconds).to be < 0.2

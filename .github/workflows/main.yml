@@ -128,3 +128,19 @@ jobs:
       - name: Check @api public/@api private annotation coverage
         run: ruby scripts/check_api_annotations.rb
 
+  rbs:
+    runs-on: ubuntu-latest
+    name: RBS — public contract validation
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+          bundler-cache: false
+      - name: Install RBS tooling
+        run: gem install rbs --no-document
+      - name: Validate RBS signatures
+        run: rbs -I sig validate

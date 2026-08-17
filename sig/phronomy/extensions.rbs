@@ -1,0 +1,50 @@
+module Phronomy
+  module Filter
+    class Base
+      def call: (untyped value, **untyped context) -> untyped
+    end
+  end
+
+  module OutputParser
+    class Base
+      def parse: (String text) -> untyped
+      def invoke: (untyped input, ?config: Hash[untyped, untyped]) -> untyped
+    end
+  end
+
+  module Tracing
+    class Base
+      def start_span: (String name, **untyped attributes) -> untyped
+      def finish_span: (untyped span, ?output: untyped, ?usage: untyped, ?error: Exception?) -> untyped
+      def trace: [A] (String name, ?input: untyped, **untyped meta) { (untyped span) -> [A, untyped] } -> A
+    end
+  end
+
+  module VectorStore
+    class Base
+      def add: (id: String, embedding: Array[Float], ?metadata: Hash[untyped, untyped], ?cancellation_token: Concurrency::CancellationToken?) -> untyped
+      def search: (query_embedding: Array[Float], ?k: Integer, ?cancellation_token: Concurrency::CancellationToken?) -> Array[Hash[Symbol, untyped]]
+      def remove: (id: String) -> untyped
+      def clear: () -> untyped
+      def size: () -> Integer
+
+      def add_async: (id: String, embedding: Array[Float], ?metadata: Hash[untyped, untyped], ?cancellation_token: Concurrency::CancellationToken?, ?timeout: Numeric?) -> Task[untyped]
+      def search_async: (query_embedding: Array[Float], ?k: Integer, ?cancellation_token: Concurrency::CancellationToken?, ?timeout: Numeric?) -> Task[Array[Hash[Symbol, untyped]]]
+      def remove_async: (id: String, ?cancellation_token: Concurrency::CancellationToken?, ?timeout: Numeric?) -> Task[untyped]
+      def clear_async: (?cancellation_token: Concurrency::CancellationToken?, ?timeout: Numeric?) -> Task[untyped]
+    end
+
+    module Embeddings
+      class Base
+        def embed: (String text, ?Concurrency::CancellationToken? cancellation_token) -> Array[Float]
+        def embed_async: (String text, ?Concurrency::CancellationToken? cancellation_token, ?timeout: Numeric?) -> Task[Array[Float]]
+      end
+    end
+  end
+  module Testing
+    module PersistenceContract
+      SHARED_EXAMPLES: Array[String]
+    end
+  end
+
+end

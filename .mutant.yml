@@ -9,7 +9,7 @@ matcher:
   subjects:
     - Phronomy::WorkflowContext
     - Phronomy::WorkflowRunner
-    - Phronomy::Tool::Base
+    - Phronomy::Agent::Context::Capability::Base
     - Phronomy::LlmContextWindow::TokenBudget
     - Phronomy::Agent::ContextAssembler
     - Phronomy::Agent::ContextPolicies::Default

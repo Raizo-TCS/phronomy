@@ -1,0 +1,39 @@
+module Phronomy
+  module Tool
+    class Base
+      def self.tool_name: (?untyped value) -> String?
+      def self.description: (?String text) -> String?
+      def self.desc: (?String text) -> String?
+      def self.parameters: () -> Hash[untyped, untyped]
+      def self.params_schema_definition: () -> untyped
+      def self.provider_params: () -> Hash[untyped, untyped]
+      def self.param: (untyped name, ?enum: untyped, ?properties: untyped, **untyped options) -> untyped
+      def self.execution_mode: (?(:cooperative | :offloaded) value) -> (:cooperative | :offloaded)
+      def self.on_error: (?(:raise | :suppress) behavior) -> (:raise | :suppress)
+      def self.on_schema_error: (?untyped behavior) -> untyped
+      def self.requires_approval: (?untyped value) { () -> untyped } -> untyped
+                               | (?untyped value) -> untyped
+      def self.approval_facts: () { (untyped, untyped) -> untyped } -> untyped
+                             | () -> untyped
+      def self.redact_params: (*untyped names) -> Array[Symbol]
+      def self.max_result_size: (?untyped value) -> untyped
+
+      def name: () -> String
+      def params_schema: () -> untyped
+      def call: (Hash[untyped, untyped] args, ?cancellation_token: Concurrency::CancellationToken?) -> untyped
+      def call_async: (Hash[untyped, untyped] args, ?cancellation_token: Concurrency::CancellationToken?, ?config: Hash[untyped, untyped]) -> Task[untyped]
+      def requires_approval?: () -> untyped
+      def tool_origin: () -> Symbol
+      def approval_metadata: () -> Hash[untyped, untyped]
+      def execute: (**untyped args) -> untyped
+    end
+  end
+
+  module Agent
+    module Context
+      module Capability
+        class Base = ::Phronomy::Tool::Base
+      end
+    end
+  end
+end

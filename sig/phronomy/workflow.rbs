@@ -1,0 +1,30 @@
+module Phronomy
+  module WorkflowContext
+    def phase: () -> Symbol
+    def halted?: () -> bool
+    def thread_id: () -> String?
+    def merge: (Hash[Symbol, untyped] updates) -> self
+    def to_h: () -> Hash[Symbol, untyped]
+  end
+
+  class Workflow
+    def self.define: (Class context_class, ?persistence: Persistence?) { () -> void } -> Workflow
+
+    def invoke: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> untyped
+    def invoke_async: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) -> Task[untyped]
+    def stream: (untyped input, ?config: Hash[untyped, untyped], ?invocation_context: untyped) { (untyped) -> void } -> untyped
+    def resume: (state: untyped, ?input: untyped) -> untyped
+    def send_event: (state: untyped, event: Symbol, ?input: untyped) -> untyped
+    def signal: (thread_id: String, event: Symbol, ?payload: untyped) -> bool
+
+    class Builder
+      def initial: (Symbol state_name) -> untyped
+      def state: (Symbol name, ?action: untyped) -> untyped
+      def entry: (Symbol name, untyped callable) -> untyped
+      def exit: (Symbol name, untyped callable) -> untyped
+      def wait_state: (Symbol name) -> untyped
+      def transition: (from: Symbol, to: Symbol, ?guard: untyped, ?on: Symbol?, ?action: untyped) -> untyped
+      def build: () -> Workflow
+    end
+  end
+end

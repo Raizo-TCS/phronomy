@@ -41,14 +41,14 @@ RSpec.describe "EventLoop-first architecture regression guards" do
     expect(adr).to include("EventLoop")
     expect(adr).to include("FSMSession")
     expect(adr).to include("OffloadPool")
-    expect(adr).to include("Task is a completion handle")
+    expect(adr).to include("single caller-facing completion")
     expect(adr).to include("application-owned")
     expect(adr).to include("Production Fiber execution is not part of the architecture")
     expect(adr).not_to include("Runtime.instance.spawn(name:")
     expect(adr).not_to include("BlockingAdapterPool")
   end
 
-  it "documents operation cancellation and waiter-local timeout without Thread#raise" do
+  it "documents Task settlement and waiter-local timeout without Thread#raise" do
     adr = File.read(
       File.expand_path("../../docs/decisions/010-cooperative-first-concurrency.md", __dir__)
     )
@@ -58,12 +58,46 @@ RSpec.describe "EventLoop-first architecture regression guards" do
       .split("## CPU-bound work", 2)
       .first
 
-    expect(cancellation).to include("settles the caller-facing PendingOperation")
+    expect(cancellation).to include("settles the caller-facing Task")
     expect(cancellation).to include("worker may continue")
-    expect(cancellation).to include("`PendingOperation#blocking_wait(timeout:)`")
-    expect(cancellation).to include("does not settle the\nPendingOperation")
+    expect(cancellation).to include("`Task#wait_result(timeout:)`")
+    expect(cancellation).to match(/does\s+not settle the Task/)
     expect(cancellation).to include("does not use `Thread#raise`")
-    expect(cancellation).not_to include("blocking_wait(cancellation_token:")
+    expect(cancellation).not_to include("wait_result(cancellation_token:")
+  end
+
+  it "keeps OffloadPool execution state private behind Task completion" do
+    source = File.read(
+      File.expand_path("../../lib/phronomy/engine/concurrency/offload_pool.rb", __dir__)
+    )
+
+    expect(source).to include("class Operation")
+    expect(source).to include("private_constant :Operation")
+    expect(source).to include("@task = Phronomy::Task.deferred")
+    expect(source).not_to include("class PendingOperation")
+  end
+
+  it "keeps synchronous VectorStore async convenience on OffloadPool" do
+    source = File.read(
+      File.expand_path("../../lib/phronomy/vector_store/async_backend.rb", __dir__)
+    )
+
+    expect(source).to include("Phronomy::Runtime.instance.offload.submit")
+    expect(source).to include("@return [Phronomy::Task]")
+    expect(source).not_to include("PendingOperation")
+    expect(source).not_to include("Override to use a native async driver")
+  end
+
+  it "keeps LLMAdapter implementer methods separate from the private async bridge" do
+    source = File.read(
+      File.expand_path("../../lib/phronomy/llm_adapter/base.rb", __dir__)
+    )
+
+    expect(source).to match(/# @api public\n\s+def complete\(/)
+    expect(source).to match(/# @api public\n\s+def stream\(/)
+    expect(source).to match(/# @api private\n\s+def complete_async\(/)
+    expect(source).to include("pool.submit")
+    expect(source).not_to include("PendingOperation")
   end
 
   it "documents cumulative and active abandoned-worker metrics separately" do

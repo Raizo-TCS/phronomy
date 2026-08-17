@@ -14,7 +14,11 @@ module Phronomy
         parse(input.is_a?(String) ? input : input.to_s)
       end
 
-      # Implement in subclasses.
+      # Extension point implemented by custom parsers.
+      #
+      # @param text [String]
+      # @return [Object]
+      # @api public
       def parse(text)
         raise NotImplementedError, "#{self.class}#parse is not implemented"
       end

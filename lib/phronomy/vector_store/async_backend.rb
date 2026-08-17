@@ -2,43 +2,29 @@
 
 module Phronomy
   module VectorStore
-    # Mixin that defines the async interface for VectorStore backends.
+    # Framework-owned async convenience methods for VectorStore backends.
     #
-    # Mixing this module into a VectorStore class provides three choices:
+    # The backend extension contract is the synchronous interface defined by
+    # {VectorStore::Base}: add/search/remove/clear/size. These async convenience
+    # methods are inherited by backends and route that synchronous work through
+    # Phronomy's bounded {OffloadPool}. This keeps OS-thread creation, queue
+    # backpressure, submit timeout/cancellation, and completion semantics owned by
+    # the framework rather than by each backend.
     #
-    # 1. **Do nothing** — inherits default implementations from {VectorStore::Base}
-    #    that route through {OffloadPool}.
+    # A future genuine native-async backend may adapt its completion into a
+    # {Phronomy::Task} without an OffloadPool worker, but native async override is
+    # not part of the current backend SPI.
     #
-    # 2. **Override selectively** — override only the async methods where the
-    #    backend has a native async driver, while the remaining methods fall back
-    #    to the pool.
-    #
-    # 3. **Implement all natively** — override all async methods to avoid pool
-    #    allocation entirely.
-    #
-    # @example Native async search (no pool worker thread allocated)
-    #   class MyFastStore < Phronomy::VectorStore::Base
-    #     include Phronomy::VectorStore::AsyncBackend
-    #
-    #     def search_async(query_embedding:, k: 5, cancellation_token: nil, timeout: nil)
-    #       # Returns a PendingOperation backed by a native async driver.
-    #       native_async_search(query_embedding, k)
-    #     end
-    #   end
-    #
-    # @api public
+    # @api private
     module AsyncBackend
       # Async variant of {VectorStore::Base#add}.
-      #
-      # Submits the add call to {OffloadPool} by default.
-      # Override to use a native async driver.
       #
       # @param id                 [String]
       # @param embedding          [Array<Float>]
       # @param metadata           [Hash]
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil]
-      # @return [OffloadPool::PendingOperation]
+      # @return [Phronomy::Task]
       # @api public
       def add_async(id:, embedding:, metadata: {}, cancellation_token: nil, timeout: nil)
         Phronomy::Runtime.instance.offload.submit(
@@ -52,14 +38,11 @@ module Phronomy
 
       # Async variant of {VectorStore::Base#search}.
       #
-      # Submits the search call to {OffloadPool} by default.
-      # Override to use a native async driver.
-      #
       # @param query_embedding    [Array<Float>]
       # @param k                  [Integer]
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil]
-      # @return [OffloadPool::PendingOperation]
+      # @return [Phronomy::Task]
       # @api public
       def search_async(query_embedding:, k: 5, cancellation_token: nil, timeout: nil)
         Phronomy::Runtime.instance.offload.submit(
@@ -73,13 +56,10 @@ module Phronomy
 
       # Async variant of {VectorStore::Base#remove}.
       #
-      # Submits the remove call to {OffloadPool} by default.
-      # Override to use a native async driver.
-      #
       # @param id                 [String]
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil]
-      # @return [OffloadPool::PendingOperation]
+      # @return [Phronomy::Task]
       # @api public
       def remove_async(id:, cancellation_token: nil, timeout: nil)
         Phronomy::Runtime.instance.offload.submit(
@@ -93,12 +73,9 @@ module Phronomy
 
       # Async variant of {VectorStore::Base#clear}.
       #
-      # Submits the clear call to {OffloadPool} by default.
-      # Override to use a native async driver.
-      #
       # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
       # @param timeout            [Numeric, nil]
-      # @return [OffloadPool::PendingOperation]
+      # @return [Phronomy::Task]
       # @api public
       def clear_async(cancellation_token: nil, timeout: nil)
         Phronomy::Runtime.instance.offload.submit(

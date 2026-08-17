@@ -1,0 +1,36 @@
+module Phronomy
+  module Agent
+    class Base
+      def self.model: (?String name) -> String?
+      def self.instructions: (?untyped text) { (untyped) -> untyped } -> untyped
+                           | (?untyped text) -> untyped
+      def self.tools: (?Hash[Class, String?] definitions) -> untyped
+      def self.tool_aliases: () -> Hash[Class, String]
+      def self.provider: (?Symbol name) -> Symbol?
+      def self.temperature: (?Float value) -> Float?
+      def self.max_iterations: (?Integer value) -> Integer
+      def self.cache_instructions: (?bool enabled) -> bool?
+      def self.max_output_tokens: (?Integer value) -> Integer?
+      def self.context_window: (?Integer value) -> Integer?
+      def self.agent_definition: (?id: String?, ?version: Integer?) -> Hash[Symbol, untyped]
+      def self.create: (?agent_id: String, ?context: untyped, ?knowledge: Array[untyped], ?persistence: Persistence?, ?metadata: Hash[untyped, untyped]) -> instance
+      def self.load: (String agent_id, persistence: Persistence) -> instance
+      def self.live_for_execution: (String execution_id) -> instance
+
+      attr_reader agent_id: String
+      attr_reader persistence: Persistence
+
+      def invoke: (untyped input, **untyped) -> Hash[Symbol, untyped]
+      def invoke_async: (untyped input, **untyped) -> Task[Hash[Symbol, untyped]]
+      def stream: (untyped input, **untyped) { (untyped event) -> void } -> Hash[Symbol, untyped]
+      def stream_async: (untyped input, **untyped) -> Task[Hash[Symbol, untyped]]
+      def transcript: () -> Array[untyped]
+      def add_knowledge: (untyped content, ?metadata: Hash[untyped, untyped]) -> self
+      def clear_transcript!: () -> untyped
+      def clear_knowledge!: () -> untyped
+      def reset_context!: () -> untyped
+      def close!: () -> untyped
+      def purge!: () -> bool
+    end
+  end
+end

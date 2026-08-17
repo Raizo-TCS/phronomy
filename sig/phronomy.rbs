@@ -1,4 +1,52 @@
 module Phronomy
   VERSION: String
-  # See the writing guide of rbs: https://github.com/ruby/rbs#guides
+
+  class Error < StandardError
+  end
+
+  class ParseError < Error
+  end
+
+  class RecursionLimitError < Error
+  end
+
+  class ToolError < Error
+  end
+
+  class TimeoutError < Error
+  end
+
+  class ConfigurationError < Error
+  end
+
+  class TransportError < Error
+  end
+
+  class RateLimitError < TransportError
+  end
+
+  class AuthenticationError < TransportError
+  end
+
+  class ContextLengthError < Error
+  end
+
+  class CancellationError < Error
+  end
+
+  class EventLoopReentrancyError < Error
+  end
+
+  class PoolShutdownError < Error
+  end
+
+  class BackpressureError < Error
+  end
+
+  class Configuration
+    attr_accessor llm_adapter: LLMAdapter::Base
+  end
+
+  def self.configuration: () -> Configuration
+  def self.configure: () { (Configuration) -> void } -> void
 end

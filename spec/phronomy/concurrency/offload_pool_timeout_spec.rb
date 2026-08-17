@@ -19,17 +19,17 @@ RSpec.describe Phronomy::Concurrency::OffloadPool, "submit-time timeout semantic
     nil
   end
 
-  it "fires a registered on_complete callback before the worker completes" do
+  it "fires a registered Task on_complete callback before the worker completes" do
     started = Queue.new
     release = Queue.new
     events = []
 
-    op = pool.submit(timeout: 5) do
+    task = pool.submit(timeout: 5) do
       started << true
       release.pop
       :done
     end
-    op.on_complete { |value, error| events << [value, error] }
+    task.on_complete { |value, error| events << [value, error] }
 
     started.pop
     timer.advance(5)
@@ -37,9 +37,10 @@ RSpec.describe Phronomy::Concurrency::OffloadPool, "submit-time timeout semantic
     expect(events.length).to eq(1)
     expect(events[0][0]).to be_nil
     expect(events[0][1]).to be_a(Phronomy::TimeoutError)
-    expect(op).to be_done
-    expect(op).to be_timed_out
-    expect(op).to be_abandoned
+    expect(task).to be_done
+    expect(task.status).to eq(:failed)
+    expect(pool.abandoned_count).to eq(1)
+    expect(pool.abandoned_active_count).to eq(1)
 
     release << true
   end
@@ -50,12 +51,12 @@ RSpec.describe Phronomy::Concurrency::OffloadPool, "submit-time timeout semantic
     marker = Queue.new
     events = []
 
-    op = pool.submit(timeout: 5) do
+    task = pool.submit(timeout: 5) do
       started << true
       release.pop
       :done
     end
-    op.on_complete { |value, error| events << [value, error] }
+    task.on_complete { |value, error| events << [value, error] }
 
     started.pop
     timer.advance(5)
@@ -69,24 +70,24 @@ RSpec.describe Phronomy::Concurrency::OffloadPool, "submit-time timeout semantic
   end
 
   it "does not abandon when the worker completes before the submit deadline" do
-    op = pool.submit(timeout: 5) { :ok }
+    task = pool.submit(timeout: 5) { :ok }
 
-    expect(op.blocking_wait).to eq(:ok)
+    expect(task.wait_result).to eq(:ok)
 
     events = []
-    op.on_complete { |value, error| events << [value, error] }
+    task.on_complete { |value, error| events << [value, error] }
 
     expect(events).to eq([[:ok, nil]])
-    expect(op).to be_done
-    expect(op).not_to be_timed_out
-    expect(op).not_to be_abandoned
+    expect(task).to be_done
+    expect(task.status).to eq(:completed)
+    expect(pool.abandoned_count).to eq(0)
   end
 
   it "fires immediately with TimeoutError when on_complete is registered after timeout" do
     started = Queue.new
     release = Queue.new
 
-    op = pool.submit(timeout: 5) do
+    task = pool.submit(timeout: 5) do
       started << true
       release.pop
     end
@@ -94,7 +95,7 @@ RSpec.describe Phronomy::Concurrency::OffloadPool, "submit-time timeout semantic
     timer.advance(5)
 
     events = []
-    op.on_complete { |value, error| events << [value, error] }
+    task.on_complete { |value, error| events << [value, error] }
 
     expect(events.length).to eq(1)
     expect(events[0][0]).to be_nil
@@ -115,16 +116,16 @@ RSpec.describe Phronomy::Concurrency::OffloadPool, "submit-time timeout semantic
     end
     blocker_started.pop
 
-    op = pool.submit(timeout: 5) { executed = true }
+    task = pool.submit(timeout: 5) { executed = true }
     timer.advance(5)
 
     pool.submit { marker << true }
     blocker_release << true
     marker.pop
 
-    expect(op).to be_done
-    expect(op).to be_timed_out
-    expect(op).not_to be_abandoned
+    expect(task).to be_done
+    expect(task.status).to eq(:failed)
+    expect(pool.abandoned_count).to eq(0)
     expect(executed).to be(false)
   end
 
@@ -132,7 +133,7 @@ RSpec.describe Phronomy::Concurrency::OffloadPool, "submit-time timeout semantic
     started = Queue.new
     release = Queue.new
 
-    op = pool.submit(timeout: 5) do
+    task = pool.submit(timeout: 5) do
       started << true
       release.pop
     end
@@ -140,8 +141,7 @@ RSpec.describe Phronomy::Concurrency::OffloadPool, "submit-time timeout semantic
     started.pop
     timer.advance(5)
 
-    expect(op.fire_timeout!).to be(false)
-    expect(op).to be_abandoned
+    expect { task.wait_result }.to raise_error(Phronomy::TimeoutError)
     expect(pool.abandoned_count).to eq(1)
 
     release << true
@@ -158,35 +158,33 @@ RSpec.describe Phronomy::Concurrency::OffloadPool, "submit-time timeout semantic
     end
     blocker_started.pop
 
-    op = pool.submit(timeout: 5) { :unreachable }
+    task = pool.submit(timeout: 5) { :unreachable }
     pool.submit { marker << true }
 
     timer.advance(5)
     blocker_release << true
     marker.pop
 
-    expect(op).to be_timed_out
-    expect(op).not_to be_abandoned
+    expect { task.wait_result }.to raise_error(Phronomy::TimeoutError)
     expect(pool.abandoned_count).to eq(0)
   end
 
-  it "treats blocking_wait(timeout:) as a waiter-local timeout" do
+  it "treats Task#wait_result(timeout:) as a waiter-local timeout" do
     release = Queue.new
-    op = pool.submit do
+    task = pool.submit do
       release.pop
       :ok
     end
 
     expect {
-      op.blocking_wait(timeout: 0.01)
+      task.wait_result(timeout: 0.01)
     }.to raise_error(Phronomy::TimeoutError)
 
-    expect(op).not_to be_done
-    expect(op).not_to be_timed_out
-    expect(op).not_to be_abandoned
+    expect(task).not_to be_done
+    expect(pool.abandoned_count).to eq(0)
 
     release << true
-    expect(op.blocking_wait).to eq(:ok)
+    expect(task.wait_result).to eq(:ok)
   end
 
   it "does not execute a block cancelled before worker execution" do
@@ -194,18 +192,19 @@ RSpec.describe Phronomy::Concurrency::OffloadPool, "submit-time timeout semantic
     token.cancel!
     executed = false
 
-    op = pool.submit(cancellation_token: token) { executed = true }
+    task = pool.submit(cancellation_token: token) { executed = true }
 
-    expect { op.blocking_wait }.to raise_error(Phronomy::CancellationError)
+    expect { task.wait_result }.to raise_error(Phronomy::CancellationError)
+    expect(task.status).to eq(:cancelled)
     expect(executed).to be(false)
   end
 
-  it "still notifies on_complete when on_abandoned raises" do
+  it "still settles the Task when the private abandonment observer raises" do
+    operation_class = described_class.const_get(:Operation, false)
     started = Queue.new
     release = Queue.new
-    events = []
 
-    op = described_class::PendingOperation.new(
+    operation = operation_class.new(
       -> {
         started << true
         release.pop
@@ -213,16 +212,17 @@ RSpec.describe Phronomy::Concurrency::OffloadPool, "submit-time timeout semantic
       timeout: 5,
       on_abandoned: -> { raise "metrics failed" }
     )
-    op.on_complete { |value, error| events << [value, error] }
+    events = []
+    operation.task.on_complete { |value, error| events << [value, error] }
 
-    worker = Thread.new { op.execute! }
+    worker = Thread.new { operation.execute! }
     started.pop
 
-    expect { op.fire_timeout! }.not_to raise_error
+    expect { operation.fire_timeout! }.not_to raise_error
     expect(events.length).to eq(1)
     expect(events.first.last).to be_a(Phronomy::TimeoutError)
-    expect(op).to be_done
-    expect(op).to be_abandoned
+    expect(operation.task).to be_done
+    expect(operation.abandoned?).to be(true)
 
     release << true
     worker.join
@@ -242,17 +242,18 @@ RSpec.describe Phronomy::Concurrency::OffloadPool, "submit-time timeout semantic
     no_timer_pool&.shutdown(drain_timeout: 1)
   end
 
-  it "makes fail_submission! idempotent and prevents a later timeout" do
-    op = described_class::PendingOperation.new(
+  it "makes private fail_submission! idempotent and prevents a later timeout" do
+    operation_class = described_class.const_get(:Operation, false)
+    operation = operation_class.new(
       -> { :unused },
       timeout: 5
     )
     error = Phronomy::BackpressureError.new("queue full")
 
-    expect(op.fail_submission!(error)).to be(true)
-    expect(op.fail_submission!(error)).to be(false)
-    expect(op.fire_timeout!).to be(false)
-    expect(op).to be_done
-    expect(op).not_to be_timed_out
+    expect(operation.fail_submission!(error)).to be(true)
+    expect(operation.fail_submission!(error)).to be(false)
+    expect(operation.fire_timeout!).to be(false)
+    expect(operation.task).to be_done
+    expect(operation.timed_out?).to be(false)
   end
 end

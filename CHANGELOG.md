@@ -37,6 +37,31 @@ Release history for 0.14.0 and earlier is archived in
 - `Persistence#activations`; ActivationRegistry is transient Runtime state.
 - Class-level `Agent::Base.approve` / `Agent::Base.approve_async` routing APIs and their caller-supplied `persistence:` argument; approval execution now goes through the resolved live Agent instance.
 
+### Public API façade and typed contracts
+
+#### Added
+
+- `Phronomy::Tool::Base` as the application-facing Tool authoring façade. It is
+  an exact alias of `Phronomy::Agent::Context::Capability::Base`, so existing
+  Tool definitions remain compatible and share the same class identity/DSL state.
+- Initial hand-written RBS signatures for the primary application API and
+  explicit extension SPIs, with a dedicated RBS validation CI job.
+- ADR-015 defining Tool façade ownership, the LLMAdapter SPI, RBS scope, and
+  extension dependency direction.
+
+#### Changed
+
+- `Phronomy::LLMAdapter::Base#complete` and `#stream` are explicit Beta extension
+  SPI methods. Phronomy continues to own `complete_async` / `stream_async` and
+  OffloadPool integration.
+- VectorStore and Embeddings backends expose synchronous implementation contracts;
+  their framework-provided async convenience methods offload through Phronomy and
+  return `Task`.
+- `InvocationContext` construction is classified consistently with its documented
+  Beta application API.
+- OutputParser `parse` is classified as the public subclass extension point that
+  concrete parsers implement.
+
 ### OffloadPool execution model
 
 #### Changed
@@ -52,20 +77,22 @@ Release history for 0.14.0 and earlier is archived in
 - Framework-owned EventLoop-origin offload submissions use non-blocking queue
   admission so a full worker queue raises backpressure instead of blocking
   the EventLoop control thread.
-- Submit cancellation now settles the caller-facing `PendingOperation`
-  immediately. Cancellation before worker start prevents execution;
-  cancellation after worker start marks the operation abandoned while allowing
-  the synchronous worker to finish without asynchronous `Thread#raise`.
+- `OffloadPool#submit` now returns the common caller-facing `Phronomy::Task`.
+  OffloadPool queue/worker/timeout/abandonment state is held by a private
+  Operation record rather than by a second completion-handle class.
+- Submit cancellation now settles the caller-facing `Task` immediately.
+  Cancellation before worker start prevents execution; cancellation after worker
+  start marks the private Operation abandoned while allowing the synchronous
+  worker to finish without asynchronous `Thread#raise`.
 - Monotonic deadlines carried by an OffloadPool submit cancellation token are
   promoted by the Runtime timer queue, so cancellation completion does not
   require a polling Thread.
 - Independent notification callbacks now isolate subscriber failures. An
-  `StandardError` from one `CancellationToken#on_cancel`, `Task#on_complete`, or
-  `PendingOperation#on_complete` callback is logged and does not suppress later
-  subscribers.
-- `PendingOperation#blocking_wait(timeout:)` remains a waiter-local synchronous
-  timeout only. It does not settle or cancel the operation; operation-wide
-  cancellation is represented only by `OffloadPool#submit(cancellation_token:)`.
+  `StandardError` from one `CancellationToken#on_cancel` or `Task#on_complete`
+  callback is logged and does not suppress later subscribers.
+- `Task#wait_result(timeout:)` is the waiter-local synchronous timeout bridge.
+  It does not settle or cancel the Task; operation-wide cancellation is
+  represented by the CancellationToken supplied to the creating API.
 - `offload_pool_abandoned_total` is the cumulative number of operations whose
   caller-facing submit timeout or cancellation settled after worker execution
   started. `offload_pool_abandoned_active` is the current number of those
@@ -78,8 +105,11 @@ Release history for 0.14.0 and earlier is archived in
 - Tool execution modes `:blocking_io`, `:cpu_bound`, and `:external_process`.
 - `Runtime#blocking_io`, `blocking_io_pool_size`, and
   `blocking_io_queue_size`.
+- Caller-facing `OffloadPool::PendingOperation` and
+  `PendingOperation#blocking_wait`; asynchronous Phronomy APIs use `Task` as the
+  completion contract.
 - Waiter-local `cancellation_token:` from `PendingOperation#blocking_wait`.
-  The low-level synchronous bridge continues to support waiter-local `timeout:`.
+  Operation-wide cancellation remains on `OffloadPool#submit(cancellation_token:)`.
 
 
 ### EventLoop-first runtime cleanup

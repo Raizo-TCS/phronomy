@@ -3,15 +3,18 @@
 module Phronomy
   module VectorStore
     module Embeddings
-      # Abstract interface for embedding adapters.
+      # Public extension SPI for embedding adapters.
       #
-      # Concrete implementations must override {#embed} and return a vector
-      # as an +Array<Float>+.
+      # Concrete implementations override {#embed}. Phronomy owns the async
+      # bridge: {#embed_async} routes the synchronous implementation through the
+      # bounded OffloadPool and returns a {Phronomy::Task}.
+      #
+      # @api public
       class Base
         # Embed the given text and return a vector representation.
         #
-        # @param text               [String]                         the text to embed
-        # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil] optional; raises CancellationError when cancelled
+        # @param text               [String] the text to embed
+        # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
         # @return [Array<Float>] the embedding vector
         # @api public
         def embed(text, cancellation_token = nil)
@@ -19,13 +22,12 @@ module Phronomy
           raise NotImplementedError, "#{self.class}#embed is not implemented"
         end
 
-        # Submits an {#embed} call to {OffloadPool} and returns an
-        # {OffloadPool::PendingOperation}.
+        # Submits an {#embed} call to {OffloadPool}.
         #
         # @param text               [String]
         # @param cancellation_token [Phronomy::Concurrency::CancellationToken, nil]
-        # @param timeout            [Numeric, nil] seconds before the operation is abandoned
-        # @return [OffloadPool::PendingOperation]
+        # @param timeout            [Numeric, nil] operation-wide submit timeout
+        # @return [Phronomy::Task]
         # @api public
         def embed_async(text, cancellation_token = nil, timeout: nil)
           Phronomy::Runtime.instance.offload.submit(

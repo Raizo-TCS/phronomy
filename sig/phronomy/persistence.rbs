@@ -1,0 +1,70 @@
+module Phronomy
+  interface _ContentRepository
+    def put: (String bytes, canonicalization_version: untyped) -> String
+    def fetch: (String content_id) -> String
+    def exist?: (String content_id) -> bool
+  end
+
+  interface _AgentRepository
+    def create: (untyped root) -> untyped
+    def load: (String agent_id) -> untyped
+    def save: (String agent_id, expected_revision: Integer, root: untyped) -> untyped
+    def delete: (String agent_id) -> untyped
+  end
+
+  interface _JournalRepository
+    def append: (String agent_id, expected_position: Integer, records: Array[untyped]) -> Array[untyped]
+    def read: (String agent_id, ?after: Integer?, ?limit: Integer?) -> Array[untyped]
+    def head: (String agent_id) -> Integer
+    def delete: (String agent_id) -> untyped
+  end
+
+  interface _ExecutionRepository
+    def create_active: (untyped execution) -> untyped
+    def load: (String execution_id) -> untyped
+    def save: (String execution_id, expected_revision: Integer, execution: untyped) -> untyped
+    def list_active: (String agent_id) -> Array[untyped]
+    def delete: (String execution_id) -> untyped
+    def delete_for_agent: (String agent_id) -> untyped
+    def assert_idle!: (String agent_id) -> untyped
+  end
+
+  interface _WorkflowStateRepository
+    def load: (String thread_id) -> Hash[untyped, untyped]?
+    def save: (String thread_id, expected_revision: Integer?, snapshot: Hash[untyped, untyped]) -> untyped
+    def delete: (String thread_id, expected_revision: Integer) -> untyped
+  end
+
+  interface _PersistenceTransactionView
+    def contents: () -> _ContentRepository
+    def agents: () -> _AgentRepository
+    def journals: () -> _JournalRepository
+    def executions: () -> _ExecutionRepository
+    def workflow_states: () -> _WorkflowStateRepository
+    def assert_agent_watermark!: (agent_id: String, agent_revision: Integer, journal_position: Integer) -> true
+  end
+
+  class Persistence
+    class ConflictError < Phronomy::Error
+    end
+    class NotFoundError < Phronomy::Error
+    end
+    class UnsupportedBackendError < Phronomy::Error
+    end
+    class SerializationError < Phronomy::Error
+    end
+
+    REQUIRED_CAPABILITIES: Hash[Symbol, bool]
+
+    attr_reader contents: _ContentRepository
+    attr_reader agents: _AgentRepository
+    attr_reader journals: _JournalRepository
+    attr_reader executions: _ExecutionRepository
+    attr_reader workflow_states: _WorkflowStateRepository
+
+    def initialize: (contents: _ContentRepository, agents: _AgentRepository, journals: _JournalRepository, executions: _ExecutionRepository, workflow_states: _WorkflowStateRepository) -> void
+    def capabilities: () -> Hash[Symbol, bool]
+    def transaction: () { (_PersistenceTransactionView) -> untyped } -> untyped
+    def assert_agent_watermark!: (agent_id: String, agent_revision: Integer, journal_position: Integer) -> true
+  end
+end

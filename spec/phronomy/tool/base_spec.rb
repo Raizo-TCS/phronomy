@@ -1187,7 +1187,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
       end
 
       awaitable = blocking_tool_class.new.call_async({"x" => "io"})
-      expect(awaitable).to respond_to(:blocking_wait)
+      expect(awaitable).to be_a(Phronomy::Task)
       expect(awaitable.wait_result).to eq("block:io")
       expect(called).to be(true)
     end
@@ -1218,7 +1218,7 @@ RSpec.describe Phronomy::Agent::Context::Capability::Base do
     it "delegates to Phronomy::Agent::ToolExecutor (not unqualified ToolExecutor)" do
       expect(Phronomy::Agent::ToolExecutor).to receive(:call_async).and_call_original
       result = hello_tool.call_async({})
-      expect(result).to respond_to(:blocking_wait)
+      expect(result).to be_a(Phronomy::Task)
     end
   end
 

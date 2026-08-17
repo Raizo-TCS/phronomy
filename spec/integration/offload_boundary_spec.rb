@@ -264,7 +264,7 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
   # TC-008: operation_timeout — Timed-out operation is marked abandoned
   # -------------------------------------------------------------------------
   describe "TC-008: operation_timeout — timed-out operation is tracked as abandoned" do
-    it "marks the PendingOperation as abandoned after an in-flight timeout" do
+    it "fails the Task with TimeoutError and increments pool abandoned metrics after an in-flight timeout" do
       started = Queue.new
       release = Queue.new
 
@@ -279,8 +279,9 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
         op.wait_result
       }.to raise_error(Phronomy::TimeoutError)
 
-      expect(op).to be_timed_out
-      expect(op).to be_abandoned
+      expect(op).to be_done
+      expect(op.status).to eq(:failed)
+      expect(pool.abandoned_active_count + pool.abandoned_count).to be >= 1
     ensure
       release << true
     end

@@ -22,7 +22,7 @@ module Phronomy
     #
     # 1. The total number of worker OS threads is capped.
     # 2. Queue depth is bounded (backpressure when the pool is saturated).
-    # 3. Per-operation timeouts and cancellation settle the caller-facing handle.
+    # 3. Per-operation timeouts and cancellation settle the caller-facing Task.
     # 4. Operations that settle after worker execution has started are tracked as
     #    abandoned until that worker returns.
     # 5. Metrics expose active work, queue depth, cumulative abandonment,
@@ -33,40 +33,77 @@ module Phronomy
     # resource isolation may use named pools via {Runtime#pool}.
     #
     # @example Submitting synchronous work
-    #   op = runtime.offload.submit(timeout: 30) { expensive_call }
-    #   result = op.blocking_wait   # blocks the calling thread until done
+    #   task = runtime.offload.submit(timeout: 30) { expensive_call }
+    #   result = task.wait_result
     #
     # @example With cancellation
     #   token = Phronomy::Concurrency::CancellationToken.timeout_after(60)
-    #   op = pool.submit(timeout: 30, cancellation_token: token) { expensive_call }
-    #   result = op.blocking_wait
+    #   task = pool.submit(timeout: 30, cancellation_token: token) { expensive_call }
+    #   result = task.wait_result
     class OffloadPool
-      # Represents the pending result of submitted offloaded work.
-      # Returned immediately by {OffloadPool#submit}; call {#blocking_wait}
-      # to synchronously wait from a non-EventLoop caller such as a low-level test.
-      class PendingOperation
-        # @return [Boolean] true when the caller-facing result has settled
-        #   (success, failure, cancellation, or submit-time timeout)
+      # Private execution record for one submitted synchronous operation.
+      #
+      # Caller-facing completion is represented exclusively by {Phronomy::Task}.
+      # This object owns only OffloadPool-specific execution state: queue timing,
+      # worker-start linearization, submit timeout/cancellation, abandonment, and
+      # the submitted block itself.
+      #
+      # @api private
+      class Operation
+        attr_reader :task
+
         # @api private
-        def done?
-          @mutex.synchronize { @done }
+        def initialize(
+          block,
+          timeout: nil,
+          cancellation_token: nil,
+          on_abandoned: nil,
+          submitted_at: nil,
+          task_name: nil
+        )
+          @block = block
+          @timeout = timeout
+          @cancellation_token = cancellation_token
+          @on_abandoned = on_abandoned
+          @task = Phronomy::Task.deferred(name: task_name)
+          @settled = false
+          @timed_out = false
+          @cancelled = false
+          @started = false
+          @abandoned = false
+          @wait_time = nil
+          @submitted_at = submitted_at ||
+            Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          @mutex = Mutex.new
+
+          # Explicit submit cancellation is operation-wide. Deadline-only tokens are
+          # promoted to cancel! by OffloadPool#submit using the Runtime timer queue.
+          @cancellation_callback = if @cancellation_token
+            -> { fire_cancellation! }
+          end
+          @cancellation_token&.on_cancel(&@cancellation_callback)
         end
 
-        # @return [Boolean] true when the submit-time deadline settled the operation
+        # @return [Boolean] true when caller-facing settlement has been claimed
+        # @api private
+        def settled?
+          @mutex.synchronize { @settled }
+        end
+
+        # @return [Boolean] true when the submit-time deadline settled the Task
         # @api private
         def timed_out?
           @mutex.synchronize { @timed_out }
         end
 
-        # @return [Boolean] true when submit cancellation settled the operation
+        # @return [Boolean] true when submit cancellation settled the Task
         # @api private
         def cancelled?
           @mutex.synchronize { @cancelled }
         end
 
-        # @return [Boolean] true when timeout/cancellation settled the caller-facing
-        #   operation after worker execution had started. The worker is not forcibly
-        #   interrupted and its eventual result is discarded.
+        # @return [Boolean] true when timeout/cancellation settled the Task after
+        #   worker execution had started. The worker is not forcibly interrupted.
         # @api private
         def abandoned?
           @mutex.synchronize { @abandoned }
@@ -78,143 +115,28 @@ module Phronomy
           @wait_time || 0.0
         end
 
-        # Blocks the calling thread until the operation settles and returns its value.
-        #
-        # A +timeout+ passed here is local to this synchronous waiter. When it expires,
-        # {Phronomy::TimeoutError} is raised to this caller, but the operation is not
-        # settled, marked abandoned, or otherwise changed. The worker continues, and
-        # another waiter or an +on_complete+ callback may receive the eventual result
-        # unless the submit-time deadline or submit cancellation settles the operation
-        # first.
-        #
-        # Operation-wide cancellation belongs exclusively to the
-        # +cancellation_token:+ passed to {OffloadPool#submit}. PendingOperation does
-        # not define a separate waiter-local cancellation-token lifecycle.
-        #
-        # @param timeout [Numeric, nil] maximum seconds this waiter will block
-        # @return [Object]
-        # @raise [Phronomy::TimeoutError]
-        # @raise [Exception] error that settled the submitted operation
-        # @api private
-        def blocking_wait(timeout: nil)
-          deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout if timeout
-          value, error = @mutex.synchronize do
-            until @done
-              if deadline
-                remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
-                if remaining <= 0
-                  raise Phronomy::TimeoutError,
-                    "timed out waiting for offloaded operation after #{timeout}s"
-                end
-                @cond.wait(@mutex, remaining)
-              else
-                @cond.wait(@mutex)
-              end
-            end
-
-            [@value, @error]
-          end
-
-          raise error if error
-
-          value
-        end
-
-        # Unified wait interface compatible with {Phronomy::Task#wait_result}.
-        alias_method :wait_result, :blocking_wait
-
-        # Registers an independent callback to be called when the operation settles.
-        #
-        # If the operation has already settled, the callback is invoked immediately
-        # on the calling thread. Otherwise it may be invoked on a pool worker thread,
-        # on the EventLoop thread when a timer fires, or on the thread that explicitly
-        # cancels the submit cancellation token. The execution thread is not
-        # guaranteed; callbacks must be thread-safe and should complete quickly.
-        #
-        # Completion callback failures are logged and isolated. One callback cannot
-        # suppress delivery to later callbacks or change the operation's settled
-        # result.
-        #
-        # The callback receives +result+ and +error+ (one of them will be +nil+).
-        #
-        # @yield [result, error]
-        # @return [self]
-        # @api private
-        def on_complete(&callback)
-          raise ArgumentError, "on_complete requires a block" unless callback
-
-          fire_args = nil
-          @mutex.synchronize do
-            if @done
-              fire_args = [@value, @error]
-            else
-              @callbacks ||= []
-              @callbacks << callback
-            end
-          end
-          deliver_completion_callback(callback, *fire_args) if fire_args
-          self
-        end
-
-        # @api private
-        def initialize(
-          block,
-          timeout: nil,
-          cancellation_token: nil,
-          on_abandoned: nil,
-          submitted_at: nil
-        )
-          @block = block
-          @timeout = timeout
-          @cancellation_token = cancellation_token
-          @on_abandoned = on_abandoned
-          @value = nil
-          @error = nil
-          @done = false
-          @timed_out = false
-          @cancelled = false
-          @started = false
-          @abandoned = false
-          @wait_time = nil
-          @submitted_at = submitted_at ||
-            Process.clock_gettime(Process::CLOCK_MONOTONIC)
-          @mutex = Mutex.new
-          @cond = ConditionVariable.new
-
-          # Explicit submit cancellation is operation-wide. Deadline-only tokens are
-          # promoted to cancel! by OffloadPool#submit using the Runtime timer queue.
-          @cancellation_callback = if @cancellation_token
-            -> { fire_cancellation! }
-          end
-          @cancellation_token&.on_cancel(&@cancellation_callback)
-        end
-
-        # Settles the operation with a submit-time timeout.
+        # Settles the caller-facing Task with a submit-time timeout.
         #
         # The worker is not interrupted. If execution has already started, the
         # operation is marked abandoned and the worker's eventual result is discarded.
         #
-        # @return [Boolean] true when this call settled the operation, false when the
-        #   operation had already settled
+        # @return [Boolean] true when this call won settlement
         # @api private
         def fire_timeout!
-          settle_early!(timed_out: true) do
+          settle_early!(timed_out: true, cancelled: false) do
             Phronomy::TimeoutError.new(
               "offloaded operation timed out after #{@timeout}s"
             )
           end
         end
 
-        # Settles the operation because its submit cancellation token was cancelled.
+        # Settles the caller-facing Task because its submit cancellation token was
+        # cancelled. Cancellation never injects Thread#raise into the worker.
         #
-        # Cancellation is caller-facing settlement, not asynchronous worker
-        # interruption. If execution has already started, the operation is marked
-        # abandoned and the worker continues until the synchronous call returns.
-        #
-        # @return [Boolean] true when this call settled the operation
+        # @return [Boolean] true when this call won settlement
         # @api private
         def fire_cancellation!
-          settle_early!(cancelled: true) do |started|
+          settle_early!(timed_out: false, cancelled: true) do |started|
             message = if started
               "offloaded operation cancelled during execution"
             else
@@ -224,27 +146,22 @@ module Phronomy
           end
         end
 
-        # Marks an operation that could not be admitted to the pool as settled, so a
-        # previously armed submit-time timer becomes a harmless no-op.
+        # Marks an operation that could not be admitted to the pool as settled so
+        # previously armed timers become harmless no-ops.
         #
         # @param error [Exception, nil]
-        # @return [Boolean] true when this call changed the state
+        # @return [Boolean] true when this call won settlement
         # @api private
         def fail_submission!(error = nil)
-          callbacks = nil
-          changed = @mutex.synchronize do
-            next false if @done
+          changed = claim_terminal!
+          return false unless changed
 
-            @done = true
-            @error = error if error
-            @cond.broadcast
-            callbacks = @callbacks
-            @callbacks = nil
-            true
+          detach_submit_cancellation
+          if error
+            @task.fail(error)
+          else
+            @task.complete(nil)
           end
-
-          detach_submit_cancellation if changed
-          deliver_completion_callbacks(callbacks, nil, error) if changed
           changed
         end
 
@@ -261,7 +178,7 @@ module Phronomy
           end
 
           should_run = @mutex.synchronize do
-            if @done
+            if @settled
               false
             else
               # Linearization point: after this assignment, a concurrent timeout or
@@ -281,7 +198,7 @@ module Phronomy
             complete_with_value!(@block.call)
           rescue Exception => e # rubocop:disable Lint/RescueException
             # Rescue all Exception subclasses so non-StandardError raises still
-            # settle the operation and unblock waiters.
+            # settle the Task and unblock waiters.
             complete_with_error!(e)
             raise if e.is_a?(SignalException) || e.is_a?(SystemExit)
           end
@@ -289,36 +206,39 @@ module Phronomy
 
         private
 
-        def settle_early!(timed_out: false, cancelled: false)
-          callbacks = nil
+        def settle_early!(timed_out:, cancelled:)
           abandoned_now = false
           error = nil
-
           changed = @mutex.synchronize do
-            next false if @done
+            next false if @settled
 
-            # The error and @started classification are decided under the same lock
-            # as settlement. This is the cancellation/worker-start linearization
-            # point: cancellation that wins here prevents execution; worker start
-            # that wins first produces an abandoned in-flight operation.
             error = yield(@started)
-            @done = true
+            @settled = true
             @timed_out = timed_out
             @cancelled = cancelled
-            @error = error
             @abandoned = @started
             abandoned_now = @abandoned
-            @cond.broadcast
-            callbacks = @callbacks
-            @callbacks = nil
             true
           end
           return false unless changed
 
           detach_submit_cancellation
           notify_abandoned if abandoned_now
-          deliver_completion_callbacks(callbacks, nil, error)
+          if cancelled
+            @task.cancel!(error)
+          else
+            @task.fail(error)
+          end
           true
+        end
+
+        def claim_terminal!
+          @mutex.synchronize do
+            next false if @settled
+
+            @settled = true
+            true
+          end
         end
 
         def notify_abandoned
@@ -330,52 +250,21 @@ module Phronomy
         end
 
         def complete_with_value!(value)
-          callbacks = nil
-          changed = @mutex.synchronize do
-            next false if @done
+          changed = claim_terminal!
+          return false unless changed
 
-            @value = value
-            @done = true
-            @cond.broadcast
-            callbacks = @callbacks
-            @callbacks = nil
-            true
-          end
-          detach_submit_cancellation if changed
-          deliver_completion_callbacks(callbacks, value, nil) if changed
-          changed
+          detach_submit_cancellation
+          @task.complete(value)
+          true
         end
 
         def complete_with_error!(error)
-          callbacks = nil
-          changed = @mutex.synchronize do
-            next false if @done
+          changed = claim_terminal!
+          return false unless changed
 
-            @error = error
-            @done = true
-            @cond.broadcast
-            callbacks = @callbacks
-            @callbacks = nil
-            true
-          end
-          detach_submit_cancellation if changed
-          deliver_completion_callbacks(callbacks, nil, error) if changed
-          changed
-        end
-
-        def deliver_completion_callbacks(callbacks, value, error)
-          callbacks&.each do |callback|
-            deliver_completion_callback(callback, value, error)
-          end
-        end
-
-        def deliver_completion_callback(callback, value, error)
-          callback.call(value, error)
-        rescue => callback_error
-          Phronomy.configuration.logger&.error do
-            "[OffloadPool::PendingOperation] on_complete callback raised " \
-              "#{callback_error.class}: #{callback_error.message}"
-          end
+          detach_submit_cancellation
+          @task.fail(error)
+          true
         end
 
         def detach_submit_cancellation
@@ -388,6 +277,7 @@ module Phronomy
           @cancellation_callback = nil
         end
       end
+      private_constant :Operation
 
       # @param pool_size  [Integer] maximum number of worker threads
       # @param queue_size [Integer] maximum pending operations waiting for a worker
@@ -422,24 +312,25 @@ module Phronomy
       end
 
       # Submits synchronous off-EventLoop work to the pool.
-      # Returns a {PendingOperation} immediately after queue admission; the block runs
-      # on a worker thread. Do not submit logical waits (for example waiting for a
-      # child Agent Task) merely to make them asynchronous; those belong to
+      #
+      # Returns a {Phronomy::Task} immediately after queue admission; the block
+      # runs on a worker thread. Do not submit logical waits (for example waiting
+      # for a child Agent Task) merely to make them asynchronous; those belong to
       # FSMSession/EventLoop completion events.
       #
-      # A submit-time +timeout+ is an operation-wide deadline measured from the start
-      # of this method, including queue wait. The timer settles the PendingOperation
-      # and notifies +on_complete+ without forcibly interrupting a running worker.
-      # If the deadline fires before worker execution starts, the block is skipped.
-      # If it fires after execution starts, the operation is marked abandoned and the
-      # eventual worker result is discarded.
+      # A submit-time +timeout+ is an operation-wide deadline measured from the
+      # start of this method, including queue wait. The timer settles the Task and
+      # notifies +on_complete+ without forcibly interrupting a running worker. If
+      # the deadline fires before worker execution starts, the block is skipped.
+      # If it fires after execution starts, the private Operation is marked
+      # abandoned and the eventual worker result is discarded.
       #
-      # The submit +cancellation_token+ is also operation-wide. Explicit cancellation
-      # settles the PendingOperation immediately. A token with a monotonic deadline is
-      # attached to the Runtime timer queue so deadline expiry becomes explicit
-      # cancellation without adding a polling Thread. Cancellation before execution
-      # skips the block; cancellation after execution starts abandons only the
-      # caller-facing result and never uses Thread#raise.
+      # The submit +cancellation_token+ is also operation-wide. Explicit
+      # cancellation settles the Task immediately. A token with a monotonic
+      # deadline is attached to the Runtime timer queue so deadline expiry becomes
+      # explicit cancellation without adding a polling Thread. Cancellation before
+      # execution skips the block; cancellation after execution starts abandons
+      # only the caller-facing result and never uses Thread#raise.
       #
       # Synchronous queue admission may delay return from this method when
       # +on_full: :wait+ is used. EventLoop-owned framework paths therefore submit
@@ -450,7 +341,7 @@ module Phronomy
       # @param on_full [Symbol] +:wait+, +:raise+, or +:timeout+
       # @param full_timeout [Numeric, nil] queue-admission timeout for +on_full: :timeout+
       # @yield block containing synchronous work
-      # @return [PendingOperation]
+      # @return [Phronomy::Task]
       # @raise [Phronomy::ConfigurationError] when a timer is required but no
       #   timer queue provider is configured
       # @raise [Phronomy::PoolShutdownError] when the pool has been shut down
@@ -482,19 +373,21 @@ module Phronomy
             "timer_queue is required when submit timeout or cancellation deadline is specified"
         end
 
-        op = PendingOperation.new(
+        operation = Operation.new(
           block,
           timeout: timeout,
           cancellation_token: cancellation_token,
           submitted_at: submitted_at,
+          task_name: offload_task_name,
           on_abandoned: method(:record_abandoned)
         )
+        task = operation.task
 
         # on_cancel only reacts to explicit cancel!, whereas cancelled? also covers a
         # monotonic deadline. Promote an already-expired deadline immediately.
         if already_cancelled
           cancellation_token.cancel!
-          return op
+          return task
         end
 
         begin
@@ -502,13 +395,13 @@ module Phronomy
             elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - submitted_at
             remaining = timeout.to_f - elapsed
             if remaining <= 0
-              op.fire_timeout!
-              return op
+              operation.fire_timeout!
+              return task
             end
 
             # Arm before queue admission so the deadline includes time spent waiting
             # for a queue slot.
-            timer_queue.schedule(seconds: remaining) { op.fire_timeout! }
+            timer_queue.schedule(seconds: remaining) { operation.fire_timeout! }
           end
 
           if cancellation_remaining
@@ -516,19 +409,19 @@ module Phronomy
             remaining = cancellation_token.remaining_monotonic_seconds
             if remaining <= 0
               cancellation_token.cancel!
-              return op
+              return task
             end
             timer_queue.schedule(seconds: remaining) { cancellation_token.cancel! }
           end
 
           # Cancellation/timeout can race with timer registration. Do not enqueue
           # already-settled work when the race is observable here.
-          return op if op.done?
+          return task if operation.settled?
 
           case on_full
           when :raise
             begin
-              @queue.push(op, true)
+              @queue.push(operation, true)
             rescue ThreadError
               raise Phronomy::BackpressureError,
                 "OffloadPool queue is full (depth: #{@queue_size})"
@@ -538,9 +431,9 @@ module Phronomy
               (Process.clock_gettime(Process::CLOCK_MONOTONIC) + full_timeout) :
               nil
             loop do
-              return op if op.done?
+              return task if operation.settled?
 
-              @queue.push(op, true)
+              @queue.push(operation, true)
               break
             rescue ThreadError
               if deadline &&
@@ -551,18 +444,18 @@ module Phronomy
               sleep(0.005)
             end
           else # :wait (default)
-            @queue.push(op)
+            @queue.push(operation)
           end
         rescue ClosedQueueError => e
           # Shutdown raced with this submit — preserve the existing public error.
-          op.fail_submission!(e)
+          operation.fail_submission!(e)
           raise Phronomy::PoolShutdownError, "pool has been shut down"
         rescue => e
-          op.fail_submission!(e)
+          operation.fail_submission!(e)
           raise
         end
 
-        op
+        task
       end
 
       # Gracefully drains the pool and terminates all worker threads.
@@ -635,20 +528,24 @@ module Phronomy
       SENTINEL = :shutdown
       private_constant :SENTINEL
 
+      def offload_task_name
+        @name ? "offload-#{@name}" : "offload"
+      end
+
       def spawn_worker(index = nil)
         label = ["phronomy", "offload-pool", @name, index].compact.join("-")
         Thread.new do
           Thread.current.name = label
           loop do
-            op = begin
+            operation = begin
               @queue.pop
             rescue ClosedQueueError
               break
             end
             # nil is returned by a closed, empty Queue on some Ruby versions
-            break if op.nil? || op == SENTINEL
+            break if operation.nil? || operation == SENTINEL
 
-            run_operation(op)
+            run_operation(operation)
           end
         end
       end
@@ -663,18 +560,18 @@ module Phronomy
         end
       end
 
-      def run_operation(op)
-        operation_id = op.object_id
+      def run_operation(operation)
+        operation_id = operation.object_id
         @mutex.synchronize do
           @active_count += 1
           @running_operation_ids[operation_id] = true
         end
 
         begin
-          op.execute!
+          operation.execute!
         ensure
-          abandoned = op.abandoned?
-          wait_ns = (op.wait_time * 1_000_000_000).to_i
+          abandoned = operation.abandoned?
+          wait_ns = (operation.wait_time * 1_000_000_000).to_i
 
           @mutex.synchronize do
             @active_count -= 1

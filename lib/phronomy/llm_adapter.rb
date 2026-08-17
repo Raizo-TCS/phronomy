@@ -1,20 +1,23 @@
 # frozen_string_literal: true
 
 module Phronomy
-  # Namespace for LLM adapter implementations.
+  # Namespace for LLM call adapters.
   #
-  # An LLMAdapter decouples Phronomy's agent pipeline from direct
-  # dependency on the RubyLLM blocking client. All LLM calls in
-  # {Agent::Base} are routed through the adapter so that:
+  # The public extension boundary is {LLMAdapter::Base#complete} and
+  # {LLMAdapter::Base#stream}. Those methods receive Phronomy's currently
+  # materialized chat/runtime object and perform the provider call. Phronomy owns
+  # the async/offload bridge around that synchronous contract.
   #
-  # - Synchronous provider work can be submitted to {OffloadPool} for bounded
-  #   off-EventLoop execution.
-  # - Alternative LLM clients can be swapped in without changing agent code.
+  # This SPI does not by itself make the complete input-materialization pipeline
+  # provider-neutral: the current Agent pipeline still materializes the canonical
+  # LLM input through RubyLLM-specific runtime objects before invoking the adapter.
   #
   # @example Configuring a custom adapter
   #   Phronomy.configure do |c|
   #     c.llm_adapter = MyCustomAdapter.new
   #   end
+  #
+  # @api public
   module LLMAdapter
   end
 end

@@ -18,10 +18,10 @@ tracking `main` directly.
 - **Agent** — stateful, persistence-backed LLM agent with canonical execution history.
 - **Persistence** — unified durable backend for Agent state and Workflow `workflow_states`.
 - **Workflow** — state-machine-driven application workflow with explicit events and wait states.
-- **Tool / Capability** — callable application capability exposed to an Agent.
+- **Tool / Capability** — callable application capability exposed to an Agent; application-defined Tools subclass `Phronomy::Tool::Base`.
 - **EventLoop + FSMSession** — the framework control plane for logical lifecycle coordination.
 - **OffloadPool** — bounded operating-system-thread execution boundary for synchronous work that must not run on EventLoop.
-- **Task** — thread-free completion handle for asynchronous Phronomy lifecycles.
+- **Task** — the common thread-free completion handle returned by Phronomy asynchronous APIs, including OffloadPool-backed work.
 - **Journal / Context Policy / Manifest** — canonical history plus per-LLM-call context selection.
 
 See [Features and Application Programming Interface (API) stability](docs/features.md) for the full feature matrix.
@@ -57,7 +57,7 @@ dependencies, stateful Agent setup, streaming, and Workflow examples.
 ## Quick start
 
 ```ruby runnable
-class WebSearch < Phronomy::Agent::Context::Capability::Base
+class WebSearch < Phronomy::Tool::Base
   description "Search the web"
   param :query, type: :string, desc: "Search query"
 
@@ -78,6 +78,10 @@ result = ResearchAgent.new.invoke("What happened in AI research this week?")
 puts result[:output]
 ```
 
+`Phronomy::Tool::Base` is the public authoring name for the existing Tool base
+class. The legacy `Phronomy::Agent::Context::Capability::Base` constant remains
+valid for compatibility.
+
 For non-blocking top-level use, call `invoke_async` and keep the returned
 `Phronomy::Task`. Inside Phronomy lifecycle callbacks, do not block waiting for
 another Task; continue through explicit events instead.
@@ -89,7 +93,7 @@ result = task.wait_result   # top-level/external caller only
 
 ## Runtime model
 
-Phronomy uses one explicit lifecycle model:
+Phronomy uses one completion model with two execution mechanisms:
 
 ```text
 Runtime
@@ -100,13 +104,18 @@ Runtime
 │     ├─ ToolInvocation
 │     └─ MultiAgent fan-out
 ├─ OffloadPool
+│  └─ synchronous off-EventLoop work
 └─ EventLoop-driven timers
 
-Task = completion handle
+EventLoop / FSMSession ─┐
+                       ├─> Task = completion handle
+OffloadPool ────────────┘
 ```
 
 Logical waiting remains in EventLoop/FSMSession state. Synchronous work that
-would block EventLoop uses the bounded OffloadPool. See
+would block EventLoop uses the bounded OffloadPool. OffloadPool-specific queue,
+worker, timeout, and abandonment state remains private runtime machinery; callers
+observe completion through `Phronomy::Task`. See
 [Runtime and concurrency](docs/runtime-and-concurrency.md) for the detailed
 contracts, timeout/cancellation semantics, metrics, and callback rules.
 
