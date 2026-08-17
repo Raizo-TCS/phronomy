@@ -142,6 +142,19 @@ task = agent.invoke_async("Hello")
 result = task.wait_result
 ```
 
+Both `invoke` and `invoke_async` can receive public Agent events through either
+an `on_event:` listener or a block. A block is convenient when the listener is
+local to the call:
+
+```ruby
+task = agent.invoke_async("Hello") do |event|
+  puts event.payload[:output] if event.type == :done
+end
+```
+
+Use `on_event:` when the listener already exists as a callable. Do not provide
+both `on_event:` and a block to the same invocation.
+
 `Phronomy::Task` is the common caller-facing completion handle for asynchronous
 Phronomy work. Logical lifecycle progress is driven by EventLoop/FSMSession;
 synchronous work that must execute away from EventLoop is submitted to
@@ -159,13 +172,12 @@ end
 ```
 
 ```ruby
-task = agent.stream_async(
-  "Explain the design",
-  on_event: ->(event) { puts event.payload if event.type == :token }
-)
+task = agent.stream_async("Explain the design") do |event|
+  puts event.payload if event.type == :token
+end
 ```
 
-Streaming callbacks execute on EventLoop and therefore should return quickly.
+Agent event callbacks execute on EventLoop and therefore should return quickly.
 
 ## Human-in-the-loop approval
 
@@ -283,18 +295,15 @@ workflow = Phronomy::Workflow.define(AnswerContext) do
   entry :asking, ->(ctx) {
     thread_id = ctx.thread_id
 
-    my_agent.invoke_async(
-      ctx.question,
-      on_event: ->(event) {
-        next unless event.type == :done
+    my_agent.invoke_async(ctx.question) do |event|
+      next unless event.type == :done
 
-        workflow.signal(
-          thread_id: thread_id,
-          event: :answer_ready,
-          payload: {answer: event.payload[:output]}
-        )
-      }
-    )
+      workflow.signal(
+        thread_id: thread_id,
+        event: :answer_ready,
+        payload: {answer: event.payload[:output]}
+      )
+    end
 
     ctx
   }
