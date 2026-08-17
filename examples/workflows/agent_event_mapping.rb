@@ -42,36 +42,33 @@ workflow = Phronomy::Workflow.define(GenerationContext) do
     request_id = context.generation_request_id
 
     # The Agent Task is intentionally not returned from the entry action.
-    # on_event is the application-level integration channel.
-    agent.invoke_async(
-      context.prompt,
-      on_event: ->(agent_event) {
-        workflow_event =
-          case agent_event.type
-          when :done
-            :generation_completed
-          when :error, :timeout, :cancelled, :approval_required
-            :generation_failed
-          end
-        next unless workflow_event
+    # The block is the application-level integration channel.
+    agent.invoke_async(context.prompt) do |agent_event|
+      workflow_event =
+        case agent_event.type
+        when :done
+          :generation_completed
+        when :error, :timeout, :cancelled, :approval_required
+          :generation_failed
+        end
+      next unless workflow_event
 
-        workflow.signal(
-          thread_id: context.thread_id,
-          event: workflow_event,
-          payload: {
-            generation_request_id: request_id,
-            agent_result: (
-              agent_event.payload if agent_event.type == :done
-            ),
-            error:
-              agent_event.payload[:error] ||
-              Phronomy::Error.new(
-                "Agent requested Tool approval"
-              )
-          }
-        )
-      }
-    )
+      workflow.signal(
+        thread_id: context.thread_id,
+        event: workflow_event,
+        payload: {
+          generation_request_id: request_id,
+          agent_result: (
+            agent_event.payload if agent_event.type == :done
+          ),
+          error:
+            agent_event.payload[:error] ||
+            Phronomy::Error.new(
+              "Agent requested Tool approval"
+            )
+        }
+      )
+    end
 
     context
   }

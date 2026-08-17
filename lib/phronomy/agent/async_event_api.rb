@@ -5,7 +5,15 @@ module Phronomy
     # Public Agent execution API. Agent instances are always stateful and all
     # operations are coordinated through Phronomy::Persistence.
     module AsyncEventApi
-      def invoke(input, thread_id: nil, config: {}, invocation_context: nil, on_event: nil)
+      def invoke(
+        input,
+        thread_id: nil,
+        config: {},
+        invocation_context: nil,
+        on_event: nil,
+        &block
+      )
+        listener = resolve_event_listener(on_event, block)
         if invocation_context
           thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
         end
@@ -15,7 +23,7 @@ module Phronomy
             input,
             thread_id: thread_id,
             config: config,
-            on_event: on_event
+            on_event: listener
           ).wait_result
           [result, result[:usage]]
         end
@@ -27,8 +35,10 @@ module Phronomy
         config: {},
         invocation_context: nil,
         on_tool_approval_required: nil,
-        on_event: nil
+        on_event: nil,
+        &block
       )
+        listener = resolve_event_listener(on_event, block)
         if invocation_context
           thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
         end
@@ -40,7 +50,7 @@ module Phronomy
           mode: :invoke,
           approval_policy: approval[:policy],
           approval_listener: approval[:listener],
-          on_event: on_event
+          on_event: listener
         )
       end
 

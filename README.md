@@ -91,6 +91,17 @@ task = ResearchAgent.new.invoke_async("Research Ruby AI frameworks")
 result = task.wait_result   # top-level/external caller only
 ```
 
+A block listener receives Agent lifecycle events and is equivalent to `on_event:`:
+
+```ruby
+task = ResearchAgent.new.invoke_async("Research Ruby AI frameworks") do |event|
+  puts event.type   # :done, :error, :tool_call, :tool_result, etc.
+end
+
+# on_event: keyword form is also accepted and behaves identically
+task = ResearchAgent.new.invoke_async("Research Ruby AI frameworks", on_event: listener)
+```
+
 ## Runtime model
 
 Phronomy uses one completion model with two execution mechanisms:

@@ -74,6 +74,33 @@ RSpec.describe "Agent async event contract" do
     expect(events).to eq([:done])
   end
 
+  it "accepts an event listener block for invoke_async" do
+    events = []
+    task = SymmetricAsyncEventAgent.new.invoke_async("hello") do |event|
+      events << event.type
+    end
+    result = task.wait_result
+
+    expect(result[:output]).to eq("answer")
+    expect(events).to eq([:done])
+  end
+
+  it "accepts an event listener block for invoke" do
+    events = []
+    result = SymmetricAsyncEventAgent.new.invoke("hello") do |event|
+      events << event.type
+    end
+
+    expect(result[:output]).to eq("answer")
+    expect(events).to eq([:done])
+  end
+
+  it "keeps invoke_async listener optional" do
+    result = SymmetricAsyncEventAgent.new.invoke_async("hello").wait_result
+
+    expect(result[:output]).to eq("answer")
+  end
+
   it "adds token events only for stream_async" do
     invoke_events = []
     stream_events = []
@@ -286,6 +313,19 @@ RSpec.describe "Agent async event contract" do
       on_event: ->(event) { events << event.type }
     )
     expect(events).to include(:done)
+  end
+
+  it "invoke APIs raise ArgumentError when on_event: and block are both given" do
+    [:invoke, :invoke_async].each do |method_name|
+      expect {
+        SymmetricAsyncEventAgent.new.public_send(
+          method_name,
+          "hello",
+          on_event: ->(_event) {}
+        ) do |_event|
+        end
+      }.to raise_error(ArgumentError, /on_event.*block|block.*on_event/i)
+    end
   end
 
   it "stream_async raises ArgumentError when on_event: and block are both given" do
