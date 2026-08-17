@@ -19,7 +19,9 @@ for production deployments.
 |---|---|
 | **Workflow** — Stateful, branching workflows with `wait_state` and explicit events | Stable |
 | **Agent** — Stateful ReAct-style agents with stable `agent_id`, persistence-backed execution state, canonical history, guardrails, and conversation context | Stable |
+| **Tool authoring façade** — `Phronomy::Tool::Base` is the public authoring name for the existing Capability base class; the legacy namespace remains compatible | Beta |
 | **Unified Persistence** — One durable backend abstraction for Agent state and Workflow `workflow_states`; live Agent/Workflow state remains owned by the active instance/session between durable commits; custom backends implement the documented Backend SPI and repository/transaction semantics | Beta |
+| **LLMAdapter SPI** — `Phronomy::LLMAdapter::Base#complete` / `#stream` define the Beta call-adapter extension boundary; Phronomy owns async/offload wrapping | Beta |
 | **Before-Large-Language-Model (LLM) Input Hook** — Three-tier per-call LLM input customization via `before_llm_input` and `LLMInputPatch` | Stable |
 | **Context Management** — Journal + Context Policy + per-LLM-call Manifest with token-budget-aware selection and protocol-safe Tool Call / Tool message dependencies | Stable |
 | **Filters** — Input/output transformation and blocking via `Filter::Base` | Beta |
@@ -35,7 +37,8 @@ for production deployments.
 |---|---|
 | **Knowledge** — Journal-backed persistent Agent context registered with `knowledge:` / `add_knowledge`, selected per LLM call by Context Policy | Beta |
 | **`VectorStore#size`** — Document count for InMemory, RedisSearch, and Pgvector backends | Beta |
-| **`VectorStore::AsyncBackend`** — Pluggable async VectorStore interface with pool-backed defaults and native-async override points | Beta |
+| **VectorStore async convenience** — `add_async` / `search_async` / `remove_async` / `clear_async` offload the synchronous Backend SPI through Phronomy and return `Task`; native async override is not part of the current Backend SPI | Beta |
+| **Embedding async convenience** — `embed_async` offloads synchronous `embed` through Phronomy and returns `Task` | Beta |
 | **Model Context Protocol (MCP) Tool** — `Phronomy::Tools::Mcp` integration through the official `mcp` gem | Beta |
 | **Agent Tool** — `Phronomy::Tools::Agent.from_agent` exposes a child Agent as a Tool without occupying a worker while waiting | Beta |
 | **Vector Search Tool** — `Phronomy::Tools::VectorSearch` wraps VectorStore and Embeddings adapters | Beta |
@@ -50,6 +53,7 @@ for production deployments.
 | **Agent async events** — `invoke_async(..., on_event:)` and `stream_async(..., on_event:)`; streaming additionally emits `:token` | Beta |
 | **`stream` / `stream_async`** — Event callbacks execute on EventLoop and must return quickly | Beta |
 | **`stream_callback_error_policy`** — Terminal event callback error policy (`:report` / `:fail_task`) | Beta |
+| **Task completion contract** — `Task` is the common caller-facing completion handle for EventLoop/FSMSession lifecycles and OffloadPool work | Beta |
 | **`Task#map`** — Application-level Task result transformation and error propagation | Stable |
 | **CancellationToken** — Cooperative cancellation with explicit `cancel!`, lazy monotonic deadlines, and callback registration | Experimental |
 | **Tool `execution_mode`** — `:cooperative` for short EventLoop-safe work; `:offloaded` for synchronous work that must stay off EventLoop | Experimental |
@@ -80,18 +84,23 @@ compatibility guarantees.
 
 The YARD `@api` classification is independent from Ruby language visibility in
 both directions. `@api public` marks a compatibility contract, but the Ruby
-visibility still follows the intended calling model: ordinary APIs may be
-public, subclass extension helpers may be protected, and constructors use
-Ruby-private `initialize` behind `.new`. `@api private` means "internal/no
-compatibility promise" and does not require a Ruby `private` declaration; some
-internal methods remain Ruby-public because Phronomy components call them
-through explicit receivers.
+visibility still follows the intended calling model. `@api private` means
+"internal/no compatibility promise" and does not require a Ruby `private`
+declaration; some internal methods remain Ruby-public because Phronomy components
+call them through explicit receivers.
 
-Persistence Backend SPI methods are a deliberate exception to the ordinary
-application-facing interpretation of `@api public`: they are public extension
-contracts for backend implementers, but application business logic should usually
-interact with Agents/Workflows instead of calling low-level repository operations.
-See [Persistence backend contract](persistence-backends.md).
+`Task` is the caller-facing completion abstraction. Framework components own
+settlement (`complete` / `fail` / `cancel!`); application code observes Tasks via
+`wait_result`, `on_complete`, `map`, and state readers. Operation-wide cancellation
+is requested through the `CancellationToken` accepted by the API that created the
+Task.
+
+Persistence Backend SPI methods, LLMAdapter methods, and other documented
+extension contracts are deliberate exceptions to the ordinary
+application-facing interpretation of `@api public`: they are compatibility
+contracts for implementers. Extension implementations must not depend on Runtime
+private execution objects such as EventLoop/FSMSession/OffloadPool operation
+records.
 
 `Phronomy::StateStore` is no longer a public backend abstraction. Workflow
 durability is provided through `Phronomy::Persistence#workflow_states`; see the

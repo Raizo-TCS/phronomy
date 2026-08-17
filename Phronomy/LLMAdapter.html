@@ -90,15 +90,14 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Namespace for LLM adapter implementations.</p>
-<p>An LLMAdapter decouples Phronomy's agent pipeline from direct
-dependency on the RubyLLM blocking client. All LLM calls in
-<span class='object_link'><a href="Agent/Base.html" title="Phronomy::Agent::Base (class)">Agent::Base</a></span> are routed through the adapter so that:</p>
-<ul>
-<li>Synchronous provider work can be submitted to OffloadPool for bounded
-off-EventLoop execution.</li>
-<li>Alternative LLM clients can be swapped in without changing agent code.</li>
-</ul>
+    <p>Namespace for LLM call adapters.</p>
+<p>The public extension boundary is <span class='object_link'><a href="LLMAdapter/Base.html#complete-instance_method" title="Phronomy::LLMAdapter::Base#complete (method)">Base#complete</a></span> and
+<span class='object_link'><a href="LLMAdapter/Base.html#stream-instance_method" title="Phronomy::LLMAdapter::Base#stream (method)">Base#stream</a></span>. Those methods receive Phronomy's currently
+materialized chat/runtime object and perform the provider call. Phronomy owns
+the async/offload bridge around that synchronous contract.</p>
+<p>This SPI does not by itself make the complete input-materialization pipeline
+provider-neutral: the current Agent pipeline still materializes the canonical
+LLM input through RubyLLM-specific runtime objects before invoking the adapter.</p>
 
   </div>
 </div>
@@ -139,7 +138,7 @@ off-EventLoop execution.</li>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 16 07:56:25 2026 by
+  Generated on Mon Aug 17 05:15:14 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

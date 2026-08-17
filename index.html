@@ -77,10 +77,10 @@ tracking <code>main</code> directly.</p>
 <li><strong>Agent</strong> — stateful, persistence-backed LLM agent with canonical execution history.</li>
 <li><strong>Persistence</strong> — unified durable backend for Agent state and Workflow <code>workflow_states</code>.</li>
 <li><strong>Workflow</strong> — state-machine-driven application workflow with explicit events and wait states.</li>
-<li><strong>Tool / Capability</strong> — callable application capability exposed to an Agent.</li>
+<li><strong>Tool / Capability</strong> — callable application capability exposed to an Agent; application-defined Tools subclass <code>Phronomy::Tool::Base</code>.</li>
 <li><strong>EventLoop + FSMSession</strong> — the framework control plane for logical lifecycle coordination.</li>
 <li><strong>OffloadPool</strong> — bounded operating-system-thread execution boundary for synchronous work that must not run on EventLoop.</li>
-<li><strong>Task</strong> — thread-free completion handle for asynchronous Phronomy lifecycles.</li>
+<li><strong>Task</strong> — the common thread-free completion handle returned by Phronomy asynchronous APIs, including OffloadPool-backed work.</li>
 <li><strong>Journal / Context Policy / Manifest</strong> — canonical history plus per-LLM-call context selection.</li>
 </ul>
 <p>See <a href="docs/features.md">Features and Application Programming Interface (API) stability</a> for the full feature matrix.</p>
@@ -102,7 +102,7 @@ your application. Phronomy does not add another LLM transport retry/timeout laye
 <p>See <a href="docs/getting-started.md">Getting started</a> for installation details, optional
 dependencies, stateful Agent setup, streaming, and Workflow examples.</p>
 <h2 id="Quick_start">Quick start</h2>
-<pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>WebSearch</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Capability.html" title="Phronomy::Agent::Context::Capability (module)">Capability</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Agent/Context/Capability/Base.html" title="Phronomy::Agent::Context::Capability::Base (class)">Base</a></span></span>
+<pre class="code ruby"><code class="ruby"><span class='kw'>class</span> <span class='const'>WebSearch</span> <span class='op'>&lt;</span> <span class='const'><span class='object_link'><a href="Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tool.html" title="Phronomy::Tool (module)">Tool</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Phronomy/Tool.html#Base-constant" title="Phronomy::Tool::Base (constant)">Base</a></span></span>
   <span class='id identifier rubyid_description'>description</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Search the web</span><span class='tstring_end'>&quot;</span></span>
   <span class='id identifier rubyid_param'>param</span> <span class='symbol'>:query</span><span class='comma'>,</span> <span class='label'>type:</span> <span class='symbol'>:string</span><span class='comma'>,</span> <span class='label'>desc:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Search query</span><span class='tstring_end'>&quot;</span></span>
 
@@ -122,6 +122,9 @@ dependencies, stateful Agent setup, streaming, and Workflow examples.</p>
 <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='const'>ResearchAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='period'>.</span><span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>What happened in AI research this week?</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
 <span class='id identifier rubyid_puts'>puts</span> <span class='id identifier rubyid_result'>result</span><span class='lbracket'>[</span><span class='symbol'>:output</span><span class='rbracket'>]</span>
 </code></pre>
+<p><code>Phronomy::Tool::Base</code> is the public authoring name for the existing Tool base
+class. The legacy <code>Phronomy::Agent::Context::Capability::Base</code> constant remains
+valid for compatibility.</p>
 <p>For non-blocking top-level use, call <code>invoke_async</code> and keep the returned
 <code>Phronomy::Task</code>. Inside Phronomy lifecycle callbacks, do not block waiting for
 another Task; continue through explicit events instead.</p>
@@ -129,7 +132,7 @@ another Task; continue through explicit events instead.</p>
 <span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_task'>task</span><span class='period'>.</span><span class='id identifier rubyid_wait_result'>wait_result</span>   <span class='comment'># top-level/external caller only
 </span></code></pre>
 <h2 id="Runtime_model">Runtime model</h2>
-<p>Phronomy uses one explicit lifecycle model:</p>
+<p>Phronomy uses one completion model with two execution mechanisms:</p>
 <pre class="code text"><code class="text">Runtime
 ├─ EventLoop
 │  └─ FSMSession
@@ -138,12 +141,17 @@ another Task; continue through explicit events instead.</p>
 │     ├─ ToolInvocation
 │     └─ MultiAgent fan-out
 ├─ OffloadPool
+│  └─ synchronous off-EventLoop work
 └─ EventLoop-driven timers
 
-Task = completion handle
+EventLoop / FSMSession ─┐
+                       ├─&gt; Task = completion handle
+OffloadPool ────────────┘
 </code></pre>
 <p>Logical waiting remains in EventLoop/FSMSession state. Synchronous work that
-would block EventLoop uses the bounded OffloadPool. See
+would block EventLoop uses the bounded OffloadPool. OffloadPool-specific queue,
+worker, timeout, and abandonment state remains private runtime machinery; callers
+observe completion through <code>Phronomy::Task</code>. See
 <a href="docs/runtime-and-concurrency.md">Runtime and concurrency</a> for the detailed
 contracts, timeout/cancellation semantics, metrics, and callback rules.</p>
 <h2 id="Documentation">Documentation</h2>
@@ -185,7 +193,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Sun Aug 16 07:56:25 2026 by
+  Generated on Mon Aug 17 05:15:14 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

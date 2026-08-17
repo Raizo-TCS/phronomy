@@ -1,15 +1,14 @@
 # Runtime and concurrency
 
 Phronomy uses an **EventLoop / FSMSession first** architecture for framework
-lifecycle coordination. `FSMSession` is the framework finite-state-machine session
-used to represent explicit lifecycle state and events. A `Task` is a completion
-handle, not an execution backend. Synchronous work that must stay off EventLoop is isolated in the bounded
-`OffloadPool`.
+lifecycle coordination. `FSMSession` represents explicit lifecycle state and
+events. `Phronomy::Task` is the common caller-facing completion handle, not an
+execution backend. Synchronous work that must stay off EventLoop is isolated in
+the bounded `OffloadPool`.
 
-For the design rationale, see Architecture Decision Record (ADR)
-[ADR-010: EventLoop / FSMSession First Concurrency](decisions/010-cooperative-first-concurrency.md).
+For the design rationale, see [ADR-010](decisions/010-cooperative-first-concurrency.md).
 Durable-state ownership is defined by
-[ADR-014: Unified Persistence and Durable-State Ownership](decisions/014-unified-persistence-durable-state.md).
+[ADR-014](decisions/014-unified-persistence-durable-state.md).
 
 ## Runtime model
 
@@ -23,17 +22,21 @@ Runtime
 │     └─ MultiAgent fan-out
 ├─ process-local Agent ActivationRegistry
 ├─ OffloadPool (bounded operating-system Threads)
+│  ├─ private Operation records
 │  ├─ blocking input/output (I/O)
 │  ├─ central-processing-unit (CPU)-bound synchronous work
 │  └─ other long synchronous work
 ├─ named OffloadPools
 └─ EventLoop-driven timers
 
-Task = completion handle
+EventLoop / FSMSession ─┐
+                       ├─> Task = completion handle
+OffloadPool ────────────┘
 ```
 
-The framework does not allocate one operating-system Thread per logical Agent/Workflow/Tool
-lifecycle. Logical waits remain explicit states plus later EventLoop events.
+The framework does not allocate one operating-system Thread per logical
+Agent/Workflow/Tool lifecycle. Logical waits remain explicit states plus later
+EventLoop events.
 
 ## Live state and durable state
 
@@ -49,8 +52,8 @@ external writer that advances the durable base causes `Persistence::ConflictErro
 rather than automatic reload or merge.
 
 For Workflows, the current `WorkflowContext` and FSMSession own the active
-logical state. A durable Workflow hydrates once at invocation/resume and saves
-at the halted/terminal boundary.
+logical state. A durable Workflow hydrates once at invocation/resume and saves at
+the halted/terminal boundary.
 
 Content-addressed `Persistence#contents` values are immutable. Fetching a known
 content reference is value materialization rather than mutable state refresh.
@@ -61,55 +64,43 @@ Workflow execution keeps three identities separate:
 
 ```text
 session_id
-  application session/correlation identity, for example a Rails session
+  application session/correlation identity
 
 thread_id
   durable Workflow identity and Persistence#workflow_states key
 
 fsm_session_id
-  one Runtime FSMSession execution identity; generated again for each
-  invoke/resume operation
+  one Runtime FSMSession execution identity; generated again for each invoke/resume
 ```
 
-The existing application `session_id` is tracing/caller metadata and is not used
-for durable Workflow ownership. EventLoop registers active FSMs by
-`fsm_session_id`; durable Workflow admission is a separate owner map:
+The application `session_id` is tracing/caller metadata and is not used for
+durable Workflow ownership. EventLoop registers active FSMs by `fsm_session_id`;
+durable Workflow admission is a separate owner map:
 
 ```text
 thread_id -> owner_fsm_session_id
 ```
 
 The owner is acquired before `workflow_states.load(thread_id)` and remains held
-until the halted/terminal `workflow_states.save(...)` completes. Only the current
-owner may release the admission. `fsm_session_id` is Runtime-only metadata and is
-not stored in Workflow fields or durable snapshots.
-
-The admission map belongs to one Runtime and is process-local. It prevents two
-executions with the same durable `thread_id` from being admitted concurrently
-inside that Runtime, but it is not shared across Ruby processes, containers, or
-service replicas. Separate processes may therefore execute the same `thread_id`
-concurrently unless the application adds distributed coordination.
-
-`workflow_states` optimistic revisions detect stale terminal commits across those
-processes. They do not prevent duplicate execution from starting and cannot undo
-external side effects that both executions already performed before one save
-loses the revision race. CAS is stale/double-commit detection, not a distributed
-execution lock or duplicate-side-effect prevention mechanism.
+until the halted/terminal `workflow_states.save(...)` completes. The admission map
+is process-local. Cross-process duplicate execution requires application-level
+distributed coordination; optimistic revisions detect stale terminal commits but
+do not prevent duplicate side effects before that conflict is detected.
 
 ## Tool execution modes
 
 Phronomy exposes two execution modes for capabilities:
 
-- `:cooperative` — short EventLoop-safe work, or a specialized asynchronous Tool
-  that starts another Phronomy lifecycle and returns immediately.
+- `:cooperative` — short EventLoop-safe work, or specialized asynchronous work
+  that starts another Phronomy lifecycle and returns a Task immediately;
 - `:offloaded` — synchronous work that must not run to completion on EventLoop.
 
-Phronomy does not classify application work into framework-level I/O/CPU/process
-execution modes. That workload classification and capacity planning belong to the
-application.
+Both paths return `Phronomy::Task`. The execution mechanism differs; the
+completion abstraction does not.
 
-A CPU-heavy operation may therefore use `:offloaded`, but thread offload does not
-remove CRuby Global VM Lock contention or physical CPU contention.
+Phronomy does not classify application work into framework-level I/O/CPU/process
+execution modes. Workload classification and capacity planning belong to the
+application.
 
 ## Logical waiting versus offload
 
@@ -129,7 +120,7 @@ Correct shape:
 parent FSMSession
   → start child lifecycle
   → return immediately
-  → child settles
+  → child Task settles
   → post parent EventLoop event
 ```
 
@@ -141,22 +132,13 @@ waiting at the same time.
 `Persistence` repositories expose synchronous operations. Framework lifecycle
 code must not perform potentially blocking durable reads/writes on EventLoop.
 Agent preparation/commit and Workflow hydrate/save operations are submitted to
-`OffloadPool`; completion continues through completion callbacks or explicit
-EventLoop events.
+`OffloadPool`; completion continues through Task callbacks or explicit EventLoop
+events.
 
 A durable barrier may pause one logical lifecycle without blocking EventLoop.
-The next Agent provider call does not start until the corresponding Manifest and
-logical execution snapshot commit succeeds. A persistence failure or optimistic
-conflict fails that step rather than continuing with stale state.
-
-Approval wait is not a hydration boundary. The same live Agent instance,
-Activation, and AgentInvocation remain the owner and are resumed after approval.
-Approval itself remains an Agent-instance operation. An application that only has
-an `execution_id` first resolves the current process's owner with
-`Phronomy::Agent::Base.live_for_execution(execution_id)` or the expected concrete
-Agent class, then calls `agent.approve(...)` or `agent.approve_async(...)`.
-`live_for_execution` consults the Runtime-local ActivationRegistry and does not
-load a replacement Agent from Persistence.
+Persistence does not implement async repository variants and must not depend on
+EventLoop, FSMSession, Task settlement internals, or private OffloadPool operation
+records.
 
 ## Sync versus async application APIs
 
@@ -172,23 +154,37 @@ load a replacement Agent from Persistence.
 
 Blocking synchronous APIs reject EventLoop re-entry with
 `Phronomy::EventLoopReentrancyError` when waiting would stall the same EventLoop
-needed for progress. `live_for_execution` itself only performs a Runtime-local
-registry lookup and does not wait for Task progress.
+needed for progress.
 
 ## Task
 
 `Phronomy::Task` is thread-free. It represents one terminal result:
 
-- completed value,
-- failure,
+- completed value;
+- failure;
 - cancellation.
 
-`Task#wait_result(timeout:)` is a bridge for external synchronous callers. It is
-not the framework continuation mechanism.
+Task is the common completion abstraction for logical EventLoop/FSMSession
+lifecycles and OffloadPool-backed synchronous work.
+
+`Task#wait_result(timeout:)` is a bridge for external synchronous callers. Its
+timeout is waiter-local: it does not settle/cancel the Task or alter OffloadPool
+abandonment state.
+
+`Task#on_complete` registers an independent notification callback. Callback
+execution thread is not guaranteed. A callback may be delivered by an OffloadPool
+worker, a timer/cancellation caller, an EventLoop-related control path, or the
+thread that registers after settlement. Callbacks must be thread-safe and should
+complete quickly.
 
 `Task#map` is application-level composition. A transformation exception settles
-the mapped Task as failed. This is different from independent notification
-callbacks, described below.
+the mapped Task as failed.
+
+Framework components own Task settlement. Application code should not use
+`Task#complete`, `Task#fail`, or `Task#cancel!` as operation-control APIs. Request
+operation-wide cancellation through the `CancellationToken` accepted by the API
+that created the Task. Task settlement never propagates backwards to cancel a
+shared CancellationToken.
 
 ## OffloadPool
 
@@ -197,131 +193,98 @@ on EventLoop.
 
 Its guarantees include:
 
-- bounded worker count,
-- bounded queue depth,
-- queue backpressure,
-- operation-wide submit timeout/cancellation settlement,
-- abandoned-worker accounting,
-- runtime metrics,
+- bounded worker count;
+- bounded queue depth;
+- queue backpressure;
+- operation-wide submit timeout/cancellation settlement;
+- abandoned-worker accounting;
+- runtime metrics;
 - shutdown/drain behavior.
 
-It does not guarantee CPU/I/O fairness or CPU isolation. Applications that need
-resource isolation can create named Runtime pools.
+`OffloadPool#submit` returns a `Phronomy::Task`. OffloadPool does not expose its
+execution record as a caller-facing future/promise. Its private `Operation` owns:
+
+- the submitted block;
+- queue submission/start timing;
+- worker-start linearization;
+- submit timeout/cancellation flags;
+- abandoned state;
+- cancellation callback lifecycle;
+- metrics state needed by the pool.
+
+This separation keeps execution details private while allowing every asynchronous
+Phronomy API to expose the same Task completion contract.
 
 ### EventLoop queue admission
 
 Framework-owned EventLoop-origin submissions must not wait for a free worker
 queue slot. They use non-blocking admission (`on_full: :raise`) and route
-`BackpressureError` through the ordinary FSM/completion path.
+`BackpressureError` through the ordinary FSM/Task completion path.
 
 External management threads may choose a blocking admission policy when blocking
 the caller is acceptable.
 
-## PendingOperation and blocking_wait
-
-`OffloadPool#submit` returns a private `PendingOperation` immediately after queue
-admission.
-
-`PendingOperation#blocking_wait(timeout:)` is intentionally a **low-level
-synchronous bridge** for non-EventLoop callers such as tests and diagnostics.
-The timeout belongs only to that waiter:
-
-- it raises `TimeoutError` to that calling thread,
-- it does not settle the PendingOperation,
-- it does not cancel the submitted operation,
-- it does not mark the operation abandoned.
-
-There is no waiter-local `cancellation_token:` argument. Operation-wide
-cancellation belongs exclusively to `OffloadPool#submit(cancellation_token:)`.
-
 ## Submit timeout and cancellation
 
-Submit-time timeout and submit cancellation settle the caller-facing operation.
-They do **not** asynchronously interrupt an already-running synchronous worker.
+Submit-time timeout and submit cancellation settle the caller-facing Task. They
+do **not** asynchronously interrupt an already-running synchronous worker.
 
 ### Before worker start
 
 If timeout/cancellation wins before execution starts:
 
-- the PendingOperation settles,
-- the submitted block does not run,
-- the operation is not counted as abandoned.
+- the Task settles (`TimeoutError` failure or cancellation);
+- the submitted block does not run;
+- the private Operation is not counted as abandoned.
 
 ### After worker start
 
 If timeout/cancellation wins after execution starts:
 
-- the PendingOperation settles immediately,
-- the operation is marked abandoned,
-- the worker is allowed to continue until its synchronous call returns,
+- the Task settles immediately;
+- the private Operation is marked abandoned;
+- the worker continues until its synchronous call returns;
 - the eventual worker result is discarded.
 
 Phronomy does not use `Thread#raise` to inject an exception into the worker.
 Application/library code that needs hard or transport-level deadlines should use
-its native timeout or, in the future, an appropriate process-isolation mechanism.
+its native timeout or an appropriate future process-isolation mechanism.
 
 ### CancellationToken deadlines
 
-`CancellationToken.timeout_after(seconds)` uses a monotonic deadline.
-`cancelled?` becomes true after that deadline, but the token itself does not own a
-Thread.
+`CancellationToken.timeout_after(seconds)` uses a monotonic deadline. Components
+requiring callback delivery promote the deadline to explicit `cancel!` through
+the Runtime timer queue. OffloadPool does this for its submit cancellation token.
 
-Components requiring callback delivery for a monotonic deadline must promote the
-deadline to explicit `cancel!` through the Runtime timer queue. OffloadPool does
-this for its submit cancellation token.
+A CancellationToken may be shared by multiple operations. For that reason,
+settling or cancelling one Task does not cancel the token in the reverse
+direction.
 
-`CancellationScope#deadline_in` is appropriate when the application needs a
-Runtime-timer-backed cancellation scope whose `on_cancel` subscribers are fired
-on expiry.
+## Native async boundary
 
-## Independent notification callbacks
+A genuine native-async driver that does not create a Phronomy-owned OS Thread and
+does not block EventLoop need not consume an OffloadPool worker. If Phronomy
+formally exposes such an extension point, it must adapt completion to
+`Phronomy::Task` rather than exposing a provider-specific future or a private
+Runtime type.
 
-Independent notification fan-out is fault-isolated.
-
-The rule applies to:
-
-- `CancellationToken#on_cancel`,
-- `Task#on_complete`,
-- `PendingOperation#on_complete`,
-- EventLoop timer callbacks.
-
-A `StandardError` from one independent subscriber is logged and does not suppress
-later subscribers.
-
-This is deliberately different from a continuation/transform such as
-`Task#map`: a transform exception is the outcome of the derived operation and is
-therefore propagated into that derived Task.
-
-Callback execution thread is not guaranteed for low-level completion handles.
-Callbacks must therefore be thread-safe and should complete quickly. Framework
-lifecycle code normally turns completion into an explicit EventLoop event rather
-than mutating unrelated logical state from a worker thread.
+The current Persistence, VectorStore, Embeddings, and LLM call-extension
+contracts are synchronous at the external implementation boundary where
+applicable. Phronomy owns the OffloadPool wrapper for synchronous work. The
+current VectorStore async methods are framework convenience methods, not a
+native-async backend SPI.
 
 ## Abandoned-worker metrics
 
 Two metrics answer different operational questions:
 
 - `offload_pool_abandoned_total` — cumulative count of operations that became
-  abandoned after worker execution had started.
+  abandoned after worker execution had started;
 - `offload_pool_abandoned_active` — current number of abandoned operations whose
   synchronous workers still occupy pool capacity.
 
-Example:
-
-```text
-offload_pool_size             = 10
-offload_pool_active           = 10
-offload_pool_abandoned_active = 8
-offload_pool_abandoned_total  = 523
-offload_pool_queue_length     = 40
-```
-
-This means 10 workers are currently executing, 8 of them are doing work whose
-caller-facing result has already been abandoned, 523 abandonment events have
-occurred since process start, and 40 operations are queued.
-
-`Phronomy::Diagnostics.dump` exposes the same distinction for point-in-time
-troubleshooting.
+The abandonment state belongs to the private OffloadPool Operation, not to Task.
+Task reports only caller-facing settlement.
 
 ## EventLoop metrics
 
@@ -344,6 +307,6 @@ Runtime shutdown before resetting configuration.
 ## Further design records
 
 The `docs/decisions/` directory contains the historical and current Architecture
-Decision Records (ADRs). When an older ADR is superseded, use the superseding
-section/current ADR as the active design contract and keep the earlier document
-as historical rationale.
+Decision Records. When an older ADR is superseded, use the superseding
+section/current ADR as the active design contract and keep earlier documents as
+historical rationale.

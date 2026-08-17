@@ -91,6 +91,30 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li><code>Persistence#activations</code>; ActivationRegistry is transient Runtime state.</li>
 <li>Class-level <code>Agent::Base.approve</code> / <code>Agent::Base.approve_async</code> routing APIs and their caller-supplied <code>persistence:</code> argument; approval execution now goes through the resolved live Agent instance.</li>
 </ul>
+<h3 id="Public_API_fa_ade_and_typed_contracts">Public API façade and typed contracts</h3>
+<h4 id="Added">Added</h4>
+<ul>
+<li><code>Phronomy::Tool::Base</code> as the application-facing Tool authoring façade. It is
+an exact alias of <code>Phronomy::Agent::Context::Capability::Base</code>, so existing
+Tool definitions remain compatible and share the same class identity/DSL state.</li>
+<li>Initial hand-written RBS signatures for the primary application API and
+explicit extension SPIs, with a dedicated RBS validation CI job.</li>
+<li>ADR-015 defining Tool façade ownership, the LLMAdapter SPI, RBS scope, and
+extension dependency direction.</li>
+</ul>
+<h4 id="Changed">Changed</h4>
+<ul>
+<li><code>Phronomy::LLMAdapter::Base#complete</code> and <code>#stream</code> are explicit Beta extension
+SPI methods. Phronomy continues to own <code>complete_async</code> / <code>stream_async</code> and
+OffloadPool integration.</li>
+<li>VectorStore and Embeddings backends expose synchronous implementation contracts;
+their framework-provided async convenience methods offload through Phronomy and
+return <code>Task</code>.</li>
+<li><code>InvocationContext</code> construction is classified consistently with its documented
+Beta application API.</li>
+<li>OutputParser <code>parse</code> is classified as the public subclass extension point that
+concrete parsers implement.</li>
+</ul>
 <h3 id="OffloadPool_execution_model">OffloadPool execution model</h3>
 <h4 id="Changed">Changed</h4>
 <ul>
@@ -105,20 +129,22 @@ speedup for pure Ruby CPU work.</li>
 <li>Framework-owned EventLoop-origin offload submissions use non-blocking queue
 admission so a full worker queue raises backpressure instead of blocking
 the EventLoop control thread.</li>
-<li>Submit cancellation now settles the caller-facing <code>PendingOperation</code>
-immediately. Cancellation before worker start prevents execution;
-cancellation after worker start marks the operation abandoned while allowing
-the synchronous worker to finish without asynchronous <code>Thread#raise</code>.</li>
+<li><code>OffloadPool#submit</code> now returns the common caller-facing <code>Phronomy::Task</code>.
+OffloadPool queue/worker/timeout/abandonment state is held by a private
+Operation record rather than by a second completion-handle class.</li>
+<li>Submit cancellation now settles the caller-facing <code>Task</code> immediately.
+Cancellation before worker start prevents execution; cancellation after worker
+start marks the private Operation abandoned while allowing the synchronous
+worker to finish without asynchronous <code>Thread#raise</code>.</li>
 <li>Monotonic deadlines carried by an OffloadPool submit cancellation token are
 promoted by the Runtime timer queue, so cancellation completion does not
 require a polling Thread.</li>
 <li>Independent notification callbacks now isolate subscriber failures. An
-<code>StandardError</code> from one <code>CancellationToken#on_cancel</code>, <code>Task#on_complete</code>, or
-<code>PendingOperation#on_complete</code> callback is logged and does not suppress later
-subscribers.</li>
-<li><code>PendingOperation#blocking_wait(timeout:)</code> remains a waiter-local synchronous
-timeout only. It does not settle or cancel the operation; operation-wide
-cancellation is represented only by <code>OffloadPool#submit(cancellation_token:)</code>.</li>
+<code>StandardError</code> from one <code>CancellationToken#on_cancel</code> or <code>Task#on_complete</code>
+callback is logged and does not suppress later subscribers.</li>
+<li><code>Task#wait_result(timeout:)</code> is the waiter-local synchronous timeout bridge.
+It does not settle or cancel the Task; operation-wide cancellation is
+represented by the CancellationToken supplied to the creating API.</li>
 <li><code>offload_pool_abandoned_total</code> is the cumulative number of operations whose
 caller-facing submit timeout or cancellation settled after worker execution
 started. <code>offload_pool_abandoned_active</code> is the current number of those
@@ -131,8 +157,11 @@ isolation and capacity planning.</li>
 <li>Tool execution modes <code>:blocking_io</code>, <code>:cpu_bound</code>, and <code>:external_process</code>.</li>
 <li><code>Runtime#blocking_io</code>, <code>blocking_io_pool_size</code>, and
 <code>blocking_io_queue_size</code>.</li>
+<li>Caller-facing <code>OffloadPool::PendingOperation</code> and
+<code>PendingOperation#blocking_wait</code>; asynchronous Phronomy APIs use <code>Task</code> as the
+completion contract.</li>
 <li>Waiter-local <code>cancellation_token:</code> from <code>PendingOperation#blocking_wait</code>.
-The low-level synchronous bridge continues to support waiter-local <code>timeout:</code>.</li>
+Operation-wide cancellation remains on <code>OffloadPool#submit(cancellation_token:)</code>.</li>
 </ul>
 <h3 id="EventLoop_first_runtime_cleanup">EventLoop-first runtime cleanup</h3>
 <h4 id="Added">Added</h4>
@@ -471,7 +500,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Sun Aug 16 07:56:25 2026 by
+  Generated on Mon Aug 17 05:15:14 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -105,9 +105,14 @@
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
     <p>A thread-free asynchronous completion handle.</p>
-<p>Task no longer executes work. Execution belongs to EventLoop/FSMSession or
-OffloadPool. Task only represents completion, failure, cancellation,
-callbacks and a blocking wait for external callers.</p>
+<p>Task does not execute work. Execution belongs to EventLoop/FSMSession or
+OffloadPool. Task represents completion, failure, cancellation, callbacks,
+and a blocking wait for callers outside EventLoop.</p>
+<p>Framework components own Task settlement. Application code should observe a
+Task through <span class='object_link'><a href="#wait_result-instance_method" title="Phronomy::Task#wait_result (method)">#wait_result</a></span>, <span class='object_link'><a href="#on_complete-instance_method" title="Phronomy::Task#on_complete (method)">#on_complete</a></span>, <span class='object_link'><a href="#map-instance_method" title="Phronomy::Task#map (method)">#map</a></span>, and state readers rather
+than calling <span class='object_link'><a href="#complete-instance_method" title="Phronomy::Task#complete (method)">#complete</a></span>, <span class='object_link'><a href="#fail-instance_method" title="Phronomy::Task#fail (method)">#fail</a></span>, or <span class='object_link'><a href="#cancel!-instance_method" title="Phronomy::Task#cancel! (method)">#cancel!</a></span>. Operation-wide cancellation
+is supplied through the CancellationToken accepted by the API that created
+the Task.</p>
 
   </div>
 </div>
@@ -218,10 +223,10 @@ callbacks and a blocking wait for external callers.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Creates an unsettled completion handle for framework-owned execution.</p></div></span>
   
 </li>
 
@@ -253,7 +258,7 @@ callbacks and a blocking wait for external callers.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Whether the Task has not yet reached a terminal state.</p></div></span>
   
 </li>
 
@@ -272,10 +277,10 @@ callbacks and a blocking wait for external callers.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Settles this Task as cancelled.</p></div></span>
   
 </li>
 
@@ -294,10 +299,10 @@ callbacks and a blocking wait for external callers.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Settles this Task successfully.</p></div></span>
   
 </li>
 
@@ -319,7 +324,7 @@ callbacks and a blocking wait for external callers.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Whether the Task has reached a terminal state.</p></div></span>
   
 </li>
 
@@ -338,10 +343,10 @@ callbacks and a blocking wait for external callers.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Settles this Task with a failure.</p></div></span>
   
 </li>
 
@@ -362,7 +367,7 @@ callbacks and a blocking wait for external callers.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
     <span class="summary_desc"><div class='inline'><p>A new instance of Task.</p></div></span>
@@ -384,10 +389,10 @@ callbacks and a blocking wait for external callers.</p>
   
   
   
-  
+  <span class="private note title">private</span>
 
   
-    <span class="summary_desc"><div class='inline'><p>Compatibility wait that does not re-raise the task error.</p></div></span>
+    <span class="summary_desc"><div class='inline'><p>Compatibility wait that does not re-raise the Task error.</p></div></span>
   
 </li>
 
@@ -409,7 +414,7 @@ callbacks and a blocking wait for external callers.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>Creates a derived Task by transforming this Task's successful result.</p></div></span>
   
 </li>
 
@@ -417,7 +422,7 @@ callbacks and a blocking wait for external callers.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#on_complete-instance_method" title="#on_complete (instance method)">#<strong>on_complete</strong>(&amp;callback)  &#x21d2; Object </a>
+      <a href="#on_complete-instance_method" title="#on_complete (instance method)">#<strong>on_complete</strong> {|value, error| ... } &#x21d2; self </a>
     
 
     
@@ -439,7 +444,7 @@ callbacks and a blocking wait for external callers.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#status-instance_method" title="#status (instance method)">#<strong>status</strong>  &#x21d2; Object </a>
+      <a href="#status-instance_method" title="#status (instance method)">#<strong>status</strong>  &#x21d2; Symbol </a>
     
 
     
@@ -453,7 +458,7 @@ callbacks and a blocking wait for external callers.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'></div></span>
+    <span class="summary_desc"><div class='inline'><p>:pending, :completed, :failed, or :cancelled.</p></div></span>
   
 </li>
 
@@ -498,7 +503,11 @@ callbacks and a blocking wait for external callers.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns a new instance of Task.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Returns a new instance of Task.</p>
 
   </div>
 </div>
@@ -511,21 +520,21 @@ callbacks and a blocking wait for external callers.</p>
       <pre class="lines">
 
 
-20
-21
-22
-23
-24
-25
-26
-27
-28
 29
 30
-31</pre>
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 20</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 29</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>name:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>parent:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='ivar'>@name</span> <span class='op'>=</span> <span class='id identifier rubyid_name'>name</span>
@@ -575,12 +584,12 @@ callbacks and a blocking wait for external callers.</p>
       <pre class="lines">
 
 
-18
-19
-20</pre>
+26
+27
+28</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 18</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 26</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_name'>name</span>
   <span class='ivar'>@name</span>
@@ -616,12 +625,12 @@ callbacks and a blocking wait for external callers.</p>
       <pre class="lines">
 
 
-18
-19
-20</pre>
+26
+27
+28</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 18</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 26</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_parent'>parent</span>
   <span class='ivar'>@parent</span>
@@ -647,18 +656,31 @@ callbacks and a blocking wait for external callers.</p>
   
 
   
-</h3><table class="source_code">
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Creates an unsettled completion handle for framework-owned execution.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-14
-15
-16</pre>
+22
+23
+24</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 14</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 22</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_deferred'>deferred</span><span class='lparen'>(</span><span class='label'>name:</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='label'>parent:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='label'>name:</span> <span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>parent:</span> <span class='id identifier rubyid_parent'>parent</span><span class='rparen'>)</span>
@@ -685,7 +707,7 @@ callbacks and a blocking wait for external callers.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    
+    <p>Returns whether the Task has not yet reached a terminal state.</p>
 
   </div>
 </div>
@@ -701,6 +723,9 @@ callbacks and a blocking wait for external callers.</p>
       
       
       
+        &mdash;
+        <div class='inline'><p>whether the Task has not yet reached a terminal state</p></div>
+      
     </li>
   
 </ul>
@@ -711,12 +736,12 @@ callbacks and a blocking wait for external callers.</p>
       <pre class="lines">
 
 
-41
-42
-43</pre>
+56
+57
+58</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 56</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_alive?'>alive?</span>
   <span class='op'>!</span><span class='id identifier rubyid_done?'>done?</span>
@@ -735,23 +760,39 @@ callbacks and a blocking wait for external callers.</p>
   
 
   
-</h3><table class="source_code">
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Settles this Task as cancelled. Framework-owned settlement API.</p>
+<p>This method does not propagate backwards into a CancellationToken that may
+have been used to create the Task. Tokens can be shared across operations;
+operation-wide cancellation is owned by the creating API.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-125
-126
-127
-128
-129
-130
-131
-132</pre>
+167
+168
+169
+170
+171
+172
+173
+174</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 125</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 167</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_cancel!'>cancel!</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="CancellationError.html" title="Phronomy::CancellationError (class)">CancellationError</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Task cancelled</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_changed'>changed</span> <span class='op'>=</span> <span class='id identifier rubyid_settle!'>settle!</span><span class='lparen'>(</span><span class='symbol'>:cancelled</span><span class='comma'>,</span> <span class='label'>error:</span> <span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
@@ -775,18 +816,31 @@ callbacks and a blocking wait for external callers.</p>
   
 
   
-</h3><table class="source_code">
+</h3><div class="docstring">
+  <div class="discussion">
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Settles this Task successfully. Framework-owned settlement API.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-116
-117
-118</pre>
+150
+151
+152</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 116</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 150</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_complete'>complete</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_settle!'>settle!</span><span class='lparen'>(</span><span class='symbol'>:completed</span><span class='comma'>,</span> <span class='label'>value:</span> <span class='id identifier rubyid_value'>value</span><span class='rparen'>)</span>
@@ -807,7 +861,7 @@ callbacks and a blocking wait for external callers.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    
+    <p>Returns whether the Task has reached a terminal state.</p>
 
   </div>
 </div>
@@ -823,6 +877,9 @@ callbacks and a blocking wait for external callers.</p>
       
       
       
+        &mdash;
+        <div class='inline'><p>whether the Task has reached a terminal state</p></div>
+      
     </li>
   
 </ul>
@@ -833,12 +890,12 @@ callbacks and a blocking wait for external callers.</p>
       <pre class="lines">
 
 
-37
-38
-39</pre>
+50
+51
+52</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 37</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 50</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_done?'>done?</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='const'>TERMINAL_STATES</span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='ivar'>@status</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
@@ -859,7 +916,11 @@ callbacks and a blocking wait for external callers.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Settles this Task with a failure. Framework-owned settlement API.</p>
 
   </div>
 </div>
@@ -885,13 +946,13 @@ callbacks and a blocking wait for external callers.</p>
       <pre class="lines">
 
 
-120
-121
-122
-123</pre>
+156
+157
+158
+159</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 120</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 156</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_fail'>fail</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>error is required</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_error'>error</span>
@@ -913,7 +974,11 @@ callbacks and a blocking wait for external callers.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Compatibility wait that does not re-raise the task error.
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+<p>Compatibility wait that does not re-raise the Task error.
 Returns self when settled, nil on timeout.</p>
 
   </div>
@@ -927,29 +992,29 @@ Returns self when settled, nil on timeout.</p>
       <pre class="lines">
 
 
-76
-77
-78
-79
-80
-81
-82
-83
-84
-85
-86
-87
-88
-89
-90
-91
-92
-93
-94
-95</pre>
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 76</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 101</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_join'>join</span><span class='lparen'>(</span><span class='id identifier rubyid_limit'>limit</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_in_event_loop_context?'><span class='object_link'><a href="Runtime.html#in_event_loop_context%3F-class_method" title="Phronomy::Runtime.in_event_loop_context? (method)">in_event_loop_context?</a></span></span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_done?'>done?</span>
@@ -987,7 +1052,7 @@ Returns self when settled, nil on timeout.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    
+    <p>Creates a derived Task by transforming this Task's successful result.</p>
 
   </div>
 </div>
@@ -1013,27 +1078,27 @@ Returns self when settled, nil on timeout.</p>
       <pre class="lines">
 
 
-134
-135
-136
-137
-138
-139
-140
-141
-142
-143
-144
-145
-146
-147
-148
-149
-150
-151</pre>
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 134</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 178</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_map'>map</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_block'>block</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>map requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_block'>block</span>
@@ -1061,7 +1126,7 @@ Returns self when settled, nil on timeout.</p>
       <div class="method_details ">
   <h3 class="signature " id="on_complete-instance_method">
   
-    #<strong>on_complete</strong>(&amp;callback)  &#x21d2; <tt>Object</tt> 
+    #<strong>on_complete</strong> {|value, error| ... } &#x21d2; <tt>self</tt> 
   
 
   
@@ -1070,13 +1135,42 @@ Returns self when settled, nil on timeout.</p>
 </h3><div class="docstring">
   <div class="discussion">
     <p>Registers an independent completion notification.</p>
-<p>A callback failure is logged and does not suppress delivery to other
+<p>The callback execution thread is not guaranteed. It may be the caller that
+registers after settlement, an OffloadPool worker, or a framework control
+thread. Callbacks must therefore be thread-safe and should complete quickly.
+A callback failure is logged and does not suppress delivery to other
 completion callbacks or change the Task's already-settled result.</p>
 
   </div>
 </div>
 <div class="tags">
   
+<p class="tag_title">Yields:</p>
+<ul class="yield">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>value</tt>, <tt>error</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>self</tt>)</span>
+      
+      
+      
+    </li>
+  
+</ul>
 <p class="tag_title">Raises:</p>
 <ul class="raise">
   
@@ -1097,23 +1191,23 @@ completion callbacks or change the Task's already-settled result.</p>
       <pre class="lines">
 
 
-101
-102
-103
-104
-105
-106
-107
-108
-109
-110
-111
-112
-113
-114</pre>
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 101</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 133</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_on_complete'>on_complete</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id identifier rubyid_callback'>callback</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>on_complete requires a block</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id identifier rubyid_callback'>callback</span>
@@ -1137,24 +1231,49 @@ completion callbacks or change the Task's already-settled result.</p>
       <div class="method_details ">
   <h3 class="signature " id="status-instance_method">
   
-    #<strong>status</strong>  &#x21d2; <tt>Object</tt> 
+    #<strong>status</strong>  &#x21d2; <tt>Symbol</tt> 
   
 
   
 
   
-</h3><table class="source_code">
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns :pending, :completed, :failed, or :cancelled.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Symbol</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>:pending, :completed, :failed, or :cancelled</p></div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-33
-34
-35</pre>
+44
+45
+46</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 33</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 44</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_status'>status</span>
   <span class='ivar'>@mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@status</span> <span class='rbrace'>}</span>
@@ -1175,13 +1294,79 @@ completion callbacks or change the Task's already-settled result.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Blocks the calling thread until settlement. EventLoop is never allowed to
-wait for a Task; it must continue through explicit events instead.</p>
+    <p>Blocks the calling thread until settlement.</p>
+<p>EventLoop is never allowed to wait for a Task; framework continuation must
+proceed through explicit events. The optional timeout is waiter-local: it
+does not settle or cancel the Task.</p>
 
   </div>
 </div>
 <div class="tags">
+  <p class="tag_title">Parameters:</p>
+<ul class="param">
   
+    <li>
+      
+        <span class='name'>timeout</span>
+      
+      
+        <span class='type'>(<tt>Numeric</tt>, <tt>nil</tt>)</span>
+      
+      
+        <em class="default">(defaults to: <tt>nil</tt>)</em>
+      
+      
+        &mdash;
+        <div class='inline'><p>maximum seconds this caller will block</p></div>
+      
+    </li>
+  
+</ul>
+
+<p class="tag_title">Returns:</p>
+<ul class="return">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Object</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>the completed value</p></div>
+      
+    </li>
+  
+</ul>
+<p class="tag_title">Raises:</p>
+<ul class="raise">
+  
+    <li>
+      
+      
+        <span class='type'>(<tt><span class='object_link'><a href="TimeoutError.html" title="Phronomy::TimeoutError (class)">Phronomy::TimeoutError</a></span></tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>when the waiter-local timeout expires</p></div>
+      
+    </li>
+  
+    <li>
+      
+      
+        <span class='type'>(<tt>Exception</tt>)</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>the error that settled the Task</p></div>
+      
+    </li>
+  
+</ul>
 
 </div><table class="source_code">
   <tr>
@@ -1189,35 +1374,35 @@ wait for a Task; it must continue through explicit events instead.</p>
       <pre class="lines">
 
 
-47
-48
-49
-50
-51
-52
-53
-54
-55
-56
-57
-58
-59
-60
-61
-62
-63
-64
-65
-66
-67
-68
-69
-70
 71
-72</pre>
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 47</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/task.rb', line 71</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_wait_result'>wait_result</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
   <span class='kw'>if</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_in_event_loop_context?'><span class='object_link'><a href="Runtime.html#in_event_loop_context%3F-class_method" title="Phronomy::Runtime.in_event_loop_context? (method)">in_event_loop_context?</a></span></span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_done?'>done?</span>
@@ -1255,7 +1440,7 @@ wait for a Task; it must continue through explicit events instead.</p>
 </div>
 
       <div id="footer">
-  Generated on Sun Aug 16 07:56:25 2026 by
+  Generated on Mon Aug 17 05:15:15 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
