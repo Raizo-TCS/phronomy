@@ -9,6 +9,9 @@ gem "rake", "~> 13.0"
 
 gem "rspec", "~> 3.0"
 
+# Public API type-signature validation
+gem "rbs", "~> 4.1.0", require: false
+
 # Property-based testing
 gem "rantly", "~> 2.0"
 

@@ -13,7 +13,8 @@
 # Target: mutation score >= 80% for each listed subject.
 # Baseline scores (as of initial run):
 #   Phronomy::WorkflowContext  84.85%
-#   Phronomy::Tool::Base       55.74%
+#   Phronomy::Agent::Context::Capability::Base  55.74%
+#     (public facade alias: Phronomy::Tool::Base; same Class object)
 #
 # Note: mutation testing is slow (~1-5 min per subject). Run locally or via
 # the nightly-mutation GitHub Actions workflow.

@@ -139,8 +139,6 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.4'
-          bundler-cache: false
-      - name: Install RBS tooling
-        run: gem install rbs --no-document
+          bundler-cache: true
       - name: Validate RBS signatures
-        run: rbs -I sig validate
+        run: bundle exec rbs -I sig validate

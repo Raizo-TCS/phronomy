@@ -9,6 +9,8 @@ matcher:
   subjects:
     - Phronomy::WorkflowContext
     - Phronomy::WorkflowRunner
+    # Phronomy::Tool::Base is a public constant alias to this same Class object.
+    # Use the implementation canonical name returned by Class#name for Mutant.
     - Phronomy::Agent::Context::Capability::Base
     - Phronomy::LlmContextWindow::TokenBudget
     - Phronomy::Agent::ContextAssembler

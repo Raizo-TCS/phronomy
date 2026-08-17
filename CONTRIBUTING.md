@@ -57,7 +57,7 @@ extension SPI:
    public type shape changes.
 5. Validate the RBS environment:
    ```bash
-   rbs -I sig validate
+   bundle exec rbs -I sig validate
    ```
 6. Add or update a focused spec for the public API or extension contract.
 
@@ -161,6 +161,12 @@ The authoritative subject list is `.mutant.yml`. It currently includes:
 - `Phronomy::Agent::ContextParts::Budget::TokenBudgetPacker`
 - `Phronomy::Agent::ContextPlanValidator`
 - `Phronomy::VectorStore::InMemory`
+
+The Tool mutation subject intentionally uses
+`Phronomy::Agent::Context::Capability::Base`, which is the implementation
+canonical name returned by the single Class object's runtime `Class#name`.
+`Phronomy::Tool::Base` is the public facade constant alias to that same Class
+object; it is not a second Tool base class.
 
 When you add or modify tests for a covered subject, run mutation tests locally
 when practical and investigate meaningful score regressions.

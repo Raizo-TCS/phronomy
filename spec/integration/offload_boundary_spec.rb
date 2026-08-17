@@ -267,6 +267,7 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
     it "fails the Task with TimeoutError and increments pool abandoned metrics after an in-flight timeout" do
       started = Queue.new
       release = Queue.new
+      released = false
 
       op = pool.submit(timeout: 0.1) do
         started << true
@@ -281,9 +282,22 @@ RSpec.describe "Group 37: OffloadPool boundary", :integration do
 
       expect(op).to be_done
       expect(op.status).to eq(:failed)
-      expect(pool.abandoned_active_count + pool.abandoned_count).to be >= 1
-    ensure
+      expect(pool.abandoned_count).to eq(1)
+      expect(pool.abandoned_active_count).to eq(1)
+
       release << true
+      released = true
+
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 1
+      until pool.abandoned_active_count.zero?
+        break if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+        sleep(0.001)
+      end
+
+      expect(pool.abandoned_count).to eq(1)
+      expect(pool.abandoned_active_count).to eq(0)
+    ensure
+      release << true unless released
     end
   end
 
