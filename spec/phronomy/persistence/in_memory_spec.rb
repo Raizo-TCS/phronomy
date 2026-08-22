@@ -9,7 +9,7 @@ RSpec.describe Phronomy::Persistence::InMemory do
     Phronomy::Agent::AgentRoot.create(
       agent_id: "agent-1",
       agent_definition_id: "test-agent",
-      definition_version: 1
+      agent_definition_version: 1
     )
   end
 

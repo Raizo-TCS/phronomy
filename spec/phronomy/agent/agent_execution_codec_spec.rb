@@ -8,7 +8,7 @@ RSpec.describe "durable Agent domain codecs" do
     Phronomy::Agent::AgentRoot.create(
       agent_id: "codec-agent",
       agent_definition_id: "codec-agent-definition",
-      definition_version: 1,
+      agent_definition_version: 1,
       metadata: {"tenant" => "example"}
     )
   end
@@ -64,8 +64,20 @@ RSpec.describe "durable Agent domain codecs" do
     )
   end
 
-  it "keeps the existing AgentRoot Hash codec symmetric" do
+  it "writes and round-trips the canonical AgentRoot definition revision field" do
+    expect(root.to_h["agent_definition_version"]).to eq(1)
+    expect(root.to_h).not_to have_key("definition_version")
     expect(Phronomy::Agent::AgentRoot.from_h(root.to_h).to_h).to eq(root.to_h)
+  end
+
+  it "does not backward-decode the legacy AgentRoot definition_version key" do
+    legacy = root.to_h
+    legacy["definition_version"] =
+      legacy.delete("agent_definition_version")
+
+    expect do
+      Phronomy::Agent::AgentRoot.from_h(legacy)
+    end.to raise_error(KeyError, /agent_definition_version/)
   end
 
   it "keeps the existing JournalRecord Hash codec symmetric" do

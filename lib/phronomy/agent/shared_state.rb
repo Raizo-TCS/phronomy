@@ -4,6 +4,15 @@ module Phronomy
   module Agent
     # Implements peer coordination through a shared KnowledgeStore.
     class SharedState
+      # Semantic revision of the framework-owned SharedState instrumentation
+      # applied on top of one specific researcher definition revision.
+      #
+      # The generated definition ID below already includes the wrapped
+      # researcher's definition ID/version. Increment this value only when the
+      # semantics of SharedState's injected coordination capabilities change.
+      INSTRUMENTATION_DEFINITION_VERSION = 1
+      private_constant :INSTRUMENTATION_DEFINITION_VERSION
+
       class KnowledgeStore
         def initialize
           @findings = []
@@ -168,7 +177,35 @@ module Phronomy
         definitions[read_tool] = nil
         definitions[write_tool] = nil
 
-        Class.new(researcher_class) { tools(definitions) }
+        # The anonymous subclass has a different effective Agent definition from the
+        # configured researcher because SharedState adds LLM-visible coordination
+        # Tools. D04 therefore requires a distinct semantic definition identity
+        # instead of reusing the researcher's exact definition revision.
+        #
+        # This is a framework-private generated lineage. It is derived from the
+        # wrapped researcher's *definition revision*, while its own version tracks the
+        # semantic revision of the SharedState instrumentation itself. This keeps the
+        # application's definition-version namespace independent from framework
+        # instrumentation.
+        instrumented_def = instrumented_definition_for(researcher_class)
+        Class.new(researcher_class) do
+          agent_definition(
+            id: instrumented_def.fetch(:id),
+            version: instrumented_def.fetch(:version)
+          )
+          tools(definitions)
+        end
+      end
+
+      def instrumented_definition_for(researcher_class)
+        parent_def = researcher_class.agent_definition
+        parent_id = parent_def.fetch(:id)
+        parent_version = parent_def.fetch(:version)
+
+        {
+          id: "Phronomy::Agent::SharedState::Instrumented/#{parent_id}@#{parent_version}".freeze,
+          version: INSTRUMENTATION_DEFINITION_VERSION
+        }.freeze
       end
 
       def build_prompt(

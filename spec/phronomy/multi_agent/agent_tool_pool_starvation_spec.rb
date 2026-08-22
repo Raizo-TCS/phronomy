@@ -29,6 +29,7 @@ RSpec.describe "Agent-as-Tool blocking-pool independence" do
     end
 
     orchestrator_class = Class.new(Phronomy::MultiAgent::Orchestrator) do
+      agent_definition id: "orchestrator", version: 1
       subagent :worker, child_agent, inherit_knowledge: false
     end
     orchestrator = orchestrator_class.new

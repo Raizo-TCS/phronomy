@@ -760,6 +760,7 @@ module IntegrationFactors
     err = on_error
 
     Class.new(Phronomy::MultiAgent::Orchestrator) do
+      agent_definition id: "orchestrator", version: 1
       model LM_MODEL_34
       provider :openai
       instructions "You are an orchestrator. Use dispatch_to tools to delegate."
@@ -853,7 +854,7 @@ module IntegrationFactors
   end
 
   def self.bp_orchestrator_class
-    Class.new(Phronomy::MultiAgent::Orchestrator)
+    Class.new(Phronomy::MultiAgent::Orchestrator) { agent_definition id: "orchestrator", version: 1 }
   end
 
   # ---------------------------------------------------------------------------

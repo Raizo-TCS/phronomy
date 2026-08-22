@@ -27,7 +27,7 @@ RSpec.describe "Race / Concurrency (Issue #208)" do
   end
 
   describe "Orchestrator#dispatch_parallel result ordering under concurrency" do
-    subject(:orchestrator) { Class.new(Phronomy::MultiAgent::Orchestrator).new }
+    subject(:orchestrator) { Class.new(Phronomy::MultiAgent::Orchestrator) { agent_definition id: "orchestrator", version: 1 }.new }
 
     it "returns results in input order even when tasks complete in reverse order" do
       agents = (1..5).map do |i|

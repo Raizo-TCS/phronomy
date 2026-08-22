@@ -3,6 +3,93 @@
 require "spec_helper"
 
 RSpec.describe Phronomy::Agent::Base do
+  describe ".agent_definition" do
+    it "uses the fully-qualified Ruby class name as the default definition id" do
+      klass = Class.new(Phronomy::Agent::Base)
+      stub_const("CG04NamedAgent", klass)
+
+      expect(CG04NamedAgent.agent_definition(version: 3)).to eq(
+        id: "CG04NamedAgent",
+        version: 3
+      )
+    end
+
+    it "preserves an explicit stable definition id override" do
+      klass = Class.new(Phronomy::Agent::Base)
+
+      expect(
+        klass.agent_definition(id: "application-owned-lineage", version: 7)
+      ).to eq(
+        id: "application-owned-lineage",
+        version: 7
+      )
+    end
+
+    it "requires an explicit id when an anonymous Agent cannot derive a stable class name" do
+      klass = Class.new(Phronomy::Agent::Base)
+
+      expect do
+        klass.agent_definition(version: 1)
+      end.to raise_error(
+        Phronomy::ConfigurationError,
+        /anonymous Agent class must declare agent_definition id:/
+      )
+    end
+
+    it "does not inherit definition identity/revision while normal class configuration still inherits" do
+      parent = Class.new(Phronomy::Agent::Base)
+      stub_const("CG04ParentAgent", parent)
+      parent.agent_definition(version: 1)
+      parent.instructions "parent instructions"
+
+      child = Class.new(parent)
+      stub_const("CG04ChildAgent", child)
+
+      expect(child.instructions).to eq("parent instructions")
+      expect do
+        child.agent_definition
+      end.to raise_error(
+        Phronomy::ConfigurationError,
+        /CG04ChildAgent must declare agent_definition version:/
+      )
+
+      expect(child.agent_definition(version: 2)).to eq(
+        id: "CG04ChildAgent",
+        version: 2
+      )
+    end
+
+    it "keeps agent_id stable and applies exact definition compatibility as a separate load policy" do
+      persistence = Phronomy::Persistence::InMemory.new
+
+      version_one = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "cg04-load-lineage", version: 1
+      end
+      version_two = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "cg04-load-lineage", version: 2
+      end
+
+      version_one.create(
+        agent_id: "cg04-stable-agent-id",
+        persistence: persistence
+      )
+
+      loaded = version_one.load(
+        "cg04-stable-agent-id",
+        persistence: persistence
+      )
+      expect(loaded.agent_id).to eq("cg04-stable-agent-id")
+      expect(loaded.agent_root.agent_definition_version).to eq(1)
+
+      expect do
+        version_two.load(
+          "cg04-stable-agent-id",
+          persistence: persistence
+        )
+      end.to raise_error(Phronomy::ConfigurationError, /Agent definition mismatch/)
+    end
+  end
+
   describe "#check_cancellation! (Issue #223)" do
     let(:agent) do
       Class.new(Phronomy::Agent::Base) {

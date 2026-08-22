@@ -110,7 +110,7 @@ RSpec.describe "Fault injection (Issue #213)" do
   # 3. dispatch_parallel on_error: :skip — failing task returns nil
   # -------------------------------------------------------------------------
   describe "dispatch_parallel on_error: :skip fault isolation" do
-    subject(:orchestrator) { Class.new(Phronomy::MultiAgent::Orchestrator).new }
+    subject(:orchestrator) { Class.new(Phronomy::MultiAgent::Orchestrator) { agent_definition id: "orchestrator", version: 1 }.new }
 
     let(:good_agent) do
       Class.new(Phronomy::Agent::Base) do

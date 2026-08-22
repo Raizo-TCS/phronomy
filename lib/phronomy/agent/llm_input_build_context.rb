@@ -5,7 +5,7 @@ module Phronomy
     # Immutable metadata passed to before_llm_input hooks. Runtime objects such
     # as RubyLLM::Chat, messages and the mutable Agent instance are not exposed.
     LLMInputBuildContext = Data.define(
-      :agent_id, :agent_definition_id, :definition_version,
+      :agent_id, :agent_definition_id, :agent_definition_version,
       :config, :call_sequence
     ) do
       def initialize(**values)

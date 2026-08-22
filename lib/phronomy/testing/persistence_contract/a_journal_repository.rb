@@ -8,7 +8,7 @@ RSpec.shared_examples "a Journal repository" do
     Phronomy::Agent::AgentRoot.create(
       agent_id: "journal-agent-#{SecureRandom.uuid}",
       agent_definition_id: "contract-agent",
-      definition_version: 1
+      agent_definition_version: 1
     )
   end
 

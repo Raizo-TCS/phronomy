@@ -12,7 +12,8 @@ module Phronomy
       def self.cache_instructions: (?bool enabled) -> bool?
       def self.max_output_tokens: (?Integer value) -> Integer?
       def self.context_window: (?Integer value) -> Integer?
-      def self.agent_definition: (?id: String?, ?version: Integer?) -> Hash[Symbol, untyped]
+      def self.agent_definition: () -> Hash[Symbol, untyped]
+                               | (version: Integer, ?id: String?) -> Hash[Symbol, untyped]
       def self.create: (?agent_id: String, ?context: untyped, ?knowledge: Array[untyped], ?persistence: Persistence?, ?metadata: Hash[untyped, untyped]) -> instance
       def self.load: (String agent_id, persistence: Persistence) -> instance
       def self.live_for_execution: (String execution_id) -> instance

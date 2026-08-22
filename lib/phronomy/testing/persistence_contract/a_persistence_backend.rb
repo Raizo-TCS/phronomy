@@ -7,7 +7,7 @@ RSpec.shared_examples "a Persistence backend" do
     Phronomy::Agent::AgentRoot.create(
       agent_id: "backend-agent-#{SecureRandom.uuid}",
       agent_definition_id: "contract-agent",
-      definition_version: 1
+      agent_definition_version: 1
     )
   end
 

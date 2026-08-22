@@ -8,7 +8,7 @@ RSpec.shared_examples "an Execution repository" do
     Phronomy::Agent::AgentRoot.create(
       agent_id: "execution-agent-#{SecureRandom.uuid}",
       agent_definition_id: "contract-agent",
-      definition_version: 1
+      agent_definition_version: 1
     )
   end
 
@@ -66,7 +66,7 @@ RSpec.shared_examples "an Execution repository" do
     other_root = Phronomy::Agent::AgentRoot.create(
       agent_id: "execution-agent-#{SecureRandom.uuid}",
       agent_definition_id: "contract-agent",
-      definition_version: 1
+      agent_definition_version: 1
     )
     persistence.agents.create(other_root)
 
@@ -116,7 +116,7 @@ RSpec.shared_examples "an Execution repository" do
     other_root = Phronomy::Agent::AgentRoot.create(
       agent_id: "execution-agent-#{SecureRandom.uuid}",
       agent_definition_id: "contract-agent",
-      definition_version: 1
+      agent_definition_version: 1
     )
     persistence.agents.create(other_root)
     other = build_contract_execution(other_root).with(
@@ -186,7 +186,7 @@ RSpec.shared_examples "an Execution repository" do
     other_root = Phronomy::Agent::AgentRoot.create(
       agent_id: "execution-agent-#{SecureRandom.uuid}",
       agent_definition_id: "contract-agent",
-      definition_version: 1
+      agent_definition_version: 1
     )
     persistence.agents.create(other_root)
     own = build_contract_execution(execution_agent_root)

@@ -20,6 +20,10 @@ class NoModelAgent < Phronomy::Agent::Base
   agent_definition id: "no-model-agent", version: 1
 end
 
+class DefaultDefinitionAgent < Phronomy::Agent::Base
+  agent_definition version: 1
+end
+
 RSpec.describe Phronomy::Agent::Base do
   let(:fake_tokens) { double("Tokens", input: 10, output: 5, cached: 0, cache_creation: 0, to_h: {"input" => 10, "output" => 5, "cached" => 0, "cache_creation" => 0}) }
   let(:fake_message) { double("Message", content: "LLM response", tool_calls: nil, tokens: fake_tokens, tool_call?: false) }
@@ -58,6 +62,13 @@ RSpec.describe Phronomy::Agent::Base do
 
     it "returns max_iterations" do
       expect(BasicAgent.max_iterations).to eq(3)
+    end
+
+    it "uses the named class as the default Agent definition lineage" do
+      expect(DefaultDefinitionAgent.agent_definition).to eq(
+        id: "DefaultDefinitionAgent",
+        version: 1
+      )
     end
 
     it "defaults tools to an empty array" do
