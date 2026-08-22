@@ -43,7 +43,7 @@ module Phronomy
           "source_sequence" => record.sequence
         )
 
-        ContextCandidate.new(
+        Selection::Candidate.new(
           candidate_id: "record:#{record.record_id}",
           source_kind: source_kind,
           category: record.kind,
@@ -55,7 +55,7 @@ module Phronomy
           llm_call_id: record.llm_call_id,
           tool_call_id: tool_call_id,
           sequence: sequence,
-          requirement: :optional,
+          constraint: Selection::Constraint.selectable(origin: :context_policy),
           priority: (source_kind == :working) ? 100 : 0,
           metadata: metadata
         )

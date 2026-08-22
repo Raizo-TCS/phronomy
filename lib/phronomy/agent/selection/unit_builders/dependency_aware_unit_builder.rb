@@ -4,7 +4,7 @@ require "digest"
 
 module Phronomy
   module Agent
-    module ContextParts
+    module Selection
       module UnitBuilders
         class DependencyAwareUnitBuilder
           def build(candidates)
@@ -22,7 +22,7 @@ module Phronomy
               canonical_tool_call_ids(candidate).each do |tool_call_id|
                 if result.key?(tool_call_id)
                   raise ArgumentError,
-                    "duplicate assistant Tool Call id in Context candidates: #{tool_call_id}"
+                    "duplicate assistant Tool Call id in Selection candidates: #{tool_call_id}"
                 end
                 result[tool_call_id] = candidate
               end
@@ -81,14 +81,7 @@ module Phronomy
           def build_unit(candidates, kind:)
             ids = candidates.map(&:candidate_id)
             sequences = candidates.map(&:sequence).compact
-            requirements = candidates.map(&:requirement)
-            requirement = if requirements.include?(:protocol_required)
-              :protocol_required
-            elsif requirements.include?(:declared_required)
-              :declared_required
-            else
-              :optional
-            end
+            constraint = combined_constraint(candidates)
             tool_call_ids = candidates.flat_map do |candidate|
               call_ids = canonical_tool_call_ids(candidate)
               call_ids << candidate.tool_call_id if candidate.tool_call_id
@@ -97,12 +90,12 @@ module Phronomy
             llm_call_ids = candidates.map(&:llm_call_id).compact.uniq
             digest = Digest::SHA256.hexdigest(ids.join("\0"))[0, 20]
 
-            ContextSelectionUnit.new(
+            Unit.new(
               unit_id: "#{kind}:#{digest}",
               candidate_ids: ids,
               dependency_unit_ids: [],
               kind: kind,
-              requirement: requirement,
+              constraint: constraint,
               priority: candidates.map(&:priority).max || 0,
               sequence_range: [sequences.min || 0, sequences.max || 0],
               metadata: {
@@ -110,6 +103,18 @@ module Phronomy
                 "llm_call_ids" => llm_call_ids
               }
             )
+          end
+
+          def combined_constraint(candidates)
+            constraints = candidates.map(&:constraint)
+            if constraints.any?(&:forbidden?) && constraints.any?(&:required?)
+              raise ArgumentError,
+                "Selection unit contains conflicting required and forbidden candidates"
+            end
+            return constraints.find(&:forbidden?) if constraints.any?(&:forbidden?)
+            return constraints.find(&:required?) if constraints.any?(&:required?)
+
+            constraints.first || Constraint.selectable(origin: :context_policy)
           end
         end
       end

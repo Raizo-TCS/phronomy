@@ -165,7 +165,7 @@ RSpec.describe "stateful manifest follow-up regressions" do
         persistence.contents.fetch_text(segment.content_ref) == "Be concise"
       end
       expect(hook_segment.metadata).to include("phronomy_origin" => "before_llm_input")
-      expect(manifest.assembly_policy_version).to eq(6)
+      expect(manifest.assembly_policy_version).to eq(7)
     end
 
     it "includes the same hook instruction only once in a follow-up Call" do

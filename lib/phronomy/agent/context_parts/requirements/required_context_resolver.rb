@@ -11,32 +11,43 @@ module Phronomy
             latest_tool_unit = latest_current_tool_unit(request, units, candidates)
 
             Array(units).map do |unit|
-              requirement = unit.requirement
+              constraint = unit.constraint
               if unit.unit_id == latest_tool_unit&.unit_id
-                requirement = :protocol_required
-              elsif requirement == :optional && unit.candidate_ids.any? do |candidate_id|
+                constraint = Selection::Constraint.required(
+                  origin: :framework_protocol,
+                  reason: "latest current Tool exchange"
+                )
+              elsif current_request_unit?(request, unit, candidates)
+                constraint = Selection::Constraint.required(
+                  origin: :framework_protocol,
+                  reason: "current user request"
+                )
+              elsif constraint.selectable? && unit.candidate_ids.any? do |candidate_id|
                 candidate = candidates.fetch(candidate_id)
                 declared[candidate.candidate_id] || declared[candidate.record_id.to_s]
               end
-                requirement = :declared_required
+                constraint = Selection::Constraint.required(
+                  origin: :context_policy_declared,
+                  reason: "declared required coverage"
+                )
               end
 
-              next unit if requirement == unit.requirement
-
-              ContextSelectionUnit.new(
-                unit_id: unit.unit_id,
-                candidate_ids: unit.candidate_ids,
-                dependency_unit_ids: unit.dependency_unit_ids,
-                kind: unit.kind,
-                requirement: requirement,
-                priority: unit.priority,
-                sequence_range: unit.sequence_range,
-                metadata: unit.metadata
-              )
+              next unit if constraint == unit.constraint
+              unit.with_constraint(constraint)
             end.freeze
           end
 
           private
+
+          def current_request_unit?(request, unit, candidates)
+            return false unless request.call_mode == :complete
+
+            unit.candidate_ids.any? do |candidate_id|
+              candidate = candidates.fetch(candidate_id)
+              candidate.category == :external_message &&
+                current_execution_working_candidate?(request, candidate)
+            end
+          end
 
           def latest_current_tool_unit(request, units, candidates)
             return unless request.call_mode == :complete
@@ -44,10 +55,14 @@ module Phronomy
             Array(units).select do |unit|
               unit.kind == :tool_exchange && unit.candidate_ids.any? do |candidate_id|
                 candidate = candidates.fetch(candidate_id)
-                candidate.source_kind == :working &&
-                  candidate.execution_id.to_s == request.execution_id.to_s
+                current_execution_working_candidate?(request, candidate)
               end
             end.max_by { |unit| unit.sequence_range.last }
+          end
+
+          def current_execution_working_candidate?(request, candidate)
+            candidate.source_kind == :working &&
+              candidate.execution_id.to_s == request.execution_id.to_s
           end
         end
       end

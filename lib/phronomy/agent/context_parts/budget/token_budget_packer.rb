@@ -6,7 +6,8 @@ module Phronomy
       module Budget
         class TokenBudgetPacker
           def pack(request:, units:)
-            return Array(units).freeze unless request.token_budget
+            selectable_units = Array(units).reject { |unit| unit.constraint.forbidden? }
+            return selectable_units.freeze unless request.token_budget
 
             candidate_index = request.candidates.to_h { |candidate| [candidate.candidate_id, candidate] }
             mandatory = Integer(request.metadata["mandatory_token_estimate"] || 0)
@@ -18,7 +19,7 @@ module Phronomy
             end
 
             remaining = limit - mandatory
-            required, optional = Array(units).partition { |unit| unit.requirement != :optional }
+            required, optional = selectable_units.partition { |unit| unit.constraint.required? }
             required_cost = required.sum { |unit| unit_cost(unit, candidate_index) }
             if required_cost > remaining
               raise Phronomy::ContextBudgetExceededError,

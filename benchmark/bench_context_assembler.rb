@@ -5,10 +5,6 @@
 # Usage:
 #   ruby benchmark/bench_context_assembler.rb
 #
-# Measures:
-#   1. ContextPolicies::Default selection cost for growing canonical candidate sets.
-#   2. ContextAssembler#build_initial end-to-end Manifest construction.
-#
 # No provider call is performed.
 
 require "benchmark"
@@ -26,7 +22,7 @@ module BenchContextAssembler
       [:external_message, :user]
     end
 
-    Phronomy::Agent::ContextCandidate.new(
+    Phronomy::Agent::Selection::Candidate.new(
       candidate_id: "candidate-#{index}",
       source_kind: :journal,
       category: category,
@@ -38,7 +34,7 @@ module BenchContextAssembler
       llm_call_id: nil,
       tool_call_id: nil,
       sequence: index,
-      requirement: :optional,
+      constraint: Phronomy::Agent::Selection::Constraint.selectable(origin: :context_policy),
       priority: 0,
       metadata: {
         "estimated_tokens" => 8,
@@ -50,11 +46,11 @@ module BenchContextAssembler
   def parts
     {
       unit_builder:
-        Phronomy::Agent::ContextParts::UnitBuilders::DependencyAwareUnitBuilder.new,
+        Phronomy::Agent::Selection::UnitBuilders::DependencyAwareUnitBuilder.new,
       required_context_resolver:
         Phronomy::Agent::ContextParts::Requirements::RequiredContextResolver.new,
       recent_first_selector:
-        Phronomy::Agent::ContextParts::Selectors::RecentFirstSelector.new,
+        Phronomy::Agent::Selection::Selectors::RecentFirstSelector.new,
       token_budget_packer:
         Phronomy::Agent::ContextParts::Budget::TokenBudgetPacker.new
     }.freeze

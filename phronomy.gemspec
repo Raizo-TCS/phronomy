@@ -27,6 +27,7 @@ Gem::Specification.new do |spec|
   spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
     ls.readlines("\x0", chomp: true).reject do |f|
       (f == gemspec) ||
+        f.end_with?(".gem") ||
         f.start_with?(*%w[bin/ Gemfile .gitignore .rspec spec/ .github/ .standard.yml vendor/])
     end
   end
@@ -41,6 +42,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency "state_machines", "~> 0.6"
   spec.add_dependency "mcp", "~> 1.0"
 
-  # For more information and examples about making a new gem, check out our
+  # For more information and examples on how to make a new gem, check out our
   # guide at: https://guides.rubygems.org/specification-reference/
 end

@@ -19,6 +19,7 @@ tracking `main` directly.
 - **Persistence** — unified durable backend for Agent state and Workflow `workflow_states`.
 - **Workflow** — state-machine-driven application workflow with explicit events and wait states.
 - **Tool / Capability** — callable application capability exposed to an Agent; application-defined Tools subclass `Phronomy::Tool::Base`.
+- **Multi-Agent Handoff** — semantic Source-to-Target responsibility transfer with policy-bounded Context projection and Runtime-local active-Agent continuity.
 - **EventLoop + FSMSession** — the framework control plane for logical lifecycle coordination.
 - **OffloadPool** — bounded operating-system-thread execution boundary for synchronous work that must not run on EventLoop.
 - **Task** — the common thread-free completion handle returned by Phronomy asynchronous APIs, including OffloadPool-backed work.
@@ -139,6 +140,7 @@ contracts, timeout/cancellation semantics, metrics, and callback rules.
 - [Migration from 0.15-era APIs](docs/migrations/0.15.md).
 - [0.16 cleanup migration](docs/migrations/0.16.md).
 - [0.19 unified Persistence migration](docs/migrations/0.19.md).
+- [0.22 semantic Multi-Agent Handoff migration](docs/migrations/0.22.md).
 - [Architecture Decision Records](docs/decisions/) — design rationale and superseding decisions.
 - [CHANGELOG](CHANGELOG.md) — current development and recent release history.
 - [Changelog archive: 0.14.0 and earlier](docs/changelog/0.14-and-earlier.md).

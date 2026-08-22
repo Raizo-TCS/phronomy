@@ -4,153 +4,205 @@ require_relative "spec_helper"
 require_relative "support/factors"
 require_relative "support/llm_stub"
 
-# Group 26: Multi-Agent Handoff
-# Pairwise factors: handoff_topology × handoff_trigger × handoff_context_persistence × handoff_agent_count
-# Generated stubs: 10 cases
-#
-# Infeasible cases (SKIP):
-#   TC-002: single_agent × handoff_once — no handoff tool registered; trigger impossible
-#   TC-003: single_agent × three agents — single_agent topology contradicts multiple agents in routes
-#   TC-006: linear × one agent — linear topology requires ≥2 agents
-#   TC-007: hub_spoke × one agent — hub_spoke topology requires ≥3 agents
-#   TC-008: hub_spoke × handoff_once × one agent — same reason as TC-007
-#
-# LLM required: No (WebMock)
-
-RSpec.describe "Group 26: Multi-Agent Handoff", :integration do
-  before do
-    @llm = LLMStub.activate(responses: ["Hello from entry agent."])
-  end
-
+RSpec.describe "Multi-Agent Handoff", :integration do
   after { LLMStub.deactivate }
 
-  # ---------------------------------------------------------------------------
-  # TC-001: single_agent / no_handoff / fresh / one
-  #         Runner wraps one agent; no handoff; returns entry agent result.
-  # ---------------------------------------------------------------------------
-  describe "TC-001: single_agent; no_handoff; fresh; one agent" do
-    it "runner returns entry agent output without handoff" do
-      klass = Class.new(Phronomy::Agent::Base) do
-        agent_definition id: "test-agent-7", version: 1
-        model IntegrationFactors::LM_MODEL_26
-        provider :openai
-        instructions "You are a helpful assistant."
-      end
-      agent = klass.new
-      runner = Phronomy::Agent::Runner.new(agents: [agent])
-      result = runner.invoke("Hello")
-      expect(result[:output]).to be_a(String)
-      expect(result[:agent]).to equal(agent)
+  def build_agent(definition_id, instructions, persistence: nil)
+    klass = Class.new(Phronomy::Agent::Base) do
+      agent_definition id: definition_id, version: 1
+      model IntegrationFactors::LM_MODEL_26
+      provider :openai
+      instructions instructions
     end
+    persistence ? klass.new(persistence: persistence) : klass.new
   end
 
-  # ---------------------------------------------------------------------------
-  # TC-002: single_agent / handoff_once / shared_thread / two  — INFEASIBLE
-  # ---------------------------------------------------------------------------
-  # SKIP: single_agent topology registers no handoff tools;
-  #       handoff_once cannot trigger without a transfer tool registered on the agent.
+  it "runs the main Agent when no Handoff is requested" do
+    main = build_agent("cg05-main-no-handoff", "Main agent")
+    LLMStub.activate(responses: ["Handled by main."])
 
-  # ---------------------------------------------------------------------------
-  # TC-003: single_agent / no_handoff / shared_thread / three — INFEASIBLE
-  # ---------------------------------------------------------------------------
-  # SKIP: single_agent topology contradicts having three agents;
-  #       three agents are only meaningful when routing is configured.
+    runner = Phronomy::MultiAgent::Runner.new(main_agent: main)
+    result = runner.invoke("Hello")
 
-  # ---------------------------------------------------------------------------
-  # TC-004: linear / no_handoff / fresh / two
-  #         Two agents; handoff tool registered but LLM does not call it.
-  # ---------------------------------------------------------------------------
-  describe "TC-004: linear; no_handoff; fresh; two agents" do
-    it "runner returns entry agent output when handoff tool not called" do
-      entry_klass, target_klass = IntegrationFactors.handoff_linear_classes
-      entry = entry_klass.new
-      target = target_klass.new
-      runner = Phronomy::Agent::Runner.new(
-        agents: [entry, target],
-        routes: {entry => [target]}
-      )
-      result = runner.invoke("Tell me something.")
-      expect(result[:output]).to be_a(String)
-      expect(result[:agent]).to equal(entry)
-    end
+    expect(result[:output]).to eq("Handled by main.")
+    expect(result[:agent]).to equal(main)
   end
 
-  # ---------------------------------------------------------------------------
-  # TC-005: linear / handoff_once / fresh / three
-  #         Entry agent calls transfer tool; Runner routes to second agent.
-  # ---------------------------------------------------------------------------
-  describe "TC-005: linear; handoff_once; fresh; entry hands off to target" do
-    it "runner routes to second agent after handoff tool call" do
-      entry_klass, target_klass = IntegrationFactors.handoff_linear_classes
-      entry = entry_klass.new
-      target = target_klass.new
+  it "transfers responsibility without a sentinel Tool result" do
+    source = build_agent("cg05-source-once", "Triage agent")
+    target = build_agent("cg05-target-once", "Billing agent")
+    handoff = Phronomy::MultiAgent::Handoff.new(
+      source_agent: source,
+      target_agent: target,
+      description: "Transfer billing responsibility"
+    )
+    transport_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff).tool_name
 
-      runner = Phronomy::Agent::Runner.new(
-        agents: [entry, target],
-        routes: {entry => [target]}
-      )
+    LLMStub.activate(responses: [
+      LLMStub.tool_call_response(
+        transport_name,
+        {responsibility: "Investigate the billing discrepancy"}
+      ),
+      "Billing investigation complete."
+    ])
 
-      # Capture the actual tool_name registered by Runner (includes UUID suffix).
-      handoff_tool_name = entry._handoff_tools.first.tool_name
-      LLMStub.deactivate
-      @llm = LLMStub.activate(responses: [
-        LLMStub.tool_call_response(handoff_tool_name, {}),
-        "Routing you to the billing assistant.",
-        "I can help with your billing question."
-      ])
+    runner = Phronomy::MultiAgent::Runner.new(
+      main_agent: source,
+      handoffs: [handoff]
+    )
+    result = runner.invoke("My invoice is wrong.")
 
-      result = runner.invoke("I have a billing issue.")
-      expect(result[:output]).to be_a(String)
-      expect(result[:agent]).to equal(target)
-    end
+    expect(result[:output]).to eq("Billing investigation complete.")
+    expect(result[:agent]).to equal(target)
+    expect(result).not_to have_key(:handoff_request)
+    expect(result.keys.grep(/phronomy_handoff/)).to be_empty
   end
 
-  # ---------------------------------------------------------------------------
-  # TC-006: linear / no_handoff / shared_thread / one — INFEASIBLE
-  # ---------------------------------------------------------------------------
-  # SKIP: linear topology requires ≥2 agents; one agent contradicts linear routing setup.
+  it "supports A to B to C semantic Handoffs in one user turn" do
+    a = build_agent("cg05-multihop-a", "Entry agent")
+    b = build_agent("cg05-multihop-b", "Intermediate agent")
+    c = build_agent("cg05-multihop-c", "Final agent")
+    a_to_b = Phronomy::MultiAgent::Handoff.new(
+      source_agent: a,
+      target_agent: b,
+      description: "Transfer to B"
+    )
+    b_to_c = Phronomy::MultiAgent::Handoff.new(
+      source_agent: b,
+      target_agent: c,
+      description: "Transfer to C"
+    )
+    a_to_b_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(a_to_b).tool_name
+    b_to_c_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(b_to_c).tool_name
 
-  # ---------------------------------------------------------------------------
-  # TC-007: hub_spoke / no_handoff / fresh / one — INFEASIBLE
-  # ---------------------------------------------------------------------------
-  # SKIP: hub_spoke topology requires ≥3 agents; one agent contradicts hub_spoke setup.
+    recorder = LLMStub.activate(responses: [
+      LLMStub.tool_call_response(
+        a_to_b_name,
+        {responsibility: "B should triage the request"}
+      ),
+      LLMStub.tool_call_response(
+        b_to_c_name,
+        {responsibility: "C should finish the request"}
+      ),
+      "Completed by C."
+    ])
 
-  # ---------------------------------------------------------------------------
-  # TC-008: hub_spoke / handoff_once / shared_thread / one — INFEASIBLE
-  # ---------------------------------------------------------------------------
-  # SKIP: hub_spoke topology requires ≥3 agents; one agent contradicts hub_spoke setup.
+    runner = Phronomy::MultiAgent::Runner.new(
+      main_agent: a,
+      handoffs: [a_to_b, b_to_c]
+    )
+    result = runner.invoke("Original request from the user")
 
-  # ---------------------------------------------------------------------------
-  # TC-009: hub_spoke / no_handoff / fresh / two
-  #         Hub + 1 spoke; no handoff triggered; runner returns hub result.
-  # ---------------------------------------------------------------------------
-  describe "TC-009: hub_spoke; no_handoff; fresh; two agents (hub + 1 spoke)" do
-    it "runner returns hub output when no handoff triggered" do
-      hub, spoke1 = IntegrationFactors.handoff_hub_spoke_instances(spoke_count: 1)
-      runner = Phronomy::Agent::Runner.new(
-        agents: [hub, spoke1],
-        routes: {hub => [spoke1]}
-      )
-      result = runner.invoke("Hello from hub test.")
-      expect(result[:output]).to be_a(String)
-      expect(result[:agent]).to equal(hub)
-    end
+    expect(result[:agent]).to equal(c)
+    expect(result[:output]).to eq("Completed by C.")
+    expect(recorder.calls.length).to eq(3)
+    final_text = recorder.last_messages.map { |message| message["content"] }.compact.join("\n")
+    expect(final_text).to include("C should finish the request")
   end
 
-  # ---------------------------------------------------------------------------
-  # TC-010: hub_spoke / no_handoff / fresh / three
-  #         Hub + 2 spokes; no handoff triggered; runner returns hub result.
-  # ---------------------------------------------------------------------------
-  describe "TC-010: hub_spoke; no_handoff; fresh; three agents (hub + 2 spokes)" do
-    it "runner returns hub output when no handoff triggered" do
-      hub, spoke1, spoke2 = IntegrationFactors.handoff_hub_spoke_instances(spoke_count: 2)
-      runner = Phronomy::Agent::Runner.new(
-        agents: [hub, spoke1, spoke2],
-        routes: {hub => [spoke1, spoke2]}
-      )
-      result = runner.invoke("Hello from hub-spoke test.")
-      expect(result[:output]).to be_a(String)
-      expect(result[:agent]).to equal(hub)
-    end
+  it "keeps the Target active for the next user turn in the same Runtime" do
+    source = build_agent("cg05-source-continuity", "Triage agent")
+    target = build_agent("cg05-target-continuity", "Billing agent")
+    handoff = Phronomy::MultiAgent::Handoff.new(
+      source_agent: source,
+      target_agent: target
+    )
+    transport_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff).tool_name
+
+    LLMStub.activate(responses: [
+      LLMStub.tool_call_response(
+        transport_name,
+        {responsibility: "Own the billing case"}
+      ),
+      "First billing answer.",
+      "Second billing answer."
+    ])
+
+    runner = Phronomy::MultiAgent::Runner.new(
+      main_agent: source,
+      handoffs: [handoff]
+    )
+
+    first = runner.invoke("I have a billing problem.")
+    second = runner.invoke("I have another detail.")
+
+    expect(first[:agent]).to equal(target)
+    expect(second[:agent]).to equal(target)
+    expect(second[:output]).to eq("Second billing answer.")
+  end
+
+  it "preserves the active Agent when only the Runner facade is recreated" do
+    source = build_agent("cg05-source-recreate", "Triage agent")
+    target = build_agent("cg05-target-recreate", "Billing agent")
+    handoff = Phronomy::MultiAgent::Handoff.new(
+      source_agent: source,
+      target_agent: target
+    )
+    transport_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff).tool_name
+
+    LLMStub.activate(responses: [
+      LLMStub.tool_call_response(
+        transport_name,
+        {responsibility: "Own the billing case"}
+      ),
+      "First billing answer.",
+      "Continued by billing."
+    ])
+
+    Phronomy::MultiAgent::Runner.new(
+      main_agent: source,
+      handoffs: [handoff]
+    ).invoke("Start")
+
+    recreated = Phronomy::MultiAgent::Runner.new(
+      main_agent: source,
+      handoffs: [handoff]
+    )
+    result = recreated.invoke("Continue")
+
+    expect(result[:agent]).to equal(target)
+    expect(result[:output]).to eq("Continued by billing.")
+  end
+
+  it "can transfer Context between Agents backed by different Persistence instances" do
+    source_persistence = Phronomy::Persistence::InMemory.new
+    target_persistence = Phronomy::Persistence::InMemory.new
+    source = build_agent(
+      "cg05-source-separate-persistence",
+      "Source agent",
+      persistence: source_persistence
+    )
+    target = build_agent(
+      "cg05-target-separate-persistence",
+      "Target agent",
+      persistence: target_persistence
+    )
+    source.add_knowledge("SOURCE_KNOWLEDGE_MARKER")
+    handoff = Phronomy::MultiAgent::Handoff.new(
+      source_agent: source,
+      target_agent: target
+    )
+    transport_name = Phronomy::MultiAgent::HandoffCapabilityFactory.build(handoff).tool_name
+
+    recorder = LLMStub.activate(responses: [
+      LLMStub.tool_call_response(
+        transport_name,
+        {
+          responsibility: "Use the transferred source knowledge",
+          include_knowledge: true
+        }
+      ),
+      "Target completed."
+    ])
+
+    result = Phronomy::MultiAgent::Runner.new(
+      main_agent: source,
+      handoffs: [handoff]
+    ).invoke("Please use the stored knowledge")
+
+    expect(source.persistence).not_to equal(target.persistence)
+    expect(result[:agent]).to equal(target)
+    target_text = recorder.last_messages.map { |message| message["content"] }.compact.join("\n")
+    expect(target_text).to include("SOURCE_KNOWLEDGE_MARKER")
   end
 end

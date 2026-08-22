@@ -2,8 +2,6 @@
 
 module Phronomy
   module Agent
-    # Public Agent execution API. Agent instances are always stateful and all
-    # operations are coordinated through Phronomy::Persistence.
     module AsyncEventApi
       def invoke(
         input,
@@ -43,7 +41,7 @@ module Phronomy
           thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
         end
         approval = _approval_configuration_snapshot(on_tool_approval_required)
-        execution_coordinator.start(
+        execution_coordinator_for(config).start(
           input,
           thread_id: thread_id,
           config: config,
@@ -96,7 +94,7 @@ module Phronomy
           thread_id, config = _apply_invocation_context(thread_id, config, invocation_context)
         end
         approval = _approval_configuration_snapshot(on_tool_approval_required)
-        execution_coordinator.start(
+        execution_coordinator_for(config).start(
           input,
           thread_id: thread_id,
           config: config,
@@ -118,7 +116,9 @@ module Phronomy
       end
 
       def approve_async(execution_id, approval_request_id:, approved: true, config: {})
-        execution_coordinator.resume(
+        live = Phronomy::Runtime.instance.__agent_activations.fetch(execution_id)
+        coordinator = live&.coordinator || execution_coordinator_for(config)
+        coordinator.resume(
           execution_id,
           approval_request_id: approval_request_id,
           approved: approved,
@@ -130,6 +130,15 @@ module Phronomy
 
       def execution_coordinator
         @execution_coordinator ||= Agent::ExecutionCoordinator.new(self)
+      end
+
+      def execution_coordinator_for(config)
+        multi_agent = config.key?(:phronomy_handoff_bindings) ||
+          config.key?(:phronomy_handoff_context)
+        return execution_coordinator unless multi_agent
+
+        @multi_agent_execution_coordinator ||=
+          Phronomy::MultiAgent::ExecutionCoordinator.new(self)
       end
 
       def resolve_event_listener(keyword_listener, block_listener)

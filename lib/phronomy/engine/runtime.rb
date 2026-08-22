@@ -5,19 +5,12 @@ require_relative "runtime/shutdown_result"
 require_relative "runtime/timer_service"
 
 module Phronomy
-  # Owns the EventLoop, offloaded synchronous work, timers and shutdown lifecycle.
-  #
-  # Runtime no longer schedules arbitrary Tasks. Framework control flow belongs
-  # to EventLoop/FSMSession; synchronous work that must not run on the EventLoop
-  # belongs to OffloadPool.
   class Runtime
     @instance_mutex = Mutex.new
 
     class << self
       def instance
-        instance_mutex.synchronize do
-          @instance ||= new
-        end
+        instance_mutex.synchronize { @instance ||= new }
       end
 
       def default_if_initialized_for_test
@@ -70,6 +63,7 @@ module Phronomy
         timer_queue_provider: -> { timer_queue }
       )
       @agent_activations = Phronomy::Agent::ActivationRegistry.new
+      @multi_agent_admissions = Phronomy::MultiAgent::AdmissionRegistry.new
       @lifecycle_mutex = Mutex.new
       @shutdown_mutex = Mutex.new
       @state = :running
@@ -95,7 +89,6 @@ module Phronomy
       @pool_registry.named_pool(name, size: size, queue_size: queue_size)
     end
 
-    # Public timer access also ensures that the EventLoop that drives timers is alive.
     def timer_queue
       ensure_accepting_work!
       timer = @timer_service.timer_queue
@@ -103,15 +96,27 @@ module Phronomy
       timer
     end
 
-    # Internal EventLoop access that does not recursively initialise EventLoop.
     def __timer_queue
       @timer_service.timer_queue
     end
 
-    # Process-local live Agent executions. Activations are transient runtime
-    # state and deliberately do not belong to Persistence.
     def __agent_activations
       @agent_activations
+    end
+
+    # @api private
+    def __admit_multi_agent(coordinator)
+      current_state = @lifecycle_mutex.synchronize { @state }
+      unless current_state == :running
+        raise Phronomy::RuntimeShutdownError,
+          "Runtime is #{current_state}; new Multi-Agent turns are not accepted"
+      end
+      @multi_agent_admissions.admit!(coordinator)
+    end
+
+    # @api private
+    def __release_multi_agent(coordinator)
+      @multi_agent_admissions.release!(coordinator)
     end
 
     def event_loop
@@ -163,7 +168,6 @@ module Phronomy
       @shutdown_mutex.synchronize do
         return @shutdown_result if @shutdown_result
 
-        # Phase 1 — drain sessions with the full configured grace.
         drain_deadline = monotonic_now + timeout
         loop_instance = @lifecycle_mutex.synchronize do
           @state = :draining unless @state == :failed
@@ -171,15 +175,13 @@ module Phronomy
         end
         loop_instance&.begin_draining
 
+        admission_idle = @multi_agent_admissions.wait_until_idle(drain_deadline)
         loop_idle = !loop_instance || loop_instance.wait_until_idle(drain_deadline)
 
         @lifecycle_mutex.synchronize do
           @state = :stopping unless @state == :failed
         end
 
-        # Phase 2 — stop the EventLoop thread with a short independent budget.
-        # An idle EventLoop processes STOP and exits in < 1ms normally; the 0.2s
-        # budget here is only a safety net for OS scheduling jitter.
         stop_deadline = monotonic_now + [cancel_grace.to_f, 0.2].max
         event_loop_status = if loop_instance
           loop_instance.stop_and_join(deadline: stop_deadline)
@@ -188,7 +190,7 @@ module Phronomy
         end
 
         subsystem_error = shutdown_pools_and_timer
-        cleanup_complete = loop_idle &&
+        cleanup_complete = admission_idle && loop_idle &&
           (!loop_instance || !loop_instance.thread_alive?) &&
           event_loop_status != :cancel_timeout &&
           subsystem_error.nil?

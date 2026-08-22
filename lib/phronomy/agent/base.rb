@@ -558,16 +558,6 @@ module Phronomy
 
       public
 
-      def _add_handoff_tool(tool_class)
-        @_handoff_tools ||= []
-        @_handoff_tools << tool_class
-        self
-      end
-
-      def _handoff_tools
-        @_handoff_tools || []
-      end
-
       def tool_approval_policy(&block)
         raise ArgumentError, "tool_approval_policy requires a block" unless block
 

@@ -67,13 +67,18 @@ for production deployments.
 | Feature | Stability |
 |---|---|
 | **Workflow asynchronous pattern** — Start async work, return immediately, and continue through `Workflow#signal` | Beta |
-| **Multi-agent** — Agent-as-Tool and hub-and-spoke handoff routing | Beta |
+| **Semantic Multi-Agent Handoff** — `MultiAgent::Handoff` transfers active responsibility from an explicit Source Agent to a Target Agent, projects policy-bounded Context with provenance, keeps the Target active across user turns within the same Runtime/main-Agent lifetime, and does not claim durable continuation across Runtime reset | Beta |
 | **GeneratorVerifier** — Generator-Verifier loop with injectable prompts/parsers | Beta |
 | **`Phronomy::MultiAgent::Orchestrator`** — Parallel subagent dispatch, fan-out, and `subagent` DSL | Beta |
 | **`Phronomy::MultiAgent::TeamCoordinator`** — LLM coordinator with stateful worker Agents | Beta |
 | **SharedState** — Peer-agent shared-state coordination | Experimental |
 | **Human-in-the-loop approval** — Suspension and approval/resume of Tool requests on the same live Agent/Activation owner | Beta |
 | **`tool_approval_policy`** — Application-defined allow/approve/reject policy | Beta |
+
+For Handoff, Application `HandoffPolicy` controls what may cross the Source/Target
+boundary. Transferred Handoff Context is immutable request-scoped material rather
+than automatic Target Journal/Knowledge adoption. Target Context Policy still
+selects what enters each individual Target LLM call.
 
 ## Public API boundary
 

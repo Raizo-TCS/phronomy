@@ -4,11 +4,24 @@ require "spec_helper"
 
 # Branch coverage for Context Policy domain files.
 RSpec.describe "Context Policy branch coverage" do
-  let(:cand_class) { Phronomy::Agent::ContextCandidate }
-  let(:unit_class) { Phronomy::Agent::ContextSelectionUnit }
+  let(:cand_class) { Phronomy::Agent::Selection::Candidate }
+  let(:unit_class) { Phronomy::Agent::Selection::Unit }
   let(:plan_class) { Phronomy::Agent::ContextPlan }
   let(:validator) { Phronomy::Agent::ContextPlanValidator.new }
-  let(:unit_builder) { Phronomy::Agent::ContextParts::UnitBuilders::DependencyAwareUnitBuilder.new }
+  let(:unit_builder) { Phronomy::Agent::Selection::UnitBuilders::DependencyAwareUnitBuilder.new }
+
+  def selection_constraint(requirement)
+    case requirement
+    when :optional
+      Phronomy::Agent::Selection::Constraint.selectable(origin: :context_policy)
+    when :protocol_required
+      Phronomy::Agent::Selection::Constraint.required(origin: :framework_protocol)
+    when :declared_required
+      Phronomy::Agent::Selection::Constraint.required(origin: :context_policy_declared)
+    else
+      raise ArgumentError, "unknown test requirement: #{requirement.inspect}"
+    end
+  end
 
   def make_candidate(id:, category:, sequence:, requirement: :optional, tool_call_id: nil,
     tool_call_ids: [], llm_call_id: nil, source_kind: :journal)
@@ -17,7 +30,7 @@ RSpec.describe "Context Policy branch coverage" do
       candidate_id: id, source_kind: source_kind, category: category, role: role,
       content_ref: "ref-#{id}", record_id: "rec-#{id}", agent_id: "ag-1",
       execution_id: "ex-1", llm_call_id: llm_call_id, tool_call_id: tool_call_id,
-      sequence: sequence, requirement: requirement, priority: 0,
+      sequence: sequence, constraint: selection_constraint(requirement), priority: 0,
       metadata: {
         "estimated_tokens" => 5,
         "source_sequence" => sequence,
@@ -29,7 +42,7 @@ RSpec.describe "Context Policy branch coverage" do
   def make_unit(id:, candidate_ids:, requirement: :optional, seq: [0, 0])
     unit_class.new(
       unit_id: id, candidate_ids: candidate_ids, dependency_unit_ids: [],
-      kind: :message, requirement: requirement, priority: 0,
+      kind: :message, constraint: selection_constraint(requirement), priority: 0,
       sequence_range: seq, metadata: {}
     )
   end
@@ -38,7 +51,7 @@ RSpec.describe "Context Policy branch coverage" do
     default_parts = {
       unit_builder: unit_builder,
       required_context_resolver: Phronomy::Agent::ContextParts::Requirements::RequiredContextResolver.new,
-      recent_first_selector: Phronomy::Agent::ContextParts::Selectors::RecentFirstSelector.new,
+      recent_first_selector: Phronomy::Agent::Selection::Selectors::RecentFirstSelector.new,
       token_budget_packer: Phronomy::Agent::ContextParts::Budget::TokenBudgetPacker.new
     }
     Phronomy::Agent::ContextRequest.new(
@@ -271,7 +284,8 @@ RSpec.describe "Context Policy branch coverage" do
       units = unit_builder.build(candidates)
       exchange = units.find { |u| u.kind == :tool_exchange }
       expect(exchange).not_to be_nil
-      expect(exchange.requirement).to eq(:declared_required)
+      expect(exchange.constraint.required?).to be(true)
+      expect(exchange.constraint.origin).to eq(:context_policy_declared)
     end
 
     it "uses symbol key for tool_call_ids metadata" do
@@ -279,7 +293,7 @@ RSpec.describe "Context Policy branch coverage" do
         candidate_id: "a", source_kind: :journal, category: :assistant_message,
         role: :assistant, content_ref: "ref-a", record_id: "rec-a",
         agent_id: "ag-1", execution_id: "ex-1", llm_call_id: nil, tool_call_id: nil,
-        sequence: 1, requirement: :optional, priority: 0,
+        sequence: 1, constraint: selection_constraint(:optional), priority: 0,
         metadata: {:tool_call_ids => ["tc1"], "estimated_tokens" => 5, "source_sequence" => 1}
       )
       msg = make_candidate(id: "m", category: :tool_message, sequence: 2, tool_call_id: "tc1")
@@ -363,11 +377,11 @@ RSpec.describe "Context Policy branch coverage" do
       custom_builder = Class.new do
         def build(candidates)
           candidates.map.with_index do |c, i|
-            Phronomy::Agent::ContextSelectionUnit.new(
+            Phronomy::Agent::Selection::Unit.new(
               unit_id: "unit-#{c.candidate_id}",
               candidate_ids: [c.candidate_id],
               dependency_unit_ids: [],
-              kind: :message, requirement: c.requirement,
+              kind: :message, constraint: c.constraint,
               priority: 0, sequence_range: [i, i], metadata: {}
             )
           end
@@ -394,9 +408,9 @@ RSpec.describe "Context Policy branch coverage" do
       custom_builder = Class.new do
         def build(candidates)
           candidates.map.with_index do |c, i|
-            Phronomy::Agent::ContextSelectionUnit.new(
+            Phronomy::Agent::Selection::Unit.new(
               unit_id: "unit-#{c.candidate_id}", candidate_ids: [c.candidate_id],
-              dependency_unit_ids: [], kind: :message, requirement: c.requirement,
+              dependency_unit_ids: [], kind: :message, constraint: c.constraint,
               priority: 0, sequence_range: [i, i], metadata: {}
             )
           end
@@ -455,21 +469,21 @@ RSpec.describe "Context Policy branch coverage" do
   end
 
   describe "ContextSelectionUnit" do
-    it "raises on unknown requirement" do
+    it "raises on unknown constraint type" do
       expect {
-        Phronomy::Agent::ContextSelectionUnit.new(
+        Phronomy::Agent::Selection::Unit.new(
           unit_id: "u1", candidate_ids: [], dependency_unit_ids: [],
-          kind: :message, requirement: :invalid_req, priority: 0,
+          kind: :message, constraint: :invalid_constraint, priority: 0,
           sequence_range: [0, 1], metadata: {}
         )
-      }.to raise_error(ArgumentError, /unknown ContextSelectionUnit requirement/)
+      }.to raise_error(ArgumentError, /Selection::Unit constraint must be Selection::Constraint/)
     end
 
     it "raises when sequence_range does not have two integers" do
       expect {
-        Phronomy::Agent::ContextSelectionUnit.new(
+        Phronomy::Agent::Selection::Unit.new(
           unit_id: "u1", candidate_ids: [], dependency_unit_ids: [],
-          kind: :message, requirement: :optional, priority: 0,
+          kind: :message, constraint: selection_constraint(:optional), priority: 0,
           sequence_range: [0], metadata: {}
         )
       }.to raise_error(ArgumentError, /sequence_range must contain two integers/)
