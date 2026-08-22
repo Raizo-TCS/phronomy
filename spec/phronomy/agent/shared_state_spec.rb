@@ -484,7 +484,7 @@ RSpec.describe Phronomy::Agent::SharedState do
   # ---------------------------------------------------------------------------
 
   describe "tool injection" do
-    it "explicitly preserves the wrapped definition for framework-owned Runtime instrumentation" do
+    it "uses a distinct deterministic definition for framework-owned instrumentation" do
       researcher = Class.new(Phronomy::Agent::Base) do
         agent_definition id: "shared-state-researcher", version: 4
       end
@@ -498,12 +498,23 @@ RSpec.describe Phronomy::Agent::SharedState do
         store,
         1
       )
+      instrumented_again = coordinator.send(
+        :build_instrumented_researcher,
+        researcher,
+        store,
+        2
+      )
 
       expect(instrumented).not_to equal(researcher)
       expect(instrumented.agent_definition).to eq(
-        id: "shared-state-researcher",
-        version: 4
+        id: "Phronomy::Agent::SharedState::Instrumented/shared-state-researcher@4",
+        version: 1
       )
+      expect(instrumented.agent_definition)
+        .not_to eq(researcher.agent_definition)
+      expect(instrumented_again.agent_definition)
+        .to eq(instrumented.agent_definition)
+
       expect(researcher.agent_definition).to eq(
         id: "shared-state-researcher",
         version: 4
@@ -511,6 +522,40 @@ RSpec.describe Phronomy::Agent::SharedState do
       expect(researcher.tools).to eq(original_tools)
       expect(instrumented.tools.map(&:tool_name))
         .to include("read_store", "write_finding")
+    end
+
+    it "derives a different generated definition when the wrapped revision changes" do
+      coordinator = Class.new(described_class).new
+      store = Phronomy::Agent::SharedState::KnowledgeStore.new
+
+      researcher_v4 = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "shared-state-lineage", version: 4
+      end
+      researcher_v5 = Class.new(Phronomy::Agent::Base) do
+        agent_definition id: "shared-state-lineage", version: 5
+      end
+
+      instrumented_v4 = coordinator.send(
+        :build_instrumented_researcher,
+        researcher_v4,
+        store,
+        1
+      )
+      instrumented_v5 = coordinator.send(
+        :build_instrumented_researcher,
+        researcher_v5,
+        store,
+        1
+      )
+
+      expect(instrumented_v4.agent_definition).to eq(
+        id: "Phronomy::Agent::SharedState::Instrumented/shared-state-lineage@4",
+        version: 1
+      )
+      expect(instrumented_v5.agent_definition).to eq(
+        id: "Phronomy::Agent::SharedState::Instrumented/shared-state-lineage@5",
+        version: 1
+      )
     end
 
     it "researcher agents receive read_store and write_finding tools" do
