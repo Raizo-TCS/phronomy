@@ -78,6 +78,7 @@ tracking <code>main</code> directly.</p>
 <li><strong>Persistence</strong> — unified durable backend for Agent state and Workflow <code>workflow_states</code>.</li>
 <li><strong>Workflow</strong> — state-machine-driven application workflow with explicit events and wait states.</li>
 <li><strong>Tool / Capability</strong> — callable application capability exposed to an Agent; application-defined Tools subclass <code>Phronomy::Tool::Base</code>.</li>
+<li><strong>Multi-Agent Handoff</strong> — semantic Source-to-Target responsibility transfer with policy-bounded Context projection and Runtime-local active-Agent continuity.</li>
 <li><strong>EventLoop + FSMSession</strong> — the framework control plane for logical lifecycle coordination.</li>
 <li><strong>OffloadPool</strong> — bounded operating-system-thread execution boundary for synchronous work that must not run on EventLoop.</li>
 <li><strong>Task</strong> — the common thread-free completion handle returned by Phronomy asynchronous APIs, including OffloadPool-backed work.</li>
@@ -171,6 +172,7 @@ contracts, timeout/cancellation semantics, metrics, and callback rules.</p>
 <li><a href="docs/migrations/0.15.md">Migration from 0.15-era APIs</a>.</li>
 <li><a href="docs/migrations/0.16.md">0.16 cleanup migration</a>.</li>
 <li><a href="docs/migrations/0.19.md">0.19 unified Persistence migration</a>.</li>
+<li><a href="docs/migrations/0.22.md">0.22 semantic Multi-Agent Handoff migration</a>.</li>
 <li><a href="docs/decisions/">Architecture Decision Records</a> — design rationale and superseding decisions.</li>
 <li><a href="CHANGELOG.md">CHANGELOG</a> — current development and recent release history.</li>
 <li><a href="docs/changelog/0.14-and-earlier.md">Changelog archive: 0.14.0 and earlier</a>.</li>
@@ -201,7 +203,7 @@ bundle exec rspec spec/phronomy
 <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></div></div>
 
       <div id="footer">
-  Generated on Mon Aug 17 10:36:18 2026 by
+  Generated on Sat Aug 22 13:29:28 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

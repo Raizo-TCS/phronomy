@@ -104,19 +104,7 @@
   
 </div>
 
-<h2>Overview</h2><div class="docstring">
-  <div class="discussion">
-    <p>Owns the EventLoop, offloaded synchronous work, timers and shutdown lifecycle.</p>
-<p>Runtime no longer schedules arbitrary Tasks. Framework control flow belongs
-to EventLoop/FSMSession; synchronous work that must not run on the EventLoop
-belongs to OffloadPool.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><h2>Defined Under Namespace</h2>
+<h2>Defined Under Namespace</h2>
 <p class="children">
   
     
@@ -286,6 +274,28 @@ belongs to OffloadPool.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#__admit_multi_agent-instance_method" title="#__admit_multi_agent (instance method)">#<strong>__admit_multi_agent</strong>(coordinator)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#__agent_activations-instance_method" title="#__agent_activations (instance method)">#<strong>__agent_activations</strong>  &#x21d2; Object </a>
     
 
@@ -300,7 +310,7 @@ belongs to OffloadPool.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Process-local live Agent executions.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -330,6 +340,28 @@ belongs to OffloadPool.</p>
         <li class="public ">
   <span class="summary_signature">
     
+      <a href="#__release_multi_agent-instance_method" title="#__release_multi_agent (instance method)">#<strong>__release_multi_agent</strong>(coordinator)  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+  <span class="private note title">private</span>
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#__timer_queue-instance_method" title="#__timer_queue (instance method)">#<strong>__timer_queue</strong>  &#x21d2; Object </a>
     
 
@@ -344,7 +376,7 @@ belongs to OffloadPool.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Internal EventLoop access that does not recursively initialise EventLoop.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -522,7 +554,7 @@ belongs to OffloadPool.</p>
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Public timer access also ensures that the EventLoop that drives timers is alive.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -558,22 +590,23 @@ belongs to OffloadPool.</p>
       <pre class="lines">
 
 
+60
+61
+62
+63
+64
+65
+66
 67
 68
 69
 70
 71
 72
-73
-74
-75
-76
-77
-78
-79</pre>
+73</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 67</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 60</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span>
   <span class='ivar'>@timer_service</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="Runtime/TimerService.html" title="Phronomy::Runtime::TimerService (class)">TimerService</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Runtime/TimerService.html#initialize-instance_method" title="Phronomy::Runtime::TimerService#initialize (method)">new</a></span></span>
@@ -581,6 +614,7 @@ belongs to OffloadPool.</p>
     <span class='label'>timer_queue_provider:</span> <span class='tlambda'>-&gt;</span> <span class='tlambeg'>{</span> <span class='id identifier rubyid_timer_queue'>timer_queue</span> <span class='rbrace'>}</span>
   <span class='rparen'>)</span>
   <span class='ivar'>@agent_activations</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="Agent/ActivationRegistry.html" title="Phronomy::Agent::ActivationRegistry (class)">ActivationRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="Agent/ActivationRegistry.html#initialize-instance_method" title="Phronomy::Agent::ActivationRegistry#initialize (method)">new</a></span></span>
+  <span class='ivar'>@multi_agent_admissions</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="MultiAgent.html" title="Phronomy::MultiAgent (module)">MultiAgent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="MultiAgent/AdmissionRegistry.html" title="Phronomy::MultiAgent::AdmissionRegistry (class)">AdmissionRegistry</a></span></span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="MultiAgent/AdmissionRegistry.html#initialize-instance_method" title="Phronomy::MultiAgent::AdmissionRegistry#initialize (method)">new</a></span></span>
   <span class='ivar'>@lifecycle_mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@shutdown_mutex</span> <span class='op'>=</span> <span class='const'>Mutex</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
   <span class='ivar'>@state</span> <span class='op'>=</span> <span class='symbol'>:running</span>
@@ -615,12 +649,12 @@ belongs to OffloadPool.</p>
       <pre class="lines">
 
 
-23
-24
-25</pre>
+16
+17
+18</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 23</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 16</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_default_if_initialized_for_test'>default_if_initialized_for_test</span>
   <span class='id identifier rubyid_instance_mutex'>instance_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@instance</span> <span class='rbrace'>}</span>
@@ -667,13 +701,13 @@ belongs to OffloadPool.</p>
       <pre class="lines">
 
 
-55
-56
-57
-58</pre>
+48
+49
+50
+51</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 55</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 48</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_in_event_loop_context?'>in_event_loop_context?</span>
   <span class='id identifier rubyid_runtime'>runtime</span> <span class='op'>=</span> <span class='id identifier rubyid_instance_mutex'>instance_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@instance</span> <span class='rbrace'>}</span>
@@ -699,19 +733,15 @@ belongs to OffloadPool.</p>
       <pre class="lines">
 
 
-17
-18
-19
-20
-21</pre>
+12
+13
+14</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 17</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 12</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_instance'>instance</span>
-  <span class='id identifier rubyid_instance_mutex'>instance_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
-    <span class='ivar'>@instance</span> <span class='op'>||=</span> <span class='id identifier rubyid_new'>new</span>
-  <span class='kw'>end</span>
+  <span class='id identifier rubyid_instance_mutex'>instance_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@instance</span> <span class='op'>||=</span> <span class='id identifier rubyid_new'>new</span> <span class='rbrace'>}</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -733,16 +763,16 @@ belongs to OffloadPool.</p>
       <pre class="lines">
 
 
-27
-28
-29
-30
-31
-32
-33</pre>
+20
+21
+22
+23
+24
+25
+26</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 27</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 20</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_replace_default_for_test'>replace_default_for_test</span><span class='lparen'>(</span><span class='id identifier rubyid_runtime'>runtime</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_instance_mutex'>instance_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -771,6 +801,13 @@ belongs to OffloadPool.</p>
       <pre class="lines">
 
 
+32
+33
+34
+35
+36
+37
+38
 39
 40
 41
@@ -778,17 +815,10 @@ belongs to OffloadPool.</p>
 43
 44
 45
-46
-47
-48
-49
-50
-51
-52
-53</pre>
+46</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 39</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 32</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_reset_default!'>reset_default!</span><span class='lparen'>(</span><span class='label'>timeout:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_runtime'>runtime</span> <span class='op'>=</span> <span class='id identifier rubyid_instance_mutex'>instance_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@instance</span> <span class='rbrace'>}</span>
@@ -825,12 +855,12 @@ belongs to OffloadPool.</p>
       <pre class="lines">
 
 
-35
-36
-37</pre>
+28
+29
+30</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 35</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 28</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_restore_default_for_test'>restore_default_for_test</span><span class='lparen'>(</span><span class='id identifier rubyid_runtime'>runtime</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_instance_mutex'>instance_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@instance</span> <span class='op'>=</span> <span class='id identifier rubyid_runtime'>runtime</span> <span class='rbrace'>}</span>
@@ -847,9 +877,9 @@ belongs to OffloadPool.</p>
 
     
       <div class="method_details first">
-  <h3 class="signature first" id="__agent_activations-instance_method">
+  <h3 class="signature first" id="__admit_multi_agent-instance_method">
   
-    #<strong>__agent_activations</strong>  &#x21d2; <tt>Object</tt> 
+    #<strong>__admit_multi_agent</strong>(coordinator)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -857,8 +887,11 @@ belongs to OffloadPool.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Process-local live Agent executions. Activations are transient runtime
-state and deliberately do not belong to Persistence.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
 
   </div>
 </div>
@@ -871,12 +904,52 @@ state and deliberately do not belong to Persistence.</p>
       <pre class="lines">
 
 
+108
+109
+110
+111
+112
 113
 114
 115</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 113</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 108</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid___admit_multi_agent'>__admit_multi_agent</span><span class='lparen'>(</span><span class='id identifier rubyid_coordinator'>coordinator</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_current_state'>current_state</span> <span class='op'>=</span> <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@state</span> <span class='rbrace'>}</span>
+  <span class='kw'>unless</span> <span class='id identifier rubyid_current_state'>current_state</span> <span class='op'>==</span> <span class='symbol'>:running</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="RuntimeShutdownError.html" title="Phronomy::RuntimeShutdownError (class)">RuntimeShutdownError</a></span></span><span class='comma'>,</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Runtime is </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_current_state'>current_state</span><span class='embexpr_end'>}</span><span class='tstring_content'>; new Multi-Agent turns are not accepted</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+  <span class='ivar'>@multi_agent_admissions</span><span class='period'>.</span><span class='id identifier rubyid_admit!'>admit!</span><span class='lparen'>(</span><span class='id identifier rubyid_coordinator'>coordinator</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="__agent_activations-instance_method">
+  
+    #<strong>__agent_activations</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+103
+104
+105</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 103</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___agent_activations'>__agent_activations</span>
   <span class='ivar'>@agent_activations</span>
@@ -901,17 +974,17 @@ state and deliberately do not belong to Persistence.</p>
       <pre class="lines">
 
 
-143
-144
-145
-146
-147
 148
 149
-150</pre>
+150
+151
+152
+153
+154
+155</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 143</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 148</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___event_loop_failed'>__event_loop_failed</span><span class='lparen'>(</span><span class='id identifier rubyid_error'>error</span><span class='rparen'>)</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -927,9 +1000,9 @@ state and deliberately do not belong to Persistence.</p>
 </div>
     
       <div class="method_details ">
-  <h3 class="signature " id="__timer_queue-instance_method">
+  <h3 class="signature " id="__release_multi_agent-instance_method">
   
-    #<strong>__timer_queue</strong>  &#x21d2; <tt>Object</tt> 
+    #<strong>__release_multi_agent</strong>(coordinator)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -937,7 +1010,11 @@ state and deliberately do not belong to Persistence.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Internal EventLoop access that does not recursively initialise EventLoop.</p>
+    <p class="note private">
+  <strong>This method is part of a private API.</strong>
+  You should avoid using this method if possible, as it may be removed or be changed in the future.
+</p>
+
 
   </div>
 </div>
@@ -950,12 +1027,42 @@ state and deliberately do not belong to Persistence.</p>
       <pre class="lines">
 
 
-107
-108
-109</pre>
+118
+119
+120</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 107</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 118</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid___release_multi_agent'>__release_multi_agent</span><span class='lparen'>(</span><span class='id identifier rubyid_coordinator'>coordinator</span><span class='rparen'>)</span>
+  <span class='ivar'>@multi_agent_admissions</span><span class='period'>.</span><span class='id identifier rubyid_release!'>release!</span><span class='lparen'>(</span><span class='id identifier rubyid_coordinator'>coordinator</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <h3 class="signature " id="__timer_queue-instance_method">
+  
+    #<strong>__timer_queue</strong>  &#x21d2; <tt>Object</tt> 
+  
+
+  
+
+  
+</h3><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+99
+100
+101</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 99</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid___timer_queue'>__timer_queue</span>
   <span class='ivar'>@timer_service</span><span class='period'>.</span><span class='id identifier rubyid_timer_queue'>timer_queue</span>
@@ -980,11 +1087,6 @@ state and deliberately do not belong to Persistence.</p>
       <pre class="lines">
 
 
-117
-118
-119
-120
-121
 122
 123
 124
@@ -999,10 +1101,15 @@ state and deliberately do not belong to Persistence.</p>
 133
 134
 135
-136</pre>
+136
+137
+138
+139
+140
+141</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 117</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 122</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_loop'>event_loop</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
@@ -1066,13 +1173,13 @@ state and deliberately do not belong to Persistence.</p>
       <pre class="lines">
 
 
-138
-139
-140
-141</pre>
+143
+144
+145
+146</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 138</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 143</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_event_loop_current?'>event_loop_current?</span>
   <span class='id identifier rubyid_loop_instance'>loop_instance</span> <span class='op'>=</span> <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@event_loop</span> <span class='rbrace'>}</span>
@@ -1098,16 +1205,16 @@ state and deliberately do not belong to Persistence.</p>
       <pre class="lines">
 
 
-85
-86
-87
-88
-89
-90
-91</pre>
+79
+80
+81
+82
+83
+84
+85</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 85</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 79</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_offload'>offload</span><span class='lparen'>(</span>
   <span class='label'>pool_size:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_offload_pool_size'>offload_pool_size</span><span class='comma'>,</span>
@@ -1136,13 +1243,13 @@ state and deliberately do not belong to Persistence.</p>
       <pre class="lines">
 
 
-93
-94
-95
-96</pre>
+87
+88
+89
+90</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 93</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 87</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_pool'>pool</span><span class='lparen'>(</span><span class='id identifier rubyid_name'>name</span><span class='comma'>,</span> <span class='label'>size:</span> <span class='int'>10</span><span class='comma'>,</span> <span class='label'>queue_size:</span> <span class='int'>100</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_ensure_accepting_work!'>ensure_accepting_work!</span>
@@ -1168,11 +1275,6 @@ state and deliberately do not belong to Persistence.</p>
       <pre class="lines">
 
 
-152
-153
-154
-155
-156
 157
 158
 159
@@ -1233,10 +1335,12 @@ state and deliberately do not belong to Persistence.</p>
 214
 215
 216
-217</pre>
+217
+218
+219</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 152</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 157</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_shutdown'>shutdown</span><span class='lparen'>(</span>
   <span class='label'>timeout:</span> <span class='const'><span class='object_link'><a href="../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_configuration'><span class='object_link'><a href="../Phronomy.html#configuration-class_method" title="Phronomy.configuration (method)">configuration</a></span></span><span class='period'>.</span><span class='id identifier rubyid_event_loop_stop_grace_seconds'>event_loop_stop_grace_seconds</span><span class='comma'>,</span>
@@ -1252,24 +1356,21 @@ state and deliberately do not belong to Persistence.</p>
   <span class='ivar'>@shutdown_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
     <span class='kw'>return</span> <span class='ivar'>@shutdown_result</span> <span class='kw'>if</span> <span class='ivar'>@shutdown_result</span>
 
-    <span class='comment'># Phase 1 — drain sessions with the full configured grace.
-</span>    <span class='id identifier rubyid_drain_deadline'>drain_deadline</span> <span class='op'>=</span> <span class='id identifier rubyid_monotonic_now'>monotonic_now</span> <span class='op'>+</span> <span class='id identifier rubyid_timeout'>timeout</span>
+    <span class='id identifier rubyid_drain_deadline'>drain_deadline</span> <span class='op'>=</span> <span class='id identifier rubyid_monotonic_now'>monotonic_now</span> <span class='op'>+</span> <span class='id identifier rubyid_timeout'>timeout</span>
     <span class='id identifier rubyid_loop_instance'>loop_instance</span> <span class='op'>=</span> <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
       <span class='ivar'>@state</span> <span class='op'>=</span> <span class='symbol'>:draining</span> <span class='kw'>unless</span> <span class='ivar'>@state</span> <span class='op'>==</span> <span class='symbol'>:failed</span>
       <span class='ivar'>@event_loop</span>
     <span class='kw'>end</span>
     <span class='id identifier rubyid_loop_instance'>loop_instance</span><span class='op'>&amp;.</span><span class='id identifier rubyid_begin_draining'>begin_draining</span>
 
+    <span class='id identifier rubyid_admission_idle'>admission_idle</span> <span class='op'>=</span> <span class='ivar'>@multi_agent_admissions</span><span class='period'>.</span><span class='id identifier rubyid_wait_until_idle'>wait_until_idle</span><span class='lparen'>(</span><span class='id identifier rubyid_drain_deadline'>drain_deadline</span><span class='rparen'>)</span>
     <span class='id identifier rubyid_loop_idle'>loop_idle</span> <span class='op'>=</span> <span class='op'>!</span><span class='id identifier rubyid_loop_instance'>loop_instance</span> <span class='op'>||</span> <span class='id identifier rubyid_loop_instance'>loop_instance</span><span class='period'>.</span><span class='id identifier rubyid_wait_until_idle'>wait_until_idle</span><span class='lparen'>(</span><span class='id identifier rubyid_drain_deadline'>drain_deadline</span><span class='rparen'>)</span>
 
     <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='kw'>do</span>
       <span class='ivar'>@state</span> <span class='op'>=</span> <span class='symbol'>:stopping</span> <span class='kw'>unless</span> <span class='ivar'>@state</span> <span class='op'>==</span> <span class='symbol'>:failed</span>
     <span class='kw'>end</span>
 
-    <span class='comment'># Phase 2 — stop the EventLoop thread with a short independent budget.
-</span>    <span class='comment'># An idle EventLoop processes STOP and exits in &lt; 1ms normally; the 0.2s
-</span>    <span class='comment'># budget here is only a safety net for OS scheduling jitter.
-</span>    <span class='id identifier rubyid_stop_deadline'>stop_deadline</span> <span class='op'>=</span> <span class='id identifier rubyid_monotonic_now'>monotonic_now</span> <span class='op'>+</span> <span class='lbracket'>[</span><span class='id identifier rubyid_cancel_grace'>cancel_grace</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span><span class='comma'>,</span> <span class='float'>0.2</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_max'>max</span>
+    <span class='id identifier rubyid_stop_deadline'>stop_deadline</span> <span class='op'>=</span> <span class='id identifier rubyid_monotonic_now'>monotonic_now</span> <span class='op'>+</span> <span class='lbracket'>[</span><span class='id identifier rubyid_cancel_grace'>cancel_grace</span><span class='period'>.</span><span class='id identifier rubyid_to_f'>to_f</span><span class='comma'>,</span> <span class='float'>0.2</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_max'>max</span>
     <span class='id identifier rubyid_event_loop_status'>event_loop_status</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='id identifier rubyid_loop_instance'>loop_instance</span>
       <span class='id identifier rubyid_loop_instance'>loop_instance</span><span class='period'>.</span><span class='id identifier rubyid_stop_and_join'>stop_and_join</span><span class='lparen'>(</span><span class='label'>deadline:</span> <span class='id identifier rubyid_stop_deadline'>stop_deadline</span><span class='rparen'>)</span>
     <span class='kw'>else</span>
@@ -1277,7 +1378,7 @@ state and deliberately do not belong to Persistence.</p>
     <span class='kw'>end</span>
 
     <span class='id identifier rubyid_subsystem_error'>subsystem_error</span> <span class='op'>=</span> <span class='id identifier rubyid_shutdown_pools_and_timer'>shutdown_pools_and_timer</span>
-    <span class='id identifier rubyid_cleanup_complete'>cleanup_complete</span> <span class='op'>=</span> <span class='id identifier rubyid_loop_idle'>loop_idle</span> <span class='op'>&amp;&amp;</span>
+    <span class='id identifier rubyid_cleanup_complete'>cleanup_complete</span> <span class='op'>=</span> <span class='id identifier rubyid_admission_idle'>admission_idle</span> <span class='op'>&amp;&amp;</span> <span class='id identifier rubyid_loop_idle'>loop_idle</span> <span class='op'>&amp;&amp;</span>
       <span class='lparen'>(</span><span class='op'>!</span><span class='id identifier rubyid_loop_instance'>loop_instance</span> <span class='op'>||</span> <span class='op'>!</span><span class='id identifier rubyid_loop_instance'>loop_instance</span><span class='period'>.</span><span class='id identifier rubyid_thread_alive?'>thread_alive?</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span>
       <span class='id identifier rubyid_event_loop_status'>event_loop_status</span> <span class='op'>!=</span> <span class='symbol'>:cancel_timeout</span> <span class='op'>&amp;&amp;</span>
       <span class='id identifier rubyid_subsystem_error'>subsystem_error</span><span class='period'>.</span><span class='id identifier rubyid_nil?'>nil?</span>
@@ -1324,12 +1425,12 @@ state and deliberately do not belong to Persistence.</p>
       <pre class="lines">
 
 
-81
-82
-83</pre>
+75
+76
+77</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 81</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 75</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_state'>state</span>
   <span class='ivar'>@lifecycle_mutex</span><span class='period'>.</span><span class='id identifier rubyid_synchronize'>synchronize</span> <span class='lbrace'>{</span> <span class='ivar'>@state</span> <span class='rbrace'>}</span>
@@ -1348,30 +1449,21 @@ state and deliberately do not belong to Persistence.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Public timer access also ensures that the EventLoop that drives timers is alive.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
-99
-100
-101
-102
-103
-104</pre>
+92
+93
+94
+95
+96
+97</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 99</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/engine/runtime.rb', line 92</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_timer_queue'>timer_queue</span>
   <span class='id identifier rubyid_ensure_accepting_work!'>ensure_accepting_work!</span>
@@ -1389,7 +1481,7 @@ state and deliberately do not belong to Persistence.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Aug 17 10:36:20 2026 by
+  Generated on Sat Aug 22 13:29:29 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

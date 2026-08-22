@@ -91,17 +91,7 @@
   
 </div>
 
-<h2>Overview</h2><div class="docstring">
-  <div class="discussion">
-    <p>Public Agent execution API. Agent instances are always stateful and all
-operations are coordinated through Phronomy::Persistence.</p>
 
-  </div>
-</div>
-<div class="tags">
-  
-
-</div>
 
 
 
@@ -273,18 +263,18 @@ operations are coordinated through Phronomy::Persistence.</p>
       <pre class="lines">
 
 
+108
+109
 110
 111
 112
 113
 114
 115
-116
-117
-118</pre>
+116</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 110</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 108</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approve'>approve</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid__check_event_loop_reentrancy'>_check_event_loop_reentrancy</span><span class='lparen'>(</span><span class='symbol'>:approve</span><span class='comma'>,</span> <span class='symbol'>:approve_async</span><span class='rparen'>)</span>
@@ -315,6 +305,8 @@ operations are coordinated through Phronomy::Persistence.</p>
       <pre class="lines">
 
 
+118
+119
 120
 121
 122
@@ -325,10 +317,12 @@ operations are coordinated through Phronomy::Persistence.</p>
 127</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 120</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 118</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_approve_async'>approve_async</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span> <span class='label'>approval_request_id:</span><span class='comma'>,</span> <span class='label'>approved:</span> <span class='kw'>true</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_execution_coordinator'>execution_coordinator</span><span class='period'>.</span><span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span>
+  <span class='id identifier rubyid_live'>live</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Runtime.html" title="Phronomy::Runtime (class)">Runtime</a></span></span><span class='period'>.</span><span class='id identifier rubyid_instance'><span class='object_link'><a href="../Runtime.html#instance-class_method" title="Phronomy::Runtime.instance (method)">instance</a></span></span><span class='period'>.</span><span class='id identifier rubyid___agent_activations'>__agent_activations</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_coordinator'>coordinator</span> <span class='op'>=</span> <span class='id identifier rubyid_live'>live</span><span class='op'>&amp;.</span><span class='id identifier rubyid_coordinator'>coordinator</span> <span class='op'>||</span> <span class='id identifier rubyid_execution_coordinator_for'>execution_coordinator_for</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_coordinator'>coordinator</span><span class='period'>.</span><span class='id identifier rubyid_resume'>resume</span><span class='lparen'>(</span>
     <span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
     <span class='label'>approval_request_id:</span> <span class='id identifier rubyid_approval_request_id'>approval_request_id</span><span class='comma'>,</span>
     <span class='label'>approved:</span> <span class='id identifier rubyid_approved'>approved</span><span class='comma'>,</span>
@@ -355,6 +349,8 @@ operations are coordinated through Phronomy::Persistence.</p>
       <pre class="lines">
 
 
+6
+7
 8
 9
 10
@@ -375,12 +371,10 @@ operations are coordinated through Phronomy::Persistence.</p>
 25
 26
 27
-28
-29
-30</pre>
+28</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 8</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 6</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke'>invoke</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
@@ -425,6 +419,8 @@ operations are coordinated through Phronomy::Persistence.</p>
       <pre class="lines">
 
 
+30
+31
 32
 33
 34
@@ -446,12 +442,10 @@ operations are coordinated through Phronomy::Persistence.</p>
 50
 51
 52
-53
-54
-55</pre>
+53</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 32</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 30</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_invoke_async'>invoke_async</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
@@ -467,7 +461,7 @@ operations are coordinated through Phronomy::Persistence.</p>
     <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid__apply_invocation_context'>_apply_invocation_context</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_approval'>approval</span> <span class='op'>=</span> <span class='id identifier rubyid__approval_configuration_snapshot'>_approval_configuration_snapshot</span><span class='lparen'>(</span><span class='id identifier rubyid_on_tool_approval_required'>on_tool_approval_required</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_execution_coordinator'>execution_coordinator</span><span class='period'>.</span><span class='id identifier rubyid_start'>start</span><span class='lparen'>(</span>
+  <span class='id identifier rubyid_execution_coordinator_for'>execution_coordinator_for</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_start'>start</span><span class='lparen'>(</span>
     <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
     <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
     <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
@@ -519,6 +513,8 @@ operations are coordinated through Phronomy::Persistence.</p>
       <pre class="lines">
 
 
+55
+56
 57
 58
 59
@@ -542,12 +538,10 @@ operations are coordinated through Phronomy::Persistence.</p>
 77
 78
 79
-80
-81
-82</pre>
+80</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 57</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 55</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream'>stream</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
@@ -617,6 +611,8 @@ operations are coordinated through Phronomy::Persistence.</p>
       <pre class="lines">
 
 
+82
+83
 84
 85
 86
@@ -639,12 +635,10 @@ operations are coordinated through Phronomy::Persistence.</p>
 103
 104
 105
-106
-107
-108</pre>
+106</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 84</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/async_event_api.rb', line 82</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_stream_async'>stream_async</span><span class='lparen'>(</span>
   <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
@@ -661,7 +655,7 @@ operations are coordinated through Phronomy::Persistence.</p>
     <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span> <span class='op'>=</span> <span class='id identifier rubyid__apply_invocation_context'>_apply_invocation_context</span><span class='lparen'>(</span><span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='id identifier rubyid_invocation_context'>invocation_context</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_approval'>approval</span> <span class='op'>=</span> <span class='id identifier rubyid__approval_configuration_snapshot'>_approval_configuration_snapshot</span><span class='lparen'>(</span><span class='id identifier rubyid_on_tool_approval_required'>on_tool_approval_required</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_execution_coordinator'>execution_coordinator</span><span class='period'>.</span><span class='id identifier rubyid_start'>start</span><span class='lparen'>(</span>
+  <span class='id identifier rubyid_execution_coordinator_for'>execution_coordinator_for</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_start'>start</span><span class='lparen'>(</span>
     <span class='id identifier rubyid_input'>input</span><span class='comma'>,</span>
     <span class='label'>thread_id:</span> <span class='id identifier rubyid_thread_id'>thread_id</span><span class='comma'>,</span>
     <span class='label'>config:</span> <span class='id identifier rubyid_config'>config</span><span class='comma'>,</span>
@@ -681,7 +675,7 @@ operations are coordinated through Phronomy::Persistence.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Aug 17 10:36:19 2026 by
+  Generated on Sat Aug 22 13:29:28 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

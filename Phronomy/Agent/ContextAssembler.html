@@ -114,7 +114,7 @@
         <dt id="ASSEMBLY_POLICY_VERSION-constant" class="">ASSEMBLY_POLICY_VERSION =
           
         </dt>
-        <dd><pre class="code"><span class='int'>6</span></pre></dd>
+        <dd><pre class="code"><span class='int'>7</span></pre></dd>
       
         <dt id="SEGMENT_ORIGIN_METADATA_KEY-constant" class="">SEGMENT_ORIGIN_METADATA_KEY =
           
@@ -125,6 +125,11 @@
           
         </dt>
         <dd><pre class="code"><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>before_llm_input</span><span class='tstring_end'>&quot;</span></span></pre></dd>
+      
+        <dt id="HANDOFF_CONTEXT_ORIGIN-constant" class="">HANDOFF_CONTEXT_ORIGIN =
+          
+        </dt>
+        <dd><pre class="code"><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>handoff_context</span><span class='tstring_end'>&quot;</span></span></pre></dd>
       
         <dt id="EARLY_CONTEXT_CATEGORIES-constant" class="">EARLY_CONTEXT_CATEGORIES =
           
@@ -249,7 +254,6 @@
       <pre class="lines">
 
 
-13
 14
 15
 16
@@ -263,10 +267,11 @@
 24
 25
 26
-27</pre>
+27
+28</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembler.rb', line 13</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembler.rb', line 14</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span>
   <span class='label'>agent:</span><span class='comma'>,</span>
@@ -310,44 +315,47 @@
       <pre class="lines">
 
 
-63
-64
-65
-66
-67
-68
-69
-70
-71
-72
-73
-74
-75
-76
-77
-78
-79
-80
-81
-82
-83
-84
-85
-86
-87
-88
-89
-90
-91
-92
-93
-94
-95
 96
-97</pre>
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembler.rb', line 63</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembler.rb', line 96</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_build_followup'>build_followup</span><span class='lparen'>(</span>
   <span class='label'>base_manifest:</span><span class='comma'>,</span>
@@ -359,11 +367,13 @@
   <span class='id identifier rubyid_projection'>projection</span> <span class='op'>=</span> <span class='id identifier rubyid_journal_projection'>journal_projection</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_root'>agent_root</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_model_cfg'>model_cfg</span> <span class='op'>=</span> <span class='id identifier rubyid_effective_model_config'>effective_model_config</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='id identifier rubyid_patch'>patch</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_hook_candidates'>hook_candidates</span> <span class='op'>=</span> <span class='id identifier rubyid_normalize_candidates'>normalize_candidates</span><span class='lparen'>(</span><span class='id identifier rubyid_patch'>patch</span><span class='period'>.</span><span class='id identifier rubyid_segment_candidates'>segment_candidates</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_system_segments'>system_segments</span> <span class='op'>=</span> <span class='id identifier rubyid_base_manifest'>base_manifest</span><span class='period'>.</span><span class='id identifier rubyid_segments'>segments</span><span class='period'>.</span><span class='id identifier rubyid_select'>select</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_segment'>segment</span><span class='op'>|</span>
-    <span class='id identifier rubyid_segment'>segment</span><span class='period'>.</span><span class='id identifier rubyid_role'>role</span> <span class='op'>==</span> <span class='symbol'>:system</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_before_llm_input_segment?'>before_llm_input_segment?</span><span class='lparen'>(</span><span class='id identifier rubyid_segment'>segment</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_base_context_segments'>base_context_segments</span> <span class='op'>=</span> <span class='id identifier rubyid_base_manifest'>base_manifest</span><span class='period'>.</span><span class='id identifier rubyid_segments'>segments</span><span class='period'>.</span><span class='id identifier rubyid_select'>select</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_segment'>segment</span><span class='op'>|</span>
+    <span class='lparen'>(</span><span class='id identifier rubyid_segment'>segment</span><span class='period'>.</span><span class='id identifier rubyid_role'>role</span> <span class='op'>==</span> <span class='symbol'>:system</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id identifier rubyid_before_llm_input_segment?'>before_llm_input_segment?</span><span class='lparen'>(</span><span class='id identifier rubyid_segment'>segment</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='op'>||</span>
+      <span class='id identifier rubyid_segment'>segment</span><span class='period'>.</span><span class='id identifier rubyid_category'>category</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span> <span class='op'>==</span> <span class='symbol'>:handoff_responsibility</span>
   <span class='kw'>end</span>
   <span class='id identifier rubyid_tool_definitions'>tool_definitions</span> <span class='op'>=</span> <span class='id identifier rubyid_base_manifest'>base_manifest</span><span class='period'>.</span><span class='id identifier rubyid_tool_definitions_ref'>tool_definitions_ref</span> <span class='op'>?</span>
     <span class='id identifier rubyid_fetch_json'>fetch_json</span><span class='lparen'>(</span><span class='id identifier rubyid_base_manifest'>base_manifest</span><span class='period'>.</span><span class='id identifier rubyid_tool_definitions_ref'>tool_definitions_ref</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+  <span class='id identifier rubyid_handoff_context'>handoff_context</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:phronomy_handoff_context</span><span class='rbracket'>]</span>
 
   <span class='id identifier rubyid_assemble'>assemble</span><span class='lparen'>(</span>
     <span class='label'>agent_root:</span> <span class='id identifier rubyid_agent_root'>agent_root</span><span class='comma'>,</span>
@@ -377,10 +387,11 @@
     <span class='label'>prior_records:</span> <span class='id identifier rubyid_projection'>projection</span><span class='period'>.</span><span class='id identifier rubyid_context_records'>context_records</span><span class='comma'>,</span>
     <span class='label'>working_records:</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_working_records'>working_records</span><span class='comma'>,</span>
     <span class='label'>excluded_record_ids:</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span>
-    <span class='label'>base_segments:</span> <span class='id identifier rubyid_system_segments'>system_segments</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_existing'>existing</span><span class='op'>|</span> <span class='id identifier rubyid_segment_hash'>segment_hash</span><span class='lparen'>(</span><span class='id identifier rubyid_existing'>existing</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='comma'>,</span>
+    <span class='label'>base_segments:</span> <span class='id identifier rubyid_base_context_segments'>base_context_segments</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_existing'>existing</span><span class='op'>|</span> <span class='id identifier rubyid_segment_hash'>segment_hash</span><span class='lparen'>(</span><span class='id identifier rubyid_existing'>existing</span><span class='rparen'>)</span> <span class='rbrace'>}</span><span class='comma'>,</span>
     <span class='label'>hook_candidates:</span> <span class='id identifier rubyid_hook_candidates'>hook_candidates</span><span class='comma'>,</span>
+    <span class='label'>inbound_handoff_context:</span> <span class='id identifier rubyid_handoff_context'>handoff_context</span><span class='comma'>,</span>
     <span class='label'>current_input_segment:</span> <span class='kw'>nil</span><span class='comma'>,</span>
-    <span class='label'>mandatory_values:</span> <span class='id identifier rubyid_system_segments'>system_segments</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_segment'>segment</span><span class='op'>|</span> <span class='id identifier rubyid_fetch_content'>fetch_content</span><span class='lparen'>(</span><span class='id identifier rubyid_segment'>segment</span><span class='period'>.</span><span class='id identifier rubyid_content_ref'>content_ref</span><span class='rparen'>)</span> <span class='rbrace'>}</span> <span class='op'>+</span>
+    <span class='label'>mandatory_values:</span> <span class='id identifier rubyid_base_context_segments'>base_context_segments</span><span class='period'>.</span><span class='id identifier rubyid_map'>map</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_value'>value</span><span class='op'>|</span> <span class='id identifier rubyid_fetch_content'>fetch_content</span><span class='lparen'>(</span><span class='id identifier rubyid_value'>value</span><span class='period'>.</span><span class='id identifier rubyid_content_ref'>content_ref</span><span class='rparen'>)</span> <span class='rbrace'>}</span> <span class='op'>+</span>
       <span class='lbracket'>[</span><span class='id identifier rubyid_tool_definitions'>tool_definitions</span><span class='rbracket'>]</span>
   <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
@@ -404,7 +415,6 @@
       <pre class="lines">
 
 
-29
 30
 31
 32
@@ -436,25 +446,78 @@
 58
 59
 60
-61</pre>
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembler.rb', line 29</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/context_assembler.rb', line 30</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_build_initial'>build_initial</span><span class='lparen'>(</span><span class='label'>input:</span><span class='comma'>,</span> <span class='label'>agent_root:</span><span class='comma'>,</span> <span class='label'>execution:</span><span class='comma'>,</span> <span class='label'>config:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='label'>patch:</span> <span class='const'><span class='object_link'><a href="LLMInputPatch.html" title="Phronomy::Agent::LLMInputPatch (class)">LLMInputPatch</a></span></span><span class='period'>.</span><span class='id identifier rubyid_empty'><span class='object_link'><a href="LLMInputPatch.html#empty-class_method" title="Phronomy::Agent::LLMInputPatch.empty (method)">empty</a></span></span><span class='rparen'>)</span>
   <span class='id identifier rubyid_projection'>projection</span> <span class='op'>=</span> <span class='id identifier rubyid_journal_projection'>journal_projection</span><span class='lparen'>(</span><span class='id identifier rubyid_agent_root'>agent_root</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_model_cfg'>model_cfg</span> <span class='op'>=</span> <span class='id identifier rubyid_effective_model_config'>effective_model_config</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='comma'>,</span> <span class='id identifier rubyid_patch'>patch</span><span class='rparen'>)</span>
-  <span class='id identifier rubyid_tool_set'>tool_set</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ToolDefinitionSet.html" title="Phronomy::Agent::ToolDefinitionSet (class)">ToolDefinitionSet</a></span></span><span class='period'>.</span><span class='id identifier rubyid_build'><span class='object_link'><a href="ToolDefinitionSet.html#build-class_method" title="Phronomy::Agent::ToolDefinitionSet.build (method)">build</a></span></span><span class='lparen'>(</span><span class='ivar'>@agent</span><span class='rparen'>)</span>
+  <span class='id identifier rubyid_tool_set'>tool_set</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="ToolDefinitionSet.html" title="Phronomy::Agent::ToolDefinitionSet (class)">ToolDefinitionSet</a></span></span><span class='period'>.</span><span class='id identifier rubyid_build'><span class='object_link'><a href="ToolDefinitionSet.html#build-class_method" title="Phronomy::Agent::ToolDefinitionSet.build (method)">build</a></span></span><span class='lparen'>(</span>
+    <span class='ivar'>@agent</span><span class='comma'>,</span>
+    <span class='label'>additional_tools:</span> <span class='id identifier rubyid_handoff_tool_classes'>handoff_tool_classes</span><span class='lparen'>(</span><span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
+  <span class='rparen'>)</span>
   <span class='id identifier rubyid_system_text'>system_text</span> <span class='op'>=</span> <span class='id identifier rubyid_build_system_text'>build_system_text</span><span class='lparen'>(</span><span class='id identifier rubyid_input'>input</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_hook_candidates'>hook_candidates</span> <span class='op'>=</span> <span class='id identifier rubyid_normalize_candidates'>normalize_candidates</span><span class='lparen'>(</span><span class='id identifier rubyid_patch'>patch</span><span class='period'>.</span><span class='id identifier rubyid_segment_candidates'>segment_candidates</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_input_ref'>input_ref</span> <span class='op'>=</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>current_input_ref</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
   <span class='id identifier rubyid_current_input'>current_input</span> <span class='op'>=</span> <span class='ivar'>@persistence</span><span class='period'>.</span><span class='id identifier rubyid_contents'>contents</span><span class='period'>.</span><span class='id identifier rubyid_fetch_text'>fetch_text</span><span class='lparen'>(</span><span class='id identifier rubyid_input_ref'>input_ref</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_excluded'>excluded</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_metadata'>metadata</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>current_input_record_id</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span>
+  <span class='id identifier rubyid_handoff_context'>handoff_context</span> <span class='op'>=</span> <span class='id identifier rubyid_config'>config</span><span class='lbracket'>[</span><span class='symbol'>:phronomy_handoff_context</span><span class='rbracket'>]</span>
 
   <span class='id identifier rubyid_base_segments'>base_segments</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
   <span class='kw'>unless</span> <span class='id identifier rubyid_system_text'>system_text</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='period'>.</span><span class='id identifier rubyid_empty?'>empty?</span>
     <span class='id identifier rubyid_base_segments'>base_segments</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_text_segment'>text_segment</span><span class='lparen'>(</span><span class='symbol'>:instruction</span><span class='comma'>,</span> <span class='symbol'>:system</span><span class='comma'>,</span> <span class='id identifier rubyid_system_text'>system_text</span><span class='rparen'>)</span>
   <span class='kw'>end</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_handoff_context'>handoff_context</span>
+    <span class='id identifier rubyid_base_segments'>base_segments</span> <span class='op'>&lt;&lt;</span> <span class='id identifier rubyid_text_segment'>text_segment</span><span class='lparen'>(</span>
+      <span class='symbol'>:handoff_responsibility</span><span class='comma'>,</span>
+      <span class='symbol'>:user</span><span class='comma'>,</span>
+      <span class='id identifier rubyid_handoff_context'>handoff_context</span><span class='period'>.</span><span class='id identifier rubyid_responsibility'>responsibility</span><span class='comma'>,</span>
+      <span class='label'>metadata:</span> <span class='lbrace'>{</span>
+        <span class='const'><span class='object_link'><a href="#SEGMENT_ORIGIN_METADATA_KEY-constant" title="Phronomy::Agent::ContextAssembler::SEGMENT_ORIGIN_METADATA_KEY (constant)">SEGMENT_ORIGIN_METADATA_KEY</a></span></span> <span class='op'>=&gt;</span> <span class='const'><span class='object_link'><a href="#HANDOFF_CONTEXT_ORIGIN-constant" title="Phronomy::Agent::ContextAssembler::HANDOFF_CONTEXT_ORIGIN (constant)">HANDOFF_CONTEXT_ORIGIN</a></span></span>
+      <span class='rbrace'>}</span>
+    <span class='rparen'>)</span>
+  <span class='kw'>end</span>
+
+  <span class='id identifier rubyid_current_input_metadata'>current_input_metadata</span> <span class='op'>=</span> <span class='lbrace'>{</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>source_agent_id</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_agent_root'>agent_root</span><span class='period'>.</span><span class='id identifier rubyid_agent_id'>agent_id</span><span class='comma'>,</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>source_execution_id</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_execution'>execution</span><span class='period'>.</span><span class='id identifier rubyid_execution_id'>execution_id</span><span class='comma'>,</span>
+    <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>handoff_policy_category</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>current_request</span><span class='tstring_end'>&quot;</span></span>
+  <span class='rbrace'>}</span>
 
   <span class='id identifier rubyid_assemble'>assemble</span><span class='lparen'>(</span>
     <span class='label'>agent_root:</span> <span class='id identifier rubyid_agent_root'>agent_root</span><span class='comma'>,</span>
@@ -470,8 +533,20 @@
     <span class='label'>excluded_record_ids:</span> <span class='id identifier rubyid_excluded'>excluded</span><span class='comma'>,</span>
     <span class='label'>base_segments:</span> <span class='id identifier rubyid_base_segments'>base_segments</span><span class='comma'>,</span>
     <span class='label'>hook_candidates:</span> <span class='id identifier rubyid_hook_candidates'>hook_candidates</span><span class='comma'>,</span>
-    <span class='label'>current_input_segment:</span> <span class='id identifier rubyid_segment'>segment</span><span class='lparen'>(</span><span class='symbol'>:current_input</span><span class='comma'>,</span> <span class='symbol'>:user</span><span class='comma'>,</span> <span class='id identifier rubyid_input_ref'>input_ref</span><span class='comma'>,</span> <span class='symbol'>:ask_argument</span><span class='rparen'>)</span><span class='comma'>,</span>
-    <span class='label'>mandatory_values:</span> <span class='lbracket'>[</span><span class='id identifier rubyid_system_text'>system_text</span><span class='comma'>,</span> <span class='id identifier rubyid_current_input'>current_input</span><span class='comma'>,</span> <span class='id identifier rubyid_tool_set'>tool_set</span><span class='period'>.</span><span class='id identifier rubyid_definitions'>definitions</span><span class='rbracket'>]</span>
+    <span class='label'>inbound_handoff_context:</span> <span class='id identifier rubyid_handoff_context'>handoff_context</span><span class='comma'>,</span>
+    <span class='label'>current_input_segment:</span> <span class='id identifier rubyid_segment'>segment</span><span class='lparen'>(</span>
+      <span class='symbol'>:current_input</span><span class='comma'>,</span>
+      <span class='symbol'>:user</span><span class='comma'>,</span>
+      <span class='id identifier rubyid_input_ref'>input_ref</span><span class='comma'>,</span>
+      <span class='symbol'>:ask_argument</span><span class='comma'>,</span>
+      <span class='label'>metadata:</span> <span class='id identifier rubyid_current_input_metadata'>current_input_metadata</span>
+    <span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='label'>mandatory_values:</span> <span class='lbracket'>[</span>
+      <span class='id identifier rubyid_system_text'>system_text</span><span class='comma'>,</span>
+      <span class='id identifier rubyid_handoff_context'>handoff_context</span><span class='op'>&amp;.</span><span class='id identifier rubyid_responsibility'>responsibility</span><span class='comma'>,</span>
+      <span class='id identifier rubyid_current_input'>current_input</span><span class='comma'>,</span>
+      <span class='id identifier rubyid_tool_set'>tool_set</span><span class='period'>.</span><span class='id identifier rubyid_definitions'>definitions</span>
+    <span class='rbracket'>]</span><span class='period'>.</span><span class='id identifier rubyid_compact'>compact</span>
   <span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
@@ -484,7 +559,7 @@
 </div>
 
       <div id="footer">
-  Generated on Mon Aug 17 10:36:21 2026 by
+  Generated on Sat Aug 22 13:29:30 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

@@ -104,40 +104,8 @@
 
 <h2>Overview</h2><div class="docstring">
   <div class="discussion">
-    <p>Represents a transfer edge from one agent to another.
-Creates an anonymous Phronomy::Agent::Context::Capability::Base subclass that the source agent
-exposes to the LLM as a <code>transfer_to_&lt;name&gt;</code> function.
-The tool's execute method returns a sentinel string that Runner uses to
-detect which target agent to route to next.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-  <div class="examples">
-    <h4 class="tag_title">Examples:</h4>
-    
-      
-      <pre class="example code"><code><span class='id identifier rubyid_billing'>billing</span> <span class='op'>=</span> <span class='const'>BillingAgent</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span>
-<span class='id identifier rubyid_handoff'>handoff</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../MultiAgent.html" title="Phronomy::MultiAgent (module)">MultiAgent</a></span></span><span class='op'>::</span><span class='const'>Handoff</span><span class='period'>.</span><span class='id identifier rubyid_new'><span class='object_link'><a href="#initialize-instance_method" title="Phronomy::MultiAgent::Handoff#initialize (method)">new</a></span></span><span class='lparen'>(</span><span class='label'>target_agent:</span> <span class='id identifier rubyid_billing'>billing</span><span class='rparen'>)</span>
-<span class='id identifier rubyid_tool_class'>tool_class</span> <span class='op'>=</span> <span class='id identifier rubyid_handoff'>handoff</span><span class='period'>.</span><span class='id identifier rubyid_to_tool_class'>to_tool_class</span></code></pre>
-    
-  </div>
-
-
-</div>
-  
-    <h2>
-      Constant Summary
-      <small><a href="#" class="constants_summary_toggle">collapse</a></small>
-    </h2>
-
-    <dl class="constants">
-      
-        <dt id="SENTINEL_PREFIX-constant" class="">SENTINEL_PREFIX =
-          <div class="docstring">
-  <div class="discussion">
-    <p>Prefix embedded in tool results so Runner can detect handoffs.</p>
+    <p>Application-defined semantic edge for transferring active responsibility
+from one live Agent instance to another.</p>
 
   </div>
 </div>
@@ -145,12 +113,6 @@ detect which target agent to route to next.</p>
   
 
 </div>
-        </dt>
-        <dd><pre class="code"><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>__PHRONOMY_HANDOFF__</span><span class='tstring_end'>&quot;</span></span></pre></dd>
-      
-    </dl>
-  
-
 
 
 
@@ -187,6 +149,60 @@ detect which target agent to route to next.</p>
       <li class="public ">
   <span class="summary_signature">
     
+      <a href="#policy-instance_method" title="#policy (instance method)">#<strong>policy</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute policy.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#source_agent-instance_method" title="#source_agent (instance method)">#<strong>source_agent</strong>  &#x21d2; Object </a>
+    
+
+    
+  </span>
+  
+  
+  
+    
+      <span class="note title readonly">readonly</span>
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute source_agent.</p></div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
       <a href="#target_agent-instance_method" title="#target_agent (instance method)">#<strong>target_agent</strong>  &#x21d2; Object </a>
     
 
@@ -211,33 +227,6 @@ detect which target agent to route to next.</p>
 </li>
 
     
-      <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#tool_name-instance_method" title="#tool_name (instance method)">#<strong>tool_name</strong>  &#x21d2; Object </a>
-    
-
-    
-  </span>
-  
-  
-  
-    
-      <span class="note title readonly">readonly</span>
-    
-    
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Returns the value of attribute tool_name.</p></div></span>
-  
-</li>
-
-    
   </ul>
 
 
@@ -254,7 +243,7 @@ detect which target agent to route to next.</p>
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(target_agent:, description: nil)  &#x21d2; Handoff </a>
+      <a href="#initialize-instance_method" title="#initialize (instance method)">#<strong>initialize</strong>(source_agent:, target_agent:, policy: HandoffPolicy.default, description: nil)  &#x21d2; Handoff </a>
     
 
     
@@ -275,50 +264,6 @@ detect which target agent to route to next.</p>
 </li>
 
       
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#sentinel-instance_method" title="#sentinel (instance method)">#<strong>sentinel</strong>  &#x21d2; String </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>The sentinel string embedded in the tool result.</p></div></span>
-  
-</li>
-
-      
-        <li class="public ">
-  <span class="summary_signature">
-    
-      <a href="#to_tool_class-instance_method" title="#to_tool_class (instance method)">#<strong>to_tool_class</strong>  &#x21d2; Class&lt;Phronomy::Agent::Context::Capability::Base&gt; </a>
-    
-
-    
-  </span>
-  
-  
-  
-  
-  
-  
-  
-
-  
-    <span class="summary_desc"><div class='inline'><p>Builds an anonymous Phronomy::Agent::Context::Capability::Base subclass for this handoff.</p></div></span>
-  
-</li>
-
-      
     </ul>
     
   
@@ -329,7 +274,7 @@ detect which target agent to route to next.</p>
     <div class="method_details first">
   <h3 class="signature first" id="initialize-instance_method">
   
-    #<strong>initialize</strong>(target_agent:, description: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::MultiAgent::Handoff (class)">Handoff</a></span></tt> 
+    #<strong>initialize</strong>(source_agent:, target_agent:, policy: HandoffPolicy.default, description: nil)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::MultiAgent::Handoff (class)">Handoff</a></span></tt> 
   
 
   
@@ -342,41 +287,7 @@ detect which target agent to route to next.</p>
   </div>
 </div>
 <div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>target_agent</span>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="../Agent/Base.html" title="Phronomy::Agent::Base (class)">Phronomy::Agent::Base</a></span></tt>)</span>
-      
-      
-      
-        &mdash;
-        <div class='inline'><p>the agent to hand off to</p></div>
-      
-    </li>
-  
-    <li>
-      
-        <span class='name'>description</span>
-      
-      
-        <span class='type'>(<tt>String</tt>, <tt>nil</tt>)</span>
-      
-      
-        <em class="default">(defaults to: <tt>nil</tt>)</em>
-      
-      
-        &mdash;
-        <div class='inline'><p>overrides the auto-generated tool description</p></div>
-      
-    </li>
-  
-</ul>
-
 
 </div><table class="source_code">
   <tr>
@@ -384,25 +295,47 @@ detect which target agent to route to next.</p>
       <pre class="lines">
 
 
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
 26
 27
 28
 29
 30
-31
-32
-33</pre>
+31</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/handoff.rb', line 26</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/handoff.rb', line 13</span>
 
-<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>target_agent:</span><span class='comma'>,</span> <span class='label'>description:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+<span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='label'>source_agent:</span><span class='comma'>,</span> <span class='label'>target_agent:</span><span class='comma'>,</span> <span class='label'>policy:</span> <span class='const'><span class='object_link'><a href="HandoffPolicy.html" title="Phronomy::MultiAgent::HandoffPolicy (class)">HandoffPolicy</a></span></span><span class='period'>.</span><span class='id identifier rubyid_default'><span class='object_link'><a href="HandoffPolicy.html#default-class_method" title="Phronomy::MultiAgent::HandoffPolicy.default (method)">default</a></span></span><span class='comma'>,</span> <span class='label'>description:</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='kw'>unless</span> <span class='id identifier rubyid_source_agent'>source_agent</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/Base.html" title="Phronomy::Agent::Base (class)">Base</a></span></span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span>
+      <span class='id identifier rubyid_target_agent'>target_agent</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/Base.html" title="Phronomy::Agent::Base (class)">Base</a></span></span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>source_agent and target_agent must be Agent::Base instances</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+  <span class='kw'>if</span> <span class='id identifier rubyid_source_agent'>source_agent</span><span class='period'>.</span><span class='id identifier rubyid_equal?'>equal?</span><span class='lparen'>(</span><span class='id identifier rubyid_target_agent'>target_agent</span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Handoff source_agent and target_agent must be different instances</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+  <span class='kw'>unless</span> <span class='id identifier rubyid_policy'>policy</span><span class='period'>.</span><span class='id identifier rubyid_is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="HandoffPolicy.html" title="Phronomy::MultiAgent::HandoffPolicy (class)">HandoffPolicy</a></span></span><span class='rparen'>)</span>
+    <span class='id identifier rubyid_raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>policy must be a Phronomy::MultiAgent::HandoffPolicy</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+
+  <span class='ivar'>@source_agent</span> <span class='op'>=</span> <span class='id identifier rubyid_source_agent'>source_agent</span>
   <span class='ivar'>@target_agent</span> <span class='op'>=</span> <span class='id identifier rubyid_target_agent'>target_agent</span>
-  <span class='id identifier rubyid_klass_name'>klass_name</span> <span class='op'>=</span> <span class='id identifier rubyid_target_agent'>target_agent</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='op'>&amp;.</span><span class='id identifier rubyid_split'>split</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>::</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='op'>&amp;.</span><span class='id identifier rubyid_last'>last</span> <span class='op'>||</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Agent</span><span class='tstring_end'>&quot;</span></span>
-  <span class='comment'># Use a UUID so that two handoffs targeting the same class remain distinct.
-</span>  <span class='ivar'>@uuid</span> <span class='op'>=</span> <span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_uuid'>uuid</span>
-  <span class='ivar'>@tool_name</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>transfer_to_</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_snake_case'>snake_case</span><span class='lparen'>(</span><span class='id identifier rubyid_klass_name'>klass_name</span><span class='rparen'>)</span><span class='embexpr_end'>}</span><span class='tstring_content'>_</span><span class='embexpr_beg'>#{</span><span class='ivar'>@uuid</span><span class='period'>.</span><span class='id identifier rubyid_delete'>delete</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='lbracket'>[</span><span class='int'>0</span><span class='comma'>,</span> <span class='int'>8</span><span class='rbracket'>]</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
-  <span class='ivar'>@description</span> <span class='op'>=</span> <span class='id identifier rubyid_description'>description</span> <span class='op'>||</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Transfer the conversation to </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_klass_name'>klass_name</span><span class='embexpr_end'>}</span><span class='tstring_content'>.</span><span class='tstring_end'>&quot;</span></span>
+  <span class='ivar'>@policy</span> <span class='op'>=</span> <span class='id identifier rubyid_policy'>policy</span>
+  <span class='ivar'>@description</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='id identifier rubyid_description'>description</span> <span class='op'>||</span> <span class='id identifier rubyid_default_description'>default_description</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_to_s'>to_s</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
+  <span class='ivar'>@transport_key</span> <span class='op'>=</span> <span class='const'>SecureRandom</span><span class='period'>.</span><span class='id identifier rubyid_hex'>hex</span><span class='lparen'>(</span><span class='int'>8</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span>
+  <span class='id identifier rubyid_freeze'>freeze</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -440,15 +373,97 @@ detect which target agent to route to next.</p>
       <pre class="lines">
 
 
-21
-22
-23</pre>
+10
+11
+12</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/handoff.rb', line 21</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/handoff.rb', line 10</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_description'>description</span>
   <span class='ivar'>@description</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="policy-instance_method">
+  
+    #<strong>policy</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the value of attribute policy.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+10
+11
+12</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/handoff.rb', line 10</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_policy'>policy</span>
+  <span class='ivar'>@policy</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <div class="method_details ">
+  <h3 class="signature " id="source_agent-instance_method">
+  
+    #<strong>source_agent</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
+  
+
+  
+
+  
+</h3><div class="docstring">
+  <div class="discussion">
+    <p>Returns the value of attribute source_agent.</p>
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+10
+11
+12</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/handoff.rb', line 10</span>
+
+<span class='kw'>def</span> <span class='id identifier rubyid_source_agent'>source_agent</span>
+  <span class='ivar'>@source_agent</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -481,12 +496,12 @@ detect which target agent to route to next.</p>
       <pre class="lines">
 
 
-21
-22
-23</pre>
+10
+11
+12</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/handoff.rb', line 21</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/handoff.rb', line 10</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_target_agent'>target_agent</span>
   <span class='ivar'>@target_agent</span>
@@ -496,180 +511,13 @@ detect which target agent to route to next.</p>
 </table>
 </div>
     
-      
-      <span id=""></span>
-      <div class="method_details ">
-  <h3 class="signature " id="tool_name-instance_method">
-  
-    #<strong>tool_name</strong>  &#x21d2; <tt>Object</tt>  <span class="extras">(readonly)</span>
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Returns the value of attribute tool_name.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-21
-22
-23</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/handoff.rb', line 21</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_tool_name'>tool_name</span>
-  <span class='ivar'>@tool_name</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
   </div>
 
-
-  <div id="instance_method_details" class="method_details_list">
-    <h2>Instance Method Details</h2>
-
-    
-      <div class="method_details first">
-  <h3 class="signature first" id="sentinel-instance_method">
-  
-    #<strong>sentinel</strong>  &#x21d2; <tt>String</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>The sentinel string embedded in the tool result.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>String</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-53
-54
-55</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/handoff.rb', line 53</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_sentinel'>sentinel</span>
-  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='const'><span class='object_link'><a href="#SENTINEL_PREFIX-constant" title="Phronomy::MultiAgent::Handoff::SENTINEL_PREFIX (constant)">SENTINEL_PREFIX</a></span></span><span class='embexpr_end'>}</span><span class='tstring_content'>:</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_target_agent'>target_agent</span><span class='period'>.</span><span class='id identifier rubyid_class'>class</span><span class='period'>.</span><span class='id identifier rubyid_name'>name</span><span class='embexpr_end'>}</span><span class='tstring_content'>:</span><span class='embexpr_beg'>#{</span><span class='ivar'>@uuid</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-      <div class="method_details ">
-  <h3 class="signature " id="to_tool_class-instance_method">
-  
-    #<strong>to_tool_class</strong>  &#x21d2; <tt>Class&lt;<span class='object_link'><a href="../Agent/Context/Capability/Base.html" title="Phronomy::Agent::Context::Capability::Base (class)">Phronomy::Agent::Context::Capability::Base</a></span>&gt;</tt> 
-  
-
-  
-
-  
-</h3><div class="docstring">
-  <div class="discussion">
-    <p>Builds an anonymous Phronomy::Agent::Context::Capability::Base subclass for this handoff.</p>
-
-  </div>
-</div>
-<div class="tags">
-  
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Class&lt;<span class='object_link'><a href="../Agent/Context/Capability/Base.html" title="Phronomy::Agent::Context::Capability::Base (class)">Phronomy::Agent::Context::Capability::Base</a></span>&gt;</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-</div><table class="source_code">
-  <tr>
-    <td>
-      <pre class="lines">
-
-
-38
-39
-40
-41
-42
-43
-44
-45
-46
-47
-48</pre>
-    </td>
-    <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/multi_agent/handoff.rb', line 38</span>
-
-<span class='kw'>def</span> <span class='id identifier rubyid_to_tool_class'>to_tool_class</span>
-  <span class='id identifier rubyid_sentinel_value'>sentinel_value</span> <span class='op'>=</span> <span class='id identifier rubyid_sentinel'>sentinel</span>
-  <span class='id identifier rubyid_tn'>tn</span> <span class='op'>=</span> <span class='id identifier rubyid_tool_name'>tool_name</span>
-  <span class='id identifier rubyid_desc'>desc</span> <span class='op'>=</span> <span class='id identifier rubyid_description'>description</span>
-  <span class='const'>Class</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span><span class='const'><span class='object_link'><a href="../../Phronomy.html" title="Phronomy (module)">Phronomy</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent.html" title="Phronomy::Agent (module)">Agent</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/Context.html" title="Phronomy::Agent::Context (module)">Context</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/Context/Capability.html" title="Phronomy::Agent::Context::Capability (module)">Capability</a></span></span><span class='op'>::</span><span class='const'><span class='object_link'><a href="../Agent/Context/Capability/Base.html" title="Phronomy::Agent::Context::Capability::Base (class)">Base</a></span></span><span class='rparen'>)</span> <span class='kw'>do</span>
-    <span class='id identifier rubyid_tool_name'>tool_name</span> <span class='id identifier rubyid_tn'>tn</span>
-    <span class='id identifier rubyid_description'>description</span> <span class='id identifier rubyid_desc'>desc</span>
-    <span class='id identifier rubyid_execution_mode'>execution_mode</span> <span class='symbol'>:cooperative</span>
-    <span class='id identifier rubyid_define_method'>define_method</span><span class='lparen'>(</span><span class='symbol'>:execute</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='id identifier rubyid_sentinel_value'>sentinel_value</span> <span class='rbrace'>}</span>
-  <span class='kw'>end</span>
-<span class='kw'>end</span></pre>
-    </td>
-  </tr>
-</table>
-</div>
-    
-  </div>
 
 </div>
 
       <div id="footer">
-  Generated on Mon Aug 17 10:36:20 2026 by
+  Generated on Sat Aug 22 13:29:29 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

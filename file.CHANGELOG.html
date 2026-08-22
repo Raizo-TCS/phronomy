@@ -67,6 +67,44 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <a href="docs/changelog/0.14-and-earlier.md"><code>docs/changelog/0.14-and-earlier.md</code></a>.</p>
 <hr />
 <h2 id="_Unreleased_">[Unreleased]</h2>
+<h3 id="Semantic_Multi_Agent_Handoff_and_shared_Selection">Semantic Multi-Agent Handoff and shared Selection</h3>
+<h4 id="Added">Added</h4>
+<ul>
+<li><code>Phronomy::MultiAgent::HandoffPolicy</code> with required, forbidden, and selectable
+transfer rules for current request, history, Knowledge, and Tool exchanges.</li>
+<li><code>Phronomy::MultiAgent::Runner.new(main_agent:, handoffs:)</code> as the public
+semantic Handoff coordinator.</li>
+<li>Typed private Handoff request/context/provenance values, explicit
+<code>AgentExecution</code> <code>:handed_off</code> terminal semantics, and Runtime/EventLoop-owned
+active-Agent coordination.</li>
+<li>Shared <code>Phronomy::Agent::Selection::Candidate</code>, <code>Unit</code>, <code>Constraint</code>, and
+validation machinery for Context and Handoff selection.</li>
+<li>ADR-016 and the 0.22 migration guide for the semantic Handoff clean break.</li>
+</ul>
+<h4 id="Changed">Changed</h4>
+<ul>
+<li>Handoff is now an explicit Source-to-Target responsibility transfer rather
+than sentinel Tool-result routing. Generated Handoff Tool names are private
+transport details only.</li>
+<li>Handoff Context is projected from the effective Source Manifest, materialized
+immutably with provenance, and may cross Agents backed by different Persistence
+adapters without adopting Source material into Target Journal/Knowledge.</li>
+<li>Target Context Policy remains the final per-LLM-call selection authority;
+transferred material enters Target assembly as selectable Context candidates.</li>
+<li>The active Target persists across user turns and Runner-facade recreation while
+the same main Agent instance and Runtime remain alive. Runtime/process reset
+intentionally does not restore active-Agent continuation.</li>
+<li>Context assembly policy version is now <code>7</code> for the shared Selection and
+Handoff-Context contract.</li>
+</ul>
+<h4 id="Removed">Removed</h4>
+<ul>
+<li><code>Phronomy::Agent::Runner</code>, the <code>agents:</code> / <code>routes:</code> Runner API, sentinel-map
+routing, and Agent-owned <code>_add_handoff_tool</code> / <code>_handoff_tools</code> mutation.</li>
+<li><code>Phronomy::Agent::ContextCandidate</code> and
+<code>Phronomy::Agent::ContextSelectionUnit</code>; internal callers use the shared
+<code>Agent::Selection</code> model without compatibility aliases.</li>
+</ul>
 <h3 id="Unified_Persistence_and_durable_state_ownership">Unified Persistence and durable-state ownership</h3>
 <h4 id="Added">Added</h4>
 <ul>
@@ -183,8 +221,8 @@ or a specialized Tool that starts another Phronomy asynchronous lifecycle and
 returns a completion handle immediately.</li>
 <li><code>Tool#call_async</code> for ordinary cooperative Tools no longer consumes a
 OffloadPool worker. <code>:offloaded</code> remains the worker-pool route.</li>
-<li>Framework-owned short in-memory Tools (handoff sentinels, TeamCoordinator
-queue controls, and SharedState store access) explicitly declare
+<li>Framework-owned short in-memory Tools (TeamCoordinator queue controls and
+SharedState store access) explicitly declare
 <code>execution_mode :cooperative</code> instead of using the blocking-I/O default.</li>
 <li>MultiAgent fan-out uses a FanOut FSMSession rather than per-child OS Threads.</li>
 <li><code>TimerQueue</code> is driven by EventLoop and owns no Thread.</li>
@@ -221,7 +259,7 @@ mandatory system context.</li>
 transcript/Knowledge lifecycle semantics.</li>
 <li>Active Context tests, integration fixtures, benchmarks, mutation subjects,
 design documents, and API snapshots now describe the canonical
-Journal -&gt; ContextCandidate -&gt; Context Policy -&gt; Manifest architecture.</li>
+Journal -&gt; Selection::Candidate -&gt; Context Policy -&gt; Manifest architecture.</li>
 </ul>
 <h4 id="Removed">Removed</h4>
 <ul>
@@ -500,7 +538,7 @@ for work that can only be dispatched by that same EventLoop.</li>
 </ul></div></div>
 
       <div id="footer">
-  Generated on Mon Aug 17 10:36:18 2026 by
+  Generated on Sat Aug 22 13:29:28 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

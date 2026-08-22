@@ -119,16 +119,17 @@
         <dt id="TERMINAL_STATUSES-constant" class="">TERMINAL_STATUSES =
           
         </dt>
-        <dd><pre class="code"><span class='qsymbols_beg'>%i[</span><span class='tstring_content'>completed</span><span class='words_sep'> </span><span class='tstring_content'>failed</span><span class='words_sep'> </span><span class='tstring_content'>cancelled</span><span class='words_sep'> </span><span class='tstring_content'>rejected</span><span class='words_sep'> </span><span class='tstring_content'>blocked</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
+        <dd><pre class="code"><span class='qsymbols_beg'>%i[</span><span class='tstring_content'>completed</span><span class='words_sep'> </span><span class='tstring_content'>handed_off</span><span class='words_sep'> </span><span class='tstring_content'>failed</span><span class='words_sep'> </span><span class='tstring_content'>cancelled</span><span class='words_sep'> </span><span class='tstring_content'>rejected</span><span class='words_sep'> </span><span class='tstring_content'>blocked</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
       
         <dt id="TRANSITIONS-constant" class="">TRANSITIONS =
           
         </dt>
         <dd><pre class="code"><span class='lbrace'>{</span>
   <span class='label'>preparing:</span> <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>preparing</span><span class='words_sep'> </span><span class='tstring_content'>active</span><span class='words_sep'> </span><span class='tstring_content'>failed</span><span class='words_sep'> </span><span class='tstring_content'>cancelled</span><span class='words_sep'> </span><span class='tstring_content'>blocked</span><span class='tstring_end'>]</span></span><span class='comma'>,</span>
-  <span class='label'>active:</span> <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>active</span><span class='words_sep'> </span><span class='tstring_content'>suspended</span><span class='words_sep'> </span><span class='tstring_content'>completed</span><span class='words_sep'> </span><span class='tstring_content'>failed</span><span class='words_sep'> </span><span class='tstring_content'>cancelled</span><span class='words_sep'> </span><span class='tstring_content'>rejected</span><span class='words_sep'> </span><span class='tstring_content'>blocked</span><span class='tstring_end'>]</span></span><span class='comma'>,</span>
+  <span class='label'>active:</span> <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>active</span><span class='words_sep'> </span><span class='tstring_content'>suspended</span><span class='words_sep'> </span><span class='tstring_content'>completed</span><span class='words_sep'> </span><span class='tstring_content'>handed_off</span><span class='words_sep'> </span><span class='tstring_content'>failed</span><span class='words_sep'> </span><span class='tstring_content'>cancelled</span><span class='words_sep'> </span><span class='tstring_content'>rejected</span><span class='words_sep'> </span><span class='tstring_content'>blocked</span><span class='tstring_end'>]</span></span><span class='comma'>,</span>
   <span class='label'>suspended:</span> <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>suspended</span><span class='words_sep'> </span><span class='tstring_content'>active</span><span class='words_sep'> </span><span class='tstring_content'>failed</span><span class='words_sep'> </span><span class='tstring_content'>cancelled</span><span class='tstring_end'>]</span></span><span class='comma'>,</span>
   <span class='label'>completed:</span> <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>completed</span><span class='tstring_end'>]</span></span><span class='comma'>,</span>
+  <span class='label'>handed_off:</span> <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>handed_off</span><span class='tstring_end'>]</span></span><span class='comma'>,</span>
   <span class='label'>failed:</span> <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>failed</span><span class='tstring_end'>]</span></span><span class='comma'>,</span>
   <span class='label'>cancelled:</span> <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>cancelled</span><span class='tstring_end'>]</span></span><span class='comma'>,</span>
   <span class='label'>rejected:</span> <span class='qsymbols_beg'>%i[</span><span class='tstring_content'>rejected</span><span class='tstring_end'>]</span></span><span class='comma'>,</span>
@@ -165,7 +166,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#from_h-class_method" title="from_h (class method)">.<strong>from_h</strong>(hash)  &#x21d2; AgentExecution </a>
+      <a href="#from_h-class_method" title="from_h (class method)">.<strong>from_h</strong>(hash)  &#x21d2; Object </a>
     
 
     
@@ -179,7 +180,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Restores an execution from its canonical durable representation.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -287,7 +288,7 @@
         <li class="public ">
   <span class="summary_signature">
     
-      <a href="#to_h-instance_method" title="#to_h (instance method)">#<strong>to_h</strong>  &#x21d2; Hash{String =&gt; Object} </a>
+      <a href="#to_h-instance_method" title="#to_h (instance method)">#<strong>to_h</strong>  &#x21d2; Object </a>
     
 
     
@@ -301,7 +302,7 @@
   
 
   
-    <span class="summary_desc"><div class='inline'><p>Returns the canonical durable representation of this execution.</p></div></span>
+    <span class="summary_desc"><div class='inline'></div></span>
   
 </li>
 
@@ -372,7 +373,6 @@
       <pre class="lines">
 
 
-53
 54
 55
 56
@@ -385,10 +385,11 @@
 63
 64
 65
-66</pre>
+66
+67</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution.rb', line 53</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution.rb', line 54</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_initialize'>initialize</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_attributes'>attributes</span><span class='rparen'>)</span>
   <span class='const'><span class='object_link'><a href="#ATTRIBUTES-constant" title="Phronomy::Agent::AgentExecution::ATTRIBUTES (constant)">ATTRIBUTES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='op'>|</span>
@@ -419,7 +420,7 @@
       <div class="method_details first">
   <h3 class="signature first" id="from_h-class_method">
   
-    .<strong>from_h</strong>(hash)  &#x21d2; <tt><span class='object_link'><a href="" title="Phronomy::Agent::AgentExecution (class)">AgentExecution</a></span></tt> 
+    .<strong>from_h</strong>(hash)  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -427,43 +428,12 @@
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Restores an execution from its canonical durable representation.
-String and Symbol top-level keys are accepted. Nested working Journal
-records and LLM Call records are restored through their public codecs so
-storage backends do not need to know their constructor details.</p>
+    
 
   </div>
 </div>
 <div class="tags">
-  <p class="tag_title">Parameters:</p>
-<ul class="param">
   
-    <li>
-      
-        <span class='name'>hash</span>
-      
-      
-        <span class='type'>(<tt>Hash</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
-
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt><span class='object_link'><a href="" title="Phronomy::Agent::AgentExecution (class)">AgentExecution</a></span></tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
 
 </div><table class="source_code">
   <tr>
@@ -471,24 +441,24 @@ storage backends do not need to know their constructor details.</p>
       <pre class="lines">
 
 
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
 109
 110
 111
 112
-113
-114
-115
-116
-117
-118
-119
-120
-121
-122
-123</pre>
+113</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution.rb', line 109</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution.rb', line 99</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_from_h'>from_h</span><span class='lparen'>(</span><span class='id identifier rubyid_hash'>hash</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_attributes'>attributes</span> <span class='op'>=</span> <span class='const'><span class='object_link'><a href="#ATTRIBUTES-constant" title="Phronomy::Agent::AgentExecution::ATTRIBUTES (constant)">ATTRIBUTES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_to_h'><span class='object_link'><a href="#to_h-instance_method" title="Phronomy::Agent::AgentExecution#to_h (method)">to_h</a></span></span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='op'>|</span>
@@ -525,7 +495,6 @@ storage backends do not need to know their constructor details.</p>
       <pre class="lines">
 
 
-30
 31
 32
 33
@@ -546,10 +515,11 @@ storage backends do not need to know their constructor details.</p>
 48
 49
 50
-51</pre>
+51
+52</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution.rb', line 30</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution.rb', line 31</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_start'>start</span><span class='lparen'>(</span><span class='label'>agent_root:</span><span class='comma'>,</span> <span class='label'>input_record:</span><span class='comma'>,</span> <span class='label'>metadata:</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_now'>now</span> <span class='op'>=</span> <span class='const'>Time</span><span class='period'>.</span><span class='id identifier rubyid_now'>now</span><span class='period'>.</span><span class='id identifier rubyid_utc'>utc</span><span class='period'>.</span><span class='id identifier rubyid_iso8601'>iso8601</span><span class='lparen'>(</span><span class='int'>6</span><span class='rparen'>)</span>
@@ -621,12 +591,12 @@ storage backends do not need to know their constructor details.</p>
       <pre class="lines">
 
 
-68
 69
-70</pre>
+70
+71</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution.rb', line 68</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution.rb', line 69</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_active?'>active?</span>
   <span class='const'><span class='object_link'><a href="#ACTIVE_STATUSES-constant" title="Phronomy::Agent::AgentExecution::ACTIVE_STATUSES (constant)">ACTIVE_STATUSES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_status'>status</span><span class='rparen'>)</span>
@@ -673,12 +643,12 @@ storage backends do not need to know their constructor details.</p>
       <pre class="lines">
 
 
-72
 73
-74</pre>
+74
+75</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution.rb', line 72</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution.rb', line 73</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_terminal?'>terminal?</span>
   <span class='const'><span class='object_link'><a href="#TERMINAL_STATUSES-constant" title="Phronomy::Agent::AgentExecution::TERMINAL_STATUSES (constant)">TERMINAL_STATUSES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_include?'>include?</span><span class='lparen'>(</span><span class='id identifier rubyid_status'>status</span><span class='rparen'>)</span>
@@ -691,7 +661,7 @@ storage backends do not need to know their constructor details.</p>
       <div class="method_details ">
   <h3 class="signature " id="to_h-instance_method">
   
-    #<strong>to_h</strong>  &#x21d2; <tt>Hash{String =&gt; Object}</tt> 
+    #<strong>to_h</strong>  &#x21d2; <tt>Object</tt> 
   
 
   
@@ -699,26 +669,12 @@ storage backends do not need to know their constructor details.</p>
   
 </h3><div class="docstring">
   <div class="discussion">
-    <p>Returns the canonical durable representation of this execution.
-Nested JournalRecord and LLMCallRecord values are recursively encoded.</p>
+    
 
   </div>
 </div>
 <div class="tags">
   
-<p class="tag_title">Returns:</p>
-<ul class="return">
-  
-    <li>
-      
-      
-        <span class='type'>(<tt>Hash{String =&gt; Object}</tt>)</span>
-      
-      
-      
-    </li>
-  
-</ul>
 
 </div><table class="source_code">
   <tr>
@@ -726,17 +682,17 @@ Nested JournalRecord and LLMCallRecord values are recursively encoded.</p>
       <pre class="lines">
 
 
+89
+90
+91
 92
 93
 94
 95
-96
-97
-98
-99</pre>
+96</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution.rb', line 92</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution.rb', line 89</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_to_h'>to_h</span>
   <span class='const'><span class='object_link'><a href="#ATTRIBUTES-constant" title="Phronomy::Agent::AgentExecution::ATTRIBUTES (constant)">ATTRIBUTES</a></span></span><span class='period'>.</span><span class='id identifier rubyid_to_h'>to_h</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id identifier rubyid_name'>name</span><span class='op'>|</span>
@@ -766,7 +722,6 @@ Nested JournalRecord and LLMCallRecord values are recursively encoded.</p>
       <pre class="lines">
 
 
-76
 77
 78
 79
@@ -775,10 +730,11 @@ Nested JournalRecord and LLMCallRecord values are recursively encoded.</p>
 82
 83
 84
-85</pre>
+85
+86</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution.rb', line 76</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_execution.rb', line 77</span>
 
 <span class='kw'>def</span> <span class='id identifier rubyid_with'>with</span><span class='lparen'>(</span><span class='op'>**</span><span class='id identifier rubyid_changes'>changes</span><span class='rparen'>)</span>
   <span class='id identifier rubyid_next_status'>next_status</span> <span class='op'>=</span> <span class='id identifier rubyid_changes'>changes</span><span class='period'>.</span><span class='id identifier rubyid_fetch'>fetch</span><span class='lparen'>(</span><span class='symbol'>:status</span><span class='comma'>,</span> <span class='id identifier rubyid_status'>status</span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_to_sym'>to_sym</span>
@@ -800,7 +756,7 @@ Nested JournalRecord and LLMCallRecord values are recursively encoded.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Aug 17 10:36:20 2026 by
+  Generated on Sat Aug 22 13:29:29 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>

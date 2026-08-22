@@ -64,7 +64,7 @@
       <div id="content"><h1>Class: Phronomy::Agent::AgentInvocationSessionBuilder
   
   
-  <span class="private note title">Private</span>
+  
 </h1>
 <div class="box_info">
   
@@ -102,23 +102,7 @@
   
 </div>
 
-<h2>Overview</h2><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This class is part of a private API.</strong>
-  You should avoid using this class if possible, as it may be removed or be changed in the future.
-</p>
-<p>Builds FSMSession instances for AgentInvocation objects.</p>
-<p>Offloaded/provider work returns through explicit Agent-internal events.
-Entry actions start operations and return synchronously.
-Every LLM Call is prepared from a canonical Manifest and RuntimeProjection.</p>
 
-  </div>
-</div>
-<div class="tags">
-  
-
-</div>
   
     <h2>
       Constant Summary
@@ -128,20 +112,7 @@ Every LLM Call is prepared from a canonical Manifest and RuntimeProjection.</p>
     <dl class="constants">
       
         <dt id="AUTO_STATE_SET-constant" class="">AUTO_STATE_SET =
-          <div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This constant is part of a private API.</strong>
-  You should avoid using this constant if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div>
+          
         </dt>
         <dd><pre class="code"><span class='lbrace'>{</span>
   <span class='label'>idle:</span> <span class='kw'>true</span><span class='comma'>,</span>
@@ -155,60 +126,21 @@ Every LLM Call is prepared from a canonical Manifest and RuntimeProjection.</p>
 <span class='rbrace'>}</span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
       
         <dt id="DECLARED_STATES-constant" class="">DECLARED_STATES =
-          <div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This constant is part of a private API.</strong>
-  You should avoid using this constant if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div>
+          
         </dt>
         <dd><pre class="code"><span class='qsymbols_beg'>%i[</span><span class='words_sep'>
 </span><span class='words_sep'>  </span><span class='tstring_content'>idle</span><span class='words_sep'> </span><span class='tstring_content'>filtering_input</span><span class='words_sep'> </span><span class='tstring_content'>building_context</span><span class='words_sep'> </span><span class='tstring_content'>calling_llm</span><span class='words_sep'> </span><span class='tstring_content'>starting_tools</span><span class='words_sep'>
 </span><span class='words_sep'>  </span><span class='tstring_content'>evaluating_tools</span><span class='words_sep'> </span><span class='tstring_content'>waiting_for_tools</span><span class='words_sep'> </span><span class='tstring_content'>dispatching_tools</span><span class='words_sep'>
-</span><span class='words_sep'>  </span><span class='tstring_content'>recording_tool_results</span><span class='words_sep'> </span><span class='tstring_content'>suspended</span><span class='words_sep'> </span><span class='tstring_content'>output_filtering</span><span class='words_sep'> </span><span class='tstring_content'>completed</span><span class='words_sep'> </span><span class='tstring_content'>blocked</span><span class='words_sep'> </span><span class='tstring_content'>failed</span><span class='words_sep'>
+</span><span class='words_sep'>  </span><span class='tstring_content'>recording_tool_results</span><span class='words_sep'> </span><span class='tstring_content'>suspended</span><span class='words_sep'> </span><span class='tstring_content'>output_filtering</span><span class='words_sep'> </span><span class='tstring_content'>handed_off</span><span class='words_sep'> </span><span class='tstring_content'>completed</span><span class='words_sep'> </span><span class='tstring_content'>blocked</span><span class='words_sep'> </span><span class='tstring_content'>failed</span><span class='words_sep'>
 </span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
       
         <dt id="WAIT_STATES-constant" class="">WAIT_STATES =
-          <div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This constant is part of a private API.</strong>
-  You should avoid using this constant if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div>
+          
         </dt>
         <dd><pre class="code"><span class='qsymbols_beg'>%i[</span><span class='tstring_content'>suspended</span><span class='tstring_end'>]</span></span><span class='period'>.</span><span class='id identifier rubyid_freeze'>freeze</span></pre></dd>
       
         <dt id="TOOL_EVENTS-constant" class="">TOOL_EVENTS =
-          <div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This constant is part of a private API.</strong>
-  You should avoid using this constant if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div>
+          
         </dt>
         <dd><pre class="code"><span class='qsymbols_beg'>%i[</span><span class='words_sep'>
 </span><span class='words_sep'>  </span><span class='tstring_content'>tool_authorized</span><span class='words_sep'>
@@ -250,7 +182,7 @@ Every LLM Call is prepared from a canonical Manifest and RuntimeProjection.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -272,7 +204,7 @@ Every LLM Call is prepared from a canonical Manifest and RuntimeProjection.</p>
   
   
   
-  <span class="private note title">private</span>
+  
 
   
     <span class="summary_desc"><div class='inline'></div></span>
@@ -299,25 +231,19 @@ Every LLM Call is prepared from a canonical Manifest and RuntimeProjection.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
+34
+35
+36
+37
+38
+39
+40
 41
 42
 43
@@ -331,21 +257,10 @@ Every LLM Call is prepared from a canonical Manifest and RuntimeProjection.</p>
 51
 52
 53
-54
-55
-56
-57
-58
-59
-60
-61
-62
-63
-64
-65</pre>
+54</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation_session_builder.rb', line 41</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation_session_builder.rb', line 34</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_build'>build</span><span class='lparen'>(</span>
   <span class='label'>agent:</span><span class='comma'>,</span>
@@ -366,11 +281,7 @@ Every LLM Call is prepared from a canonical Manifest and RuntimeProjection.</p>
     <span class='label'>event_listener:</span> <span class='id identifier rubyid_on_event'>on_event</span><span class='comma'>,</span>
     <span class='label'>mode:</span> <span class='id identifier rubyid_mode'>mode</span>
   <span class='rparen'>)</span>
-  <span class='id identifier rubyid_build_session'>build_session</span><span class='lparen'>(</span>
-    <span class='label'>agent_invocation:</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='comma'>,</span>
-    <span class='label'>runtime:</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='comma'>,</span>
-    <span class='label'>mode:</span> <span class='id identifier rubyid_mode'>mode</span>
-  <span class='rparen'>)</span>
+  <span class='id identifier rubyid_build_session'>build_session</span><span class='lparen'>(</span><span class='label'>agent_invocation:</span> <span class='id identifier rubyid_invocation'>invocation</span><span class='comma'>,</span> <span class='label'>runtime:</span> <span class='id identifier rubyid_runtime'>runtime</span><span class='comma'>,</span> <span class='label'>mode:</span> <span class='id identifier rubyid_mode'>mode</span><span class='rparen'>)</span>
 <span class='kw'>end</span></pre>
     </td>
   </tr>
@@ -386,42 +297,29 @@ Every LLM Call is prepared from a canonical Manifest and RuntimeProjection.</p>
   
 
   
-</h3><div class="docstring">
-  <div class="discussion">
-    <p class="note private">
-  <strong>This method is part of a private API.</strong>
-  You should avoid using this method if possible, as it may be removed or be changed in the future.
-</p>
-
-
-  </div>
-</div>
-<div class="tags">
-  
-
-</div><table class="source_code">
+</h3><table class="source_code">
   <tr>
     <td>
       <pre class="lines">
 
 
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
 67
 68
-69
-70
-71
-72
-73
-74
-75
-76
-77
-78
-79
-80</pre>
+69</pre>
     </td>
     <td>
-      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation_session_builder.rb', line 67</span>
+      <pre class="code"><span class="info file"># File 'lib/phronomy/agent/agent_invocation_session_builder.rb', line 56</span>
 
 <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id identifier rubyid_build_for_resume'>build_for_resume</span><span class='lparen'>(</span>
   <span class='label'>agent_invocation:</span><span class='comma'>,</span>
@@ -447,7 +345,7 @@ Every LLM Call is prepared from a canonical Manifest and RuntimeProjection.</p>
 </div>
 
       <div id="footer">
-  Generated on Mon Aug 17 10:36:23 2026 by
+  Generated on Sat Aug 22 13:29:31 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.45 (ruby-3.3.12).
 </div>
